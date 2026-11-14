@@ -3078,10 +3078,12 @@ const HB_DESC = {};      // homebrew feature / trait name -> description
 const HB_BG = {};        // homebrew background name -> its entry
 const hbEdOk = (x, ed) => !x.ed || x.ed === "both" || x.ed === ed;
 /* Sheet effects a homebrew feature, trait, feat or background can carry: { t: type, v: amount, a: ability or skill, max } */
-const HB_FX = { ac: "Armor class", hp: "Max HP", hpLv: "Max HP per level", speed: "Speed (ft)", init: "Initiative", atk: "Weapon attack rolls", spell: "Spell save DC & spell attack", ab: "Ability score", save: "Saving throw proficiency", skill: "Skill proficiency", exp: "Skill expertise", res: "Damage resistance", imm: "Damage immunity", vul: "Damage vulnerability" };
+const HB_FX = { ac: "Armor class", hp: "Max HP", hpLv: "Max HP per level", speed: "Speed (ft)", init: "Initiative", atk: "Weapon attack rolls", spell: "Spell save DC & spell attack", ab: "Ability score", save: "Saving throw proficiency", skill: "Skill proficiency", exp: "Skill expertise", res: "Damage resistance", imm: "Damage immunity", vul: "Damage vulnerability", cimm: "Condition immunity" };
+const FX_COND = ["blinded", "charmed", "deafened", "exhaustion", "frightened", "grappled", "incapacitated", "invisible", "paralyzed", "petrified", "poisoned", "prone", "restrained", "stunned", "unconscious"];
+const fxCond = t => t === "cimm";
 const FX_DMG = ["acid", "bludgeoning", "cold", "fire", "force", "lightning", "necrotic", "piercing", "poison", "psychic", "radiant", "slashing", "thunder"];
 const fxDmg = t => t === "res" || t === "imm" || t === "vul";
-const fxNum = t => !["save", "skill", "exp", "res", "imm", "vul"].includes(t);
+const fxNum = t => !["save", "skill", "exp", "res", "imm", "vul", "cimm"].includes(t);
 const fxAb = t => t === "ab" || t === "save", fxSkill = t => t === "skill" || t === "exp";
 function fxClean(l) {
   return (Array.isArray(l) ? l : []).filter(e => e && HB_FX[e.t]).slice(0, 12).map(e => {
@@ -3090,6 +3092,7 @@ function fxClean(l) {
     if (fxAb(e.t)) o.a = AB.includes(e.a) ? e.a : "str";
     if (fxSkill(e.t)) o.a = SKILLS[e.a] ? e.a : ALL_SKILLS[0];
     if (fxDmg(e.t)) o.a = FX_DMG.includes(e.a) ? e.a : "fire";
+    if (fxCond(e.t)) o.a = FX_COND.includes(e.a) ? e.a : "charmed";
     if (e.t === "ab") o.max = clamp(parseInt(e.max) || 20, 1, 30);
     return o;
   }).filter(e => !fxNum(e.t) || e.v);
@@ -3099,7 +3102,7 @@ function fxText(e) {
   return { ac: () => `${n(e.v)} AC`, hp: () => `${n(e.v)} max HP`, hpLv: () => `${n(e.v)} max HP per level`, speed: () => `${n(e.v)} ft speed`, init: () => `${n(e.v)} initiative`,
     atk: () => `${n(e.v)} to weapon attacks`, spell: () => `${n(e.v)} spell save DC and spell attacks`, ab: () => `${n(e.v)} ${AB_NAME[e.a]} (max ${e.max || 20})`,
     save: () => `${AB_NAME[e.a]} saving throw proficiency`, skill: () => `${e.a} proficiency`, exp: () => `${e.a} expertise`,
-    res: () => `${e.a} resistance`, imm: () => `${e.a} immunity`, vul: () => `${e.a} vulnerability` }[e.t]();
+    res: () => `${e.a} resistance`, imm: () => `${e.a} immunity`, vul: () => `${e.a} vulnerability`, cimm: () => e.a === "exhaustion" ? "immune to exhaustion" : `can't be ${e.a}` }[e.t]();
 }
 const fxNote = l => { const c = fxClean(l); return c.length ? ` [On the sheet: ${c.map(fxText).join(", ")}.]` : ""; };
 // Every homebrew effect a character has: species traits and subrace, background, subclass features reached, feats taken.
@@ -3562,7 +3565,7 @@ function generateCharacter(o) {
   return {
     seed: o.seed, method: o.method, bonus: o.bonus, name: pcName, race, ed, sub, ancestry: anc, subclass, custom: !!o.custom, customData: o.custom || null, cls, bg, level: lv, align: (o.custom && o.custom.align) || r.pick(ALIGN), base, scores: sc, mods: m, rolls,
     prof, saves, skills: skillVals, hp, ac, acSrc, speed: R.speed + fxSum("speed"), init: m.dex + initBonus, initBonus, atkBonus, hbSig: fx.length ? JSON.stringify(fx) : "",
-    ...Object.fromEntries(["res", "imm", "vul"].map(t => [t, [...new Set([...fx.filter(e => e.t === t).map(e => e.a), ...(t === "res" ? traitRes(R.traits, anc, ed) : [])])].sort()])), passive: 10 + skillVals.find(s => s.s === "Perception").v,
+    ...Object.fromEntries(["res", "imm", "vul", "cimm"].map(t => [t, [...new Set([...fx.filter(e => e.t === t).map(e => e.a), ...(t === "res" ? traitRes(R.traits, anc, ed) : [])])].sort()])), passive: 10 + skillVals.find(s => s.s === "Perception").v,
     attacks, spell, feats, extras, traits: R.traits, kit: C.kit, hd: C.hd,
     trait: r.pick(PC_TRAITS), ideal: r.pick(IDEALS), bond: r.pick(BONDS), flaw: r.pick(FLAWS), hook: hk.hook, hookDetail: hk.hookDetail
   };
@@ -3581,7 +3584,7 @@ function traitRes(traits, ancestry, ed) {
 }
 const withTraitRes = c => { if (c && Array.isArray(c.traits)) c.res = [...new Set([...(c.res || []), ...traitRes(c.traits, c.ancestry, edOf(c))])].sort(); return c; };
 // Damage resistances, immunities and vulnerabilities from species traits and homebrew effects
-const defList = c => [["Resistant", c.res], ["Immune", c.imm], ["Vulnerable", c.vul]].filter(([, l]) => l && l.length);
+const defList = c => [["Resistant", c.res], ["Immune", c.imm], ["Vulnerable", c.vul], ["Condition immunities", c.cimm]].filter(([, l]) => l && l.length);
 const defHTML = c => { const L = defList(c); return L.length ? `<div class="chips" style="margin:8px 0 0">${L.map(([k, l]) => `<span class="tag ${k === "Vulnerable" ? "" : "gold"}">${k}: ${l.map(esc).join(", ")}</span>`).join("")}</div>` : ""; };
 const defText = c => defList(c).map(([k, l]) => `${k}: ${l.join(", ")}`).join(" | ");
 function sheetHTML(c) {
@@ -5920,7 +5923,7 @@ function fxHTML(path, list) {
   return `<div class="hb-fx"><span class="fx-lbl">Changes to the sheet</span>${(list || []).map((e, j) => `<div class="hb-fxrow">
       <select ${at(j, "t")} aria-label="What it changes">${o(e.t, Object.entries(HB_FX))}</select>
       ${fxNum(e.t) ? `<input type="number" ${at(j, "v")} value="${esc(e.v)}" aria-label="Amount" title="Amount (negative to reduce)">` : ""}
-      ${fxAb(e.t) ? `<select ${at(j, "a")} aria-label="Ability">${o(e.a, AB.map(a => [a, AB_FULL[a]]))}</select>` : fxSkill(e.t) ? `<select ${at(j, "a")} aria-label="Skill">${o(e.a, ALL_SKILLS.map(k => [k, k]))}</select>` : fxDmg(e.t) ? `<select ${at(j, "a")} aria-label="Damage type">${o(e.a, FX_DMG.map(k => [k, cap1(k)]))}</select>` : ""}
+      ${fxAb(e.t) ? `<select ${at(j, "a")} aria-label="Ability">${o(e.a, AB.map(a => [a, AB_FULL[a]]))}</select>` : fxSkill(e.t) ? `<select ${at(j, "a")} aria-label="Skill">${o(e.a, ALL_SKILLS.map(k => [k, k]))}</select>` : fxDmg(e.t) ? `<select ${at(j, "a")} aria-label="Damage type">${o(e.a, FX_DMG.map(k => [k, cap1(k)]))}</select>` : fxCond(e.t) ? `<select ${at(j, "a")} aria-label="Condition">${o(e.a, FX_COND.map(k => [k, cap1(k)]))}</select>` : ""}
       ${e.t === "ab" ? `<label class="hint" style="margin:0">up to <input type="number" min="1" max="30" ${at(j, "max")} value="${esc(e.max ?? 20)}" aria-label="Maximum score"></label>` : ""}
       <button class="icon-btn" type="button" data-fxdel="${path}" data-j="${j}" title="Remove effect" aria-label="Remove effect">✕</button></div>`).join("")}
     <button class="btn sm" type="button" data-fxadd="${path}">+ Add an effect</button></div>`;
@@ -5990,7 +5993,7 @@ function hbFormHTML(d) {
     else if (t.dataset.hbab) { d.abs = AB.filter(a => a === t.dataset.hbab ? t.checked : d.abs.includes(a)); }
     else if (t.dataset.fx && t.tagName === "SELECT") {
       const e = fxList(d, t.dataset.fx)[+t.dataset.j]; e[t.dataset.k] = t.value;
-      if (t.dataset.k === "t") { e.a = fxAb(e.t) ? "str" : fxSkill(e.t) ? ALL_SKILLS[0] : fxDmg(e.t) ? "fire" : undefined; if (fxNum(e.t) && !e.v) e.v = 1; renderHomebrew(); const f = $(`#hbMain [data-fx="${t.dataset.fx}"][data-j="${t.dataset.j}"][data-k="t"]`); if (f) f.focus(); }
+      if (t.dataset.k === "t") { e.a = fxAb(e.t) ? "str" : fxSkill(e.t) ? ALL_SKILLS[0] : fxDmg(e.t) ? "fire" : fxCond(e.t) ? "charmed" : undefined; if (fxNum(e.t) && !e.v) e.v = 1; renderHomebrew(); const f = $(`#hbMain [data-fx="${t.dataset.fx}"][data-j="${t.dataset.j}"][data-k="t"]`); if (f) f.focus(); }
     }
   });
   main.addEventListener("click", async e => {
@@ -6034,7 +6037,7 @@ function pcRecompute(c) {
 }
 function pcLevelTo(c, lv) {
   const n = generateCharacter({ seed: c.seed || c.id, name: c.name, race: c.race, ed: edOf(c), sub: c.sub || (c.race === "Dragonborn" && c.ancestry) || "none", ancestry: c.ancestry || undefined, cls: c.cls, bg: c.bg, level: lv, subclass: c.subclass || "none", asiPicks: c.asiPicks || undefined, method: c.method || "array", bonus: c.bonus || "flex", custom: c.customData || undefined });
-  ["level", "base", "scores", "mods", "rolls", "prof", "saves", "skills", "hp", "ac", "acSrc", "speed", "init", "passive", "attacks", "spell", "feats", "extras", "hd", "traits", "initBonus", "atkBonus", "hbSig", "res", "imm", "vul"].forEach(k => c[k] = n[k]);
+  ["level", "base", "scores", "mods", "rolls", "prof", "saves", "skills", "hp", "ac", "acSrc", "speed", "init", "passive", "attacks", "spell", "feats", "extras", "hd", "traits", "initBonus", "atkBonus", "hbSig", "res", "imm", "vul", "cimm"].forEach(k => c[k] = n[k]);
   c.hpCur = n.hp;
 }
 function renderRoster() {
