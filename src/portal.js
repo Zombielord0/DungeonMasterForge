@@ -15,6 +15,7 @@ import {
 
 const OFFLINE_KEY = "dmforge.offline";
 const CAMP_KEY = "dmforge.campaign";
+const LAST_KEY = "dmforge.lastCampaign."; // + user id: the campaign and role from last visit
 const OFFERED_KEY = "dmforge.uploadOffered.";
 const ALL_VIEWS = ["generate", "npc", "monsters", "character", "roster", "spells", "items", "map", "tracker"];
 const PLAYER_VIEWS = ["character", "roster", "spells", "items", "whispers"];
@@ -276,14 +277,16 @@ async function enter() {
   acctButton();
   if (!S.camp) { showSetup(); return; }
   localStorage.setItem(CAMP_KEY, S.camp.id);
-  closeGate();
+  try { localStorage.setItem(LAST_KEY + S.user.id, JSON.stringify(S.camp)); } catch { }
+  closeGate(); unhide();
   await startCloud();
 }
 
 /* ------------------------------------------------------------ character sync */
 async function startCloud() {
   stopLoops();
-  const localRoster = PCS.roster.slice();
+  const localRoster = S.localRoster || PCS.roster.slice();
+  S.localRoster = null;
   Portal.cloud = true;
   S.synced.clear(); S.owners.clear(); S.since = null;
   setBadgeText("Loading characters…");
@@ -643,7 +646,19 @@ async function renderWhispers() {
   if (cb && cb.type === "confirmation") toast("Email confirmed. Welcome!");
   let user = null;
   try { user = await getUser(); } catch { user = null; }
-  if (user) { await enter(); return; }
+  if (user) {
+    // Signed in: show the portal from last visit straight away, then fetch the campaign.
+    let last = null;
+    try { last = JSON.parse(localStorage.getItem(LAST_KEY + user.id) || "null"); } catch { last = null; }
+    if (last && last.id === localStorage.getItem(CAMP_KEY)) {
+      S.user = user; S.camp = last;
+      S.localRoster = PCS.roster.slice(); PCS.roster = []; RC.id = null; // this browser's own characters stay out of the shared list
+      applyMode(last); renderRoster(); setBadgeText("Loading characters…"); acctButton();
+    }
+    unhide();
+    await enter();
+    return;
+  }
   if (localStorage.getItem(OFFLINE_KEY) === "1") { unhide(); acctButton(); return; }
   showSignIn();
 })().catch(err => { console.error(err); unhide(); toast("Couldn't start sign-in. Using this browser only."); acctButton(); });
