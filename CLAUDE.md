@@ -111,6 +111,18 @@ Items 4 to 14 were merged to `main` on 2026-11-14 (commit `5d44a7b`).
       - Wild Shape picks a beast with `wildBeasts` / `beastForm`; the 2014 beast HP is `c.formHp`.
       - The short rest dialog spends hit dice (`shortRestDialog`). `recoveryDialog` handles Arcane and Natural Recovery.
     - **Fighting styles** live in `c.fightStyles`. Armor training comes from `armorTraining`.
+16. **Backgrounds by rule set** (PR #5)
+    - `BG_DATA["2014" | "2024"]` holds each background: skills, tools, languages, gear and gold, plus the feature (2014) or the abilities and Origin feat (2024).
+    - `bgList(ed)` is a rule set's list, including homebrew. `bgInfo`, `bgSkills`, `bgLines` and `bgSummary` read it.
+    - `BACKGROUNDS` is now the union of both lists, for older lookups.
+    - **2024 ability increase:** `bgAbilityBonus` gives +2/+1 to the class's best of the background's three abilities. The builder can choose instead (`custom.plus2` / `plus1`, or `custom.tri` for +1/+1/+1).
+    - **Feats and features:** the generator adds the Origin feat as `{ f: "Feat: X", bgFeat: true }`, which counts in `featsTaken`, so Alert, Tough and Lucky apply. 2014 characters get `Background: X` and the feature in their feature list.
+    - **Gear:** background gear goes into `kit`, and `startGold` goes into the coins when the kit is moved.
+    - **Older saves:** characters saved before this get `bgV: 1` in `pcEnsure`. 2024 ones also get `bgAsiLegacy`, which keeps their old +2/+1 to the class's best scores. On opening they're rebuilt once to gain the feat or feature, then `bgV` becomes 2.
+17. **Rebuilds keep the character's own choices.** Fixes an older bug where levelling up re-rolled a rolled character's scores and changed its skills.
+    - The cause: the seeded random picks for species, class and background happen only when those aren't given.
+    - `pcKeep(c)` passes the stored `base`, `rolls`, proficient skills (`keepSkills`), expertise in the order it was gained (`expertOrder`) and Skilled picks (`skilled`) into `generateCharacter`.
+    - New expertise is chosen only when a level grants it, and is trimmed when levelling down.
 
 ## How a character is built (read this before changing sheet maths)
 
@@ -139,6 +151,7 @@ From PR #5:
   - `hbAc` and `hbSpeed`: the homebrew AC and speed bonuses, kept apart so equipment AC and calculated speed can add them.
   - `subHp` and `subSpd`: subclass bonuses already applied.
 - **Stored on the sheet:** `inv[].eq`, `kitMoved`, `used`, `active`, `fx`, `fightStyles`, `acManual`, `speedManual`, `formHp`.
+- **Backgrounds:** `bgV`, `bgAsiLegacy`, `startGold` / `goldAdded`, `skilled`, `expertOrder`. `skilled` and `expertOrder` are also in the `pcLevelTo` copy list.
 
 ## Gotchas found along the way
 

@@ -701,6 +701,13 @@ nav a[data-view=whispers]{--ic:url("data:image/svg+xml,%3Csvg xmlns='http://www.
 .hdr-mini .side,.hdr-mini .mb-side{top:58px;max-height:calc(100vh - 74px)}
 @media (max-width:600px){.hdr-mini .hdr-mini-label{display:none}}
 #pcBgHint:empty{display:none}
+.ed-hide{display:none!important}
+.bg-detail{margin-top:14px;padding:12px 14px;border:1px solid #7a4415;border-radius:5px;background:rgba(240,150,60,.07)}
+.bg-detail h4{font-family:Cinzel,serif;color:var(--gold2);margin:0}
+.bg-detail dl{display:grid;grid-template-columns:max-content 1fr;gap:4px 14px;margin:0;font-size:14.5px}
+.bg-detail dt{font-weight:700;color:#e3d6bd}
+.bg-detail dd{margin:0}
+@media (max-width:600px){.bg-detail dl{grid-template-columns:1fr}.bg-detail dd{margin-bottom:6px}}
 /* ======================= Feature details, abilities, resource counters ======================= */
 .ft-li{list-style:none;margin-left:-18px}
 .ft-li summary{cursor:pointer;list-style:none;padding-left:18px;position:relative;border-radius:4px}
@@ -1141,7 +1148,7 @@ nav a[data-view=whispers]{--ic:url("data:image/svg+xml,%3Csvg xmlns='http://www.
       <div class="field rnd-only"><label>Ability scores</label>
         <div class="seg"><label class="opt"><input type="radio" name="pcMethod" value="array" checked><span>Standard array</span></label><label class="opt"><input type="radio" name="pcMethod" value="roll"><span>Roll 4d6</span></label></div>
       </div>
-      <div class="field rnd-only"><label>Racial bonuses</label>
+      <div class="field rnd-only" id="pcBonusWrap"><label>Racial bonuses</label>
         <div class="seg"><label class="opt"><input type="radio" name="pcBonus" value="flex" checked><span>Flexible +2/+1</span></label><label class="opt"><input type="radio" name="pcBonus" value="fixed"><span>Classic racial</span></label></div>
       </div>
       <button class="btn primary wide" type="submit" id="pcForgeBtn">⚒ Forge Character</button>
@@ -2814,6 +2821,88 @@ const RACE_DATA = {
   Tiefling: { asi: { cha: 2, int: 1 }, speed: 30, traits: ["Darkvision 60 ft", "Hellish Resistance", "Infernal Legacy"] }
 };
 const BACKGROUNDS = { Acolyte: ["Insight", "Religion"], Charlatan: ["Deception", "Sleight of Hand"], Criminal: ["Deception", "Stealth"], Entertainer: ["Acrobatics", "Performance"], "Folk Hero": ["Animal Handling", "Survival"], "Guild Artisan": ["Insight", "Persuasion"], Hermit: ["Medicine", "Religion"], Noble: ["History", "Persuasion"], Outlander: ["Athletics", "Survival"], Sage: ["Arcana", "History"], Sailor: ["Athletics", "Perception"], Soldier: ["Athletics", "Intimidation"], Urchin: ["Sleight of Hand", "Stealth"] };
+/* Backgrounds by rule set.
+   2014: sk skills, tools, lang (extra languages), gear, gp, feature [name, description].
+   2024: ab the three abilities the background can raise, feat the Origin feat (fnote: its spell list), sk, tools, gear, gp (option A; option B is 50 GP). */
+const BG_DATA = {
+  "2014": {
+    Acolyte: { sk: ["Insight", "Religion"], tools: "", lang: "Two languages of your choice", gear: ["Holy symbol", "Prayer book", "5 sticks of incense", "Vestments", "Common clothes"], gp: 15, feature: ["Shelter of the Faithful", "You and your companions can get free healing and care at temples of your faith, and the priests there support you (within reason)."] },
+    Charlatan: { sk: ["Deception", "Sleight of Hand"], tools: "Disguise kit, forgery kit", lang: "", gear: ["Fine clothes", "Disguise kit", "Con tools"], gp: 15, feature: ["False Identity", "You have a second identity with documents, acquaintances and disguises, and can forge papers you have seen."] },
+    Criminal: { sk: ["Deception", "Stealth"], tools: "One gaming set, thieves' tools", lang: "", gear: ["Crowbar", "Dark common clothes with a hood"], gp: 15, feature: ["Criminal Contact", "A reliable contact links you to a network of criminals and can pass your messages across long distances."] },
+    Entertainer: { sk: ["Acrobatics", "Performance"], tools: "Disguise kit, one musical instrument", lang: "", gear: ["Musical instrument", "Favor of an admirer", "Costume"], gp: 15, feature: ["By Popular Demand", "You can always find a place to perform, earning free lodging and food, and locals recognise you."] },
+    "Folk Hero": { sk: ["Animal Handling", "Survival"], tools: "One type of artisan's tools, vehicles (land)", lang: "", gear: ["Artisan's tools", "Shovel", "Iron pot", "Common clothes"], gp: 10, feature: ["Rustic Hospitality", "Common folk will shelter and hide you, as long as you don't put them in danger."] },
+    "Guild Artisan": { sk: ["Insight", "Persuasion"], tools: "One type of artisan's tools", lang: "One language of your choice", gear: ["Artisan's tools", "Letter of introduction from your guild", "Traveler's clothes"], gp: 15, feature: ["Guild Membership", "Your guild gives you lodging and food if needed, legal help, and access to powerful contacts, for yearly dues."] },
+    Hermit: { sk: ["Medicine", "Religion"], tools: "Herbalism kit", lang: "One language of your choice", gear: ["Scroll case of notes", "Winter blanket", "Common clothes", "Herbalism kit"], gp: 5, feature: ["Discovery", "Your seclusion revealed a unique and powerful secret: a truth about the cosmos, a hidden place or a forgotten fact. Work it out with the DM."] },
+    Noble: { sk: ["History", "Persuasion"], tools: "One gaming set", lang: "One language of your choice", gear: ["Fine clothes", "Signet ring", "Scroll of pedigree"], gp: 25, feature: ["Position of Privilege", "People assume you belong in high society: you are welcome there and common folk try to accommodate you."] },
+    Outlander: { sk: ["Athletics", "Survival"], tools: "One musical instrument", lang: "One language of your choice", gear: ["Staff", "Hunting trap", "Trophy from an animal you killed", "Traveler's clothes"], gp: 10, feature: ["Wanderer", "You have an excellent memory for maps and geography, and can find food and water for yourself and five others each day."] },
+    Sage: { sk: ["Arcana", "History"], tools: "", lang: "Two languages of your choice", gear: ["Bottle of black ink", "Quill", "Small knife", "Letter from a dead colleague", "Common clothes"], gp: 10, feature: ["Researcher", "When you don't know a piece of lore, you usually know where and from whom to learn it."] },
+    Sailor: { sk: ["Athletics", "Perception"], tools: "Navigator's tools, vehicles (water)", lang: "", gear: ["Belaying pin (club)", "50 feet of silk rope", "Lucky charm", "Common clothes"], gp: 10, feature: ["Ship's Passage", "You can get free passage on a sailing ship for yourself and your companions, in exchange for help with the crew."] },
+    Soldier: { sk: ["Athletics", "Intimidation"], tools: "One gaming set, vehicles (land)", lang: "", gear: ["Insignia of rank", "Trophy from a fallen enemy", "Set of bone dice", "Common clothes"], gp: 10, feature: ["Military Rank", "Soldiers loyal to your old organisation recognise your rank, and you can requisition simple equipment or horses."] },
+    Urchin: { sk: ["Sleight of Hand", "Stealth"], tools: "Disguise kit, thieves' tools", lang: "", gear: ["Small knife", "Map of your home city", "Pet mouse", "Token to remember your parents", "Common clothes"], gp: 10, feature: ["City Secrets", "You know the secret patterns of cities: you and your companions travel through them at twice the normal pace."] }
+  },
+  "2024": {
+    Acolyte: { ab: ["int", "wis", "cha"], feat: "Magic Initiate", fnote: "Cleric", sk: ["Insight", "Religion"], tools: "Calligrapher's supplies", gear: ["Calligrapher's Supplies", "Book (prayers)", "Holy Symbol", "Parchment (10 sheets)", "Robe"], gp: 8 },
+    Artisan: { ab: ["str", "dex", "int"], feat: "Crafter", sk: ["Investigation", "Persuasion"], tools: "One type of artisan's tools", gear: ["Artisan's Tools", "2 Pouches", "Traveler's Clothes"], gp: 32 },
+    Charlatan: { ab: ["dex", "con", "cha"], feat: "Skilled", sk: ["Deception", "Sleight of Hand"], tools: "Forgery kit", gear: ["Forgery Kit", "Costume", "Fine Clothes"], gp: 15 },
+    Criminal: { ab: ["dex", "con", "int"], feat: "Alert", sk: ["Sleight of Hand", "Stealth"], tools: "Thieves' tools", gear: ["2 Daggers", "Thieves' Tools", "Crowbar", "2 Pouches", "Traveler's Clothes"], gp: 16 },
+    Entertainer: { ab: ["str", "dex", "cha"], feat: "Musician", sk: ["Acrobatics", "Performance"], tools: "One musical instrument", gear: ["Musical Instrument", "2 Costumes", "Mirror", "Perfume", "Traveler's Clothes"], gp: 11 },
+    Farmer: { ab: ["str", "con", "wis"], feat: "Tough", sk: ["Animal Handling", "Nature"], tools: "Carpenter's tools", gear: ["Sickle", "Carpenter's Tools", "Healer's Kit", "Iron Pot", "Shovel", "Traveler's Clothes"], gp: 30 },
+    Guard: { ab: ["str", "int", "wis"], feat: "Alert", sk: ["Athletics", "Perception"], tools: "One gaming set", gear: ["Spear", "Light Crossbow", "20 Bolts", "Gaming Set", "Hooded Lantern", "Manacles", "Quiver", "Traveler's Clothes"], gp: 12 },
+    Guide: { ab: ["dex", "con", "wis"], feat: "Magic Initiate", fnote: "Druid", sk: ["Stealth", "Survival"], tools: "Cartographer's tools", gear: ["Shortbow", "20 Arrows", "Cartographer's Tools", "Bedroll", "Quiver", "Tent", "Traveler's Clothes"], gp: 3 },
+    Hermit: { ab: ["con", "wis", "cha"], feat: "Healer", sk: ["Medicine", "Religion"], tools: "Herbalism kit", gear: ["Quarterstaff", "Herbalism Kit", "Bedroll", "Book (philosophy)", "Lamp", "Oil (3 flasks)", "Traveler's Clothes"], gp: 16 },
+    Merchant: { ab: ["con", "int", "cha"], feat: "Lucky", sk: ["Animal Handling", "Persuasion"], tools: "Navigator's tools", gear: ["Navigator's Tools", "2 Pouches", "Traveler's Clothes"], gp: 22 },
+    Noble: { ab: ["str", "int", "cha"], feat: "Skilled", sk: ["History", "Persuasion"], tools: "One gaming set", gear: ["Gaming Set", "Fine Clothes", "Perfume"], gp: 29 },
+    Sage: { ab: ["con", "int", "wis"], feat: "Magic Initiate", fnote: "Wizard", sk: ["Arcana", "History"], tools: "Calligrapher's supplies", gear: ["Quarterstaff", "Calligrapher's Supplies", "Book (history)", "Parchment (8 sheets)", "Robe"], gp: 8 },
+    Sailor: { ab: ["str", "dex", "wis"], feat: "Tavern Brawler", sk: ["Acrobatics", "Perception"], tools: "Navigator's tools", gear: ["Dagger", "Navigator's Tools", "Rope", "Traveler's Clothes"], gp: 20 },
+    Scribe: { ab: ["dex", "int", "wis"], feat: "Skilled", sk: ["Investigation", "Perception"], tools: "Calligrapher's supplies", gear: ["Calligrapher's Supplies", "Fine Clothes", "Lamp", "Oil (3 flasks)", "Parchment (12 sheets)"], gp: 23 },
+    Soldier: { ab: ["str", "dex", "con"], feat: "Savage Attacker", sk: ["Athletics", "Intimidation"], tools: "One gaming set", gear: ["Spear", "Shortbow", "20 Arrows", "Gaming Set", "Healer's Kit", "Quiver", "Traveler's Clothes"], gp: 14 },
+    Wayfarer: { ab: ["dex", "wis", "cha"], feat: "Lucky", sk: ["Insight", "Stealth"], tools: "Thieves' tools", gear: ["2 Daggers", "Thieves' Tools", "Gaming Set", "Bedroll", "2 Pouches", "Traveler's Clothes"], gp: 16 }
+  }
+};
+const BG_DESC_2024 = {
+  Acolyte: "Devoted to service in a temple, you know its rites and texts.", Artisan: "Apprenticed to a master crafter, you learned to make and haggle.",
+  Charlatan: "A con artist and forger who knows how to work a crowd.", Criminal: "You made your living in the underworld, stealing and dodging the law.",
+  Entertainer: "A performer who earns food and a bed by playing for the crowd.", Farmer: "Raised working the land, you are hardy and know animals and nature.",
+  Guard: "You stood watch on walls and gates, always alert for trouble.", Guide: "You led travellers through the wilds, living off the land.",
+  Hermit: "Years in seclusion gave you healing skill and inner calm.", Merchant: "A trader who travelled the roads and knows how to strike a deal.",
+  Noble: "Raised among wealth and privilege, trained in history and etiquette.", Sage: "Years of study in libraries and academies made you a scholar.",
+  Sailor: "Life at sea made you nimble, sharp-eyed and quick with your fists.", Scribe: "Trained to copy and record, you notice every detail.",
+  Soldier: "Trained for war, you know weapons, drills and the hardships of battle.", Wayfarer: "You grew up on the streets and roads, getting by on wits and luck."
+};
+// the backgrounds offered for a rule set: its own, plus homebrew that fits it
+const bgList = ed => [...Object.keys(BG_DATA[ed === "2014" ? "2014" : "2024"]), ...Object.keys(HB_BG).filter(n => { const x = HB_BG[n]; return !x.ed || x.ed === "both" || x.ed === ed; })];
+// a background's rules for a rule set (built-in, or homebrew shaped the same way)
+function bgInfo(ed, name) {
+  const B = BG_DATA[ed === "2014" ? "2014" : "2024"][name]; if (B) return B;
+  const H = HB_BG[name]; if (H) return { sk: BACKGROUNDS[name] || [], tools: "", lang: "", gear: H.gear ? String(H.gear).split(/,\s*/).filter(Boolean) : [], gp: 0, feat: ed === "2024" && H.feat && featInfo("2024", H.feat) ? H.feat : "", ab: null, hb: true };
+  const L = BG_DATA[ed === "2014" ? "2024" : "2014"][name]; return L ? { ...L, other: true } : null; // a background from the other rule set, on an older character
+}
+const bgSkills = (ed, name) => (bgInfo(ed, name) || {}).sk || BACKGROUNDS[name] || [];
+const bgFeatLabel = B => B && B.feat ? `${B.feat}${B.fnote ? ` (${B.fnote})` : ""}` : "";
+// everything a background gives, as short lines
+function bgLines(ed, name) {
+  const B = bgInfo(ed, name); if (!B) return [];
+  const L = [];
+  if (ed === "2024" && B.ab) L.push(["Ability scores", `${B.ab.map(a => AB_FULL[a]).join(", ")}: +2 to one and +1 to another, or +1 to all three`]);
+  if (ed === "2024" && B.feat) { const F = featInfo("2024", B.feat); L.push(["Origin feat", `${bgFeatLabel(B)}${F ? ` — ${F[3]}` : ""}`]); }
+  L.push(["Skills", (B.sk || []).join(", ") || "—"]);
+  if (B.tools) L.push(["Tools", B.tools]);
+  if (B.lang) L.push(["Languages", B.lang]);
+  if (ed === "2014" && B.feature) L.push([`Feature: ${B.feature[0]}`, B.feature[1]]);
+  if ((B.gear || []).length || B.gp) L.push(["Equipment", `${(B.gear || []).join(", ")}${B.gp ? `${(B.gear || []).length ? ", " : ""}${B.gp} gp` : ""}${ed === "2024" && !B.hb ? " (or 50 gp instead)" : ""}`]);
+  return L;
+}
+const bgSummary = (ed, name) => bgLines(ed, name).map(([k, v]) => `${k}: ${v}.`).join(" ");
+// the 2024 background ability increase: +2 / +1 to the class's best of the three, or the player's choice
+function bgAbilityBonus(sc, ed, name, order, custom) {
+  const B = bgInfo(ed, name), list = B && B.ab ? B.ab : AB;
+  if (custom && custom.tri && B && B.ab) { B.ab.forEach(a => sc[a] += 1); return; }
+  const ok = a => a && list.includes(a);
+  if (custom && ok(custom.plus2)) { sc[custom.plus2] += 2; if (ok(custom.plus1) && custom.plus1 !== custom.plus2) sc[custom.plus1] += 1; return; }
+  const best = order.filter(a => list.includes(a));
+  sc[best[0]] += 2; if (best[1]) sc[best[1]] += 1;
+}
+Object.entries(BG_DATA["2024"]).forEach(([n, B]) => { if (!BACKGROUNDS[n]) BACKGROUNDS[n] = B.sk; });
 const ALL_SKILLS = Object.keys(SKILLS);
 const CLASS_DATA = {
   Barbarian: { hd: 12, pri: ["str", "con", "dex"], saves: ["str", "con"], skills: [["Animal Handling", "Athletics", "Intimidation", "Nature", "Perception", "Survival"], 2], ac: (m) => [10 + m.dex + m.con, "Unarmored Defense"], kit: ["Greataxe", "Two handaxes", "Four javelins", "Explorer's pack"], wpn: ["Greataxe", "1d12", "str"], f: { 1: ["Rage", "Unarmored Defense"], 2: ["Reckless Attack", "Danger Sense"], 3: ["Primal Path"], 5: ["Extra Attack", "Fast Movement"], 7: ["Feral Instinct"], 9: ["Brutal Critical"], 11: ["Relentless Rage"], 15: ["Persistent Rage"], 18: ["Indomitable Might"], 20: ["Primal Champion"] }, sub: ["Path of the Berserker", 3] },
@@ -3724,6 +3813,8 @@ function raceLevelFeats(ed, race, traits, lv) {
 function featDesc(f, c) {
   if (f === "Subclass: not chosen yet") return "Pick your subclass with the Choose subclass button on this sheet.";
   if (f.startsWith("Subclass: ")) return subclassDesc(f.slice(10));
+  if (f.startsWith("Background: ")) return bgSummary(edOf(c), f.slice(12));
+  { const bf = Object.values(BG_DATA["2014"]).find(B => B.feature[0] === f); if (bf) return `${bf.feature[1]} (From your background.)`; }
   if (f.startsWith("Ability Score Improvement: ")) return "Your choice at this level — already applied to the scores above.";
   if (f.startsWith("Ability Score Improvement")) return "+2 to ability scores at set levels — already applied to the scores above.";
   if (f.startsWith("Feat: ")) { const nm = f.slice(6).replace(/ \(\+.*\)$/, ""), F = featInfo(edOf(c), nm) || featInfo("2014", nm) || featInfo("2024", nm); return F ? F[3] : "A feat taken instead of an Ability Score Improvement. Note its details under Features."; }
@@ -3748,7 +3839,7 @@ const CB_STEPS = ["Race", "Class", "Background", "Abilities", "Skills", "Details
 function cbStart() { CB.on = true; CB.step = 0; if (!PC_RACES[CB.ed][CB.race]) { CB.race = ""; CB.sub = ""; } if (CB.ed === "2024") CB.bonus = "flex"; renderCB(); }
 const cbR = () => raceInfo(CB.ed, CB.race, CB.sub);
 function cbAllowed() { const C = CLASS_DATA[CB.cls], R = cbR(); return new Set(R && R.extraSkills ? ALL_SKILLS : C.skills[0]); }
-function cbLocked() { const R = cbR(); return new Set([...(BACKGROUNDS[CB.bg] || []), ...((R && R.skills) || [])]); }
+function cbLocked() { const R = cbR(); return new Set([...bgSkills(CB.ed, CB.bg), ...((R && R.skills) || [])]); }
 function cbNeed() { const C = CLASS_DATA[CB.cls], R = cbR(); return C.skills[1] + ((R && R.extraSkills) || 0); }
 function cbBase() {
   const b = {};
@@ -3756,9 +3847,24 @@ function cbBase() {
   else AB.forEach(a => b[a] = CB.assignIdx[a] != null && CB.pool ? CB.pool[CB.assignIdx[a]] : null);
   return b;
 }
+// 2024: +2/+1 (or +1 to each) among the background's three abilities
+function cbFix24() {
+  const B = bgInfo(CB.ed, CB.bg), L = B && B.ab ? B.ab : AB, C = CLASS_DATA[CB.cls], order = [...(C ? C.pri : []), ...AB].filter((a, i, A) => A.indexOf(a) === i && L.includes(a));
+  if (!L.includes(CB.plus2)) CB.plus2 = order[0];
+  if (!L.includes(CB.plus1) || CB.plus1 === CB.plus2) CB.plus1 = order.find(a => a !== CB.plus2);
+  if (!(B && B.ab)) CB.bgSpread = "21";
+}
+function cbBonus24() {
+  cbFix24();
+  const B = bgInfo(CB.ed, CB.bg), L = B && B.ab ? B.ab : AB, tri = CB.bgSpread === "111" && B && B.ab;
+  return `<div class="field" style="margin:14px 0 0"><label>Background ability scores (${esc(CB.bg)}: ${L.map(a => AB_FULL[a]).join(", ")})</label>
+    ${B && B.ab ? `<div class="seg"><label class="opt"><input type="radio" name="cbSpread" value="21" ${tri ? "" : "checked"}><span>+2 to one, +1 to another</span></label><label class="opt"><input type="radio" name="cbSpread" value="111" ${tri ? "checked" : ""}><span>+1 to all three</span></label></div>` : ""}
+    ${tri ? `<p class="hint">+1 to ${L.map(a => AB_FULL[a]).join(", ")}.</p>` : `<div class="row" style="margin-top:8px"><label class="lbl" style="margin:0">+2 to<select data-cbplus="plus2">${L.map(a => `<option value="${a}" ${CB.plus2 === a ? "selected" : ""}>${AB_NAME[a]}</option>`).join("")}</select></label><label class="lbl" style="margin:0">+1 to<select data-cbplus="plus1">${L.filter(a => a !== CB.plus2).map(a => `<option value="${a}" ${CB.plus1 === a ? "selected" : ""}>${AB_NAME[a]}</option>`).join("")}</select></label></div>`}</div>`;
+}
 function cbFinal(base) {
   const s = { ...base }, R = cbR();
-  if (CB.bonus === "flex" || CB.ed === "2024") { if (CB.plus2) s[CB.plus2] += 2; if (CB.plus1) s[CB.plus1] += 1; }
+  if (CB.ed === "2024") { const B = bgInfo(CB.ed, CB.bg); cbFix24(); if (CB.bgSpread === "111" && B && B.ab) B.ab.forEach(a => s[a] += 1); else { if (CB.plus2) s[CB.plus2] += 2; if (CB.plus1) s[CB.plus1] += 1; } }
+  else if (CB.bonus === "flex") { if (CB.plus2) s[CB.plus2] += 2; if (CB.plus1) s[CB.plus1] += 1; }
   else if (R) { Object.entries(R.asi).forEach(([a, v]) => s[a] += v); if (R.plus1) { const C = CLASS_DATA[CB.cls]; [...C.pri, ...["con", "dex", "wis", "str", "int", "cha"].filter(a => !C.pri.includes(a))].filter(a => R.plus1Any || a !== "cha").slice(0, R.plus1).forEach(a => s[a] += 1); } }
   return s;
 }
@@ -3774,7 +3880,8 @@ function cbEnter() {
   const C = CLASS_DATA[CB.cls];
   if (CB.step === 3) {
     if (CB.method === "array" && !CB.pool) CB.pool = [15, 14, 13, 12, 10, 8];
-    if (CB.bonus === "flex") { if (!CB.plus2) CB.plus2 = C.pri[0]; if (!CB.plus1 || CB.plus1 === CB.plus2) CB.plus1 = C.pri.find(a => a !== CB.plus2) || "con"; }
+    if (CB.ed === "2024") cbFix24();
+    else if (CB.bonus === "flex") { if (!CB.plus2) CB.plus2 = C.pri[0]; if (!CB.plus1 || CB.plus1 === CB.plus2) CB.plus1 = C.pri.find(a => a !== CB.plus2) || "con"; }
   }
   if (CB.step === 4) { const al = cbAllowed(), lk = cbLocked(); [...CB.skills].forEach(s => { if (!al.has(s) || lk.has(s)) CB.skills.delete(s); }); }
 }
@@ -3790,8 +3897,14 @@ function cbBody() {
   }
   if (CB.step === 1) return `<p class="hint" style="margin-top:0">Pick a class. This sets hit points, armor, saves, skills and spellcasting.</p>
     <div class="pick-grid">${Object.keys(CLASS_DATA).map(x => { const d = CLASS_DATA[x]; return `<button type="button" class="pick ${CB.cls === x ? "on" : ""}" data-cbcls="${esc(x)}"><b>${esc(x)}</b><small>d${d.hd} hit die · ${d.pri.slice(0, 2).map(a => AB_NAME[a]).join(" & ")}${d.cast ? ` · ${d.cast[0] === "half" ? "half caster" : d.cast[0] === "pact" ? "pact magic" : "full caster"}` : ""}</small><small>${CLASS_DESC[x]}</small></button>`; }).join("")}</div>`;
-  if (CB.step === 2) return `<p class="hint" style="margin-top:0">Pick a background. It grants the two skills shown.</p>
-    <div class="pick-grid">${Object.keys(BACKGROUNDS).map(x => `<button type="button" class="pick ${CB.bg === x ? "on" : ""}" data-cbbg="${esc(x)}"><b>${esc(x)}</b><small>${BACKGROUNDS[x].join(" · ")}</small>${HB_BG[x] ? `<small>${esc(HB_BG[x].desc || "")}</small><small class="req">Homebrew</small>` : `<small>${esc(BG_DESC[x] || "")}</small>`}</button>`).join("")}</div>`;
+  if (CB.step === 2) {
+    const L = bgList(CB.ed); if (CB.bg && !L.includes(CB.bg)) CB.bg = "";
+    const desc = x => HB_BG[x] ? HB_BG[x].desc || "" : CB.ed === "2024" ? BG_DESC_2024[x] || "" : BG_DESC[x] || "";
+    const card = x => { const B = bgInfo(CB.ed, x) || {}; return `<button type="button" class="pick ${CB.bg === x ? "on" : ""}" data-cbbg="${esc(x)}"><b>${esc(x)}</b><small>${(B.sk || []).join(" · ")}</small>${CB.ed === "2024" && B.ab ? `<small>${B.ab.map(a => AB_NAME[a]).join(" · ")} · ${esc(bgFeatLabel(B))}</small>` : B.feature ? `<small>Feature: ${esc(B.feature[0])}</small>` : ""}<small>${esc(desc(x))}</small>${HB_BG[x] ? `<small class="req">Homebrew</small>` : ""}</button>`; };
+    return `<p class="hint" style="margin-top:0">${CB.ed === "2024" ? "Pick a background. In the 2024 rules it gives two skills, a tool, an Origin feat (added to your character) and starting equipment, and raises three of your ability scores." : "Pick a background. It gives two skills, tools or languages, starting equipment and a special feature."}</p>
+    <div class="pick-grid">${L.map(card).join("")}</div>
+    ${CB.bg ? `<div class="bg-detail"><h4>${esc(CB.bg)}</h4><p class="muted" style="margin:2px 0 8px">${esc(desc(CB.bg))}</p><dl>${bgLines(CB.ed, CB.bg).map(([k, v]) => `<dt>${esc(k)}</dt><dd>${esc(v)}</dd>`).join("")}</dl></div>` : ""}`;
+  }
   if (CB.step === 3) {
     const base = cbBase(), ok = AB.every(a => base[a] != null), fin = ok ? cbFinal(base) : null;
     const seg = `<div class="seg" style="margin-bottom:12px">${[["array", "Standard array"], ["roll", "Roll 4d6"], ["manual", "Enter manually"]].map(([v, l]) => `<label class="opt"><input type="radio" name="cbMethod" value="${v}" ${CB.method === v ? "checked" : ""}><span>${l}</span></label>`).join("")}</div>`;
@@ -3802,7 +3915,7 @@ function cbBody() {
       if (CB.pool) body += `<div class="cb-abil">${AB.map(a => `<label class="lbl">${AB_FULL[a]}<select data-cbassign="${a}"><option value="">—</option>${CB.pool.map((v, i) => `<option value="${i}" ${CB.assignIdx[a] === i ? "selected" : ""} ${CB.assignIdx[a] !== i && Object.entries(CB.assignIdx).some(([k, j]) => k !== a && j === i) ? "disabled" : ""}>${v}</option>`).join("")}</select></label>`).join("")}</div>
         <div class="row" style="margin-top:10px"><button class="btn sm" type="button" data-cbauto style="flex:0 0 auto">Auto-assign for a ${esc(CB.cls)}</button><button class="btn sm" type="button" data-cbclear style="flex:0 0 auto">Clear</button></div>`;
     }
-    const bonus = `<div class="field" style="margin:14px 0 0"><label>${CB.ed === "2024" ? "Background ability bonus (2024 rules)" : "Racial bonus"}</label>
+    const bonus = CB.ed === "2024" ? cbBonus24() : `<div class="field" style="margin:14px 0 0"><label>${CB.ed === "2024" ? "Background ability bonus (2024 rules)" : "Racial bonus"}</label>
       <div class="seg ${CB.ed === "2024" ? "hidden" : ""}"><label class="opt"><input type="radio" name="cbBonus" value="flex" ${CB.ed === "2024" ? "disabled" : ""} ${CB.bonus === "flex" ? "checked" : ""}><span>Flexible +2/+1</span></label><label class="opt"><input type="radio" name="cbBonus" value="fixed" ${CB.bonus === "fixed" ? "checked" : ""}><span>Classic racial</span></label></div>
       ${CB.bonus === "flex" ? `<div class="row" style="margin-top:8px"><label class="lbl" style="margin:0">+2 to<select data-cbplus="plus2">${AB.map(a => `<option value="${a}" ${CB.plus2 === a ? "selected" : ""}>${AB_NAME[a]}</option>`).join("")}</select></label><label class="lbl" style="margin:0">+1 to<select data-cbplus="plus1">${AB.filter(a => a !== CB.plus2).map(a => `<option value="${a}" ${CB.plus1 === a ? "selected" : ""}>${AB_NAME[a]}</option>`).join("")}</select></label></div>` : `<p class="hint">${esc(CB.race)}: ${Object.entries(R.asi).map(([a, v]) => `+${v} ${AB_NAME[a]}`).join(", ")}${R.plus1 ? `, plus +1 to ${R.plus1} other scores (assigned automatically)` : ""}.</p>`}</div>`;
     const prev = fin ? `<div class="chips" style="margin-top:14px">${AB.map(a => `<span class="tag ${C.pri.includes(a) ? "gold" : ""}">${AB_NAME[a]} ${fin[a]} (${sgn(mod(fin[a]))})</span>`).join("")}</div><p class="hint">Final scores with racial bonuses. ${esc(CB.cls)}s lean on ${C.pri.slice(0, 2).map(a => AB_NAME[a]).join(" and ")}.</p>` : "";
@@ -3835,7 +3948,7 @@ function renderCB() {
   </div>`;
 }
 function cbCreate() {
-  const custom = { base: cbBase(), skills: [...CB.skills], align: CB.align, plus2: CB.bonus === "flex" ? CB.plus2 : null, plus1: CB.bonus === "flex" ? CB.plus1 : null };
+  const custom = { base: cbBase(), skills: [...CB.skills], align: CB.align, plus2: CB.bonus === "flex" || CB.ed === "2024" ? CB.plus2 : null, plus1: CB.bonus === "flex" || CB.ed === "2024" ? CB.plus1 : null, tri: CB.ed === "2024" && CB.bgSpread === "111" };
   currentPC = pcEnsure(generateCharacter({ seed: newSeed(), name: CB.name.trim().slice(0, 60), race: CB.race, ed: CB.ed, sub: CB.sub || "none", cls: CB.cls, bg: CB.bg, level: 1, method: "custom", bonus: CB.ed === "2024" ? "flex" : CB.bonus, custom }));
   CB.on = false; renderPC(); pcPersist();
   const target = clamp(CB.level, 1, 20), ready = c => `${c.name} is ready — tweak anything in My Characters`;
@@ -3868,7 +3981,8 @@ function cbCreate() {
     if (t.name === "cbEd") { CB.ed = t.value; if (!PC_RACES[CB.ed][CB.race]) { CB.race = ""; CB.sub = ""; } else { const B = PC_RACES[CB.ed][CB.race]; if (!(B.subs && B.subs[CB.sub])) CB.sub = B.subs ? Object.keys(B.subs)[0] : ""; } if (CB.ed === "2024") CB.bonus = "flex"; renderCB(); }
     else if (t.name === "cbMethod") { CB.method = t.value; if (CB.method === "array") { CB.pool = [15, 14, 13, 12, 10, 8]; CB.assignIdx = {}; CB.rolls = null; } else if (CB.method === "roll") { CB.pool = null; CB.assignIdx = {}; CB.rolls = null; } renderCB(); }
     else if (t.name === "cbBonus") { CB.bonus = t.value; renderCB(); }
-    else if (t.dataset.cbplus) { CB[t.dataset.cbplus] = t.value; if (CB.plus1 === CB.plus2) CB.plus1 = AB.find(a => a !== CB.plus2); renderCB(); }
+    else if (t.name === "cbSpread") { CB.bgSpread = t.value; renderCB(); }
+    else if (t.dataset.cbplus) { CB[t.dataset.cbplus] = t.value; if (CB.plus1 === CB.plus2) CB.plus1 = AB.find(a => a !== CB.plus2); if (CB.ed === "2024") cbFix24(); renderCB(); }
     else if (t.dataset.cbassign) { const a = t.dataset.cbassign; if (t.value === "") delete CB.assignIdx[a]; else CB.assignIdx[a] = +t.value; renderCB(); }
     else if (t.dataset.cbsk) { const s = t.dataset.cbsk; if (t.checked) { if (CB.skills.size >= cbNeed()) { t.checked = false; toast(`That's all ${cbNeed()} — untick one first`); return; } CB.skills.add(s); } else CB.skills.delete(s); renderCB(); }
     else if (t.dataset.cbman !== undefined) { CB.manual[t.dataset.cbman] = t.value; renderCB(); }
@@ -3890,7 +4004,7 @@ function generateCharacter(o) {
   const r = makeRng("pc", o.seed);
   const ed = o.ed === "2024" ? "2024" : "2014";
   // random picks stay with the built-in rules; homebrew is chosen on purpose
-  const race = o.race || r.pick(raceList(ed).filter(x => !PC_RACES[ed][x].hb)), cls = o.cls || r.pick(Object.keys(CLASS_DATA)), bg = o.bg || r.pick(Object.keys(BACKGROUNDS).filter(x => !HB_BG[x]));
+  const race = o.race || r.pick(raceList(ed).filter(x => !PC_RACES[ed][x].hb)), cls = o.cls || r.pick(Object.keys(CLASS_DATA)), bg = o.bg || r.pick(bgList(ed).filter(x => !HB_BG[x]));
   const lv = clamp(o.level, 1, 20), C = CLASS_DATA[cls], RB = PC_RACES[ed][race];
   // a separate rng for the subrace, so older characters re-level to the same results
   let sub = o.sub === "none" ? null : o.sub || (race === "Dragonborn" && o.ancestry) || null;
@@ -3907,6 +4021,7 @@ function generateCharacter(o) {
   let rolls = null, base;
   const order = [...C.pri, ...["con", "dex", "wis", "str", "int", "cha"].filter(a => !C.pri.includes(a))];
   if (o.custom && o.custom.base) base = { ...o.custom.base };
+  else if (o.base && AB.every(a => +o.base[a])) { base = { ...o.base }; rolls = o.rolls || null; }
   else {
     let pool;
     if (o.method === "roll") {
@@ -3916,7 +4031,9 @@ function generateCharacter(o) {
     base = {}; order.forEach((a, i) => base[a] = pool[i]);
   }
   const sc = { ...base };
-  if (o.custom && o.custom.plus2) { sc[o.custom.plus2] += 2; if (o.custom.plus1) sc[o.custom.plus1] += 1; }
+  // 2024: the background raises three abilities; characters made before this keep their old bonus (bgAsiLegacy)
+  if (ed === "2024" && !o.bgAsiLegacy) bgAbilityBonus(sc, ed, bg, order, o.custom);
+  else if (o.custom && o.custom.plus2) { sc[o.custom.plus2] += 2; if (o.custom.plus1) sc[o.custom.plus1] += 1; }
   else if (o.bonus === "flex") { sc[C.pri[0]] += 2; sc[C.pri[1]] += 1; }
   else {
     Object.entries(R.asi).forEach(([a, v]) => sc[a] += v);
@@ -3933,15 +4050,17 @@ function generateCharacter(o) {
   }
   // feats added outside level-ups (Feats tab / sheet): { n: name, l: level added, a: ability raised by 1, max }
   const bonusFeats = (o.bonusFeats || []).filter(b => b && b.n);
+  // 2024: the background's Origin feat
+  const BGI = bgInfo(ed, bg), bgFeat = ed === "2024" && BGI && BGI.feat ? BGI.feat : "";
   bonusFeats.forEach(b => { if (AB.includes(b.a)) sc[b.a] = Math.max(sc[b.a], Math.min(b.max || 20, sc[b.a] + 1)); });
   // homebrew effects (see hbEffects); ability scores first, since everything else reads them
-  const fx = hbEffects(ed, race, sub, bg, cls, subclass, lv, [...asiLv.map(L => asiPicks[L]).filter(pk => pk && pk.feat).map(pk => pk.feat), ...bonusFeats.map(b => b.n)]);
+  const fx = hbEffects(ed, race, sub, bg, cls, subclass, lv, [...asiLv.map(L => asiPicks[L]).filter(pk => pk && pk.feat).map(pk => pk.feat), ...bonusFeats.map(b => b.n), ...(bgFeat ? [bgFeat] : [])]);
   const fxSum = t => fx.filter(e => e.t === t).reduce((n, e) => n + e.v, 0);
   fx.filter(e => e.t === "ab").forEach(e => { sc[e.a] = e.v >= 0 ? Math.max(sc[e.a], Math.min(e.max || 20, sc[e.a] + e.v)) : Math.max(1, sc[e.a] + e.v); });
   const m = {}; AB.forEach(a => m[a] = mod(sc[a]));
   const prof = 2 + Math.floor((lv - 1) / 4);
   // skills
-  const profSk = new Set([...(BACKGROUNDS[bg] || []), ...(R.skills || [])]);
+  const profSk = new Set([...bgSkills(ed, bg), ...(R.skills || [])]);
   const pickSkills = (list, n) => {
     const opts = r.shuffle(list.filter(s => !profSk.has(s))).sort((a, b) => m[SKILLS[b]] - m[SKILLS[a]]);
     // mostly take skills that fit the best abilities, with a little randomness
@@ -3949,9 +4068,18 @@ function generateCharacter(o) {
     chosen.forEach(s => profSk.add(s));
   };
   if (o.custom && o.custom.skills) o.custom.skills.forEach(s => profSk.add(s));
+  else if (o.keepSkills) o.keepSkills.forEach(s => { if (SKILLS[s]) profSk.add(s); });
   else { pickSkills(C.skills[0], C.skills[1]); if (R.extraSkills) pickSkills(ALL_SKILLS, R.extraSkills); }
+  // Skilled (an Origin feat): three more skills, picked with their own dice so other rolls stay the same
+  const skilled = !bgFeat || bgFeat !== "Skilled" ? [] : o.keepSkilled ? o.keepSkilled.filter(x => SKILLS[x]) : makeRng("skilled", o.seed).shuffle(ALL_SKILLS.filter(x => !profSk.has(x))).sort((a, b) => m[SKILLS[b]] - m[SKILLS[a]]).slice(0, 3);
+  skilled.forEach(x => profSk.add(x));
   const expert = new Set();
-  (C.expertise || []).forEach(([l, n]) => { if (lv >= l) r.shuffle([...profSk].filter(s => !expert.has(s))).sort((a, b) => m[SKILLS[b]] - m[SKILLS[a]]).slice(0, n).forEach(s => expert.add(s)); });
+  // expertise: keep what the character already has, and pick more only when a new level grants it
+  (o.keepExpert || []).forEach(s => { if (profSk.has(s)) expert.add(s); });
+  let wantX = 0;
+  (C.expertise || []).forEach(([l, n]) => { if (lv >= l) { wantX += n; const need = wantX - expert.size; if (need > 0) r.shuffle([...profSk].filter(s => !expert.has(s))).sort((a, b) => m[SKILLS[b]] - m[SKILLS[a]]).slice(0, need).forEach(s => expert.add(s)); } });
+  if (expert.size > wantX) [...expert].slice(wantX).forEach(s => expert.delete(s));
+  const expertOrder = [...expert];
   fx.forEach(e => { if (fxSkill(e.t)) profSk.add(e.a); if (e.t === "exp") expert.add(e.a); });
   const jack = cls === "Bard" && lv >= 2;
   const skillVals = ALL_SKILLS.map(s => {
@@ -3960,7 +4088,7 @@ function generateCharacter(o) {
   });
   // combat
   const conBonus = m.con + (C.hpBonus || 0);
-  const featsTaken = [...asiLv.map(L => asiPicks[L]).filter(pk => pk && pk.feat), ...bonusFeats.map(b => ({ feat: b.n, ...(b.a ? { [b.a]: 1 } : {}) }))];
+  const featsTaken = [...asiLv.map(L => asiPicks[L]).filter(pk => pk && pk.feat), ...bonusFeats.map(b => ({ feat: b.n, ...(b.a ? { [b.a]: 1 } : {}) })), ...(bgFeat ? [{ feat: bgFeat }] : [])];
   const hasFeat = n => featsTaken.some(pk => pk.feat === n);
   let hp = Math.max(1, C.hd + conBonus) + (lv - 1) * Math.max(1, diceAvg(C.hd) + conBonus) + (R.hpLv || 0) * lv + (hasFeat("Tough") ? 2 * lv : 0) + (hasFeat("Boon of Fortitude") ? 40 : 0) + fxSum("hp") + fxSum("hpLv") * lv;
   const saves = [...C.saves]; featsTaken.filter(pk => pk.feat === "Resilient").forEach(pk => { const a = AB.find(x => pk[x]); if (a && !saves.includes(a)) saves.push(a); });
@@ -3995,6 +4123,9 @@ function generateCharacter(o) {
   ac += hbAc; acSrc += hbAcTxt;
   skillVals.forEach(s => s.v += athleteBonus(SB, s, prof));
   if (HB_BG[bg] && HB_DESC[`${bg} background`]) feats.push({ l: 1, f: `${bg} background` });
+  if (BGI && !HB_BG[bg]) feats.push({ l: 1, f: `Background: ${bg}`, bgInfo: true });
+  if (ed === "2014" && BGI && BGI.feature) feats.push({ l: 1, f: BGI.feature[0], bgFeature: true });
+  if (bgFeat) feats.push({ l: 1, f: `Feat: ${bgFeat}`, bgFeat: true, note: BGI.fnote || "" });
   const RL = raceLevelFeats(ed, race, R.traits, lv); feats.push(...RL.feats);
   bonusFeats.forEach(b => feats.push({ l: +b.l || 1, f: `Feat: ${b.n}${b.a ? ` (+1 ${AB_NAME[b.a]})` : ""}`, bonus: true }));
   if (asiAuto.length) feats.push({ l: asiAuto[0], f: `Ability Score Improvement ×${asiAuto.length} (applied)` });
@@ -4020,7 +4151,7 @@ function generateCharacter(o) {
     init: m.dex + initBonus + SB.init + (SB.athlete ? Math.floor(prof / 2) : 0), initBonus, atkBonus, hbAc, hbSpeed: fxSum("speed"), hbSig: fx.length ? JSON.stringify(fx) : "",
     ...Object.fromEntries(["res", "imm", "vul", "cimm"].map(t => [t, [...new Set([...fx.filter(e => e.t === t).map(e => e.a), ...(t === "res" ? traitRes(R.traits, anc, ed) : [])])].sort()])),
     sadv: [...new Set([...traitSadv(R.traits), ...fx.filter(e => e.t === "sadv").map(e => e.a)])], passive: 10 + skillVals.find(s => s.s === "Perception").v, subHp: SB.hp, subSpd: SB.speed,
-    attacks, spell, feats, extras, traits: R.traits.filter(t => !RL.hidden.has(t)), kit: C.kit, hd: C.hd,
+    attacks, spell, feats, extras, traits: R.traits.filter(t => !RL.hidden.has(t)), kit: [...C.kit, ...((BGI && BGI.gear) || [])], startGold: (BGI && BGI.gp) || 0, bgV: 2, skilled, expertOrder, bgAsiLegacy: o.bgAsiLegacy || undefined, hd: C.hd,
     trait: r.pick(PC_TRAITS), ideal: r.pick(IDEALS), bond: r.pick(BONDS), flaw: r.pick(FLAWS), hook: hk.hook, hookDetail: hk.hookDetail
   };
 }
@@ -4099,7 +4230,7 @@ function sheetHTML(c) {
     <div id="pcPrepared">${preparedHTML(c)}</div>${prepPanelHTML(c)}</div>` : ""}
   <div class="grid2" style="margin-top:0">
     <div class="sec"><div class="sec-h"><h3>Features & Traits</h3></div><ul class="plain">${c.feats.map(f => featLi(f.f, f.sub ? `${esc(c.subclass)}, lv ${f.l}` : (f.race ? esc(raceLabel(c)) + ", " : "") + "lv " + f.l, c)).join("")}${c.traits.map(t => featLi(t, esc(raceLabel(c)), c)).join("")}</ul></div>
-    <div class="sec"><div class="sec-h"><h3>Equipment</h3></div><ul class="plain">${c.kit.map(k => `<li>${esc(k)}</li>`).join("")}<li>${esc(c.bg)} background gear</li></ul></div>
+    <div class="sec"><div class="sec-h"><h3>Equipment</h3></div><ul class="plain">${c.kit.map(k => `<li>${esc(k)}</li>`).join("")}${c.bgV >= 2 ? (+c.startGold ? `<li>${+c.startGold} gp</li>` : "") : `<li>${esc(c.bg)} background gear</li>`}</ul></div>
   </div>
   <div class="sec"><div class="sec-h"><h3>Personality & Backstory</h3></div>
     <p><b>Trait:</b> ${esc(c.trait)}<br><b>Ideal:</b> ${esc(c.ideal)}<br><b>Bond:</b> ${esc(cap1(c.bond))}.<br><b>Flaw:</b> ${esc(cap1(c.flaw))}.</p>
@@ -4134,8 +4265,14 @@ async function discardPC() {
 (function initPC() {
 
   Object.keys(CLASS_DATA).forEach(x => $("#pcClass").insertAdjacentHTML("beforeend", `<option>${x}</option>`));
-  Object.keys(BACKGROUNDS).forEach(x => $("#pcBg").insertAdjacentHTML("beforeend", `<option>${x}</option>`));
   const curEd = () => ($("input[name=pcEd]:checked") || {}).value || "2024";
+  const fillBgs = () => {
+    const keep = $("#pcBg").value, L = bgList(curEd());
+    $("#pcBg").innerHTML = `<option value="">Random</option>` + L.map(x => `<option>${esc(x)}</option>`).join("");
+    $("#pcBg").value = L.includes(keep) ? keep : "";
+    $("#pcBonusWrap").classList.toggle("ed-hide", curEd() === "2024");
+    if (window.pcBgHint) window.pcBgHint();
+  };
   const fillRaces = () => {
     const ed = curEd(), keep = $("#pcRace").value;
     $("#pcRace").innerHTML = `<option value="">Random</option>` + raceList(ed).map(x => `<option>${esc(x)}</option>`).join("");
@@ -4159,20 +4296,17 @@ async function discardPC() {
   };
   fillRaces();
   window.pcSelectsRefresh = () => {
-    const keep = $("#pcBg").value;
-    $("#pcBg").innerHTML = `<option value="">Random</option>` + Object.keys(BACKGROUNDS).map(x => `<option>${esc(x)}</option>`).join("");
-    if (BACKGROUNDS[keep]) $("#pcBg").value = keep;
-    if (window.pcBgHint) window.pcBgHint();
+    fillBgs();
     fillRaces(); syncRace();
   };
-  $$("input[name=pcEd]").forEach(rd => rd.addEventListener("change", () => { fillRaces(); syncRace(); }));
+  $$("input[name=pcEd]").forEach(rd => rd.addEventListener("change", () => { fillRaces(); syncRace(); fillBgs(); }));
   $("#pcRace").addEventListener("change", syncRace);
   $("#pcAnc").addEventListener("change", ancHint);
   const bgHint = () => {
-    const v = $("#pcBg").value, H = HB_BG[v];
-    $("#pcBgHint").textContent = !v ? "" : [H ? H.desc : BG_DESC[v], BACKGROUNDS[v] ? `Skills: ${BACKGROUNDS[v].join(", ")}.` : ""].filter(Boolean).join(" ");
+    const v = $("#pcBg").value, ed = curEd(), H = HB_BG[v], d = H ? H.desc : ed === "2024" ? BG_DESC_2024[v] : BG_DESC[v];
+    $("#pcBgHint").innerHTML = !v ? "" : `${d ? `${esc(d)}<br>` : ""}${bgLines(ed, v).map(([k, x]) => `<b>${esc(k)}:</b> ${esc(x)}`).join("<br>")}${ed === "2024" && !H ? "<br>Random forging puts the +2 and +1 on your class's best of the three." : ""}`;
   };
-  $("#pcBg").addEventListener("change", bgHint); window.pcBgHint = bgHint;
+  $("#pcBg").addEventListener("change", bgHint); window.pcBgHint = bgHint; fillBgs();
   $$("input[name=pcMode]").forEach(rd => rd.addEventListener("change", () => {
     const cust = ($("input[name=pcMode]:checked") || {}).value === "custom";
     $$("#pcForm .rnd-only").forEach(d => d.classList.toggle("hidden", cust));
@@ -4350,7 +4484,9 @@ function openSpellsFor(cls, maxLevel, hasCantrips) {
 const PC_KEY = "dmforge.pcs.v1";
 const PCS = { cur: null, roster: [], updated: 0 };
 let pcRemote = null, pcTimer = null;
-function pcEnsure(c) { if (c) { if (!c.id) c.id = uid("pc"); if (c.subclass === undefined) { const f = (c.feats || []).find(x => String(x.f).startsWith("Subclass: ") && x.f !== "Subclass: not chosen yet"); c.subclass = f ? f.f.slice(10) : null; } if (!Array.isArray(c.prepared)) c.prepared = []; if (c.race === "Dragonborn" && !c.ancestry) c.ancestry = makeRng("anc", c.seed || c.id).pick(Object.keys(DRAGON_ANCESTRY)); if (c.race === "Dragonborn" && !c.sub) c.sub = c.ancestry; withTraitRes(c); raceLvUpgrade(c); hookUpgrade(c); } return c; }
+// what a rebuild keeps from the character as it is: rolled or assigned base scores, skill picks, expertise
+const pcKeep = c => ({ base: c.customData ? undefined : c.base, rolls: c.rolls || undefined, keepSkills: (c.skills || []).filter(s => s.p).map(s => s.s), keepExpert: c.expertOrder || (c.skills || []).filter(s => s.x).map(s => s.s), keepSkilled: c.skilled });
+function pcEnsure(c) { if (c) { if (c.bgV === undefined && c.cls) { c.bgV = 1; if (c.ed === "2024") c.bgAsiLegacy = true; } if (!c.id) c.id = uid("pc"); if (c.subclass === undefined) { const f = (c.feats || []).find(x => String(x.f).startsWith("Subclass: ") && x.f !== "Subclass: not chosen yet"); c.subclass = f ? f.f.slice(10) : null; } if (!Array.isArray(c.prepared)) c.prepared = []; if (c.race === "Dragonborn" && !c.ancestry) c.ancestry = makeRng("anc", c.seed || c.id).pick(Object.keys(DRAGON_ANCESTRY)); if (c.race === "Dragonborn" && !c.sub) c.sub = c.ancestry; withTraitRes(c); raceLvUpgrade(c); hookUpgrade(c); } return c; }
 function pcPersist() {
   PCS.cur = currentPC; PCS.updated = Date.now();
   if (currentPC) { const i = PCS.roster.findIndex(x => x.id === currentPC.id); if (i >= 0) PCS.roster[i] = currentPC; }
@@ -4584,7 +4720,7 @@ function sheetDoc(c) {
         ${c.attacks.map(a => `<tr><td>${esc(a.name)}</td><td>${sgn(a.hit)}</td><td>${esc(a.dmg)} ${a.type || DMG_TYPE[a.name] || ""}</td></tr>`).join("")}
         ${c.spell ? `<tr><td>Spell attack</td><td>${sgn(c.spell.atk)}</td><td>Save DC ${c.spell.dc}</td></tr>` : ""}<tr><td>&nbsp;</td><td></td><td></td></tr></table>
         ${c.extras.length ? `<div style="margin-top:5px">${c.extras.map(esc).join("<br>")}</div>` : ""}${defText(c) ? `<div style="margin-top:5px"><b>${esc(defText(c))}</b></div>` : ""}<div class="boxt">Attacks &amp; spellcasting</div></div>
-      <div class="box"><ul>${c.kit.map(k => `<li>${esc(k)}</li>`).join("")}<li>${esc(c.bg)} background gear</li>${(c.inv || []).filter(i => i.n).map(i => `<li>${+i.qty > 1 ? i.qty + " × " : ""}${esc(i.n)}${i.attuned ? " (attuned)" : ""}</li>`).join("")}</ul><div style="margin-top:6px" class="lab">${["cp", "sp", "ep", "gp", "pp"].map(k => `${k.toUpperCase()} ${c.coins && +c.coins[k] ? c.coins[k] : "____"}`).join(" ")}</div><div class="boxt">Equipment</div></div>
+      <div class="box"><ul>${c.kit.map(k => `<li>${esc(k)}</li>`).join("")}${c.bgV >= 2 ? (+c.startGold ? `<li>${+c.startGold} gp</li>` : "") : `<li>${esc(c.bg)} background gear</li>`}${(c.inv || []).filter(i => i.n).map(i => `<li>${+i.qty > 1 ? i.qty + " × " : ""}${esc(i.n)}${i.attuned ? " (attuned)" : ""}</li>`).join("")}</ul><div style="margin-top:6px" class="lab">${["cp", "sp", "ep", "gp", "pp"].map(k => `${k.toUpperCase()} ${c.coins && +c.coins[k] ? c.coins[k] : "____"}`).join(" ")}</div><div class="boxt">Equipment</div></div>
     </div>
     <div>
       ${[["Personality traits", c.trait], ["Ideals", c.ideal], ["Bonds", cap1(c.bond) + "."], ["Flaws", cap1(c.flaw) + "."]].map(([l, v]) => `<div class="box"><div class="free">${esc(v)}</div><div class="boxt">${l}</div></div>`).join("")}
@@ -6123,7 +6259,7 @@ function pcRefresh(c) {
   if (location.hash === "#roster" && RC.id === c.id) renderRosterMain();
 }
 const LV = { c: null, to: 0, pick: "", onlySub: false, back: null, asi: null };
-const lvBuild = (c, to, picks) => generateCharacter({ seed: c.seed || c.id, name: c.name, race: c.race, ed: edOf(c), sub: c.sub || (c.race === "Dragonborn" && c.ancestry) || "none", ancestry: c.ancestry || undefined, cls: c.cls, bg: c.bg, level: to, subclass: c.subclass || "none", asiPicks: picks, bonusFeats: c.bonusFeats || undefined, method: c.method || "array", bonus: c.bonus || "flex", custom: c.customData || undefined });
+const lvBuild = (c, to, picks) => generateCharacter({ seed: c.seed || c.id, name: c.name, race: c.race, ed: edOf(c), sub: c.sub || (c.race === "Dragonborn" && c.ancestry) || "none", ancestry: c.ancestry || undefined, cls: c.cls, bg: c.bg, level: to, subclass: c.subclass || "none", asiPicks: picks, bonusFeats: c.bonusFeats || undefined, bgAsiLegacy: c.bgAsiLegacy || undefined, ...pcKeep(c), method: c.method || "array", bonus: c.bonus || "flex", custom: c.customData || undefined });
 const lvHasAsi = (c, to) => (CLASS_DATA[c.cls].asi || [4, 8, 12, 16, 19]).includes(to);
 // The choice as stored on the character: { str: 2 }, { str: 1, con: 1 } or { feat: "Alert" }; null while incomplete.
 function lvAsiPick() {
@@ -6514,7 +6650,7 @@ function choiceBox(title, msg, opts, yes = "OK") {
 const FT = { ed: "2024", q: "", grp: "", ok: false, target: undefined };
 function ftTargets() { const l = []; if (currentPC) l.push(currentPC); PCS.roster.forEach(c => { if (!l.some(x => x.id === c.id)) l.push(c); }); return l; }
 const ftTarget = () => ftTargets().find(c => c.id === FT.target) || null;
-const pcFeatNames = c => [...Object.values(c.asiPicks || {}).filter(v => v && v.feat).map(v => v.feat), ...(c.bonusFeats || []).map(b => b.n)];
+const pcFeatNames = c => [...Object.values(c.asiPicks || {}).filter(v => v && v.feat).map(v => v.feat), ...(c.bonusFeats || []).map(b => b.n), ...(c.feats || []).filter(f => f.bgFeat).map(f => f.f.slice(6))];
 function pcRebuild(c) { const cur = c.hpCur; pcLevelTo(c, c.level); if (cur !== undefined && cur !== "") c.hpCur = Math.min(+cur, c.hp); pcRefresh(c); }
 function renderFeats() {
   const list = ftTargets();
@@ -6571,7 +6707,8 @@ async function ftAdd(c, name) {
 function featsSecHTML(c) {
   const lv = Object.entries(c.asiPicks || {}).filter(([k, v]) => v && v.feat && +k <= c.level).map(([k, v]) => ({ n: v.feat, a: AB.find(x => v[x]), src: `lv ${k} level-up` }));
   const bonus = (c.bonusFeats || []).map((b, i) => ({ n: b.n, a: b.a, src: `added at lv ${b.l || 1}`, i }));
-  const all = [...lv, ...bonus];
+  const bgf = (c.feats || []).filter(f => f.bgFeat).map(f => ({ n: f.f.slice(6), src: `${c.bg} background${f.note ? `, ${f.note.toLowerCase()} spells` : ""}` }));
+  const all = [...bgf, ...lv, ...bonus];
   return `<div class="sec"><div class="sec-h"><h3>Feats</h3><span class="sp"></span><button class="btn sm primary" type="button" data-ra="addFeat">+ Add feat</button></div>
     ${all.length ? `<ul class="plain">${all.map(x => { const d = featDesc("Feat: " + x.n, c); return `<li><b>${esc(x.n)}</b>${x.a ? ` <span class="tag">+1 ${AB_NAME[x.a]}</span>` : ""} <span class="muted" style="font-size:13px">(${esc(x.src)})</span>
       ${x.i !== undefined ? `<button class="icon-btn" type="button" data-rmfeat="${x.i}" title="Remove ${esc(x.n)}" aria-label="Remove ${esc(x.n)}">✕</button>` : ""}${d ? `<div class="ft-desc">${esc(d)}</div>` : ""}</li>`; }).join("")}</ul>`
@@ -6598,8 +6735,8 @@ function pcRecompute(c) {
   pcACApply(c);
 }
 function pcLevelTo(c, lv) {
-  const n = generateCharacter({ seed: c.seed || c.id, name: c.name, race: c.race, ed: edOf(c), sub: c.sub || (c.race === "Dragonborn" && c.ancestry) || "none", ancestry: c.ancestry || undefined, cls: c.cls, bg: c.bg, level: lv, subclass: c.subclass || "none", asiPicks: c.asiPicks || undefined, bonusFeats: c.bonusFeats || undefined, method: c.method || "array", bonus: c.bonus || "flex", custom: c.customData || undefined });
-  ["level", "base", "scores", "mods", "rolls", "prof", "saves", "skills", "hp", "ac", "acSrc", "speed", "init", "passive", "attacks", "spell", "feats", "extras", "hd", "traits", "initBonus", "atkBonus", "hbSig", "res", "imm", "vul", "cimm", "sadv", "subHp", "subSpd", "hbAc", "hbSpeed"].forEach(k => c[k] = n[k]);
+  const n = generateCharacter({ seed: c.seed || c.id, name: c.name, race: c.race, ed: edOf(c), sub: c.sub || (c.race === "Dragonborn" && c.ancestry) || "none", ancestry: c.ancestry || undefined, cls: c.cls, bg: c.bg, level: lv, subclass: c.subclass || "none", asiPicks: c.asiPicks || undefined, bonusFeats: c.bonusFeats || undefined, bgAsiLegacy: c.bgAsiLegacy || undefined, ...pcKeep(c), method: c.method || "array", bonus: c.bonus || "flex", custom: c.customData || undefined });
+  ["level", "base", "scores", "mods", "rolls", "prof", "saves", "skills", "hp", "ac", "acSrc", "speed", "init", "passive", "attacks", "spell", "feats", "extras", "hd", "traits", "initBonus", "atkBonus", "hbSig", "res", "imm", "vul", "cimm", "sadv", "subHp", "subSpd", "hbAc", "hbSpeed", "skilled", "expertOrder"].forEach(k => c[k] = n[k]);
   c.hpCur = n.hp;
   if (c.kitMoved) { c.attacks = pcAttacks(c); pcACApply(c); }
 }
@@ -6640,6 +6777,7 @@ function pcInvUpgrade(c) {
     c.inv.push({ id: uid("i"), ref: g ? g.id : undefined, n, qty, w: g ? g.w || 0 : 0, att: false, attuned: false, value: g ? g.c : undefined, note: "", eq: eqIsWeapon(g) || eqIsArmor(g) });
   }));
   c.kit = []; c.kitMoved = true;
+  if (+c.startGold && !c.goldAdded) { c.coins = c.coins || { cp: 0, sp: 0, ep: 0, gp: 0, pp: 0 }; c.coins.gp = (+c.coins.gp || 0) + +c.startGold; c.goldAdded = true; }
   return true;
 }
 // which standard weapon an inventory item is: its Items-tab entry, else a weapon named in its name, notes or magic type
@@ -6928,6 +7066,7 @@ function pcResources(c) {
   if (has("Favored Enemy") && ed === "2024") add("hmark", "Free Hunter's Mark", lv >= 17 ? 6 : lv >= 13 ? 5 : lv >= 9 ? 4 : lv >= 5 ? 3 : 2, "long");
   if (has("Arcane Recovery")) add("arcrec", "Arcane Recovery", 1, "long");
   if (has("Stroke of Luck")) add("luck", "Stroke of Luck", 1, "short");
+  if (featTaken(c, "Lucky")) add("luckfeat", "Luck points", ed === "2024" ? prof : 3, "long");
   if (c.race === "Dragonborn") add("breath", "Breath Weapon", ed === "2024" ? prof : 1, ed === "2024" ? "long" : "short");
   if (tr("Healing Hands")) add("hhands", "Healing Hands", 1, "long");
   if (tr("Relentless Endurance")) add("relent", "Relentless Endurance", 1, "long");
@@ -6986,6 +7125,7 @@ function pcAbilities(c) {
   if (has("Font of Magic")) add("Font of Magic", "Bonus action", "Turn a spell slot into sorcery points, or spend 2/3/5/6/7 points for a level 1–5 slot.", "sorc");
   if (has("Metamagic")) add("Metamagic", "When casting", "Spend sorcery points to change a spell: Quickened (2), Twinned (spell level), Subtle, Careful, Distant, Empowered, Extended (1).", "sorc");
   if (has("Arcane Recovery")) add("Arcane Recovery", "Short rest", `Recover spell slots with a combined level up to ${Math.ceil(lv / 2)} (none above 5th).`, "arcrec");
+  if (featTaken(c, "Lucky")) add("Lucky (feat)", "On a roll", ed === "2024" ? "Spend a luck point: advantage on a d20 test, or disadvantage on an attack roll against you." : "Spend a luck point: roll an extra d20 for an attack, check or save (or an attack against you) and choose which to use.", "luckfeat");
   if (has("Stroke of Luck")) add("Stroke of Luck", "Free", "Turn a missed attack into a hit, or treat a failed ability check's d20 as a 20.", "luck");
   if (c.race === "Dragonborn") { const x = (c.extras || []).find(e => e.startsWith("Breath Weapon")); if (x) add("Breath Weapon", ed === "2024" ? "Replaces an attack" : "Action", x.replace(/^Breath Weapon \([^)]*\):\s*/, "").replace(/, (\d+ uses per long rest|once per short or long rest)$/, ""), "breath"); }
   if (tr("Healing Hands")) add("Healing Hands", "Action", `Touch a creature and heal ${prof}d4 hit points.`, "hhands");
@@ -7497,6 +7637,7 @@ function renderRosterMain() {
   if (!c) { main.innerHTML = `<div class="card empty"><h2>No saved characters</h2><p>Forge a character on the Characters tab, then press “Save to My characters” to move it here, where you can keep editing it.</p><a class="btn primary" href="#character" style="text-decoration:none;display:inline-block">Go to Characters</a></div>`; return; }
   RC.id = c.id; pcEnsure(c);
   c.inv = c.inv || []; c.coins = c.coins || { cp: 0, sp: 0, ep: 0, gp: 0, pp: 0 }; if (c.hpCur === undefined) c.hpCur = c.hp;
+  if (c.bgV === 1 && CLASS_DATA[c.cls]) { const cur = c.hpCur; pcLevelTo(c, c.level); c.bgV = 2; if (cur !== undefined && cur !== "") c.hpCur = Math.min(+cur, c.hp); pcPersist(); }
   const moved = pcInvUpgrade(c), synced = pcSubSync(c), nums = pcSubNumbers(c); pcRecompute(c); c.attacks = pcAttacks(c); if (moved || synced || nums) pcPersist();
   main.innerHTML = rosterHTML(c); renderCampList(); $$("textarea", main).forEach(autoGrow);
 }
