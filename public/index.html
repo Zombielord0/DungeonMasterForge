@@ -2771,7 +2771,7 @@ const CLASS_DATA = {
   Paladin: { hd: 10, pri: ["str", "cha", "con"], saves: ["wis", "cha"], skills: [["Athletics", "Insight", "Intimidation", "Medicine", "Persuasion", "Religion"], 2], ac: () => [18, "Chain mail + shield"], kit: ["Longsword", "Shield", "Chain mail", "Five javelins", "Holy symbol", "Priest's pack"], wpn: ["Longsword", "1d8", "str"], f: { 1: ["Divine Sense", "Lay on Hands"], 2: ["Fighting Style", "Spellcasting", "Divine Smite"], 3: ["Divine Health", "Sacred Oath"], 5: ["Extra Attack"], 6: ["Aura of Protection"], 10: ["Aura of Courage"], 11: ["Improved Divine Smite"], 14: ["Cleansing Touch"] }, sub: ["Oath of Devotion", 3], cast: ["half", "cha"] },
   Ranger: { hd: 10, pri: ["dex", "wis", "con"], saves: ["str", "dex"], skills: [["Animal Handling", "Athletics", "Insight", "Investigation", "Nature", "Perception", "Stealth", "Survival"], 3], ac: (m) => [11 + m.dex, "Leather armor"], kit: ["Longbow + 20 arrows", "Two shortswords", "Leather armor", "Explorer's pack"], wpn: ["Longbow", "1d8", "dex"], f: { 1: ["Favored Enemy", "Natural Explorer"], 2: ["Fighting Style", "Spellcasting"], 3: ["Ranger Archetype", "Primeval Awareness"], 5: ["Extra Attack"], 8: ["Land's Stride"], 10: ["Hide in Plain Sight"], 14: ["Vanish"], 18: ["Feral Senses"], 20: ["Foe Slayer"] }, sub: ["Hunter", 3], cast: ["half", "wis"] },
   Rogue: { hd: 8, pri: ["dex", "con", "wis"], saves: ["dex", "int"], skills: [["Acrobatics", "Athletics", "Deception", "Insight", "Intimidation", "Investigation", "Perception", "Performance", "Persuasion", "Sleight of Hand", "Stealth"], 4], ac: (m) => [11 + m.dex, "Leather armor"], kit: ["Rapier", "Shortbow + 20 arrows", "Leather armor", "Two daggers", "Thieves' tools", "Burglar's pack"], wpn: ["Rapier", "1d8", "dex"], f: { 1: ["Expertise", "Sneak Attack", "Thieves' Cant"], 2: ["Cunning Action"], 3: ["Roguish Archetype"], 5: ["Uncanny Dodge"], 6: ["Expertise"], 7: ["Evasion"], 11: ["Reliable Talent"], 14: ["Blindsense"], 15: ["Slippery Mind"], 18: ["Elusive"], 20: ["Stroke of Luck"] }, sub: ["Thief", 3], asi: [4, 8, 10, 12, 16, 19], expertise: [[1, 2], [6, 2]] },
-  Sorcerer: { hd: 6, pri: ["cha", "con", "dex"], saves: ["con", "cha"], skills: [["Arcana", "Deception", "Insight", "Intimidation", "Persuasion", "Religion"], 2], ac: (m) => [13 + m.dex, "Draconic Resilience"], kit: ["Light crossbow + 20 bolts", "Two daggers", "Arcane focus", "Dungeoneer's pack"], wpn: ["Light crossbow", "1d8", "dex"], f: { 1: ["Spellcasting", "Sorcerous Origin"], 2: ["Font of Magic"], 3: ["Metamagic"], 20: ["Sorcerous Restoration"] }, sub: ["Draconic Bloodline", 1], cast: ["full", "cha"], hpBonus: 1 },
+  Sorcerer: { hd: 6, pri: ["cha", "con", "dex"], saves: ["con", "cha"], skills: [["Arcana", "Deception", "Insight", "Intimidation", "Persuasion", "Religion"], 2], ac: (m) => [10 + m.dex, "No armor (Mage Armor: " + (13 + m.dex) + ")"], kit: ["Light crossbow + 20 bolts", "Two daggers", "Arcane focus", "Dungeoneer's pack"], wpn: ["Light crossbow", "1d8", "dex"], f: { 1: ["Spellcasting", "Sorcerous Origin"], 2: ["Font of Magic"], 3: ["Metamagic"], 20: ["Sorcerous Restoration"] }, sub: ["Draconic Bloodline", 1], cast: ["full", "cha"], hpBonus: 1 },
   Warlock: { hd: 8, pri: ["cha", "con", "dex"], saves: ["wis", "cha"], skills: [["Arcana", "Deception", "History", "Intimidation", "Investigation", "Nature", "Religion"], 2], ac: (m) => [11 + m.dex, "Leather armor"], kit: ["Light crossbow + 20 bolts", "Leather armor", "Two daggers", "Arcane focus", "Scholar's pack"], wpn: ["Light crossbow", "1d8", "dex"], f: { 1: ["Otherworldly Patron", "Pact Magic"], 2: ["Eldritch Invocations"], 3: ["Pact Boon"], 11: ["Mystic Arcanum"], 20: ["Eldritch Master"] }, sub: ["The Fiend", 1], cast: ["pact", "cha"] },
   Wizard: { hd: 6, pri: ["int", "con", "dex"], saves: ["int", "wis"], skills: [["Arcana", "History", "Insight", "Investigation", "Medicine", "Religion"], 2], ac: (m) => [10 + m.dex, "No armor (Mage Armor: " + (13 + m.dex) + ")"], kit: ["Quarterstaff", "Spellbook", "Arcane focus", "Scholar's pack"], wpn: ["Quarterstaff", "1d6", "str"], f: { 1: ["Spellcasting", "Arcane Recovery"], 2: ["Arcane Tradition"], 18: ["Spell Mastery"], 20: ["Signature Spells"] }, sub: ["School of Evocation", 2], cast: ["full", "int"] }
 };
@@ -3145,6 +3145,35 @@ const SUB_ABL = {
   "Illusory Self": { when: "Reaction", res: ["Illusory Self", () => 1, "short"] }, "Illusory Reality": { when: "Bonus action" }, "Hypnotic Gaze": { when: "Action" }, "Instinctive Charm": { when: "Reaction" },
   "Benign Transposition": { when: "Action", res: ["Benign Transposition", () => 1, "long"] }, "Grim Harvest": { when: "On a kill" }, "Shapechanger": { when: "Action", res: ["Shapechanger", () => 1, "short"] }, "Spell Breaker": { when: "Bonus action" }
 };
+/* Numbers a subclass changes on the sheet: extra hit points, speed, initiative, crit range, saves, unarmored AC. */
+function subBonuses(ed, sub, lv, m, prof) {
+  const B = { hp: 0, speed: 0, init: 0, crit: 20, athlete: false, saves: [], ac: null };
+  if (!sub) return B;
+  if ((sub === "Draconic Bloodline" && ed === "2014") || (sub === "Draconic Sorcery" && ed === "2024" && lv >= 3)) {
+    B.hp = lv;
+    B.ac = ed === "2024" ? [10 + m.dex + m.cha, "Draconic Resilience (10 + DEX + CHA)"] : [13 + m.dex, "Draconic Resilience (13 + DEX)"];
+  }
+  if (sub === "Champion") { B.crit = lv >= 15 ? 18 : lv >= 3 ? 19 : 20; if (ed === "2014" && lv >= 7) B.athlete = true; }
+  if (sub === "Oath of Glory" && ed === "2024" && lv >= 7) B.speed = 10;
+  if (sub === "Gloom Stalker" && ed === "2024") { if (lv >= 3) B.init = m.wis; if (lv >= 7) B.saves.push("wis"); }
+  return B;
+}
+const subBonusOf = c => subBonuses(edOf(c), c.subclass, c.level, c.mods, c.prof);
+// Iron Mind: Wisdom saves, or Intelligence / Charisma if already proficient
+function subAddSaves(saves, B) { B.saves.forEach(a => { const pick = [a, "int", "cha"].find(x => !saves.includes(x)); if (pick) saves.push(pick); }); return saves; }
+const athleteBonus = (B, s, prof) => B.athlete && !s.p && ["str", "dex", "con"].includes(s.ab) ? Math.floor(prof / 2) : 0;
+// bring a saved character's subclass numbers up to date; the hit point and speed bonuses are tracked so they're applied once
+function pcSubNumbers(c) {
+  const B = subBonusOf(c), before = JSON.stringify([c.hp, c.hpCur, c.speed, c.saves, c.ac, c.acSrc]);
+  const dHp = B.hp - (+c.subHp || 0); if (dHp && c.hp !== "") { c.hp = (+c.hp || 0) + dHp; if (c.hpCur !== "" && c.hpCur !== undefined) c.hpCur = Math.max(0, (+c.hpCur || 0) + dHp); } c.subHp = B.hp;
+  const dSp = B.speed - (+c.subSpd || 0); if (dSp && c.speed !== "") c.speed = (+c.speed || 0) + dSp; c.subSpd = B.speed;
+  subAddSaves(c.saves, B);
+  if (c.cls === "Sorcerer") {
+    if (B.ac && c.acSrc !== B.ac[1]) [c.ac, c.acSrc] = B.ac;
+    else if (!B.ac && /^Draconic Resilience/.test(c.acSrc || "")) [c.ac, c.acSrc] = CLASS_DATA.Sorcerer.ac(c.mods);
+  }
+  return JSON.stringify([c.hp, c.hpCur, c.speed, c.saves, c.ac, c.acSrc]) !== before;
+}
 const subAblKey = n => "sub:" + n.toLowerCase().replace(/[^a-z]+/g, "-");
 const subclassList = (ed, cls) => [...(((SUBCLASSES[ed] || SUBCLASSES["2014"])[cls]) || []), ...hbOf("subclass").filter(x => x.cls === cls && hbEdOk(x, ed)).map(x => [x.name, x.desc || "", true])];
 const subclassLevel = (ed, cls) => ed === "2024" ? 3 : (CLASS_DATA[cls] ? CLASS_DATA[cls].sub[1] : 3);
@@ -3800,9 +3829,9 @@ function generateCharacter(o) {
   const conBonus = m.con + (C.hpBonus || 0);
   const featsTaken = asiLv.map(L => asiPicks[L]).filter(pk => pk && pk.feat);
   const hasFeat = n => featsTaken.some(pk => pk.feat === n);
-  const hp = Math.max(1, C.hd + conBonus) + (lv - 1) * Math.max(1, diceAvg(C.hd) + conBonus) + (R.hpLv || 0) * lv + (hasFeat("Tough") ? 2 * lv : 0) + (hasFeat("Boon of Fortitude") ? 40 : 0);
+  let hp = Math.max(1, C.hd + conBonus) + (lv - 1) * Math.max(1, diceAvg(C.hd) + conBonus) + (R.hpLv || 0) * lv + (hasFeat("Tough") ? 2 * lv : 0) + (hasFeat("Boon of Fortitude") ? 40 : 0);
   const saves = [...C.saves]; featsTaken.filter(pk => pk.feat === "Resilient").forEach(pk => { const a = AB.find(x => pk[x]); if (a && !saves.includes(a)) saves.push(a); });
-  const [ac, acSrc] = C.ac(m);
+  let [ac, acSrc] = C.ac(m);
   const w = C.wpn, wm = cls === "Monk" ? Math.max(m.str, m.dex) : m[w[2]];
   const attacks = [{ name: w[0], hit: wm + prof, dmg: `${w[1]}${wm ? sgn(wm) : ""}` }];
   if (cls === "Monk") { const md = lv >= 17 ? "1d10" : lv >= 11 ? "1d8" : lv >= 5 ? "1d6" : "1d4"; attacks.push({ name: "Unarmed strike", hit: wm + prof, dmg: md + sgn(wm) }); }
@@ -3827,6 +3856,9 @@ function generateCharacter(o) {
   const hbSub = subclass && hbOf("subclass").find(x => x.name === subclass && x.cls === cls);
   if (hbSub) (hbSub.features || []).filter(f => f.n && +f.l <= lv).forEach(f => feats.push({ l: +f.l, f: f.n }));
   else if (subclass) feats.push(...subFeatList(ed, subclass, lv));
+  const SB = subBonuses(ed, subclass, lv, m, prof);
+  hp += SB.hp; subAddSaves(saves, SB); if (SB.ac) [ac, acSrc] = SB.ac;
+  skillVals.forEach(s => s.v += athleteBonus(SB, s, prof));
   if (HB_BG[bg] && HB_DESC[`${bg} background`]) feats.push({ l: 1, f: `${bg} background` });
   if (asiAuto.length) feats.push({ l: asiAuto[0], f: `Ability Score Improvement ×${asiAuto.length} (applied)` });
   asiLv.filter(L => asiPicks[L]).forEach(L => { const pk = asiPicks[L]; feats.push({ l: L, f: pk.feat ? `Feat: ${pk.feat}${AB.some(a => pk[a]) ? ` (${AB.filter(a => pk[a]).map(a => `+${pk[a]} ${AB_NAME[a]}`).join(", ")})` : ""}` : `Ability Score Improvement: ${AB.filter(a => pk[a]).map(a => `+${pk[a]} ${AB_NAME[a]}`).join(", ")}` }); });
@@ -3847,7 +3879,7 @@ function generateCharacter(o) {
   const hk = hookBuild(r.pick(PC_HOOKS), hookCtx(r, pcName.split(" ")[0]));
   return {
     seed: o.seed, method: o.method, bonus: o.bonus, name: pcName, race, ed, sub, ancestry: anc, subclass, custom: !!o.custom, customData: o.custom || null, cls, bg, level: lv, align: (o.custom && o.custom.align) || r.pick(ALIGN), base, scores: sc, mods: m, rolls,
-    prof, saves, skills: skillVals, hp, ac, acSrc, speed: R.speed, init: m.dex + (hasFeat("Alert") ? (ed === "2024" ? prof : 5) : 0), passive: 10 + skillVals.find(s => s.s === "Perception").v,
+    prof, saves, skills: skillVals, hp, ac, acSrc, speed: R.speed + SB.speed, init: m.dex + (hasFeat("Alert") ? (ed === "2024" ? prof : 5) : 0) + SB.init + (SB.athlete ? Math.floor(prof / 2) : 0), passive: 10 + skillVals.find(s => s.s === "Perception").v, subHp: SB.hp, subSpd: SB.speed,
     attacks, spell, feats, extras, traits: R.traits, kit: C.kit, hd: C.hd,
     trait: r.pick(PC_TRAITS), ideal: r.pick(IDEALS), bond: r.pick(BONDS), flaw: r.pick(FLAWS), hook: hk.hook, hookDetail: hk.hookDetail
   };
@@ -6259,9 +6291,10 @@ function hbFormHTML(d) {
 const RC = { id: null };
 function rosterCur() { return PCS.roster.find(c => c.id === RC.id) || PCS.roster[0] || null; }
 function pcRecompute(c) {
-  const m = {}; AB.forEach(a => m[a] = mod(+c.scores[a] || 10)); c.mods = m; c.init = m.dex + ((c.feats || []).some(f => f.f === "Feat: Alert") ? (edOf(c) === "2024" ? c.prof : 5) : 0);
+  const m = {}; AB.forEach(a => m[a] = mod(+c.scores[a] || 10)); c.mods = m; const SB = subBonusOf(c);
+  c.init = m.dex + ((c.feats || []).some(f => f.f === "Feat: Alert") ? (edOf(c) === "2024" ? c.prof : 5) : 0) + SB.init + (SB.athlete ? Math.floor(c.prof / 2) : 0);
   const jack = c.cls === "Bard" && c.level >= 2;
-  c.skills.forEach(s => s.v = m[s.ab] + (s.x ? c.prof * 2 : s.p ? c.prof : jack ? Math.floor(c.prof / 2) : 0));
+  c.skills.forEach(s => s.v = m[s.ab] + (s.x ? c.prof * 2 : s.p ? c.prof : jack ? Math.floor(c.prof / 2) : 0) + athleteBonus(SB, s, c.prof));
   const per = c.skills.find(s => s.s === "Perception"); c.passive = 10 + (per ? per.v : m.wis);
   const C = CLASS_DATA[c.cls];
   if (c.kitMoved) c.attacks = pcAttacks(c);
@@ -6273,7 +6306,7 @@ function pcRecompute(c) {
 }
 function pcLevelTo(c, lv) {
   const n = generateCharacter({ seed: c.seed || c.id, name: c.name, race: c.race, ed: edOf(c), sub: c.sub || (c.race === "Dragonborn" && c.ancestry) || "none", ancestry: c.ancestry || undefined, cls: c.cls, bg: c.bg, level: lv, subclass: c.subclass || "none", asiPicks: c.asiPicks || undefined, method: c.method || "array", bonus: c.bonus || "flex", custom: c.customData || undefined });
-  ["level", "base", "scores", "mods", "rolls", "prof", "saves", "skills", "hp", "ac", "acSrc", "speed", "init", "passive", "attacks", "spell", "feats", "extras", "hd"].forEach(k => c[k] = n[k]);
+  ["level", "base", "scores", "mods", "rolls", "prof", "saves", "skills", "hp", "ac", "acSrc", "speed", "init", "passive", "attacks", "spell", "feats", "extras", "hd", "subHp", "subSpd"].forEach(k => c[k] = n[k]);
   c.hpCur = n.hp;
   if (c.kitMoved) c.attacks = pcAttacks(c);
 }
@@ -6349,14 +6382,20 @@ function eqAttack(c, i, w) {
   return { name: i.n, iid: i.id, hit, dmg: dm[1] + (mod ? sgn(mod) : ""), type: dm[2], alt: two ? `${two}${mod ? sgn(mod) : ""} two-handed` : "", ab, prof, magic, needsAtt };
 }
 function pcAttacks(c) {
-  const ed = edOf(c), out = [];
+  const ed = edOf(c), out = [], SB = subBonusOf(c);
   (c.inv || []).filter(i => i.eq && (+i.qty || 0) > 0).forEach(i => { const w = eqWeaponOf(i, ed), a = w && eqAttack(c, i, w); if (a) out.push(a); });
   const m = c.mods;
   if (c.cls === "Monk") { const lv = c.level, wm = Math.max(m.str, m.dex), md = ed === "2024" ? (lv >= 17 ? "1d12" : lv >= 11 ? "1d10" : lv >= 5 ? "1d8" : "1d6") : (lv >= 17 ? "1d10" : lv >= 11 ? "1d8" : lv >= 5 ? "1d6" : "1d4"); out.push({ name: "Unarmed strike", hit: wm + c.prof, dmg: md + (wm ? sgn(wm) : ""), type: "bludgeoning", prof: true }); }
   else if (!out.length) out.push({ name: "Unarmed strike", hit: m.str + c.prof, dmg: String(Math.max(1, 1 + m.str)), type: "bludgeoning", prof: true });
+  if ((c.feats || []).some(f => f.sub && f.f === "Psychic Blades")) {
+    const bm = Math.max(m.str, m.dex);
+    out.push({ name: "Psychic Blade", hit: bm + c.prof, dmg: "1d6" + (bm ? sgn(bm) : ""), type: "psychic", alt: "thrown 60 ft", prof: true });
+    out.push({ name: "Psychic Blade (bonus action)", hit: bm + c.prof, dmg: "1d4" + (bm ? sgn(bm) : ""), type: "psychic", prof: true });
+  }
+  if (SB.crit < 20) out.forEach(a => a.crit = SB.crit);
   return out;
 }
-const atkLine = a => `<b>${esc(a.name)}</b>: ${sgn(a.hit)} to hit, ${esc(a.dmg)}${a.type ? " " + esc(a.type) : ""} damage${a.alt ? ` <span class="muted">(${esc(a.alt)})</span>` : ""}${a.prof === false ? ` <span class="tag">not proficient</span>` : ""}${a.needsAtt ? ` <span class="tag">attune for +${a.magic}</span>` : ""}`;
+const atkLine = a => `<b>${esc(a.name)}</b>: ${sgn(a.hit)} to hit, ${esc(a.dmg)}${a.type ? " " + esc(a.type) : ""} damage${a.alt ? ` <span class="muted">(${esc(a.alt)})</span>` : ""}${a.crit ? ` <span class="tag">crit ${a.crit}–20</span>` : ""}${a.prof === false ? ` <span class="tag">not proficient</span>` : ""}${a.needsAtt ? ` <span class="tag">attune for +${a.magic}</span>` : ""}`;
 /* ---- limited-use resources (ki, rages, slots, hit dice…), the Abilities list, and rests ---- */
 // recharge: "long" = back on a long rest; "short" = all back on a short rest; "short1" = one back on a short rest (2024 rules)
 function pcResources(c) {
@@ -6492,7 +6531,7 @@ function renderRosterMain() {
   if (!c) { main.innerHTML = `<div class="card empty"><h2>No saved characters</h2><p>Forge a character on the Characters tab, then press “Save to My characters” to move it here, where you can keep editing it.</p><a class="btn primary" href="#character" style="text-decoration:none;display:inline-block">Go to Characters</a></div>`; return; }
   RC.id = c.id; pcEnsure(c);
   c.inv = c.inv || []; c.coins = c.coins || { cp: 0, sp: 0, ep: 0, gp: 0, pp: 0 }; if (c.hpCur === undefined) c.hpCur = c.hp;
-  const moved = pcInvUpgrade(c), synced = pcSubSync(c); c.attacks = pcAttacks(c); if (moved || synced) pcPersist();
+  const moved = pcInvUpgrade(c), synced = pcSubSync(c), nums = pcSubNumbers(c); pcRecompute(c); c.attacks = pcAttacks(c); if (moved || synced || nums) pcPersist();
   main.innerHTML = rosterHTML(c); renderCampList(); $$("textarea", main).forEach(autoGrow);
 }
 function rosterHTML(c) {
