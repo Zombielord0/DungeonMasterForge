@@ -60,7 +60,7 @@ section.view.active{display:block;animation:rise .25s ease-out}
 .layout{display:grid;grid-template-columns:330px 1fr;gap:20px;align-items:start}
 @media (max-width:900px){.layout{grid-template-columns:1fr}}
 /* stone slabs */
-.card,.sec,#modal .box{position:relative;background:var(--slab);border:1px solid #0f0e0d;border-radius:var(--radius);padding:16px;
+.card,.sec,#modal .box,#lvModal .box{position:relative;background:var(--slab);border:1px solid #0f0e0d;border-radius:var(--radius);padding:16px;
   box-shadow:inset 1px 1px 0 rgba(255,255,255,.09),inset -2px -3px 0 rgba(0,0,0,.35),0 8px 22px rgba(0,0,0,.65)}
 .card::after,.sec::after{content:"";position:absolute;inset:0;border-radius:inherit;pointer-events:none;background:var(--grit);opacity:.35;mix-blend-mode:multiply}
 .card>*,.sec>*{position:relative;z-index:1}
@@ -268,6 +268,14 @@ textarea[data-list=party]{min-height:150px}
 #modal.open{display:flex}
 #modal .box{border-color:#7a4415;max-width:440px;width:100%;padding:20px}
 #modal .box p{margin:10px 0 18px}
+#lvModal{position:fixed;inset:0;background:rgba(0,0,0,.7);display:none;align-items:center;justify-content:center;z-index:50;padding:20px}
+#lvModal.open{display:flex}
+#lvModal .box{border-color:#7a4415;max-width:640px;width:100%;max-height:90vh;overflow:auto;padding:20px}
+#lvModal .pick-grid{grid-template-columns:repeat(auto-fill,minmax(180px,1fr));margin:8px 0 4px}
+.lv-bar{display:flex;flex-wrap:wrap;align-items:center;gap:8px;margin-top:12px}
+.lv-need{color:#f2b8ae;font-size:15px}
+.lv-gains{margin:6px 0 12px;padding-left:18px}
+.lv-gains li{margin:3px 0}
 #toast{position:fixed;bottom:20px;left:50%;transform:translateX(-50%) translateY(90px);background:var(--slab);border:1px solid #7a4415;padding:10px 18px;border-radius:4px;transition:transform .25s;z-index:60;max-width:90vw;box-shadow:0 0 18px rgba(240,140,50,.35),0 8px 20px rgba(0,0,0,.7)}
 #toast.show{transform:translateX(-50%) translateY(0)}
 .hint{font-size:14px;color:var(--muted);margin-top:4px}
@@ -396,7 +404,7 @@ body{background:none!important}
 #bgScene{position:fixed;inset:0;width:100vw;height:100vh;z-index:-1;display:block;pointer-events:none;background:#06070e}
 body::before{background:radial-gradient(ellipse 70% 55% at 50% 38%,transparent 40%,rgba(2,3,8,.55) 100%),linear-gradient(rgba(4,5,12,.15),rgba(4,5,12,.45))!important;animation:none!important;z-index:-1!important}
 header{background:var(--noise),linear-gradient(rgba(22,24,40,.9),rgba(10,11,22,.86))!important;backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px);border-bottom:1px solid rgba(255,170,80,.18)!important;box-shadow:0 6px 24px rgba(0,0,0,.75),inset 0 -1px 0 rgba(120,140,220,.08),inset 0 1px 0 rgba(255,255,255,.06)!important}
-.card,.sec,#modal .box{backdrop-filter:blur(3px);-webkit-backdrop-filter:blur(3px);border-color:#090a12!important;
+.card,.sec,#modal .box,#lvModal .box{backdrop-filter:blur(3px);-webkit-backdrop-filter:blur(3px);border-color:#090a12!important;
   box-shadow:inset 0 1px 0 rgba(255,200,140,.10),inset 1px 0 0 rgba(140,160,230,.05),inset -2px -3px 0 rgba(0,0,0,.35),0 10px 28px rgba(0,0,0,.7),0 0 0 1px rgba(255,160,70,.04)!important}
 .sec{background:var(--noise),linear-gradient(165deg,rgba(36,40,60,.72),rgba(18,20,34,.8))!important}
 .card::after,.sec::after{opacity:.22!important}
@@ -2859,6 +2867,45 @@ const SUB_DESC = {
   "The Fiend": "Dark One's Blessing: temporary HP whenever you drop a foe.",
   "School of Evocation": "Sculpt Spells keeps allies safe inside your blasts."
 };
+/* ---- subclass options by rules edition: [name, short description] ---- */
+const SUBCLASSES = {
+  "2014": {
+    Barbarian: [["Path of the Berserker", "Frenzy grants a bonus-action attack every turn while raging, at the cost of exhaustion."], ["Path of the Totem Warrior", "A spirit animal shapes your rage: bear toughness, eagle sight or wolf pack tactics."]],
+    Bard: [["College of Lore", "Cutting Words saps enemy rolls; extra skills and borrowed spells."], ["College of Valor", "Medium armor, shields and martial weapons; your inspiration boosts damage and AC."]],
+    Cleric: [["Knowledge Domain", "Extra languages and skills; read thoughts with Channel Divinity."], ["Life Domain", "Your healing is stronger and you wear heavy armor."], ["Light Domain", "Radiant fire spells and a flare that ruins enemy attacks."], ["Nature Domain", "Heavy armor, a druid cantrip and power over plants and beasts."], ["Tempest Domain", "Heavy armor and martial weapons; lightning and thunder hit their hardest."], ["Trickery Domain", "Illusions, duplicates and a blessing of stealth."], ["War Domain", "Heavy armor, martial weapons and bonus attacks guided by your god."]],
+    Druid: [["Circle of the Land", "Natural Recovery regains slots on a short rest, plus bonus circle spells."], ["Circle of the Moon", "Wild Shape into far tougher beasts, and as a bonus action."]],
+    Fighter: [["Champion", "Your weapon attacks crit on a 19 or 20."], ["Battle Master", "Superiority dice fuel combat maneuvers: trip, disarm, rally and more."], ["Eldritch Knight", "Wizard spells, mostly abjuration and evocation, alongside your sword."]],
+    Monk: [["Way of the Open Hand", "Flurry of Blows can knock foes prone, shove them or deny reactions."], ["Way of Shadow", "Spend ki on darkness and silence, and step between shadows."], ["Way of the Four Elements", "Spend ki to cast elemental disciplines, from fire blasts to stone walls."]],
+    Paladin: [["Oath of Devotion", "Channel Divinity makes your weapon holy or turns fiends and undead."], ["Oath of the Ancients", "Guardian of light and nature: entangling vines and a warding aura against spells."], ["Oath of Vengeance", "Vow of Enmity grants advantage against the foe you swear to bring down."]],
+    Ranger: [["Hunter", "A predator's technique, such as Colossus Slayer: +1d8 against wounded foes."], ["Beast Master", "A loyal animal companion fights at your side."]],
+    Rogue: [["Thief", "Fast Hands: use objects or Sleight of Hand as a bonus action; climb like a cat."], ["Assassin", "Advantage on creatures that haven't acted, and surprise attacks always crit."], ["Arcane Trickster", "Enchantment and illusion spells, and an invisible Mage Hand that picks locks."]],
+    Sorcerer: [["Draconic Bloodline", "Dragon scales add HP and AC; later your element hits harder."], ["Wild Magic", "Your spells may trigger random surges; Tides of Chaos grants advantage."]],
+    Warlock: [["The Archfey", "Fey Presence charms or frightens; misty escapes and beguiling defenses."], ["The Fiend", "Dark One's Blessing: temporary HP whenever you drop a foe."], ["The Great Old One", "Telepathy with any creature, and protection from mind reading."]],
+    Wizard: [["School of Abjuration", "An Arcane Ward soaks damage, recharged whenever you cast protective spells."], ["School of Conjuration", "Conjure objects at will and teleport in a blink."], ["School of Divination", "Portent: roll two d20s each day and swap them in for any roll."], ["School of Enchantment", "Hypnotic Gaze and charm magic that bends minds."], ["School of Evocation", "Sculpt Spells keeps allies safe inside your blasts."], ["School of Illusion", "Malleable illusions that later become partly real."], ["School of Necromancy", "Regain HP when you kill with spells; stronger undead servants."], ["School of Transmutation", "A transmuter's stone and the power to reshape matter."]]
+  },
+  // 2024 Player's Handbook: every class picks its subclass at level 3
+  "2024": {
+    Barbarian: [["Path of the Berserker", "Frenzy adds damage to your first reckless hit each turn while raging."], ["Path of the Wild Heart", "Animal spirits: bear toughness, eagle speed or wolf pack tactics."], ["Path of the World Tree", "Vitality of the Tree grants temp HP and lets you pull allies across the battlefield."], ["Path of the Zealot", "Divine fury adds radiant or necrotic damage; you're hard to keep dead."]],
+    Bard: [["College of Dance", "Unarmored dazzling footwork, and inspiration that boosts allies' initiative."], ["College of Glamour", "Fey charm: grant allies temp HP and a free move, or beguile a crowd."], ["College of Lore", "Cutting Words saps enemy rolls; extra skills and borrowed spells."], ["College of Valor", "Martial training; your inspiration boosts damage and AC."]],
+    Cleric: [["Life Domain", "Your healing spells restore extra hit points."], ["Light Domain", "Radiant fire spells and a flare that ruins enemy attacks."], ["Trickery Domain", "Illusions, invisibility and a stealthy blessing."], ["War Domain", "Guided strikes and extra attacks granted by your god."]],
+    Druid: [["Circle of the Land", "Spells from your chosen land and slots back on a short rest."], ["Circle of the Moon", "Wild Shape into tougher beasts and cast spells while transformed."], ["Circle of the Sea", "Wrath of the Sea: an aura of cold spray that pushes foes."], ["Circle of the Stars", "A starry form as an archer, chalice of healing or dragon."]],
+    Fighter: [["Battle Master", "Superiority dice fuel combat maneuvers: trip, disarm, rally and more."], ["Champion", "Your weapon attacks crit on a 19 or 20, and you gain Heroic Inspiration."], ["Eldritch Knight", "Wizard spells alongside your sword."], ["Psi Warrior", "Psionic energy dice shield allies, shove foes and boost your blows."]],
+    Monk: [["Warrior of Mercy", "Hands that harm and heal with the same strike."], ["Warrior of Shadow", "Darkness and teleporting between shadows."], ["Warrior of the Elements", "Elemental reach and damage on your strikes."], ["Warrior of the Open Hand", "Flurry of Blows can knock foes prone, push them or deny reactions."]],
+    Paladin: [["Oath of Devotion", "A holy weapon and protection from charm."], ["Oath of Glory", "Athletic feats and inspiring strikes that grant temp HP."], ["Oath of the Ancients", "Nature's wrath and a warding aura against spells."], ["Oath of Vengeance", "Vow of Enmity grants advantage against your sworn foe."]],
+    Ranger: [["Beast Master", "A primal beast companion fights at your command."], ["Fey Wanderer", "Fey charm: psychic damage on hits and a beguiling presence."], ["Gloom Stalker", "Ambusher in darkness: extra initiative and damage in the first round."], ["Hunter", "Hunter's Prey: Colossus Slayer or Horde Breaker, swap after a rest."]],
+    Rogue: [["Arcane Trickster", "Wizard spells and an invisible Mage Hand that picks locks."], ["Assassin", "Advantage on creatures that haven't acted, and deadly opening strikes."], ["Soulknife", "Psychic blades from your mind and psionic dice for skills."], ["Thief", "Fast Hands and climbing; later use magic items you shouldn't."]],
+    Sorcerer: [["Aberrant Sorcery", "Telepathy and psionic spells from an alien influence."], ["Clockwork Sorcery", "Cosmic order: cancel advantage and disadvantage, ward allies."], ["Draconic Sorcery", "Dragon scales add HP and AC; later your element hits harder."], ["Wild Magic Sorcery", "Random surges, and Tides of Chaos for advantage."]],
+    Warlock: [["Archfey Patron", "Misty Step on a whim, charming and frightening as you go."], ["Celestial Patron", "Healing Light dice and radiant power."], ["Fiend Patron", "Dark One's Blessing: temporary HP whenever you drop a foe."], ["Great Old One Patron", "Telepathy and psychic spells that unsettle minds."]],
+    Wizard: [["Abjurer", "An Arcane Ward soaks damage and recharges as you cast protections."], ["Diviner", "Portent: roll two d20s each day and swap them in for any roll."], ["Evoker", "Sculpt Spells keeps allies safe inside your blasts."], ["Illusionist", "Improved illusions that later become partly real."]]
+  }
+};
+const subclassList = (ed, cls) => ((SUBCLASSES[ed] || SUBCLASSES["2014"])[cls]) || [];
+const subclassLevel = (ed, cls) => ed === "2024" ? 3 : (CLASS_DATA[cls] ? CLASS_DATA[cls].sub[1] : 3);
+function subclassDesc(name) {
+  for (const ed of ["2024", "2014"]) for (const list of Object.values(SUBCLASSES[ed])) { const h = list.find(x => x[0] === name); if (h) return h[1]; }
+  return SUB_DESC[name] || "";
+}
+const needsSubclass = c => !!(c && CLASS_DATA[c.cls] && !c.subclass && c.level >= subclassLevel(edOf(c), c.cls));
 /* ---- races / species by rules edition, with subraces and lineages ---- */
 const DRAGON_SUBS = () => Object.fromEntries(Object.entries(DRAGON_ANCESTRY).map(([k, A]) => [k, { label: `${k} Dragonborn`, d: `${A.type[0].toUpperCase() + A.type.slice(1)} breath (${A.shape}, ${A.save} save) and ${A.type} resistance.` }]));
 const PC_RACES = {
@@ -2983,7 +3030,8 @@ Object.assign(FEAT_DESC, {
   "Chthonic Legacy": "Necrotic resistance; Chill Touch cantrip, False Life at 3rd level, Ray of Enfeeblement at 5th."
 });
 function featDesc(f, c) {
-  if (f.startsWith("Subclass: ")) return SUB_DESC[f.slice(10)] || "";
+  if (f === "Subclass: not chosen yet") return "Pick your subclass with the Choose subclass button on this sheet.";
+  if (f.startsWith("Subclass: ")) return subclassDesc(f.slice(10));
   if (f.startsWith("Ability Score Improvement")) return "+2 to ability scores at set levels — already applied to the scores above.";
   if (f === "Unarmored Defense") return c && c.cls === "Monk" ? "Without armor, AC = 10 + DEX + WIS." : "Without armor, AC = 10 + DEX + CON.";
   const A = c && c.ancestry && DRAGON_ANCESTRY[c.ancestry];
@@ -3091,6 +3139,7 @@ function cbCreate() {
   const custom = { base: cbBase(), skills: [...CB.skills], align: CB.align, plus2: CB.bonus === "flex" ? CB.plus2 : null, plus1: CB.bonus === "flex" ? CB.plus1 : null };
   currentPC = pcEnsure(generateCharacter({ seed: newSeed(), name: CB.name.trim().slice(0, 60), race: CB.race, ed: CB.ed, sub: CB.sub || "none", cls: CB.cls, bg: CB.bg, level: clamp(CB.level, 1, 20), method: "custom", bonus: CB.ed === "2024" ? "flex" : CB.bonus, custom }));
   CB.on = false; renderPC(); pcPersist(); toast(`${currentPC.name} is ready — tweak anything in My Characters`);
+  if (needsSubclass(currentPC)) lvOpen(currentPC, true);
 }
 (function initCB() {
   const out = $("#pcOut");
@@ -3212,7 +3261,11 @@ function generateCharacter(o) {
   // features
   const feats = [];
   Object.entries(C.f).forEach(([l, list]) => { if (+l <= lv) list.forEach(f => feats.push({ l: +l, f })); });
-  if (lv >= C.sub[1]) feats.push({ l: C.sub[1], f: `Subclass: ${C.sub[0]}` });
+  // Subclass: a random forge picks one (own rng, so other rolls stay the same); custom builds and level-ups ask the player.
+  const subLv = subclassLevel(ed, cls);
+  let subclass = o.subclass && o.subclass !== "none" ? String(o.subclass) : null;
+  if (!subclass && o.subclass !== "none" && !o.custom && lv >= subLv) { const L = subclassList(ed, cls); if (L.length) subclass = makeRng("subclass", o.seed).pick(L)[0]; }
+  if (lv >= subLv) feats.push({ l: subLv, f: subclass ? `Subclass: ${subclass}` : "Subclass: not chosen yet" });
   if (asiLv.length) feats.push({ l: asiLv[0], f: `Ability Score Improvement ×${asiLv.length} (applied)` });
   feats.sort((a, b) => a.l - b.l);
   const extras = [];
@@ -3230,7 +3283,7 @@ function generateCharacter(o) {
   const pcName = o.name || fullName(r);
   const hk = hookBuild(r.pick(PC_HOOKS), hookCtx(r, pcName.split(" ")[0]));
   return {
-    seed: o.seed, method: o.method, bonus: o.bonus, name: pcName, race, ed, sub, ancestry: anc, custom: !!o.custom, customData: o.custom || null, cls, bg, level: lv, align: (o.custom && o.custom.align) || r.pick(ALIGN), base, scores: sc, mods: m, rolls,
+    seed: o.seed, method: o.method, bonus: o.bonus, name: pcName, race, ed, sub, ancestry: anc, subclass, custom: !!o.custom, customData: o.custom || null, cls, bg, level: lv, align: (o.custom && o.custom.align) || r.pick(ALIGN), base, scores: sc, mods: m, rolls,
     prof, saves: C.saves, skills: skillVals, hp, ac, acSrc, speed: R.speed, init: m.dex, passive: 10 + skillVals.find(s => s.s === "Perception").v,
     attacks, spell, feats, extras, traits: R.traits, kit: C.kit, hd: C.hd,
     trait: r.pick(PC_TRAITS), ideal: r.pick(IDEALS), bond: r.pick(BONDS), flaw: r.pick(FLAWS), hook: hk.hook, hookDetail: hk.hookDetail
@@ -3251,6 +3304,7 @@ function sheetHTML(c) {
       <div class="vit"><b>${c.level}d${c.hd}</b><span>Hit dice</span></div>
     </div>
     <p class="hint">AC from ${esc(c.acSrc)}. HP uses the fixed average per level after 1st.</p>
+    ${lvBarHTML(c)}
     <div class="pc-actions">
       <select class="campSelect" id="pcCampSheet" aria-label="Campaign"></select>
       <button class="btn primary sm" type="button" data-pc="camp">+ Add to campaign</button>
@@ -3514,7 +3568,7 @@ function openSpellsFor(cls, maxLevel, hasCantrips) {
 const PC_KEY = "dmforge.pcs.v1";
 const PCS = { cur: null, roster: [], updated: 0 };
 let pcRemote = null, pcTimer = null;
-function pcEnsure(c) { if (c) { if (!c.id) c.id = uid("pc"); if (!Array.isArray(c.prepared)) c.prepared = []; if (c.race === "Dragonborn" && !c.ancestry) c.ancestry = makeRng("anc", c.seed || c.id).pick(Object.keys(DRAGON_ANCESTRY)); if (c.race === "Dragonborn" && !c.sub) c.sub = c.ancestry; hookUpgrade(c); } return c; }
+function pcEnsure(c) { if (c) { if (!c.id) c.id = uid("pc"); if (c.subclass === undefined) { const f = (c.feats || []).find(x => String(x.f).startsWith("Subclass: ") && x.f !== "Subclass: not chosen yet"); c.subclass = f ? f.f.slice(10) : null; } if (!Array.isArray(c.prepared)) c.prepared = []; if (c.race === "Dragonborn" && !c.ancestry) c.ancestry = makeRng("anc", c.seed || c.id).pick(Object.keys(DRAGON_ANCESTRY)); if (c.race === "Dragonborn" && !c.sub) c.sub = c.ancestry; hookUpgrade(c); } return c; }
 function pcPersist() {
   PCS.cur = currentPC; PCS.updated = Date.now();
   if (currentPC) { const i = PCS.roster.findIndex(x => x.id === currentPC.id); if (i >= 0) PCS.roster[i] = currentPC; }
@@ -5259,6 +5313,83 @@ function ciSave(card) {
   bx.addEventListener("click", e => { const b = e.target.closest("[data-ci-act]"); if (!b) return; const a = b.dataset.ciAct; if (a === "close") ciClose(); else if (a === "random") ciRoll(); else ciSave(a === "savecard"); });
 })();
 
+/* ======================= Level up & subclass choice ======================= */
+function lvBarHTML(c) {
+  const id = esc(c.id), max = c.level >= 20, sl = subclassLevel(edOf(c), c.cls);
+  return `<div class="lv-bar">
+    <button class="btn primary sm" type="button" data-lvup="${id}" ${max ? "disabled" : ""}>${max ? "Level 20 (max)" : `⬆ Level up to ${c.level + 1}`}</button>
+    ${needsSubclass(c) ? `<span class="lv-need">⚠ ${esc(c.cls)} subclass not chosen</span><button class="btn sm" type="button" data-subpick="${id}">Choose subclass</button>`
+      : c.subclass ? `<span class="tag gold" title="${esc(subclassDesc(c.subclass))}">${esc(c.subclass)}</span>`
+      : `<span class="muted" style="font-size:14px">Subclass at level ${sl}</span>`}
+  </div>`;
+}
+const pcById = id => (currentPC && currentPC.id === id ? currentPC : PCS.roster.find(x => x.id === id)) || null;
+function pcRefresh(c) {
+  if (currentPC && currentPC.id === c.id) renderPC();
+  pcPersist(); renderRoster();
+  if (location.hash === "#roster" && RC.id === c.id) renderRosterMain();
+}
+const LV = { c: null, to: 0, pick: "", onlySub: false, back: null };
+function lvGains(c, to) {
+  const n = generateCharacter({ seed: c.seed || c.id, name: c.name, race: c.race, ed: edOf(c), sub: c.sub || (c.race === "Dragonborn" && c.ancestry) || "none", ancestry: c.ancestry || undefined, cls: c.cls, bg: c.bg, level: to, subclass: c.subclass || "none", method: c.method || "array", bonus: c.bonus || "flex", custom: c.customData || undefined });
+  const g = [`Hit points ${c.hp} → <b>${n.hp}</b> (+${n.hp - c.hp})`];
+  if (n.prof !== c.prof) g.push(`Proficiency bonus ${sgn(c.prof)} → <b>${sgn(n.prof)}</b>`);
+  const C = CLASS_DATA[c.cls];
+  if ((C.asi || [4, 8, 12, 16, 19]).includes(to)) g.push(`Ability Score Improvement: +2 to your main abilities (${C.pri.slice(0, 2).map(a => AB_NAME[a]).join(", ")}), applied automatically. Adjust the scores on the sheet if you prefer.`);
+  n.feats.filter(f => f.l === to && !f.f.startsWith("Subclass: ") && !f.f.startsWith("Ability Score")).forEach(f => { const d = featDesc(f.f, n); g.push(`<b>${esc(f.f)}</b>${d ? ` — ${esc(d)}` : ""}`); });
+  if (n.spell && c.spell) {
+    if (n.spell.note && n.spell.note !== c.spell.note) g.push(esc(cap1(n.spell.note)));
+    else if (!n.spell.note && n.spell.slots.join() !== c.spell.slots.join()) g.push(`Spell slots: ${n.spell.slots.map((x, i) => `L${i + 1}×${x}`).join(" ") || "none"}`);
+    if (n.spell.max > c.spell.max) g.push(`You can now cast level ${n.spell.max} spells`);
+  }
+  if (c.spell && C.cast) { const a = spellLimits(c), b = spellLimits({ ...c, level: to, spell: n.spell, mods: n.mods }); if (b && a && (b.n > a.n || b.cantrips > a.cantrips)) g.push(`Spells ${b.word}: ${a.n} → <b>${b.n}</b>${b.cantrips > a.cantrips ? `, cantrips ${a.cantrips} → <b>${b.cantrips}</b>` : ""}`); }
+  return g;
+}
+function lvOpen(c, onlySub) {
+  pcEnsure(c);
+  Object.assign(LV, { c, to: onlySub ? c.level : c.level + 1, pick: "", onlySub: !!onlySub, back: document.activeElement });
+  let m = $("#lvModal");
+  if (!m) {
+    document.body.insertAdjacentHTML("beforeend", `<div id="lvModal" role="dialog" aria-modal="true" aria-labelledby="lvTitle"><div class="box" id="lvBox"></div></div>`);
+    m = $("#lvModal");
+    m.addEventListener("click", e => {
+      const t = e.target, p = t.closest("[data-lvsub]");
+      if (t === m || t.closest("[data-lvno]")) { lvClose(); return; }
+      if (p) { LV.pick = p.dataset.lvsub; lvRender(); const b = $(`[data-lvsub="${CSS.escape(LV.pick)}"]`, m); if (b) b.focus(); return; }
+      if (t.closest("[data-lvyes]")) lvConfirm();
+    });
+    m.addEventListener("keydown", e => { if (e.key === "Escape") lvClose(); });
+  }
+  lvRender(); m.classList.add("open");
+  const f = $("[data-lvsub], [data-lvyes]", m); if (f) f.focus();
+}
+function lvRender() {
+  const { c, to, onlySub } = LV, ed = edOf(c), sl = subclassLevel(ed, c.cls);
+  const ask = !c.subclass && to >= sl, list = subclassList(ed, c.cls), ok = !ask || !!LV.pick;
+  const gains = onlySub ? [] : lvGains(c, to);
+  $("#lvBox").innerHTML = `<h3 id="lvTitle">${onlySub ? `Choose a subclass for ${esc(c.name)}` : `Level up ${esc(c.name)}`}</h3>
+    ${onlySub ? "" : `<p style="margin:6px 0 4px"><span class="tag gold">Level ${c.level} → ${to} ${esc(c.cls)}</span></p><ul class="plain lv-gains">${gains.map(x => `<li>${x}</li>`).join("")}</ul>`}
+    ${ask ? `<div class="sec-h" style="margin-top:6px"><h3>Choose your subclass</h3></div>
+      <p class="hint" style="margin:4px 0 0">${esc(c.cls)}s choose a subclass at level ${sl} (${ed} rules). This is required to ${onlySub ? "finish the sheet" : "level up"}.</p>
+      <div class="pick-grid" role="radiogroup" aria-label="Subclass">${list.map(([n, d]) => `<button type="button" class="pick ${LV.pick === n ? "on" : ""}" data-lvsub="${esc(n)}" role="radio" aria-checked="${LV.pick === n}"><b>${esc(n)}</b><small>${esc(d)}</small></button>`).join("")}</div>` : ""}
+    <div class="row" style="justify-content:flex-end;margin-top:14px"><button class="btn" type="button" data-lvno style="flex:0">Cancel</button>
+      <button class="btn primary" type="button" data-lvyes style="flex:0 0 auto" ${ok ? "" : "disabled"}>${onlySub ? "Choose subclass" : `⬆ Level up to ${to}`}</button></div>
+    ${ok ? "" : `<p class="hint" style="text-align:right;margin:6px 0 0">Pick a subclass to continue.</p>`}`;
+}
+function lvClose() { const m = $("#lvModal"); if (m) m.classList.remove("open"); const b = LV.back; LV.c = null; if (b && document.contains(b)) b.focus(); }
+function lvConfirm() {
+  const { c, to } = LV; if (!c) return;
+  if (!c.subclass && to >= subclassLevel(edOf(c), c.cls) && !LV.pick) return;
+  if (LV.pick) c.subclass = LV.pick;
+  const up = to !== c.level; pcLevelTo(c, to); lvClose(); LV.back = null; pcRefresh(c);
+  toast(up ? `${c.name} is now level ${to}${LV.pick ? ` — ${LV.pick}` : ""}` : `${c.name} follows the ${LV.pick}`);
+}
+document.addEventListener("click", e => {
+  const b = e.target.closest("[data-lvup], [data-subpick]"); if (!b) return;
+  const c = pcById(b.dataset.lvup || b.dataset.subpick); if (!c) return;
+  lvOpen(c, !!b.dataset.subpick);
+});
+
 /* ======================= My Characters (saved characters, editable) ======================= */
 const RC = { id: null };
 function rosterCur() { return PCS.roster.find(c => c.id === RC.id) || PCS.roster[0] || null; }
@@ -5275,7 +5406,7 @@ function pcRecompute(c) {
   if (c.spell) { c.spell.dc = 8 + c.prof + m[c.spell.ab]; c.spell.atk = c.prof + m[c.spell.ab]; }
 }
 function pcLevelTo(c, lv) {
-  const n = generateCharacter({ seed: c.seed || c.id, name: c.name, race: c.race, ed: edOf(c), sub: c.sub || (c.race === "Dragonborn" && c.ancestry) || "none", ancestry: c.ancestry || undefined, cls: c.cls, bg: c.bg, level: lv, method: c.method || "array", bonus: c.bonus || "flex", custom: c.customData || undefined });
+  const n = generateCharacter({ seed: c.seed || c.id, name: c.name, race: c.race, ed: edOf(c), sub: c.sub || (c.race === "Dragonborn" && c.ancestry) || "none", ancestry: c.ancestry || undefined, cls: c.cls, bg: c.bg, level: lv, subclass: c.subclass || "none", method: c.method || "array", bonus: c.bonus || "flex", custom: c.customData || undefined });
   ["level", "base", "scores", "mods", "rolls", "prof", "saves", "skills", "hp", "ac", "acSrc", "speed", "init", "passive", "attacks", "spell", "feats", "extras", "hd"].forEach(k => c[k] = n[k]);
   c.hpCur = n.hp;
 }
@@ -5308,7 +5439,8 @@ function rosterHTML(c) {
       <label>Player<input type="text" data-rf="player" value="${esc(c.player || "")}" placeholder="Player name"></label>
       <label>Experience<input type="number" min="0" data-rf="xp" value="${esc(c.xp ?? "")}" placeholder="XP"></label>
     </div>
-    <p class="hint">Changes save automatically. Changing the level rebuilds hit points, proficiency, features, spell slots and ability scores for the new level; your notes, inventory and spells stay.</p>
+    ${lvBarHTML(c)}
+    <p class="hint">Changes save automatically. Level up, or changing the level, rebuilds hit points, proficiency, features, spell slots and ability scores for the new level; your notes, inventory and spells stay.</p>
     <div class="pc-actions"><select class="campSelect" id="rcCamp" aria-label="Campaign"></select><button class="btn primary sm" type="button" data-ra="camp">+ Add to campaign party</button></div>
   </div>
   <div class="card"><div class="sec-h"><h3>Ability Scores & Vitals</h3><span class="sp"></span><span class="muted" style="font-size:13px">Edit a score and everything that uses it updates</span></div>
@@ -5381,7 +5513,7 @@ function rosterHTML(c) {
   main.addEventListener("change", e => {
     const c = rosterCur(); if (!c) return; const t = e.target;
     if (t.dataset.rs) { c.scores[t.dataset.rs] = clamp(parseInt(t.value) || 10, 1, 30); pcRecompute(c); pcPersist(); renderRosterMain(); }
-    else if (t.dataset.rlv) { const lv = clamp(parseInt(t.value) || 1, 1, 20); if (lv !== c.level) { pcLevelTo(c, lv); pcPersist(); renderRoster(); renderRosterMain(); toast(`${c.name} is now level ${lv}`); } else t.value = c.level; }
+    else if (t.dataset.rlv) { const lv = clamp(parseInt(t.value) || 1, 1, 20); if (lv !== c.level) { pcLevelTo(c, lv); pcPersist(); renderRoster(); renderRosterMain(); toast(`${c.name} is now level ${lv}`); if (needsSubclass(c)) lvOpen(c, true); } else t.value = c.level; }
   });
   main.addEventListener("click", async e => {
     const c = rosterCur(); if (!c) return; const t = e.target;
