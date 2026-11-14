@@ -95,6 +95,23 @@ Playwright and Chromium are pre-installed in cloud sessions. To test offline mod
 
 Items 4 to 14 were merged to `main` on 2026-11-14 (commit `5d44a7b`).
 
+15. **Collapsible toolbar and character sheet upgrade** (PR #5, branch `ccr-ee7865d5-1wx9vg`)
+    - **Toolbar:** "▴ Hide tabs" collapses the header (`dmforge.hdrMini`, the `hdr-mini` class on `<html>`); the strip has a tab menu (`hdrSync`).
+    - **Backgrounds:** `BG_DESC` descriptions in the builder and the quick forge.
+    - **Equipment:** `pcInvUpgrade` moves the starting kit into `c.inv` once (`c.kitMoved`). Inventory items have `eq`.
+      - `pcAttacks` builds the attack list from equipped weapons (`eqWeaponOf`, `eqAttack`, `eqProficient`).
+      - `pcAC` / `pcACApply` work out AC from armor, shields, protective items (`PROT_ITEMS`), the Defense style and spell toggles (`c.fx`).
+      - `pcSpeed` / `pcSpeedApply` work out speed. A typed AC or speed is kept (`acManual` / `speedManual`).
+    - **Features:** `FEAT_FULL` holds the full class feature text, opened with `<details>` in `featLi`.
+      - `SUB_FEATS["ed|Subclass"]` lists subclass features; `pcSubSync` keeps them on saved sheets.
+      - `subBonuses` applies subclass numbers: Draconic HP and AC, Champion crit range, Remarkable Athlete, Gloom Stalker initiative and save.
+    - **Abilities:** `pcAbilities` lists what you use in play; `pcResources` and `c.used` drive the − / + counters; `pcRest` handles rests.
+      - `ACT[name]` holds activations: `toggle` (stored in `c.active`, effects merged by `pcFx`), `persist` (a standing choice), `instant` (Use).
+      - Results go through `actResultDialog`, area effects through `actAoeDialog` (separate or shared rolls; `foeSaveBonus` reads monster saves).
+      - Wild Shape picks a beast with `wildBeasts` / `beastForm`; the 2014 beast HP is `c.formHp`.
+      - The short rest dialog spends hit dice (`shortRestDialog`). `recoveryDialog` handles Arcane and Natural Recovery.
+    - **Fighting styles** live in `c.fightStyles`. Armor training comes from `armorTraining`.
+
 ## How a character is built (read this before changing sheet maths)
 
 - `generateCharacter(o)` builds the whole sheet from options with a seeded RNG (`makeRng`), so the same inputs give the same sheet.
@@ -117,6 +134,12 @@ Items 4 to 14 were merged to `main` on 2026-11-14 (commit `5d44a7b`).
 
 `subclass`, `asiPicks`, `bonusFeats`, `res`, `imm`, `vul`, `cimm`, `sadv`, `hbSig` (homebrew signature used to detect stale sheets), `initBonus`, `atkBonus`, `spell.bonus`, `raceLv`, `hpCur`.
 
+From PR #5:
+- **Derived**, so they're in the `pcLevelTo` copy list:
+  - `hbAc` and `hbSpeed`: the homebrew AC and speed bonuses, kept apart so equipment AC and calculated speed can add them.
+  - `subHp` and `subSpd`: subclass bonuses already applied.
+- **Stored on the sheet:** `inv[].eq`, `kitMoved`, `used`, `active`, `fx`, `fightStyles`, `acManual`, `speedManual`, `formHp`.
+
 ## Gotchas found along the way
 
 - Segmented radio inputs are hidden. In Playwright, click `label.opt:has(input[...])`.
@@ -124,3 +147,6 @@ Items 4 to 14 were merged to `main` on 2026-11-14 (commit `5d44a7b`).
 - Resilient is **not** repeatable.
 - Homebrew row inputs need their font reset (`.hb-row input`), because otherwise they inherit the uppercase label style.
 - Tag wording: "Condition immunities", "Advantage on: saves vs frightened, WIS saves", and "immune to exhaustion" rather than "can't be exhaustion".
+- On My Characters, `renderRosterMain` runs `pcInvUpgrade`, `pcSubSync`, `pcSubNumbers` and then `pcRecompute`. `pcRecompute` rebuilds attacks, AC and speed from equipment and active effects, so don't set `c.ac`, `c.speed` or `c.attacks` directly there.
+- `pcFx` calls `pcAbilities`. Never call `pcAC` from inside an `ACT` effect, or they'll loop forever; use `wearingArmor(c)` instead.
+- The 2014 Donkey in the monster data has a speed of "0 ft.", which is wrong in the data.
