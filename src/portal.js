@@ -17,9 +17,9 @@ const OFFLINE_KEY = "dmforge.offline";
 const CAMP_KEY = "dmforge.campaign";
 const LAST_KEY = "dmforge.lastCampaign."; // + user id: the campaign and role from last visit
 const OFFERED_KEY = "dmforge.uploadOffered.";
-const ALL_VIEWS = ["generate", "npc", "monsters", "character", "roster", "spells", "items", "map", "tracker"];
+const ALL_VIEWS = ["generate", "npc", "monsters", "character", "roster", "spells", "items", "map", "tracker", "homebrew"];
 const PLAYER_VIEWS = ["character", "roster", "spells", "items", "whispers"];
-const POLL_DM = 4000, POLL_PLAYER = 10000, POLL_WHISPERS = 8000;
+const POLL_DM = 4000, POLL_PLAYER = 10000, POLL_WHISPERS = 8000, POLL_HOMEBREW = 30000;
 
 const S = {
   user: null, campaigns: [], camp: null,
@@ -37,6 +37,9 @@ const Portal = window.Portal = {
   ownerTag,
   renderParty: () => renderParty(true),
   renderWhispers,
+  isDM: () => isDM(),
+  campName: () => (S.camp && S.camp.name) || "your campaign",
+  hbPut, hbDel,
 };
 
 /* ------------------------------------------------------------ helpers */
@@ -291,6 +294,8 @@ async function startCloud() {
   S.synced.clear(); S.owners.clear(); S.since = null;
   setBadgeText("Loading characters…");
   applyMode(S.camp);
+  hbSet([]); // this browser's own homebrew stays out of the campaign
+  await loadHomebrew();
 
   const r = await api(campPath("characters"));
   if (!r.ok) { setBadgeText("Couldn't load characters"); toast(r.data.error || "Couldn't load characters"); return; }
@@ -316,11 +321,12 @@ async function startCloud() {
 
   const tick = async () => { await poll(); S.pollTimer = setTimeout(tick, isDM() ? POLL_DM : POLL_PLAYER); };
   S.pollTimer = setTimeout(tick, isDM() ? POLL_DM : POLL_PLAYER);
+  S.hbTimer = setInterval(() => { if (!document.hidden) loadHomebrew(); }, POLL_HOMEBREW);
   if (!isDM()) { loadWhispers(); S.whisperTimer = setInterval(loadWhispers, POLL_WHISPERS); }
   else { syncTracker(); loadParty(); }
 }
 
-function stopLoops() { clearTimeout(S.pollTimer); clearInterval(S.whisperTimer); clearTimeout(S.saveTimer); }
+function stopLoops() { clearTimeout(S.pollTimer); clearInterval(S.whisperTimer); clearInterval(S.hbTimer); clearTimeout(S.saveTimer); }
 
 function remember(ch) {
   S.synced.set(ch.id, { v: ch.version, json: JSON.stringify(ch.data) });
@@ -438,6 +444,25 @@ function rerender(force) {
   if (location.hash === "#party") renderParty();
 }
 document.addEventListener("focusout", () => setTimeout(() => { if (S.renderPending) rerender(); }, 50));
+
+/* ------------------------------------------------------------ homebrew (shared rules content) */
+async function loadHomebrew() {
+  if (!Portal.cloud) return;
+  const r = await api(campPath("homebrew"));
+  if (r.ok && JSON.stringify(r.data) !== JSON.stringify(HB.list)) hbSet(r.data);
+}
+async function hbPut(item) {
+  const r = await api(campPath("homebrew/" + encodeURIComponent(item.id)), { method: "PUT", body: { data: item } });
+  if (!r.ok) { toast(r.data.error || "Couldn't save that homebrew"); return false; }
+  hbSet(HB.list.filter(x => x.id !== item.id).concat(r.data));
+  return true;
+}
+async function hbDel(id) {
+  const r = await api(campPath("homebrew/" + encodeURIComponent(id)), { method: "DELETE" });
+  if (!r.ok) { toast(r.data.error || "Couldn't delete that homebrew"); return false; }
+  hbSet(HB.list.filter(x => x.id !== id));
+  return true;
+}
 
 /* ------------------------------------------------------------ DM: party tab */
 async function loadParty() {

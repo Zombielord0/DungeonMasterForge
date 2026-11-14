@@ -5,6 +5,8 @@ import { describeChange } from "./diff.mjs";
 
 const MAX_SHEET_BYTES = 300_000;
 const MAX_WHISPER = 2000;
+const MAX_HOMEBREW_BYTES = 50_000;
+const HOMEBREW_KINDS = ["subclass", "background", "feat", "species"];
 const MERGE_WINDOW = "60 seconds";
 const CODE_CHARS = "ABCDEFGHJKMNPQRSTUVWXYZ23456789"; // no 0/O, 1/I/L
 
@@ -73,6 +75,15 @@ function sheet(data) {
   if (!data || typeof data !== "object" || Array.isArray(data)) throw new HttpError(400, "Character data is missing");
   if (JSON.stringify(data).length > MAX_SHEET_BYTES) throw new HttpError(413, "This character sheet is too large to save");
   return data;
+}
+
+function homebrewItem(id, data) {
+  if (!/^[\w-]{1,64}$/.test(id)) throw new HttpError(400, "Bad homebrew id");
+  if (!data || typeof data !== "object" || Array.isArray(data)) throw new HttpError(400, "Homebrew data is missing");
+  if (!HOMEBREW_KINDS.includes(data.kind)) throw new HttpError(400, "Unknown kind of homebrew");
+  if (!clean(data.name, 80)) throw new HttpError(400, "Give it a name");
+  if (JSON.stringify(data).length > MAX_HOMEBREW_BYTES) throw new HttpError(413, "This homebrew entry is too large to save");
+  return { ...data, id };
 }
 
 export async function handle(req, user, db) {
@@ -213,6 +224,25 @@ export async function handle(req, user, db) {
           WHERE campaign_id = $1 AND id = $2 RETURNING version`, [cid, id, data, user.id]);
       await logActivity(db, cid, id, user.id, cur.data, data);
       return json({ version });
+    }
+
+    // ---- homebrew: everyone in the campaign reads it, only the DM changes it ----
+    if (b === "homebrew" && !id && m === "GET") {
+      const { rows } = await db.query("SELECT data FROM homebrew WHERE campaign_id = $1 ORDER BY updated_at", [cid]);
+      return json(rows.map(r => r.data));
+    }
+    if (b === "homebrew" && id && !c && m === "PUT") {
+      dmOnly();
+      const item = homebrewItem(id, (await body(req)).data);
+      await db.query(
+        `INSERT INTO homebrew (campaign_id, id, data) VALUES ($1, $2, $3)
+         ON CONFLICT (campaign_id, id) DO UPDATE SET data = EXCLUDED.data, updated_at = now()`, [cid, id, item]);
+      return json(item);
+    }
+    if (b === "homebrew" && id && !c && m === "DELETE") {
+      dmOnly();
+      await db.query("DELETE FROM homebrew WHERE campaign_id = $1 AND id = $2", [cid, id]);
+      return json({ ok: true });
     }
 
     // ---- activity feed (DM) ----

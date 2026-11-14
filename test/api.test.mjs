@@ -126,6 +126,23 @@ test("full campaign flow", async (t) => {
     assert.equal((await call(DM, "GET", `campaigns/${cid}/whispers`)).body[0].toName, "Ava");
   });
 
+  await t.test("homebrew: the whole campaign reads it, only the DM writes it", async () => {
+    const feat = { kind: "feat", name: "Iron Stomach", ed: "both", desc: "Advantage against poison." };
+    assert.equal((await call(AVA, "PUT", `campaigns/${cid}/homebrew/hb-1`, { data: feat })).status, 403);
+    assert.equal((await call(DM, "PUT", `campaigns/${cid}/homebrew/hb-1`, { data: { ...feat, kind: "spaceship" } })).status, 400);
+    assert.equal((await call(DM, "PUT", `campaigns/${cid}/homebrew/hb-1`, { data: { ...feat, name: " " } })).status, 400);
+    const saved = await call(DM, "PUT", `campaigns/${cid}/homebrew/hb-1`, { data: feat });
+    assert.equal(saved.status, 200);
+    assert.equal(saved.body.id, "hb-1");
+    await call(DM, "PUT", `campaigns/${cid}/homebrew/hb-1`, { data: { ...feat, desc: "Immune to poison." } });
+    const list = await call(AVA, "GET", `campaigns/${cid}/homebrew`);
+    assert.deepEqual(list.body.map(h => [h.id, h.name, h.desc]), [["hb-1", "Iron Stomach", "Immune to poison."]]);
+    assert.equal((await call({ id: "u-x" }, "GET", `campaigns/${cid}/homebrew`)).status, 403);
+    assert.equal((await call(AVA, "DELETE", `campaigns/${cid}/homebrew/hb-1`)).status, 403);
+    await call(DM, "DELETE", `campaigns/${cid}/homebrew/hb-1`);
+    assert.deepEqual((await call(BEN, "GET", `campaigns/${cid}/homebrew`)).body, []);
+  });
+
   await t.test("DM can remove a player", async () => {
     await call(DM, "DELETE", `campaigns/${cid}/members/${BEN.id}`);
     assert.equal((await call(BEN, "GET", `campaigns/${cid}/characters`)).status, 403);
