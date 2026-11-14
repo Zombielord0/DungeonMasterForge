@@ -14,6 +14,7 @@ const DERIVED = new Set(["mods", "init", "passive", "prof", "saves", "skills", "
 const blank = v => v === undefined || v === null || v === "" || v === 0 || v === false ||
   (Array.isArray(v) && !v.length) || (isObj(v) && Object.values(v).every(blank));
 const MAX_PARTS = 5;
+const LISTS = new Set(["inv", "prepared", "companions"]);
 
 // Postgres hands JSON back with its keys reordered, so compare by content only.
 const canon = v => Array.isArray(v) ? `[${v.map(canon).join(",")}]`
@@ -52,8 +53,10 @@ export function describeChange(before, after) {
     if (IGNORE.has(k) || DERIVED.has(k) || k.startsWith("_")) continue;
     const x = before[k], y = after[k];
     if (same(x, y)) continue;
-    if ((x === undefined || x === null) && (blank(y) || typeof y === "object")) continue; // filled in on first open
+    // filled in on first open, unless it's a list players really add to
+    if ((x === undefined || x === null) && (blank(y) || (typeof y === "object" && !LISTS.has(k)))) continue;
     if (k === "inv") { parts.push(...diffList(x, y, { add: "added", remove: "removed", qty: true })); continue; }
+    if (k === "companions") { parts.push(...diffList(x, y, { add: "gained companion", remove: "lost companion" })); continue; }
     if (k === "prepared") { parts.push(...diffList(x, y, { add: "prepared", remove: "unprepared" })); continue; }
     if (k === "notes" || k === "backstory") { parts.push(`edited ${k}`); continue; }
     if (isObj(x) && isObj(y)) {

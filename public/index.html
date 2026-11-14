@@ -573,6 +573,25 @@ details.brief>div{background:var(--parch);color:var(--ink-d);border-radius:3px 6
 .bs-add{display:flex;gap:6px;align-items:center;flex-wrap:wrap}
 .bs-add input{width:64px}
 @media (max-width:700px){#bsList .sp-head{grid-template-columns:minmax(0,1fr) auto auto auto auto;gap:8px}#bsList .sp-head .sp-name{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}}
+.comp-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:10px}
+.comp-card{background:var(--well);border:1px solid #0d0c0b;border-radius:4px;padding:10px 12px;box-shadow:inset 0 2px 5px rgba(0,0,0,.6)}
+.comp-top{display:flex;gap:8px;align-items:center}
+.comp-top .comp-nick{flex:1;font-weight:600}
+.comp-sub{font-size:14px;margin:4px 0 6px}
+.comp-hp{flex-wrap:wrap}.comp-hp label{flex:0 0 auto;display:flex;gap:6px;align-items:center}.comp-hp label input{width:70px}.comp-hp>span{flex:0 0 auto}.comp-hp>input[type=text]{flex:1 1 160px}
+.comp-sb{margin-top:8px}.comp-sb summary{cursor:pointer;color:var(--gold2)}.comp-sb .statblock{margin-top:8px}
+.mon-mode{max-width:760px}
+.mb-grid{display:grid;grid-template-columns:minmax(0,1.15fr) minmax(0,1fr);gap:20px;align-items:start}
+@media (max-width:900px){.mb-grid{grid-template-columns:1fr}}
+.mb-side{position:sticky;top:84px;max-height:calc(100vh - 100px);overflow-y:auto;scrollbar-width:thin}
+@media (max-width:900px){.mb-side{position:static;max-height:none}}
+.mb-speeds .row{flex-wrap:wrap}.mb-speeds .row label{flex:1 1 90px;display:flex;flex-direction:column;gap:4px;font-size:13.5px;color:var(--muted)}
+.mb-li{display:grid;grid-template-columns:1fr auto;gap:6px;padding:8px 0;border-top:1px solid rgba(0,0,0,.45)}
+.mb-li textarea{grid-column:1/-1;min-height:60px}
+.mb-li .mb-tools{display:flex;gap:4px}
+.mb-atk{margin-bottom:6px}.mb-atk summary{cursor:pointer;color:var(--gold2)}
+#mbPreview .mb-desc{font-style:italic;margin:0 0 10px}
+.mb-libitem{display:flex;gap:6px;align-items:center;margin-bottom:6px}.mb-libitem .camp-item{margin:0;flex:1}
 /* ======================= Player & DM portals ======================= */
 .gate-wait main,.gate-wait nav{visibility:hidden}
 input[type=email],input[type=password]{width:100%;background:var(--well);border:1px solid #0d0c0b;border-radius:4px;padding:7px 10px;outline:none;box-shadow:inset 0 2px 5px rgba(0,0,0,.7),0 1px 0 rgba(255,255,255,.06)}
@@ -840,12 +859,97 @@ nav a[data-view=whispers]{--ic:url("data:image/svg+xml,%3Csvg xmlns='http://www.
 <section class="view" id="view-monsters">
   <div class="seg mon-mode" role="radiogroup" aria-label="Villains and monsters mode">
     <label class="opt"><input type="radio" name="monMode" value="forge" checked><span>☠ Forge a creature</span></label>
+    <label class="opt"><input type="radio" name="monMode" value="build"><span>✎ Build a monster</span></label>
     <label class="opt"><input type="radio" name="monMode" value="srd"><span>📖 Monster Manual (2024 &amp; 2014)</span></label>
+  </div>
+  <div class="mb-grid hidden" id="monBuild">
+    <form id="mbForm" autocomplete="off" onsubmit="return false">
+      <div class="card"><div class="sec-h"><h3>Basics</h3></div>
+        <div class="field"><label for="mbName">Name</label><input type="text" id="mbName" data-mb="name" maxlength="80" placeholder="e.g. Ash Wight"></div>
+        <div class="field row">
+          <div><label for="mbSize">Size</label><select id="mbSize" data-mb="size"></select></div>
+          <div><label for="mbType">Type</label><select id="mbType" data-mb="type"></select></div>
+        </div>
+        <div class="field row">
+          <div><label for="mbSub">Tags</label><input type="text" id="mbSub" data-mb="sub" placeholder="e.g. goblinoid, shapechanger"></div>
+          <div><label for="mbAl">Alignment</label><input type="text" id="mbAl" data-mb="al" placeholder="e.g. neutral evil"></div>
+        </div>
+        <div class="field row">
+          <div><label for="mbCR">Challenge rating</label><select id="mbCR" data-mb="cr"></select></div>
+          <div><label for="mbRole">How it fights</label><select id="mbRole" data-mb="role"></select></div>
+        </div>
+        <p class="hint" id="mbCRHint" style="margin:-6px 0 12px"></p>
+        <div class="field"><label for="mbDesc">Description</label><textarea id="mbDesc" data-mb="desc" placeholder="What it looks like, where it lairs, what it wants, how the heroes might hear of it…"></textarea></div>
+      </div>
+      <div class="card"><div class="sec-h"><h3>Defenses &amp; movement</h3></div>
+        <div class="field row">
+          <div><label for="mbAC">Armor class</label><input type="number" id="mbAC" data-mb="ac" min="1" max="30"></div>
+          <div style="flex:2"><label for="mbACD">Armor note</label><input type="text" id="mbACD" data-mb="acd" placeholder="e.g. natural armor, chain mail"></div>
+        </div>
+        <div class="field row">
+          <div><label for="mbHDn">Hit dice</label><input type="number" id="mbHDn" data-mb="hdN" min="0" max="60"></div>
+          <div><label for="mbHDd">Die</label><select id="mbHDd" data-mb="hdD"><option>4</option><option>6</option><option>8</option><option>10</option><option>12</option><option>20</option></select></div>
+          <div><label for="mbHP">Hit points</label><input type="number" id="mbHP" data-mb="hp" min="1" placeholder="Average"></div>
+        </div>
+        <p class="hint" style="margin:-6px 0 12px">Leave hit points empty to use the average of the hit dice plus Constitution.</p>
+        <div class="field mb-speeds"><span class="lbl">Speed (feet)</span><div class="row">
+          <label>Walk<input type="number" min="0" step="5" data-mb="speed.walk"></label><label>Fly<input type="number" min="0" step="5" data-mb="speed.fly"></label>
+          <label>Swim<input type="number" min="0" step="5" data-mb="speed.swim"></label><label>Climb<input type="number" min="0" step="5" data-mb="speed.climb"></label>
+          <label>Burrow<input type="number" min="0" step="5" data-mb="speed.burrow"></label></div>
+          <label class="check" style="margin-top:6px"><input type="checkbox" data-mb="speed.hover"><span>Hovers</span></label></div>
+      </div>
+      <div class="card"><div class="sec-h"><h3>Abilities &amp; proficiencies</h3></div>
+        <div class="abil" id="mbAbil"></div>
+        <div class="field" style="margin-top:12px"><span class="lbl">Saving throw proficiencies</span><div class="chips" id="mbSaves"></div></div>
+        <div class="field"><span class="lbl">Skills <small class="muted" style="text-transform:none;letter-spacing:0">(click once for proficient, twice for expertise)</small></span><div class="chips" id="mbSkills"></div></div>
+      </div>
+      <div class="card"><div class="sec-h"><h3>Senses, languages &amp; defenses</h3></div>
+        <div class="field mb-speeds"><span class="lbl">Senses (feet)</span><div class="row">
+          <label>Darkvision<input type="number" min="0" step="5" data-mb="senses.dark"></label><label>Blindsight<input type="number" min="0" step="5" data-mb="senses.blind"></label>
+          <label>Tremorsense<input type="number" min="0" step="5" data-mb="senses.tremor"></label><label>Truesight<input type="number" min="0" step="5" data-mb="senses.true"></label></div></div>
+        <div class="field"><label for="mbLang">Languages</label><input type="text" id="mbLang" data-mb="lang" placeholder="e.g. Common, Abyssal; telepathy 60 ft."></div>
+        <div class="field row">
+          <div><label for="mbRes">Damage resistances</label><input type="text" id="mbRes" data-mb="res" placeholder="e.g. cold, necrotic"></div>
+          <div><label for="mbImm">Damage immunities</label><input type="text" id="mbImm" data-mb="imm" placeholder="e.g. poison"></div>
+        </div>
+        <div class="field row">
+          <div><label for="mbVul">Damage vulnerabilities</label><input type="text" id="mbVul" data-mb="vul" placeholder="e.g. radiant"></div>
+          <div><label for="mbCI">Condition immunities</label><input type="text" id="mbCI" data-mb="ci" placeholder="e.g. exhaustion, poisoned"></div>
+        </div>
+      </div>
+      <div class="card"><div class="sec-h"><h3>Traits</h3><span class="sp"></span><button class="btn sm" type="button" data-mbadd="traits">+ Add trait</button></div><div data-mblist="traits"></div></div>
+      <div class="card"><div class="sec-h"><h3>Actions</h3><span class="sp"></span><button class="btn sm" type="button" data-mbadd="actions">+ Add action</button></div>
+        <details class="mb-atk"><summary>Quick attack maker</summary>
+          <div class="row" style="flex-wrap:wrap;margin-top:8px">
+            <input type="text" id="mbAtkN" placeholder="Name, e.g. Claw" style="flex:2 1 140px" aria-label="Attack name">
+            <select id="mbAtkK" style="flex:1 1 110px" aria-label="Melee or ranged"><option value="Melee">Melee</option><option value="Ranged">Ranged</option><option value="Melee or Ranged">Melee or ranged</option></select>
+            <select id="mbAtkAb" style="flex:1 1 90px" aria-label="Ability"><option value="str">Strength</option><option value="dex">Dexterity</option><option value="best">Best of Str/Dex</option></select>
+            <input type="text" id="mbAtkR" placeholder="Reach/range, e.g. 5 ft." style="flex:1 1 120px" aria-label="Reach or range">
+            <input type="text" id="mbAtkD" placeholder="Damage dice, e.g. 2d6" style="flex:1 1 110px" aria-label="Damage dice">
+            <select id="mbAtkT" style="flex:1 1 110px" aria-label="Damage type"></select>
+            <button class="btn sm primary" type="button" id="mbAtkGo" style="flex:0 0 auto">Add attack</button></div>
+          <p class="hint" style="margin:6px 0 0">Works out the attack bonus and average damage from the creature's scores and challenge rating.</p></details>
+        <div data-mblist="actions"></div></div>
+      <div class="card"><div class="sec-h"><h3>Bonus actions</h3><span class="sp"></span><button class="btn sm" type="button" data-mbadd="bonus">+ Add bonus action</button></div><div data-mblist="bonus"></div></div>
+      <div class="card"><div class="sec-h"><h3>Reactions</h3><span class="sp"></span><button class="btn sm" type="button" data-mbadd="reacts">+ Add reaction</button></div><div data-mblist="reacts"></div></div>
+      <div class="card"><div class="sec-h"><h3>Legendary actions</h3><span class="sp"></span><button class="btn sm" type="button" data-mbadd="legend">+ Add legendary action</button></div>
+        <div class="field row" style="max-width:260px"><div><label for="mbLegN">Uses per round</label><input type="number" id="mbLegN" data-mb="legN" min="1" max="5"></div></div>
+        <div data-mblist="legend"></div></div>
+    </form>
+    <div class="mb-side">
+      <div class="card">
+        <div class="row" style="flex-wrap:wrap"><button class="btn primary" type="button" id="mbSave">Save to My monsters</button><button class="btn" type="button" id="mbNew" style="flex:0 0 auto">New</button><button class="btn" type="button" id="mbCopy" style="flex:0 0 auto">Copy</button></div>
+        <div class="field" style="margin:12px 0 0"><label for="mbCamp">Add to campaign</label><div class="row"><select id="mbCamp" class="campSelect"></select><button class="btn" type="button" id="mbToCamp" style="flex:0 0 auto">Add</button></div>
+          <p class="hint" style="margin:6px 0 0">It joins that campaign's encounter “Add enemy” list. Saved monsters are also in the Monster Manual under “My monsters”.</p></div>
+        <div class="sec-h" style="margin-top:12px"><h3>My monsters</h3></div><div id="mbLib"></div>
+      </div>
+      <div class="card" id="mbPreview"></div>
+    </div>
   </div>
   <div class="layout hidden" id="monSrd">
     <form class="card side" id="bsForm" autocomplete="off" onsubmit="return false">
       <div class="field"><label>Rules edition</label>
-        <div class="seg"><label class="opt"><input type="radio" name="bsEd" value="2024" checked><span>2024 (5.5e)</span></label><label class="opt"><input type="radio" name="bsEd" value="2014"><span>2014 (5e)</span></label></div>
+        <div class="seg"><label class="opt"><input type="radio" name="bsEd" value="2024" checked><span>2024 (5.5e)</span></label><label class="opt"><input type="radio" name="bsEd" value="2014"><span>2014 (5e)</span></label><label class="opt"><input type="radio" name="bsEd" value="custom"><span>My monsters</span></label></div>
       </div>
       <div class="field"><label for="bsQ">Search</label><input type="text" id="bsQ" placeholder="Monster name, e.g. owlbear">
         <label class="check" style="margin:6px 0 0"><input type="checkbox" id="bsInText"><span>Also search traits and actions</span></label></div>
@@ -4235,6 +4339,7 @@ function bsLoad() {
     m.cast = [...m.traits, ...m.actions].some(([n]) => /spellcasting/i.test(n));
     m.blob = [...m.traits, ...m.actions, ...(m.bonus || []), ...(m.reacts || []), ...(m.legend || [])].map(x => x.join(" ")).join(" ").toLowerCase();
   });
+  bsCustomRefresh();
 }
 const bsFind = id => BS.data[id.split("-")[0]][+id.split("-")[1]];
 const bsPB = cr => cr < 5 ? 2 : cr < 9 ? 3 : cr < 13 ? 4 : cr < 17 ? 5 : cr < 21 ? 6 : cr < 25 ? 7 : cr < 29 ? 8 : 9;
@@ -4247,14 +4352,14 @@ function bsName(c, m, ed) {
 }
 function bsInCamp(m, ed) {
   const c = Store.get($("#bsCamp").value);
-  return !!(c && (c.bestiary || []).some(b => b.srd === m.id || (b.ed === ed && (b.name === m.n || b.name === `${m.n} (${ed})`))));
+  return !!(c && (c.bestiary || []).some(b => b.srd === (m.key || m.id) || (b.ed === ed && (b.name === m.n || b.name === `${m.n} (${ed})`))));
 }
 function bsSbHTML(m, ed) {
   const line = (k, v) => v ? `<div class="sb-l"><b>${k}</b> ${v}</div>` : "";
   const sec = (h, arr, intro = "") => arr && arr.length ? `<h4 class="sb-h">${h}</h4>${intro}${arr.map(([n, t]) => `<p><b><i>${esc(n)}.</i></b> ${bsFmt(t)}</p>`).join("")}` : "";
   const the = "the " + m.n.toLowerCase();
-  const legIntro = ed === "2014"
-    ? `<p>${esc(cap1(the))} can take 3 legendary actions, choosing from the options below. Only one legendary action option can be used at a time and only at the end of another creature's turn. ${esc(cap1(the))} regains spent legendary actions at the start of its turn.</p>`
+  const legIntro = ed !== "2024"
+    ? `<p>${esc(cap1(the))} can take ${m.legN || 3} legendary actions, choosing from the options below. Only one legendary action option can be used at a time and only at the end of another creature's turn. ${esc(cap1(the))} regains spent legendary actions at the start of its turn.</p>`
     : `<p>Immediately after another creature's turn, ${esc(the)} can expend a use to take one of the following actions. ${esc(cap1(the))} regains all expended uses at the start of each of its turns.</p>`;
   return `<div class="statblock">
     <div class="sb-name">${esc(m.n)}</div>
@@ -4282,20 +4387,20 @@ function bsText(m, ed) {
   L.push(`Challenge ${crLabel(m.cr)} (${(xpOf(m.cr) || 0).toLocaleString()} XP)`, "");
   const block = (h, arr) => { if (arr && arr.length) { if (h) L.push(h.toUpperCase()); arr.forEach(([n, t]) => L.push(`${n}. ${t.replace(/[*_]/g, "")}`)); L.push(""); } };
   block("", m.traits); block("Actions", m.actions); block("Bonus Actions", m.bonus); block("Reactions", m.reacts); block("Legendary Actions", m.legend);
-  L.push(`Source: ${ed === "2024" ? "SRD 5.2 (2024)" : "SRD 5.1 (2014)"}, CC BY 4.0`);
+  if (ed !== "custom") L.push(`Source: ${ed === "2024" ? "SRD 5.2 (2024)" : "SRD 5.1 (2014)"}, CC BY 4.0`);
   return L.join("\n");
 }
 function bsEntry(m, ed, name) {
   const multi = (m.actions.find(a => a[0] === "Multiattack") || [, ""])[1];
   const atk = m.actions.filter(a => a[0] !== "Multiattack").slice(0, 3)
     .map(([n, t]) => { const s = t.replace(/[*_]/g, "").replace(/^(Melee|Ranged|Melee or Ranged) (Weapon |Spell )?Attack( Roll)?:\s*/i, ""); return `${n}: ${s.length > 150 ? s.slice(0, 147) + "…" : s}`; }).join(" ");
-  return { name, cr: m.cr, ed, srd: m.id, stat: [m.ac, m.hp, m.hd || "", m.init, m.speed, (multi ? multi.replace(/[*_]/g, "") + " " : "") + atk, (m.traits || []).map(t => t[0]).join("; ") || "None", m.role], text: bsText(m, ed) };
+  return { name, cr: m.cr, ed, srd: m.key || m.id, stat: [m.ac, m.hp, m.hd || "", m.init, m.speed, (multi ? multi.replace(/[*_]/g, "") + " " : "") + atk, (m.traits || []).map(t => t[0]).join("; ") || "None", m.role], text: bsText(m, ed) };
 }
 function bsAdd(m, n) {
   const c = Store.get($("#bsCamp").value); if (!c) { toast("Create a campaign first (Campaign Tracker)"); return; }
   const ed = m.id.split("-")[0];
   c.bestiary = c.bestiary || [];
-  const existing = c.bestiary.find(b => b.srd === m.id), name = existing ? existing.name : bsName(c, m, ed);
+  const existing = c.bestiary.find(b => b.srd === (m.key || m.id)), name = existing ? existing.name : bsName(c, m, ed);
   c.bestiary = c.bestiary.filter(b => b.name !== name); c.bestiary.push(bsEntry(m, ed, name)); registerBestiary(c);
   const e = (c.encounters || []).find(x => x.id === $("#bsEnc").value);
   if (e) {
@@ -4354,13 +4459,15 @@ function bsRow(m) {
     ${open ? `<div class="sp-detail">${bsSbHTML(m, ed)}
       <div class="bs-add"><label class="muted" for="bsN-${m.id}">How many</label><input type="number" min="1" max="20" value="1" id="bsN-${m.id}">
         <button class="btn sm primary" type="button" data-bs="addN" data-id="${m.id}">Add to campaign</button>
-        <button class="btn sm" type="button" data-bs="copy" data-id="${m.id}">Copy stat block</button></div></div>` : ""}
+        <button class="btn sm" type="button" data-bs="copy" data-id="${m.id}">Copy stat block</button>
+        <button class="btn sm" type="button" data-bs="edit" data-id="${m.id}">${ed === "custom" ? "✎ Edit" : "✎ Edit a copy"}</button></div></div>` : ""}
   </div>`;
 }
 function renderBestiary() {
   bsLoad(); if (!$("#bsCrMin").options.length) bsFilters(); bsFillEnc();
   const list = bsFiltered(), total = BS.data[BS.ed].length;
-  $("#bsCount").innerHTML = `Showing <b>${list.length}</b> of ${total} ${BS.ed === "2024" ? "2024 (SRD 5.2)" : "2014 (SRD 5.1)"} monsters`;
+  $("#bsCount").innerHTML = `Showing <b>${list.length}</b> of ${total} ${BS.ed === "2024" ? "2024 (SRD 5.2)" : BS.ed === "2014" ? "2014 (SRD 5.1)" : "custom"} monsters`;
+  if (!total && BS.ed === "custom") { $("#bsList").innerHTML = `<div class="card empty"><h2>No custom monsters yet</h2><p>Build one in “✎ Build a monster”, or open any monster here and press “Edit a copy”.</p></div>`; return; }
   if (!list.length) { $("#bsList").innerHTML = `<div class="card empty"><h2>No monsters found</h2><p>Loosen a filter or clear them all.</p></div>`; return; }
   const byCR = $("#bsSort").value === "cr";
   let h = "", last = null;
@@ -4373,9 +4480,13 @@ function renderBestiary() {
 let bsTimer = null;
 const bsRerender = () => { clearTimeout(bsTimer); bsTimer = setTimeout(renderBestiary, 110); };
 (function initBestiary() {
-  const mode = () => { const srd = $('input[name="monMode"]:checked').value === "srd"; $("#monSrd").classList.toggle("hidden", !srd); $("#monForge").classList.toggle("hidden", srd); if (srd) renderBestiary(); };
+  const mode = () => {
+    const v = $('input[name="monMode"]:checked').value;
+    $("#monSrd").classList.toggle("hidden", v !== "srd"); $("#monForge").classList.toggle("hidden", v !== "forge"); $("#monBuild").classList.toggle("hidden", v !== "build");
+    if (v === "srd") { bsLoad(); bsCustomRefresh(); bsFilters(); renderBestiary(); }
+  };
   $$('input[name="monMode"]').forEach(r => r.addEventListener("change", mode));
-  $("#bsForm").addEventListener("input", e => { if (e.target.name === "bsEd") { BS.ed = e.target.value; BS.open.clear(); bsFilters(); } bsRerender(); });
+  $("#bsForm").addEventListener("input", e => { if (e.target.name === "bsEd") { BS.ed = e.target.value; BS.open.clear(); $("#bsCrMin").innerHTML = $("#bsCrMax").innerHTML = ""; bsFilters(); } bsRerender(); });
   $("#bsCamp").addEventListener("change", () => { bsFillEnc(); renderBestiary(); });
   $("#bsEnc").addEventListener("change", renderBestiary);
   $("#bsReset").addEventListener("click", () => {
@@ -4387,12 +4498,291 @@ const bsRerender = () => { clearTimeout(bsTimer); bsTimer = setTimeout(renderBes
     const b = e.target.closest("[data-bs]"); if (!b) return; const m = bsFind(b.dataset.id);
     if (b.dataset.bs === "add1") { e.stopPropagation(); bsAdd(m, 1); }
     else if (b.dataset.bs === "addN") bsAdd(m, clamp(parseInt($(`#bsN-${m.id}`).value) || 1, 1, 20));
+    else if (b.dataset.bs === "edit") { mbEditFrom(m); return; }
     else if (b.dataset.bs === "copy") { try { await navigator.clipboard.writeText(bsText(m, m.id.split("-")[0])); toast(`${m.n} copied`); } catch { toast("Couldn't copy here"); } return; }
     else { BS.open.has(m.id) ? BS.open.delete(m.id) : BS.open.add(m.id); if (BS.expandAll && !BS.open.has(m.id)) { BS.expandAll = false; $("#bsExpand").textContent = "Expand all"; } }
     const row = $(`#bsList .sp-row[data-id="${m.id}"]`); if (row) { const n = row.querySelector("input") && row.querySelector("input").value; row.outerHTML = bsRow(m); const i = $(`#bsN-${m.id}`); if (i && n) i.value = n; }
   };
   $("#bsList").addEventListener("click", act);
   $("#bsList").addEventListener("keydown", e => { if ((e.key === "Enter" || e.key === " ") && e.target.matches(".sp-head")) { e.preventDefault(); act(e); } });
+})();
+
+/* ======================= Monster builder ======================= */
+// A custom monster is kept as the builder's form state (MB.f) and compiled to the same
+// shape as an SRD monster, so the Monster Manual, stat blocks and encounters treat it alike.
+const MB_KEY = "dmforge.mymonsters.v1";
+const MB_ABS = ["Str", "Dex", "Con", "Int", "Wis", "Cha"];
+const MB_SKILLS = { Acrobatics: 1, "Animal Handling": 4, Arcana: 3, Athletics: 0, Deception: 5, History: 3, Insight: 4, Intimidation: 5, Investigation: 3, Medicine: 4, Nature: 3, Perception: 4, Performance: 5, Persuasion: 5, Religion: 3, "Sleight of Hand": 1, Stealth: 1, Survival: 4 };
+const MB_TYPES = ["aberration", "beast", "celestial", "construct", "dragon", "elemental", "fey", "fiend", "giant", "humanoid", "monstrosity", "ooze", "plant", "undead"];
+const MB_DMG = ["acid", "bludgeoning", "cold", "fire", "force", "lightning", "necrotic", "piercing", "poison", "psychic", "radiant", "slashing", "thunder"];
+const MB_LISTS = { traits: "Trait", actions: "Action", bonus: "Bonus action", reacts: "Reaction", legend: "Legendary action" };
+const MB = { f: null, lib: [] };
+function mbBlank() {
+  return { id: uid("mm"), name: "", size: "medium", type: "monstrosity", sub: "", al: "unaligned", cr: 1, role: "brute", desc: "", ac: 13, acd: "natural armor", hdN: 5, hdD: 8, hp: "",
+    speed: { walk: 30, fly: "", swim: "", climb: "", burrow: "", hover: false }, scores: [14, 12, 14, 6, 10, 8], saves: [], skills: {},
+    senses: { dark: 60, blind: "", tremor: "", true: "" }, lang: "—", res: "", imm: "", vul: "", ci: "",
+    traits: [], actions: [], bonus: [], reacts: [], legend: [], legN: 3 };
+}
+function mbLoadLib() { try { MB.lib = JSON.parse(localStorage.getItem(MB_KEY) || "[]"); } catch { MB.lib = []; } }
+function mbSaveLib() { try { localStorage.setItem(MB_KEY, JSON.stringify(MB.lib)); return true; } catch { toast("Couldn't save: this browser's storage is full"); return false; } }
+const mbNum = v => v === "" || v === null || v === undefined || isNaN(+v) ? null : +v;
+function mbCompile(f, id) {
+  const cr = +f.cr || 0, pb = bsPB(cr), mods = f.scores.map(x => mod(+x || 10));
+  const n = mbNum(f.hdN) || 0, die = +f.hdD || 8, conT = n * mods[2];
+  const avg = n ? Math.max(1, Math.floor(n * (die + 1) / 2) + conT) : 1;
+  const sp = [`${mbNum(f.speed.walk) ?? 0} ft.`];
+  ["burrow", "climb", "fly", "swim"].forEach(k => { if (mbNum(f.speed[k])) sp.push(`${k} ${f.speed[k]} ft.${k === "fly" && f.speed.hover ? " (hover)" : ""}`); });
+  const skills = Object.entries(f.skills).filter(([, l]) => l).map(([k, l]) => `${k} ${sgn(mods[MB_SKILLS[k]] + pb * l)}`);
+  const perc = f.skills.Perception ? mods[4] + pb * f.skills.Perception : mods[4];
+  const sen = [["blind", "blindsight"], ["dark", "darkvision"], ["tremor", "tremorsense"], ["true", "truesight"]].filter(([k]) => mbNum(f.senses[k])).map(([k, w]) => `${w} ${f.senses[k]} ft.`);
+  sen.push(`passive Perception ${10 + perc}`);
+  const L = k => f[k].filter(x => x.n.trim() || x.t.trim()).map(x => [x.n.trim() || MB_LISTS[k], x.t.trim()]);
+  return {
+    id: id || "custom-x", key: f.id, n: f.name.trim() || "Unnamed monster", cr, type: f.type, sub: f.sub.trim(), size: f.size, al: f.al.trim(),
+    ac: +f.ac || 10, acd: f.acd.trim(), hp: mbNum(f.hp) || avg, hd: n ? `${n}d${die}${conT ? (conT > 0 ? "+" : "") + conT : ""}` : "", speed: sp.join(", "),
+    scores: f.scores.map(x => +x || 10), saves: f.saves.slice().sort().map(i => `${MB_ABS[i]} ${sgn(mods[i] + pb)}`), skills,
+    vul: f.vul.trim(), res: f.res.trim(), imm: f.imm.trim(), ci: f.ci.trim(), senses: sen.join(", "), lang: f.lang.trim() || "—", init: mods[1],
+    traits: L("traits"), actions: L("actions"), bonus: L("bonus"), reacts: L("reacts"), legend: L("legend"), legN: +f.legN || 3, role: f.role, desc: f.desc.trim(), env: [],
+  };
+}
+// Turn an SRD stat block back into builder fields, for "Edit a copy".
+function mbFromMonster(m) {
+  const f = mbBlank(), hd = /^(\d+)d(\d+)/.exec(m.hd || "");
+  Object.assign(f, { name: m.key ? m.n : `${m.n} (custom)`, size: m.size, type: MB_TYPES.includes(m.type) ? m.type : "monstrosity", sub: m.sub || "", al: m.al || "", cr: m.cr, role: m.role || "brute",
+    desc: m.desc || "", ac: m.ac, acd: m.acd || "", hdN: hd ? +hd[1] : "", hdD: hd ? +hd[2] : 8, hp: m.hp, scores: m.scores.slice(),
+    lang: m.lang || "—", res: m.res || "", imm: m.imm || "", vul: m.vul || "", ci: m.ci || "", legN: m.legN || 3 });
+  const walk = /^(\d+) ft/.exec(m.speed || ""); f.speed = { walk: walk ? +walk[1] : 0, fly: "", swim: "", climb: "", burrow: "", hover: /hover/.test(m.speed || "") };
+  ["fly", "swim", "climb", "burrow"].forEach(k => { const r = new RegExp(k + " (\\d+)").exec(m.speed || ""); if (r) f.speed[k] = +r[1]; });
+  f.saves = MB_ABS.map((a, i) => (m.saves || []).some(s => s.startsWith(a + " ")) ? i : -1).filter(i => i >= 0);
+  const pb = bsPB(m.cr);
+  (m.skills || []).forEach(s => { const r = /^(.+) ([+-]\d+)$/.exec(s); if (!r || MB_SKILLS[r[1]] === undefined) return; const base = mod(m.scores[MB_SKILLS[r[1]]]); f.skills[r[1]] = +r[2] >= base + 2 * pb ? 2 : 1; });
+  f.senses = { dark: "", blind: "", tremor: "", true: "" };
+  [["dark", "darkvision"], ["blind", "blindsight"], ["tremor", "tremorsense"], ["true", "truesight"]].forEach(([k, w]) => { const r = new RegExp(w + " (\\d+)").exec(m.senses || ""); if (r) f.senses[k] = +r[1]; });
+  Object.keys(MB_LISTS).forEach(k => f[k] = (m[k] || []).map(([n, t]) => ({ n, t })));
+  return f;
+}
+function mbGet(path) { return path.split(".").reduce((o, k) => o && o[k], MB.f); }
+function mbSet(path, v) { const ks = path.split("."), last = ks.pop(); ks.reduce((o, k) => o[k], MB.f)[last] = v; }
+function mbFillForm() {
+  const f = MB.f;
+  $$("#mbForm [data-mb]").forEach(el => { const v = mbGet(el.dataset.mb); if (el.type === "checkbox") el.checked = !!v; else el.value = v ?? ""; });
+  $("#mbAbil").innerHTML = AB.map((a, i) => `<div class="ab"><div class="n">${AB_NAME[a]}</div><div class="m" id="mbMod${i}">${sgn(mod(+f.scores[i] || 10))}</div><input type="number" min="1" max="30" class="ab-in" data-mbab="${i}" value="${esc(f.scores[i])}" aria-label="${AB_NAME[a]} score"></div>`).join("");
+  $("#mbSaves").innerHTML = MB_ABS.map((a, i) => `<span class="chip ${f.saves.includes(i) ? "on" : ""}" data-mbsave="${i}" role="button" tabindex="0" aria-pressed="${f.saves.includes(i)}">${a}</span>`).join("");
+  $("#mbSkills").innerHTML = Object.keys(MB_SKILLS).map(k => `<span class="chip ${f.skills[k] ? "on" : ""}" data-mbskill="${esc(k)}" role="button" tabindex="0" aria-pressed="${!!f.skills[k]}">${esc(k)}${f.skills[k] === 2 ? " ★" : ""}</span>`).join("");
+  Object.keys(MB_LISTS).forEach(mbRenderList);
+  mbPreview();
+}
+function mbRenderList(k) {
+  const box = $(`[data-mblist="${k}"]`); if (!box) return;
+  box.innerHTML = MB.f[k].length ? MB.f[k].map((x, i) => `<div class="mb-li">
+      <input type="text" data-mbli="${k}|${i}|n" value="${esc(x.n)}" placeholder="${MB_LISTS[k]} name" aria-label="${MB_LISTS[k]} name">
+      <div class="mb-tools"><button class="icon-btn" type="button" data-mbmove="${k}|${i}|-1" title="Move up" ${i ? "" : "disabled"}>↑</button><button class="icon-btn" type="button" data-mbmove="${k}|${i}|1" title="Move down" ${i < MB.f[k].length - 1 ? "" : "disabled"}>↓</button><button class="icon-btn" type="button" data-mbdel="${k}|${i}" title="Remove">✕</button></div>
+      <textarea data-mbli="${k}|${i}|t" placeholder="What it does" aria-label="${MB_LISTS[k]} text">${esc(x.t)}</textarea></div>`).join("")
+    : `<p class="muted" style="margin:4px 0">None yet.</p>`;
+}
+let mbTimer = null;
+function mbPreview() {
+  clearTimeout(mbTimer);
+  mbTimer = setTimeout(() => {
+    const m = mbCompile(MB.f), pb = bsPB(m.cr);
+    $("#mbCRHint").textContent = `Proficiency bonus ${sgn(pb)} · ${(xpOf(m.cr) || 0).toLocaleString()} XP · ${m.hp} hit points`;
+    $("#mbHP").placeholder = `Average: ${mbCompile({ ...MB.f, hp: "" }).hp}`;
+    $("#mbPreview").innerHTML = `${m.desc ? `<p class="mb-desc">${esc(m.desc)}</p>` : ""}${bsSbHTML(m, "custom")}`;
+  }, 80);
+}
+function mbRenderLib() {
+  $("#mbLib").innerHTML = MB.lib.length ? MB.lib.map(f => `<div class="mb-libitem"><button class="camp-item ${f.id === MB.f.id ? "on" : ""}" type="button" data-mbopen="${esc(f.id)}"><b>${esc(f.name || "Unnamed monster")}</b><small>CR ${crLabel(+f.cr || 0)} ${esc(cap1(f.size))} ${esc(f.type)}</small></button>
+      <button class="icon-btn" type="button" data-mbrm="${esc(f.id)}" title="Delete ${esc(f.name || "this monster")}">✕</button></div>`).join("")
+    : `<p class="muted" style="font-size:15px">Nothing saved yet. Build one and press “Save to My monsters”.</p>`;
+}
+function mbOpen(f) { MB.f = JSON.parse(JSON.stringify(f)); mbFillForm(); mbRenderLib(); }
+function mbStore() {
+  if (!MB.f.name.trim()) { toast("Give your monster a name first"); $("#mbName").focus(); return false; }
+  const i = MB.lib.findIndex(x => x.id === MB.f.id), copy = JSON.parse(JSON.stringify(MB.f));
+  if (i >= 0) MB.lib[i] = copy; else MB.lib.unshift(copy);
+  if (!mbSaveLib()) return false;
+  bsCustomRefresh(); mbRenderLib();
+  return true;
+}
+function bsCustomRefresh() {
+  if (!BS.data) return;
+  mbLoadLib();
+  BS.data.custom = MB.lib.map((f, i) => { const m = mbCompile(f, "custom-" + i); m.blob = [...m.traits, ...m.actions, ...m.bonus, ...m.reacts, ...m.legend].map(x => x.join(" ")).join(" ").toLowerCase() + " " + m.desc.toLowerCase(); m.cast = [...m.traits, ...m.actions].some(([n]) => /spellcasting/i.test(n)); return m; });
+}
+function mbEditFrom(m) {
+  mbOpen(m.key ? (MB.lib.find(f => f.id === m.key) || mbFromMonster(m)) : mbFromMonster(m));
+  if (!m.key) MB.f.id = uid("mm");
+  const r = $('input[name="monMode"][value="build"]'); r.checked = true; r.dispatchEvent(new Event("change"));
+  window.scrollTo({ top: 0 });
+}
+(function initBuilder() {
+  mbLoadLib();
+  $("#mbSize").innerHTML = BS_SIZES.map(z => `<option value="${z}">${cap1(z)}</option>`).join("");
+  $("#mbType").innerHTML = MB_TYPES.map(t => `<option value="${t}">${cap1(t)}</option>`).join("");
+  $("#mbCR").innerHTML = CR_LIST.map(c => `<option value="${c}">CR ${crLabel(c)}</option>`).join("");
+  $("#mbRole").innerHTML = Object.keys(ROLE_TAC).map(k => `<option value="${k}">${cap1(k)}</option>`).join("");
+  $("#mbAtkT").innerHTML = MB_DMG.map(d => `<option value="${d}">${cap1(d)}</option>`).join("");
+  MB.f = mbBlank();
+  const form = $("#mbForm");
+  form.addEventListener("input", e => {
+    const t = e.target;
+    if (t.dataset.mb) { mbSet(t.dataset.mb, t.type === "checkbox" ? t.checked : t.value); }
+    else if (t.dataset.mbab) { MB.f.scores[+t.dataset.mbab] = t.value; $(`#mbMod${t.dataset.mbab}`).textContent = sgn(mod(+t.value || 10)); }
+    else if (t.dataset.mbli) { const [k, i, fld] = t.dataset.mbli.split("|"); MB.f[k][+i][fld] = t.value; }
+    else return;
+    mbPreview();
+  });
+  const chip = e => {
+    const sv = e.target.closest("[data-mbsave]"), sk = e.target.closest("[data-mbskill]");
+    if (sv) { const i = +sv.dataset.mbsave; MB.f.saves = MB.f.saves.includes(i) ? MB.f.saves.filter(x => x !== i) : [...MB.f.saves, i]; sv.classList.toggle("on"); sv.setAttribute("aria-pressed", MB.f.saves.includes(i)); mbPreview(); return true; }
+    if (sk) { const k = sk.dataset.mbskill, l = ((MB.f.skills[k] || 0) + 1) % 3; if (l) MB.f.skills[k] = l; else delete MB.f.skills[k]; sk.classList.toggle("on", !!l); sk.setAttribute("aria-pressed", !!l); sk.textContent = k + (l === 2 ? " ★" : ""); mbPreview(); return true; }
+    return false;
+  };
+  form.addEventListener("keydown", e => { if ((e.key === "Enter" || e.key === " ") && e.target.matches(".chip")) { e.preventDefault(); chip(e); } });
+  form.addEventListener("click", e => {
+    if (chip(e)) return;
+    const add = e.target.closest("[data-mbadd]");
+    if (add) { const k = add.dataset.mbadd; MB.f[k].push({ n: "", t: "" }); mbRenderList(k); const ins = $$(`[data-mblist="${k}"] input`); ins[ins.length - 1].focus(); return; }
+    const del = e.target.closest("[data-mbdel]");
+    if (del) { const [k, i] = del.dataset.mbdel.split("|"); MB.f[k].splice(+i, 1); mbRenderList(k); mbPreview(); return; }
+    const mv = e.target.closest("[data-mbmove]");
+    if (mv) { const [k, i, d] = mv.dataset.mbmove.split("|"), a = +i, b = a + +d, L = MB.f[k]; [L[a], L[b]] = [L[b], L[a]]; mbRenderList(k); mbPreview(); return; }
+    if (e.target.id === "mbAtkGo") {
+      const m = mbCompile(MB.f), pb = bsPB(m.cr), mods = m.scores.map(mod);
+      const ab = $("#mbAtkAb").value, am = ab === "str" ? mods[0] : ab === "dex" ? mods[1] : Math.max(mods[0], mods[1]);
+      const dice = /^(\d+)d(\d+)$/.exec($("#mbAtkD").value.replace(/\s/g, "")); if (!dice) { toast("Write the damage dice like 2d6"); $("#mbAtkD").focus(); return; }
+      const avg = Math.max(1, Math.floor(+dice[1] * (+dice[2] + 1) / 2) + am), kind = $("#mbAtkK").value;
+      const reach = $("#mbAtkR").value.trim() || (kind === "Ranged" ? "range 80/320 ft." : "reach 5 ft.");
+      const where = /^(reach|range)/i.test(reach) ? reach : (kind === "Ranged" ? `range ${reach}` : `reach ${reach}`);
+      MB.f.actions.push({ n: $("#mbAtkN").value.trim() || "Attack", t: `${kind} Attack Roll: ${sgn(am + pb)}, ${where} Hit: ${avg} (${dice[1]}d${dice[2]}${am ? (am > 0 ? " + " : " - ") + Math.abs(am) : ""}) ${cap1($("#mbAtkT").value)} damage.` });
+      $("#mbAtkN").value = ""; mbRenderList("actions"); mbPreview(); toast("Attack added"); return;
+    }
+  });
+  $("#mbSave").addEventListener("click", () => { if (mbStore()) toast(`${MB.f.name} saved to My monsters`); });
+  $("#mbNew").addEventListener("click", () => { mbOpen(mbBlank()); $("#mbName").focus(); });
+  $("#mbCopy").addEventListener("click", async () => { try { await navigator.clipboard.writeText((MB.f.desc ? MB.f.desc + "\n\n" : "") + bsText(mbCompile(MB.f), "custom")); toast("Stat block copied"); } catch { toast("Couldn't copy here"); } });
+  $("#mbToCamp").addEventListener("click", () => {
+    const c = Store.get($("#mbCamp").value); if (!c) { toast("Create a campaign first (Campaign Tracker)"); return; }
+    if (!mbStore()) return;
+    const m = mbCompile(MB.f); c.bestiary = c.bestiary || [];
+    c.bestiary = c.bestiary.filter(b => b.srd !== MB.f.id && b.name !== m.n); c.bestiary.push(bsEntry(m, "custom", m.n)); registerBestiary(c);
+    Store.save(c); toast(`${m.n} added to “${c.name}”`);
+  });
+  $("#mbLib").addEventListener("click", async e => {
+    const o = e.target.closest("[data-mbopen]"); if (o) { mbOpen(MB.lib.find(f => f.id === o.dataset.mbopen)); return; }
+    const r = e.target.closest("[data-mbrm]"); if (!r) return;
+    const f = MB.lib.find(x => x.id === r.dataset.mbrm);
+    if (!(await confirmBox("Delete monster?", `Delete ${f.name || "this monster"} from My monsters? Copies already added to campaigns stay there.`, "Delete"))) return;
+    MB.lib = MB.lib.filter(x => x !== f); mbSaveLib(); bsCustomRefresh(); if (MB.f.id === f.id) mbOpen(mbBlank()); else mbRenderLib();
+  });
+  mbFillForm(); mbRenderLib();
+})();
+
+/* ======================= Companions, familiars & Wild Shape (My Characters) ======================= */
+// Which beasts a character may take, by class, level and prepared spells. The rules are the
+// SRD's where it has them; Beast Master isn't in either SRD, so rangers get its 2014 limits.
+const FAMILIARS_2014 = ["Bat", "Cat", "Crab", "Frog", "Hawk", "Lizard", "Octopus", "Owl", "Poisonous Snake", "Quipper", "Rat", "Raven", "Sea Horse", "Spider", "Weasel"];
+const STEEDS_2014 = ["Warhorse", "Pony", "Camel", "Elk", "Mastiff"];
+const COMP_KIND = { wild: "Wild Shape form", beast: "Beast companion", familiar: "Familiar", steed: "Steed" };
+function compHasSpell(c, name) { return (c.prepared || []).some(p => p.n === name); }
+function compKinds(c) {
+  const k = [];
+  if (c.cls === "Druid" && c.level >= 2) k.push("wild");
+  if (c.cls === "Ranger" && c.level >= 3) k.push("beast");
+  if (compHasSpell(c, "Find Familiar")) k.push("familiar");
+  if (compHasSpell(c, "Find Steed")) k.push("steed");
+  return k;
+}
+function compRule(c, kind, ed) {
+  const lv = c.level || 1;
+  if (kind === "wild") {
+    const max = lv >= 8 ? 1 : lv >= 4 ? 0.5 : 0.25, fly = lv >= 8, swim = ed === "2024" || lv >= 4;
+    return { test: m => m.type === "beast" && m.cr <= max && (fly || !/\bfly\b/.test(m.speed)) && (swim || !/\bswim\b/.test(m.speed)),
+      text: `Druid level ${lv}: beasts of CR ${crLabel(max)} or lower${fly ? "" : ", no flying speed"}${swim ? "" : ", no swimming speed"}.` };
+  }
+  if (kind === "beast") return { test: m => m.type === "beast" && m.cr <= 0.25 && ["tiny", "small", "medium"].includes(m.size),
+    text: "Ranger companion: a beast of Medium size or smaller with CR 1/4 or lower (Beast Master rules, which aren't in the free SRD)." };
+  if (kind === "familiar") return ed === "2014"
+    ? { test: m => FAMILIARS_2014.includes(m.n), text: "Find Familiar (2014): bat, cat, crab, frog, hawk, lizard, octopus, owl, poisonous snake, quipper, rat, raven, sea horse, spider or weasel." }
+    : { test: m => m.type === "beast" && m.cr === 0, text: "Find Familiar (2024): any beast of challenge rating 0." };
+  return { test: m => STEEDS_2014.includes(m.n), text: "Find Steed: warhorse, pony, camel, elk or mastiff." };
+}
+function compFind(x) { bsLoad(); return (BS.data[x.ed] || []).find(m => m.n === x.n) || null; }
+function compSectionHTML(c) {
+  const kinds = compKinds(c), list = c.companions || [];
+  if (!kinds.length && !list.length) return "";
+  const card = x => {
+    const m = compFind(x);
+    return `<div class="comp-card">
+      <div class="comp-top"><input type="text" class="comp-nick" data-comp="nick" data-cid="${esc(x.id)}" value="${esc(x.nick || "")}" placeholder="${esc(x.n)}" aria-label="Name for this ${esc(COMP_KIND[x.kind] || "companion")}">
+        <span class="tag">${esc(COMP_KIND[x.kind] || "Companion")}</span><button class="icon-btn" type="button" data-cdel="${esc(x.id)}" title="Remove ${esc(x.nick || x.n)}">✕</button></div>
+      <div class="muted comp-sub">${esc(x.n)} · ${x.ed === "custom" ? "custom" : x.ed} rules${m ? ` · CR ${crLabel(m.cr)} · AC ${m.ac} · ${esc(m.speed)}` : ""}</div>
+      <div class="row comp-hp"><label>HP <input type="number" min="0" data-comp="hp" data-cid="${esc(x.id)}" value="${esc(x.hp)}" aria-label="Current hit points"></label><span class="muted">/ ${esc(x.max)}</span>
+        <input type="text" data-comp="notes" data-cid="${esc(x.id)}" value="${esc(x.notes || "")}" placeholder="Notes: tricks, conditions, where it is…" aria-label="Notes"></div>
+      ${m ? `<details class="comp-sb"><summary>Stat block</summary>${bsSbHTML(m, x.ed)}</details>` : `<p class="hint">This creature's stat block isn't in the Forge's data.</p>`}
+    </div>`;
+  };
+  return `<div class="sec" id="rcComp"><div class="sec-h"><h3>Companions &amp; Wild Shape</h3><span class="sp"></span>${kinds.length ? `<button class="btn sm" type="button" data-ra="comp">✦ Find a beast</button>` : ""}</div>
+    ${list.length ? `<div class="comp-grid">${list.map(card).join("")}</div>` : `<p class="muted">No ${kinds.map(k => COMP_KIND[k].toLowerCase()).join(" or ")} yet. Press “Find a beast” to pick one.</p>`}
+    <div class="prep-panel hidden" id="rcCompPanel">
+      <div class="row" style="flex-wrap:wrap">
+        <select id="rcCompKind" style="flex:1 1 160px" aria-label="What you're looking for">${kinds.map(k => `<option value="${k}">${COMP_KIND[k]}</option>`).join("")}</select>
+        <input type="text" id="rcCompQ" placeholder="Search beasts, e.g. wolf" style="flex:2 1 180px" aria-label="Search beasts">
+        <select id="rcCompEd" style="flex:1 1 110px" aria-label="Rules edition"><option value="2024">2024 rules</option><option value="2014">2014 rules</option></select></div>
+      <p class="hint" id="rcCompRule" style="margin:6px 0 0"></p>
+      <label class="check" style="margin:4px 0 0"><input type="checkbox" id="rcCompAll"><span>Show every beast (the DM has allowed something else)</span></label>
+      <div class="prep-res" id="rcCompList"></div></div></div>`;
+}
+function renderCompList(c) {
+  const box = $("#rcCompList"); if (!box) return;
+  bsLoad();
+  const kind = $("#rcCompKind").value, ed = $("#rcCompEd").value, all = $("#rcCompAll").checked;
+  const rule = compRule(c, kind, ed), q = $("#rcCompQ").value.trim().toLowerCase();
+  $("#rcCompRule").textContent = rule.text;
+  const list = (BS.data[ed] || []).filter(m => (all ? m.type === "beast" : rule.test(m)) && (!q || m.n.toLowerCase().includes(q))).sort((a, b) => a.cr - b.cr || a.n.localeCompare(b.n));
+  const have = new Set((c.companions || []).filter(x => x.kind === kind && x.ed === ed).map(x => x.n));
+  box.innerHTML = list.length ? list.slice(0, 120).map(m => `<div class="prep-row"><details><summary><b>${esc(m.n)}</b> <span class="muted">CR ${crLabel(m.cr)} · ${esc(cap1(m.size))} · AC ${m.ac} · ${m.hp} HP · ${esc(m.speed)}</span></summary>${bsSbHTML(m, ed)}</details>
+      <button type="button" class="btn sm ${have.has(m.n) ? "" : "primary"}" data-cadd="${esc(m.n)}" style="flex:0 0 auto">${have.has(m.n) ? "✓ Added" : "+ Add"}</button></div>`).join("")
+    + (list.length > 120 ? `<p class="hint">Showing 120 of ${list.length}. Narrow the search to see more.</p>` : "")
+    : `<p class="muted" style="margin:8px 0">No beasts match. Try the other rules edition or clear the search.</p>`;
+}
+(function initCompanions() {
+  const main = $("#rosterMain");
+  main.addEventListener("input", e => {
+    const c = rosterCur(), t = e.target; if (!c) return;
+    if (["rcCompKind", "rcCompQ", "rcCompEd", "rcCompAll"].includes(t.id)) { renderCompList(c); return; }
+    if (!t.dataset.comp) return;
+    const x = (c.companions || []).find(y => y.id === t.dataset.cid); if (!x) return;
+    x[t.dataset.comp] = t.dataset.comp === "hp" ? Math.max(0, parseInt(t.value) || 0) : t.value;
+    pcPersist();
+  });
+  main.addEventListener("click", e => {
+    const c = rosterCur(); if (!c) return;
+    const open = e.target.closest('[data-ra="comp"]');
+    if (open) {
+      const p = $("#rcCompPanel"); p.classList.toggle("hidden"); const on = !p.classList.contains("hidden");
+      open.textContent = on ? "Close search" : "✦ Find a beast";
+      if (on) { bsLoad(); $("#rcCompEd").value = BS.ed === "2014" ? "2014" : "2024"; renderCompList(c); $("#rcCompQ").focus(); }
+      return;
+    }
+    const add = e.target.closest("[data-cadd]");
+    if (add) {
+      const kind = $("#rcCompKind").value, ed = $("#rcCompEd").value, m = (BS.data[ed] || []).find(x => x.n === add.dataset.cadd); if (!m) return;
+      c.companions = c.companions || [];
+      const same = c.companions.findIndex(x => x.kind === kind && x.ed === ed && x.n === m.n);
+      if (same >= 0) c.companions.splice(same, 1);
+      else c.companions.push({ id: uid("cmp"), kind, ed, n: m.n, nick: "", hp: m.hp, max: m.hp, notes: "" });
+      pcPersist();
+      const keep = { q: $("#rcCompQ").value, kind, ed, all: $("#rcCompAll").checked };
+      renderRosterMain();
+      const p = $("#rcCompPanel"); p.classList.remove("hidden"); $('[data-ra="comp"]').textContent = "Close search";
+      $("#rcCompQ").value = keep.q; $("#rcCompKind").value = keep.kind; $("#rcCompEd").value = keep.ed; $("#rcCompAll").checked = keep.all; renderCompList(c);
+      toast(same >= 0 ? `${m.n} removed` : `${m.n} added as a ${COMP_KIND[kind].toLowerCase()}`);
+      return;
+    }
+    const del = e.target.closest("[data-cdel]");
+    if (del) { const x = (c.companions || []).find(y => y.id === del.dataset.cdel); c.companions = (c.companions || []).filter(y => y !== x); pcPersist(); renderRosterMain(); if (x) toast(`${x.nick || x.n} removed`); }
+  });
 })();
 
 /* ======================= Items (SRD 5.1 / 5.2) ======================= */
@@ -4940,6 +5330,7 @@ function rosterHTML(c) {
   </div>
   ${c.spell ? `<div class="sec"><div class="sec-h"><h3>${L.word === "known" ? "Spells Known" : "Prepared Spells"}</h3><span class="sp"></span><button class="btn sm" type="button" data-ra="prep">✦ Prepare spells</button></div>
     <div id="rcPrepared">${preparedHTML(c)}</div>${prepPanelHTML(c, "rc")}</div>` : ""}
+  ${compSectionHTML(c)}
   <div class="sec"><div class="sec-h"><h3>Inventory</h3><span class="sp"></span><a class="btn sm" href="#items" data-ra="browse" style="text-decoration:none">Browse items</a><button class="btn sm primary" type="button" data-ra="addInv">+ Add item</button></div>
     <div class="row rc-coins">${["cp", "sp", "ep", "gp", "pp"].map(k => `<label>${k.toUpperCase()}<input type="number" min="0" data-rcoin="${k}" value="${+c.coins[k] || 0}"></label>`).join("")}</div>
     ${c.inv.length ? `<table class="foes rc-inv"><thead><tr><th>Qty</th><th>Item</th><th>Notes</th><th>Attuned</th><th></th></tr></thead><tbody>${c.inv.map(i => `<tr>
