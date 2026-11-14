@@ -8,6 +8,7 @@ These are project notes for the next chat (human or Claude). They cover what the
 - The owner is on **Windows** and can't run bash scripts. Anything they run themselves has to work in PowerShell or Command Prompt, so prefer `npm run ...` scripts.
 - Explain things plainly. The owner tests in the browser rather than reading code.
 - Don't open pull requests unless asked.
+- Pushing to a pull request's branch starts a Netlify **deploy preview**, which also uses build credits. Push when the work is ready or when asked, rather than after every small change. Cloud sessions have a stop hook that asks for unpushed commits to be pushed.
 
 ## What the app is
 
@@ -19,7 +20,7 @@ Live site: https://dungeonmasterforge.netlify.app (Netlify; production branch `m
 
 | Path | What it is |
 | --- | --- |
-| `public/index.html` | The whole app on one page: vanilla JS with global functions (~6,800 lines). Most feature work happens here. |
+| `public/index.html` | The whole app on one page: vanilla JS with global functions (~8,300 lines). Most feature work happens here. |
 | `src/portal.js` | Sign-in, campaigns, shared characters, the Party tab, whispers, homebrew sync. esbuild bundles it into `public/portal.js`, which is gitignored and never edited by hand. |
 | `netlify/functions/api.mjs` → `netlify/lib/api.mjs` | Campaign API at `/api/*`. `handle(req, user, db)` holds all the routes. `netlify/lib/diff.mjs` writes the activity feed text. |
 | `netlify/database/migrations/` | Postgres tables, applied automatically on deploy: `campaigns`, `members`, `characters` (versioned jsonb), `activity`, `whispers`, `homebrew`. |
@@ -95,9 +96,11 @@ Playwright and Chromium are pre-installed in cloud sessions. To test offline mod
 
 Items 4 to 14 were merged to `main` on 2026-11-14 (commit `5d44a7b`).
 
+Items 15 to 17 are in **PR #5** (branch `ccr-ee7865d5-1wx9vg`). It's **not merged yet**. It already contains everything on `main` up to `ef08b0c`, the commit that added these notes.
+
 15. **Collapsible toolbar and character sheet upgrade** (PR #5, branch `ccr-ee7865d5-1wx9vg`)
     - **Toolbar:** "▴ Hide tabs" collapses the header (`dmforge.hdrMini`, the `hdr-mini` class on `<html>`); the strip has a tab menu (`hdrSync`).
-    - **Backgrounds:** `BG_DESC` descriptions in the builder and the quick forge.
+    - **Subclass numbers:** `subBonuses` and `pcSubNumbers`. The HP and speed bonuses are applied once, tracked by `subHp` and `subSpd`.
     - **Equipment:** `pcInvUpgrade` moves the starting kit into `c.inv` once (`c.kitMoved`). Inventory items have `eq`.
       - `pcAttacks` builds the attack list from equipped weapons (`eqWeaponOf`, `eqAttack`, `eqProficient`).
       - `pcAC` / `pcACApply` work out AC from armor, shields, protective items (`PROT_ITEMS`), the Defense style and spell toggles (`c.fx`).
@@ -111,9 +114,11 @@ Items 4 to 14 were merged to `main` on 2026-11-14 (commit `5d44a7b`).
       - Wild Shape picks a beast with `wildBeasts` / `beastForm`; the 2014 beast HP is `c.formHp`.
       - The short rest dialog spends hit dice (`shortRestDialog`). `recoveryDialog` handles Arcane and Natural Recovery.
     - **Fighting styles** live in `c.fightStyles`. Armor training comes from `armorTraining`.
+    - **Merge with `main`:** homebrew bonuses (`hbAc`, `hbSpeed`, `atkBonus`, `initBonus`) are added on top of the equipment-based AC, calculated speed, attacks and initiative.
 16. **Backgrounds by rule set** (PR #5)
     - `BG_DATA["2014" | "2024"]` holds each background: skills, tools, languages, gear and gold, plus the feature (2014) or the abilities and Origin feat (2024).
     - `bgList(ed)` is a rule set's list, including homebrew. `bgInfo`, `bgSkills`, `bgLines` and `bgSummary` read it.
+    - Short descriptions are in `BG_DESC` (2014) and `BG_DESC_2024`. The builder shows them on the background cards and in a details panel; the quick forge shows them in `#pcBgHint`.
     - `BACKGROUNDS` is now the union of both lists, for older lookups.
     - **2024 ability increase:** `bgAbilityBonus` gives +2/+1 to the class's best of the background's three abilities. The builder can choose instead (`custom.plus2` / `plus1`, or `custom.tri` for +1/+1/+1).
     - **Feats and features:** the generator adds the Origin feat as `{ f: "Feat: X", bgFeat: true }`, which counts in `featsTaken`, so Alert, Tough and Lucky apply. 2014 characters get `Background: X` and the feature in their feature list.
@@ -128,19 +133,21 @@ Items 4 to 14 were merged to `main` on 2026-11-14 (commit `5d44a7b`).
 
 - `generateCharacter(o)` builds the whole sheet from options with a seeded RNG (`makeRng`), so the same inputs give the same sheet.
 - Level changes never patch numbers directly. They go through `pcLevelTo(c, lv)`, which regenerates the character with `subclass`, `asiPicks` and `bonusFeats` and copies the derived fields back (level, scores, mods, saves, skills, hp, ac, attacks, spell, feats, traits, res/imm/vul/cimm/sadv, hbSig and so on).
+- `pcLevelTo`, `lvBuild` and `pcRebuild` also pass `pcKeep(c)`: the character's base scores, rolls, skill picks, expertise order and Skilled picks. That way a rebuild never re-rolls them. Don't remove it.
 - If you add a derived field to the character, add it to the copy list in `pcLevelTo`, or levelling up will drop it.
 - Order inside the generator:
   1. Pick the subclass, before rolling scores.
-  2. Apply ASI picks, bonus feats and homebrew ability bonuses.
-  3. Skills and expertise.
-  4. HP. Tough gives +2 per level; Boon of Fortitude gives +40.
+  2. The ability increase: the background's in 2024 (`bgAbilityBonus`, unless `bgAsiLegacy`), otherwise the species' or a flexible +2/+1. Then ASI picks, bonus feats and homebrew ability bonuses.
+  3. Skills and expertise: background, species, class and Skilled picks. Kept skills and expertise come first on a rebuild.
+  4. HP. Tough gives +2 per level (including Tough as a 2024 Origin feat); Boon of Fortitude gives +40. Draconic sorcerers add their subclass HP.
   5. Saves.
   6. AC.
   7. Attack and initiative bonuses. Alert adds proficiency in 2024 and +5 in 2014.
   8. Spell bonus.
   9. Speed.
   10. Defences.
-- Loading an older save goes through `pcEnsure`, which runs migrations such as `withTraitRes` and `raceLvUpgrade`. New data fields need a migration there too.
+- Loading an older save goes through `pcEnsure`, which runs migrations such as `withTraitRes`, `raceLvUpgrade` and the background version (`bgV`). New data fields need a migration there too.
+- On **My Characters**, a sheet with an inventory (`kitMoved`) gets its AC, speed and attacks from `pcACApply`, `pcSpeedApply` and `pcAttacks` (equipment, active effects and spell toggles), not from the generator's values.
 
 ## Character fields worth knowing
 
@@ -163,3 +170,5 @@ From PR #5:
 - On My Characters, `renderRosterMain` runs `pcInvUpgrade`, `pcSubSync`, `pcSubNumbers` and then `pcRecompute`. `pcRecompute` rebuilds attacks, AC and speed from equipment and active effects, so don't set `c.ac`, `c.speed` or `c.attacks` directly there.
 - `pcFx` calls `pcAbilities`. Never call `pcAC` from inside an `ACT` effect, or they'll loop forever; use `wearingArmor(c)` instead.
 - The 2014 Donkey in the monster data has a speed of "0 ft.", which is wrong in the data.
+- `npm run dev` keeps its accounts and campaigns until it's stopped. Restart it before running `test/e2e/walkthrough.cjs` again, or the walkthrough times out waiting for the sign-in form.
+- Opening `public/index.html` straight from disk (`file://`) blocks `portal.js`. Test through `npm run dev` or another local server.
