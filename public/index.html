@@ -7105,6 +7105,8 @@ function foeSaveBonus(m, ab, ed) {
   return mod(sb.scores[["str", "dex", "con", "int", "wis", "cha"].indexOf(ab)]);
 }
 function pcSaveBonus(p, ab) { return (p.mods || {})[ab] + ((p.saves || []).includes(ab) ? p.prof : 0) + itemSaveBonus(p); }
+// remembered between uses: separate rolls (default) or one shared roll
+const aoeShared = () => { try { return localStorage.getItem("dmforge.aoeShared") === "1"; } catch { return false; } };
 function aoeTargets(c, ed) {
   const T = actTargets(c), out = [];
   T.foes.forEach(f => { const [, k, e, id] = f.id.split(":"), camp = Store.get(k), enc = camp && camp.encounters.find(x => x.id === e), m = enc && enc.enemies.find(x => x.id === id); if (m) out.push({ id: f.id, label: f.label, group: f.group, foe: m }); });
@@ -7115,16 +7117,19 @@ function actAoeDialog(c, R) {
   ACTX.c = c; ACTX.r = R; ACTX.aoe = null;
   const L = aoeTargets(c, edOf(c)), groups = [...new Set(L.map(t => t.group))];
   actDialog(`<h3 id="actTitle">${esc(R.title)}</h3><p style="margin:10px 0">${esc(R.desc)}</p>
-    ${L.length ? `<p class="hint" style="margin:0 0 6px">Tick every creature in the area. Each one gets its own ${esc(R.expr)} damage roll${R.save ? ` and its own ${R.save.toUpperCase()} save against DC ${R.dc}` : ""}.</p>
+    ${L.length ? `<p class="hint" style="margin:0 0 6px">Tick every creature in the area${R.save ? `. Each one makes its own ${R.save.toUpperCase()} save against DC ${R.dc}` : ""}.</p>
       <div class="aoe-list">${groups.map(g => `<fieldset><legend>${esc(g)}</legend>${L.filter(t => t.group === g).map(t => `<label class="aoe-t"><input type="checkbox" data-aoet="${esc(t.id)}" ${t.foe ? "checked" : ""}> ${esc(t.label)}</label>`).join("")}</fieldset>`).join("")}</div>
-      <div class="row" style="justify-content:flex-end;margin-top:14px;flex-wrap:wrap"><button class="btn" type="button" data-actclose style="flex:0 0 auto">Cancel</button><button class="btn primary" type="button" data-aoeroll style="flex:0 0 auto" autofocus>Roll for each target</button></div>`
+      <div class="seg" role="radiogroup" aria-label="Damage rolls" style="margin-top:10px"><label class="opt"><input type="radio" name="aoeShare" value="0" ${aoeShared() ? "" : "checked"}><span>Separate ${esc(R.expr)} roll for each target</span></label><label class="opt"><input type="radio" name="aoeShare" value="1" ${aoeShared() ? "checked" : ""}><span>One shared roll for everyone (rules as written)</span></label></div>
+      <div class="row" style="justify-content:flex-end;margin-top:14px;flex-wrap:wrap"><button class="btn" type="button" data-actclose style="flex:0 0 auto">Cancel</button><button class="btn primary" type="button" data-aoeroll style="flex:0 0 auto" autofocus>Roll damage</button></div>`
     : `<p class="hint">No creatures to target. Add an encounter with monsters in the Campaign Tracker, or other characters on My Characters.</p><div class="row" style="justify-content:flex-end"><button class="btn primary" type="button" data-actclose style="flex:0 0 auto">OK</button></div>`}`);
 }
 function aoeRoll() {
   const c = ACTX.c, R = ACTX.r, ed = edOf(c), L = aoeTargets(c, ed), ids = $$("[data-aoet]").filter(i => i.checked).map(i => i.dataset.aoet);
   if (!ids.length) { toast("Tick at least one creature"); return; }
+  const shared = (($("input[name=aoeShare]:checked") || {}).value) === "1"; try { localStorage.setItem("dmforge.aoeShared", shared ? "1" : "0"); } catch { }
+  const one = shared ? rollDice(R.expr) : null;
   ACTX.aoe = ids.map(id => {
-    const t = L.find(x => x.id === id), dmg = rollDice(R.expr);
+    const t = L.find(x => x.id === id), dmg = one || rollDice(R.expr);
     let save = null;
     if (R.save) {
       const bonus = t.foe ? foeSaveBonus(t.foe, R.save, ed) : pcSaveBonus(t.pc, R.save), d20 = 1 + Math.floor(Math.random() * 20);
@@ -7134,10 +7139,10 @@ function aoeRoll() {
   });
   const amt = r => !r.save ? r.dmg.total : r.saveOk ? (R.noneOnSave ? 0 : Math.floor(r.dmg.total / 2)) : r.dmg.total;
   ACTX.aoe.forEach(r => r.saveOk = r.save ? r.save.ok : false);
-  const row = (r, i) => `<tr><td><b>${esc(r.name)}</b></td><td>${esc(r.dmg.text)}</td><td>${r.save ? `${esc(r.save.text)}<br><select data-aoeok="${i}" aria-label="${esc(r.name)} save result"><option value="0" ${r.saveOk ? "" : "selected"}>Failed: full damage</option><option value="1" ${r.saveOk ? "selected" : ""}>Saved: ${R.noneOnSave ? "no damage" : "half damage"}</option></select>` : "No save"}</td><td class="aoe-amt" data-aoeamt="${i}">${amt(r)}</td></tr>`;
+  const row = (r, i) => `<tr><td><b>${esc(r.name)}</b></td><td>${one ? (i ? `<span class="muted">same roll</span>` : esc(r.dmg.text)) : esc(r.dmg.text)}</td><td>${r.save ? `${esc(r.save.text)}<br><select data-aoeok="${i}" aria-label="${esc(r.name)} save result"><option value="0" ${r.saveOk ? "" : "selected"}>Failed: full damage</option><option value="1" ${r.saveOk ? "selected" : ""}>Saved: ${R.noneOnSave ? "no damage" : "half damage"}</option></select>` : "No save"}</td><td class="aoe-amt" data-aoeamt="${i}">${amt(r)}</td></tr>`;
   ACTX.aoeAmt = amt;
   $("#actBox").innerHTML = `<h3 id="actTitle">${esc(R.title)}</h3>${R.note ? `<p class="hint" style="margin:8px 0 0">${esc(R.note)}</p>` : ""}
-    <div style="overflow-x:auto;margin-top:10px"><table class="foes aoe-res"><thead><tr><th>Target</th><th>Damage roll</th><th>Saving throw</th><th>${esc(R.dtype || "")} damage</th></tr></thead><tbody>${ACTX.aoe.map(row).join("")}</tbody></table></div>
+    ${one ? `<p style="margin:8px 0 0"><b>Shared damage roll:</b> ${esc(one.text)}</p>` : ""}<div style="overflow-x:auto;margin-top:10px"><table class="foes aoe-res"><thead><tr><th>Target</th><th>Damage roll${one ? " (shared)" : ""}</th><th>Saving throw</th><th>${esc(R.dtype || "")} damage</th></tr></thead><tbody>${ACTX.aoe.map(row).join("")}</tbody></table></div>
     <div class="row" style="justify-content:flex-end;margin-top:14px;flex-wrap:wrap"><button class="btn" type="button" data-actclose style="flex:0 0 auto">Don't apply</button><button class="btn primary" type="button" data-aoeapply style="flex:0 0 auto" autofocus>Apply to all</button></div>`;
   const f = $("#actBox [autofocus]"); if (f) f.focus();
 }
