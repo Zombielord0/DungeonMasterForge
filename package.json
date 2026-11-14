@@ -4,7 +4,8 @@
   "type": "module",
   "scripts": {
     "build": "esbuild src/portal.js --bundle --format=esm --target=es2020 --minify --outfile=public/portal.js",
-    "test": "node --test test/*.test.mjs"
+    "test": "node --test test/*.test.mjs",
+    "dev": "esbuild src/portal.js --bundle --format=esm --alias:@netlify/identity=./test/e2e/fake-identity.js --outfile=.dev/portal-test.js --log-level=warning && node test/e2e/server.mjs .dev/portal-test.js 8899"
   },
   "dependencies": {
     "@netlify/database": "^2.0.3",

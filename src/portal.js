@@ -17,8 +17,8 @@ const OFFLINE_KEY = "dmforge.offline";
 const CAMP_KEY = "dmforge.campaign";
 const LAST_KEY = "dmforge.lastCampaign."; // + user id: the campaign and role from last visit
 const OFFERED_KEY = "dmforge.uploadOffered.";
-const ALL_VIEWS = ["generate", "npc", "monsters", "character", "roster", "spells", "items", "map", "tracker", "homebrew"];
-const PLAYER_VIEWS = ["character", "roster", "spells", "items", "whispers"];
+const ALL_VIEWS = ["generate", "npc", "monsters", "character", "roster", "spells", "feats", "items", "map", "tracker", "homebrew"];
+const PLAYER_VIEWS = ["character", "roster", "spells", "feats", "items", "whispers"];
 const POLL_DM = 4000, POLL_PLAYER = 10000, POLL_WHISPERS = 8000, POLL_HOMEBREW = 30000;
 
 const S = {

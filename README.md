@@ -33,7 +33,20 @@ npm test          # API tests against a local Postgres
 npm run build     # bundle src/portal.js
 ```
 
-Browser walkthrough with a stand-in login (Netlify's login doesn't run locally):
+### Try the whole app on your computer (Windows, Mac or Linux)
+
+No Netlify needed. Install [Node.js](https://nodejs.org) (LTS), then in a terminal (PowerShell or Command Prompt on Windows) inside this folder:
+
+```
+npm install
+npm run dev
+```
+
+Open http://localhost:8899. Sign-in is a stand-in: any name, email and password works, and data lives in a temporary database that's emptied when you stop it with Ctrl+C. Use two browsers (or a private window) to be the DM and a player at once.
+
+### Automated browser walkthrough (Mac/Linux shell)
+
+Same stand-in login (Netlify's login doesn't run locally):
 
 ```bash
 npx esbuild src/portal.js --bundle --format=esm --alias:@netlify/identity=./test/e2e/fake-identity.js --outfile=/tmp/portal-test.js
