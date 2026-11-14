@@ -14,6 +14,7 @@ Live at https://dungeonmasterforge.netlify.app
 - The DM signs in, creates a campaign and shares its join code.
 - Players create an account, enter the code once, and see: Characters, My Characters, Spells, Items, Whispers.
 - The DM sees every tool plus **Party**: every player's sheet (click to view or edit), an activity feed of changes, and whispers to one player.
+- The DM's **Homebrew** tab adds custom subclasses, backgrounds, feats and species. Everyone in the campaign sees them in the character creator, Level up window and feat list; only the DM can change them.
 - If the DM and a player save the same sheet at once, whoever saves second is asked which version to keep.
 - "Use without an account" keeps the old behaviour: DM tools, saved in this browser only.
 
