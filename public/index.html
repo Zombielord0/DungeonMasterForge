@@ -60,7 +60,7 @@ section.view.active{display:block;animation:rise .25s ease-out}
 .layout{display:grid;grid-template-columns:330px 1fr;gap:20px;align-items:start}
 @media (max-width:900px){.layout{grid-template-columns:1fr}}
 /* stone slabs */
-.card,.sec,#modal .box,#lvModal .box{position:relative;background:var(--slab);border:1px solid #0f0e0d;border-radius:var(--radius);padding:16px;
+.card,.sec,#modal .box,#lvModal .box,#featModal .box{position:relative;background:var(--slab);border:1px solid #0f0e0d;border-radius:var(--radius);padding:16px;
   box-shadow:inset 1px 1px 0 rgba(255,255,255,.09),inset -2px -3px 0 rgba(0,0,0,.35),0 8px 22px rgba(0,0,0,.65)}
 .card::after,.sec::after{content:"";position:absolute;inset:0;border-radius:inherit;pointer-events:none;background:var(--grit);opacity:.35;mix-blend-mode:multiply}
 .card>*,.sec>*{position:relative;z-index:1}
@@ -274,6 +274,15 @@ textarea[data-list=party]{min-height:150px}
 #lvModal .pick-grid{grid-template-columns:repeat(auto-fill,minmax(180px,1fr));margin:8px 0 4px}
 .lv-bar{display:flex;flex-wrap:wrap;align-items:center;gap:8px;margin-top:12px}
 .lv-need{color:#f2b8ae;font-size:15px}
+#featModal{position:fixed;inset:0;background:rgba(0,0,0,.6);display:none;align-items:center;justify-content:center;z-index:60;padding:20px}
+#featModal.open{display:flex}
+#featModal .box{border-color:#7a4415;max-width:760px;width:100%;max-height:90vh;display:flex;flex-direction:column;padding:20px}
+#featList{overflow:auto;flex:1;margin-top:10px;padding-right:4px}
+#featList .pick-grid{grid-template-columns:repeat(auto-fill,minmax(220px,1fr))}
+.pick:disabled{opacity:.45;cursor:not-allowed}
+.pick .req{color:#e7c38a}
+.pick .why{color:#f2b8ae}
+.feat-chosen{flex:1 1 100%;cursor:default}
 .lv-gains{margin:6px 0 12px;padding-left:18px}
 .lv-gains li{margin:3px 0}
 #toast{position:fixed;bottom:20px;left:50%;transform:translateX(-50%) translateY(90px);background:var(--slab);border:1px solid #7a4415;padding:10px 18px;border-radius:4px;transition:transform .25s;z-index:60;max-width:90vw;box-shadow:0 0 18px rgba(240,140,50,.35),0 8px 20px rgba(0,0,0,.7)}
@@ -404,7 +413,7 @@ body{background:none!important}
 #bgScene{position:fixed;inset:0;width:100vw;height:100vh;z-index:-1;display:block;pointer-events:none;background:#06070e}
 body::before{background:radial-gradient(ellipse 70% 55% at 50% 38%,transparent 40%,rgba(2,3,8,.55) 100%),linear-gradient(rgba(4,5,12,.15),rgba(4,5,12,.45))!important;animation:none!important;z-index:-1!important}
 header{background:var(--noise),linear-gradient(rgba(22,24,40,.9),rgba(10,11,22,.86))!important;backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px);border-bottom:1px solid rgba(255,170,80,.18)!important;box-shadow:0 6px 24px rgba(0,0,0,.75),inset 0 -1px 0 rgba(120,140,220,.08),inset 0 1px 0 rgba(255,255,255,.06)!important}
-.card,.sec,#modal .box,#lvModal .box{backdrop-filter:blur(3px);-webkit-backdrop-filter:blur(3px);border-color:#090a12!important;
+.card,.sec,#modal .box,#lvModal .box,#featModal .box{backdrop-filter:blur(3px);-webkit-backdrop-filter:blur(3px);border-color:#090a12!important;
   box-shadow:inset 0 1px 0 rgba(255,200,140,.10),inset 1px 0 0 rgba(140,160,230,.05),inset -2px -3px 0 rgba(0,0,0,.35),0 10px 28px rgba(0,0,0,.7),0 0 0 1px rgba(255,160,70,.04)!important}
 .sec{background:var(--noise),linear-gradient(165deg,rgba(36,40,60,.72),rgba(18,20,34,.8))!important}
 .card::after,.sec::after{opacity:.22!important}
@@ -2906,6 +2915,133 @@ function subclassDesc(name) {
   return SUB_DESC[name] || "";
 }
 const needsSubclass = c => !!(c && CLASS_DATA[c.cls] && !c.subclass && c.level >= subclassLevel(edOf(c), c.cls));
+/* ---- feats by rules edition: [name, abilities it can raise by 1 ("any" or "str dex"), prerequisite, summary, group] ----
+   prerequisite: "str13|dex13" (any one), "cast" (can cast spells), "lv19", or "@text" (shown, not checked). */
+const FEATS = {
+  "2014": [
+    ["Actor", "cha", "", "Advantage on Deception and Performance while disguised; mimic voices and sounds."],
+    ["Alert", "", "", "+5 initiative, can't be surprised while conscious, and hidden attackers gain no advantage on you."],
+    ["Athlete", "str dex", "", "Stand up using only 5 ft, climb at full speed, and make running jumps after 5 ft."],
+    ["Charger", "", "", "After you Dash, make a bonus-action melee attack for +5 damage or shove the target 10 ft."],
+    ["Crossbow Expert", "", "", "Ignore loading, no disadvantage firing in melee, and a bonus-action hand crossbow shot."],
+    ["Defensive Duelist", "", "dex13", "Reaction: add your proficiency bonus to AC against a melee hit while holding a finesse weapon."],
+    ["Dual Wielder", "", "", "+1 AC while wielding two weapons, fight two-handed with non-light weapons, draw two at once."],
+    ["Dungeon Delver", "", "", "Advantage to find secret doors and resist traps; resistance to trap damage; search at normal pace."],
+    ["Durable", "con", "", "Each Hit Die you spend heals at least twice your CON modifier."],
+    ["Elemental Adept", "", "cast", "Your spells ignore resistance to one damage type, and treat 1s on its damage dice as 2s."],
+    ["Grappler", "", "str13", "Advantage on attacks against creatures you grapple, and you can pin them."],
+    ["Great Weapon Master", "", "", "Bonus-action attack after a crit or kill; take -5 to hit for +10 damage with heavy weapons."],
+    ["Healer", "", "", "A healer's kit can stabilize to 1 HP or heal 1d6 + 4 + the target's Hit Dice once per rest."],
+    ["Heavily Armored", "str", "@Medium armor training", "Proficiency with heavy armor."],
+    ["Heavy Armor Master", "str", "@Heavy armor training", "In heavy armor, nonmagical bludgeoning, piercing and slashing damage is cut by 3."],
+    ["Inspiring Leader", "", "cha13", "A 10-minute speech gives up to six allies temp HP equal to your level + CHA."],
+    ["Keen Mind", "int", "", "Always know north and the time, and recall anything seen or heard in the past month."],
+    ["Lightly Armored", "str dex", "", "Proficiency with light armor."],
+    ["Linguist", "int", "", "Learn three languages and create written ciphers."],
+    ["Lucky", "", "", "Three luck points per long rest: roll an extra d20 for an attack, check or save, or against an attack on you."],
+    ["Mage Slayer", "", "", "Reaction attack on adjacent casters; they struggle to concentrate, and you resist their spells."],
+    ["Magic Initiate", "", "", "Two cantrips and one 1st-level spell from a class of your choice."],
+    ["Martial Adept", "", "", "Learn two Battle Master maneuvers and gain one superiority die (d6)."],
+    ["Medium Armor Master", "", "@Medium armor training", "No Stealth disadvantage in medium armor, and add up to +3 DEX to its AC."],
+    ["Mobile", "", "", "+10 ft speed; Dash ignores difficult terrain; creatures you attack can't make opportunity attacks on you."],
+    ["Moderately Armored", "str dex", "@Light armor training", "Proficiency with medium armor and shields."],
+    ["Mounted Combatant", "", "", "Advantage on melee attacks against smaller unmounted foes while mounted, and protect your mount."],
+    ["Observant", "int wis", "", "+5 to passive Perception and Investigation, and read lips."],
+    ["Polearm Master", "", "", "Bonus-action butt-end attack, and opportunity attacks when foes enter your reach."],
+    ["Resilient", "any", "", "Proficiency in saving throws for the ability you raise."],
+    ["Ritual Caster", "", "int13|wis13", "A ritual book of spells you can cast as rituals, and you can copy more into it."],
+    ["Savage Attacker", "", "", "Once per turn, reroll a melee weapon's damage dice and use either total."],
+    ["Sentinel", "", "", "Opportunity attacks stop movement, ignore Disengage, and punish foes who attack your allies."],
+    ["Sharpshooter", "", "", "No disadvantage at long range, ignore partial cover, and take -5 to hit for +10 damage."],
+    ["Shield Master", "", "", "Bonus-action shove, shield bonus to DEX saves, and take no damage on a successful DEX save."],
+    ["Skilled", "", "", "Proficiency in any combination of three skills or tools."],
+    ["Skulker", "", "dex13", "Hide when lightly obscured; a missed ranged attack doesn't reveal you; dim light doesn't hinder sight."],
+    ["Spell Sniper", "", "cast", "Double the range of attack spells, ignore partial cover, and learn one attack cantrip."],
+    ["Tavern Brawler", "str con", "", "Proficient with improvised weapons, d4 unarmed strikes, and a bonus-action grapple after a hit."],
+    ["Tough", "", "", "+2 hit points per level (added to your HP)."],
+    ["War Caster", "", "cast", "Advantage on concentration saves, cast with hands full, and cast a spell as an opportunity attack."],
+    ["Weapon Master", "str dex", "", "Proficiency with four weapons of your choice."]
+  ],
+  "2024": [
+    ["Alert", "", "", "Add your proficiency bonus to initiative, and swap initiative with a willing ally.", "o"],
+    ["Crafter", "", "", "Three artisan's tools, a 20% discount on nonmagical gear, and fast crafting.", "o"],
+    ["Healer", "", "", "Use a healer's kit to let a creature spend a Hit Die; reroll 1s on healing dice.", "o"],
+    ["Lucky", "", "", "Luck points equal to your proficiency bonus: gain advantage, or impose disadvantage on an attack on you.", "o"],
+    ["Magic Initiate", "", "", "Two cantrips and a level 1 spell from the cleric, druid or wizard list.", "o"],
+    ["Musician", "", "", "Three instruments; after a rest, give allies Heroic Inspiration with a song.", "o"],
+    ["Savage Attacker", "", "", "Once per turn, roll a weapon's damage dice twice and use either roll.", "o"],
+    ["Skilled", "", "", "Proficiency in any combination of three skills or tools.", "o"],
+    ["Tavern Brawler", "", "", "Stronger unarmed strikes, reroll 1s on their damage, and push foes 5 ft.", "o"],
+    ["Tough", "", "", "+2 hit points per level (added to your HP).", "o"],
+    ["Actor", "cha", "cha13", "Advantage on Deception and Performance while disguised; mimic voices.", "g"],
+    ["Athlete", "str dex", "str13|dex13", "Climb speed, stand up with 5 ft, and running jumps after 5 ft.", "g"],
+    ["Charger", "str dex", "str13|dex13", "+10 ft when you Dash; a charging hit adds 1d8 damage or pushes 10 ft.", "g"],
+    ["Chef", "con wis", "", "Cook to heal extra on short rests, and bake treats that grant temp HP.", "g"],
+    ["Crossbow Expert", "dex", "dex13", "Ignore loading, no disadvantage in melee, and add your modifier to off-hand crossbow damage.", "g"],
+    ["Crusher", "str con", "", "Bludgeoning hits push 5 ft; your crits give allies advantage on the target.", "g"],
+    ["Defensive Duelist", "dex", "dex13", "Reaction: add your proficiency bonus to AC while holding a finesse weapon.", "g"],
+    ["Dual Wielder", "str dex", "str13|dex13", "Extra off-hand attack with non-light weapons, and draw two weapons at once.", "g"],
+    ["Durable", "con", "", "Advantage on death saves, and heal with a Hit Die as a bonus action.", "g"],
+    ["Elemental Adept", "int wis cha", "cast", "Your spells ignore resistance to one element, and 1s on its damage become 2s.", "g"],
+    ["Fey Touched", "int wis cha", "", "Learn Misty Step and one level 1 divination or enchantment spell.", "g"],
+    ["Grappler", "str dex", "str13|dex13", "Grapple as part of a hit, advantage against creatures you grapple, drag them at full speed.", "g"],
+    ["Great Weapon Master", "str", "str13", "Heavy weapon hits add your proficiency bonus to damage; bonus attack after a crit or kill.", "g"],
+    ["Heavily Armored", "str con", "@Medium armor training", "Heavy armor training.", "g"],
+    ["Heavy Armor Master", "str con", "@Heavy armor training", "In heavy armor, bludgeoning, piercing and slashing damage is cut by your proficiency bonus.", "g"],
+    ["Inspiring Leader", "wis cha", "wis13|cha13", "After a rest, give up to six allies temp HP equal to your level + modifier.", "g"],
+    ["Keen Mind", "int", "int13", "A knowledge skill gains expertise, and Study is a bonus action.", "g"],
+    ["Lightly Armored", "str dex", "", "Light armor and shield training.", "g"],
+    ["Mage Slayer", "str dex", "", "Your hits break concentration more easily, and you can turn a failed mental save into a success.", "g"],
+    ["Martial Weapon Training", "str dex", "", "Proficiency with martial weapons.", "g"],
+    ["Medium Armor Master", "str dex", "@Medium armor training", "Add up to +3 DEX to medium armor's AC.", "g"],
+    ["Moderately Armored", "str dex", "@Light armor training", "Medium armor training.", "g"],
+    ["Mounted Combatant", "str dex wis", "", "Advantage against unmounted foes, and protect your mount from attacks and area effects.", "g"],
+    ["Observant", "int wis", "int13|wis13", "Expertise in Insight, Investigation or Perception; Search as a bonus action.", "g"],
+    ["Piercer", "str dex", "", "Reroll one piercing damage die per turn; piercing crits add a die.", "g"],
+    ["Poisoner", "dex int", "", "Your poison damage ignores resistance, and brew potent poisons.", "g"],
+    ["Polearm Master", "str dex", "str13|dex13", "Bonus-action haft attack, and reaction attacks when foes enter your reach.", "g"],
+    ["Resilient", "any", "", "Proficiency in saving throws for the ability you raise.", "g"],
+    ["Ritual Caster", "int wis cha", "int13|wis13|cha13", "Learn ritual spells, and cast one quickly without the extra time.", "g"],
+    ["Sentinel", "str dex", "str13|dex13", "Opportunity attacks stop movement and ignore Disengage; protect your allies.", "g"],
+    ["Shadow Touched", "int wis cha", "", "Learn Invisibility and one level 1 illusion or necromancy spell.", "g"],
+    ["Sharpshooter", "dex", "dex13", "Ignore partial cover, no disadvantage at long range or in melee.", "g"],
+    ["Shield Master", "str", "@Shield training", "Shield-bash to push or knock prone, and take no damage on a successful DEX save.", "g"],
+    ["Skill Expert", "any", "", "Proficiency in one skill and expertise in another.", "g"],
+    ["Skulker", "dex", "dex13", "Blindsight 10 ft, hide while lightly obscured, and stay hidden after a missed shot.", "g"],
+    ["Slasher", "str dex", "", "Slashing hits cut speed by 10 ft; slashing crits hamper the target's attacks.", "g"],
+    ["Speedy", "dex con", "dex13|con13", "+10 ft speed, Dash ignores difficult terrain, and opportunity attacks have disadvantage.", "g"],
+    ["Spell Sniper", "int wis cha", "cast", "Attack spells gain 60 ft range and ignore partial cover; no disadvantage in melee.", "g"],
+    ["Telekinetic", "int wis cha", "", "Invisible Mage Hand, and bonus-action shoves with your mind.", "g"],
+    ["Telepathic", "int wis cha", "", "Telepathy 60 ft, and Detect Thoughts once per long rest.", "g"],
+    ["War Caster", "int wis cha", "cast", "Advantage on concentration saves, and cast a spell as an opportunity attack.", "g"],
+    ["Weapon Master", "str dex", "", "Use the mastery property of one weapon type, and change it after a rest.", "g"],
+    ["Boon of Combat Prowess", "any", "lv19", "Once per turn, turn a missed attack into a hit.", "b"],
+    ["Boon of Dimensional Travel", "any", "lv19", "Teleport 30 ft after you attack or cast a spell.", "b"],
+    ["Boon of Energy Resistance", "any", "lv19", "Resist two damage types and redirect that damage to a foe.", "b"],
+    ["Boon of Fate", "any", "lv19", "Add or subtract 2d4 from a nearby creature's d20 roll.", "b"],
+    ["Boon of Fortitude", "any", "lv19", "+40 hit points, and extra healing once per turn.", "b"],
+    ["Boon of Irresistible Offense", "any", "lv19", "Your damage ignores resistance, and natural 20s deal extra damage.", "b"],
+    ["Boon of Recovery", "any", "lv19", "Drop to 1 HP instead of 0 once per long rest, and a pool of d10s to heal.", "b"],
+    ["Boon of Skill", "any", "lv19", "Proficiency in every skill, and expertise in one.", "b"],
+    ["Boon of Speed", "any", "lv19", "+30 ft speed, and Disengage as a bonus action.", "b"],
+    ["Boon of Spell Recall", "any", "lv19", "Cast a level 1-4 spell without a slot once per long rest.", "b"],
+    ["Boon of the Night Spirit", "any", "lv19", "Turn invisible in dim light or darkness, and resist most damage there.", "b"],
+    ["Boon of Truesight", "any", "lv19", "Truesight out to 60 ft.", "b"]
+  ]
+};
+const FEAT_GROUPS = { o: "Origin", g: "General", b: "Epic boon" };
+const FEAT_REPEAT = new Set(["Elemental Adept", "Magic Initiate", "Skilled"]);
+const featList = ed => FEATS[ed] || FEATS["2014"];
+const featInfo = (ed, name) => featList(ed).find(f => f[0] === name) || null;
+const featAbs = F => !F || !F[1] ? [] : F[1] === "any" ? [...AB] : F[1].split(" ");
+// Why a character can't take a feat right now ("" if they can). scores are their scores before this level's points.
+function featBlock(F, c, scores, lv) {
+  const req = F[2]; if (!req || req[0] === "@") return "";
+  const ok = req.split("|").some(t => t === "cast" ? !!c.spell : t === "lv19" ? lv >= 19 : (scores[t.slice(0, 3)] || 0) >= +t.slice(3));
+  if (ok) return "";
+  return req === "cast" ? "Requires spellcasting" : req === "lv19" ? "Requires level 19" : "Requires " + req.split("|").map(t => `${AB_NAME[t.slice(0, 3)]} ${t.slice(3)}`).join(" or ");
+}
+const featReqText = F => !F[2] ? "" : F[2][0] === "@" ? F[2].slice(1) : F[2] === "cast" ? "Spellcasting" : F[2] === "lv19" ? "Level 19" : F[2].split("|").map(t => `${AB_NAME[t.slice(0, 3)]} ${t.slice(3)}+`).join(" or ");
 /* ---- races / species by rules edition, with subraces and lineages ---- */
 const DRAGON_SUBS = () => Object.fromEntries(Object.entries(DRAGON_ANCESTRY).map(([k, A]) => [k, { label: `${k} Dragonborn`, d: `${A.type[0].toUpperCase() + A.type.slice(1)} breath (${A.shape}, ${A.save} save) and ${A.type} resistance.` }]));
 const PC_RACES = {
@@ -3034,7 +3170,7 @@ function featDesc(f, c) {
   if (f.startsWith("Subclass: ")) return subclassDesc(f.slice(10));
   if (f.startsWith("Ability Score Improvement: ")) return "Your choice at this level — already applied to the scores above.";
   if (f.startsWith("Ability Score Improvement")) return "+2 to ability scores at set levels — already applied to the scores above.";
-  if (f.startsWith("Feat: ")) return "A feat taken instead of an Ability Score Improvement. Note its details under Features.";
+  if (f.startsWith("Feat: ")) { const nm = f.slice(6).replace(/ \(\+.*\)$/, ""), F = featInfo(edOf(c), nm) || featInfo("2014", nm) || featInfo("2024", nm); return F ? F[3] : "A feat taken instead of an Ability Score Improvement. Note its details under Features."; }
   if (f === "Unarmored Defense") return c && c.cls === "Monk" ? "Without armor, AC = 10 + DEX + WIS." : "Without armor, AC = 10 + DEX + CON.";
   const A = c && c.ancestry && DRAGON_ANCESTRY[c.ancestry];
   if (f === "Draconic Ancestry") return A ? `${c.ancestry} dragon: your breath weapon and resistance are ${A.type}.` : "Your dragon color sets your breath weapon and resistance.";
@@ -3224,7 +3360,7 @@ function generateCharacter(o) {
   const asiPicks = o.asiPicks || {}, asiAuto = [];
   for (const L of asiLv) {
     const pk = asiPicks[L];
-    if (pk) { if (!pk.feat) AB.forEach(a => { if (pk[a]) sc[a] = Math.min(20, sc[a] + pk[a]); }); continue; }
+    if (pk) { AB.forEach(a => { if (pk[a]) sc[a] = Math.min(pk.max || 20, sc[a] + pk[a]); }); continue; }
     asiAuto.push(L); let pts = 2;
     for (const a of C.pri) { while (pts > 0 && sc[a] < 20) { sc[a]++; pts--; } if (!pts) break; }
   }
@@ -3249,7 +3385,10 @@ function generateCharacter(o) {
   });
   // combat
   const conBonus = m.con + (C.hpBonus || 0);
-  const hp = Math.max(1, C.hd + conBonus) + (lv - 1) * Math.max(1, diceAvg(C.hd) + conBonus) + (R.hpLv || 0) * lv;
+  const featsTaken = asiLv.map(L => asiPicks[L]).filter(pk => pk && pk.feat);
+  const hasFeat = n => featsTaken.some(pk => pk.feat === n);
+  const hp = Math.max(1, C.hd + conBonus) + (lv - 1) * Math.max(1, diceAvg(C.hd) + conBonus) + (R.hpLv || 0) * lv + (hasFeat("Tough") ? 2 * lv : 0) + (hasFeat("Boon of Fortitude") ? 40 : 0);
+  const saves = [...C.saves]; featsTaken.filter(pk => pk.feat === "Resilient").forEach(pk => { const a = AB.find(x => pk[x]); if (a && !saves.includes(a)) saves.push(a); });
   const [ac, acSrc] = C.ac(m);
   const w = C.wpn, wm = cls === "Monk" ? Math.max(m.str, m.dex) : m[w[2]];
   const attacks = [{ name: w[0], hit: wm + prof, dmg: `${w[1]}${wm ? sgn(wm) : ""}` }];
@@ -3273,7 +3412,7 @@ function generateCharacter(o) {
   if (!subclass && o.subclass !== "none" && !o.custom && lv >= subLv) { const L = subclassList(ed, cls); if (L.length) subclass = makeRng("subclass", o.seed).pick(L)[0]; }
   if (lv >= subLv) feats.push({ l: subLv, f: subclass ? `Subclass: ${subclass}` : "Subclass: not chosen yet" });
   if (asiAuto.length) feats.push({ l: asiAuto[0], f: `Ability Score Improvement ×${asiAuto.length} (applied)` });
-  asiLv.filter(L => asiPicks[L]).forEach(L => { const pk = asiPicks[L]; feats.push({ l: L, f: pk.feat ? `Feat: ${pk.feat}` : `Ability Score Improvement: ${AB.filter(a => pk[a]).map(a => `+${pk[a]} ${AB_NAME[a]}`).join(", ")}` }); });
+  asiLv.filter(L => asiPicks[L]).forEach(L => { const pk = asiPicks[L]; feats.push({ l: L, f: pk.feat ? `Feat: ${pk.feat}${AB.some(a => pk[a]) ? ` (${AB.filter(a => pk[a]).map(a => `+${pk[a]} ${AB_NAME[a]}`).join(", ")})` : ""}` : `Ability Score Improvement: ${AB.filter(a => pk[a]).map(a => `+${pk[a]} ${AB_NAME[a]}`).join(", ")}` }); });
   feats.sort((a, b) => a.l - b.l);
   const extras = [];
   if (cls === "Rogue") extras.push(`Sneak Attack ${Math.ceil(lv / 2)}d6`);
@@ -3291,7 +3430,7 @@ function generateCharacter(o) {
   const hk = hookBuild(r.pick(PC_HOOKS), hookCtx(r, pcName.split(" ")[0]));
   return {
     seed: o.seed, method: o.method, bonus: o.bonus, name: pcName, race, ed, sub, ancestry: anc, subclass, custom: !!o.custom, customData: o.custom || null, cls, bg, level: lv, align: (o.custom && o.custom.align) || r.pick(ALIGN), base, scores: sc, mods: m, rolls,
-    prof, saves: C.saves, skills: skillVals, hp, ac, acSrc, speed: R.speed, init: m.dex, passive: 10 + skillVals.find(s => s.s === "Perception").v,
+    prof, saves, skills: skillVals, hp, ac, acSrc, speed: R.speed, init: m.dex + (hasFeat("Alert") ? (ed === "2024" ? prof : 5) : 0), passive: 10 + skillVals.find(s => s.s === "Perception").v,
     attacks, spell, feats, extras, traits: R.traits, kit: C.kit, hd: C.hd,
     trait: r.pick(PC_TRAITS), ideal: r.pick(IDEALS), bond: r.pick(BONDS), flaw: r.pick(FLAWS), hook: hk.hook, hookDetail: hk.hookDetail
   };
@@ -5342,7 +5481,13 @@ const lvHasAsi = (c, to) => (CLASS_DATA[c.cls].asi || [4, 8, 12, 16, 19]).includ
 // The choice as stored on the character: { str: 2 }, { str: 1, con: 1 } or { feat: "Alert" }; null while incomplete.
 function lvAsiPick() {
   const A = LV.asi; if (!A) return null;
-  if (A.mode === "feat") return A.feat.trim() ? { feat: A.feat.trim().slice(0, 80) } : null;
+  if (A.mode === "feat") {
+    const name = A.feat.trim().slice(0, 80); if (!name) return null;
+    const F = featInfo(edOf(LV.c), name), max = F && F[4] === "b" ? 30 : 20, open = featAbs(F).filter(a => LV.cur[a] + 1 <= max);
+    if (!open.length) return { feat: name };
+    const ab = open.length === 1 ? open[0] : open.includes(A.featAb) ? A.featAb : ""; if (!ab) return null;
+    return max === 30 ? { feat: name, [ab]: 1, max } : { feat: name, [ab]: 1 };
+  }
   if (A.mode === "one") return A.a ? { [A.a]: 2 } : null;
   return A.a && A.b && A.a !== A.b ? { [A.a]: 1, [A.b]: 1 } : null;
 }
@@ -5362,7 +5507,7 @@ function lvGains(c, to) {
   return g;
 }
 function lvAsiHTML(c, to) {
-  const A = LV.asi, cur = lvBuild(c, to, lvPicks(c, to, { feat: "-" })).scores; // scores before this level's points
+  const A = LV.asi, cur = LV.cur; // scores before this level's points
   const room = n => a => cur[a] + n <= 20;
   const opt = (sel, ok, skip) => `<option value="">Choose…</option>${AB.filter(a => a !== skip).map(a => `<option value="${a}" ${sel === a ? "selected" : ""} ${ok(a) ? "" : "disabled"}>${AB_FULL[a]} ${cur[a]} → ${Math.min(20, cur[a] + (A.mode === "one" ? 2 : 1))}${ok(a) ? "" : " (max 20)"}</option>`).join("")}`;
   const modes = [["one", "+2 to one score"], ["two", "+1 to two scores"], ["feat", "Take a feat instead"]];
@@ -5370,13 +5515,68 @@ function lvAsiHTML(c, to) {
     <p class="hint" style="margin:4px 0 8px">Spend 2 points: +2 to one score or +1 to two. No score can go above 20.${edOf(c) === "2024" ? " In the 2024 rules this is the Ability Score Improvement feat, or you can pick another feat." : " With your DM's OK you can take a feat instead."}</p>
     <div class="seg" role="radiogroup" aria-label="Ability Score Improvement">${modes.map(([v, l]) => `<label class="opt"><input type="radio" name="lvAsiMode" value="${v}" ${A.mode === v ? "checked" : ""}><span>${l}</span></label>`).join("")}</div>
     <div class="row" style="margin-top:10px;flex-wrap:wrap">${A.mode === "feat"
-      ? `<label class="lbl" style="margin:0;flex:1 1 260px">Feat name<input type="text" data-lvfeat value="${esc(A.feat)}" placeholder="e.g. Alert, Tough, War Caster" maxlength="80"></label>`
+      ? lvFeatHTML(c)
       : A.mode === "one" ? `<label class="lbl" style="margin:0;flex:1 1 220px">+2 to<select data-lvasi="a">${opt(A.a, room(2))}</select></label>`
       : `<label class="lbl" style="margin:0;flex:1 1 200px">+1 to<select data-lvasi="a">${opt(A.a, room(1), A.b)}</select></label><label class="lbl" style="margin:0;flex:1 1 200px">and +1 to<select data-lvasi="b">${opt(A.b, room(1), A.a)}</select></label>`}</div>`;
 }
+function lvFeatHTML(c) {
+  const A = LV.asi;
+  if (!A.feat) return `<button class="btn primary" type="button" data-featopen>✦ Choose a feat…</button>`;
+  const F = featInfo(edOf(c), A.feat), max = F && F[4] === "b" ? 30 : 20, abs = featAbs(F), open = abs.filter(a => LV.cur[a] + 1 <= max);
+  return `<div class="pick on feat-chosen"><b>${esc(A.feat)}</b>${F && F[4] ? ` <span class="tag">${FEAT_GROUPS[F[4]]}</span>` : ""}<small>${esc(F ? F[3] : "Your own feat — note its details under Features after levelling up.")}</small></div>
+    ${open.length > 1 ? `<label class="lbl" style="margin:0;flex:1 1 220px">+1 from the feat to<select data-lvfeatab><option value="">Choose…</option>${abs.map(a => `<option value="${a}" ${A.featAb === a ? "selected" : ""} ${open.includes(a) ? "" : "disabled"}>${AB_FULL[a]} ${LV.cur[a]} → ${Math.min(max, LV.cur[a] + 1)}${open.includes(a) ? "" : ` (max ${max})`}</option>`).join("")}</select></label>`
+      : open.length === 1 ? `<p class="hint" style="margin:0;flex:1 1 220px">Also +1 ${AB_FULL[open[0]]} (${LV.cur[open[0]]} → ${LV.cur[open[0]] + 1}).</p>` : ""}
+    <button class="btn sm" type="button" data-featopen style="flex:0 0 auto;align-self:flex-end">Change feat</button>`;
+}
+/* ---- feat picker: pops out over the level-up window ---- */
+const FP = { q: "", grp: "" };
+function featOpen() {
+  let m = $("#featModal");
+  if (!m) {
+    document.body.insertAdjacentHTML("beforeend", `<div id="featModal" role="dialog" aria-modal="true" aria-labelledby="featTitle"><div class="box">
+      <div class="row" style="align-items:center"><h3 id="featTitle" style="flex:1;margin:0">Choose a feat</h3><button class="btn sm" type="button" data-featclose style="flex:0 0 auto">✕ Close</button></div>
+      <div class="row" style="margin-top:10px;flex-wrap:wrap"><input type="search" id="featQ" placeholder="Search feats, e.g. armor, spell, speed" aria-label="Search feats" style="flex:2 1 240px"><div id="featGrp" class="row" style="flex:1 1 auto;gap:6px;flex-wrap:wrap"></div></div>
+      <div id="featList"></div>
+      <div class="row" style="margin-top:10px;flex-wrap:wrap;align-items:flex-end"><label class="lbl" style="margin:0;flex:1 1 240px">Not listed? Type your own feat<input type="text" id="featOwn" maxlength="80" placeholder="Feat name"></label><button class="btn" type="button" data-featown style="flex:0 0 auto">Use this feat</button></div>
+    </div></div>`);
+    m = $("#featModal");
+    m.addEventListener("click", e => {
+      const t = e.target, b = t.closest("[data-feat]"), g = t.closest("[data-featgrp]");
+      if (t === m || t.closest("[data-featclose]")) { featClose(); return; }
+      if (g) { FP.grp = g.dataset.featgrp; featRender(); g.focus(); return; }
+      if (b && !b.disabled) { featPick(b.dataset.feat); return; }
+      if (t.closest("[data-featown]")) { const v = $("#featOwn").value.trim(); if (v) featPick(v); else { toast("Type a feat name first"); $("#featOwn").focus(); } }
+    });
+    m.addEventListener("input", e => { if (e.target.id === "featQ") { FP.q = e.target.value; featRender(); } });
+    m.addEventListener("keydown", e => {
+      if (e.key === "Escape") { e.stopPropagation(); featClose(); }
+      else if (e.key === "Enter" && e.target.id === "featOwn") { e.preventDefault(); m.querySelector("[data-featown]").click(); }
+    });
+  }
+  FP.q = ""; $("#featQ").value = ""; $("#featOwn").value = "";
+  const ed = edOf(LV.c); FP.grp = ed === "2024" ? (LV.to >= 19 ? "b" : "g") : "";
+  featRender(); m.classList.add("open"); $("#featQ").focus();
+}
+function featRender() {
+  const { c, to, cur } = LV, ed = edOf(c);
+  const taken = new Set(Object.entries(c.asiPicks || {}).filter(([k, v]) => +k < to && v && v.feat).map(([, v]) => v.feat));
+  $("#featGrp").innerHTML = ed === "2024" ? [["", "All"], ["g", "General"], ["o", "Origin"], ["b", "Epic boon"]].map(([k, l]) => `<button type="button" class="btn sm ${FP.grp === k ? "primary" : ""}" data-featgrp="${k}" aria-pressed="${FP.grp === k}" style="flex:0 0 auto">${l}</button>`).join("") : "";
+  const words = FP.q.toLowerCase().split(/\s+/).filter(Boolean);
+  const list = featList(ed).filter(F => (!FP.grp || F[4] === FP.grp) && words.every(w => (F[0] + " " + F[3] + " " + featReqText(F)).toLowerCase().includes(w)));
+  $("#featList").innerHTML = list.length ? `<div class="pick-grid">${list.map(F => {
+    const why = taken.has(F[0]) && !FEAT_REPEAT.has(F[0]) ? "Already taken" : featBlock(F, c, cur, to), abs = featAbs(F), req = featReqText(F);
+    return `<button type="button" class="pick ${LV.asi.feat === F[0] ? "on" : ""}" data-feat="${esc(F[0])}" ${why ? `disabled aria-disabled="true"` : ""}>
+      <b>${esc(F[0])}</b>${F[4] && !FP.grp ? ` <span class="tag">${FEAT_GROUPS[F[4]]}</span>` : ""}
+      ${req ? `<small class="req">Prerequisite: ${esc(req)}</small>` : ""}
+      ${abs.length ? `<small>+1 ${abs.length === 6 ? "to any score" : abs.map(a => AB_NAME[a]).join(" or ")}${F[4] === "b" ? " (up to 30)" : ""}</small>` : ""}
+      <small>${esc(F[3])}</small>${why ? `<small class="why">${esc(why)}</small>` : ""}</button>`;
+  }).join("")}</div>` : `<p class="muted">No feats match “${esc(FP.q)}”.</p>`;
+}
+function featPick(name) { LV.asi.feat = name; LV.asi.featAb = ""; featClose(); lvRender("[data-lvfeatab], [data-featopen]"); }
+function featClose() { const m = $("#featModal"); if (m) m.classList.remove("open"); const f = $("#lvModal [data-featopen]"); if (f) f.focus(); }
 function lvMissing() {
   const { c, to } = LV, out = [];
-  if (LV.asi && !lvAsiPick()) out.push(LV.asi.mode === "feat" ? "name your feat" : LV.asi.mode === "two" ? "pick two different scores" : "pick a score");
+  if (LV.asi && !lvAsiPick()) out.push(LV.asi.mode === "feat" ? (LV.asi.feat ? "pick the score your feat raises" : "choose a feat") : LV.asi.mode === "two" ? "pick two different scores" : "pick a score");
   if (!c.subclass && to >= subclassLevel(edOf(c), c.cls) && !LV.pick) out.push("pick a subclass");
   return out;
 }
@@ -5388,7 +5588,8 @@ function lvFoot() {
 function lvOpen(c, onlySub) {
   pcEnsure(c);
   const to = onlySub ? c.level : c.level + 1;
-  Object.assign(LV, { c, to, pick: "", onlySub: !!onlySub, back: document.activeElement, asi: !onlySub && lvHasAsi(c, to) ? { mode: "one", a: "", b: "", feat: "" } : null });
+  Object.assign(LV, { c, to, pick: "", onlySub: !!onlySub, back: document.activeElement, asi: !onlySub && lvHasAsi(c, to) ? { mode: "one", a: "", b: "", feat: "", featAb: "" } : null });
+  LV.cur = lvBuild(c, to, lvPicks(c, to, { feat: "-" })).scores;
   let m = $("#lvModal");
   if (!m) {
     document.body.insertAdjacentHTML("beforeend", `<div id="lvModal" role="dialog" aria-modal="true" aria-labelledby="lvTitle"><div class="box" id="lvBox"></div></div>`);
@@ -5397,14 +5598,15 @@ function lvOpen(c, onlySub) {
       const t = e.target, p = t.closest("[data-lvsub]");
       if (t === m || t.closest("[data-lvno]")) { lvClose(); return; }
       if (p) { LV.pick = p.dataset.lvsub; lvRender(`[data-lvsub="${CSS.escape(LV.pick)}"]`); return; }
+      if (t.closest("[data-featopen]")) { featOpen(); return; }
       if (t.closest("[data-lvyes]")) lvConfirm();
     });
     m.addEventListener("change", e => {
       const t = e.target; if (!LV.asi) return;
-      if (t.name === "lvAsiMode") { LV.asi.mode = t.value; LV.asi.a = LV.asi.b = ""; lvRender(`input[name="lvAsiMode"][value="${t.value}"]`); }
+      if (t.name === "lvAsiMode") { LV.asi.mode = t.value; LV.asi.a = LV.asi.b = ""; lvRender(`input[name="lvAsiMode"][value="${t.value}"]`); if (t.value === "feat" && !LV.asi.feat) featOpen(); }
+      else if (t.dataset.lvfeatab !== undefined) { LV.asi.featAb = t.value; lvRender("[data-lvfeatab]"); }
       else if (t.dataset.lvasi) { LV.asi[t.dataset.lvasi] = t.value; lvRender(`[data-lvasi="${t.dataset.lvasi}"]`); }
     });
-    m.addEventListener("input", e => { if (LV.asi && e.target.dataset.lvfeat !== undefined) { LV.asi.feat = e.target.value; lvFoot(); } });
     m.addEventListener("keydown", e => { if (e.key === "Escape") lvClose(); });
   }
   lvRender(); m.classList.add("open");
@@ -5426,7 +5628,7 @@ function lvRender(focusSel) {
   lvFoot();
   if (focusSel) { const f = $(focusSel, $("#lvModal")); if (f) f.focus(); }
 }
-function lvClose() { const m = $("#lvModal"); if (m) m.classList.remove("open"); const b = LV.back; LV.c = null; if (b && document.contains(b)) b.focus(); }
+function lvClose() { featClose(); const m = $("#lvModal"); if (m) m.classList.remove("open"); const b = LV.back; LV.c = null; if (b && document.contains(b)) b.focus(); }
 function lvConfirm() {
   const { c, to } = LV; if (!c || lvMissing().length) return;
   if (LV.pick) c.subclass = LV.pick;
@@ -5444,7 +5646,7 @@ document.addEventListener("click", e => {
 const RC = { id: null };
 function rosterCur() { return PCS.roster.find(c => c.id === RC.id) || PCS.roster[0] || null; }
 function pcRecompute(c) {
-  const m = {}; AB.forEach(a => m[a] = mod(+c.scores[a] || 10)); c.mods = m; c.init = m.dex;
+  const m = {}; AB.forEach(a => m[a] = mod(+c.scores[a] || 10)); c.mods = m; c.init = m.dex + ((c.feats || []).some(f => f.f === "Feat: Alert") ? (edOf(c) === "2024" ? c.prof : 5) : 0);
   const jack = c.cls === "Bard" && c.level >= 2;
   c.skills.forEach(s => s.v = m[s.ab] + (s.x ? c.prof * 2 : s.p ? c.prof : jack ? Math.floor(c.prof / 2) : 0));
   const per = c.skills.find(s => s.s === "Perception"); c.passive = 10 + (per ? per.v : m.wis);
