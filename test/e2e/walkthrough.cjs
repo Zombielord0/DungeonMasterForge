@@ -59,10 +59,20 @@ const log = (...a) => console.log(...a);
   await dm.screenshot({ path: SP + "/4-party.png", fullPage: true });
   await ava.evaluate(() => window.dispatchEvent(new Event("x")));
   await ava.waitForTimeout(16000);
-  log("ava unread badge:", await ava.$eval("#whisperN", b => b.hidden ? "hidden" : b.textContent));
+  log("ava unread badge:", await ava.$eval("#whisperN", b => b.hidden ? "hidden" : b.textContent), "| title:", await ava.title());
+  await ava.waitForSelector("#whisperAlert", { timeout: 10000 });
+  log("ava banner:", (await ava.textContent("#whisperAlert")).replace(/\s+/g, " ").trim());
+  await ava.waitForTimeout(1000);
+  await ava.screenshot({ path: SP + "/5-whisper-banner-mobile.png" });
+  await ava.click("[data-wa=ok]");
+  await ava.reload(); await ava.waitForTimeout(3000);
+  log("banner after Got it + reload:", (await ava.$("#whisperAlert")) ? "still shown" : "gone", "| badge:", await ava.$eval("#whisperN", b => b.hidden ? "hidden" : b.textContent));
   await ava.goto(URL + "#whispers"); await ava.waitForTimeout(1500);
   log("ava whispers:", await ava.textContent("#whispersMain"));
-  await ava.screenshot({ path: SP + "/5-whispers-mobile.png" });
+
+  // Thorin is in the DM's Campaign Tracker party without any clicks
+  log("tracker picker:", await dm.$eval("#trackerPick", s => s.selectedOptions[0].textContent));
+  log("tracker party:", await dm.evaluate(() => Store.list().map(t => `${t.name}: ${(t.party || []).map(p => `${p.name} (${p.player}, Lv ${p.level})`).join(", ")}`).join(" | ")));
 
   // Clash: DM opens Thorin and edits AC while Ava edits AC too
   await dm.click(".party-card");

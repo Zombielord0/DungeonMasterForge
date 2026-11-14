@@ -18,7 +18,7 @@ const CAMP_KEY = "dmforge.campaign";
 const OFFERED_KEY = "dmforge.uploadOffered.";
 const ALL_VIEWS = ["generate", "npc", "monsters", "character", "roster", "spells", "items", "map", "tracker"];
 const PLAYER_VIEWS = ["character", "roster", "spells", "items", "whispers"];
-const POLL_DM = 4000, POLL_PLAYER = 10000, POLL_WHISPERS = 15000;
+const POLL_DM = 4000, POLL_PLAYER = 10000, POLL_WHISPERS = 8000;
 
 const S = {
   user: null, campaigns: [], camp: null,
@@ -314,7 +314,7 @@ async function startCloud() {
   const tick = async () => { await poll(); S.pollTimer = setTimeout(tick, isDM() ? POLL_DM : POLL_PLAYER); };
   S.pollTimer = setTimeout(tick, isDM() ? POLL_DM : POLL_PLAYER);
   if (!isDM()) { loadWhispers(); S.whisperTimer = setInterval(loadWhispers, POLL_WHISPERS); }
-  else loadParty();
+  else { syncTracker(); loadParty(); }
 }
 
 function stopLoops() { clearTimeout(S.pollTimer); clearInterval(S.whisperTimer); clearTimeout(S.saveTimer); }
@@ -422,7 +422,7 @@ async function poll() {
     if (!S.synced.has(id)) continue;
     PCS.roster = PCS.roster.filter(x => x.id !== id); S.synced.delete(id); S.owners.delete(id); changed = true;
   }
-  if (changed) rerender();
+  if (changed) { rerender(); syncTracker(); }
   if (isDM() && location.hash === "#party") loadParty();
 }
 
@@ -462,6 +462,9 @@ function partyCard(c) {
 function renderParty(fetch) {
   const host = $("#partyMain"); if (!host || !isDM()) return;
   if (fetch) loadParty();
+  // a rebuild would snap an open dropdown shut; refresh once it's closed
+  const a = document.activeElement;
+  if (!fetch && a && a.tagName === "SELECT" && $("#view-party").contains(a)) { a.addEventListener("blur", () => renderParty(), { once: true }); return; }
   const players = S.members.filter(m => m.role === "player");
   const sheets = PCS.roster.slice().sort((a, b) => {
     const oa = (S.owners.get(a.id) || {}).name || "", ob = (S.owners.get(b.id) || {}).name || "";
@@ -473,6 +476,9 @@ function renderParty(fetch) {
     <div class="field"><span class="lbl">Join code</span>
       <div class="row"><code class="join-code">${esc(S.camp.code || "")}</code><button class="btn sm" type="button" id="copyCode" style="flex:0">Copy</button></div>
       <small class="muted">Players enter this once after creating an account.</small></div>
+    <div class="field"><label for="trackerPick">Campaign Tracker</label>
+      ${Store.list().length ? `<select id="trackerPick">${trackerId() ? "" : `<option value="" selected>Pick one, or one is made for you</option>`}${Store.list().map(t => `<option value="${esc(t.id)}" ${t.id === trackerId() ? "selected" : ""}>${esc(t.name)}</option>`).join("")}</select>` : ""}
+      <small class="muted">Player characters are added to ${trackerId() ? "this campaign's" : `a Tracker campaign called “${esc(S.camp.name)}”`} party automatically.</small></div>
     <div class="sec-h"><h3>Players</h3></div>
     ${players.length ? players.map(p => `<div class="member"><div><b>${esc(p.name)}</b><small class="muted">${esc(p.email || "")}</small></div>
       <button class="btn sm danger" type="button" data-kick="${esc(p.id)}" aria-label="Remove ${esc(p.name)}">Remove</button></div>`).join("")
@@ -524,30 +530,108 @@ document.addEventListener("click", async e => {
   }
 });
 
+/* ------------------------------------------------------------ DM: Campaign Tracker party */
+// The Campaign Tracker lives in the DM's browser. Every player character in the
+// shared campaign is kept in the Party section of one Tracker campaign: the one
+// the DM picked on the Party tab, else one with the same name (made if missing).
+const TRACKER_KEY = "dmforge.trackerFor.";
+
+function trackerId() {
+  const saved = localStorage.getItem(TRACKER_KEY + S.camp.id);
+  if (saved && Store.get(saved)) return saved;
+  const want = S.camp.name.trim().toLowerCase();
+  const match = Store.list().find(t => String(t.name || "").trim().toLowerCase() === want);
+  return match ? match.id : null;
+}
+
+function syncTracker() {
+  if (!isDM() || !Portal.cloud) return;
+  const players = PCS.roster.filter(c => { const o = S.owners.get(c.id); return o && o.id !== S.user.id; });
+  if (!players.length) return;
+  let id = trackerId(), t = id && Store.get(id);
+  if (!t) { t = blankCampaign(S.camp.name); Store.save(t); id = t.id; toast(`Made “${t.name}” in your Campaign Tracker for the party`); }
+  localStorage.setItem(TRACKER_KEY + S.camp.id, id);
+  t.party = t.party || [];
+  let touched = false;
+  for (const c of players) {
+    const fresh = {
+      name: c.name, cls: `${c.race} ${c.cls}`, level: c.level, player: (S.owners.get(c.id) || {}).name || "",
+      notes: sheetText(c).split("\n").slice(1).join("\n"),
+    };
+    const ex = t.party.find(x => x.pcId === c.id);
+    if (!ex) { t.party.push({ id: uid("p"), pcId: c.id, ...fresh }); touched = true; toast(`${c.name} joined the party in “${t.name}”`); continue; }
+    if (Object.keys(fresh).some(k => ex[k] !== fresh[k])) { Object.assign(ex, fresh); touched = true; }
+  }
+  if (!touched) return;
+  Store.save(t);
+  renderCampList();
+  if (activeId === id && location.hash === "#tracker") renderTracker();
+}
+
+document.addEventListener("change", e => {
+  if (e.target.id !== "trackerPick" || !e.target.value) return;
+  localStorage.setItem(TRACKER_KEY + S.camp.id, e.target.value);
+  syncTracker();
+  toast(`Player characters now go to “${(Store.get(e.target.value) || {}).name}”`);
+});
+
 /* ------------------------------------------------------------ player: whispers */
 async function loadWhispers() {
   if (!Portal.cloud || isDM() || document.hidden) return;
   const r = await api(campPath("whispers"));
   if (!r.ok) return;
-  const before = S.whispers.filter(w => !w.read).length;
   S.whispers = r.data;
-  const unread = S.whispers.filter(w => !w.read).length;
-  const badge = $("#whisperN");
-  if (badge) { badge.textContent = unread || ""; badge.hidden = !unread; }
-  if (unread > before && location.hash !== "#whispers") toast("📜 New whisper from your DM");
+  showUnread();
   if (location.hash === "#whispers") renderWhispers();
 }
+
+// Unread whispers sit in a banner across the top of the screen until the player
+// presses "Got it", so a note from the DM can't slip by unnoticed.
+function showUnread() {
+  const unread = S.whispers.filter(w => !w.read);
+  const badge = $("#whisperN");
+  if (badge) { badge.textContent = unread.length || ""; badge.hidden = !unread.length; }
+  document.title = (unread.length ? `(${unread.length}) ` : "") + document.title.replace(/^\(\d+\) /, "");
+  let bar = $("#whisperAlert");
+  if (!unread.length) { if (bar) bar.remove(); return; }
+  const w = unread[0]; // newest first
+  if (bar && bar.dataset.id === String(w.id) && bar.dataset.n === String(unread.length)) return;
+  const isNew = !bar || bar.dataset.id !== String(w.id);
+  if (!bar) {
+    bar = document.createElement("div"); bar.id = "whisperAlert"; bar.setAttribute("role", "alertdialog");
+    bar.setAttribute("aria-labelledby", "waTitle"); bar.setAttribute("aria-describedby", "waBody");
+    document.body.appendChild(bar);
+  }
+  bar.dataset.id = w.id; bar.dataset.n = unread.length;
+  bar.innerHTML = `<div class="wa-box">
+    <div class="wa-head"><h3 id="waTitle">📜 A whisper from your DM</h3><small class="muted">${esc(ago(w.at))}</small></div>
+    <p id="waBody">${esc(w.body)}</p>
+    <div class="row wa-actions">${unread.length > 1 ? `<small class="muted">+${unread.length - 1} more unread</small>` : "<span></span>"}
+      <button class="btn sm" type="button" data-wa="all">See all whispers</button>
+      <button class="btn primary sm" type="button" data-wa="ok">Got it</button></div></div>`;
+  if (isNew) { bar.classList.remove("ping"); void bar.offsetWidth; bar.classList.add("ping"); }
+  bar.querySelector("[data-wa=ok]").focus({ preventScroll: true });
+}
+
+async function markWhispersRead() {
+  if (!S.whispers.some(w => !w.read)) return;
+  S.whispers.forEach(w => w.read = true);
+  showUnread();
+  await api(campPath("whispers/read"), { method: "POST" });
+}
+
+document.addEventListener("click", e => {
+  const b = e.target.closest("[data-wa]"); if (!b) return;
+  if (b.dataset.wa === "all") location.hash = "#whispers"; // the inbox marks them read
+  else markWhispersRead();
+});
 
 async function renderWhispers() {
   const host = $("#whispersMain"); if (!host) return;
   host.innerHTML = S.whispers.length
     ? `<ul class="feed whispers">${S.whispers.map(w => `<li class="${w.read ? "" : "unread"}"><time title="${esc(new Date(w.at).toLocaleString())}">${esc(ago(w.at))}</time><span>${esc(w.body)}</span></li>`).join("")}</ul>`
     : `<p class="muted">Nothing yet. Private notes from your DM will appear here.</p>`;
-  if (S.whispers.some(w => !w.read)) {
-    await api(campPath("whispers/read"), { method: "POST" });
-    S.whispers.forEach(w => w.read = true);
-    const badge = $("#whisperN"); if (badge) badge.hidden = true;
-  }
+  await markWhispersRead();
 }
 
 /* ------------------------------------------------------------ boot */
