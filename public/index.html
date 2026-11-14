@@ -3078,8 +3078,10 @@ const HB_DESC = {};      // homebrew feature / trait name -> description
 const HB_BG = {};        // homebrew background name -> its entry
 const hbEdOk = (x, ed) => !x.ed || x.ed === "both" || x.ed === ed;
 /* Sheet effects a homebrew feature, trait, feat or background can carry: { t: type, v: amount, a: ability or skill, max } */
-const HB_FX = { ac: "Armor class", hp: "Max HP", hpLv: "Max HP per level", speed: "Speed (ft)", init: "Initiative", atk: "Weapon attack rolls", spell: "Spell save DC & spell attack", ab: "Ability score", save: "Saving throw proficiency", skill: "Skill proficiency", exp: "Skill expertise" };
-const fxNum = t => !["save", "skill", "exp"].includes(t);
+const HB_FX = { ac: "Armor class", hp: "Max HP", hpLv: "Max HP per level", speed: "Speed (ft)", init: "Initiative", atk: "Weapon attack rolls", spell: "Spell save DC & spell attack", ab: "Ability score", save: "Saving throw proficiency", skill: "Skill proficiency", exp: "Skill expertise", res: "Damage resistance", imm: "Damage immunity", vul: "Damage vulnerability" };
+const FX_DMG = ["acid", "bludgeoning", "cold", "fire", "force", "lightning", "necrotic", "piercing", "poison", "psychic", "radiant", "slashing", "thunder"];
+const fxDmg = t => t === "res" || t === "imm" || t === "vul";
+const fxNum = t => !["save", "skill", "exp", "res", "imm", "vul"].includes(t);
 const fxAb = t => t === "ab" || t === "save", fxSkill = t => t === "skill" || t === "exp";
 function fxClean(l) {
   return (Array.isArray(l) ? l : []).filter(e => e && HB_FX[e.t]).slice(0, 12).map(e => {
@@ -3087,6 +3089,7 @@ function fxClean(l) {
     if (fxNum(e.t)) o.v = clamp(parseInt(e.v) || 0, -100, 100);
     if (fxAb(e.t)) o.a = AB.includes(e.a) ? e.a : "str";
     if (fxSkill(e.t)) o.a = SKILLS[e.a] ? e.a : ALL_SKILLS[0];
+    if (fxDmg(e.t)) o.a = FX_DMG.includes(e.a) ? e.a : "fire";
     if (e.t === "ab") o.max = clamp(parseInt(e.max) || 20, 1, 30);
     return o;
   }).filter(e => !fxNum(e.t) || e.v);
@@ -3095,7 +3098,8 @@ function fxText(e) {
   const n = v => (v >= 0 ? "+" : "−") + Math.abs(v);
   return { ac: () => `${n(e.v)} AC`, hp: () => `${n(e.v)} max HP`, hpLv: () => `${n(e.v)} max HP per level`, speed: () => `${n(e.v)} ft speed`, init: () => `${n(e.v)} initiative`,
     atk: () => `${n(e.v)} to weapon attacks`, spell: () => `${n(e.v)} spell save DC and spell attacks`, ab: () => `${n(e.v)} ${AB_NAME[e.a]} (max ${e.max || 20})`,
-    save: () => `${AB_NAME[e.a]} saving throw proficiency`, skill: () => `${e.a} proficiency`, exp: () => `${e.a} expertise` }[e.t]();
+    save: () => `${AB_NAME[e.a]} saving throw proficiency`, skill: () => `${e.a} proficiency`, exp: () => `${e.a} expertise`,
+    res: () => `${e.a} resistance`, imm: () => `${e.a} immunity`, vul: () => `${e.a} vulnerability` }[e.t]();
 }
 const fxNote = l => { const c = fxClean(l); return c.length ? ` [On the sheet: ${c.map(fxText).join(", ")}.]` : ""; };
 // Every homebrew effect a character has: species traits and subrace, background, subclass features reached, feats taken.
@@ -3557,11 +3561,16 @@ function generateCharacter(o) {
   const hk = hookBuild(r.pick(PC_HOOKS), hookCtx(r, pcName.split(" ")[0]));
   return {
     seed: o.seed, method: o.method, bonus: o.bonus, name: pcName, race, ed, sub, ancestry: anc, subclass, custom: !!o.custom, customData: o.custom || null, cls, bg, level: lv, align: (o.custom && o.custom.align) || r.pick(ALIGN), base, scores: sc, mods: m, rolls,
-    prof, saves, skills: skillVals, hp, ac, acSrc, speed: R.speed + fxSum("speed"), init: m.dex + initBonus, initBonus, atkBonus, hbSig: fx.length ? JSON.stringify(fx) : "", passive: 10 + skillVals.find(s => s.s === "Perception").v,
+    prof, saves, skills: skillVals, hp, ac, acSrc, speed: R.speed + fxSum("speed"), init: m.dex + initBonus, initBonus, atkBonus, hbSig: fx.length ? JSON.stringify(fx) : "",
+    ...Object.fromEntries(["res", "imm", "vul"].map(t => [t, [...new Set(fx.filter(e => e.t === t).map(e => e.a))].sort()])), passive: 10 + skillVals.find(s => s.s === "Perception").v,
     attacks, spell, feats, extras, traits: R.traits, kit: C.kit, hd: C.hd,
     trait: r.pick(PC_TRAITS), ideal: r.pick(IDEALS), bond: r.pick(BONDS), flaw: r.pick(FLAWS), hook: hk.hook, hookDetail: hk.hookDetail
   };
 }
+// Damage resistances, immunities and vulnerabilities from homebrew effects
+const defList = c => [["Resistant", c.res], ["Immune", c.imm], ["Vulnerable", c.vul]].filter(([, l]) => l && l.length);
+const defHTML = c => { const L = defList(c); return L.length ? `<div class="chips" style="margin:8px 0 0">${L.map(([k, l]) => `<span class="tag ${k === "Vulnerable" ? "" : "gold"}">${k}: ${l.map(esc).join(", ")}</span>`).join("")}</div>` : ""; };
+const defText = c => defList(c).map(([k, l]) => `${k}: ${l.join(", ")}`).join(" | ");
 function sheetHTML(c) {
   const sv = a => m => c.mods[a] + (c.saves.includes(a) ? c.prof : 0);
   return `<div class="card">
@@ -3576,6 +3585,7 @@ function sheetHTML(c) {
       <div class="vit"><b>${sgn(c.prof)}</b><span>Proficiency</span></div><div class="vit"><b>${c.passive}</b><span>Passive Perc.</span></div>
       <div class="vit"><b>${c.level}d${c.hd}</b><span>Hit dice</span></div>
     </div>
+    ${defHTML(c)}
     <p class="hint">AC from ${esc(c.acSrc)}. HP uses the fixed average per level after 1st.</p>
     ${lvBarHTML(c)}
     <div class="pc-actions">
@@ -3615,7 +3625,7 @@ function sheetText(c) {
   return `${c.name} — Level ${c.level} ${raceLabel(c)} ${c.cls} [${edOf(c)} rules] (${c.bg}, ${c.align})
 ${AB.map(a => `${AB_NAME[a]} ${c.scores[a]} (${sgn(c.mods[a])})`).join(" | ")}
 HP ${c.hp} | AC ${c.ac} (${c.acSrc}) | Init ${sgn(c.init)} | Speed ${c.speed} ft | Prof ${sgn(c.prof)} | Passive Perception ${c.passive}
-Saves: ${c.saves.map(a => `${AB_NAME[a]} ${sgn(c.mods[a] + c.prof)}`).join(", ")}
+${defText(c) ? defText(c) + "\n" : ""}Saves: ${c.saves.map(a => `${AB_NAME[a]} ${sgn(c.mods[a] + c.prof)}`).join(", ")}
 Skills: ${c.skills.filter(s => s.p).map(s => `${s.s} ${sgn(s.v)}${s.x ? "*" : ""}`).join(", ")}
 Attacks: ${c.attacks.map(a => `${a.name} ${sgn(a.hit)} (${a.dmg})`).join("; ")}
 ${c.spell ? `Spellcasting: DC ${c.spell.dc}, attack ${sgn(c.spell.atk)}; ${c.spell.note || c.spell.slots.map((n, i) => `L${i + 1}×${n}`).join(" ") || "no slots yet"}\n` : ""}${(c.prepared || []).length ? `Spells: ${[...c.prepared].sort((a, b) => a.l - b.l || a.n.localeCompare(b.n)).map(p => p.l ? `${p.n} (${p.l})` : `${p.n} (cantrip)`).join(", ")}\n` : ""}Features: ${c.feats.map(f => f.f).concat(c.extras).join(", ")}
@@ -4080,7 +4090,7 @@ function sheetDoc(c) {
       <div class="box"><table><tr><th>Name</th><th>Atk bonus</th><th>Damage / type</th></tr>
         ${c.attacks.map(a => `<tr><td>${esc(a.name)}</td><td>${sgn(a.hit)}</td><td>${esc(a.dmg)} ${DMG_TYPE[a.name] || ""}</td></tr>`).join("")}
         ${c.spell ? `<tr><td>Spell attack</td><td>${sgn(c.spell.atk)}</td><td>Save DC ${c.spell.dc}</td></tr>` : ""}<tr><td>&nbsp;</td><td></td><td></td></tr></table>
-        ${c.extras.length ? `<div style="margin-top:5px">${c.extras.map(esc).join("<br>")}</div>` : ""}<div class="boxt">Attacks &amp; spellcasting</div></div>
+        ${c.extras.length ? `<div style="margin-top:5px">${c.extras.map(esc).join("<br>")}</div>` : ""}${defText(c) ? `<div style="margin-top:5px"><b>${esc(defText(c))}</b></div>` : ""}<div class="boxt">Attacks &amp; spellcasting</div></div>
       <div class="box"><ul>${c.kit.map(k => `<li>${esc(k)}</li>`).join("")}<li>${esc(c.bg)} background gear</li>${(c.inv || []).filter(i => i.n).map(i => `<li>${+i.qty > 1 ? i.qty + " × " : ""}${esc(i.n)}${i.attuned ? " (attuned)" : ""}</li>`).join("")}</ul><div style="margin-top:6px" class="lab">${["cp", "sp", "ep", "gp", "pp"].map(k => `${k.toUpperCase()} ${c.coins && +c.coins[k] ? c.coins[k] : "____"}`).join(" ")}</div><div class="boxt">Equipment</div></div>
     </div>
     <div>
@@ -5897,7 +5907,7 @@ function fxHTML(path, list) {
   return `<div class="hb-fx"><span class="fx-lbl">Changes to the sheet</span>${(list || []).map((e, j) => `<div class="hb-fxrow">
       <select ${at(j, "t")} aria-label="What it changes">${o(e.t, Object.entries(HB_FX))}</select>
       ${fxNum(e.t) ? `<input type="number" ${at(j, "v")} value="${esc(e.v)}" aria-label="Amount" title="Amount (negative to reduce)">` : ""}
-      ${fxAb(e.t) ? `<select ${at(j, "a")} aria-label="Ability">${o(e.a, AB.map(a => [a, AB_FULL[a]]))}</select>` : fxSkill(e.t) ? `<select ${at(j, "a")} aria-label="Skill">${o(e.a, ALL_SKILLS.map(k => [k, k]))}</select>` : ""}
+      ${fxAb(e.t) ? `<select ${at(j, "a")} aria-label="Ability">${o(e.a, AB.map(a => [a, AB_FULL[a]]))}</select>` : fxSkill(e.t) ? `<select ${at(j, "a")} aria-label="Skill">${o(e.a, ALL_SKILLS.map(k => [k, k]))}</select>` : fxDmg(e.t) ? `<select ${at(j, "a")} aria-label="Damage type">${o(e.a, FX_DMG.map(k => [k, cap1(k)]))}</select>` : ""}
       ${e.t === "ab" ? `<label class="hint" style="margin:0">up to <input type="number" min="1" max="30" ${at(j, "max")} value="${esc(e.max ?? 20)}" aria-label="Maximum score"></label>` : ""}
       <button class="icon-btn" type="button" data-fxdel="${path}" data-j="${j}" title="Remove effect" aria-label="Remove effect">✕</button></div>`).join("")}
     <button class="btn sm" type="button" data-fxadd="${path}">+ Add an effect</button></div>`;
@@ -5967,7 +5977,7 @@ function hbFormHTML(d) {
     else if (t.dataset.hbab) { d.abs = AB.filter(a => a === t.dataset.hbab ? t.checked : d.abs.includes(a)); }
     else if (t.dataset.fx && t.tagName === "SELECT") {
       const e = fxList(d, t.dataset.fx)[+t.dataset.j]; e[t.dataset.k] = t.value;
-      if (t.dataset.k === "t") { e.a = fxAb(e.t) ? "str" : fxSkill(e.t) ? ALL_SKILLS[0] : undefined; if (fxNum(e.t) && !e.v) e.v = 1; renderHomebrew(); const f = $(`#hbMain [data-fx="${t.dataset.fx}"][data-j="${t.dataset.j}"][data-k="t"]`); if (f) f.focus(); }
+      if (t.dataset.k === "t") { e.a = fxAb(e.t) ? "str" : fxSkill(e.t) ? ALL_SKILLS[0] : fxDmg(e.t) ? "fire" : undefined; if (fxNum(e.t) && !e.v) e.v = 1; renderHomebrew(); const f = $(`#hbMain [data-fx="${t.dataset.fx}"][data-j="${t.dataset.j}"][data-k="t"]`); if (f) f.focus(); }
     }
   });
   main.addEventListener("click", async e => {
@@ -6011,7 +6021,7 @@ function pcRecompute(c) {
 }
 function pcLevelTo(c, lv) {
   const n = generateCharacter({ seed: c.seed || c.id, name: c.name, race: c.race, ed: edOf(c), sub: c.sub || (c.race === "Dragonborn" && c.ancestry) || "none", ancestry: c.ancestry || undefined, cls: c.cls, bg: c.bg, level: lv, subclass: c.subclass || "none", asiPicks: c.asiPicks || undefined, method: c.method || "array", bonus: c.bonus || "flex", custom: c.customData || undefined });
-  ["level", "base", "scores", "mods", "rolls", "prof", "saves", "skills", "hp", "ac", "acSrc", "speed", "init", "passive", "attacks", "spell", "feats", "extras", "hd", "traits", "initBonus", "atkBonus", "hbSig"].forEach(k => c[k] = n[k]);
+  ["level", "base", "scores", "mods", "rolls", "prof", "saves", "skills", "hp", "ac", "acSrc", "speed", "init", "passive", "attacks", "spell", "feats", "extras", "hd", "traits", "initBonus", "atkBonus", "hbSig", "res", "imm", "vul"].forEach(k => c[k] = n[k]);
   c.hpCur = n.hp;
 }
 function renderRoster() {
@@ -6053,7 +6063,7 @@ function rosterHTML(c) {
     <div class="vitals">
       ${[["hp", "Max HP"], ["hpCur", "Current HP"], ["hpTemp", "Temp HP"], ["ac", "Armor class"], ["speed", "Speed (ft)"]].map(([k, l]) => `<div class="vit"><input type="number" data-rf="${k}" value="${esc(c[k] ?? "")}" aria-label="${l}"><span>${l}</span></div>`).join("")}
       <div class="vit"><b>${sgn(c.init)}</b><span>Initiative</span></div><div class="vit"><b>${sgn(c.prof)}</b><span>Proficiency</span></div><div class="vit"><b>${c.passive}</b><span>Passive Perc.</span></div><div class="vit"><b>${c.level}d${c.hd}</b><span>Hit dice</span></div>
-    </div></div>
+    </div>${defHTML(c)}</div>
   <div class="grid2 rc-two" style="margin-top:0">
     <div class="sec"><div class="sec-h"><h3>Skills</h3><span class="sp"></span><span class="muted" style="font-size:13px">Click to cycle: none → ● → ★</span></div>
       <div class="skills">${c.skills.map((s, i) => `<div class="${s.p ? "p" : ""} ${s.x ? "x" : ""} rc-sk" data-rsk="${i}" role="button" tabindex="0" title="Change proficiency"><span>${s.p ? "● " : ""}${esc(s.s)} <span class="muted" style="font-size:12px">${AB_NAME[s.ab]}</span></span><b>${sgn(s.v)}</b></div>`).join("")}</div></div>
