@@ -3168,7 +3168,7 @@ function pcSubNumbers(c) {
   const dHp = B.hp - (+c.subHp || 0); if (dHp && c.hp !== "") { c.hp = (+c.hp || 0) + dHp; if (c.hpCur !== "" && c.hpCur !== undefined) c.hpCur = Math.max(0, (+c.hpCur || 0) + dHp); } c.subHp = B.hp;
   const dSp = B.speed - (+c.subSpd || 0); if (dSp && c.speed !== "") c.speed = (+c.speed || 0) + dSp; c.subSpd = B.speed;
   subAddSaves(c.saves, B);
-  if (c.cls === "Sorcerer") {
+  if (c.cls === "Sorcerer" && !c.kitMoved) {
     if (B.ac && c.acSrc !== B.ac[1]) [c.ac, c.acSrc] = B.ac;
     else if (!B.ac && /^Draconic Resilience/.test(c.acSrc || "")) [c.ac, c.acSrc] = CLASS_DATA.Sorcerer.ac(c.mods);
   }
@@ -6303,12 +6303,13 @@ function pcRecompute(c) {
     c.attacks = (c.attacks || []).map(a => a.name === w[0] ? { ...a, hit: wm + c.prof, dmg: `${w[1]}${wm ? sgn(wm) : ""}` } : a.name === "Unarmed strike" ? { ...a, hit: wm + c.prof, dmg: ((String(a.dmg).match(/^\d+d\d+/) || ["1d4"])[0]) + sgn(wm) } : a);
   }
   if (c.spell) { c.spell.dc = 8 + c.prof + m[c.spell.ab]; c.spell.atk = c.prof + m[c.spell.ab]; }
+  pcACApply(c);
 }
 function pcLevelTo(c, lv) {
   const n = generateCharacter({ seed: c.seed || c.id, name: c.name, race: c.race, ed: edOf(c), sub: c.sub || (c.race === "Dragonborn" && c.ancestry) || "none", ancestry: c.ancestry || undefined, cls: c.cls, bg: c.bg, level: lv, subclass: c.subclass || "none", asiPicks: c.asiPicks || undefined, method: c.method || "array", bonus: c.bonus || "flex", custom: c.customData || undefined });
   ["level", "base", "scores", "mods", "rolls", "prof", "saves", "skills", "hp", "ac", "acSrc", "speed", "init", "passive", "attacks", "spell", "feats", "extras", "hd", "subHp", "subSpd"].forEach(k => c[k] = n[k]);
   c.hpCur = n.hp;
-  if (c.kitMoved) c.attacks = pcAttacks(c);
+  if (c.kitMoved) { c.attacks = pcAttacks(c); pcACApply(c); }
 }
 /* ---- equipment: the starting kit lives in the inventory; equipped weapons make the attack list ---- */
 const EQ_COUNT = { a: 1, an: 1, one: 1, two: 2, three: 3, four: 4, five: 5, six: 6, ten: 10, twenty: 20 };
@@ -6380,6 +6381,61 @@ function eqAttack(c, i, w) {
   const prof = eqProficient(c, w), mod = m[ab] + bonus, hit = m[ab] + (prof ? c.prof : 0) + bonus;
   const two = (dmgTxt.match(/two-handed (\d+d\d+)/) || [])[1];
   return { name: i.n, iid: i.id, hit, dmg: dm[1] + (mod ? sgn(mod) : ""), type: dm[2], alt: two ? `${two}${mod ? sgn(mod) : ""} two-handed` : "", ab, prof, magic, needsAtt };
+}
+/* ---- armor class from equipped armor and shields ---- */
+const ARMOR_MAGIC = { "dwarven plate": 2, "dragon scale mail": 1, "elven chain": 1 };
+// the standard armor (or shield) an inventory item is: its Items-tab entry, else armor named in its name, notes or magic type
+function eqArmorOf(i, ed) {
+  itLoad();
+  const ref = i.ref ? itFind(i.ref) : null;
+  if (eqIsArmor(ref)) return ref;
+  const L = IT.data[ed === "2014" ? "2014" : "2024"].filter(eqIsArmor);
+  const forms = x => { const n = x.n.toLowerCase(); return [n, n.replace(/ armor$/, "")]; };
+  const hits = t => { t = String(t || "").toLowerCase(); return L.filter(x => forms(x).some(f => new RegExp(`\\b${f.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}\\b`).test(t))); };
+  const best = H => H.sort((a, b) => b.n.length - a.n.length)[0];
+  for (const t of [i.n, i.note]) { const H = hits(t); if (H.length) return best(H); }
+  if (ref && ref.type) { const H = hits(ref.type.replace(/^armor\s*/i, "")); if (H.length) return best(H); }
+  return null;
+}
+function eqArmorBonus(i) {
+  if (i.att && !i.attuned) return 0;
+  const t = (i.n + " " + (i.note || "")).toLowerCase(), named = +((t.match(/\+([1-3])\b/) || [])[1] || 0);
+  return named || Object.entries(ARMOR_MAGIC).reduce((v, [k, b]) => t.includes(k) ? b : v, 0);
+}
+function pcAC(c) {
+  const ed = edOf(c), m = c.mods, eq = (c.inv || []).filter(i => i.eq && (+i.qty || 0) > 0);
+  const worn = eq.map(i => ({ i, a: eqArmorOf(i, ed) })).filter(x => x.a);
+  const val = x => { const t = (x.a.st.find(([k]) => k === "Armor Class") || [])[1] || "", mm = t.match(/^\+?(\d+)(\s*\+\s*Dex modifier)?(\s*\(max 2\))?/); if (!mm) return 0; return +mm[1] + (mm[2] ? (mm[3] ? Math.min(m.dex, 2) : m.dex) : 0) + eqArmorBonus(x.i); };
+  const body = worn.filter(x => x.a.cat !== "Shield").sort((a, b) => val(b) - val(a))[0], shield = worn.filter(x => x.a.cat === "Shield").sort((a, b) => val(b) - val(a))[0];
+  const parts = [];
+  let ac;
+  if (body) { ac = val(body); parts.push(`${body.i.n} ${ac}`); }
+  else {
+    const opts = [[10 + m.dex, "No armor (10 + DEX)"]];
+    if (c.cls === "Barbarian") opts.push([10 + m.dex + m.con, "Unarmored Defense (10 + DEX + CON)"]);
+    if (c.cls === "Monk" && !shield) opts.push([10 + m.dex + m.wis, "Unarmored Defense (10 + DEX + WIS)"]);
+    const B = subBonusOf(c); if (B.ac) opts.push(B.ac);
+    const best = opts.sort((a, b) => b[0] - a[0])[0]; ac = best[0]; parts.push(`${best[1]} ${best[0]}`);
+  }
+  if (shield) { const sv = val(shield); ac += sv; parts.push(`${shield.i.n} +${sv}`); }
+  return { ac, src: parts.join(" + ") };
+}
+// keep the AC field in step with equipment unless it was typed in by hand
+function pcACApply(c) {
+  if (!c.kitMoved) return;
+  const A = pcAC(c);
+  if (c.acManual === undefined) { // characters saved before this: their AC counts as hand-set only if it matches none of the generated values
+    const gen = [A.ac, CLASS_DATA[c.cls] ? CLASS_DATA[c.cls].ac(c.mods)[0] : null, c.cls === "Sorcerer" ? 13 + c.mods.dex : null, (subBonusOf(c).ac || [])[0]];
+    c.acManual = c.ac !== "" && c.ac !== undefined && !gen.includes(+c.ac);
+  }
+  c.acAuto = A.ac; c.acAutoSrc = A.src;
+  if (!c.acManual) { c.ac = A.ac; c.acSrc = A.src; }
+}
+function rcACLine(c) {
+  if (!c.kitMoved || c.acAuto === undefined) return "";
+  return c.acManual
+    ? `<p class="hint" style="margin:10px 0 0">Armor class is set by hand to <b>${esc(c.ac)}</b>. Your equipment gives <b>${c.acAuto}</b> (${esc(c.acAutoSrc)}). <button class="btn sm" type="button" data-acauto="1">Use equipment AC</button></p>`
+    : `<p class="hint" style="margin:10px 0 0">Armor class <b>${c.acAuto}</b>: ${esc(c.acAutoSrc)}.</p>`;
 }
 function pcAttacks(c) {
   const ed = edOf(c), out = [], SB = subBonusOf(c);
@@ -6513,8 +6569,8 @@ function rcEquippedHTML(c) {
   const ed = edOf(c), L = (c.inv || []).filter(i => i.eq && (+i.qty || 0) > 0);
   if (!L.length) return `<p class="muted">Nothing equipped. Tick <b>Equip</b> next to an item in the inventory.</p>`;
   return `<ul class="plain">${L.map(i => {
-    const ref = i.ref ? itFind(i.ref) : null, w = eqWeaponOf(i, ed), a = (c.attacks || []).find(x => x.iid === i.id);
-    const ac = eqIsArmor(ref) ? (ref.st.find(([k]) => k === "Armor Class") || [])[1] : null;
+    const ref = i.ref ? itFind(i.ref) : null, w = eqWeaponOf(i, ed), a = (c.attacks || []).find(x => x.iid === i.id), ar = eqArmorOf(i, ed);
+    const ac = ar ? ((ar.st.find(([k]) => k === "Armor Class") || [])[1] || "") + (eqArmorBonus(i) ? ` +${eqArmorBonus(i)}` : i.att && !i.attuned && /\+[1-3]/.test(i.n) ? " (attune for its bonus)" : "") : null;
     const what = a ? `${sgn(a.hit)} to hit, ${esc(a.dmg)} ${esc(a.type)}` : ac ? `AC ${esc(ac)}` : w ? "" : ref && /Weapon/.test(ref.cat + (ref.type || "")) ? `<span class="hint">Add its weapon to the name, e.g. “Longsword +1”, to get an attack</span>` : esc(i.note || "");
     return `<li><b>${esc(i.n)}</b>${+i.qty > 1 ? ` <span class="muted">×${esc(i.qty)}</span>` : ""}${what ? ` <span class="muted">· ${what}</span>` : ""}</li>`;
   }).join("")}</ul>`;
@@ -6589,7 +6645,7 @@ function rosterHTML(c) {
   <div class="grid2 rc-two" style="margin-top:0">
     <div class="sec"><div class="sec-h"><h3>Features & Traits</h3></div><ul class="plain">${(c.feats || []).map(f => featLi(f.f, f.sub ? `${esc(c.subclass)}, lv ${f.l}` : "lv " + f.l, c)).join("")}${(c.traits || []).map(t => featLi(t, esc(raceLabel(c)), c)).join("")}</ul>
       <textarea data-rf="featNotes" placeholder="Extra features, feats, boons…" style="margin-top:8px">${esc(c.featNotes || "")}</textarea></div>
-    <div class="sec"><div class="sec-h"><h3>Equipped Items</h3></div><div id="rcEquipped">${rcEquippedHTML(c)}</div></div>
+    <div class="sec"><div class="sec-h"><h3>Equipped Items</h3></div><div id="rcEquipped">${rcEquippedHTML(c)}</div><div id="rcACLine">${rcACLine(c)}</div></div>
   </div>
   <div class="sec"><div class="sec-h"><h3>Personality & Backstory</h3></div>
     <div class="rc-grid2">${[["trait", "Personality trait"], ["ideal", "Ideal"], ["bond", "Bond"], ["flaw", "Flaw"]].map(([k, l]) => `<label>${l}<input type="text" data-rf="${k}" value="${esc(c[k] || "")}"></label>`).join("")}</div>
@@ -6609,6 +6665,7 @@ function rosterHTML(c) {
     const c = rosterCur(); if (!c) return;
     const u = e.target.closest("[data-use]");
     if (u) { const r = pcResources(c).find(x => x.key === u.dataset.use); if (r) { resSet(c, r.key, resLeft(c, r) - +u.dataset.d); const f = $(`[data-use="${r.key}"][data-d="${u.dataset.d}"]`, main); if (f && !f.disabled) f.focus(); } return; }
+    if (e.target.closest("[data-acauto]")) { c.acManual = false; pcACApply(c); pcPersist(); renderRosterMain(); toast(`Armor class ${c.ac} from equipment`); return; }
     const rs = e.target.closest("[data-rest]");
     if (rs) {
       const kind = rs.dataset.rest, back = pcRest(c, kind); pcPersist(); renderRosterMain();
@@ -6622,7 +6679,7 @@ function rosterHTML(c) {
     if (t.dataset.rf) {
       const k = t.dataset.rf, v = t.value;
       if (k.startsWith("hd.")) { c.hookDetail = c.hookDetail || { story: "", questions: [], use: "" }; const f = k.slice(3); c.hookDetail[f] = f === "questions" ? v.split("\n").map(x => x.trim()).filter(Boolean) : v; }
-      else if (["hp", "hpCur", "hpTemp", "ac", "speed", "xp"].includes(k)) c[k] = v === "" ? "" : +v;
+      else if (["hp", "hpCur", "hpTemp", "ac", "speed", "xp"].includes(k)) { c[k] = v === "" ? "" : +v; if (k === "ac") { c.acManual = v !== "" && +v !== c.acAuto; const l = $("#rcACLine"); if (l) l.innerHTML = rcACLine(c); } }
       else c[k] = v;
       if (t.tagName === "TEXTAREA") autoGrow(t);
       if (k === "name") renderRoster();
@@ -6632,9 +6689,9 @@ function rosterHTML(c) {
     if (t.dataset.rinv) {
       const i = c.inv.find(x => x.id === t.dataset.iid); if (!i) return; const f = t.dataset.rinv;
       i[f] = f === "attuned" || f === "eq" ? t.checked : f === "qty" ? Math.max(0, +t.value || 0) : t.value;
-      c.attacks = pcAttacks(c); pcPersist();
+      c.attacks = pcAttacks(c); pcACApply(c); pcPersist();
       if (f === "attuned" || f === "eq") renderRosterMain();
-      else { $("#rcAtk").innerHTML = rcAttacksHTML(c); $("#rcEquipped").innerHTML = rcEquippedHTML(c); }
+      else { $("#rcAtk").innerHTML = rcAttacksHTML(c); $("#rcEquipped").innerHTML = rcEquippedHTML(c); $("#rcACLine").innerHTML = rcACLine(c); const a = $('[data-rf="ac"]', main); if (a && !c.acManual) a.value = c.ac; }
     }
   });
   main.addEventListener("change", e => {
