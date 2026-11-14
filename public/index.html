@@ -655,6 +655,11 @@ nav a[data-view=homebrew]{--ic:url("data:image/svg+xml,%3Csvg xmlns='http://www.
 .hb-row textarea{min-height:38px}
 .hb-row input,.hb-row textarea,.hb-asi input{font-family:"Crimson Pro",Georgia,serif;letter-spacing:0;text-transform:none;font-size:16px}
 @media (max-width:700px){.hb-row,.hb-row.nolv{grid-template-columns:1fr}}
+.hb-fx{grid-column:1/-1;display:flex;flex-direction:column;gap:6px;align-items:flex-start;padding:0 0 4px 12px;border-left:2px solid #3b2a17}
+.hb-fx .fx-lbl{font-family:Cinzel,serif;font-size:11.5px;letter-spacing:.08em;text-transform:uppercase;color:#b8ad9a}
+.hb-fxrow{display:flex;flex-wrap:wrap;gap:6px;align-items:center}
+.hb-fxrow select,.hb-fxrow input{width:auto;font-size:15px}
+.hb-fxrow input[type=number]{width:80px}
 .hb-asi{display:grid;grid-template-columns:repeat(6,minmax(70px,1fr));gap:8px}
 @media (max-width:700px){.hb-asi{grid-template-columns:repeat(3,1fr)}}
 nav a[data-view=party]{--ic:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='1.9' stroke-linecap='round' stroke-linejoin='round'%3E%3Ccircle cx='9' cy='8' r='3.2'/%3E%3Cpath d='M3 20c0-3.3 2.7-6 6-6s6 2.7 6 6'/%3E%3Ccircle cx='17' cy='9' r='2.6'/%3E%3Cpath d='M16 14.2c2.8.3 5 2.6 5 5.8'/%3E%3C/svg%3E")}
@@ -3052,7 +3057,7 @@ const FEATS = {
 };
 const FEAT_GROUPS = { o: "Origin", g: "General", b: "Epic boon" };
 const FEAT_REPEAT = new Set(["Elemental Adept", "Magic Initiate", "Skilled"]);
-const featList = ed => [...(FEATS[ed] || FEATS["2014"]), ...hbOf("feat").filter(x => hbEdOk(x, ed)).map(x => [x.name, x.ab || "", x.req || "", x.desc || "", ed === "2024" ? (x.group || "g") : undefined, true])];
+const featList = ed => [...(FEATS[ed] || FEATS["2014"]), ...hbOf("feat").filter(x => hbEdOk(x, ed)).map(x => [x.name, x.ab || "", x.req || "", (x.desc || "") + fxNote(x.fx), ed === "2024" ? (x.group || "g") : undefined, true])];
 const featInfo = (ed, name) => featList(ed).find(f => f[0] === name) || null;
 const featAbs = F => !F || !F[1] ? [] : F[1] === "any" ? [...AB] : F[1].split(" ");
 // Why a character can't take a feat right now ("" if they can). scores are their scores before this level's points.
@@ -3072,6 +3077,38 @@ const HB = { list: [], applied: { bg: [], races: [], raceDesc: [] } };
 const HB_DESC = {};      // homebrew feature / trait name -> description
 const HB_BG = {};        // homebrew background name -> its entry
 const hbEdOk = (x, ed) => !x.ed || x.ed === "both" || x.ed === ed;
+/* Sheet effects a homebrew feature, trait, feat or background can carry: { t: type, v: amount, a: ability or skill, max } */
+const HB_FX = { ac: "Armor class", hp: "Max HP", hpLv: "Max HP per level", speed: "Speed (ft)", init: "Initiative", atk: "Weapon attack rolls", spell: "Spell save DC & spell attack", ab: "Ability score", save: "Saving throw proficiency", skill: "Skill proficiency", exp: "Skill expertise" };
+const fxNum = t => !["save", "skill", "exp"].includes(t);
+const fxAb = t => t === "ab" || t === "save", fxSkill = t => t === "skill" || t === "exp";
+function fxClean(l) {
+  return (Array.isArray(l) ? l : []).filter(e => e && HB_FX[e.t]).slice(0, 12).map(e => {
+    const o = { t: e.t };
+    if (fxNum(e.t)) o.v = clamp(parseInt(e.v) || 0, -100, 100);
+    if (fxAb(e.t)) o.a = AB.includes(e.a) ? e.a : "str";
+    if (fxSkill(e.t)) o.a = SKILLS[e.a] ? e.a : ALL_SKILLS[0];
+    if (e.t === "ab") o.max = clamp(parseInt(e.max) || 20, 1, 30);
+    return o;
+  }).filter(e => !fxNum(e.t) || e.v);
+}
+function fxText(e) {
+  const n = v => (v >= 0 ? "+" : "−") + Math.abs(v);
+  return { ac: () => `${n(e.v)} AC`, hp: () => `${n(e.v)} max HP`, hpLv: () => `${n(e.v)} max HP per level`, speed: () => `${n(e.v)} ft speed`, init: () => `${n(e.v)} initiative`,
+    atk: () => `${n(e.v)} to weapon attacks`, spell: () => `${n(e.v)} spell save DC and spell attacks`, ab: () => `${n(e.v)} ${AB_NAME[e.a]} (max ${e.max || 20})`,
+    save: () => `${AB_NAME[e.a]} saving throw proficiency`, skill: () => `${e.a} proficiency`, exp: () => `${e.a} expertise` }[e.t]();
+}
+const fxNote = l => { const c = fxClean(l); return c.length ? ` [On the sheet: ${c.map(fxText).join(", ")}.]` : ""; };
+// Every homebrew effect a character has: species traits and subrace, background, subclass features reached, feats taken.
+function hbEffects(ed, race, sub, bg, cls, subclass, lv, featNames) {
+  const out = [], add = (src, l) => fxClean(l).forEach(e => out.push({ ...e, src }));
+  const sp = hbOf("species").find(x => x.name === race && hbEdOk(x, ed) && PC_RACES[ed][race] && PC_RACES[ed][race].hb);
+  if (sp) { (sp.traits || []).forEach(t => add(t.n, t.fx)); const su = (sp.subs || []).find(t => t.n === sub); if (su) add(su.n, su.fx); }
+  if (HB_BG[bg]) add(`${bg} background`, HB_BG[bg].fx);
+  const sc = subclass && hbOf("subclass").find(x => x.name === subclass && x.cls === cls);
+  if (sc) (sc.features || []).filter(f => f.n && +f.l <= lv).forEach(f => add(f.n, f.fx));
+  featNames.forEach(nm => { const f = hbOf("feat").find(x => x.name === nm && hbEdOk(x, ed)); if (f) add(nm, f.fx); });
+  return out;
+}
 const hbOf = kind => HB.list.filter(x => x.kind === kind);
 function hbApply() {
   const A = HB.applied;
@@ -3083,11 +3120,11 @@ function hbApply() {
   hbOf("background").forEach(x => {
     if (BACKGROUNDS[x.name]) return; // never replace a built-in
     BACKGROUNDS[x.name] = (x.skills || []).filter(k => SKILLS[k]).slice(0, 2); HB_BG[x.name] = x; N.bg.push(x.name);
-    HB_DESC[`${x.name} background`] = [x.desc, x.feat ? `Origin feat: ${x.feat}.` : "", x.gear ? `Gear: ${x.gear}.` : ""].filter(Boolean).join(" ");
+    HB_DESC[`${x.name} background`] = [x.desc, x.feat ? `Origin feat: ${x.feat}.` : "", x.gear ? `Gear: ${x.gear}.` : ""].filter(Boolean).join(" ") + fxNote(x.fx);
   });
   hbOf("species").forEach(x => {
     const traits = (x.traits || []).filter(t => t.n), subs = (x.subs || []).filter(t => t.n);
-    traits.concat(subs).forEach(t => HB_DESC[t.n] = t.d || "");
+    traits.concat(subs).forEach(t => HB_DESC[t.n] = (t.d || "") + fxNote(t.fx));
     ["2014", "2024"].filter(ed => hbEdOk(x, ed) && !PC_RACES[ed][x.name]).forEach(ed => {
       PC_RACES[ed][x.name] = { hb: true, asi: ed === "2014" ? Object.fromEntries(AB.filter(a => +(x.asi || {})[a]).map(a => [a, +x.asi[a]])) : {}, speed: +x.speed || 30,
         traits: traits.map(t => t.n), skills: (x.skills || []).filter(k => SKILLS[k]), term: x.term || (ed === "2024" ? "Lineage" : "Subrace"),
@@ -3096,7 +3133,7 @@ function hbApply() {
     });
     if (!RACE_DESC[x.name]) { RACE_DESC[x.name] = x.desc || ""; N.raceDesc.push(x.name); }
   });
-  hbOf("subclass").forEach(x => (x.features || []).forEach(f => { if (f.n) HB_DESC[f.n] = f.d || ""; }));
+  hbOf("subclass").forEach(x => (x.features || []).forEach(f => { if (f.n) HB_DESC[f.n] = (f.d || "") + fxNote(f.fx); }));
 }
 function hbRefreshUI() {
   if (window.pcSelectsRefresh) pcSelectsRefresh();
@@ -3414,6 +3451,10 @@ function generateCharacter(o) {
   const R = raceInfo(ed, race, sub);
   const anc = race === "Dragonborn" ? (sub || o.ancestry || r.pick(Object.keys(DRAGON_ANCESTRY))) : null;
   if (ed === "2024" && o.bonus === "fixed") o = { ...o, bonus: "flex" };
+  // Subclass: a random forge picks one (own rng, so other rolls stay the same); custom builds and level-ups ask the player.
+  const subLv = subclassLevel(ed, cls);
+  let subclass = o.subclass && o.subclass !== "none" ? String(o.subclass) : null;
+  if (!subclass && o.subclass !== "none" && !o.custom && lv >= subLv) { const L = subclassList(ed, cls).filter(x => !x[2]); if (L.length) subclass = makeRng("subclass", o.seed).pick(L)[0]; }
   // scores
   let rolls = null, base;
   const order = [...C.pri, ...["con", "dex", "wis", "str", "int", "cha"].filter(a => !C.pri.includes(a))];
@@ -3442,6 +3483,10 @@ function generateCharacter(o) {
     asiAuto.push(L); let pts = 2;
     for (const a of C.pri) { while (pts > 0 && sc[a] < 20) { sc[a]++; pts--; } if (!pts) break; }
   }
+  // homebrew effects (see hbEffects); ability scores first, since everything else reads them
+  const fx = hbEffects(ed, race, sub, bg, cls, subclass, lv, asiLv.map(L => asiPicks[L]).filter(pk => pk && pk.feat).map(pk => pk.feat));
+  const fxSum = t => fx.filter(e => e.t === t).reduce((n, e) => n + e.v, 0);
+  fx.filter(e => e.t === "ab").forEach(e => { sc[e.a] = e.v >= 0 ? Math.max(sc[e.a], Math.min(e.max || 20, sc[e.a] + e.v)) : Math.max(1, sc[e.a] + e.v); });
   const m = {}; AB.forEach(a => m[a] = mod(sc[a]));
   const prof = 2 + Math.floor((lv - 1) / 4);
   // skills
@@ -3456,6 +3501,7 @@ function generateCharacter(o) {
   else { pickSkills(C.skills[0], C.skills[1]); if (R.extraSkills) pickSkills(ALL_SKILLS, R.extraSkills); }
   const expert = new Set();
   (C.expertise || []).forEach(([l, n]) => { if (lv >= l) r.shuffle([...profSk].filter(s => !expert.has(s))).sort((a, b) => m[SKILLS[b]] - m[SKILLS[a]]).slice(0, n).forEach(s => expert.add(s)); });
+  fx.forEach(e => { if (fxSkill(e.t)) profSk.add(e.a); if (e.t === "exp") expert.add(e.a); });
   const jack = cls === "Bard" && lv >= 2;
   const skillVals = ALL_SKILLS.map(s => {
     const p = profSk.has(s), x = expert.has(s);
@@ -3465,12 +3511,15 @@ function generateCharacter(o) {
   const conBonus = m.con + (C.hpBonus || 0);
   const featsTaken = asiLv.map(L => asiPicks[L]).filter(pk => pk && pk.feat);
   const hasFeat = n => featsTaken.some(pk => pk.feat === n);
-  const hp = Math.max(1, C.hd + conBonus) + (lv - 1) * Math.max(1, diceAvg(C.hd) + conBonus) + (R.hpLv || 0) * lv + (hasFeat("Tough") ? 2 * lv : 0) + (hasFeat("Boon of Fortitude") ? 40 : 0);
+  const hp = Math.max(1, C.hd + conBonus) + (lv - 1) * Math.max(1, diceAvg(C.hd) + conBonus) + (R.hpLv || 0) * lv + (hasFeat("Tough") ? 2 * lv : 0) + (hasFeat("Boon of Fortitude") ? 40 : 0) + fxSum("hp") + fxSum("hpLv") * lv;
   const saves = [...C.saves]; featsTaken.filter(pk => pk.feat === "Resilient").forEach(pk => { const a = AB.find(x => pk[x]); if (a && !saves.includes(a)) saves.push(a); });
-  const [ac, acSrc] = C.ac(m);
+  fx.forEach(e => { if (e.t === "save" && !saves.includes(e.a)) saves.push(e.a); });
+  const [ac0, acSrc0] = C.ac(m), ac = ac0 + fxSum("ac");
+  const acSrc = acSrc0 + fx.filter(e => e.t === "ac").map(e => ` ${e.v >= 0 ? "+" : "−"} ${Math.abs(e.v)} ${e.src}`).join("");
+  const atkBonus = fxSum("atk"), initBonus = (hasFeat("Alert") ? (ed === "2024" ? prof : 5) : 0) + fxSum("init");
   const w = C.wpn, wm = cls === "Monk" ? Math.max(m.str, m.dex) : m[w[2]];
-  const attacks = [{ name: w[0], hit: wm + prof, dmg: `${w[1]}${wm ? sgn(wm) : ""}` }];
-  if (cls === "Monk") { const md = lv >= 17 ? "1d10" : lv >= 11 ? "1d8" : lv >= 5 ? "1d6" : "1d4"; attacks.push({ name: "Unarmed strike", hit: wm + prof, dmg: md + sgn(wm) }); }
+  const attacks = [{ name: w[0], hit: wm + prof + atkBonus, dmg: `${w[1]}${wm ? sgn(wm) : ""}` }];
+  if (cls === "Monk") { const md = lv >= 17 ? "1d10" : lv >= 11 ? "1d8" : lv >= 5 ? "1d6" : "1d4"; attacks.push({ name: "Unarmed strike", hit: wm + prof + atkBonus, dmg: md + sgn(wm) }); }
   // spells
   let spell = null;
   if (C.cast) {
@@ -3479,15 +3528,12 @@ function generateCharacter(o) {
     else if (kind === "half") slots = lv >= 2 ? FULL_SLOTS[Math.ceil(lv / 2)] : [];
     else { const n = lv >= 17 ? 4 : lv >= 11 ? 3 : lv >= 2 ? 2 : 1, sl = Math.min(5, Math.ceil(lv / 2)); note = `${n} pact slot${n > 1 ? "s" : ""} of level ${sl}, regained on a short rest`; }
     const max = kind === "pact" ? Math.min(5, Math.ceil(lv / 2)) : Math.max(1, slots.length);
-    spell = { ab: sa, dc: 8 + prof + m[sa], atk: prof + m[sa], slots, note, max, cantrips: kind !== "half" };
+    const sb = fxSum("spell");
+    spell = { ab: sa, dc: 8 + prof + m[sa] + sb, atk: prof + m[sa] + sb, bonus: sb, slots, note, max, cantrips: kind !== "half" };
   }
   // features
   const feats = [];
   Object.entries(C.f).forEach(([l, list]) => { if (+l <= lv) list.forEach(f => feats.push({ l: +l, f })); });
-  // Subclass: a random forge picks one (own rng, so other rolls stay the same); custom builds and level-ups ask the player.
-  const subLv = subclassLevel(ed, cls);
-  let subclass = o.subclass && o.subclass !== "none" ? String(o.subclass) : null;
-  if (!subclass && o.subclass !== "none" && !o.custom && lv >= subLv) { const L = subclassList(ed, cls).filter(x => !x[2]); if (L.length) subclass = makeRng("subclass", o.seed).pick(L)[0]; }
   if (lv >= subLv) feats.push({ l: subLv, f: subclass ? `Subclass: ${subclass}` : "Subclass: not chosen yet" });
   const hbSub = subclass && hbOf("subclass").find(x => x.name === subclass && x.cls === cls);
   if (hbSub) (hbSub.features || []).filter(f => f.n && +f.l <= lv).forEach(f => feats.push({ l: +f.l, f: f.n }));
@@ -3511,7 +3557,7 @@ function generateCharacter(o) {
   const hk = hookBuild(r.pick(PC_HOOKS), hookCtx(r, pcName.split(" ")[0]));
   return {
     seed: o.seed, method: o.method, bonus: o.bonus, name: pcName, race, ed, sub, ancestry: anc, subclass, custom: !!o.custom, customData: o.custom || null, cls, bg, level: lv, align: (o.custom && o.custom.align) || r.pick(ALIGN), base, scores: sc, mods: m, rolls,
-    prof, saves, skills: skillVals, hp, ac, acSrc, speed: R.speed, init: m.dex + (hasFeat("Alert") ? (ed === "2024" ? prof : 5) : 0), passive: 10 + skillVals.find(s => s.s === "Perception").v,
+    prof, saves, skills: skillVals, hp, ac, acSrc, speed: R.speed + fxSum("speed"), init: m.dex + initBonus, initBonus, atkBonus, hbSig: fx.length ? JSON.stringify(fx) : "", passive: 10 + skillVals.find(s => s.s === "Perception").v,
     attacks, spell, feats, extras, traits: R.traits, kit: C.kit, hd: C.hd,
     trait: r.pick(PC_TRAITS), ideal: r.pick(IDEALS), bond: r.pick(BONDS), flaw: r.pick(FLAWS), hook: hk.hook, hookDetail: hk.hookDetail
   };
@@ -5556,6 +5602,17 @@ function lvBarHTML(c) {
       : `<span class="muted" style="font-size:14px">Subclass at level ${sl}</span>`}
   </div>`;
 }
+// True when the homebrew effects this character would get now differ from the ones on its sheet.
+function hbStale(c) {
+  if (!HB.list.length && !c.hbSig) return false;
+  try { return lvBuild(c, c.level, c.asiPicks || undefined).hbSig !== (c.hbSig || ""); } catch { return false; }
+}
+document.addEventListener("click", e => {
+  const b = e.target.closest("[data-hbupdate]"); if (!b) return;
+  const c = pcById(b.dataset.hbupdate); if (!c) return;
+  const cur = c.hpCur; pcLevelTo(c, c.level); if (cur !== undefined && cur !== "") c.hpCur = Math.min(+cur, c.hp);
+  pcRefresh(c); toast(`${c.name}'s sheet now matches the homebrew`);
+});
 const pcById = id => (currentPC && currentPC.id === id ? currentPC : PCS.roster.find(x => x.id === id)) || null;
 function pcRefresh(c) {
   if (currentPC && currentPC.id === c.id) renderPC();
@@ -5796,12 +5853,12 @@ function hbDraftOf(x) { // a saved entry -> editable form state
 }
 function hbItemOf(d) { // form state -> the entry that is saved and shared
   const t = (v, n) => String(v ?? "").trim().slice(0, n);
-  const rows = (l, lv) => (l || []).map(r => ({ ...(lv ? { l: clamp(parseInt(r.l) || 1, 1, 20) } : {}), n: t(r.n, 60), d: t(r.d, 800) })).filter(r => r.n);
+  const rows = (l, lv) => (l || []).map(r => ({ ...(lv ? { l: clamp(parseInt(r.l) || 1, 1, 20) } : {}), n: t(r.n, 60), d: t(r.d, 800), fx: fxClean(r.fx) })).filter(r => r.n);
   const x = { id: d.id, kind: d.kind, name: t(d.name, 60), ed: d.ed || "both", desc: t(d.desc, 1500) };
   if (d.kind === "subclass") Object.assign(x, { cls: d.cls, features: rows(d.features, true).sort((a, b) => a.l - b.l) });
-  if (d.kind === "background") Object.assign(x, { skills: d.skills.filter(k => SKILLS[k]), feat: t(d.feat, 60), gear: t(d.gear, 300) });
+  if (d.kind === "background") Object.assign(x, { skills: d.skills.filter(k => SKILLS[k]), feat: t(d.feat, 60), gear: t(d.gear, 300), fx: fxClean(d.fx) });
   if (d.kind === "feat") Object.assign(x, {
-    group: d.group === "o" ? "o" : "g",
+    fx: fxClean(d.fx), group: d.group === "o" ? "o" : "g",
     req: d.reqType === "cast" ? "cast" : d.reqType === "ability" ? `${d.reqAb}${clamp(parseInt(d.reqMin) || 13, 1, 30)}` : d.reqType === "other" && t(d.reqText, 80) ? "@" + t(d.reqText, 80) : "",
     ab: d.abType === "any" ? "any" : d.abType === "some" ? AB.filter(a => d.abs.includes(a)).join(" ") : "" });
   if (d.kind === "species") Object.assign(x, { speed: clamp(parseInt(d.speed) || 30, 0, 120), skills: d.skills.filter(k => SKILLS[k]).slice(0, 1),
@@ -5834,6 +5891,18 @@ function renderHomebrew() {
   if (!d) { main.innerHTML = `<div class="card empty"><h2>Make your own rules content</h2><p>Create subclasses, backgrounds, feats and species. They show up next to the built-in options in the character creator, the Level up window and the feat list${hbCloud() ? " for every player in your campaign" : ""}.</p><p>Pick “+ New” on the left to start.</p></div>`; return; }
   main.innerHTML = hbFormHTML(d); $$("textarea", main).forEach(autoGrow);
 }
+function fxHTML(path, list) {
+  const o = (v, opts) => opts.map(([k, l]) => `<option value="${esc(k)}" ${v === k ? "selected" : ""}>${esc(l)}</option>`).join("");
+  const at = (j, k) => `data-fx="${path}" data-j="${j}" data-k="${k}"`;
+  return `<div class="hb-fx"><span class="fx-lbl">Changes to the sheet</span>${(list || []).map((e, j) => `<div class="hb-fxrow">
+      <select ${at(j, "t")} aria-label="What it changes">${o(e.t, Object.entries(HB_FX))}</select>
+      ${fxNum(e.t) ? `<input type="number" ${at(j, "v")} value="${esc(e.v)}" aria-label="Amount" title="Amount (negative to reduce)">` : ""}
+      ${fxAb(e.t) ? `<select ${at(j, "a")} aria-label="Ability">${o(e.a, AB.map(a => [a, AB_FULL[a]]))}</select>` : fxSkill(e.t) ? `<select ${at(j, "a")} aria-label="Skill">${o(e.a, ALL_SKILLS.map(k => [k, k]))}</select>` : ""}
+      ${e.t === "ab" ? `<label class="hint" style="margin:0">up to <input type="number" min="1" max="30" ${at(j, "max")} value="${esc(e.max ?? 20)}" aria-label="Maximum score"></label>` : ""}
+      <button class="icon-btn" type="button" data-fxdel="${path}" data-j="${j}" title="Remove effect" aria-label="Remove effect">✕</button></div>`).join("")}
+    <button class="btn sm" type="button" data-fxadd="${path}">+ Add an effect</button></div>`;
+}
+const fxList = (d, path) => { if (path === "fx") return d.fx = d.fx || []; const [k, i] = path.split("."); const r = d[k][+i]; return r.fx = r.fx || []; };
 function hbFormHTML(d) {
   const isNew = !HB.list.some(x => x.id === d.id), kindName = { subclass: "subclass", background: "background", feat: "feat", species: "species" }[d.kind];
   const sel = (f, opts, v) => `<select data-hbf="${f}">${opts.map(([k, l]) => `<option value="${esc(k)}" ${String(v) === String(k) ? "selected" : ""}>${esc(l)}</option>`).join("")}</select>`;
@@ -5842,7 +5911,8 @@ function hbFormHTML(d) {
       ${lv ? `<label class="lbl" style="margin:0">Level<input type="number" min="1" max="20" data-hbrow="${key}" data-i="${i}" data-k="l" value="${esc(r.l)}"></label>` : ""}
       <label class="lbl" style="margin:0">${nameLbl}<input type="text" maxlength="60" data-hbrow="${key}" data-i="${i}" data-k="n" value="${esc(r.n)}"></label>
       <label class="lbl" style="margin:0">What it does<textarea maxlength="800" data-hbrow="${key}" data-i="${i}" data-k="d">${esc(r.d)}</textarea></label>
-      <button class="icon-btn" type="button" data-hbdel="${key}" data-i="${i}" title="Remove" aria-label="Remove ${esc(r.n || "row")}" style="margin-top:22px">✕</button></div>`).join("")}</div>`;
+      <button class="icon-btn" type="button" data-hbdel="${key}" data-i="${i}" title="Remove" aria-label="Remove ${esc(r.n || "row")}" style="margin-top:22px">✕</button>
+      ${fxHTML(`${key}.${i}`, r.fx)}</div>`).join("")}</div>`;
   let body = "";
   if (d.kind === "subclass") {
     const sl = d.ed === "2024" ? 3 : d.ed === "2014" ? CLASS_DATA[d.cls].sub[1] : null;
@@ -5851,12 +5921,14 @@ function hbFormHTML(d) {
       <div class="sec-h" style="margin-top:6px"><h3>Features</h3><span class="sp"></span><button class="btn sm" type="button" data-hbadd="features">+ Add feature</button></div>${rowsHTML("features", true, "Feature name")}`;
   }
   if (d.kind === "background") body = `<div class="field row"><div><label>Skill proficiency</label>${sel("skills.0", skillOpts, d.skills[0])}</div><div><label>Second skill</label>${sel("skills.1", skillOpts, d.skills[1])}</div></div>
-      <div class="field row"><div><label>Origin feat (optional)</label><input type="text" maxlength="60" data-hbf="feat" value="${esc(d.feat)}" placeholder="e.g. Alert"></div><div><label>Equipment (optional)</label><input type="text" maxlength="300" data-hbf="gear" value="${esc(d.gear)}" placeholder="e.g. a lantern, a map case, 10 gp"></div></div>`;
+      <div class="field row"><div><label>Origin feat (optional)</label><input type="text" maxlength="60" data-hbf="feat" value="${esc(d.feat)}" placeholder="e.g. Alert"></div><div><label>Equipment (optional)</label><input type="text" maxlength="300" data-hbf="gear" value="${esc(d.gear)}" placeholder="e.g. a lantern, a map case, 10 gp"></div></div>
+      <div class="field">${fxHTML("fx", d.fx)}</div>`;
   if (d.kind === "feat") body = `${d.ed !== "2014" ? `<div class="field"><label>Feat type (2024 rules)</label>${sel("group", [["g", "General — taken at level 4 and later"], ["o", "Origin — also fits a background"]], d.group)}</div>` : ""}
       <div class="field"><label>Prerequisite</label><div class="row" style="flex-wrap:wrap">${sel("reqType", [["none", "None"], ["ability", "An ability score"], ["cast", "Can cast spells"], ["other", "Something else (shown, not checked)"]], d.reqType)}
         ${d.reqType === "ability" ? `${sel("reqAb", AB.map(a => [a, AB_FULL[a]]), d.reqAb)}<label class="lbl" style="margin:0;flex:0 0 110px">At least<input type="number" min="1" max="30" data-hbf="reqMin" value="${esc(d.reqMin)}"></label>` : d.reqType === "other" ? `<input type="text" maxlength="80" data-hbf="reqText" value="${esc(d.reqText)}" placeholder="e.g. Proficiency with shields">` : ""}</div></div>
       <div class="field"><label>Raises an ability score by 1</label>${sel("abType", [["none", "No"], ["any", "Yes, any score the player picks"], ["some", "Yes, one of these…"]], d.abType)}
-        ${d.abType === "some" ? `<div class="row" style="flex-wrap:wrap;margin-top:8px">${AB.map(a => `<label class="check" style="flex:0 0 auto;margin:0"><input type="checkbox" data-hbab="${a}" ${d.abs.includes(a) ? "checked" : ""}><span>${AB_FULL[a]}</span></label>`).join("")}</div>` : ""}</div>`;
+        ${d.abType === "some" ? `<div class="row" style="flex-wrap:wrap;margin-top:8px">${AB.map(a => `<label class="check" style="flex:0 0 auto;margin:0"><input type="checkbox" data-hbab="${a}" ${d.abs.includes(a) ? "checked" : ""}><span>${AB_FULL[a]}</span></label>`).join("")}</div>` : ""}</div>
+      <div class="field">${fxHTML("fx", d.fx)}<p class="hint" style="margin:6px 0 0">The +1 the player picks is handled above; add effects here for anything else the feat changes.</p></div>`;
   if (d.kind === "species") body = `<div class="field row"><div><label>Speed (ft)</label><input type="number" min="0" max="120" data-hbf="speed" value="${esc(d.speed)}"></div><div><label>Skill proficiency (optional)</label>${sel("skills.0", [["", "None"], ...ALL_SKILLS.map(k => [k, k])], d.skills[0])}</div></div>
       ${d.ed !== "2024" ? `<div class="field"><label>Ability score increases (2014 rules)</label><div class="hb-asi">${AB.map(a => `<label class="lbl" style="margin:0">${AB_NAME[a]}<input type="number" min="-2" max="3" data-hbasi="${a}" value="${esc(d.asi[a] || 0)}"></label>`).join("")}</div>
         <p class="hint" style="margin:6px 0 0">In the 2024 rules ability increases come from the background, so these only apply to 2014 characters.</p></div>` : ""}
@@ -5886,18 +5958,26 @@ function hbFormHTML(d) {
     if (t.dataset.hbf && t.tagName !== "SELECT") set(d, t.dataset.hbf, t.value);
     else if (t.dataset.hbrow) d[t.dataset.hbrow][+t.dataset.i][t.dataset.k] = t.value;
     else if (t.dataset.hbasi) d.asi[t.dataset.hbasi] = +t.value || 0;
+    else if (t.dataset.fx && t.tagName === "INPUT") fxList(d, t.dataset.fx)[+t.dataset.j][t.dataset.k] = t.value;
     if (t.tagName === "TEXTAREA") autoGrow(t);
   });
   main.addEventListener("change", e => {
     const d = HBE.draft, t = e.target; if (!d) return;
     if (t.tagName === "SELECT" && t.dataset.hbf) { set(d, t.dataset.hbf, t.value); if (["ed", "cls", "reqType", "abType"].includes(t.dataset.hbf)) { renderHomebrew(); const f = $(`#hbMain [data-hbf="${t.dataset.hbf}"]`); if (f) f.focus(); } }
     else if (t.dataset.hbab) { d.abs = AB.filter(a => a === t.dataset.hbab ? t.checked : d.abs.includes(a)); }
+    else if (t.dataset.fx && t.tagName === "SELECT") {
+      const e = fxList(d, t.dataset.fx)[+t.dataset.j]; e[t.dataset.k] = t.value;
+      if (t.dataset.k === "t") { e.a = fxAb(e.t) ? "str" : fxSkill(e.t) ? ALL_SKILLS[0] : undefined; if (fxNum(e.t) && !e.v) e.v = 1; renderHomebrew(); const f = $(`#hbMain [data-fx="${t.dataset.fx}"][data-j="${t.dataset.j}"][data-k="t"]`); if (f) f.focus(); }
+    }
   });
   main.addEventListener("click", async e => {
     const d = HBE.draft; if (!d) return; const t = e.target;
     const add = t.closest("[data-hbadd]"), del = t.closest("[data-hbdel]"), act = t.closest("[data-hbact]");
     if (add) { const k = add.dataset.hbadd; d[k].push(k === "features" ? { l: d[k].length ? d[k][d[k].length - 1].l : 3, n: "", d: "" } : { n: "", d: "" }); renderHomebrew(); const ins = $$(`#hbMain [data-hbrow="${k}"][data-k="n"]`); if (ins.length) ins[ins.length - 1].focus(); return; }
     if (del) { d[del.dataset.hbdel].splice(+del.dataset.i, 1); renderHomebrew(); return; }
+    const fa = t.closest("[data-fxadd]"), fd = t.closest("[data-fxdel]");
+    if (fa) { const l = fxList(d, fa.dataset.fxadd); l.push({ t: "ac", v: 1 }); renderHomebrew(); const f = $(`#hbMain [data-fx="${fa.dataset.fxadd}"][data-j="${l.length - 1}"][data-k="t"]`); if (f) f.focus(); return; }
+    if (fd) { fxList(d, fd.dataset.fxdel).splice(+fd.dataset.j, 1); renderHomebrew(); return; }
     if (!act) return;
     if (act.dataset.hbact === "close") { if (hbDirty() && !(await confirmBox("Discard changes?", "Your changes aren't saved.", "Discard"))) return; HBE.draft = null; HBE.id = null; renderHomebrew(); return; }
     if (act.dataset.hbact === "del") {
@@ -5917,20 +5997,21 @@ function hbFormHTML(d) {
 const RC = { id: null };
 function rosterCur() { return PCS.roster.find(c => c.id === RC.id) || PCS.roster[0] || null; }
 function pcRecompute(c) {
-  const m = {}; AB.forEach(a => m[a] = mod(+c.scores[a] || 10)); c.mods = m; c.init = m.dex + ((c.feats || []).some(f => f.f === "Feat: Alert") ? (edOf(c) === "2024" ? c.prof : 5) : 0);
+  const m = {}; AB.forEach(a => m[a] = mod(+c.scores[a] || 10)); c.mods = m; c.init = m.dex + (c.initBonus ?? ((c.feats || []).some(f => f.f === "Feat: Alert") ? (edOf(c) === "2024" ? c.prof : 5) : 0));
   const jack = c.cls === "Bard" && c.level >= 2;
   c.skills.forEach(s => s.v = m[s.ab] + (s.x ? c.prof * 2 : s.p ? c.prof : jack ? Math.floor(c.prof / 2) : 0));
   const per = c.skills.find(s => s.s === "Perception"); c.passive = 10 + (per ? per.v : m.wis);
   const C = CLASS_DATA[c.cls];
   if (C) {
     const w = C.wpn, wm = c.cls === "Monk" ? Math.max(m.str, m.dex) : m[w[2]];
-    c.attacks = (c.attacks || []).map(a => a.name === w[0] ? { ...a, hit: wm + c.prof, dmg: `${w[1]}${wm ? sgn(wm) : ""}` } : a.name === "Unarmed strike" ? { ...a, hit: wm + c.prof, dmg: ((String(a.dmg).match(/^\d+d\d+/) || ["1d4"])[0]) + sgn(wm) } : a);
+    const ab = c.atkBonus || 0;
+    c.attacks = (c.attacks || []).map(a => a.name === w[0] ? { ...a, hit: wm + c.prof + ab, dmg: `${w[1]}${wm ? sgn(wm) : ""}` } : a.name === "Unarmed strike" ? { ...a, hit: wm + c.prof + ab, dmg: ((String(a.dmg).match(/^\d+d\d+/) || ["1d4"])[0]) + sgn(wm) } : a);
   }
-  if (c.spell) { c.spell.dc = 8 + c.prof + m[c.spell.ab]; c.spell.atk = c.prof + m[c.spell.ab]; }
+  if (c.spell) { const b = c.spell.bonus || 0; c.spell.dc = 8 + c.prof + m[c.spell.ab] + b; c.spell.atk = c.prof + m[c.spell.ab] + b; }
 }
 function pcLevelTo(c, lv) {
   const n = generateCharacter({ seed: c.seed || c.id, name: c.name, race: c.race, ed: edOf(c), sub: c.sub || (c.race === "Dragonborn" && c.ancestry) || "none", ancestry: c.ancestry || undefined, cls: c.cls, bg: c.bg, level: lv, subclass: c.subclass || "none", asiPicks: c.asiPicks || undefined, method: c.method || "array", bonus: c.bonus || "flex", custom: c.customData || undefined });
-  ["level", "base", "scores", "mods", "rolls", "prof", "saves", "skills", "hp", "ac", "acSrc", "speed", "init", "passive", "attacks", "spell", "feats", "extras", "hd"].forEach(k => c[k] = n[k]);
+  ["level", "base", "scores", "mods", "rolls", "prof", "saves", "skills", "hp", "ac", "acSrc", "speed", "init", "passive", "attacks", "spell", "feats", "extras", "hd", "traits", "initBonus", "atkBonus", "hbSig"].forEach(k => c[k] = n[k]);
   c.hpCur = n.hp;
 }
 function renderRoster() {
@@ -5963,6 +6044,7 @@ function rosterHTML(c) {
       <label>Experience<input type="number" min="0" data-rf="xp" value="${esc(c.xp ?? "")}" placeholder="XP"></label>
     </div>
     ${lvBarHTML(c)}
+    ${hbStale(c) ? `<div class="lv-bar"><span class="lv-need">⚠ Homebrew this character uses has changed.</span><button class="btn sm" type="button" data-hbupdate="${esc(c.id)}" title="Rebuilds the numbers from the homebrew; current HP, notes, inventory and spells stay">Update sheet</button></div>` : ""}
     <p class="hint">Changes save automatically. Level up, or changing the level, rebuilds hit points, proficiency, features, spell slots and ability scores for the new level; your notes, inventory and spells stay.</p>
     <div class="pc-actions"><select class="campSelect" id="rcCamp" aria-label="Campaign"></select><button class="btn primary sm" type="button" data-ra="camp">+ Add to campaign party</button></div>
   </div>
