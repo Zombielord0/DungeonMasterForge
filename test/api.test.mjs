@@ -35,6 +35,7 @@ test("describeChange summarises the edits a DM cares about", () => {
     "added 2 × Potion of Healing");
   assert.equal(describeChange({ ...thorin, prepared: [{ n: "Fireball" }] }, thorin), "unprepared Fireball");
   assert.equal(describeChange(thorin, { ...thorin }), "");
+  assert.equal(describeChange(thorin, { ...thorin, companions: [{ n: "Wolf", hp: 11 }] }), "gained companion Wolf");
   assert.equal(describeChange({ ...thorin, scores: { str: 1, dex: 2 } }, { ...thorin, scores: { dex: 2, str: 1 } }), "", "key order is not a change");
   // opening a sheet fills in empty fields and recalculates modifiers: not a change
   assert.equal(describeChange(thorin, { ...thorin, coins: { gp: 0, sp: 0 }, feats: [], mods: { str: 3 }, init: 2 }), "");
