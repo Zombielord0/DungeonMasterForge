@@ -675,13 +675,16 @@ nav a[data-view=whispers]{--ic:url("data:image/svg+xml,%3Csvg xmlns='http://www.
 @media (prefers-reduced-motion:reduce){#whisperAlert.ping{animation:none}}
 #acctBtn{max-width:240px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 /* ======================= Minimizable toolbar ======================= */
-.hdr-toggle{flex:0 0 auto}
-.hdr-mini-label{display:none;font-family:Cinzel,serif;color:#e9dcc2;font-size:15px;letter-spacing:.03em;flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.hdr-toggle{flex:0 0 auto;margin-left:auto}
+.hdr-mini-label{display:none;font-family:Cinzel,serif;color:#e9dcc2;font-size:15px;letter-spacing:.03em;flex:0 1 auto;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .hdr-mini-label b{color:var(--gold2);font-weight:700}
+.hdr-tabsel{display:none;flex:0 1 auto;width:auto;min-width:0;max-width:260px;padding:4px 30px 4px 10px;font-family:Cinzel,serif;font-size:13px;color:var(--gold2)}
+.hdr-mini .hdr-tabsel{display:block}
 .hdr-mini header{padding-top:6px;padding-bottom:6px}
-.hdr-mini header>:not(.hdr-toggle):not(.hdr-mini-label){display:none}
+.hdr-mini header>:not(.hdr-toggle):not(.hdr-mini-label):not(.hdr-tabsel){display:none}
 .hdr-mini .hdr-mini-label{display:block}
 .hdr-mini .side,.hdr-mini .mb-side{top:58px;max-height:calc(100vh - 74px)}
+@media (max-width:600px){.hdr-mini .hdr-mini-label{display:none}}
 </style>
 </head>
 <body>
@@ -768,7 +771,8 @@ nav a[data-view=whispers]{--ic:url("data:image/svg+xml,%3Csvg xmlns='http://www.
     <a href="#whispers" data-view="whispers" hidden>Whispers<span id="whisperN" hidden></span></a>
   </nav>
   <span id="storeBadge" class="badge" title="Where your campaigns are saved">Connecting…</span>
-  <span class="hdr-mini-label" id="hdrMiniLabel">Dungeon Master's Forge</span>
+  <span class="hdr-mini-label" id="hdrMiniLabel">Dungeon Master's Forge ·</span>
+  <select class="hdr-tabsel" id="hdrTabSel" aria-label="Go to tab"></select>
   <button class="btn sm hdr-toggle" type="button" id="hdrToggle" aria-expanded="true" title="Hide the toolbar to give this tab more room">▴ Hide tabs</button>
 </header>
 
@@ -6092,9 +6096,11 @@ function hdrSync() {
   btn.textContent = mini ? "▾ Show tabs" : "▴ Hide tabs";
   btn.setAttribute("aria-expanded", String(!mini));
   btn.title = mini ? "Show the toolbar and tabs" : "Hide the toolbar to give this tab more room";
-  const a = document.querySelector("nav a.active");
-  document.getElementById("hdrMiniLabel").innerHTML = "Dungeon Master's Forge" + (a ? " · <b>" + esc(a.textContent.trim()) + "</b>" : "");
+  const sel = document.getElementById("hdrTabSel"), tabs = $$("nav a").filter(a => !a.hidden);
+  sel.innerHTML = tabs.map(a => `<option value="${esc(a.dataset.view)}"${a.classList.contains("active") ? " selected" : ""}>${esc(a.firstChild.textContent.trim())}</option>`).join("");
 }
+document.getElementById("hdrTabSel").addEventListener("change", e => { location.hash = e.target.value; });
+document.getElementById("hdrTabSel").addEventListener("focus", hdrSync); // pick up tabs revealed after sign-in
 document.getElementById("hdrToggle").addEventListener("click", () => {
   const mini = document.documentElement.classList.toggle("hdr-mini");
   try { localStorage.setItem("dmforge.hdrMini", mini ? "1" : "0"); } catch (e) {}
