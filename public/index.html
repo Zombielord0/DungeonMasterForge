@@ -6354,12 +6354,13 @@ function pcInvUpgrade(c) {
 function eqWeaponOf(i, ed) {
   itLoad();
   const ref = i.ref ? itFind(i.ref) : null;
-  if (eqIsWeapon(ref)) return ref;
   const W = IT.data[ed === "2014" ? "2014" : "2024"].filter(eqIsWeapon);
   const forms = x => { const n = x.n.toLowerCase(), m = n.match(/^(.+), (.+)$/); return m ? [n, `${m[2]} ${m[1]}`] : [n]; };
   const hits = t => { t = String(t || "").toLowerCase(); return W.filter(x => forms(x).some(f => new RegExp(`\\b${f.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}`).test(t))); };
   const best = L => L.sort((a, b) => b.n.length - a.n.length)[0];
-  for (const t of [i.n, i.note]) { const L = hits(t); if (L.length) return best(L); }
+  { const L = hits(i.n); if (L.length) return best(L); }
+  if (eqIsWeapon(ref)) return ref;
+  { const L = hits(i.note); if (L.length) return best(L); }
   if (ref && ref.type) { const L = hits(ref.type); if (L.length === 1) return L[0]; }
   return null;
 }
@@ -6378,22 +6379,67 @@ function eqAttack(c, i, w) {
   const m = c.mods, ranged = /Ranged/.test(w.cat), monk = c.cls === "Monk" && (/Simple Melee/.test(w.cat) || w.n === "Shortsword" || (/Melee/.test(w.cat) && /Light/.test(props) && edOf(c) === "2024"));
   const ab = /Finesse/.test(props) || monk ? (m.dex > m.str ? "dex" : "str") : ranged ? "dex" : "str";
   const magic = +(((i.n + " " + (i.note || "")).match(/\+([1-3])\b/) || [])[1] || 0), needsAtt = !!i.att && !i.attuned, bonus = needsAtt ? 0 : magic;
-  const prof = eqProficient(c, w), mod = m[ab] + bonus, hit = m[ab] + (prof ? c.prof : 0) + bonus;
+  const prof = eqProficient(c, w), style = ranged && hasStyle(c, "Archery") ? 2 : 0, mod = m[ab] + bonus, hit = m[ab] + (prof ? c.prof : 0) + bonus + style;
   const two = (dmgTxt.match(/two-handed (\d+d\d+)/) || [])[1];
-  return { name: i.n, iid: i.id, hit, dmg: dm[1] + (mod ? sgn(mod) : ""), type: dm[2], alt: two ? `${two}${mod ? sgn(mod) : ""} two-handed` : "", ab, prof, magic, needsAtt };
+  return { name: i.n, iid: i.id, hit, dmg: dm[1] + (mod ? sgn(mod) : ""), type: dm[2], alt: two ? `${two}${mod ? sgn(mod) : ""} two-handed` : "", ab, prof, magic, needsAtt, melee: !ranged, twoH: /Two-Handed/.test(props), mod, die: dm[1] };
 }
+/* ---- fighting styles, armor training, protective items and spell effects ---- */
+const FIGHT_STYLES = {
+  Archery: "+2 to attack rolls with ranged weapons (applied to your attacks).",
+  "Blind Fighting": "Blindsight 10 ft.",
+  Defense: "+1 AC while wearing armor (applied to your AC).",
+  Dueling: "+2 damage with a melee weapon in one hand and no other weapon (applied when one one-handed melee weapon is equipped).",
+  "Great Weapon Fighting": "Two-handed or versatile melee weapons held in two hands: reroll 1s and 2s on damage dice (2024: treat them as 3s).",
+  Interception: "Reaction: reduce damage to an ally within 5 ft by 1d10 + proficiency bonus, while holding a shield or weapon.",
+  Protection: "Reaction: impose disadvantage on an attack against an ally within 5 ft, while holding a shield.",
+  "Thrown Weapon Fighting": "Draw a thrown weapon as part of the attack, and +2 damage when you hit with a ranged attack using a thrown weapon.",
+  "Two-Weapon Fighting": "Add your ability modifier to the damage of your off-hand attack.",
+  "Unarmed Fighting": "Unarmed strikes deal 1d6 + STR (1d8 with both hands free), and 1d4 to a creature you grapple at the start of your turn."
+};
+function fightStyleOptions(c) {
+  if (edOf(c) === "2024") return Object.keys(FIGHT_STYLES);
+  return { Fighter: ["Archery", "Defense", "Dueling", "Great Weapon Fighting", "Protection", "Two-Weapon Fighting"], Paladin: ["Defense", "Dueling", "Great Weapon Fighting", "Protection"], Ranger: ["Archery", "Defense", "Dueling", "Two-Weapon Fighting"] }[c.cls] || ["Archery", "Defense", "Dueling", "Great Weapon Fighting", "Protection", "Two-Weapon Fighting"];
+}
+const fightSlots = c => ((c.feats || []).some(f => f.f === "Fighting Style") ? 1 : 0) + ((c.feats || []).some(f => f.f === "Additional Fighting Style") ? 1 : 0);
+const hasStyle = (c, n) => (c.fightStyles || []).slice(0, fightSlots(c)).includes(n);
+// armor the character is trained in: class, subclass, species and feats
+function armorTraining(c) {
+  const ed = edOf(c), T = new Set(({ Barbarian: "light medium shield", Bard: "light", Cleric: "light medium shield", Druid: ed === "2024" ? "light shield" : "light medium shield", Fighter: "light medium heavy shield", Monk: "", Paladin: "light medium heavy shield", Ranger: "light medium shield", Rogue: "light", Sorcerer: "", Warlock: "light", Wizard: "" }[c.cls] || "").split(" ").filter(Boolean));
+  const sub = c.subclass || "", f = n => (c.feats || []).some(x => x.f.replace(/ \(.*$/, "") === "Feat: " + n);
+  if (ed === "2014" && ["Life Domain", "Nature Domain", "Tempest Domain", "War Domain"].includes(sub) && c.level >= 1) T.add("heavy");
+  if (sub === "College of Valor" && c.level >= 3) { T.add("medium"); T.add("shield"); }
+  if ((c.traits || []).includes("Dwarven Armor Training")) { T.add("light"); T.add("medium"); }
+  if (f("Lightly Armored")) T.add("light");
+  if (f("Moderately Armored")) { T.add("light"); T.add("medium"); T.add("shield"); }
+  if (f("Heavily Armored")) { T.add("light"); T.add("medium"); T.add("heavy"); }
+  return T;
+}
+const armorKind = a => a.cat === "Shield" ? "shield" : a.cat.split(" ")[0].toLowerCase();
+// protective magic items, counted once equipped (and attuned where needed)
+const PROT_ITEMS = [["ring of protection", 1, 1, false], ["cloak of protection", 1, 1, false], ["ioun stone of protection", 1, 0, false], ["ioun stone (protection)", 1, 0, false], ["bracers of defense", 2, 0, true]];
+function protItems(c, armored) {
+  const out = [];
+  (c.inv || []).filter(i => i.eq && (+i.qty || 0) > 0).forEach(i => {
+    const t = i.n.toLowerCase(), P = PROT_ITEMS.find(([k]) => t.includes(k)); if (!P) return;
+    const [, ac, save, noArmor] = P, needs = /ioun|ring|cloak|bracers/.test(t) && !i.attuned;
+    out.push({ i, ac: needs || (noArmor && armored) ? 0 : ac, save: needs ? 0 : save, why: needs ? "attune to use" : noArmor && armored ? "only without armor or shield" : "" });
+  });
+  return out;
+}
+const itemSaveBonus = c => protItems(c, false).reduce((s, p) => s + p.save, 0);
 /* ---- armor class from equipped armor and shields ---- */
 const ARMOR_MAGIC = { "dwarven plate": 2, "dragon scale mail": 1, "elven chain": 1 };
 // the standard armor (or shield) an inventory item is: its Items-tab entry, else armor named in its name, notes or magic type
 function eqArmorOf(i, ed) {
   itLoad();
   const ref = i.ref ? itFind(i.ref) : null;
-  if (eqIsArmor(ref)) return ref;
   const L = IT.data[ed === "2014" ? "2014" : "2024"].filter(eqIsArmor);
   const forms = x => { const n = x.n.toLowerCase(); return [n, n.replace(/ armor$/, "")]; };
   const hits = t => { t = String(t || "").toLowerCase(); return L.filter(x => forms(x).some(f => new RegExp(`\\b${f.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}\\b`).test(t))); };
   const best = H => H.sort((a, b) => b.n.length - a.n.length)[0];
-  for (const t of [i.n, i.note]) { const H = hits(t); if (H.length) return best(H); }
+  { const H = hits(i.n); if (H.length) return best(H); }
+  if (eqIsArmor(ref)) return ref;
+  { const H = hits(i.note); if (H.length) return best(H); }
   if (ref && ref.type) { const H = hits(ref.type.replace(/^armor\s*/i, "")); if (H.length) return best(H); }
   return null;
 }
@@ -6407,18 +6453,31 @@ function pcAC(c) {
   const worn = eq.map(i => ({ i, a: eqArmorOf(i, ed) })).filter(x => x.a);
   const val = x => { const t = (x.a.st.find(([k]) => k === "Armor Class") || [])[1] || "", mm = t.match(/^\+?(\d+)(\s*\+\s*Dex modifier)?(\s*\(max 2\))?/); if (!mm) return 0; return +mm[1] + (mm[2] ? (mm[3] ? Math.min(m.dex, 2) : m.dex) : 0) + eqArmorBonus(x.i); };
   const body = worn.filter(x => x.a.cat !== "Shield").sort((a, b) => val(b) - val(a))[0], shield = worn.filter(x => x.a.cat === "Shield").sort((a, b) => val(b) - val(a))[0];
-  const parts = [];
-  let ac;
-  if (body) { ac = val(body); parts.push(`${body.i.n} ${ac}`); }
+  const parts = [], warn = [], fx = c.fx || {}, T = armorTraining(c);
+  let ac, speedPen = 0, stealthDis = false, untrained = false;
+  if (body) {
+    ac = val(body); parts.push(`${body.i.n} ${ac}`);
+    if (!T.has(armorKind(body.a))) { untrained = true; warn.push(`not trained in ${armorKind(body.a)} armor: disadvantage on STR and DEX checks, saves and attacks, and no spellcasting`); }
+    const req = +((body.a.st.find(([k]) => k === "Strength") || [])[1] || 0);
+    if (req && (+c.scores.str || 0) < req && c.race !== "Dwarf") { speedPen = 10; warn.push(`STR ${c.scores.str} is below ${body.a.n}'s ${req}: speed −10 ft`); }
+    if ((body.a.st.find(([k]) => k === "Stealth") || [])[1] === "Disadvantage") stealthDis = true;
+    if (hasStyle(c, "Defense")) { ac += 1; parts.push("Defense +1"); }
+  }
   else {
     const opts = [[10 + m.dex, "No armor (10 + DEX)"]];
+    if (fx.mageArmor) opts.push([13 + m.dex, "Mage Armor (13 + DEX)"]);
     if (c.cls === "Barbarian") opts.push([10 + m.dex + m.con, "Unarmored Defense (10 + DEX + CON)"]);
     if (c.cls === "Monk" && !shield) opts.push([10 + m.dex + m.wis, "Unarmored Defense (10 + DEX + WIS)"]);
     const B = subBonusOf(c); if (B.ac) opts.push(B.ac);
     const best = opts.sort((a, b) => b[0] - a[0])[0]; ac = best[0]; parts.push(`${best[1]} ${best[0]}`);
   }
-  if (shield) { const sv = val(shield); ac += sv; parts.push(`${shield.i.n} +${sv}`); }
-  return { ac, src: parts.join(" + ") };
+  if (shield) {
+    const sv = val(shield); ac += sv; parts.push(`${shield.i.n} +${sv}`);
+    if (!T.has("shield")) { untrained = true; warn.push("not trained with shields: disadvantage on STR and DEX checks, saves and attacks, and no spellcasting"); }
+  }
+  protItems(c, !!(body || shield)).forEach(p => { if (p.ac) { ac += p.ac; parts.push(`${p.i.n} +${p.ac}`); } else if (p.why) warn.push(`${p.i.n}: ${p.why}`); });
+  if (fx.shieldOfFaith) { ac += 2; parts.push("Shield of Faith +2"); }
+  return { ac, src: parts.join(" + "), warn: [...new Set(warn)], speedPen, stealthDis, untrained };
 }
 // keep the AC field in step with equipment unless it was typed in by hand
 function pcACApply(c) {
@@ -6428,14 +6487,18 @@ function pcACApply(c) {
     const gen = [A.ac, CLASS_DATA[c.cls] ? CLASS_DATA[c.cls].ac(c.mods)[0] : null, c.cls === "Sorcerer" ? 13 + c.mods.dex : null, (subBonusOf(c).ac || [])[0]];
     c.acManual = c.ac !== "" && c.ac !== undefined && !gen.includes(+c.ac);
   }
-  c.acAuto = A.ac; c.acAutoSrc = A.src;
+  c.acAuto = A.ac; c.acAutoSrc = A.src; c.acWarn = A.warn; c.acStealthDis = A.stealthDis; c.armorUntrained = A.untrained;
+  const dP = A.speedPen - (+c.armSpd || 0); if (dP && c.speed !== "") c.speed = (+c.speed || 0) - dP; c.armSpd = A.speedPen;
   if (!c.acManual) { c.ac = A.ac; c.acSrc = A.src; }
 }
 function rcACLine(c) {
   if (!c.kitMoved || c.acAuto === undefined) return "";
-  return c.acManual
+  const fx = c.fx || {};
+  const toggles = `<div class="row" style="flex-wrap:wrap;gap:6px 16px;margin-top:10px"><span class="muted" style="flex:0 0 auto;font-size:14px">Spell effects:</span>${[["mageArmor", "Mage Armor (13 + DEX, no armor)"], ["shieldOfFaith", "Shield of Faith (+2 AC)"]].map(([k, l]) => `<label style="flex:0 0 auto;display:inline-flex;align-items:center;gap:6px;font-size:14px;cursor:pointer"><input type="checkbox" data-fx="${k}" ${fx[k] ? "checked" : ""}>${l}</label>`).join("")}</div>`;
+  const warn = (c.acWarn || []).map(w => `<div class="enc" style="margin-top:6px">⚠ ${esc(w.charAt(0).toUpperCase() + w.slice(1))}.</div>`).join("") + (c.acStealthDis ? `<p class="hint" style="margin:6px 0 0">Your armor gives disadvantage on Stealth checks.</p>` : "");
+  return toggles + warn + (c.acManual
     ? `<p class="hint" style="margin:10px 0 0">Armor class is set by hand to <b>${esc(c.ac)}</b>. Your equipment gives <b>${c.acAuto}</b> (${esc(c.acAutoSrc)}). <button class="btn sm" type="button" data-acauto="1">Use equipment AC</button></p>`
-    : `<p class="hint" style="margin:10px 0 0">Armor class <b>${c.acAuto}</b>: ${esc(c.acAutoSrc)}.</p>`;
+    : `<p class="hint" style="margin:10px 0 0">Armor class <b>${c.acAuto}</b>: ${esc(c.acAutoSrc)}.</p>`);
 }
 function pcAttacks(c) {
   const ed = edOf(c), out = [], SB = subBonusOf(c);
@@ -6449,9 +6512,15 @@ function pcAttacks(c) {
     out.push({ name: "Psychic Blade (bonus action)", hit: bm + c.prof, dmg: "1d4" + (bm ? sgn(bm) : ""), type: "psychic", prof: true });
   }
   if (SB.crit < 20) out.forEach(a => a.crit = SB.crit);
+  // Dueling: +2 damage when a single one-handed melee weapon is equipped
+  const melee = out.filter(a => a.iid && a.melee);
+  if (hasStyle(c, "Dueling") && melee.length === 1 && !melee[0].twoH) { const a = melee[0]; a.dmg = a.die + sgn(a.mod + 2); a.alt = a.alt ? a.alt.replace(/[+-]\d+ two-handed$/, (a.mod ? sgn(a.mod) : "") + " two-handed") : ""; a.styleNote = "Dueling +2"; }
+  if (hasStyle(c, "Archery")) out.filter(a => a.iid && !a.melee).forEach(a => a.styleNote = "Archery +2");
+  const A = pcAC(c);
+  if (A.untrained) out.forEach(a => { if (["str", "dex"].includes(a.ab) || !a.ab) a.armorDis = true; });
   return out;
 }
-const atkLine = a => `<b>${esc(a.name)}</b>: ${sgn(a.hit)} to hit, ${esc(a.dmg)}${a.type ? " " + esc(a.type) : ""} damage${a.alt ? ` <span class="muted">(${esc(a.alt)})</span>` : ""}${a.crit ? ` <span class="tag">crit ${a.crit}–20</span>` : ""}${a.prof === false ? ` <span class="tag">not proficient</span>` : ""}${a.needsAtt ? ` <span class="tag">attune for +${a.magic}</span>` : ""}`;
+const atkLine = a => `<b>${esc(a.name)}</b>: ${sgn(a.hit)} to hit, ${esc(a.dmg)}${a.type ? " " + esc(a.type) : ""} damage${a.alt ? ` <span class="muted">(${esc(a.alt)})</span>` : ""}${a.crit ? ` <span class="tag">crit ${a.crit}–20</span>` : ""}${a.styleNote ? ` <span class="tag">${esc(a.styleNote)}</span>` : ""}${a.armorDis ? ` <span class="tag">disadvantage: armor</span>` : ""}${a.prof === false ? ` <span class="tag">not proficient</span>` : ""}${a.needsAtt ? ` <span class="tag">attune for +${a.magic}</span>` : ""}`;
 /* ---- limited-use resources (ki, rages, slots, hit dice…), the Abilities list, and rests ---- */
 // recharge: "long" = back on a long rest; "short" = all back on a short rest; "short1" = one back on a short rest (2024 rules)
 function pcResources(c) {
@@ -6561,7 +6630,7 @@ function pcRest(c, kind) {
     else if (r.recharge === "short1") nu = u - 1;
     if (nu !== u) { c.used[r.key] = nu; back.push(r.name); }
   });
-  if (kind === "long") { c.hpCur = c.hp; c.hpTemp = ""; }
+  if (kind === "long") { c.hpCur = c.hp; c.hpTemp = ""; if (c.fx && (c.fx.mageArmor || c.fx.shieldOfFaith)) { c.fx = {}; c.fxEnded = true; pcACApply(c); } }
   return back;
 }
 function rcAttacksHTML(c) { return (c.attacks || []).map(a => `<div class="enc" style="border-color:var(--gold)">${atkLine(a)}</div>`).join(""); }
@@ -6591,7 +6660,7 @@ function renderRosterMain() {
   main.innerHTML = rosterHTML(c); renderCampList(); $$("textarea", main).forEach(autoGrow);
 }
 function rosterHTML(c) {
-  const sv = a => c.mods[a] + (c.saves.includes(a) ? c.prof : 0);
+  const isb = itemSaveBonus(c), sv = a => c.mods[a] + (c.saves.includes(a) ? c.prof : 0) + isb;
   const D = c.hookDetail || { story: "", questions: [], use: "" };
   const attN = c.inv.filter(i => i.attuned).length, wt = c.inv.reduce((s, i) => s + (+i.w || 0) * (+i.qty || 0), 0);
   const L = c.spell ? spellLimits(c) : null;
@@ -6622,6 +6691,7 @@ function rosterHTML(c) {
     <div class="sec"><div class="sec-h"><h3>Attacks${c.spell ? " & Spellcasting" : ""}</h3></div>
       <div id="rcAtk">${rcAttacksHTML(c)}</div>
       <p class="hint" style="margin:4px 0 0">From your equipped weapons. Tick <b>Equip</b> in the inventory to change them.</p>
+      ${fightSlots(c) ? `<div class="field" style="margin:10px 0 0"><label>Fighting style${fightSlots(c) > 1 ? "s" : ""}</label><div class="row" style="flex-wrap:wrap">${[...Array(fightSlots(c)).keys()].map(n => `<select data-fstyle="${n}" aria-label="Fighting style ${n + 1}"><option value="">Choose…</option>${fightStyleOptions(c).filter(o => o === (c.fightStyles || [])[n] || !(c.fightStyles || []).includes(o)).map(o => `<option ${(c.fightStyles || [])[n] === o ? "selected" : ""}>${esc(o)}</option>`).join("")}</select>`).join("")}</div>${(c.fightStyles || []).slice(0, fightSlots(c)).filter(Boolean).map(o => `<p class="hint" style="margin:4px 0 0"><b>${esc(o)}:</b> ${esc(FIGHT_STYLES[o])}</p>`).join("")}</div>` : ""}
       ${c.spell ? `<p style="margin:10px 0 4px"><b>Spell save DC ${c.spell.dc}</b> · spell attack ${sgn(c.spell.atk)} · ability ${AB_NAME[c.spell.ab]}</p>
         ${rcSlotsHTML(c)}
         <button class="btn sm" type="button" style="margin-top:10px" data-spells="${esc(c.cls)}|${c.spell.max}|${c.spell.cantrips ? 1 : 0}">✦ Browse ${esc(c.cls)} spells</button>` : ""}
@@ -6668,11 +6738,16 @@ function rosterHTML(c) {
     if (e.target.closest("[data-acauto]")) { c.acManual = false; pcACApply(c); pcPersist(); renderRosterMain(); toast(`Armor class ${c.ac} from equipment`); return; }
     const rs = e.target.closest("[data-rest]");
     if (rs) {
-      const kind = rs.dataset.rest, back = pcRest(c, kind); pcPersist(); renderRosterMain();
-      toast(kind === "long" ? `${c.name} takes a long rest: full hit points${back.length ? ", " + back.join(", ").toLowerCase() + " restored" : ""}` : back.length ? `${c.name} takes a short rest: ${back.join(", ").toLowerCase()} regained` : `${c.name} takes a short rest. Nothing to regain.`);
+      const kind = rs.dataset.rest, back = pcRest(c, kind), fxEnded = c.fxEnded; delete c.fxEnded; pcPersist(); renderRosterMain();
+      toast(kind === "long" ? `${c.name} takes a long rest: full hit points${back.length ? ", " + back.join(", ").toLowerCase() + " restored" : ""}${fxEnded ? ". Spell effects ended" : ""}` : back.length ? `${c.name} takes a short rest: ${back.join(", ").toLowerCase()} regained` : `${c.name} takes a short rest. Nothing to regain.`);
     }
   });
-  main.addEventListener("change", e => { const t = e.target, c = rosterCur(); if (c && t.dataset.left) resSet(c, t.dataset.left, parseInt(t.value) || 0); });
+  main.addEventListener("change", e => {
+    const t = e.target, c = rosterCur(); if (!c) return;
+    if (t.dataset.left) resSet(c, t.dataset.left, parseInt(t.value) || 0);
+    else if (t.dataset.fstyle !== undefined) { c.fightStyles = c.fightStyles || []; c.fightStyles[+t.dataset.fstyle] = t.value; pcRecompute(c); pcPersist(); renderRosterMain(); }
+    else if (t.dataset.fx) { c.fx = c.fx || {}; c.fx[t.dataset.fx] = t.checked; pcACApply(c); pcPersist(); renderRosterMain(); }
+  });
   main.addEventListener("input", e => {
     const c = rosterCur(); if (!c) return; const t = e.target;
     if (["rcPrepQ", "rcPrepLv", "rcPrepEd"].includes(t.id)) { renderPrepList(c, "rc"); return; }
