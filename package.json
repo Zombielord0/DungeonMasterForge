@@ -1,0 +1,19 @@
+{
+  "name": "dungeon-masters-forge",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "esbuild src/portal.js --bundle --format=esm --target=es2020 --minify --outfile=public/portal.js",
+    "test": "node --test test/*.test.mjs"
+  },
+  "dependencies": {
+    "@netlify/database": "^2.0.3",
+    "@netlify/functions": "^6.1.1",
+    "@netlify/identity": "^2.0.1"
+  },
+  "devDependencies": {
+    "@netlify/database-dev": "^1.0.2",
+    "esbuild": "^0.28.2",
+    "pg": "^8.13.0"
+  }
+}

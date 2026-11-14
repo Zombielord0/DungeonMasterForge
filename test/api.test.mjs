@@ -1,0 +1,132 @@
+import { test, before, after } from "node:test";
+import assert from "node:assert/strict";
+import { NetlifyDB } from "@netlify/database-dev";
+import pg from "pg";
+import { handle } from "../netlify/lib/api.mjs";
+import { describeChange } from "../netlify/lib/diff.mjs";
+
+let ndb, pool;
+before(async () => {
+  ndb = new NetlifyDB();
+  const cs = await ndb.start();
+  await ndb.applyMigrations("./netlify/database/migrations");
+  pool = new pg.Pool({ connectionString: cs, max: 1 });
+});
+after(async () => { await pool?.end(); await ndb?.stop(); });
+
+const DM = { id: "u-dm", email: "dm@example.com" };
+const AVA = { id: "u-ava", email: "ava@example.com" };
+const BEN = { id: "u-ben", email: "ben@example.com" };
+
+async function call(user, method, path, body) {
+  const req = new Request("https://forge.test/api/" + path, {
+    method, headers: { "content-type": "application/json" }, body: body ? JSON.stringify(body) : undefined,
+  });
+  const res = await handle(req, user, pool);
+  return { status: res.status, body: await res.json() };
+}
+
+const thorin = { id: "pc-thorin", name: "Thorin", level: 5, hpCur: 44, hp: 44, ac: 18, inv: [], prepared: [] };
+
+test("describeChange summarises the edits a DM cares about", () => {
+  assert.equal(describeChange(thorin, { ...thorin, hpCur: 31 }), "HP 44 → 31");
+  assert.equal(
+    describeChange(thorin, { ...thorin, inv: [{ n: "Potion of Healing", qty: 2 }] }),
+    "added 2 × Potion of Healing");
+  assert.equal(describeChange({ ...thorin, prepared: [{ n: "Fireball" }] }, thorin), "unprepared Fireball");
+  assert.equal(describeChange(thorin, { ...thorin }), "");
+  assert.equal(describeChange({ ...thorin, scores: { str: 1, dex: 2 } }, { ...thorin, scores: { dex: 2, str: 1 } }), "", "key order is not a change");
+  // opening a sheet fills in empty fields and recalculates modifiers: not a change
+  assert.equal(describeChange(thorin, { ...thorin, coins: { gp: 0, sp: 0 }, feats: [], mods: { str: 3 }, init: 2 }), "");
+  assert.equal(describeChange({ ...thorin, coins: { gp: 0 } }, { ...thorin, coins: { gp: 50 } }), "GP 0 → 50");
+  assert.equal(describeChange({ ...thorin, scores: { str: 16, dex: 12 } }, { ...thorin, scores: { str: 17, dex: 12 }, mods: { str: 3 } }), "STR 16 → 17");
+});
+
+test("full campaign flow", async (t) => {
+  assert.equal((await call(null, "GET", "me")).status, 401);
+
+  const made = await call(DM, "POST", "campaigns", { name: "Ashes of Velmor", displayName: "Matt" });
+  assert.equal(made.status, 201);
+  assert.match(made.body.code, /^[A-Z2-9]{3}-[A-Z2-9]{3}$/);
+  const cid = made.body.id;
+
+  await t.test("players join with the code, typed loosely", async () => {
+    const bad = await call(AVA, "POST", "join", { code: "ZZZ-ZZZ", displayName: "Ava" });
+    assert.equal(bad.status, 404);
+    const ok = await call(AVA, "POST", "join", { code: made.body.code.toLowerCase().replace("-", " "), displayName: "Ava" });
+    assert.equal(ok.status, 200);
+    assert.equal(ok.body.role, "player");
+    await call(BEN, "POST", "join", { code: made.body.code, displayName: "Ben" });
+    const me = await call(AVA, "GET", "me");
+    assert.equal(me.body.campaigns[0].code, undefined, "players never see the join code");
+  });
+
+  await t.test("players only see their own characters, the DM sees all", async () => {
+    assert.equal((await call(AVA, "POST", `campaigns/${cid}/characters`, { data: thorin })).status, 201);
+    await call(BEN, "POST", `campaigns/${cid}/characters`, { data: { id: "pc-lyra", name: "Lyra", hpCur: 22 } });
+    const ben = await call(BEN, "GET", `campaigns/${cid}/characters`);
+    assert.deepEqual(ben.body.characters.map(c => c.name ?? c.data.name), ["Lyra"]);
+    const dm = await call(DM, "GET", `campaigns/${cid}/characters`);
+    assert.deepEqual(dm.body.characters.map(c => c.data.name).sort(), ["Lyra", "Thorin"]);
+    assert.equal(dm.body.characters.find(c => c.id === "pc-thorin").ownerName, "Ava");
+  });
+
+  await t.test("a player can't touch someone else's sheet", async () => {
+    const r = await call(BEN, "PUT", `campaigns/${cid}/characters/pc-thorin`, { data: thorin, baseVersion: 1 });
+    assert.equal(r.status, 403);
+    const outsider = await call({ id: "u-x" }, "GET", `campaigns/${cid}/characters`);
+    assert.equal(outsider.status, 403);
+  });
+
+  await t.test("DM edits and simultaneous-edit warning", async () => {
+    const ava = await call(AVA, "PUT", `campaigns/${cid}/characters/pc-thorin`, { data: { ...thorin, hpCur: 31 }, baseVersion: 1 });
+    assert.deepEqual(ava.body, { version: 2 });
+    // DM still holds version 1: they get Ava's version back instead of overwriting it
+    const clash = await call(DM, "PUT", `campaigns/${cid}/characters/pc-thorin`, { data: { ...thorin, ac: 19 }, baseVersion: 1 });
+    assert.equal(clash.status, 409);
+    assert.equal(clash.body.current.data.hpCur, 31);
+    assert.equal(clash.body.current.updatedByName, "Ava");
+    const forced = await call(DM, "PUT", `campaigns/${cid}/characters/pc-thorin`, { data: { ...thorin, hpCur: 31, ac: 19 }, baseVersion: 1, force: true });
+    assert.deepEqual(forced.body, { version: 3 });
+  });
+
+  await t.test("activity feed folds quick edits and marks DM changes", async () => {
+    await call(AVA, "PUT", `campaigns/${cid}/characters/pc-thorin`, { data: { ...thorin, hpCur: 25, ac: 19 }, baseVersion: 3 });
+    await call(AVA, "PUT", `campaigns/${cid}/characters/pc-thorin`, { data: { ...thorin, hpCur: 20, ac: 19 }, baseVersion: 4 });
+    const feed = await call(DM, "GET", `campaigns/${cid}/activity`);
+    const lines = feed.body.map(a => `${a.actor}${a.byDM ? " (DM)" : ""}: ${a.characterName}: ${a.summary}`);
+    assert.deepEqual(lines, [
+      "Ava: Thorin: HP 31 → 20", // two quick HP edits in a row read as one change
+      "Matt (DM): Thorin: AC 18 → 19",
+      "Ava: Thorin: HP 44 → 31", // kept apart from the above: the DM edited in between
+      "Ben: Lyra: created this character",
+      "Ava: Thorin: created this character",
+    ]);
+    assert.equal((await call(AVA, "GET", `campaigns/${cid}/activity`)).status, 403);
+  });
+
+  await t.test("polling with `since` returns changes and deletions", async () => {
+    const first = await call(DM, "GET", `campaigns/${cid}/characters`);
+    await call(BEN, "DELETE", `campaigns/${cid}/characters/pc-lyra`);
+    const next = await call(DM, "GET", `campaigns/${cid}/characters?since=${encodeURIComponent(first.body.now)}`);
+    assert.deepEqual(next.body.deleted, ["pc-lyra"]);
+  });
+
+  await t.test("whispers reach only the chosen player", async () => {
+    const members = await call(DM, "GET", `campaigns/${cid}/members`);
+    const ava = members.body.find(p => p.name === "Ava");
+    assert.equal((await call(AVA, "POST", `campaigns/${cid}/whispers`, { to: BEN.id, body: "hi" })).status, 403);
+    assert.equal((await call(DM, "POST", `campaigns/${cid}/whispers`, { to: ava.id, body: "The amulet is cursed." })).status, 201);
+    const avaInbox = await call(AVA, "GET", `campaigns/${cid}/whispers`);
+    assert.deepEqual(avaInbox.body.map(w => [w.body, w.read]), [["The amulet is cursed.", false]]);
+    assert.deepEqual((await call(BEN, "GET", `campaigns/${cid}/whispers`)).body, []);
+    await call(AVA, "POST", `campaigns/${cid}/whispers/read`);
+    assert.equal((await call(AVA, "GET", `campaigns/${cid}/whispers`)).body[0].read, true);
+    assert.equal((await call(DM, "GET", `campaigns/${cid}/whispers`)).body[0].toName, "Ava");
+  });
+
+  await t.test("DM can remove a player", async () => {
+    await call(DM, "DELETE", `campaigns/${cid}/members/${BEN.id}`);
+    assert.equal((await call(BEN, "GET", `campaigns/${cid}/characters`)).status, 403);
+  });
+});
