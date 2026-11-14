@@ -3598,7 +3598,7 @@ ${AB.map(a => `${AB_NAME[a]} ${c.scores[a]} (${sgn(c.mods[a])})`).join(" | ")}
 HP ${c.hp} | AC ${c.ac} (${c.acSrc}) | Init ${sgn(c.init)} | Speed ${c.speed} ft | Prof ${sgn(c.prof)} | Passive Perception ${c.passive}
 Saves: ${c.saves.map(a => `${AB_NAME[a]} ${sgn(c.mods[a] + c.prof)}`).join(", ")}
 Skills: ${c.skills.filter(s => s.p).map(s => `${s.s} ${sgn(s.v)}${s.x ? "*" : ""}`).join(", ")}
-Attacks: ${c.attacks.map(a => `${a.name} ${sgn(a.hit)} (${a.dmg})`).join("; ")}
+Attacks: ${c.attacks.map(a => `${a.name} ${sgn(a.hit)} (${a.dmg}${a.type ? " " + a.type : ""})`).join("; ")}
 ${c.spell ? `Spellcasting: DC ${c.spell.dc}, attack ${sgn(c.spell.atk)}; ${c.spell.note || c.spell.slots.map((n, i) => `L${i + 1}×${n}`).join(" ") || "no slots yet"}\n` : ""}${(c.prepared || []).length ? `Spells: ${[...c.prepared].sort((a, b) => a.l - b.l || a.n.localeCompare(b.n)).map(p => p.l ? `${p.n} (${p.l})` : `${p.n} (cantrip)`).join(", ")}\n` : ""}Features: ${c.feats.map(f => f.f).concat(c.extras).join(", ")}
 Racial traits: ${c.traits.join(", ")}
 Equipment: ${c.kit.concat((c.inv || []).filter(i => i.n).map(i => (+i.qty > 1 ? i.qty + " × " : "") + i.n)).join(", ")}
@@ -4065,7 +4065,7 @@ function sheetDoc(c) {
       <div class="trio" style="grid-template-columns:1fr 1fr"><div class="stat"><div class="lab">Total ${c.level}d${c.hd}</div><div class="v" style="font-size:15px">${c.level}d${c.hd}</div><div class="lab">Hit dice</div></div>
         <div class="stat"><div class="line" style="justify-content:flex-end"><span class="lab">Successes</span>${dots(3)}</div><div class="line" style="justify-content:flex-end"><span class="lab">Failures</span>${dots(3)}</div><div class="lab">Death saves</div></div></div>
       <div class="box"><table><tr><th>Name</th><th>Atk bonus</th><th>Damage / type</th></tr>
-        ${c.attacks.map(a => `<tr><td>${esc(a.name)}</td><td>${sgn(a.hit)}</td><td>${esc(a.dmg)} ${DMG_TYPE[a.name] || ""}</td></tr>`).join("")}
+        ${c.attacks.map(a => `<tr><td>${esc(a.name)}</td><td>${sgn(a.hit)}</td><td>${esc(a.dmg)} ${a.type || DMG_TYPE[a.name] || ""}</td></tr>`).join("")}
         ${c.spell ? `<tr><td>Spell attack</td><td>${sgn(c.spell.atk)}</td><td>Save DC ${c.spell.dc}</td></tr>` : ""}<tr><td>&nbsp;</td><td></td><td></td></tr></table>
         ${c.extras.length ? `<div style="margin-top:5px">${c.extras.map(esc).join("<br>")}</div>` : ""}<div class="boxt">Attacks &amp; spellcasting</div></div>
       <div class="box"><ul>${c.kit.map(k => `<li>${esc(k)}</li>`).join("")}<li>${esc(c.bg)} background gear</li>${(c.inv || []).filter(i => i.n).map(i => `<li>${+i.qty > 1 ? i.qty + " × " : ""}${esc(i.n)}${i.attuned ? " (attuned)" : ""}</li>`).join("")}</ul><div style="margin-top:6px" class="lab">${["cp", "sp", "ep", "gp", "pp"].map(k => `${k.toUpperCase()} ${c.coins && +c.coins[k] ? c.coins[k] : "____"}`).join(" ")}</div><div class="boxt">Equipment</div></div>
@@ -5955,7 +5955,8 @@ function pcRecompute(c) {
   c.skills.forEach(s => s.v = m[s.ab] + (s.x ? c.prof * 2 : s.p ? c.prof : jack ? Math.floor(c.prof / 2) : 0));
   const per = c.skills.find(s => s.s === "Perception"); c.passive = 10 + (per ? per.v : m.wis);
   const C = CLASS_DATA[c.cls];
-  if (C) {
+  if (c.kitMoved) c.attacks = pcAttacks(c);
+  else if (C) {
     const w = C.wpn, wm = c.cls === "Monk" ? Math.max(m.str, m.dex) : m[w[2]];
     c.attacks = (c.attacks || []).map(a => a.name === w[0] ? { ...a, hit: wm + c.prof, dmg: `${w[1]}${wm ? sgn(wm) : ""}` } : a.name === "Unarmed strike" ? { ...a, hit: wm + c.prof, dmg: ((String(a.dmg).match(/^\d+d\d+/) || ["1d4"])[0]) + sgn(wm) } : a);
   }
@@ -5965,6 +5966,98 @@ function pcLevelTo(c, lv) {
   const n = generateCharacter({ seed: c.seed || c.id, name: c.name, race: c.race, ed: edOf(c), sub: c.sub || (c.race === "Dragonborn" && c.ancestry) || "none", ancestry: c.ancestry || undefined, cls: c.cls, bg: c.bg, level: lv, subclass: c.subclass || "none", asiPicks: c.asiPicks || undefined, method: c.method || "array", bonus: c.bonus || "flex", custom: c.customData || undefined });
   ["level", "base", "scores", "mods", "rolls", "prof", "saves", "skills", "hp", "ac", "acSrc", "speed", "init", "passive", "attacks", "spell", "feats", "extras", "hd"].forEach(k => c[k] = n[k]);
   c.hpCur = n.hp;
+  if (c.kitMoved) c.attacks = pcAttacks(c);
+}
+/* ---- equipment: the starting kit lives in the inventory; equipped weapons make the attack list ---- */
+const EQ_COUNT = { a: 1, an: 1, one: 1, two: 2, three: 3, four: 4, five: 5, six: 6, ten: 10, twenty: 20 };
+const eqKey = t => String(t || "").toLowerCase().replace(/[^a-z' ]/g, " ").split(/\s+/).filter(Boolean).sort().join(" ");
+const eqSing = w => w.endsWith("s") && !w.endsWith("ss") ? w.slice(0, -1) : w; // "handaxes" -> "handaxe"
+const eqSing2 = w => /(ch|sh|x)es$/.test(w) ? w.slice(0, -2) : eqSing(w);         // "torches" -> "torch"
+// standard gear of an edition, found by name in any word order and singular or plural ("Two handaxes", "Crossbow, light")
+function eqGear(ed, name) {
+  itLoad();
+  const L = IT.data[ed === "2014" ? "2014" : "2024"].filter(x => x.kind === "gear"), k = eqKey(name), ks = eqKey(k.split(" ").map(eqSing).join(" "));
+  const alias = { "shield wooden": "shield", "bolt": "bolt crossbow" };
+  const ks2 = eqKey(k.split(" ").map(eqSing2).join(" "));
+  return L.find(x => eqKey(x.n) === k) || L.find(x => eqKey(x.n) === ks) || L.find(x => eqKey(x.n) === ks2) || L.find(x => eqKey(x.n.split(/\s+/).map(eqSing).join(" ")) === ks)
+    || (alias[ks] ? L.find(x => [alias[ks], eqSing(alias[ks])].includes(eqKey(x.n.split(/\s+/).map(eqSing).join(" ")))) : null) || null;
+}
+const eqIsWeapon = x => !!(x && x.kind === "gear" && (x.st || []).some(([k]) => k === "Damage"));
+const eqIsArmor = x => !!(x && x.kind === "gear" && /Armor$|^Shield$/.test(x.cat));
+// "Longbow + 20 arrows" -> [{n:"Longbow",qty:1},{n:"Arrows",qty:20}]; "Two daggers" -> Dagger ×2
+function eqParseKit(line, ed) {
+  return String(line).split(/\s+\+\s+/).map(part => {
+    let t = part.trim(), qty = 1;
+    const m = t.match(/^(\d+|a|an|one|two|three|four|five|six|ten|twenty)\s+(.+)$/i);
+    if (m) { qty = /^\d+$/.test(m[1]) ? +m[1] : EQ_COUNT[m[1].toLowerCase()]; t = m[2]; }
+    const g = eqGear(ed, t);
+    return { n: g ? g.n : t.charAt(0).toUpperCase() + t.slice(1), qty, g };
+  });
+}
+// move an older character's starting-equipment list into its inventory, once
+function pcInvUpgrade(c) {
+  c.inv = c.inv || [];
+  if (c.kitMoved) return false;
+  const ed = edOf(c);
+  (c.kit || []).forEach(line => eqParseKit(line, ed).forEach(({ n, qty, g }) => {
+    const ex = c.inv.find(i => i.n.toLowerCase() === n.toLowerCase());
+    if (ex) { ex.qty = (+ex.qty || 0) + qty; return; }
+    c.inv.push({ id: uid("i"), ref: g ? g.id : undefined, n, qty, w: g ? g.w || 0 : 0, att: false, attuned: false, value: g ? g.c : undefined, note: "", eq: eqIsWeapon(g) || eqIsArmor(g) });
+  }));
+  c.kit = []; c.kitMoved = true;
+  return true;
+}
+// which standard weapon an inventory item is: its Items-tab entry, else a weapon named in its name, notes or magic type
+function eqWeaponOf(i, ed) {
+  itLoad();
+  const ref = i.ref ? itFind(i.ref) : null;
+  if (eqIsWeapon(ref)) return ref;
+  const W = IT.data[ed === "2014" ? "2014" : "2024"].filter(eqIsWeapon);
+  const forms = x => { const n = x.n.toLowerCase(), m = n.match(/^(.+), (.+)$/); return m ? [n, `${m[2]} ${m[1]}`] : [n]; };
+  const hits = t => { t = String(t || "").toLowerCase(); return W.filter(x => forms(x).some(f => new RegExp(`\\b${f.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}`).test(t))); };
+  const best = L => L.sort((a, b) => b.n.length - a.n.length)[0];
+  for (const t of [i.n, i.note]) { const L = hits(t); if (L.length) return best(L); }
+  if (ref && ref.type) { const L = hits(ref.type); if (L.length === 1) return L[0]; }
+  return null;
+}
+function eqProficient(c, w) {
+  if (/^Simple/.test(w.cat) || w.cat === "Arcane Foci") return true;
+  const props = ((w.st.find(([k]) => k === "Properties") || [])[1] || "");
+  if (["Barbarian", "Fighter", "Paladin", "Ranger"].includes(c.cls)) return true;
+  if (["Rogue", "Bard"].includes(c.cls)) return /Finesse|Light/.test(props) || /^(Longsword|Crossbow, hand|Hand Crossbow)$/.test(w.n);
+  if (c.cls === "Druid") return w.n === "Scimitar";
+  if (c.cls === "Monk") return w.n === "Shortsword" || (/Melee/.test(w.cat) && /Light/.test(props));
+  return false;
+}
+function eqAttack(c, i, w) {
+  const st = k => ((w.st.find(([x]) => x === k) || [])[1] || ""), dmgTxt = st("Damage"), props = st("Properties");
+  const dm = dmgTxt.match(/^(\d+(?:d\d+)?)\s+([a-z]+)/); if (!dm) return null;
+  const m = c.mods, ranged = /Ranged/.test(w.cat), monk = c.cls === "Monk" && (/Simple Melee/.test(w.cat) || w.n === "Shortsword" || (/Melee/.test(w.cat) && /Light/.test(props) && edOf(c) === "2024"));
+  const ab = /Finesse/.test(props) || monk ? (m.dex > m.str ? "dex" : "str") : ranged ? "dex" : "str";
+  const magic = +(((i.n + " " + (i.note || "")).match(/\+([1-3])\b/) || [])[1] || 0), needsAtt = !!i.att && !i.attuned, bonus = needsAtt ? 0 : magic;
+  const prof = eqProficient(c, w), mod = m[ab] + bonus, hit = m[ab] + (prof ? c.prof : 0) + bonus;
+  const two = (dmgTxt.match(/two-handed (\d+d\d+)/) || [])[1];
+  return { name: i.n, iid: i.id, hit, dmg: dm[1] + (mod ? sgn(mod) : ""), type: dm[2], alt: two ? `${two}${mod ? sgn(mod) : ""} two-handed` : "", ab, prof, magic, needsAtt };
+}
+function pcAttacks(c) {
+  const ed = edOf(c), out = [];
+  (c.inv || []).filter(i => i.eq && (+i.qty || 0) > 0).forEach(i => { const w = eqWeaponOf(i, ed), a = w && eqAttack(c, i, w); if (a) out.push(a); });
+  const m = c.mods;
+  if (c.cls === "Monk") { const lv = c.level, wm = Math.max(m.str, m.dex), md = ed === "2024" ? (lv >= 17 ? "1d12" : lv >= 11 ? "1d10" : lv >= 5 ? "1d8" : "1d6") : (lv >= 17 ? "1d10" : lv >= 11 ? "1d8" : lv >= 5 ? "1d6" : "1d4"); out.push({ name: "Unarmed strike", hit: wm + c.prof, dmg: md + (wm ? sgn(wm) : ""), type: "bludgeoning", prof: true }); }
+  else if (!out.length) out.push({ name: "Unarmed strike", hit: m.str + c.prof, dmg: String(Math.max(1, 1 + m.str)), type: "bludgeoning", prof: true });
+  return out;
+}
+const atkLine = a => `<b>${esc(a.name)}</b>: ${sgn(a.hit)} to hit, ${esc(a.dmg)}${a.type ? " " + esc(a.type) : ""} damage${a.alt ? ` <span class="muted">(${esc(a.alt)})</span>` : ""}${a.prof === false ? ` <span class="tag">not proficient</span>` : ""}${a.needsAtt ? ` <span class="tag">attune for +${a.magic}</span>` : ""}`;
+function rcAttacksHTML(c) { return (c.attacks || []).map(a => `<div class="enc" style="border-color:var(--gold)">${atkLine(a)}</div>`).join(""); }
+function rcEquippedHTML(c) {
+  const ed = edOf(c), L = (c.inv || []).filter(i => i.eq && (+i.qty || 0) > 0);
+  if (!L.length) return `<p class="muted">Nothing equipped. Tick <b>Equip</b> next to an item in the inventory.</p>`;
+  return `<ul class="plain">${L.map(i => {
+    const ref = i.ref ? itFind(i.ref) : null, w = eqWeaponOf(i, ed), a = (c.attacks || []).find(x => x.iid === i.id);
+    const ac = eqIsArmor(ref) ? (ref.st.find(([k]) => k === "Armor Class") || [])[1] : null;
+    const what = a ? `${sgn(a.hit)} to hit, ${esc(a.dmg)} ${esc(a.type)}` : ac ? `AC ${esc(ac)}` : w ? "" : ref && /Weapon/.test(ref.cat + (ref.type || "")) ? `<span class="hint">Add its weapon to the name, e.g. “Longsword +1”, to get an attack</span>` : esc(i.note || "");
+    return `<li><b>${esc(i.n)}</b>${+i.qty > 1 ? ` <span class="muted">×${esc(i.qty)}</span>` : ""}${what ? ` <span class="muted">· ${what}</span>` : ""}</li>`;
+  }).join("")}</ul>`;
 }
 function renderRoster() {
   const list = $("#rosterList"), cur = rosterCur();
@@ -5978,6 +6071,7 @@ function renderRosterMain() {
   if (!c) { main.innerHTML = `<div class="card empty"><h2>No saved characters</h2><p>Forge a character on the Characters tab, then press “Save to My characters” to move it here, where you can keep editing it.</p><a class="btn primary" href="#character" style="text-decoration:none;display:inline-block">Go to Characters</a></div>`; return; }
   RC.id = c.id; pcEnsure(c);
   c.inv = c.inv || []; c.coins = c.coins || { cp: 0, sp: 0, ep: 0, gp: 0, pp: 0 }; if (c.hpCur === undefined) c.hpCur = c.hp;
+  const moved = pcInvUpgrade(c); c.attacks = pcAttacks(c); if (moved) pcPersist();
   main.innerHTML = rosterHTML(c); renderCampList(); $$("textarea", main).forEach(autoGrow);
 }
 function rosterHTML(c) {
@@ -6009,7 +6103,8 @@ function rosterHTML(c) {
     <div class="sec"><div class="sec-h"><h3>Skills</h3><span class="sp"></span><span class="muted" style="font-size:13px">Click to cycle: none → ● → ★</span></div>
       <div class="skills">${c.skills.map((s, i) => `<div class="${s.p ? "p" : ""} ${s.x ? "x" : ""} rc-sk" data-rsk="${i}" role="button" tabindex="0" title="Change proficiency"><span>${s.p ? "● " : ""}${esc(s.s)} <span class="muted" style="font-size:12px">${AB_NAME[s.ab]}</span></span><b>${sgn(s.v)}</b></div>`).join("")}</div></div>
     <div class="sec"><div class="sec-h"><h3>Attacks${c.spell ? " & Spellcasting" : ""}</h3></div>
-      ${(c.attacks || []).map(a => `<div class="enc" style="border-color:var(--gold)"><b>${esc(a.name)}</b>: ${sgn(a.hit)} to hit, ${esc(a.dmg)} damage</div>`).join("")}
+      <div id="rcAtk">${rcAttacksHTML(c)}</div>
+      <p class="hint" style="margin:4px 0 0">From your equipped weapons. Tick <b>Equip</b> in the inventory to change them.</p>
       ${c.spell ? `<p style="margin:10px 0 4px"><b>Spell save DC ${c.spell.dc}</b> · spell attack ${sgn(c.spell.atk)} · ability ${AB_NAME[c.spell.ab]}</p>
         ${c.spell.note ? `<div>${esc(c.spell.note)}</div>` : c.spell.slots.length ? `<div class="chips">${c.spell.slots.map((n, i) => `<span class="tag">Lv ${i + 1}: ${n} slot${n > 1 ? "s" : ""}</span>`).join("")}</div>` : `<div class="muted">No spell slots until level 2.</div>`}
         <button class="btn sm" type="button" style="margin-top:10px" data-spells="${esc(c.cls)}|${c.spell.max}|${c.spell.cantrips ? 1 : 0}">✦ Browse ${esc(c.cls)} spells</button>` : ""}
@@ -6021,17 +6116,18 @@ function rosterHTML(c) {
   ${compSectionHTML(c)}
   <div class="sec"><div class="sec-h"><h3>Inventory</h3><span class="sp"></span><a class="btn sm" href="#items" data-ra="browse" style="text-decoration:none">Browse items</a><button class="btn sm primary" type="button" data-ra="addInv">+ Add item</button></div>
     <div class="row rc-coins">${["cp", "sp", "ep", "gp", "pp"].map(k => `<label>${k.toUpperCase()}<input type="number" min="0" data-rcoin="${k}" value="${+c.coins[k] || 0}"></label>`).join("")}</div>
-    ${c.inv.length ? `<table class="foes rc-inv"><thead><tr><th>Qty</th><th>Item</th><th>Notes</th><th>Attuned</th><th></th></tr></thead><tbody>${c.inv.map(i => `<tr>
+    ${c.inv.length ? `<table class="foes rc-inv"><thead><tr><th>Qty</th><th>Item</th><th>Notes</th><th>Equip</th><th>Attuned</th><th></th></tr></thead><tbody>${c.inv.map(i => `<tr>
       <td><input type="number" min="0" data-rinv="qty" data-iid="${esc(i.id)}" value="${esc(i.qty)}" style="width:64px" aria-label="Quantity"></td>
       <td><input type="text" data-rinv="n" data-iid="${esc(i.id)}" value="${esc(i.n)}" placeholder="Item name" aria-label="Item"></td>
       <td><input type="text" data-rinv="note" data-iid="${esc(i.id)}" value="${esc(i.note || "")}" placeholder="Notes" aria-label="Notes"></td>
+      <td><input type="checkbox" data-rinv="eq" data-iid="${esc(i.id)}" ${i.eq ? "checked" : ""} aria-label="Equip ${esc(i.n)}"></td>
       <td>${i.att ? `<input type="checkbox" data-rinv="attuned" data-iid="${esc(i.id)}" ${i.attuned ? "checked" : ""} aria-label="Attuned">` : `<span class="muted">—</span>`}</td>
       <td><button class="icon-btn" type="button" data-rdel="${esc(i.id)}" title="Remove">✕</button></td></tr>`).join("")}</tbody></table>` : `<p class="muted">Nothing carried yet. Add items here, or give them from the Items tab.</p>`}
     <p class="hint">Attuned to <b class="${attN > 3 ? "over" : ""}">${attN} / 3</b> magic items${wt ? ` · carrying about ${Math.round(wt * 10) / 10} lb` : ""}.</p></div>
   <div class="grid2 rc-two" style="margin-top:0">
     <div class="sec"><div class="sec-h"><h3>Features & Traits</h3></div><ul class="plain">${(c.feats || []).map(f => featLi(f.f, "lv " + f.l, c)).join("")}${(c.traits || []).map(t => featLi(t, esc(raceLabel(c)), c)).join("")}</ul>
       <textarea data-rf="featNotes" placeholder="Extra features, feats, boons…" style="margin-top:8px">${esc(c.featNotes || "")}</textarea></div>
-    <div class="sec"><div class="sec-h"><h3>Starting Equipment</h3></div><textarea data-rf="kitText" placeholder="One item per line">${esc((c.kit || []).join("\n"))}</textarea></div>
+    <div class="sec"><div class="sec-h"><h3>Equipped Items</h3></div><div id="rcEquipped">${rcEquippedHTML(c)}</div></div>
   </div>
   <div class="sec"><div class="sec-h"><h3>Personality & Backstory</h3></div>
     <div class="rc-grid2">${[["trait", "Personality trait"], ["ideal", "Ideal"], ["bond", "Bond"], ["flaw", "Flaw"]].map(([k, l]) => `<label>${l}<input type="text" data-rf="${k}" value="${esc(c[k] || "")}"></label>`).join("")}</div>
@@ -6052,7 +6148,6 @@ function rosterHTML(c) {
     if (t.dataset.rf) {
       const k = t.dataset.rf, v = t.value;
       if (k.startsWith("hd.")) { c.hookDetail = c.hookDetail || { story: "", questions: [], use: "" }; const f = k.slice(3); c.hookDetail[f] = f === "questions" ? v.split("\n").map(x => x.trim()).filter(Boolean) : v; }
-      else if (k === "kitText") c.kit = v.split("\n").map(x => x.trim()).filter(Boolean);
       else if (["hp", "hpCur", "hpTemp", "ac", "speed", "xp"].includes(k)) c[k] = v === "" ? "" : +v;
       else c[k] = v;
       if (t.tagName === "TEXTAREA") autoGrow(t);
@@ -6062,8 +6157,10 @@ function rosterHTML(c) {
     if (t.dataset.rcoin) { c.coins[t.dataset.rcoin] = Math.max(0, +t.value || 0); pcPersist(); return; }
     if (t.dataset.rinv) {
       const i = c.inv.find(x => x.id === t.dataset.iid); if (!i) return; const f = t.dataset.rinv;
-      i[f] = f === "attuned" ? t.checked : f === "qty" ? Math.max(0, +t.value || 0) : t.value;
-      pcPersist(); if (f === "attuned") renderRosterMain();
+      i[f] = f === "attuned" || f === "eq" ? t.checked : f === "qty" ? Math.max(0, +t.value || 0) : t.value;
+      c.attacks = pcAttacks(c); pcPersist();
+      if (f === "attuned" || f === "eq") renderRosterMain();
+      else { $("#rcAtk").innerHTML = rcAttacksHTML(c); $("#rcEquipped").innerHTML = rcEquippedHTML(c); }
     }
   });
   main.addEventListener("change", e => {
