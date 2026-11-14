@@ -4,6 +4,10 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Dungeon Master&#39;s Forge</title>
+<script>
+/* Portals: keep the page covered until sign-in is checked; give up after 8s so the Forge never stays hidden. */
+if (location.protocol !== "file:" && localStorage.getItem("dmforge.offline") !== "1") { document.documentElement.classList.add("gate-wait"); setTimeout(function () { document.documentElement.classList.remove("gate-wait"); }, 8000); }
+</script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@500;700&family=Cinzel+Decorative:wght@700&family=Crimson+Pro:ital,wght@0,400;0,600;1,400&display=swap" rel="stylesheet">
 <style>
@@ -557,6 +561,58 @@ details.brief>div{background:var(--parch);color:var(--ink-d);border-radius:3px 6
 .ci-eval:has(.big.rar-vr){border-color:#7a52b5!important;box-shadow:inset 0 2px 6px rgba(0,0,0,.6),0 0 14px rgba(180,124,255,.3)}
 .ci-eval:has(.big.rar-l){border-color:#b97a20!important;box-shadow:inset 0 2px 6px rgba(0,0,0,.6),0 0 18px rgba(255,180,60,.4)}
 @media (prefers-reduced-motion:reduce){.it-row:is(.it-r-l,.it-r-a)>.sp-head .sp-name,.big.rar-l,.it-row.it-r-a .sp-detail{animation:none}.it-row:is(.it-r-l,.it-r-a) .sp-detail::after{display:none}}
+
+/* ======================= Player & DM portals ======================= */
+.gate-wait main,.gate-wait nav{visibility:hidden}
+input[type=email],input[type=password]{width:100%;background:var(--well);border:1px solid #0d0c0b;border-radius:4px;padding:7px 10px;outline:none;box-shadow:inset 0 2px 5px rgba(0,0,0,.7),0 1px 0 rgba(255,255,255,.06)}
+nav a[hidden]{display:none}
+#gate{position:fixed;inset:0;background:rgba(0,0,0,.78);display:none;align-items:flex-start;justify-content:center;z-index:45;padding:8vh 16px 20px;overflow-y:auto}
+#gate.open{display:flex}
+#gate .gate-box{max-width:460px;width:100%;border-color:#7a4415;padding:22px}
+#gate .gate-head{text-align:center;margin-bottom:10px}
+#gate .gate-head h2{color:var(--gold);font-size:22px}
+#gate p{margin:0 0 12px}
+#gate .gate-sec{border-top:1px solid rgba(0,0,0,.5);box-shadow:0 1px 0 rgba(255,255,255,.05) inset;padding-top:14px;margin-top:14px}
+#gate .gate-sec h3{font-size:15px;color:var(--gold);margin-bottom:6px}
+#gate .gate-err{color:#f0b3ab}
+#gate .gate-note{background:var(--well);border:1px solid #0d0c0b;border-radius:4px;padding:8px 10px}
+#gate .gate-links{display:flex;flex-wrap:wrap;gap:6px 16px;justify-content:center;margin-top:14px}
+#gate .gate-foot{border-top:1px solid rgba(0,0,0,.5);margin-top:16px;padding-top:12px;text-align:center;display:flex;flex-direction:column;gap:2px}
+.linkish{background:none;border:none;padding:2px;color:var(--gold2);cursor:pointer;text-decoration:underline;text-underline-offset:3px}
+.linkish:hover{color:#fff}
+.owner-tag{font-style:normal;color:var(--gold2);margin-left:6px;font-size:13px}
+.portal-player #rcCamp,.portal-player [data-ra=camp]{display:none}
+#whisperN{display:inline-block;min-width:18px;margin-left:4px;padding:0 5px;border-radius:9px;background:var(--red);color:#fff;font-size:11px;line-height:18px;text-align:center;font-family:"Crimson Pro",Georgia,serif}
+#whisperN[hidden]{display:none}
+.join-code{font-family:Cinzel,serif;font-size:20px;letter-spacing:.12em;color:var(--gold2);background:var(--well);border:1px solid #0d0c0b;border-radius:4px;padding:4px 10px;text-align:center}
+.member{display:flex;align-items:center;gap:8px;justify-content:space-between;margin-bottom:8px}
+.member b,.member small{display:block}
+.party-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(210px,1fr));gap:10px}
+.party-card{display:flex;flex-direction:column;gap:3px;text-align:left;background:var(--well);border:1px solid #0d0c0b;border-radius:4px;padding:10px 12px;cursor:pointer;box-shadow:inset 0 2px 5px rgba(0,0,0,.6)}
+.party-card:hover{border-color:#8a5a2a}
+.party-card b{font-family:Cinzel,serif;font-size:15px}
+.party-card .pc-stats{display:flex;gap:14px;font-weight:600}
+.party-card .hp-low{color:#f0b3ab}
+.feed{list-style:none;margin:10px 0 0;padding:0}
+.feed li{display:grid;grid-template-columns:70px 1fr;gap:10px;padding:6px 0;border-top:1px solid rgba(0,0,0,.45)}
+.feed time{color:var(--muted);font-size:14px;white-space:nowrap}
+.feed.whispers li{grid-template-columns:90px 1fr}
+.feed.whispers li.unread span{color:#fff;font-weight:600}
+nav a[data-view=party]{--ic:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='1.9' stroke-linecap='round' stroke-linejoin='round'%3E%3Ccircle cx='9' cy='8' r='3.2'/%3E%3Cpath d='M3 20c0-3.3 2.7-6 6-6s6 2.7 6 6'/%3E%3Ccircle cx='17' cy='9' r='2.6'/%3E%3Cpath d='M16 14.2c2.8.3 5 2.6 5 5.8'/%3E%3C/svg%3E")}
+nav a[data-view=whispers]{--ic:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='1.9' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M4 5h16v11H9l-5 4z'/%3E%3Cpath d='M8 9h8M8 12h5'/%3E%3C/svg%3E")}
+#whisperAlert{position:fixed;top:12px;left:50%;transform:translateX(-50%);z-index:48;width:min(560px,calc(100vw - 24px))}
+#whisperAlert .wa-box{background:var(--slab),#191b28;border:1px solid #c47a2c;border-radius:var(--radius);padding:14px 16px;box-shadow:0 10px 30px rgba(0,0,0,.7),0 0 24px rgba(240,150,60,.45)}
+#whisperAlert .wa-head{display:flex;align-items:baseline;justify-content:space-between;gap:10px;margin-bottom:6px}
+#whisperAlert h3{font-size:16px;color:var(--gold)}
+#whisperAlert p{margin:0 0 12px;font-size:18px;white-space:pre-wrap;overflow-wrap:anywhere;max-height:40vh;overflow-y:auto}
+#whisperAlert .wa-actions{justify-content:flex-end}
+#whisperAlert .wa-actions>*{flex:0 0 auto}
+#whisperAlert .wa-actions>:first-child{flex:1}
+#whisperAlert.ping{animation:waIn .45s ease-out,waGlow 1.2s ease-in-out 3}
+@keyframes waIn{from{opacity:0;transform:translate(-50%,-30px)}to{opacity:1;transform:translate(-50%,0)}}
+@keyframes waGlow{50%{filter:drop-shadow(0 0 14px rgba(246,189,98,.85))}}
+@media (prefers-reduced-motion:reduce){#whisperAlert.ping{animation:none}}
+#acctBtn{max-width:240px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 </style>
 </head>
 <body>
@@ -638,6 +694,8 @@ details.brief>div{background:var(--parch);color:var(--ink-d);border-radius:3px 6
     <a href="#items" data-view="items">Items</a>
     <a href="#map" data-view="map">Dungeon Map</a>
     <a href="#tracker" data-view="tracker">Campaign Tracker</a>
+    <a href="#party" data-view="party" hidden>Party</a>
+    <a href="#whispers" data-view="whispers" hidden>Whispers<span id="whisperN" hidden></span></a>
   </nav>
   <span id="storeBadge" class="badge" title="Where your campaigns are saved">Connecting…</span>
 </header>
@@ -925,6 +983,20 @@ details.brief>div{background:var(--parch);color:var(--ink-d);border-radius:3px 6
       <a class="btn wide" href="#character" style="display:block;text-align:center;text-decoration:none;margin-top:6px">+ Forge a new character</a>
     </div>
     <div id="rosterMain"></div>
+  </div>
+</section>
+<!-- ================= PARTY (DM portal) ================= -->
+<section class="view" id="view-party">
+  <div class="tlayout">
+    <div class="card side" id="partySide"></div>
+    <div id="partyMain"></div>
+  </div>
+</section>
+<!-- ================= WHISPERS (player portal) ================= -->
+<section class="view" id="view-whispers">
+  <div class="card" style="max-width:760px;margin:0 auto">
+    <div class="sec-h"><h3>Whispers from your DM</h3></div>
+    <div id="whispersMain"></div>
   </div>
 </section>
 </main>
@@ -3289,6 +3361,8 @@ function pcEnsure(c) { if (c) { if (!c.id) c.id = uid("pc"); if (!Array.isArray(
 function pcPersist() {
   PCS.cur = currentPC; PCS.updated = Date.now();
   if (currentPC) { const i = PCS.roster.findIndex(x => x.id === currentPC.id); if (i >= 0) PCS.roster[i] = currentPC; }
+  // Signed in to a campaign: characters save to the shared database, not this browser.
+  if (window.Portal && Portal.cloud) { Portal.changed(); return; }
   try { localStorage.setItem(PC_KEY, JSON.stringify(PCS)); } catch { }
   clearTimeout(pcTimer);
   pcTimer = setTimeout(async () => {
@@ -4593,7 +4667,7 @@ function pcLevelTo(c, lv) {
 }
 function renderRoster() {
   const list = $("#rosterList"), cur = rosterCur();
-  if (list) list.innerHTML = PCS.roster.length ? PCS.roster.map(c => `<button class="camp-item ${cur && c.id === cur.id ? "on" : ""}" data-rc="${esc(c.id)}"><b>${esc(c.name)}</b><small>Lv ${c.level} ${esc(c.race)} ${esc(c.cls)}</small></button>`).join("")
+  if (list) list.innerHTML = PCS.roster.length ? PCS.roster.map(c => `<button class="camp-item ${cur && c.id === cur.id ? "on" : ""}" data-rc="${esc(c.id)}"><b>${esc(c.name)}${window.Portal ? Portal.ownerTag(c) : ""}</b><small>Lv ${c.level} ${esc(c.race)} ${esc(c.cls)}</small></button>`).join("")
     : `<p class="muted" style="font-size:15px">No saved characters yet. Forge one on the Characters tab and press “Save to My characters”.</p>`;
   const n = $("#pcRosterN"); if (n) n.textContent = PCS.roster.length ? `(${PCS.roster.length})` : "";
 }
@@ -4727,7 +4801,8 @@ function rosterHTML(c) {
 
 /* ======================= Routing ======================= */
 function route() {
-  const v = ["generate", "npc", "monsters", "character", "roster", "spells", "items", "map", "tracker"].includes(location.hash.slice(1)) ? location.hash.slice(1) : "generate";
+  const views = (window.Portal && Portal.views) || ["generate", "npc", "monsters", "character", "roster", "spells", "items", "map", "tracker"];
+  const v = views.includes(location.hash.slice(1)) ? location.hash.slice(1) : ((window.Portal && Portal.home) || "generate");
   $$("section.view").forEach(s => s.classList.toggle("active", s.id === "view-" + v));
   $$("nav a").forEach(a => a.classList.toggle("active", a.dataset.view === v));
   if (v === "map" && !currentMap) renderMap();
@@ -4735,6 +4810,8 @@ function route() {
   if (v === "spells") renderSpells();
   if (v === "items") renderItems();
   if (v === "roster") renderRosterTab();
+  if (v === "party" && window.Portal) Portal.renderParty();
+  if (v === "whispers" && window.Portal) Portal.renderWhispers();
 }
 window.addEventListener("hashchange", route);
 
@@ -5197,5 +5274,6 @@ Store.init().then(() => { renderCampList(); pcAdoptRemote(); itemsAdopt(); if (l
   else requestAnimationFrame(loop);
 })();
 </script>
+<script type="module" src="/portal.js"></script>
 </body>
 </html>
