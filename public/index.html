@@ -3562,12 +3562,25 @@ function generateCharacter(o) {
   return {
     seed: o.seed, method: o.method, bonus: o.bonus, name: pcName, race, ed, sub, ancestry: anc, subclass, custom: !!o.custom, customData: o.custom || null, cls, bg, level: lv, align: (o.custom && o.custom.align) || r.pick(ALIGN), base, scores: sc, mods: m, rolls,
     prof, saves, skills: skillVals, hp, ac, acSrc, speed: R.speed + fxSum("speed"), init: m.dex + initBonus, initBonus, atkBonus, hbSig: fx.length ? JSON.stringify(fx) : "",
-    ...Object.fromEntries(["res", "imm", "vul"].map(t => [t, [...new Set(fx.filter(e => e.t === t).map(e => e.a))].sort()])), passive: 10 + skillVals.find(s => s.s === "Perception").v,
+    ...Object.fromEntries(["res", "imm", "vul"].map(t => [t, [...new Set([...fx.filter(e => e.t === t).map(e => e.a), ...(t === "res" ? traitRes(R.traits, anc, ed) : [])])].sort()])), passive: 10 + skillVals.find(s => s.s === "Perception").v,
     attacks, spell, feats, extras, traits: R.traits, kit: C.kit, hd: C.hd,
     trait: r.pick(PC_TRAITS), ideal: r.pick(IDEALS), bond: r.pick(BONDS), flaw: r.pick(FLAWS), hook: hk.hook, hookDetail: hk.hookDetail
   };
 }
-// Damage resistances, immunities and vulnerabilities from homebrew effects
+// Damage resistances that built-in species traits give (Dragonborn's depends on their ancestry)
+const TRAIT_RES = { "Dwarven Resilience": ["poison"], "Stout Resilience": ["poison"], "Hellish Resistance": ["fire"], "Celestial Resistance": ["necrotic", "radiant"],
+  "Abyssal Legacy": ["poison"], "Chthonic Legacy": ["necrotic"], "Infernal Legacy": ["fire"] };
+function traitRes(traits, ancestry, ed) {
+  const out = new Set();
+  (traits || []).forEach(t => {
+    if (t === "Infernal Legacy" && ed !== "2024") return; // 2014: spells only; Hellish Resistance gives the fire resistance
+    (TRAIT_RES[t] || []).forEach(x => out.add(x));
+    if (t === "Damage Resistance" && ancestry && DRAGON_ANCESTRY[ancestry]) out.add(DRAGON_ANCESTRY[ancestry].type);
+  });
+  return [...out];
+}
+const withTraitRes = c => { if (c && Array.isArray(c.traits)) c.res = [...new Set([...(c.res || []), ...traitRes(c.traits, c.ancestry, edOf(c))])].sort(); return c; };
+// Damage resistances, immunities and vulnerabilities from species traits and homebrew effects
 const defList = c => [["Resistant", c.res], ["Immune", c.imm], ["Vulnerable", c.vul]].filter(([, l]) => l && l.length);
 const defHTML = c => { const L = defList(c); return L.length ? `<div class="chips" style="margin:8px 0 0">${L.map(([k, l]) => `<span class="tag ${k === "Vulnerable" ? "" : "gold"}">${k}: ${l.map(esc).join(", ")}</span>`).join("")}</div>` : ""; };
 const defText = c => defList(c).map(([k, l]) => `${k}: ${l.join(", ")}`).join(" | ");
@@ -3857,7 +3870,7 @@ function openSpellsFor(cls, maxLevel, hasCantrips) {
 const PC_KEY = "dmforge.pcs.v1";
 const PCS = { cur: null, roster: [], updated: 0 };
 let pcRemote = null, pcTimer = null;
-function pcEnsure(c) { if (c) { if (!c.id) c.id = uid("pc"); if (c.subclass === undefined) { const f = (c.feats || []).find(x => String(x.f).startsWith("Subclass: ") && x.f !== "Subclass: not chosen yet"); c.subclass = f ? f.f.slice(10) : null; } if (!Array.isArray(c.prepared)) c.prepared = []; if (c.race === "Dragonborn" && !c.ancestry) c.ancestry = makeRng("anc", c.seed || c.id).pick(Object.keys(DRAGON_ANCESTRY)); if (c.race === "Dragonborn" && !c.sub) c.sub = c.ancestry; hookUpgrade(c); } return c; }
+function pcEnsure(c) { if (c) { if (!c.id) c.id = uid("pc"); if (c.subclass === undefined) { const f = (c.feats || []).find(x => String(x.f).startsWith("Subclass: ") && x.f !== "Subclass: not chosen yet"); c.subclass = f ? f.f.slice(10) : null; } if (!Array.isArray(c.prepared)) c.prepared = []; if (c.race === "Dragonborn" && !c.ancestry) c.ancestry = makeRng("anc", c.seed || c.id).pick(Object.keys(DRAGON_ANCESTRY)); if (c.race === "Dragonborn" && !c.sub) c.sub = c.ancestry; withTraitRes(c); hookUpgrade(c); } return c; }
 function pcPersist() {
   PCS.cur = currentPC; PCS.updated = Date.now();
   if (currentPC) { const i = PCS.roster.findIndex(x => x.id === currentPC.id); if (i >= 0) PCS.roster[i] = currentPC; }
