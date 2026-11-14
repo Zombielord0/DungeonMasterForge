@@ -685,6 +685,7 @@ nav a[data-view=whispers]{--ic:url("data:image/svg+xml,%3Csvg xmlns='http://www.
 .hdr-mini .hdr-mini-label{display:block}
 .hdr-mini .side,.hdr-mini .mb-side{top:58px;max-height:calc(100vh - 74px)}
 @media (max-width:600px){.hdr-mini .hdr-mini-label{display:none}}
+#pcBgHint:empty{display:none}
 </style>
 </head>
 <body>
@@ -1078,6 +1079,7 @@ nav a[data-view=whispers]{--ic:url("data:image/svg+xml,%3Csvg xmlns='http://www.
         <div><label>Level</label><input type="number" id="pcLevel" min="1" max="20" value="1"></div>
         <div><label>Background</label><select id="pcBg"><option value="">Random</option></select></div>
       </div>
+      <p class="hint rnd-only" id="pcBgHint" style="margin:-6px 0 14px"></p>
       <div class="field rnd-only"><label>Ability scores</label>
         <div class="seg"><label class="opt"><input type="radio" name="pcMethod" value="array" checked><span>Standard array</span></label><label class="opt"><input type="radio" name="pcMethod" value="roll"><span>Roll 4d6</span></label></div>
       </div>
@@ -2824,6 +2826,15 @@ const RACE_DESC = {
   "Half-Elf": "Charming go-betweens: two bonus skills of your choice.", "Half-Orc": "Fierce and unkillable: stays standing at 0 HP once a day.",
   Tiefling: "Infernal heritage: fire resistance and innate magic."
 };
+const BG_DESC = {
+  Acolyte: "Raised in a temple's service: knows the rites and can find shelter among the faithful.", Charlatan: "Con artist with a forged identity always ready to slip into.",
+  Criminal: "Lawbreaker with a contact in the underworld who passes messages along.", Entertainer: "Performer who earns food and a bed by playing for the crowd.",
+  "Folk Hero": "Common-born champion: ordinary folk will hide and help you.", "Guild Artisan": "Trained craftsperson whose guild offers lodging, aid and influence.",
+  Hermit: "Lived in seclusion and came back knowing a hidden truth.", Noble: "Born to wealth and title: high society welcomes you.",
+  Outlander: "Grew up in the wilds: always finds food and the way back.", Sage: "Scholar who knows where to find the lore you lack.",
+  Sailor: "Seasoned deckhand who can get free passage on a ship.", Soldier: "Former soldier whose rank still earns respect from troops.",
+  Urchin: "Grew up poor on the streets: knows every shortcut through a city."
+};
 const CLASS_DESC = {
   Barbarian: "Raging front-line brute. d12 hit die, hits hard, shrugs off damage.", Bard: "Charismatic support caster: inspiration dice and any skill you like.",
   Cleric: "Divine full caster: heals, buffs and turns undead in medium armor.", Druid: "Nature's full caster: shapeshifts into beasts.",
@@ -3322,7 +3333,7 @@ function cbBody() {
   if (CB.step === 1) return `<p class="hint" style="margin-top:0">Pick a class. This sets hit points, armor, saves, skills and spellcasting.</p>
     <div class="pick-grid">${Object.keys(CLASS_DATA).map(x => { const d = CLASS_DATA[x]; return `<button type="button" class="pick ${CB.cls === x ? "on" : ""}" data-cbcls="${esc(x)}"><b>${esc(x)}</b><small>d${d.hd} hit die · ${d.pri.slice(0, 2).map(a => AB_NAME[a]).join(" & ")}${d.cast ? ` · ${d.cast[0] === "half" ? "half caster" : d.cast[0] === "pact" ? "pact magic" : "full caster"}` : ""}</small><small>${CLASS_DESC[x]}</small></button>`; }).join("")}</div>`;
   if (CB.step === 2) return `<p class="hint" style="margin-top:0">Pick a background. It grants the two skills shown.</p>
-    <div class="pick-grid">${Object.keys(BACKGROUNDS).map(x => `<button type="button" class="pick ${CB.bg === x ? "on" : ""}" data-cbbg="${esc(x)}"><b>${esc(x)}</b><small>${BACKGROUNDS[x].join(" · ")}</small>${HB_BG[x] ? `<small>${esc(HB_BG[x].desc || "")}</small><small class="req">Homebrew</small>` : ""}</button>`).join("")}</div>`;
+    <div class="pick-grid">${Object.keys(BACKGROUNDS).map(x => `<button type="button" class="pick ${CB.bg === x ? "on" : ""}" data-cbbg="${esc(x)}"><b>${esc(x)}</b><small>${BACKGROUNDS[x].join(" · ")}</small>${HB_BG[x] ? `<small>${esc(HB_BG[x].desc || "")}</small><small class="req">Homebrew</small>` : `<small>${esc(BG_DESC[x] || "")}</small>`}</button>`).join("")}</div>`;
   if (CB.step === 3) {
     const base = cbBase(), ok = AB.every(a => base[a] != null), fin = ok ? cbFinal(base) : null;
     const seg = `<div class="seg" style="margin-bottom:12px">${[["array", "Standard array"], ["roll", "Roll 4d6"], ["manual", "Enter manually"]].map(([v, l]) => `<label class="opt"><input type="radio" name="cbMethod" value="${v}" ${CB.method === v ? "checked" : ""}><span>${l}</span></label>`).join("")}</div>`;
@@ -3635,11 +3646,17 @@ async function discardPC() {
     const keep = $("#pcBg").value;
     $("#pcBg").innerHTML = `<option value="">Random</option>` + Object.keys(BACKGROUNDS).map(x => `<option>${esc(x)}</option>`).join("");
     if (BACKGROUNDS[keep]) $("#pcBg").value = keep;
+    if (window.pcBgHint) window.pcBgHint();
     fillRaces(); syncRace();
   };
   $$("input[name=pcEd]").forEach(rd => rd.addEventListener("change", () => { fillRaces(); syncRace(); }));
   $("#pcRace").addEventListener("change", syncRace);
   $("#pcAnc").addEventListener("change", ancHint);
+  const bgHint = () => {
+    const v = $("#pcBg").value, H = HB_BG[v];
+    $("#pcBgHint").textContent = !v ? "" : [H ? H.desc : BG_DESC[v], BACKGROUNDS[v] ? `Skills: ${BACKGROUNDS[v].join(", ")}.` : ""].filter(Boolean).join(" ");
+  };
+  $("#pcBg").addEventListener("change", bgHint); window.pcBgHint = bgHint;
   $$("input[name=pcMode]").forEach(rd => rd.addEventListener("change", () => {
     const cust = ($("input[name=pcMode]:checked") || {}).value === "custom";
     $$("#pcForm .rnd-only").forEach(d => d.classList.toggle("hidden", cust));
