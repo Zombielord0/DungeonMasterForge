@@ -6,6 +6,8 @@
 <title>Dungeon Master&#39;s Forge</title>
 <script>
 /* Portals: keep the page covered until sign-in is checked; give up after 8s so the Forge never stays hidden. */
+/* Toolbar minimized last time? Apply before paint so it does not flash open. */
+if (localStorage.getItem("dmforge.hdrMini") === "1") document.documentElement.classList.add("hdr-mini");
 if (location.protocol !== "file:" && localStorage.getItem("dmforge.offline") !== "1") { document.documentElement.classList.add("gate-wait"); setTimeout(function () { document.documentElement.classList.remove("gate-wait"); }, 8000); }
 </script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -672,6 +674,14 @@ nav a[data-view=whispers]{--ic:url("data:image/svg+xml,%3Csvg xmlns='http://www.
 @keyframes waGlow{50%{filter:drop-shadow(0 0 14px rgba(246,189,98,.85))}}
 @media (prefers-reduced-motion:reduce){#whisperAlert.ping{animation:none}}
 #acctBtn{max-width:240px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+/* ======================= Minimizable toolbar ======================= */
+.hdr-toggle{flex:0 0 auto}
+.hdr-mini-label{display:none;font-family:Cinzel,serif;color:#e9dcc2;font-size:15px;letter-spacing:.03em;flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.hdr-mini-label b{color:var(--gold2);font-weight:700}
+.hdr-mini header{padding-top:6px;padding-bottom:6px}
+.hdr-mini header>:not(.hdr-toggle):not(.hdr-mini-label){display:none}
+.hdr-mini .hdr-mini-label{display:block}
+.hdr-mini .side,.hdr-mini .mb-side{top:58px;max-height:calc(100vh - 74px)}
 </style>
 </head>
 <body>
@@ -758,6 +768,8 @@ nav a[data-view=whispers]{--ic:url("data:image/svg+xml,%3Csvg xmlns='http://www.
     <a href="#whispers" data-view="whispers" hidden>Whispers<span id="whisperN" hidden></span></a>
   </nav>
   <span id="storeBadge" class="badge" title="Where your campaigns are saved">Connecting…</span>
+  <span class="hdr-mini-label" id="hdrMiniLabel">Dungeon Master's Forge</span>
+  <button class="btn sm hdr-toggle" type="button" id="hdrToggle" aria-expanded="true" title="Hide the toolbar to give this tab more room">▴ Hide tabs</button>
 </header>
 
 <main>
@@ -6074,6 +6086,21 @@ function rosterHTML(c) {
   main.addEventListener("keydown", e => { if ((e.key === "Enter" || e.key === " ") && e.target.matches("[data-rsk]")) { e.preventDefault(); e.target.click(); } });
 })();
 
+/* ======================= Minimizable toolbar ======================= */
+function hdrSync() {
+  const mini = document.documentElement.classList.contains("hdr-mini"), btn = document.getElementById("hdrToggle");
+  btn.textContent = mini ? "▾ Show tabs" : "▴ Hide tabs";
+  btn.setAttribute("aria-expanded", String(!mini));
+  btn.title = mini ? "Show the toolbar and tabs" : "Hide the toolbar to give this tab more room";
+  const a = document.querySelector("nav a.active");
+  document.getElementById("hdrMiniLabel").innerHTML = "Dungeon Master's Forge" + (a ? " · <b>" + esc(a.textContent.trim()) + "</b>" : "");
+}
+document.getElementById("hdrToggle").addEventListener("click", () => {
+  const mini = document.documentElement.classList.toggle("hdr-mini");
+  try { localStorage.setItem("dmforge.hdrMini", mini ? "1" : "0"); } catch (e) {}
+  hdrSync();
+});
+
 /* ======================= Routing ======================= */
 function route() {
   const views = (window.Portal && Portal.views) || ["generate", "npc", "monsters", "character", "roster", "spells", "items", "map", "tracker", "homebrew"];
@@ -6088,6 +6115,7 @@ function route() {
   if (v === "homebrew") renderHomebrew();
   if (v === "party" && window.Portal) Portal.renderParty();
   if (v === "whispers" && window.Portal) Portal.renderWhispers();
+  hdrSync();
 }
 window.addEventListener("hashchange", route);
 
