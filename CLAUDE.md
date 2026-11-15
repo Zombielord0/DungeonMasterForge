@@ -40,6 +40,7 @@ npm run build   # bundle src/portal.js -> public/portal.js
 npm run test:backup  # backup and restore checks (Playwright, any OS)
 npm run test:tv  # turn order + handouts on the TV (Playwright, any OS)
 npm run test:mapvis  # map styles, furniture, caves, hover, zoom (Playwright, any OS)
+npm run test:mapio  # map import/export: pictures, VTT files, map files, Foundry/Roll20 (Playwright, any OS)
 npm run test:map  # map fog + TV player screen checks (Playwright, any OS)
 npm run dev     # full local copy at http://localhost:8899 (any OS); stand-in sign-in, data wiped on Ctrl+C
 ```
@@ -180,7 +181,7 @@ Items 15 to 28 came from **PR #5**, merged to `main` on 2026-11-15 together with
 
 ## Dungeon Map: player screen and fog (PR #6, 2026-11-15)
 
-- **Design and plan.** The design for the whole map upgrade is in `docs/superpowers/specs/2026-11-15-dungeon-map-upgrade-design.md`. Phase 3, the player screen, was built first, following `docs/superpowers/plans/2026-11-15-player-screen-fog.md`. Phase 1 (visuals) is done (see the next section); Phase 2 (import/export) is next.
+- **Design and plan.** The design for the whole map upgrade is in `docs/superpowers/specs/2026-11-15-dungeon-map-upgrade-design.md`. Phase 3, the player screen, was built first, following `docs/superpowers/plans/2026-11-15-player-screen-fog.md`. Phase 1 (visuals) and Phase 2 (import/export) are done; see the sections below.
 - **Fog.** A `Uint8Array` with one byte per map square (1 means players can see it).
   - Helpers: `fogKey`, `fogNew` (reveals the entrance), `fogEncode`/`fogDecode` (run-length encoded), `fogRevealRoom`, `fogPaint`, `fogBox`.
   - `fogRevealRoom` adds a 1-square ring around a room, so its walls show. A corridor reveal only uncovers the rock beside the corridor, not the rooms it leads to.
@@ -238,6 +239,31 @@ Items 15 to 28 came from **PR #5**, merged to `main` on 2026-11-15 together with
   - `#mapOverlay` holds the hover outline (`mapOverlayDraw`); `mapSetHover` keeps the map and the key in sync.
   - When not hosting, clicking a room scrolls to its key entry and dragging pans. While hosting, the mouse paints fog instead.
 - **Downloads.** Download PNG and Download player map render fresh at 2× (`mapFileName()`); the player map uses `{player:true, numbers:true}`.
+
+## Dungeon Map import and export (Stage 2, 2026-11-15)
+
+- **Imported maps** are `{kind:"image", id, img (canvas), px, ox, oy, W, H, rooms, walls, params}`. Here `px` is the image's pixels per square and `walls` are segments in squares. `drawDungeon` hands them to `drawImageMap`.
+  - The rooms are numbered markers (`imgRoom`): `cx`/`cy`, `name`, `notes`, `content`, `enc`.
+  - `imgRegrid` recomputes `W`/`H` from `px` and the offsets, and drops markers that fall off the grid.
+- **Pictures** are kept on this computer in IndexedDB (`MAPIMG`, database "dmforge-maps", store "images"), capped at 4096 px (`loadImageCanvas`).
+  - Campaigns store only `imgRecord(d)`, with no picture.
+  - `imgOpenSaved` says so if the picture isn't on this device.
+  - Backups don't include pictures; map files do.
+- **Fog** on imported maps is keyed `img|id|WxH`, so changing the grid starts fresh fog.
+  - `fogNew` starts fully hidden.
+  - `fogRevealRoom` hands off to `fogRevealArea`: a flood fill blocked by walls (from VTT files, with doors counting as walls), capped at 900 squares; with no walls, a circle of radius about 3.
+- **The panel** is `#impPanel`: name, theme for rolled rooms, Squares across (`#impAcross`), the nudge sliders (`#impOffX`/`#impOffY`), and Place rooms (`#impPlace`).
+  - Placing uses `imgDown`/`imgMove`/`imgUp` through `MAPUI.drag`.
+  - The key comes from `imageKeyHTML`, with `data-imf` fields and `data-ima` roll/delete buttons. `rollRoomContents` copies the generator's rules for ordinary rooms.
+- **Files.**
+  - **Map files:** `{app:"dmforge-map", v:1, map, image?}`. For a generated map, `map` holds its params plus fog. For an imported one, it's `imgRecord`, fog and the picture as a data URL.
+  - **Universal VTT import** (`#mapImportVtt`) reads `resolution`, `line_of_sight`, `objects_line_of_sight`, `portals` and `image`.
+  - **VTT export** (`#mapExportVtt`) writes `.dd2vtt`:
+    - The picture comes from `mapVttPicture` at 100 px per square; it's the players' version.
+    - Walls come from `mapVttWalls`, with runs merged and unfound secret doors written as walls.
+    - Doors become portals (`mapDoorEdge`).
+  - **Roll20** (`#mapExportRoll20`) is a 70 px per square PNG.
+- **Tests:** `npm run test:mapio` (`test/e2e/map-import.cjs`).
 
 ## Backup and restore (2026-11-15)
 

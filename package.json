@@ -9,7 +9,8 @@
     "test:map": "node test/e2e/map-fog.cjs",
     "test:backup": "node test/e2e/backup.cjs",
     "test:tv": "node test/e2e/tv.cjs",
-    "test:mapvis": "node test/e2e/map-visuals.cjs"
+    "test:mapvis": "node test/e2e/map-visuals.cjs",
+    "test:mapio": "node test/e2e/map-import.cjs"
   },
   "dependencies": {
     "@netlify/database": "^2.0.3",

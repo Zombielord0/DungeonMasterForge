@@ -22,6 +22,14 @@ Live at https://dungeonmasterforge.netlify.app
 
 - Pick a **Theme** and a **Style**: Parchment, Classic blue graph paper, or Dark for TVs and screens.
 - Hover a room to find it in the Room Key, and click it to jump there. **+** and **−** zoom in and out, and you can drag to move around.
+- **Import a map:**
+  - **Picture…** loads a map picture from Dungeondraft, Dungeon Scrawl, Inkarnate, a book or a scan. Set **Squares across** (and nudge the grid) until the grid lines up. Then tick **Place rooms** and click the map to number each room, and write notes or press **🎲 Roll contents**.
+  - **VTT file…** loads Dungeondraft's `.dd2vtt` files with their grid and walls.
+  - **Map file…** loads a map saved with Export.
+- **Export:**
+  - **Map file** saves everything about a map, including imported pictures, to share or move to another computer.
+  - **Foundry / VTT** saves a `.dd2vtt` file. Foundry opens it with the free "Universal Battlemap Importer" module.
+  - **Roll20 picture** saves a picture at 70 px per square.
 - **Download player map** saves a copy without traps, secret doors or the boss marker, to hand to players.
 
 ## Showing the dungeon map on a TV
