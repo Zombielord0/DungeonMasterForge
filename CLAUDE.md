@@ -41,6 +41,7 @@ npm run test:backup  # backup and restore checks (Playwright, any OS)
 npm run test:tv  # turn order + handouts on the TV (Playwright, any OS)
 npm run test:mapvis  # map styles, furniture, caves, hover, zoom (Playwright, any OS)
 npm run test:mapio  # map import/export: pictures, VTT files, map files, Foundry/Roll20 (Playwright, any OS)
+npm run test:shop  # shop generator (Playwright, any OS)
 npm run test:map  # map fog + TV player screen checks (Playwright, any OS)
 npm run dev     # full local copy at http://localhost:8899 (any OS); stand-in sign-in, data wiped on Ctrl+C
 ```
@@ -264,6 +265,16 @@ Items 15 to 28 came from **PR #5**, merged to `main` on 2026-11-15 together with
     - Doors become portals (`mapDoorEdge`).
   - **Roll20** (`#mapExportRoll20`) is a 70 px per square PNG.
 - **Tests:** `npm run test:mapio` (`test/e2e/map-import.cjs`).
+
+## Shops (2026-11-15)
+
+- **Making a shop.** `shopMake({type, size, level, seed, ed})` builds a shop from `IT.data`, and the same seed always gives the same shop. It returns `{name, label, keeper, mood, stock}`, with each stock item as `{id, n, cat, g, kind, rk, gp, c, qty}`.
+  - **Shop kinds** are in `SHOPS` (`general`, `smith`, `bowyer`, `alchemist`, `magic`, `temple`). Each has a `gear` filter, a `magic` filter, and stock counts for village, town and city.
+  - **Magic rarity** is capped by settlement and level: villages sell up to uncommon; towns up to rare from level 5; cities up to very rare from level 11.
+  - **Prices:** the shopkeeper's manner (`SHOP_MOODS`) scales them, and `shopNiceGp` rounds them.
+- **On the page.** `#itShopBtn` opens it in `#itShop` on the Items tab, through `shopNew` and `shopRender`. The shop is held in `IT.shop` and isn't saved.
+  - Buy calls the existing `itBuy` with the shop's price, and lowers `qty` only if the coins actually changed.
+- **Tests:** `npm run test:shop` (`test/e2e/shop.cjs`).
 
 ## Backup and restore (2026-11-15)
 

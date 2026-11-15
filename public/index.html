@@ -146,6 +146,11 @@ ul.plain{margin:4px 0 0;padding-left:20px}
 .map-wrap.panning{cursor:grabbing}
 .map-tools{display:flex;gap:6px;align-items:center;margin-bottom:8px;flex-wrap:wrap}
 .map-tools .muted{font-size:14px;margin-left:6px}
+.shop-tbl{width:100%;border-collapse:collapse;font-size:15px}
+.shop-tbl th{text-align:left;font-family:Cinzel,serif;font-size:12px;color:var(--muted);font-weight:600;padding:4px 6px;border-bottom:1px solid rgba(0,0,0,.5)}
+.shop-tbl td{padding:4px 6px;border-bottom:1px solid rgba(0,0,0,.3)}
+.shop-tbl td:nth-child(2),.shop-tbl td:nth-child(3){white-space:nowrap}
+.shop-tbl tr.sold{opacity:.45}
 .key-room.hl{background:rgba(232,163,61,.12);box-shadow:inset 3px 0 0 #e8a33d}
 #mapCanvas.fogging{cursor:crosshair;touch-action:none}
 #mapCanvas.placing{cursor:copy}
@@ -1438,10 +1443,12 @@ nav a[data-view=whispers]{--ic:url("data:image/svg+xml,%3Csvg xmlns='http://www.
       </div>
       <button class="btn wide" type="button" id="itReset">Clear filters</button>
       <button class="btn primary wide" type="button" id="itNew" style="margin-top:8px">✚ Create custom item</button>
+      <button class="btn wide" type="button" id="itShopBtn" style="margin-top:8px" title="Make a shop for your town: its stock, prices and shopkeeper">🏪 Generate a shop</button>
       <button class="btn wide" type="button" id="itRandom" style="margin-top:8px">🎲 Random magic item</button>
     </form>
     <div>
       <div id="itBuilder" class="hidden" style="margin-bottom:14px"></div>
+      <div class="card" id="itShop" hidden style="margin-bottom:14px"></div>
       <div class="card" style="padding:12px 16px"><div class="row" style="flex-wrap:wrap"><span id="itCount" style="flex:1"></span></div><div class="sp-target" id="itTargetRow"></div></div>
       <div id="itList"></div>
       <p class="hint" style="margin-top:16px">Item rules text includes material from the System Reference Document 5.1 (“SRD 5.1”) and System Reference Document 5.2 (“SRD 5.2”) by Wizards of the Coast LLC, available at <a href="https://dnd.wizards.com/resources/systems-reference-document">dnd.wizards.com/resources/systems-reference-document</a> and <a href="https://www.dndbeyond.com/srd">dndbeyond.com/srd</a>, licensed under the <a href="https://creativecommons.org/licenses/by/4.0/legalcode">Creative Commons Attribution 4.0 International License</a>. Item data compiled by the open-source <a href="https://github.com/5e-bits/5e-database">5e-database</a> project. Standard items use their listed cost. Magic item prices are suggestions based on rarity (2024 Dungeon Master's Guide values: common 100 gp, uncommon 400 gp, rare 4,000 gp, very rare 40,000 gp, legendary 200,000 gp; consumables half), since the SRD doesn't price magic items. The SRDs hold only part of each edition's items.</p>
@@ -7002,6 +7009,67 @@ function renderItTargets() {
   $("#itTarget").value = IT.target || "";
   renderCampList();
 }
+/* ======================= Shops =======================
+   shopMake picks a shop's stock from the item lists for its kind, settlement size and the party's level, with the shopkeeper's prices. Same seed, same shop. */
+const SHOPS = {
+  general: { label: "General store", nouns: ["Lantern", "Wagon", "Barrel", "Coin", "Rope", "Kettle"], gear: x => (x.g === "Adventuring Gear" || x.g === "Tools") && !/mount|vehicle/i.test(x.cat), magic: null, count: [8, 14, 22] },
+  smith: { label: "Blacksmith & armorer", nouns: ["Anvil", "Hammer", "Forge", "Tongs", "Shield", "Bellows"], gear: x => x.g === "Weapons" || x.g === "Armor", magic: x => /Weapon|Armor/.test(x.cat), count: [6, 10, 16] },
+  bowyer: { label: "Bowyer & fletcher", nouns: ["Arrow", "Fletch", "Quiver", "Stag", "Yew", "Hawk"], gear: x => /bow|arrow|bolt|sling|dart|javelin|quiver|net|blowgun|needle/i.test(x.n) && (x.g === "Weapons" || x.g === "Adventuring Gear"), magic: x => /bow|arrow|bolt|ammunition/i.test(x.n + " " + x.cat), count: [4, 7, 10] },
+  alchemist: { label: "Alchemist & herbalist", nouns: ["Cauldron", "Mortar", "Flask", "Toad", "Mandrake", "Ember"], gear: x => /potion|acid|antitoxin|alchemist|healer|herbal|poison|vial|flask|oil|perfume/i.test(x.n), magic: x => /Potion/.test(x.cat), count: [4, 8, 12] },
+  magic: { label: "Magic shop", nouns: ["Wand", "Owl", "Star", "Grimoire", "Moon", "Crystal"], gear: x => /component pouch|arcane focus|spellbook|crystal|orb|wand|rod|staff|ink|parchment|scroll case|druidic focus|holy symbol/i.test(x.n), magic: x => true, count: [3, 6, 10], magicShare: .75 },
+  temple: { label: "Temple & healer", nouns: ["Lamp", "Chalice", "Dove", "Candle", "Halo", "Bell"], gear: x => /holy|healer|incense|candle|vestment|amulet|emblem|reliquary|antitoxin|healing/i.test(x.n), magic: x => /Potion|Scroll/.test(x.cat) && /heal|protect|restor|bless|ward|cure|resist/i.test(x.n + " " + x.cat), count: [3, 6, 9] }
+};
+const SHOP_ADJ = ["Gilded", "Crooked", "Silver", "Rusty", "Laughing", "Copper", "Old", "Wandering", "Hidden", "Black", "Lucky", "Sleeping"];
+const SHOP_MOODS = [["haggles hard and loves every minute of it", 1.15], ["fair and friendly", 1], ["gruff but honest", 1.05], ["desperate to sell before the rent is due", .85], ["greedy, all smiles", 1.25], ["old and forgetful, so prices wander", 0]];
+function shopNiceGp(v) { return v >= 20 ? Math.round(v) : v >= 1 ? Math.round(v * 10) / 10 : Math.max(.01, Math.round(v * 100) / 100); }
+function shopMake({ type, size, level, seed, ed }) {
+  itLoad();
+  const S = SHOPS[type] || SHOPS.general, r = makeRng("shop", seed, type, size, level, ed), lv = clamp(level || 1, 1, 20), si = { village: 0, town: 1, city: 2 }[size] ?? 1;
+  const maxRk = si === 0 ? 1 : si === 1 ? (lv >= 5 ? 2 : 1) : (lv >= 11 ? 3 : 2);
+  const all = IT.data[ed] || IT.data["2024"], priced = x => x.gp !== null && x.gp !== undefined && +x.gp > 0;
+  const total = S.count[si];
+  let nMagic = !S.magic ? 0 : S.magicShare ? Math.round(total * S.magicShare) : [0, r.int(0, 1), r.int(1, 3)][si];
+  const magicPool = S.magic ? r.shuffle(all.filter(x => x.kind === "magic" && x.rk >= 0 && x.rk <= maxRk && priced(x) && S.magic(x))) : [];
+  const gearPool = r.shuffle(all.filter(x => x.kind === "gear" && priced(x) && S.gear(x)));
+  nMagic = Math.min(nMagic, magicPool.length);
+  const picks = [...gearPool.slice(0, total - nMagic), ...magicPool.slice(0, nMagic)];
+  const mood = r.pick(SHOP_MOODS);
+  const stock = picks.map(x => {
+    const k = mood[1] || (0.8 + r.f() * 0.4), gp = shopNiceGp(+x.gp * k);
+    const qty = x.kind === "magic" ? 1 : x.g === "Weapons" || x.g === "Armor" ? r.int(1, 3) : r.int(2, 10);
+    return { id: x.id, n: x.n, cat: x.cat, g: x.g || "", kind: x.kind, rk: x.rk, r: x.r, att: !!x.att, w: x.w || 0, gp, c: fmtGp(gp), qty };
+  }).sort((a, b) => (a.kind === b.kind ? 0 : a.kind === "gear" ? -1 : 1) || a.n.localeCompare(b.n));
+  return { seed, type, size, level: lv, ed, name: `The ${r.pick(SHOP_ADJ)} ${r.pick(S.nouns)}`, label: S.label, keeper: fullName(r, r.pick(["male", "female"])), mood: mood[0], stock };
+}
+function shopLevelGuess() { const lv = PCS.roster.map(c => totalLv(c)).filter(Boolean); return lv.length ? Math.max(...lv) : 3; }
+function shopNew(keep) {
+  const prev = IT.shop || {}, o = keep ? { type: $("#shopType").value, size: $("#shopSize").value, level: +$("#shopLevel").value || 1 } : { type: prev.type || "general", size: prev.size || "town", level: prev.level || shopLevelGuess() };
+  IT.shop = shopMake({ ...o, seed: newSeed(), ed: IT.ed }); shopRender();
+}
+function shopRender() {
+  const s = IT.shop, el = $("#itShop"); if (!s) { el.hidden = true; return; } el.hidden = false;
+  el.innerHTML = `<div class="sec-h"><h3>🏪 ${esc(s.name)}</h3><span class="muted" style="font-size:14px;margin-left:8px">${esc(s.label)}</span><span class="sp"></span><button class="icon-btn" type="button" id="shopClose" title="Close the shop">✕</button></div>
+    <div class="field row" style="align-items:end">
+      <div><label>Kind of shop</label><select id="shopType">${Object.entries(SHOPS).map(([k, v]) => `<option value="${k}" ${k === s.type ? "selected" : ""}>${v.label}</option>`).join("")}</select></div>
+      <div><label>Settlement</label><select id="shopSize">${["village", "town", "city"].map(k => `<option value="${k}" ${k === s.size ? "selected" : ""}>${k[0].toUpperCase() + k.slice(1)}</option>`).join("")}</select></div>
+      <div style="max-width:110px"><label>Party level</label><input type="number" id="shopLevel" min="1" max="20" value="${s.level}"></div>
+      <div style="flex:0 0 auto"><button class="btn sm primary" type="button" id="shopReroll">🎲 Roll again</button></div>
+    </div>
+    <p style="margin:4px 0 10px"><b>${esc(s.keeper)}</b> runs the place: ${esc(s.mood)}.</p>
+    ${s.stock.length ? `<table class="shop-tbl"><thead><tr><th>Item</th><th>Price</th><th>In stock</th><th></th></tr></thead><tbody>${s.stock.map((x, i) => `<tr class="${x.qty ? "" : "sold"}"><td>${esc(x.n)}${x.kind === "magic" ? ` <span class="tag">${esc(rarName(x))}</span>` : ""}</td><td>${esc(x.c)}</td><td>${x.qty}</td><td><button class="btn sm" type="button" data-shopbuy="${i}" ${x.qty ? "" : "disabled"}>Buy</button></td></tr>`).join("")}</tbody></table>`
+      : `<p class="muted">Nothing on the shelves today. Try another kind of shop or a bigger settlement.</p>`}
+    <p class="hint" style="margin:8px 0 0">Buy pays from the coins of the character chosen in “Give items to” below, and puts the item in their inventory.</p>`;
+}
+$("#itShopBtn").addEventListener("click", () => { shopNew(false); $("#itShop").scrollIntoView({ behavior: "smooth", block: "start" }); });
+$("#itShop").addEventListener("change", e => { if (["shopType", "shopSize", "shopLevel"].includes(e.target.id)) shopNew(true); });
+$("#itShop").addEventListener("click", e => {
+  if (e.target.id === "shopClose") { IT.shop = null; shopRender(); return; }
+  if (e.target.id === "shopReroll") { shopNew(true); return; }
+  const b = e.target.closest("[data-shopbuy]"); if (!b) return;
+  const x = IT.shop.stock[+b.dataset.shopbuy], c = PCS.roster.find(r => r.id === ($("#itTarget") || {}).value); if (!x || !x.qty) return;
+  const before = c ? JSON.stringify(c.coins || {}) : ""; itBuy(x);
+  if (c && JSON.stringify(c.coins || {}) !== before) { x.qty--; shopRender(); }
+});
 function renderItems() {
   itLoad(); renderItTargets();
   $("#itGearF").classList.toggle("hidden", IT.mode === "magic" || IT.mode === "custom");
@@ -9903,6 +9971,10 @@ Store.init().then(() => { renderCampList(); pcAdoptRemote(); itemsAdopt(); if (l
 <script>
 /* ---- what's new: newest first. Add an entry (with a new id) whenever a change ships; the bell counts entries this browser hasn't seen. ---- */
 const NEWS = [
+  { id: "2026-11-15-shops", date: "2026-11-15", title: "Shops for your towns", go: "items", items: [
+    "On the Items tab, press 🏪 Generate a shop: a general store, blacksmith, bowyer, alchemist, magic shop or temple, sized for a village, town or city.",
+    "Each shop has a name, a shopkeeper with a manner that changes the prices, and stock suited to the party's level.",
+    "Buy takes the coins from a character and puts the item in their inventory."] },
   { id: "2026-11-15-mapimport", date: "2026-11-15", title: "Import your own maps, export to Foundry and Roll20", go: "map", items: [
     "Import a map picture (from Dungeondraft, Dungeon Scrawl, a book or a scan), line up the grid, and click to number its rooms. Each room gets notes, or 🎲 Roll contents for an encounter, trap or treasure.",
     "Dungeondraft's Universal VTT files (.dd2vtt) import with their grid and walls, so revealing a room on the TV stops at its walls.",
