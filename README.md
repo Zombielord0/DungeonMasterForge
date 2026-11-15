@@ -18,6 +18,22 @@ Live at https://dungeonmasterforge.netlify.app
 - If the DM and a player save the same sheet at once, whoever saves second is asked which version to keep.
 - "Use without an account" keeps the old behaviour: DM tools, saved in this browser only.
 
+## Showing the dungeon map on a TV
+
+1. Open **Dungeon Map** and generate (or open a saved) map.
+2. Under the map, press **📺 Host for players**. A second window opens. Drag it onto the TV or second monitor and double-click it for full screen.
+3. Players see only what you reveal. With the fog tools you can:
+   - **Room:** click a room or corridor.
+   - **Brush:** paint squares.
+   - **Box:** drag a rectangle.
+   - **Secret door:** click an "S" once the players find it.
+   - Use the **Reveal on TV** buttons in the Room Key, which also work with the keyboard. A secret door turns green on your map once the players have found it.
+   - Switch **Mode** to **Hide** to cover areas again, and use **Undo** if you make a mistake.
+4. **Shift+click** the map to flash a ring on the TV.
+5. Traps never show on the TV.
+
+Everything stays on your computer, and no internet traffic or Netlify usage happens during play. Fog is remembered on this computer. Press **Save** to keep it with a campaign.
+
 ## One-time Netlify setup
 
 1. Link this GitHub repo to the site: Project configuration → Build & deploy → Link repository, production branch `main`.

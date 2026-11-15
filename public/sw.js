@@ -1,8 +1,8 @@
 /* Dungeon Master's Forge service worker: lets the app install and open without a connection.
    Pages and scripts are fetched fresh when online (so updates show at once) and fall back to the saved copy offline.
    Sign-in, the campaign API and other sites are never cached. */
-const CACHE = "dmforge-v1";
-const CORE = ["/", "/manifest.webmanifest", "/icons/icon-192.png", "/icons/icon-512.png", "/icons/apple-touch-icon.png"];
+const CACHE = "dmforge-v2";
+const CORE = ["/", "/player.html", "/manifest.webmanifest", "/icons/icon-192.png", "/icons/icon-512.png", "/icons/apple-touch-icon.png"];
 
 self.addEventListener("install", e => {
   e.waitUntil(caches.open(CACHE).then(c => c.addAll(CORE)).then(() => self.skipWaiting()));
@@ -18,7 +18,8 @@ self.addEventListener("fetch", e => {
     e.respondWith(caches.match(req).then(hit => hit || fetch(req).then(res => { const copy = res.clone(); caches.open(CACHE).then(c => c.put(req, copy)); return res; })));
     return;
   }
-  const key = req.mode === "navigate" ? "/" : req;
+  // The app is one page, so app navigations share the "/" copy; the TV window (player.html) keeps its own copy.
+  const key = req.mode !== "navigate" ? req : url.pathname === "/player.html" ? "/player.html" : "/";
   e.respondWith(fetch(req).then(res => {
     if (res.ok) { const copy = res.clone(); caches.open(CACHE).then(c => c.put(key, copy)); }
     return res;

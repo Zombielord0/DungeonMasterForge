@@ -141,6 +141,9 @@ ul.plain{margin:4px 0 0;padding-left:20px}
 /* map: a parchment pinned on stone */
 .map-wrap{background:#e9dcbd;border-radius:3px;padding:10px;overflow:auto;box-shadow:0 12px 30px rgba(0,0,0,.75),inset 0 0 40px rgba(120,80,30,.35);transform:rotate(-.25deg)}
 #mapCanvas{display:block;width:100%;height:auto}
+#mapCanvas.fogging{cursor:crosshair;touch-action:none}
+.fog-tools{border:0;padding:0;margin:14px 0 0;min-width:0}
+.fog-tools[disabled]{opacity:.45}
 .key-room{padding:8px 0;border-bottom:1px solid rgba(0,0,0,.45);box-shadow:0 1px 0 rgba(255,255,255,.05)}
 .key-room:last-child{border:none;box-shadow:none}
 .key-num{display:inline-grid;place-items:center;width:26px;height:26px;border-radius:50%;background:#e9dcbd;color:var(--ink);font-family:Cinzel,serif;font-weight:700;font-size:13px;margin-right:6px;box-shadow:0 1px 3px rgba(0,0,0,.6)}
@@ -1044,6 +1047,25 @@ nav a[data-view=whispers]{--ic:url("data:image/svg+xml,%3Csvg xmlns='http://www.
     </form>
     <div>
       <div class="map-wrap"><canvas id="mapCanvas"></canvas></div>
+      <div class="card" id="hostCard" style="margin-top:14px">
+        <div class="sec-h"><h3>Player Screen</h3><span class="sp"></span><span class="badge" id="hostStatus">Not connected</span></div>
+        <p class="muted" style="margin:0 0 10px">Open a second window, drag it onto the TV or second monitor, and double-click it for full screen. Players only see what you reveal, and nothing is sent over the internet.</p>
+        <button class="btn primary" type="button" id="hostStart">📺 Host for players</button>
+        <fieldset id="fogTools" class="fog-tools" disabled>
+          <div class="field"><label>Fog tool</label>
+            <div class="seg"><label class="opt"><input type="radio" name="fogTool" value="room" checked><span>Room</span></label><label class="opt"><input type="radio" name="fogTool" value="brush"><span>Brush</span></label><label class="opt"><input type="radio" name="fogTool" value="box"><span>Box</span></label><label class="opt"><input type="radio" name="fogTool" value="secret"><span>Secret door</span></label></div>
+          </div>
+          <div class="field row">
+            <div><label>Mode</label><div class="seg"><label class="opt"><input type="radio" name="fogVal" value="reveal" checked><span>Reveal</span></label><label class="opt"><input type="radio" name="fogVal" value="hide"><span>Hide</span></label></div></div>
+            <div><label>Brush size</label><select id="fogSize"><option value="1">1 square</option><option value="3" selected>3 × 3</option><option value="5">5 × 5</option></select></div>
+          </div>
+          <div class="row" style="margin-bottom:10px">
+            <button class="btn sm" type="button" id="fogAll">Reveal all</button><button class="btn sm" type="button" id="fogNone">Hide all</button><button class="btn sm" type="button" id="fogUndo">↶ Undo</button>
+          </div>
+          <label class="check"><input type="checkbox" id="fogNums"><span>Show room numbers on the TV</span></label>
+          <p class="hint" style="margin:6px 0 0"><b>Room:</b> click a room or corridor. <b>Brush:</b> paint over squares. <b>Box:</b> drag a rectangle. <b>Secret door:</b> click an “S” once the players find it, and it appears on the TV. <b>Shift+click</b> flashes a ring on the TV to point something out. Fog is kept on this computer; press Save to store it with a campaign.</p>
+        </fieldset>
+      </div>
       <div class="card" style="margin-top:14px">
         <div class="sec-h"><h3>Room Key</h3><span class="sp"></span><span class="muted" style="font-size:14px">1 square = 5 ft · encounter math uses the 5e DMG XP thresholds</span></div>
         <div id="roomKey"></div>
@@ -2149,11 +2171,61 @@ function generateDungeon(p) {
   return { W, H, grid, rid, rooms: order.map(i => rooms[i]), doors, params: p };
 }
 
-/* ======================= Dungeon rendering ======================= */
-const CS = 20, TOP = 46;
-function drawDungeon(cv, d, showGrid) {
+/* ======================= Fog of war =======================
+   One byte per map square: 1 = players can see it, 0 = hidden. */
+function fogKey(p) { return "gen|" + [p.seed, p.theme, p.size, p.rooms].join("|"); }
+function fogEncode(u8) {
+  let s = "", v = u8[0], c = 0;
+  for (let i = 0; i <= u8.length; i++) { if (i < u8.length && u8[i] === v) { c++; continue; } if (c) s += v + c.toString(36) + ","; v = u8[i]; c = 1; }
+  return s;
+}
+function fogDecode(str, n) {
+  const u = new Uint8Array(n); let i = 0;
+  for (const run of String(str || "").split(",")) { if (!run) continue; const v = run[0] === "1" ? 1 : 0, c = parseInt(run.slice(1), 36) || 0; u.fill(v, i, Math.min(n, i + c)); i += c; }
+  return i === n ? u : new Uint8Array(n);
+}
+function fogNew(d) { const f = new Uint8Array(d.W * d.H); const e = d.rooms[0]; if (e) fogRevealRoom(d, f, e.cx, e.cy); return f; }
+// Reveal the room (or the stretch of corridor) under square x,y, plus a 1-square ring so its walls show.
+function fogRevealRoom(d, fog, x, y) {
+  const { W, H, grid, rid } = d;
+  if (x < 0 || y < 0 || x >= W || y >= H || !grid[y * W + x]) return false;
+  const k0 = y * W + x, set = [];
+  if (rid[k0] >= 0) { for (let i = 0; i < W * H; i++) if (rid[i] === rid[k0]) set.push(i); }
+  else {
+    const seen = new Set([k0]), q = [k0];
+    while (q.length) {
+      const k = q.pop(); set.push(k); const cx = k % W, cy = (k - cx) / W;
+      for (const [dx, dy] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) {
+        const nx = cx + dx, ny = cy + dy, j = ny * W + nx;
+        if (nx < 0 || ny < 0 || nx >= W || ny >= H || seen.has(j)) continue;
+        if (grid[j] > 0 && rid[j] < 0) { seen.add(j); q.push(j); }
+      }
+    }
+  }
+  const room = rid[k0] >= 0;
+  set.forEach(k => {
+    fog[k] = 1; const cx = k % W, cy = (k - cx) / W;
+    for (let dy = -1; dy <= 1; dy++) for (let dx = -1; dx <= 1; dx++) {
+      const nx = cx + dx, ny = cy + dy; if (nx < 0 || ny < 0 || nx >= W || ny >= H) continue;
+      const j = ny * W + nx; if (room || !grid[j]) fog[j] = 1; // corridors only uncover the rock beside them, not the rooms they lead to
+    }
+  });
+  return true;
+}
+function fogPaint(fog, d, x, y, size, val) { const r = (size - 1) >> 1; fogBox(fog, d, x - r, y - r, x + r, y + r, val); }
+function fogBox(fog, d, x1, y1, x2, y2, val) {
+  const xa = Math.max(0, Math.min(x1, x2)), xb = Math.min(d.W - 1, Math.max(x1, x2)), ya = Math.max(0, Math.min(y1, y2)), yb = Math.min(d.H - 1, Math.max(y1, y2));
+  for (let y = ya; y <= yb; y++) for (let x = xa; x <= xb; x++) fog[y * d.W + x] = val;
+}
+
+/* ======================= Dungeon rendering =======================
+   o.player draws the player-safe view (no traps, unfound secret doors drawn as wall, no seed);
+   o.fog covers hidden squares (solid for players, a see-through tint for the DM). */
+const CS = 20, TOP = 46, FOG_PLAYER = "#0b0a09", FOG_DM = "rgba(10,8,6,.5)";
+function drawDungeon(cv, d, showGrid, o = {}) {
   const { W, H, grid } = d, pal = { crypt: "#e9e2d2", cavern: "#efe6cf", keep: "#efe3c6", sewer: "#e3e2cc", temple: "#f0e4c8", mine: "#ecdcc0" }[d.params.theme];
-  const dpr = Math.min(2, window.devicePixelRatio || 1);
+  const player = !!o.player, fog = o.fog || null, showNums = o.numbers !== undefined ? o.numbers : !player;
+  const dpr = o.scale || Math.min(2, window.devicePixelRatio || 1);
   cv.width = W * CS * dpr; cv.height = (H * CS + TOP) * dpr;
   const g = cv.getContext("2d"); g.setTransform(dpr, 0, 0, dpr, 0, 0);
   g.fillStyle = pal; g.fillRect(0, 0, W * CS, H * CS + TOP);
@@ -2190,12 +2262,20 @@ function drawDungeon(cv, d, showGrid) {
   d.doors.forEach(dr => {
     const ex = dr.dx > 0 ? (dr.x + 1) * CS : dr.dx < 0 ? dr.x * CS : dr.x * CS + CS / 2;
     const ey = dr.dy > 0 ? (dr.y + 1) * CS : dr.dy < 0 ? dr.y * CS : dr.y * CS + CS / 2;
-    if (dr.secret) { g.fillStyle = "#2a2018"; g.font = "bold 13px Cinzel, serif"; g.textAlign = "center"; g.textBaseline = "middle"; g.fillText("S", ex, ey); return; }
+    if (dr.secret && player && !(o.found && o.found.has(dr.x + "," + dr.y))) {
+      // to players an unfound secret door is just more wall
+      const wx = dr.dx > 0 ? (dr.x + 1) * CS : dr.x * CS, wy = dr.dy > 0 ? (dr.y + 1) * CS : dr.y * CS;
+      g.strokeStyle = "#2a2018"; g.lineWidth = 3; g.beginPath();
+      if (dr.dx) { g.moveTo(wx, dr.y * CS); g.lineTo(wx, dr.y * CS + CS); } else { g.moveTo(dr.x * CS, wy); g.lineTo(dr.x * CS + CS, wy); }
+      g.stroke(); return;
+    }
+    if (dr.secret && !player) { g.fillStyle = o.found && o.found.has(dr.x + "," + dr.y) ? "#3f9a3a" : "#2a2018"; /* green once the players have found it */ g.font = "bold 13px Cinzel, serif"; g.textAlign = "center"; g.textBaseline = "middle"; g.fillText("S", ex, ey); return; }
     const vert = dr.dx !== 0, w = vert ? CS * .32 : CS * .72, h = vert ? CS * .72 : CS * .32;
     g.fillStyle = "#c79a5b"; g.strokeStyle = "#2a2018"; g.lineWidth = 1.5; g.fillRect(ex - w / 2, ey - h / 2, w, h); g.strokeRect(ex - w / 2, ey - h / 2, w, h);
   });
   // icons
   d.rooms.forEach(o => (o.icons || []).forEach(ic => {
+    if (player && (ic.m === "trap" || ic.m === "down")) return;
     const X = ic.x * CS, Y = ic.y * CS;
     if (ic.m === "up" || ic.m === "down") {
       g.strokeStyle = "#2a2018"; g.lineWidth = 1.4; g.beginPath();
@@ -2211,19 +2291,26 @@ function drawDungeon(cv, d, showGrid) {
   }));
   // room numbers
   d.rooms.forEach(o => {
-    const X = o.cx * CS + CS / 2, Y = o.cy * CS + CS / 2, boss = (o.marks || []).includes("boss");
+    if (!showNums || (fog && !fog[o.cy * W + o.cx])) return;
+    const X = o.cx * CS + CS / 2, Y = o.cy * CS + CS / 2, boss = !player && (o.marks || []).includes("boss");
     g.beginPath(); g.arc(X, Y, 10, 0, Math.PI * 2); g.fillStyle = boss ? "#9b2f2f" : "#2a2018"; g.fill();
     g.fillStyle = "#fdfaf2"; g.font = "bold 11px Cinzel, Georgia, serif"; g.textAlign = "center"; g.textBaseline = "middle"; g.fillText(String(o.num), X, Y + .5);
   });
+  if (fog) {
+    g.fillStyle = player ? FOG_PLAYER : FOG_DM; g.beginPath();
+    for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) if (!fog[y * W + x]) g.rect(x * CS, y * CS, CS, CS);
+    g.fill();
+  }
   g.restore();
   // header + scale + compass
   g.fillStyle = "#2a2018"; g.font = "700 20px Cinzel, Georgia, serif"; g.textAlign = "left"; g.textBaseline = "middle";
   g.fillText(d.params.name || "Dungeon", 14, TOP / 2);
   g.font = "italic 14px 'Crimson Pro', Georgia, serif"; g.textAlign = "right";
-  g.fillText(`${{ crypt: "Crypt", cavern: "Cavern", keep: "Keep", sewer: "Sewers", temple: "Temple", mine: "Mine" }[d.params.theme]} · ${d.rooms.length} areas · party level ${d.params.level} · seed ${d.params.seed}`, W * CS - 14, TOP / 2);
-  const by = TOP + H * CS - 14; g.strokeStyle = "#2a2018"; g.lineWidth = 2; g.beginPath(); g.moveTo(14, by); g.lineTo(14 + CS * 4, by); for (let k = 0; k <= 4; k++) { g.moveTo(14 + k * CS, by - 4); g.lineTo(14 + k * CS, by + 4); } g.stroke();
+  if (!player) g.fillText(`${{ crypt: "Crypt", cavern: "Cavern", keep: "Keep", sewer: "Sewers", temple: "Temple", mine: "Mine" }[d.params.theme]} · ${d.rooms.length} areas · party level ${d.params.level} · seed ${d.params.seed}`, W * CS - 14, TOP / 2);
+  const legend = player && fog ? "#c9b48a" : "#2a2018"; // readable on top of solid fog
+  const by = TOP + H * CS - 14; g.strokeStyle = legend; g.fillStyle = legend; g.lineWidth = 2; g.beginPath(); g.moveTo(14, by); g.lineTo(14 + CS * 4, by); for (let k = 0; k <= 4; k++) { g.moveTo(14 + k * CS, by - 4); g.lineTo(14 + k * CS, by + 4); } g.stroke();
   g.font = "12px 'Crimson Pro', Georgia, serif"; g.textAlign = "left"; g.fillText("20 ft", 14 + CS * 4 + 6, by);
-  const cx = W * CS - 26, cy = TOP + H * CS - 26; g.beginPath(); g.moveTo(cx, cy - 14); g.lineTo(cx + 5, cy); g.lineTo(cx, cy + 14); g.lineTo(cx - 5, cy); g.closePath(); g.fillStyle = "#2a2018"; g.fill();
+  const cx = W * CS - 26, cy = TOP + H * CS - 26; g.beginPath(); g.moveTo(cx, cy - 14); g.lineTo(cx + 5, cy); g.lineTo(cx, cy + 14); g.lineTo(cx - 5, cy); g.closePath(); g.fillStyle = legend; g.fill();
   g.font = "bold 11px Cinzel, serif"; g.textAlign = "center"; g.fillText("N", cx, cy - 20);
 }
 function roomKeyHTML(d) {
@@ -2243,13 +2330,19 @@ function readMapForm() {
     party: clamp(parseInt($("#mapParty").value) || 4, 1, 8), seed: $("#mapSeed").value.trim().toUpperCase()
   };
 }
+// open a map saved in a campaign; its saved fog (if any) replaces the copy kept on this computer
+function mapOpenSaved(m) {
+  setMapForm(m);
+  if (m.fog) fogStorePut(fogKey(m), m.fog, m.found || []);
+  HOST.key = null; location.hash = "map"; renderMap();
+}
 function setMapForm(p) { $("#mapName").value = p.name; $("#mapTheme").value = p.theme; $("#mapSize").value = p.size; $("#mapRooms").value = p.rooms; $("#mapLevel").value = p.level; $("#mapParty").value = p.party; $("#mapSeed").value = p.seed; }
 function renderMap() {
   const p = readMapForm();
   const cap = { small: 10, medium: 16, large: 24 }[p.size];
   currentMap = generateDungeon({ ...p, rooms: Math.min(p.rooms, cap) });
-  drawDungeon($("#mapCanvas"), currentMap, $("#mapGrid").checked);
-  $("#roomKey").innerHTML = roomKeyHTML(currentMap) + (currentMap.rooms.length < p.rooms ? `<p class="hint">Only ${currentMap.rooms.length} rooms fit on this map size. Try a larger size.</p>` : "");
+  hostLoad(currentMap); drawMapDM(); if (HOST.on) hostSend();
+  $("#roomKey").innerHTML = roomKeyHTML(currentMap) + (currentMap.rooms.length < p.rooms ? `<p class="hint">Only ${currentMap.rooms.length} rooms fit on this map size. Try a larger size.</p>` : ""); fogKeyButtons();
 }
 $("#mapForm").addEventListener("submit", e => { e.preventDefault(); $("#mapSeed").value = newSeed(); renderMap(); });
 ["#mapTheme", "#mapSize", "#mapRooms", "#mapLevel", "#mapParty", "#mapGrid"].forEach(id => $(id).addEventListener("change", renderMap));
@@ -2262,9 +2355,135 @@ $("#mapDownload").addEventListener("click", () => {
 $("#mapSave").addEventListener("click", () => {
   const id = $("#mapCampaign").value; const c = Store.get(id);
   if (!c || !currentMap) { toast("Create a campaign first"); return; }
-  c.maps = c.maps || []; c.maps.unshift({ id: uid("m"), ...currentMap.params, saved: Date.now() });
+  c.maps = c.maps || []; c.maps.unshift({ id: uid("m"), ...currentMap.params, saved: Date.now(), ...(HOST.fog ? { fog: fogEncode(HOST.fog), found: [...HOST.found] } : {}) });
   Store.save(c); toast(`Map saved to “${c.name}”`); if (activeId === id) renderTracker();
 });
+
+/* ======================= Player screen (same computer) =======================
+   The TV window (player.html) only ever receives finished pictures over a BroadcastChannel:
+   DM -> TV on "dmforge.map" ({t:"frame",blob} | {t:"ping",x,y} | {t:"bye"}), TV -> DM on "dmforge.map.tv" ({t:"hello"} | {t:"bye"}).
+   No network is used. */
+const HOST = { ch: null, up: null, win: null, on: false, tv: false, key: null, fog: null, found: new Set(), numbers: false, undo: [], timer: 0 };
+function drawMapDM() { if (currentMap) drawDungeon($("#mapCanvas"), currentMap, $("#mapGrid").checked, { fog: HOST.on ? HOST.fog : null, found: HOST.found }); fogKeyButtons(); }
+// "Reveal on TV" / "Hide on TV" buttons on each Room Key entry while hosting (a keyboard-friendly way to use the Room tool)
+function fogKeyButtons() {
+  const d = currentMap; if (!d) return;
+  $("#roomKey").querySelectorAll(".key-room").forEach((el, i) => {
+    const o = d.rooms[i]; if (!o) return;
+    let b = el.querySelector("[data-fogroom]");
+    if (!HOST.on || !HOST.fog) { if (b) b.remove(); return; }
+    if (!b) { b = document.createElement("button"); b.type = "button"; b.className = "btn sm"; b.style.float = "right"; b.dataset.fogroom = o.num; el.prepend(b); }
+    const shown = !!HOST.fog[o.cy * d.W + o.cx]; b.textContent = shown ? "Hide on TV" : "👁 Reveal on TV"; b.setAttribute("aria-label", (shown ? "Hide room " : "Reveal room ") + o.num + " on the TV");
+  });
+}
+function hostLoad(d) {
+  const key = fogKey(d.params); if (HOST.key === key && HOST.fog) return;
+  const saved = fogLoadLocal(key);
+  HOST.key = key; HOST.fog = saved ? saved.fog : fogNew(d); HOST.found = saved ? saved.found : new Set(); HOST.undo = [];
+  if (HOST.on) hostSend();
+}
+function hostStatus() {
+  const b = $("#hostStatus"); b.textContent = !HOST.on ? "Not connected" : HOST.tv ? "📺 TV connected" : "Waiting for the TV window…";
+  b.className = "badge" + (HOST.on && HOST.tv ? " ok" : "");
+  $("#hostStart").textContent = HOST.on ? "Stop hosting" : "📺 Host for players"; $("#hostStart").classList.toggle("primary", !HOST.on);
+  $("#fogTools").disabled = !HOST.on; $("#mapCanvas").classList.toggle("fogging", HOST.on);
+}
+function hostSend() {
+  clearTimeout(HOST.timer);
+  HOST.timer = setTimeout(() => {
+    if (!HOST.on || !currentMap || !HOST.ch) return;
+    const cv = document.createElement("canvas");
+    drawDungeon(cv, currentMap, $("#mapGrid").checked, { player: true, fog: HOST.fog, found: HOST.found, numbers: HOST.numbers, scale: 2 });
+    cv.toBlob(blob => { if (blob && HOST.on) HOST.ch.postMessage({ t: "frame", blob }); }, "image/png");
+  }, 80);
+}
+function hostPing(fx, fy) { if (HOST.on && HOST.ch) HOST.ch.postMessage({ t: "ping", x: fx, y: fy }); }
+function hostStart() {
+  if (!HOST.ch) {
+    HOST.ch = new BroadcastChannel("dmforge.map"); HOST.up = new BroadcastChannel("dmforge.map.tv");
+    HOST.up.onmessage = e => { const m = e.data || {}; if (m.t === "hello") { HOST.tv = true; hostSend(); } else if (m.t === "bye") HOST.tv = false; hostStatus(); };
+  }
+  const w = window.open("player.html", "dmforge-tv", "popup,width=1280,height=800");
+  if (!w) { toast("Your browser blocked the player window. Allow pop-ups for this site and try again."); return; }
+  HOST.win = w; HOST.on = true; hostStatus(); drawMapDM(); hostSend();
+}
+function hostStop() {
+  if (HOST.ch) HOST.ch.postMessage({ t: "bye" });
+  HOST.on = false; HOST.tv = false; hostStatus(); drawMapDM();
+}
+$("#hostStart").addEventListener("click", () => HOST.on ? hostStop() : hostStart());
+
+/* ---- fog: kept on this computer while playing; goes into a campaign only on Save ---- */
+const FOG_LS = "dmforge.fog.v1", FOG_KEEP = 40;
+function fogStoreRead() { try { return JSON.parse(localStorage.getItem(FOG_LS) || "{}"); } catch { return {}; } }
+function fogStorePut(key, fogStr, found) {
+  const all = fogStoreRead(); all[key] = { f: fogStr, s: found, t: Date.now() };
+  const keys = Object.keys(all).sort((a, b) => all[b].t - all[a].t); keys.slice(FOG_KEEP).forEach(k => delete all[k]);
+  try { localStorage.setItem(FOG_LS, JSON.stringify(all)); } catch { /* storage full: fog just won't persist */ }
+}
+function fogSaveLocal() { if (currentMap && HOST.fog) fogStorePut(HOST.key, fogEncode(HOST.fog), [...HOST.found]); }
+function fogLoadLocal(key) {
+  const e = fogStoreRead()[key]; if (!e || !currentMap) return null;
+  return { fog: fogDecode(e.f, currentMap.W * currentMap.H), found: new Set(e.s || []) };
+}
+function fogChanged() { fogSaveLocal(); drawMapDM(); hostSend(); }
+function fogSnap() { HOST.undo.push({ f: HOST.fog.slice(), s: new Set(HOST.found) }); if (HOST.undo.length > 50) HOST.undo.shift(); }
+// which map square is under the mouse; fx/fy are fractions of the whole picture (for pings)
+function canvasCell(e) {
+  const cv = $("#mapCanvas"), d = currentMap; if (!d) return null;
+  const r = cv.getBoundingClientRect(), px = (e.clientX - r.left) * (d.W * CS) / r.width, py = (e.clientY - r.top) * (d.H * CS + TOP) / r.height;
+  const x = Math.floor(px / CS), y = Math.floor((py - TOP) / CS);
+  return { x, y, fx: px / (d.W * CS), fy: py / (d.H * CS + TOP), inGrid: x >= 0 && y >= 0 && x < d.W && y < d.H };
+}
+const fogTool = () => $("input[name=fogTool]:checked").value, fogVal = () => $("input[name=fogVal]:checked").value === "reveal" ? 1 : 0;
+let fogDrag = null;
+$("#mapCanvas").addEventListener("pointerdown", e => {
+  if (!HOST.on || !currentMap || e.button !== 0) return;
+  const c = canvasCell(e); if (!c) return;
+  if (e.shiftKey) { hostPing(c.fx, c.fy); return; }
+  if (!c.inGrid) return;
+  const d = currentMap, t = fogTool(), v = fogVal();
+  if (t === "room") {
+    const tmp = new Uint8Array(d.W * d.H); if (!fogRevealRoom(d, tmp, c.x, c.y)) return;
+    fogSnap(); tmp.forEach((on, i) => { if (on) HOST.fog[i] = v; }); fogChanged();
+  } else if (t === "secret") {
+    const dr = d.doors.find(o => o.secret && o.x === c.x && o.y === c.y); if (!dr) { toast("Click on a secret door (S)"); return; }
+    fogSnap(); const k = dr.x + "," + dr.y; HOST.found.has(k) ? HOST.found.delete(k) : HOST.found.add(k); fogChanged();
+    toast(HOST.found.has(k) ? "Secret door found: now shown on the TV" : "Secret door hidden again");
+  } else {
+    fogSnap(); fogDrag = { t, v, x: c.x, y: c.y, cx: c.x, cy: c.y }; e.target.setPointerCapture(e.pointerId);
+    if (t === "brush") { fogPaint(HOST.fog, d, c.x, c.y, +$("#fogSize").value, v); fogChanged(); } else fogBoxPreview();
+  }
+});
+$("#mapCanvas").addEventListener("pointermove", e => {
+  if (!fogDrag) return; const c = canvasCell(e); if (!c) return;
+  const x = Math.max(0, Math.min(currentMap.W - 1, c.x)), y = Math.max(0, Math.min(currentMap.H - 1, c.y));
+  if (x === fogDrag.cx && y === fogDrag.cy) return; fogDrag.cx = x; fogDrag.cy = y;
+  if (fogDrag.t === "brush") { fogPaint(HOST.fog, currentMap, x, y, +$("#fogSize").value, fogDrag.v); fogChanged(); } else fogBoxPreview();
+});
+function fogDragEnd() {
+  if (!fogDrag) return; const g = fogDrag; fogDrag = null;
+  if (g.t === "box") { fogBox(HOST.fog, currentMap, g.x, g.y, g.cx, g.cy, g.v); fogChanged(); }
+}
+$("#mapCanvas").addEventListener("pointerup", fogDragEnd); $("#mapCanvas").addEventListener("pointercancel", fogDragEnd);
+function fogBoxPreview() {
+  drawMapDM(); const g = fogDrag, cv = $("#mapCanvas"), ctx = cv.getContext("2d");
+  const x = Math.min(g.x, g.cx) * CS, y = TOP + Math.min(g.y, g.cy) * CS, w = (Math.abs(g.cx - g.x) + 1) * CS, h = (Math.abs(g.cy - g.y) + 1) * CS;
+  ctx.save(); ctx.setLineDash([6, 4]); ctx.lineWidth = 2; ctx.strokeStyle = g.v ? "#e8a33d" : "#9b2f2f"; ctx.fillStyle = g.v ? "rgba(232,163,61,.15)" : "rgba(10,8,6,.35)";
+  ctx.fillRect(x, y, w, h); ctx.strokeRect(x + 1, y + 1, w - 2, h - 2); ctx.restore();
+}
+$("#fogAll").addEventListener("click", () => { if (!HOST.fog) return; fogSnap(); HOST.fog.fill(1); fogChanged(); });
+$("#fogNone").addEventListener("click", () => { if (!HOST.fog) return; fogSnap(); HOST.fog.fill(0); fogChanged(); });
+$("#fogUndo").addEventListener("click", () => { const u = HOST.undo.pop(); if (!u) { toast("Nothing to undo"); return; } HOST.fog = u.f; HOST.found = u.s; fogChanged(); });
+$("#roomKey").addEventListener("click", e => {
+  const b = e.target.closest("[data-fogroom]"); if (!b || !HOST.on || !currentMap) return;
+  const d = currentMap, o = d.rooms.find(r => r.num === +b.dataset.fogroom); if (!o) return;
+  const tmp = new Uint8Array(d.W * d.H); fogRevealRoom(d, tmp, o.cx, o.cy);
+  const v = HOST.fog[o.cy * d.W + o.cx] ? 0 : 1; fogSnap(); tmp.forEach((on, i) => { if (on) HOST.fog[i] = v; }); fogChanged();
+});
+$("#fogNums").addEventListener("change", e => { HOST.numbers = e.target.checked; hostSend(); });
+setInterval(() => { if (HOST.on && HOST.tv && HOST.win && HOST.win.closed) { HOST.tv = false; hostStatus(); } }, 2000);
+addEventListener("pagehide", () => { if (HOST.on && HOST.ch) HOST.ch.postMessage({ t: "bye" }); });
 
 /* ======================= Downloads ======================= */
 let downloads = null;
@@ -2423,7 +2642,7 @@ function renderSub(c) {
   }
   if (subTab === "maps") {
     const ms = c.maps || [];
-    return ms.length ? ms.map(m => `<div class="item"><div class="item-h"><b style="flex:1">${esc(m.name)}</b><span class="muted" style="font-size:14px">${esc(m.theme)} · ${esc(m.size)} · Lv ${m.level}</span><button class="btn sm" data-openmap="${m.id}">Open</button><button class="icon-btn" data-del="maps" data-id="${m.id}" title="Remove">✕</button></div></div>`).join("")
+    return ms.length ? ms.map(m => `<div class="item"><div class="item-h"><b style="flex:1">${esc(m.name)}</b><span class="muted" style="font-size:14px">${esc(m.theme)} · ${esc(m.size)} · Lv ${m.level}${m.fog ? " · fog saved" : ""}</span><button class="btn sm" data-openmap="${m.id}">Open</button><button class="icon-btn" data-del="maps" data-id="${m.id}" title="Remove">✕</button></div></div>`).join("")
       : `<p class="muted">No maps yet. Generate one on the Dungeon Map tab and press “Save”. Saved maps redraw exactly the same every time.</p>`;
   }
   const L = LISTS[subTab]; const items = c[subTab];
@@ -2502,7 +2721,7 @@ campMain.addEventListener("click", async e => {
     c[k] = c[k].filter(x => x.id !== id); Store.save(c); renderTracker(); return;
   }
   const om = t.closest("[data-openmap]");
-  if (om) { const m = (c.maps || []).find(x => x.id === om.dataset.openmap); if (m) { setMapForm(m); location.hash = "map"; renderMap(); } return; }
+  if (om) { const m = (c.maps || []).find(x => x.id === om.dataset.openmap); if (m) mapOpenSaved(m); return; }
   const mk = t.closest("[data-mkmap]");
   if (mk && c.gen) { openMapForLocation(c.gen, +mk.dataset.mkmap); return; }
   if (t.id === "delCamp") {
@@ -9024,6 +9243,11 @@ Store.init().then(() => { renderCampList(); pcAdoptRemote(); itemsAdopt(); if (l
 <script>
 /* ---- what's new: newest first. Add an entry (with a new id) whenever a change ships; the bell counts entries this browser hasn't seen. ---- */
 const NEWS = [
+  { id: "2026-11-15-tvmap", date: "2026-11-15", title: "Show the dungeon map on a TV", go: "map", items: [
+    "On Dungeon Map, press 📺 Host for players to open a second window for a TV or second monitor.",
+    "Players only see what you reveal: click a room, paint with the brush, or drag a box. Undo, Reveal all and Hide all are there too.",
+    "Traps never show on the TV, and secret doors look like wall until you mark them found.",
+    "Shift+click flashes a ring on the TV to point something out. Nothing is sent over the internet."] },
   { id: "2026-11-15-table", date: "2026-11-15", title: "Play at the table", go: "roster", items: [
     "Click any ability, save, skill, initiative, attack or damage on your sheet to roll it. The 🎲 box keeps your recent rolls and switches between Normal, Advantage and Disadvantage.",
     "Conditions and exhaustion live on the sheet and change your rolls and speed for you.",
