@@ -703,7 +703,7 @@ nav a[data-view=whispers]{--ic:url("data:image/svg+xml,%3Csvg xmlns='http://www.
 .hdr-tabsel{display:none;flex:0 1 auto;width:auto;min-width:0;max-width:260px;padding:4px 30px 4px 10px;font-family:Cinzel,serif;font-size:13px;color:var(--gold2)}
 .hdr-mini .hdr-tabsel{display:block}
 .hdr-mini header{padding-top:6px;padding-bottom:6px}
-.hdr-mini header>:not(.hdr-toggle):not(.hdr-mini-label):not(.hdr-tabsel){display:none}
+.hdr-mini header>:not(.hdr-toggle):not(.hdr-mini-label):not(.hdr-tabsel):not(.news-btn){display:none}
 .hdr-mini .hdr-mini-label{display:block}
 .hdr-mini .side,.hdr-mini .mb-side{top:58px;max-height:calc(100vh - 74px)}
 @media (max-width:600px){.hdr-mini .hdr-mini-label{display:none}}
@@ -764,6 +764,30 @@ nav a[data-view=whispers]{--ic:url("data:image/svg+xml,%3Csvg xmlns='http://www.
   .pg-table td{font-size:13.5px}
   .card{padding-left:12px;padding-right:12px}
 }
+/* what's new: the bell, its count and the panel */
+.sr-only{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+.news-btn{position:relative;display:inline-flex;align-items:center;justify-content:center;width:38px;height:34px;padding:0;border-radius:4px;border:1px solid #2a2a3a;background:rgba(0,0,0,.25);color:#cfcbd8;cursor:pointer;flex:0 0 auto}
+.news-btn:hover,.news-btn[aria-expanded=true]{color:#fff;border-color:#6d5634}
+.news-btn.has-new{color:var(--gold2)}
+.news-btn.has-new svg{animation:ring 3s ease-in-out 1s 2}
+@keyframes ring{0%,20%,100%{transform:rotate(0)}4%{transform:rotate(14deg)}8%{transform:rotate(-12deg)}12%{transform:rotate(8deg)}16%{transform:rotate(-4deg)}}
+.news-n{position:absolute;top:-6px;right:-7px;min-width:18px;height:18px;padding:0 5px;border-radius:9px;background:#c0392b;color:#fff;font:700 11px/18px system-ui,sans-serif;text-align:center;box-shadow:0 0 0 2px #10111c}
+.news-panel{position:fixed;top:64px;right:16px;z-index:60;width:min(420px,calc(100vw - 24px));max-height:min(75vh,640px);display:flex;flex-direction:column;background:var(--noise),linear-gradient(#1b1d30,#12131f);border:1px solid #7a4415;border-radius:6px;box-shadow:0 14px 40px rgba(0,0,0,.75)}
+.news-panel[hidden]{display:none}
+.news-head{display:flex;align-items:center;gap:8px;padding:10px 12px;border-bottom:1px solid rgba(0,0,0,.5)}
+.news-head h3{font-size:16px;color:var(--gold2)}
+.news-head .icon-btn{margin-left:auto}
+.news-list{overflow:auto;padding:4px 12px 12px}
+.news-item{padding:10px 0;border-top:1px solid rgba(0,0,0,.45)}
+.news-item:first-child{border-top:none}
+.news-item h4{font-size:14.5px;color:#e9dcc2;display:flex;gap:8px;align-items:baseline;flex-wrap:wrap}
+.news-item .news-date{font-family:"Crimson Pro",serif;font-weight:400;font-size:13px;color:var(--muted);letter-spacing:0}
+.news-item .news-new{font:700 10.5px/1 system-ui,sans-serif;letter-spacing:.06em;color:#fff;background:#c0392b;border-radius:3px;padding:3px 5px;text-transform:uppercase}
+.news-item.unread{border-left:3px solid var(--gold);padding-left:9px;margin-left:-12px}
+.news-item ul{margin:6px 0 6px;padding-left:18px;font-size:14.5px}
+.news-item li{margin:2px 0}
+.news-item .btn{margin-top:2px}
+@media (max-width:600px){.news-panel{top:56px;right:12px}}
 .loot-give{width:auto;max-width:200px;flex:0 0 auto;padding:4px 26px 4px 8px;font-size:14px}
 .prof-row{display:grid;grid-template-columns:110px 1fr;gap:10px;padding:5px 0;border-top:1px solid rgba(0,0,0,.4);font-size:15px}
 .prof-row:first-of-type{border-top:none}
@@ -925,9 +949,15 @@ nav a[data-view=whispers]{--ic:url("data:image/svg+xml,%3Csvg xmlns='http://www.
   <span id="storeBadge" class="badge" title="Where your campaigns are saved">Connecting…</span>
   <span class="hdr-mini-label" id="hdrMiniLabel">Dungeon Master's Forge ·</span>
   <select class="hdr-tabsel" id="hdrTabSel" aria-label="Go to tab"></select>
+  <button class="news-btn" type="button" id="newsBtn" aria-haspopup="dialog" aria-expanded="false" title="What's new in the Forge"><svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/><path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"/></svg><span class="news-n" id="newsN" hidden></span><span class="sr-only" id="newsSr">What's new</span></button>
   <button class="btn sm" type="button" id="installBtn" hidden title="Install the Forge as an app on this device">⬇ Install app</button>
   <button class="btn sm hdr-toggle" type="button" id="hdrToggle" aria-expanded="true" title="Hide the toolbar to give this tab more room">▴ Hide tabs</button>
 </header>
+
+<div class="news-panel" id="newsPanel" role="dialog" aria-modal="false" aria-labelledby="newsTitle" hidden>
+  <div class="news-head"><h3 id="newsTitle">What's new</h3><span class="sp"></span><button class="icon-btn" type="button" id="newsClose" aria-label="Close">✕</button></div>
+  <div class="news-list" id="newsList"></div>
+</div>
 
 <main>
 <!-- ================= GENERATOR ================= -->
@@ -8992,6 +9022,68 @@ Store.init().then(() => { renderCampList(); pcAdoptRemote(); itemsAdopt(); if (l
 })();
 </script>
 <script>
+/* ---- what's new: newest first. Add an entry (with a new id) whenever a change ships; the bell counts entries this browser hasn't seen. ---- */
+const NEWS = [
+  { id: "2026-11-15-table", date: "2026-11-15", title: "Play at the table", go: "roster", items: [
+    "Click any ability, save, skill, initiative, attack or damage on your sheet to roll it. The 🎲 box keeps your recent rolls and switches between Normal, Advantage and Disadvantage.",
+    "Conditions and exhaustion live on the sheet and change your rolls and speed for you.",
+    "Concentration is tracked, and taking damage tells you the save you need.",
+    "Dropping to 0 HP knocks you out and shows the death save boxes.",
+    "Cast spells straight from the sheet with ✦: pick a slot and it rolls the damage, healing or saves for you."] },
+  { id: "2026-11-15-multiclass", date: "2026-11-15", title: "Multiclassing and feature choices", go: "roster", items: [
+    "“＋ Another class” adds a level in a second class, checking the ability score requirements.",
+    "Hit points, spell slots and class resources follow the multiclassing rules.",
+    "Pick your Battle Master maneuvers, Warlock invocations, Metamagic, Magic Initiate spells and other choices right on the sheet."] },
+  { id: "2026-11-15-dm", date: "2026-11-15", title: "For the DM: party view and XP", go: "tracker", items: [
+    "The Encounters tab now opens with the whole party: AC, hit points, passive Perception, conditions and concentration, with damage and heal buttons.",
+    "“🏆 Award XP” splits an encounter's XP between the party. Sheets show when a character has enough XP to level up.",
+    "Hand campaign loot straight to a character's inventory with “Give to…”."] },
+  { id: "2026-11-15-gear", date: "2026-11-15", title: "Gear, gold and proficiencies", go: "items", items: [
+    "2024 backgrounds can take 50 gp instead of their equipment.",
+    "Buy items from the Items tab: the price comes out of the character's coins, with change.",
+    "Carrying too much slows you down, and the sheet shows how much you carry.",
+    "A new Proficiencies & Languages section lists armor, weapons, tools and languages."] },
+  { id: "2026-11-15-character", date: "2026-11-15", title: "Male or female characters", go: "character", items: [
+    "Choose Random, Male or Female when you create a character, and the name matches. You can change it later on the sheet."] },
+  { id: "2026-11-15-app", date: "2026-11-15", title: "Phones and installing as an app", items: [
+    "On a phone the tabs fit in one row you can swipe, so the page starts with what you came for.",
+    "Install the Forge as an app with “⬇ Install app” (in browsers that offer it). Once loaded, it opens even without a connection.",
+    "Monster fixes: the Donkey, Drow and Deep Gnome can walk again, and two monsters have corrected hit points."] },
+  { id: "2026-11-14-sheet", date: "2026-11-14", title: "A fuller character sheet", go: "roster", items: [
+    "Your starting gear is now an inventory with Equip boxes. Armor sets your AC, and weapons set your attacks.",
+    "Click any class or subclass feature to read its full rules.",
+    "An Abilities section with counters for ki, sorcery points, spell slots and more, plus Activate buttons for things like Rage and Wild Shape.",
+    "Short and long rest buttons.",
+    "Hide the toolbar with “▴ Hide tabs” for more room."] },
+  { id: "2026-11-14-backgrounds", date: "2026-11-14", title: "Backgrounds by rule set", go: "character", items: [
+    "2014 and 2024 each have their own backgrounds, with a short description and everything they give.",
+    "2024 backgrounds add their Origin feat to the character automatically."] }
+];
+const NEWS_KEY = "dmforge.newsSeen";
+const newsSeen = () => { try { return new Set(JSON.parse(localStorage.getItem(NEWS_KEY) || "[]")); } catch { return new Set(); } };
+function newsBadge() {
+  const seen = newsSeen(), n = NEWS.filter(x => !seen.has(x.id)).length, btn = document.getElementById("newsBtn"), b = document.getElementById("newsN");
+  b.hidden = !n; b.textContent = n > 9 ? "9+" : n; btn.classList.toggle("has-new", !!n);
+  document.getElementById("newsSr").textContent = n ? `What's new: ${n} new update${n === 1 ? "" : "s"}` : "What's new";
+}
+function newsOpen(open) {
+  const P = document.getElementById("newsPanel"), btn = document.getElementById("newsBtn");
+  if (!open) { P.hidden = true; btn.setAttribute("aria-expanded", "false"); return; }
+  const seen = newsSeen(), e = s => String(s).replace(/[&<>"]/g, ch => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" })[ch]);
+  const day = d => new Date(d + "T12:00:00").toLocaleDateString([], { month: "short", day: "numeric", year: "numeric" });
+  document.getElementById("newsList").innerHTML = NEWS.map(x => `<div class="news-item ${seen.has(x.id) ? "" : "unread"}"><h4>${e(x.title)} <span class="news-date">${day(x.date)}</span>${seen.has(x.id) ? "" : `<span class="news-new">New</span>`}</h4><ul>${x.items.map(i => `<li>${e(i)}</li>`).join("")}</ul>${x.go && !document.querySelector(`nav a[data-view="${x.go}"]`)?.hidden ? `<button class="btn sm" type="button" data-newsgo="${x.go}">Show me →</button>` : ""}</div>`).join("");
+  const r = btn.getBoundingClientRect(); P.style.top = Math.round(r.bottom + 8) + "px";
+  P.hidden = false; btn.setAttribute("aria-expanded", "true");
+  localStorage.setItem(NEWS_KEY, JSON.stringify(NEWS.map(x => x.id))); newsBadge();
+  document.getElementById("newsClose").focus();
+}
+document.getElementById("newsBtn").addEventListener("click", e => { e.stopPropagation(); newsOpen(document.getElementById("newsPanel").hidden); });
+document.getElementById("newsClose").addEventListener("click", () => { newsOpen(false); document.getElementById("newsBtn").focus(); });
+document.getElementById("newsPanel").addEventListener("click", e => { const g = e.target.closest("[data-newsgo]"); if (g) { newsOpen(false); location.hash = g.dataset.newsgo; } });
+document.addEventListener("click", e => { const P = document.getElementById("newsPanel"); if (!P.hidden && !P.contains(e.target)) newsOpen(false); });
+document.addEventListener("keydown", e => { if (e.key === "Escape" && !document.getElementById("newsPanel").hidden) { newsOpen(false); document.getElementById("newsBtn").focus(); } });
+newsBadge();
+
 /* ---- install as an app (PWA) ---- */
 if ("serviceWorker" in navigator && location.protocol !== "file:") window.addEventListener("load", () => navigator.serviceWorker.register("/sw.js").catch(() => {}));
 let installEv = null;

@@ -4,6 +4,8 @@ These are project notes for the next chat (human or Claude). They cover what the
 
 ## Ground rules from the owner
 
+- **When a change ships, add an entry to the top of `NEWS` in `public/index.html`** with a new `id`, in plain words for players and DMs. That's what lights up the bell for everyone.
+
 - **Don't merge or push to `main` unless the owner asks in that chat.** A push to `main` starts a Netlify production deploy, and Netlify credits have run out before ("only testing"). Work on a branch, and test locally with `npm run dev`.
 - The owner is on **Windows** and can't run bash scripts. Anything they run themselves has to work in PowerShell or Command Prompt, so prefer `npm run ...` scripts.
 - Explain things plainly. The owner tests in the browser rather than reading code.
@@ -97,7 +99,7 @@ Playwright and Chromium are pre-installed in cloud sessions. To test offline mod
 
 Items 4 to 14 were merged to `main` on 2026-11-14 (commit `5d44a7b`).
 
-Items 15 to 27 are in **PR #5** (branch `ccr-ee7865d5-1wx9vg`). It's **not merged yet**. It already contains everything on `main` up to `ef08b0c`, the commit that added these notes.
+Items 15 to 28 are in **PR #5** (branch `ccr-ee7865d5-1wx9vg`). It's **not merged yet**. It already contains everything on `main` up to `ef08b0c`, the commit that added these notes.
 
 15. **Collapsible toolbar and character sheet upgrade** (PR #5, branch `ccr-ee7865d5-1wx9vg`)
     - **Toolbar:** "▴ Hide tabs" collapses the header (`dmforge.hdrMini`, the `hdr-mini` class on `<html>`); the strip has a tab menu (`hdrSync`).
@@ -168,6 +170,9 @@ Items 15 to 27 are in **PR #5** (branch `ccr-ee7865d5-1wx9vg`). It's **not merge
     - `manifest.webmanifest`, icons in `public/icons/` (made from the header emblem) and `sw.js`.
     - The service worker fetches pages and scripts fresh when online and falls back to its saved copy offline. It never caches `/api/`, `/.netlify/` (sign-in) or other sites. Bump `CACHE` in `sw.js` if its caching rules change.
     - Browsers that offer installing show "⬇ Install app" in the header (`#installBtn`, `beforeinstallprompt`). `netlify.toml` serves `sw.js` with `no-cache`.
+28. **What's new bell** (PR #5)
+    - A bell in the header (`#newsBtn`, also shown on the collapsed strip) with a red count of updates this browser hasn't seen. Clicking it opens the "What's new" panel (`newsOpen`), and opening it marks everything as seen (`dmforge.newsSeen`).
+    - The entries are in `NEWS`, newest first: `{ id, date, title, go, items }`. `go` adds a "Show me →" button that opens that tab.
 
 ## How a character is built (read this before changing sheet maths)
 
@@ -199,6 +204,7 @@ From PR #5:
   - `subHp` and `subSpd`: subclass bonuses already applied.
 - **Stored on the sheet:** `inv[].eq`, `kitMoved`, `used`, `active`, `fx`, `fightStyles`, `acManual`, `speedManual`, `formHp`.
 - **Backgrounds:** `bgV`, `bgAsiLegacy`, `startGold` / `goldAdded`, `skilled`, `expertOrder`. `skilled` and `expertOrder` are also in the `pcLevelTo` copy list.
+- **In the browser:** `dmforge.newsSeen` (What's new entries already seen).
 - **Items 18 to 25:** `gender`, `multi`, `mcSkills`, `totalLevel`, `hdList` (the last three are in the copy list), `choices`, `conds`, `exh`, `conc`, `concCheck`, `death`, `rollLog`, `bgGold50`, `langs`, `toolsChosen`, `varEnc`, `xp`. On encounters: `xpAwarded`. On loot: `givenTo`.
 
 ## Gotchas found along the way
