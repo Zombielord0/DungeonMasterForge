@@ -132,6 +132,9 @@ ul.plain{margin:4px 0 0;padding-left:20px}
 /* map: a parchment pinned on stone */
 .map-wrap{background:#e9dcbd;border-radius:3px;padding:10px;overflow:auto;box-shadow:0 12px 30px rgba(0,0,0,.75),inset 0 0 40px rgba(120,80,30,.35);transform:rotate(-.25deg)}
 #mapCanvas{display:block;width:100%;height:auto}
+#mapCanvas.fogging{cursor:crosshair;touch-action:none}
+.fog-tools{border:0;padding:0;margin:14px 0 0;min-width:0}
+.fog-tools[disabled]{opacity:.45}
 .key-room{padding:8px 0;border-bottom:1px solid rgba(0,0,0,.45);box-shadow:0 1px 0 rgba(255,255,255,.05)}
 .key-room:last-child{border:none;box-shadow:none}
 .key-num{display:inline-grid;place-items:center;width:26px;height:26px;border-radius:50%;background:#e9dcbd;color:var(--ink);font-family:Cinzel,serif;font-weight:700;font-size:13px;margin-right:6px;box-shadow:0 1px 3px rgba(0,0,0,.6)}
@@ -865,6 +868,20 @@ nav a[data-view=whispers]{--ic:url("data:image/svg+xml,%3Csvg xmlns='http://www.
         <div class="sec-h"><h3>Player Screen</h3><span class="sp"></span><span class="badge" id="hostStatus">Not connected</span></div>
         <p class="muted" style="margin:0 0 10px">Open a second window, drag it onto the TV or second monitor, and double-click it for full screen. Players only see what you reveal, and nothing is sent over the internet.</p>
         <button class="btn primary" type="button" id="hostStart">📺 Host for players</button>
+        <fieldset id="fogTools" class="fog-tools" disabled>
+          <div class="field"><label>Fog tool</label>
+            <div class="seg"><label class="opt"><input type="radio" name="fogTool" value="room" checked><span>Room</span></label><label class="opt"><input type="radio" name="fogTool" value="brush"><span>Brush</span></label><label class="opt"><input type="radio" name="fogTool" value="box"><span>Box</span></label><label class="opt"><input type="radio" name="fogTool" value="secret"><span>Secret door</span></label></div>
+          </div>
+          <div class="field row">
+            <div><label>Mode</label><div class="seg"><label class="opt"><input type="radio" name="fogVal" value="reveal" checked><span>Reveal</span></label><label class="opt"><input type="radio" name="fogVal" value="hide"><span>Hide</span></label></div></div>
+            <div><label>Brush size</label><select id="fogSize"><option value="1">1 square</option><option value="3" selected>3 × 3</option><option value="5">5 × 5</option></select></div>
+          </div>
+          <div class="row" style="margin-bottom:10px">
+            <button class="btn sm" type="button" id="fogAll">Reveal all</button><button class="btn sm" type="button" id="fogNone">Hide all</button><button class="btn sm" type="button" id="fogUndo">↶ Undo</button>
+          </div>
+          <label class="check"><input type="checkbox" id="fogNums"><span>Show room numbers on the TV</span></label>
+          <p class="hint" style="margin:6px 0 0"><b>Room:</b> click a room or corridor. <b>Brush:</b> paint over squares. <b>Box:</b> drag a rectangle. <b>Secret door:</b> click an “S” once the players find it, and it appears on the TV. <b>Shift+click</b> flashes a ring on the TV to point something out. Fog is kept on this computer; press Save to store it with a campaign.</p>
+        </fieldset>
       </div>
       <div class="card" style="margin-top:14px">
         <div class="sec-h"><h3>Room Key</h3><span class="sp"></span><span class="muted" style="font-size:14px">1 square = 5 ft · encounter math uses the 5e DMG XP thresholds</span></div>
@@ -2120,12 +2137,18 @@ function readMapForm() {
     party: clamp(parseInt($("#mapParty").value) || 4, 1, 8), seed: $("#mapSeed").value.trim().toUpperCase()
   };
 }
+// open a map saved in a campaign; its saved fog (if any) replaces the copy kept on this computer
+function mapOpenSaved(m) {
+  setMapForm(m);
+  if (m.fog) fogStorePut(fogKey(m), m.fog, m.found || []);
+  HOST.key = null; location.hash = "map"; renderMap();
+}
 function setMapForm(p) { $("#mapName").value = p.name; $("#mapTheme").value = p.theme; $("#mapSize").value = p.size; $("#mapRooms").value = p.rooms; $("#mapLevel").value = p.level; $("#mapParty").value = p.party; $("#mapSeed").value = p.seed; }
 function renderMap() {
   const p = readMapForm();
   const cap = { small: 10, medium: 16, large: 24 }[p.size];
   currentMap = generateDungeon({ ...p, rooms: Math.min(p.rooms, cap) });
-  hostLoad(currentMap); drawMapDM();
+  hostLoad(currentMap); drawMapDM(); if (HOST.on) hostSend();
   $("#roomKey").innerHTML = roomKeyHTML(currentMap) + (currentMap.rooms.length < p.rooms ? `<p class="hint">Only ${currentMap.rooms.length} rooms fit on this map size. Try a larger size.</p>` : "");
 }
 $("#mapForm").addEventListener("submit", e => { e.preventDefault(); $("#mapSeed").value = newSeed(); renderMap(); });
@@ -2139,7 +2162,7 @@ $("#mapDownload").addEventListener("click", () => {
 $("#mapSave").addEventListener("click", () => {
   const id = $("#mapCampaign").value; const c = Store.get(id);
   if (!c || !currentMap) { toast("Create a campaign first"); return; }
-  c.maps = c.maps || []; c.maps.unshift({ id: uid("m"), ...currentMap.params, saved: Date.now() });
+  c.maps = c.maps || []; c.maps.unshift({ id: uid("m"), ...currentMap.params, saved: Date.now(), ...(HOST.fog ? { fog: fogEncode(HOST.fog), found: [...HOST.found] } : {}) });
   Store.save(c); toast(`Map saved to “${c.name}”`); if (activeId === id) renderTracker();
 });
 
@@ -2151,13 +2174,15 @@ const HOST = { ch: null, up: null, win: null, on: false, tv: false, key: null, f
 function drawMapDM() { if (currentMap) drawDungeon($("#mapCanvas"), currentMap, $("#mapGrid").checked, { fog: HOST.on ? HOST.fog : null }); }
 function hostLoad(d) {
   const key = fogKey(d.params); if (HOST.key === key && HOST.fog) return;
-  HOST.key = key; HOST.fog = fogNew(d); HOST.found = new Set(); HOST.undo = [];
+  const saved = fogLoadLocal(key);
+  HOST.key = key; HOST.fog = saved ? saved.fog : fogNew(d); HOST.found = saved ? saved.found : new Set(); HOST.undo = [];
   if (HOST.on) hostSend();
 }
 function hostStatus() {
   const b = $("#hostStatus"); b.textContent = !HOST.on ? "Not connected" : HOST.tv ? "📺 TV connected" : "Waiting for the TV window…";
   b.className = "badge" + (HOST.on && HOST.tv ? " ok" : "");
   $("#hostStart").textContent = HOST.on ? "Stop hosting" : "📺 Host for players"; $("#hostStart").classList.toggle("primary", !HOST.on);
+  $("#fogTools").disabled = !HOST.on; $("#mapCanvas").classList.toggle("fogging", HOST.on);
 }
 function hostSend() {
   clearTimeout(HOST.timer);
@@ -2183,6 +2208,70 @@ function hostStop() {
   HOST.on = false; HOST.tv = false; hostStatus(); drawMapDM();
 }
 $("#hostStart").addEventListener("click", () => HOST.on ? hostStop() : hostStart());
+
+/* ---- fog: kept on this computer while playing; goes into a campaign only on Save ---- */
+const FOG_LS = "dmforge.fog.v1", FOG_KEEP = 40;
+function fogStoreRead() { try { return JSON.parse(localStorage.getItem(FOG_LS) || "{}"); } catch { return {}; } }
+function fogStorePut(key, fogStr, found) {
+  const all = fogStoreRead(); all[key] = { f: fogStr, s: found, t: Date.now() };
+  const keys = Object.keys(all).sort((a, b) => all[b].t - all[a].t); keys.slice(FOG_KEEP).forEach(k => delete all[k]);
+  try { localStorage.setItem(FOG_LS, JSON.stringify(all)); } catch { /* storage full: fog just won't persist */ }
+}
+function fogSaveLocal() { if (currentMap && HOST.fog) fogStorePut(HOST.key, fogEncode(HOST.fog), [...HOST.found]); }
+function fogLoadLocal(key) {
+  const e = fogStoreRead()[key]; if (!e || !currentMap) return null;
+  return { fog: fogDecode(e.f, currentMap.W * currentMap.H), found: new Set(e.s || []) };
+}
+function fogChanged() { fogSaveLocal(); drawMapDM(); hostSend(); }
+function fogSnap() { HOST.undo.push(HOST.fog.slice()); if (HOST.undo.length > 50) HOST.undo.shift(); }
+// which map square is under the mouse; fx/fy are fractions of the whole picture (for pings)
+function canvasCell(e) {
+  const cv = $("#mapCanvas"), d = currentMap; if (!d) return null;
+  const r = cv.getBoundingClientRect(), px = (e.clientX - r.left) * (d.W * CS) / r.width, py = (e.clientY - r.top) * (d.H * CS + TOP) / r.height;
+  const x = Math.floor(px / CS), y = Math.floor((py - TOP) / CS);
+  return { x, y, fx: px / (d.W * CS), fy: py / (d.H * CS + TOP), inGrid: x >= 0 && y >= 0 && x < d.W && y < d.H };
+}
+const fogTool = () => $("input[name=fogTool]:checked").value, fogVal = () => $("input[name=fogVal]:checked").value === "reveal" ? 1 : 0;
+let fogDrag = null;
+$("#mapCanvas").addEventListener("pointerdown", e => {
+  if (!HOST.on || !currentMap || e.button !== 0) return;
+  const c = canvasCell(e); if (!c) return;
+  if (e.shiftKey) { hostPing(c.fx, c.fy); return; }
+  if (!c.inGrid) return;
+  const d = currentMap, t = fogTool(), v = fogVal();
+  if (t === "room") {
+    const tmp = new Uint8Array(d.W * d.H); if (!fogRevealRoom(d, tmp, c.x, c.y)) return;
+    fogSnap(); tmp.forEach((on, i) => { if (on) HOST.fog[i] = v; }); fogChanged();
+  } else if (t === "secret") {
+    const dr = d.doors.find(o => o.secret && o.x === c.x && o.y === c.y); if (!dr) { toast("Click on a secret door (S)"); return; }
+    const k = dr.x + "," + dr.y; HOST.found.has(k) ? HOST.found.delete(k) : HOST.found.add(k); fogChanged();
+    toast(HOST.found.has(k) ? "Secret door found: now shown on the TV" : "Secret door hidden again");
+  } else {
+    fogSnap(); fogDrag = { t, v, x: c.x, y: c.y, cx: c.x, cy: c.y }; e.target.setPointerCapture(e.pointerId);
+    if (t === "brush") { fogPaint(HOST.fog, d, c.x, c.y, +$("#fogSize").value, v); fogChanged(); } else fogBoxPreview();
+  }
+});
+$("#mapCanvas").addEventListener("pointermove", e => {
+  if (!fogDrag) return; const c = canvasCell(e); if (!c) return;
+  const x = Math.max(0, Math.min(currentMap.W - 1, c.x)), y = Math.max(0, Math.min(currentMap.H - 1, c.y));
+  if (x === fogDrag.cx && y === fogDrag.cy) return; fogDrag.cx = x; fogDrag.cy = y;
+  if (fogDrag.t === "brush") { fogPaint(HOST.fog, currentMap, x, y, +$("#fogSize").value, fogDrag.v); fogChanged(); } else fogBoxPreview();
+});
+function fogDragEnd() {
+  if (!fogDrag) return; const g = fogDrag; fogDrag = null;
+  if (g.t === "box") { fogBox(HOST.fog, currentMap, g.x, g.y, g.cx, g.cy, g.v); fogChanged(); }
+}
+$("#mapCanvas").addEventListener("pointerup", fogDragEnd); $("#mapCanvas").addEventListener("pointercancel", fogDragEnd);
+function fogBoxPreview() {
+  drawMapDM(); const g = fogDrag, cv = $("#mapCanvas"), ctx = cv.getContext("2d");
+  const x = Math.min(g.x, g.cx) * CS, y = TOP + Math.min(g.y, g.cy) * CS, w = (Math.abs(g.cx - g.x) + 1) * CS, h = (Math.abs(g.cy - g.y) + 1) * CS;
+  ctx.save(); ctx.setLineDash([6, 4]); ctx.lineWidth = 2; ctx.strokeStyle = g.v ? "#e8a33d" : "#9b2f2f"; ctx.fillStyle = g.v ? "rgba(232,163,61,.15)" : "rgba(10,8,6,.35)";
+  ctx.fillRect(x, y, w, h); ctx.strokeRect(x + 1, y + 1, w - 2, h - 2); ctx.restore();
+}
+$("#fogAll").addEventListener("click", () => { if (!HOST.fog) return; fogSnap(); HOST.fog.fill(1); fogChanged(); });
+$("#fogNone").addEventListener("click", () => { if (!HOST.fog) return; fogSnap(); HOST.fog.fill(0); fogChanged(); });
+$("#fogUndo").addEventListener("click", () => { const u = HOST.undo.pop(); if (!u) { toast("Nothing to undo"); return; } HOST.fog = u; fogChanged(); });
+$("#fogNums").addEventListener("change", e => { HOST.numbers = e.target.checked; hostSend(); });
 setInterval(() => { if (HOST.on && HOST.tv && HOST.win && HOST.win.closed) { HOST.tv = false; hostStatus(); } }, 2000);
 addEventListener("pagehide", () => { if (HOST.on && HOST.ch) HOST.ch.postMessage({ t: "bye" }); });
 
@@ -2343,7 +2432,7 @@ function renderSub(c) {
   }
   if (subTab === "maps") {
     const ms = c.maps || [];
-    return ms.length ? ms.map(m => `<div class="item"><div class="item-h"><b style="flex:1">${esc(m.name)}</b><span class="muted" style="font-size:14px">${esc(m.theme)} · ${esc(m.size)} · Lv ${m.level}</span><button class="btn sm" data-openmap="${m.id}">Open</button><button class="icon-btn" data-del="maps" data-id="${m.id}" title="Remove">✕</button></div></div>`).join("")
+    return ms.length ? ms.map(m => `<div class="item"><div class="item-h"><b style="flex:1">${esc(m.name)}</b><span class="muted" style="font-size:14px">${esc(m.theme)} · ${esc(m.size)} · Lv ${m.level}${m.fog ? " · fog saved" : ""}</span><button class="btn sm" data-openmap="${m.id}">Open</button><button class="icon-btn" data-del="maps" data-id="${m.id}" title="Remove">✕</button></div></div>`).join("")
       : `<p class="muted">No maps yet. Generate one on the Dungeon Map tab and press “Save”. Saved maps redraw exactly the same every time.</p>`;
   }
   const L = LISTS[subTab]; const items = c[subTab];
@@ -2404,7 +2493,7 @@ campMain.addEventListener("click", async e => {
     c[k] = c[k].filter(x => x.id !== id); Store.save(c); renderTracker(); return;
   }
   const om = t.closest("[data-openmap]");
-  if (om) { const m = (c.maps || []).find(x => x.id === om.dataset.openmap); if (m) { setMapForm(m); location.hash = "map"; renderMap(); } return; }
+  if (om) { const m = (c.maps || []).find(x => x.id === om.dataset.openmap); if (m) mapOpenSaved(m); return; }
   const mk = t.closest("[data-mkmap]");
   if (mk && c.gen) { openMapForLocation(c.gen, +mk.dataset.mkmap); return; }
   if (t.id === "delCamp") {

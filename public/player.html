@@ -25,6 +25,7 @@
   const cv = document.getElementById("tv"), g = cv.getContext("2d"), wait = document.getElementById("wait");
   const ch = new BroadcastChannel("dmforge.map"), up = new BroadcastChannel("dmforge.map.tv"); // DM → TV pictures; TV → DM hello/bye
   let img = null, pings = [];
+  window.tvFrames = 0; // pictures shown so far (used by the automated checks)
   window.tvRect = null; // where the map picture sits on screen (used by the automated checks)
 
   function draw() {
@@ -48,7 +49,7 @@
   ch.onmessage = async e => {
     const m = e.data || {};
     if (m.t === "frame" && m.blob instanceof Blob) {
-      try { const bmp = await createImageBitmap(m.blob); if (img && img.close) img.close(); img = bmp; wait.hidden = true; draw(); } catch (err) { /* ignore a broken frame */ }
+      try { const bmp = await createImageBitmap(m.blob); if (img && img.close) img.close(); img = bmp; wait.hidden = true; draw(); window.tvFrames++; } catch (err) { /* ignore a broken frame */ }
     } else if (m.t === "ping" && img) {
       pings.push({ x: +m.x || 0, y: +m.y || 0, t: performance.now() }); requestAnimationFrame(draw);
     } else if (m.t === "bye") {
