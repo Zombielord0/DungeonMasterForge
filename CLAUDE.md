@@ -33,6 +33,7 @@ Live site: https://dungeonmasterforge.netlify.app (Netlify; production branch `m
 npm install
 npm test        # API tests (11 should pass)
 npm run build   # bundle src/portal.js -> public/portal.js
+npm run test:map  # map fog + TV player screen checks (Playwright, any OS)
 npm run dev     # full local copy at http://localhost:8899 (any OS); stand-in sign-in, data wiped on Ctrl+C
 ```
 
@@ -94,6 +95,30 @@ Playwright and Chromium are pre-installed in cloud sessions. To test offline mod
     - `pcRebuild(c)` regenerates the sheet and keeps current HP.
 
 Items 4 to 14 were merged to `main` on 2026-11-14 (commit `5d44a7b`).
+
+## Dungeon Map: player screen and fog (branch work, 2026-11-15)
+
+- **Design and plan.** The design for the whole map upgrade is in `docs/superpowers/specs/2026-11-15-dungeon-map-upgrade-design.md`. Phase 3, the player screen, was built first, following `docs/superpowers/plans/2026-11-15-player-screen-fog.md`. Phase 1 (visuals) and Phase 2 (import/export) are still to do.
+- **Fog.** A `Uint8Array` with one byte per map square (1 means players can see it).
+  - Helpers: `fogKey`, `fogNew` (reveals the entrance), `fogEncode`/`fogDecode` (run-length encoded), `fogRevealRoom`, `fogPaint`, `fogBox`.
+  - `fogRevealRoom` adds a 1-square ring around a room, so its walls show. A corridor reveal only uncovers the rock beside the corridor, not the rooms it leads to.
+- **Drawing.** `drawDungeon(cv, d, showGrid, o)`:
+  - With `o.player`: no traps, no "down" stairs, no seed or party level, the boss number in the normal colour, and unfound secret doors drawn as wall.
+  - `o.fog` draws solid fog for players and a 50% tint for the DM.
+  - `o.found` is a Set of `"x,y"` for secret doors the players have found. `o.numbers` turns room numbers on or off. `o.scale` overrides the pixel ratio.
+  - With no `o`, it draws exactly as before.
+- **The TV window.** `public/player.html` has no map data. It receives finished PNG pictures only.
+  - Messages from the DM on `BroadcastChannel("dmforge.map")`: `{t:"frame",blob}`, `{t:"ping",x,y}` (fractions from 0 to 1) and `{t:"bye"}`.
+  - Messages from the TV on `"dmforge.map.tv"`: `{t:"hello"}` and `{t:"bye"}`.
+  - **Never send the TV map data or room key text.**
+- **DM side.**
+  - State is in `HOST`; the functions are `hostStart`/`hostStop`/`hostSend` (debounced)/`hostPing`/`hostLoad`, and `drawMapDM()` redraws the DM canvas.
+  - Fog tools live in `#fogTools`, which is disabled until hosting starts.
+- **Saving fog.**
+  - Fog autosaves to localStorage `dmforge.fog.v1`, keyed by `fogKey`, keeping the 40 most recent maps.
+  - `#mapSave` adds `fog` and `found` to the campaign's map entry. `mapOpenSaved(m)` restores them.
+  - Nothing touches Netlify during play.
+- **Tests.** Run `npm run test:map` (`test/e2e/map-fog.cjs`). It starts its own static server and needs no database. It waits on `window.tvFrames`, because encoding the PNG is slow in the headless browser.
 
 ## How a character is built (read this before changing sheet maths)
 

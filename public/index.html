@@ -2115,9 +2115,10 @@ function drawDungeon(cv, d, showGrid, o = {}) {
   g.fillText(d.params.name || "Dungeon", 14, TOP / 2);
   g.font = "italic 14px 'Crimson Pro', Georgia, serif"; g.textAlign = "right";
   if (!player) g.fillText(`${{ crypt: "Crypt", cavern: "Cavern", keep: "Keep", sewer: "Sewers", temple: "Temple", mine: "Mine" }[d.params.theme]} · ${d.rooms.length} areas · party level ${d.params.level} · seed ${d.params.seed}`, W * CS - 14, TOP / 2);
-  const by = TOP + H * CS - 14; g.strokeStyle = "#2a2018"; g.lineWidth = 2; g.beginPath(); g.moveTo(14, by); g.lineTo(14 + CS * 4, by); for (let k = 0; k <= 4; k++) { g.moveTo(14 + k * CS, by - 4); g.lineTo(14 + k * CS, by + 4); } g.stroke();
+  const legend = player && fog ? "#c9b48a" : "#2a2018"; // readable on top of solid fog
+  const by = TOP + H * CS - 14; g.strokeStyle = legend; g.fillStyle = legend; g.lineWidth = 2; g.beginPath(); g.moveTo(14, by); g.lineTo(14 + CS * 4, by); for (let k = 0; k <= 4; k++) { g.moveTo(14 + k * CS, by - 4); g.lineTo(14 + k * CS, by + 4); } g.stroke();
   g.font = "12px 'Crimson Pro', Georgia, serif"; g.textAlign = "left"; g.fillText("20 ft", 14 + CS * 4 + 6, by);
-  const cx = W * CS - 26, cy = TOP + H * CS - 26; g.beginPath(); g.moveTo(cx, cy - 14); g.lineTo(cx + 5, cy); g.lineTo(cx, cy + 14); g.lineTo(cx - 5, cy); g.closePath(); g.fillStyle = "#2a2018"; g.fill();
+  const cx = W * CS - 26, cy = TOP + H * CS - 26; g.beginPath(); g.moveTo(cx, cy - 14); g.lineTo(cx + 5, cy); g.lineTo(cx, cy + 14); g.lineTo(cx - 5, cy); g.closePath(); g.fillStyle = legend; g.fill();
   g.font = "bold 11px Cinzel, serif"; g.textAlign = "center"; g.fillText("N", cx, cy - 20);
 }
 function roomKeyHTML(d) {
