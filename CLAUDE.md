@@ -114,6 +114,9 @@ Items 4 to 14 were merged to `main` on 2026-11-14 (commit `5d44a7b`).
 - **DM side.**
   - State is in `HOST`; the functions are `hostStart`/`hostStop`/`hostSend` (debounced)/`hostPing`/`hostLoad`, and `drawMapDM()` redraws the DM canvas.
   - Fog tools live in `#fogTools`, which is disabled until hosting starts.
+  - While hosting, `fogKeyButtons()` adds a "Reveal on TV" / "Hide on TV" button (`data-fogroom`) to each Room Key entry. This is the keyboard-friendly Room tool.
+  - Undo snapshots are `{f: fog copy, s: found Set}`, so Undo also reverses secret-door clicks.
+  - On the DM canvas, a found secret door's "S" turns green.
 - **Saving fog.**
   - Fog autosaves to localStorage `dmforge.fog.v1`, keyed by `fogKey`, keeping the 40 most recent maps.
   - `#mapSave` adds `fog` and `found` to the campaign's map entry. `mapOpenSaved(m)` restores them.

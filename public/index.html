@@ -2077,7 +2077,7 @@ function drawDungeon(cv, d, showGrid, o = {}) {
       if (dr.dx) { g.moveTo(wx, dr.y * CS); g.lineTo(wx, dr.y * CS + CS); } else { g.moveTo(dr.x * CS, wy); g.lineTo(dr.x * CS + CS, wy); }
       g.stroke(); return;
     }
-    if (dr.secret && !player) { g.fillStyle = "#2a2018"; g.font = "bold 13px Cinzel, serif"; g.textAlign = "center"; g.textBaseline = "middle"; g.fillText("S", ex, ey); return; }
+    if (dr.secret && !player) { g.fillStyle = o.found && o.found.has(dr.x + "," + dr.y) ? "#3f9a3a" : "#2a2018"; /* green once the players have found it */ g.font = "bold 13px Cinzel, serif"; g.textAlign = "center"; g.textBaseline = "middle"; g.fillText("S", ex, ey); return; }
     const vert = dr.dx !== 0, w = vert ? CS * .32 : CS * .72, h = vert ? CS * .72 : CS * .32;
     g.fillStyle = "#c79a5b"; g.strokeStyle = "#2a2018"; g.lineWidth = 1.5; g.fillRect(ex - w / 2, ey - h / 2, w, h); g.strokeRect(ex - w / 2, ey - h / 2, w, h);
   });
@@ -2150,7 +2150,7 @@ function renderMap() {
   const cap = { small: 10, medium: 16, large: 24 }[p.size];
   currentMap = generateDungeon({ ...p, rooms: Math.min(p.rooms, cap) });
   hostLoad(currentMap); drawMapDM(); if (HOST.on) hostSend();
-  $("#roomKey").innerHTML = roomKeyHTML(currentMap) + (currentMap.rooms.length < p.rooms ? `<p class="hint">Only ${currentMap.rooms.length} rooms fit on this map size. Try a larger size.</p>` : "");
+  $("#roomKey").innerHTML = roomKeyHTML(currentMap) + (currentMap.rooms.length < p.rooms ? `<p class="hint">Only ${currentMap.rooms.length} rooms fit on this map size. Try a larger size.</p>` : ""); fogKeyButtons();
 }
 $("#mapForm").addEventListener("submit", e => { e.preventDefault(); $("#mapSeed").value = newSeed(); renderMap(); });
 ["#mapTheme", "#mapSize", "#mapRooms", "#mapLevel", "#mapParty", "#mapGrid"].forEach(id => $(id).addEventListener("change", renderMap));
@@ -2172,7 +2172,18 @@ $("#mapSave").addEventListener("click", () => {
    DM -> TV on "dmforge.map" ({t:"frame",blob} | {t:"ping",x,y} | {t:"bye"}), TV -> DM on "dmforge.map.tv" ({t:"hello"} | {t:"bye"}).
    No network is used. */
 const HOST = { ch: null, up: null, win: null, on: false, tv: false, key: null, fog: null, found: new Set(), numbers: false, undo: [], timer: 0 };
-function drawMapDM() { if (currentMap) drawDungeon($("#mapCanvas"), currentMap, $("#mapGrid").checked, { fog: HOST.on ? HOST.fog : null }); }
+function drawMapDM() { if (currentMap) drawDungeon($("#mapCanvas"), currentMap, $("#mapGrid").checked, { fog: HOST.on ? HOST.fog : null, found: HOST.found }); fogKeyButtons(); }
+// "Reveal on TV" / "Hide on TV" buttons on each Room Key entry while hosting (a keyboard-friendly way to use the Room tool)
+function fogKeyButtons() {
+  const d = currentMap; if (!d) return;
+  $("#roomKey").querySelectorAll(".key-room").forEach((el, i) => {
+    const o = d.rooms[i]; if (!o) return;
+    let b = el.querySelector("[data-fogroom]");
+    if (!HOST.on || !HOST.fog) { if (b) b.remove(); return; }
+    if (!b) { b = document.createElement("button"); b.type = "button"; b.className = "btn sm"; b.style.float = "right"; b.dataset.fogroom = o.num; el.prepend(b); }
+    const shown = !!HOST.fog[o.cy * d.W + o.cx]; b.textContent = shown ? "Hide on TV" : "👁 Reveal on TV"; b.setAttribute("aria-label", (shown ? "Hide room " : "Reveal room ") + o.num + " on the TV");
+  });
+}
 function hostLoad(d) {
   const key = fogKey(d.params); if (HOST.key === key && HOST.fog) return;
   const saved = fogLoadLocal(key);
@@ -2224,7 +2235,7 @@ function fogLoadLocal(key) {
   return { fog: fogDecode(e.f, currentMap.W * currentMap.H), found: new Set(e.s || []) };
 }
 function fogChanged() { fogSaveLocal(); drawMapDM(); hostSend(); }
-function fogSnap() { HOST.undo.push(HOST.fog.slice()); if (HOST.undo.length > 50) HOST.undo.shift(); }
+function fogSnap() { HOST.undo.push({ f: HOST.fog.slice(), s: new Set(HOST.found) }); if (HOST.undo.length > 50) HOST.undo.shift(); }
 // which map square is under the mouse; fx/fy are fractions of the whole picture (for pings)
 function canvasCell(e) {
   const cv = $("#mapCanvas"), d = currentMap; if (!d) return null;
@@ -2245,7 +2256,7 @@ $("#mapCanvas").addEventListener("pointerdown", e => {
     fogSnap(); tmp.forEach((on, i) => { if (on) HOST.fog[i] = v; }); fogChanged();
   } else if (t === "secret") {
     const dr = d.doors.find(o => o.secret && o.x === c.x && o.y === c.y); if (!dr) { toast("Click on a secret door (S)"); return; }
-    const k = dr.x + "," + dr.y; HOST.found.has(k) ? HOST.found.delete(k) : HOST.found.add(k); fogChanged();
+    fogSnap(); const k = dr.x + "," + dr.y; HOST.found.has(k) ? HOST.found.delete(k) : HOST.found.add(k); fogChanged();
     toast(HOST.found.has(k) ? "Secret door found: now shown on the TV" : "Secret door hidden again");
   } else {
     fogSnap(); fogDrag = { t, v, x: c.x, y: c.y, cx: c.x, cy: c.y }; e.target.setPointerCapture(e.pointerId);
@@ -2271,7 +2282,13 @@ function fogBoxPreview() {
 }
 $("#fogAll").addEventListener("click", () => { if (!HOST.fog) return; fogSnap(); HOST.fog.fill(1); fogChanged(); });
 $("#fogNone").addEventListener("click", () => { if (!HOST.fog) return; fogSnap(); HOST.fog.fill(0); fogChanged(); });
-$("#fogUndo").addEventListener("click", () => { const u = HOST.undo.pop(); if (!u) { toast("Nothing to undo"); return; } HOST.fog = u; fogChanged(); });
+$("#fogUndo").addEventListener("click", () => { const u = HOST.undo.pop(); if (!u) { toast("Nothing to undo"); return; } HOST.fog = u.f; HOST.found = u.s; fogChanged(); });
+$("#roomKey").addEventListener("click", e => {
+  const b = e.target.closest("[data-fogroom]"); if (!b || !HOST.on || !currentMap) return;
+  const d = currentMap, o = d.rooms.find(r => r.num === +b.dataset.fogroom); if (!o) return;
+  const tmp = new Uint8Array(d.W * d.H); fogRevealRoom(d, tmp, o.cx, o.cy);
+  const v = HOST.fog[o.cy * d.W + o.cx] ? 0 : 1; fogSnap(); tmp.forEach((on, i) => { if (on) HOST.fog[i] = v; }); fogChanged();
+});
 $("#fogNums").addEventListener("change", e => { HOST.numbers = e.target.checked; hostSend(); });
 setInterval(() => { if (HOST.on && HOST.tv && HOST.win && HOST.win.closed) { HOST.tv = false; hostStatus(); } }, 2000);
 addEventListener("pagehide", () => { if (HOST.on && HOST.ch) HOST.ch.postMessage({ t: "bye" }); });

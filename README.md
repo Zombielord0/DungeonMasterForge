@@ -27,6 +27,7 @@ Live at https://dungeonmasterforge.netlify.app
    - **Brush:** paint squares.
    - **Box:** drag a rectangle.
    - **Secret door:** click an "S" once the players find it.
+   - Use the **Reveal on TV** buttons in the Room Key, which also work with the keyboard. A secret door turns green on your map once the players have found it.
    - Switch **Mode** to **Hide** to cover areas again, and use **Undo** if you make a mistake.
 4. **Shift+click** the map to flash a ring on the TV.
 5. Traps never show on the TV.

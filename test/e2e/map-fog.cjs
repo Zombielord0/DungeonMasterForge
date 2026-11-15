@@ -148,6 +148,29 @@ async function setMap(page, seed, theme = "crypt") {
   check("Shift+click pings the TV", await obs.evaluate(n => window.__msgs.filter(m => m.t === "ping").length > n, nPing));
   check("TV still only receives pictures, pings and bye", await obs.evaluate(() => window.__msgs.every(m => Object.keys(m).every(k => ["t", "blob", "x", "y"].includes(k)) && ["frame", "ping", "bye"].includes(m.t))));
 
+  // found secret doors look different to the DM (green S), and Undo covers secret-door clicks
+  const greenNear = () => dm.evaluate(([x, y]) => {
+    const cv = document.createElement("canvas"); drawDungeon(cv, currentMap, false, { scale: 1, fog: HOST.fog, found: HOST.found }); // as drawMapDM does
+    const D = currentMap.doors.find(o => o.x === x && o.y === y), ex = D.dx > 0 ? (x + 1) * CS : D.dx < 0 ? x * CS : x * CS + CS / 2, ey = TOP + (D.dy > 0 ? (y + 1) * CS : D.dy < 0 ? y * CS : y * CS + CS / 2);
+    const px = cv.getContext("2d").getImageData(ex - 8, ey - 8, 16, 16).data;
+    for (let i = 0; i < px.length; i += 4) if (px[i + 1] > px[i] + 25 && px[i + 1] > px[i + 2] + 25) return true; return false;
+  }, sd);
+  check("DM view shows a found secret door in green", await greenNear());
+  await dm.click("#fogUndo");
+  check("Undo un-finds the secret door", await dm.evaluate(k => !HOST.found.has(k), sd.join(",")));
+  check("DM view shows an unfound secret door without green", !(await greenNear()));
+  await tool("secret"); await clickCell(...sd); // found again, for the reload check below
+
+  // keyboard-friendly reveal buttons in the Room Key
+  const bossN = rooms.boss.num;
+  const keyBtn = `#roomKey [data-fogroom="${bossN}"]`;
+  check("Room Key has a Reveal on TV button per room", (await dm.$$eval("#roomKey [data-fogroom]", b => b.length)) === (await dm.evaluate(() => currentMap.rooms.length)));
+  await dm.click(keyBtn, { force: false });
+  check("Room Key button reveals the room", (await fogAt(rooms.boss.cx, rooms.boss.cy)) === 1);
+  check("Room Key button then offers Hide on TV", /Hide on TV/.test(await dm.textContent(keyBtn)));
+  await dm.click(keyBtn);
+  check("Room Key button hides it again", (await fogAt(rooms.boss.cx, rooms.boss.cy)) === 0);
+
   // persistence: reveal the boss room, reload, same seed -> fog comes back
   await tool("room"); await clickCell(rooms.boss.cx, rooms.boss.cy); await settle();
   await dm.reload(); await dm.waitForFunction(() => typeof generateDungeon === "function"); await dm.evaluate(PAGE_HELPERS);
