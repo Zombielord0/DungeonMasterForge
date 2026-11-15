@@ -1957,11 +1957,61 @@ function generateDungeon(p) {
   return { W, H, grid, rid, rooms: order.map(i => rooms[i]), doors, params: p };
 }
 
-/* ======================= Dungeon rendering ======================= */
-const CS = 20, TOP = 46;
-function drawDungeon(cv, d, showGrid) {
+/* ======================= Fog of war =======================
+   One byte per map square: 1 = players can see it, 0 = hidden. */
+function fogKey(p) { return "gen|" + [p.seed, p.theme, p.size, p.rooms].join("|"); }
+function fogEncode(u8) {
+  let s = "", v = u8[0], c = 0;
+  for (let i = 0; i <= u8.length; i++) { if (i < u8.length && u8[i] === v) { c++; continue; } if (c) s += v + c.toString(36) + ","; v = u8[i]; c = 1; }
+  return s;
+}
+function fogDecode(str, n) {
+  const u = new Uint8Array(n); let i = 0;
+  for (const run of String(str || "").split(",")) { if (!run) continue; const v = run[0] === "1" ? 1 : 0, c = parseInt(run.slice(1), 36) || 0; u.fill(v, i, Math.min(n, i + c)); i += c; }
+  return i === n ? u : new Uint8Array(n);
+}
+function fogNew(d) { const f = new Uint8Array(d.W * d.H); const e = d.rooms[0]; if (e) fogRevealRoom(d, f, e.cx, e.cy); return f; }
+// Reveal the room (or the stretch of corridor) under square x,y, plus a 1-square ring so its walls show.
+function fogRevealRoom(d, fog, x, y) {
+  const { W, H, grid, rid } = d;
+  if (x < 0 || y < 0 || x >= W || y >= H || !grid[y * W + x]) return false;
+  const k0 = y * W + x, set = [];
+  if (rid[k0] >= 0) { for (let i = 0; i < W * H; i++) if (rid[i] === rid[k0]) set.push(i); }
+  else {
+    const seen = new Set([k0]), q = [k0];
+    while (q.length) {
+      const k = q.pop(); set.push(k); const cx = k % W, cy = (k - cx) / W;
+      for (const [dx, dy] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) {
+        const nx = cx + dx, ny = cy + dy, j = ny * W + nx;
+        if (nx < 0 || ny < 0 || nx >= W || ny >= H || seen.has(j)) continue;
+        if (grid[j] > 0 && rid[j] < 0) { seen.add(j); q.push(j); }
+      }
+    }
+  }
+  const room = rid[k0] >= 0;
+  set.forEach(k => {
+    fog[k] = 1; const cx = k % W, cy = (k - cx) / W;
+    for (let dy = -1; dy <= 1; dy++) for (let dx = -1; dx <= 1; dx++) {
+      const nx = cx + dx, ny = cy + dy; if (nx < 0 || ny < 0 || nx >= W || ny >= H) continue;
+      const j = ny * W + nx; if (room || !grid[j]) fog[j] = 1; // corridors only uncover the rock beside them, not the rooms they lead to
+    }
+  });
+  return true;
+}
+function fogPaint(fog, d, x, y, size, val) { const r = (size - 1) >> 1; fogBox(fog, d, x - r, y - r, x + r, y + r, val); }
+function fogBox(fog, d, x1, y1, x2, y2, val) {
+  const xa = Math.max(0, Math.min(x1, x2)), xb = Math.min(d.W - 1, Math.max(x1, x2)), ya = Math.max(0, Math.min(y1, y2)), yb = Math.min(d.H - 1, Math.max(y1, y2));
+  for (let y = ya; y <= yb; y++) for (let x = xa; x <= xb; x++) fog[y * d.W + x] = val;
+}
+
+/* ======================= Dungeon rendering =======================
+   o.player draws the player-safe view (no traps, unfound secret doors drawn as wall, no seed);
+   o.fog covers hidden squares (solid for players, a see-through tint for the DM). */
+const CS = 20, TOP = 46, FOG_PLAYER = "#0b0a09", FOG_DM = "rgba(10,8,6,.5)";
+function drawDungeon(cv, d, showGrid, o = {}) {
   const { W, H, grid } = d, pal = { crypt: "#e9e2d2", cavern: "#efe6cf", keep: "#efe3c6", sewer: "#e3e2cc", temple: "#f0e4c8", mine: "#ecdcc0" }[d.params.theme];
-  const dpr = Math.min(2, window.devicePixelRatio || 1);
+  const player = !!o.player, fog = o.fog || null, showNums = o.numbers !== undefined ? o.numbers : !player;
+  const dpr = o.scale || Math.min(2, window.devicePixelRatio || 1);
   cv.width = W * CS * dpr; cv.height = (H * CS + TOP) * dpr;
   const g = cv.getContext("2d"); g.setTransform(dpr, 0, 0, dpr, 0, 0);
   g.fillStyle = pal; g.fillRect(0, 0, W * CS, H * CS + TOP);
@@ -1998,12 +2048,20 @@ function drawDungeon(cv, d, showGrid) {
   d.doors.forEach(dr => {
     const ex = dr.dx > 0 ? (dr.x + 1) * CS : dr.dx < 0 ? dr.x * CS : dr.x * CS + CS / 2;
     const ey = dr.dy > 0 ? (dr.y + 1) * CS : dr.dy < 0 ? dr.y * CS : dr.y * CS + CS / 2;
-    if (dr.secret) { g.fillStyle = "#2a2018"; g.font = "bold 13px Cinzel, serif"; g.textAlign = "center"; g.textBaseline = "middle"; g.fillText("S", ex, ey); return; }
+    if (dr.secret && player && !(o.found && o.found.has(dr.x + "," + dr.y))) {
+      // to players an unfound secret door is just more wall
+      const wx = dr.dx > 0 ? (dr.x + 1) * CS : dr.x * CS, wy = dr.dy > 0 ? (dr.y + 1) * CS : dr.y * CS;
+      g.strokeStyle = "#2a2018"; g.lineWidth = 3; g.beginPath();
+      if (dr.dx) { g.moveTo(wx, dr.y * CS); g.lineTo(wx, dr.y * CS + CS); } else { g.moveTo(dr.x * CS, wy); g.lineTo(dr.x * CS + CS, wy); }
+      g.stroke(); return;
+    }
+    if (dr.secret && !player) { g.fillStyle = "#2a2018"; g.font = "bold 13px Cinzel, serif"; g.textAlign = "center"; g.textBaseline = "middle"; g.fillText("S", ex, ey); return; }
     const vert = dr.dx !== 0, w = vert ? CS * .32 : CS * .72, h = vert ? CS * .72 : CS * .32;
     g.fillStyle = "#c79a5b"; g.strokeStyle = "#2a2018"; g.lineWidth = 1.5; g.fillRect(ex - w / 2, ey - h / 2, w, h); g.strokeRect(ex - w / 2, ey - h / 2, w, h);
   });
   // icons
   d.rooms.forEach(o => (o.icons || []).forEach(ic => {
+    if (player && (ic.m === "trap" || ic.m === "down")) return;
     const X = ic.x * CS, Y = ic.y * CS;
     if (ic.m === "up" || ic.m === "down") {
       g.strokeStyle = "#2a2018"; g.lineWidth = 1.4; g.beginPath();
@@ -2019,16 +2077,22 @@ function drawDungeon(cv, d, showGrid) {
   }));
   // room numbers
   d.rooms.forEach(o => {
-    const X = o.cx * CS + CS / 2, Y = o.cy * CS + CS / 2, boss = (o.marks || []).includes("boss");
+    if (!showNums || (fog && !fog[o.cy * W + o.cx])) return;
+    const X = o.cx * CS + CS / 2, Y = o.cy * CS + CS / 2, boss = !player && (o.marks || []).includes("boss");
     g.beginPath(); g.arc(X, Y, 10, 0, Math.PI * 2); g.fillStyle = boss ? "#9b2f2f" : "#2a2018"; g.fill();
     g.fillStyle = "#fdfaf2"; g.font = "bold 11px Cinzel, Georgia, serif"; g.textAlign = "center"; g.textBaseline = "middle"; g.fillText(String(o.num), X, Y + .5);
   });
+  if (fog) {
+    g.fillStyle = player ? FOG_PLAYER : FOG_DM; g.beginPath();
+    for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) if (!fog[y * W + x]) g.rect(x * CS, y * CS, CS, CS);
+    g.fill();
+  }
   g.restore();
   // header + scale + compass
   g.fillStyle = "#2a2018"; g.font = "700 20px Cinzel, Georgia, serif"; g.textAlign = "left"; g.textBaseline = "middle";
   g.fillText(d.params.name || "Dungeon", 14, TOP / 2);
   g.font = "italic 14px 'Crimson Pro', Georgia, serif"; g.textAlign = "right";
-  g.fillText(`${{ crypt: "Crypt", cavern: "Cavern", keep: "Keep", sewer: "Sewers", temple: "Temple", mine: "Mine" }[d.params.theme]} · ${d.rooms.length} areas · party level ${d.params.level} · seed ${d.params.seed}`, W * CS - 14, TOP / 2);
+  if (!player) g.fillText(`${{ crypt: "Crypt", cavern: "Cavern", keep: "Keep", sewer: "Sewers", temple: "Temple", mine: "Mine" }[d.params.theme]} · ${d.rooms.length} areas · party level ${d.params.level} · seed ${d.params.seed}`, W * CS - 14, TOP / 2);
   const by = TOP + H * CS - 14; g.strokeStyle = "#2a2018"; g.lineWidth = 2; g.beginPath(); g.moveTo(14, by); g.lineTo(14 + CS * 4, by); for (let k = 0; k <= 4; k++) { g.moveTo(14 + k * CS, by - 4); g.lineTo(14 + k * CS, by + 4); } g.stroke();
   g.font = "12px 'Crimson Pro', Georgia, serif"; g.textAlign = "left"; g.fillText("20 ft", 14 + CS * 4 + 6, by);
   const cx = W * CS - 26, cy = TOP + H * CS - 26; g.beginPath(); g.moveTo(cx, cy - 14); g.lineTo(cx + 5, cy); g.lineTo(cx, cy + 14); g.lineTo(cx - 5, cy); g.closePath(); g.fillStyle = "#2a2018"; g.fill();
