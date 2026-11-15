@@ -203,6 +203,20 @@ function showSetup(note = "") {
   };
 }
 
+/* Forget this browser's sign-in without reloading, and put back the characters
+   saved in this browser (they're set aside while a campaign is loading). */
+async function dropSession() {
+  stopLoops();
+  try { await logout(); } catch { }
+  for (const n of ["nf_jwt", "nf_refresh"]) document.cookie = `${n}=; path=/; secure; samesite=lax; expires=Thu, 01 Jan 1970 00:00:00 GMT`;
+  try { localStorage.removeItem("gotrue.user"); } catch { }
+  S.user = null; S.camp = null; S.campaigns = [];
+  Portal.cloud = false;
+  if (S.localRoster) { PCS.roster = S.localRoster; S.localRoster = null; RC.id = null; }
+  applyMode(null); rerender(true); acctButton();
+  if (typeof setBadge === "function") setBadge();
+}
+
 function goOffline() {
   localStorage.setItem(OFFLINE_KEY, "1");
   closeGate(); unhide(); applyMode(null); acctButton();
@@ -268,9 +282,25 @@ async function enter() {
   S.user = await getUser();
   if (!S.user) { showSignIn(); return; }
   const me = await api("me");
+  if (me.status === 401) {
+    // The browser still holds a sign-in the server no longer accepts (expired or
+    // from an older login). Forget it and ask for email and password again.
+    await dropSession();
+    showSignIn("in", "Your sign-in has expired. Please sign in again.");
+    return;
+  }
   if (!me.ok) {
-    gate(`<p class="gate-err" role="alert">${esc(me.data.error || "Couldn't reach the campaign server.")}</p>
-      <div class="gate-links"><button class="linkish" type="button" onclick="location.reload()">Try again</button></div>`);
+    const g = gate(`<p class="gate-err" role="alert">${esc(me.data.error || "Couldn't reach the campaign server.")}</p>
+      <div class="gate-links"><button class="linkish" type="button" data-g="retry">Try again</button>
+        <button class="linkish" type="button" data-g="in">Sign in with another account</button></div>
+      <div class="gate-foot"><button class="linkish" type="button" data-g="offline">Use without an account</button>
+        <small class="muted">DM tools only, saved in this browser.</small></div>`);
+    g.querySelector(".gate-box").onclick = async e => {
+      const k = e.target.closest("[data-g]"); if (!k) return;
+      if (k.dataset.g === "retry") location.reload();
+      else if (k.dataset.g === "offline") { await dropSession(); goOffline(); }
+      else { await dropSession(); showSignIn("in"); }
+    };
     return;
   }
   S.campaigns = me.data.campaigns;

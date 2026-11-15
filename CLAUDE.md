@@ -448,3 +448,4 @@ From PR #5:
   - `test:map` still fails about one run in four on TV picture timing. Rerun it before suspecting the app.
 - **Comments in one-line functions:** a `//` comment swallows the rest of the line, including closing braces. Use `/* … */` there. This once broke the whole page.
 - **The `.ds` class** is the death-save dot. Don't reuse it for anything else.
+- **A stale sign-in.** The browser's `getUser()` trusts any `nf_jwt` cookie, even one the server rejects (expired, or from a re-created Identity instance). `enter()` treats a 401 from `/api/me` by calling `dropSession()` (logout, clear the cookies and `gotrue.user`, put back the browser's own characters) and showing the sign-in form. Other `/api/me` errors offer Try again, another account, or offline use. Never leave the gate without a way out.
