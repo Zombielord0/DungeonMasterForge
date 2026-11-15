@@ -11,7 +11,8 @@
     "test:tv": "node test/e2e/tv.cjs",
     "test:mapvis": "node test/e2e/map-visuals.cjs",
     "test:mapio": "node test/e2e/map-import.cjs",
-    "test:shop": "node test/e2e/shop.cjs"
+    "test:shop": "node test/e2e/shop.cjs",
+    "test:random": "node test/e2e/random-enc.cjs"
   },
   "dependencies": {
     "@netlify/database": "^2.0.3",

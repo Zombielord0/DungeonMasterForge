@@ -54,6 +54,10 @@ Everything stays on your computer, and no internet traffic or Netlify usage happ
 
 On the **Items** tab, press **🏪 Generate a shop**. Choose the kind of shop, the settlement (village, town or city) and the party's level, and press **🎲 Roll again** until you like it. **Buy** takes the coins from the character chosen in "Give items to" and adds the item to their inventory.
 
+## Random encounters
+
+In **Campaign Tracker → Encounters**, pick where the party is and how hard the fight should be, then press **Roll**. You get monsters that live there, sized for your party's level, with a note on what they're doing. The fight is added to your encounters.
+
 ## Keeping a backup
 
 If you use the Forge without an account, everything is saved only in that browser. Press **💾 Backup** at the top of the page:
