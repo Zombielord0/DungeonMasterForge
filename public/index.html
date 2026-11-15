@@ -10215,6 +10215,9 @@ Store.init().then(() => { renderCampList(); pcAdoptRemote(); itemsAdopt(); if (l
 <script>
 /* ---- what's new: newest first. Add an entry (with a new id) whenever a change ships; the bell counts entries this browser hasn't seen. ---- */
 const NEWS = [
+  { id: "2026-11-15-signin-fix", date: "2026-11-15", title: "Sign-in screen fixed", items: [
+    "If your saved sign-in had expired, the Forge showed \"Please sign in\" with no way to sign in. It now shows the email and password form again, with \"Use without an account\" below it.",
+    "If the campaign server can't be reached, you can now try again, sign in with another account, or use the Forge without an account."] },
   { id: "2026-11-15-tokens", date: "2026-11-15", title: "Tokens on the TV map", go: "map", items: [
     "While hosting the player screen, add tokens for the party, for the fight on the TV, or by name, then drag them with the Tokens tool.",
     "Tokens in the fog stay hidden from players, and monsters show Bloodied (orange ring) or Down (grey with a cross) to match the fight.",
