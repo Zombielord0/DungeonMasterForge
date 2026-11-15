@@ -190,6 +190,22 @@ async function setMap(page, seed, theme = "crypt") {
   await setMap(dm, "CAVE1", "cavern");
   check("cavern: Room reveal uncovers the whole ragged room", await dm.evaluate(() => { const d = currentMap, f = new Uint8Array(d.W * d.H), o = d.rooms[2]; fogRevealRoom(d, f, o.cx, o.cy); const r = d.rid[o.cy * d.W + o.cx]; for (let i = 0; i < f.length; i++) if (d.rid[i] === r && !f[i]) return false; return true; }));
 
+  // offline app (service worker): opening the TV window must not replace the saved copy of the app, and vice versa
+  if (fs.existsSync(path.join(ROOT, "sw.js"))) {
+    const c2 = await browser.newContext({ viewport: { width: 1000, height: 700 } });
+    await c2.addInitScript(() => localStorage.setItem("dmforge.offline", "1"));
+    const p = await c2.newPage();
+    await p.goto(URL); await p.evaluate(() => navigator.serviceWorker.ready); await p.reload(); await p.waitForFunction(() => !!navigator.serviceWorker.controller);
+    await p.goto(URL + "player.html"); await p.waitForSelector("#tv");
+    await p.goto(URL + "#map"); await p.waitForSelector("#mapCanvas", { state: "attached" });
+    await c2.setOffline(true);
+    await p.goto(URL + "player.html").catch(() => {});
+    check("offline: the TV page opens as the TV page", !!(await p.$("#tv")) && !(await p.$("#mapCanvas")));
+    await p.goto(URL).catch(() => {});
+    check("offline: the app still opens as the app after using the TV window", !!(await p.$("#mapCanvas")));
+    await c2.close();
+  }
+
   check("no page errors", errs.length === 0, errs.join(" | "));
   await browser.close(); server.close();
   console.log(fails ? `\n${fails} check(s) failed` : "\nAll map checks passed");

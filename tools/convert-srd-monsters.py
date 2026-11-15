@@ -32,6 +32,9 @@ def role(m, traits, acts):
     if t == "humanoid": return "soldier"
     return "brute"
 
+# Corrections where the SRD source data is wrong or incomplete (missing walking speeds, HP that doesn't match the hit dice)
+FIXES = {"2014": {"Donkey": {"speed": "40 ft."}, "Elf, Drow": {"speed": "30 ft."}, "Gnome, Deep (Svirfneblin)": {"speed": "20 ft."},
+                  "Cult Fanatic": {"hp": 33}, "Reef Shark": {"hd": "4d8+4"}}}
 out = {}
 for ed, key in [("srd-2014", "2014"), ("srd-2024", "2024")]:
     acts, traits = defaultdict(list), defaultdict(list)
@@ -66,6 +69,7 @@ for ed, key in [("srd-2014", "2014"), ("srd-2024", "2024")]:
         }
         if m["cr"].is_integer(): m["cr"] = int(m["cr"])
         m["role"] = role(m, tr, m["actions"])
+        m.update(FIXES.get(key, {}).get(m["n"], {}))
         mons.append({k: v for k, v in m.items() if v not in ("", [], None) or k in ("traits", "actions")})
     mons.sort(key=lambda m: m["n"])
     out[key] = mons
