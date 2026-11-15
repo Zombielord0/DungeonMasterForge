@@ -141,6 +141,12 @@ ul.plain{margin:4px 0 0;padding-left:20px}
 /* map: a parchment pinned on stone */
 .map-wrap{background:#e9dcbd;border-radius:3px;padding:10px;overflow:auto;box-shadow:0 12px 30px rgba(0,0,0,.75),inset 0 0 40px rgba(120,80,30,.35);transform:rotate(-.25deg)}
 #mapCanvas{display:block;width:100%;height:auto}
+.map-stage{position:relative;width:100%}
+#mapOverlay{position:absolute;inset:0;width:100%;height:100%;pointer-events:none}
+.map-wrap.panning{cursor:grabbing}
+.map-tools{display:flex;gap:6px;align-items:center;margin-bottom:8px;flex-wrap:wrap}
+.map-tools .muted{font-size:14px;margin-left:6px}
+.key-room.hl{background:rgba(232,163,61,.12);box-shadow:inset 3px 0 0 #e8a33d}
 #mapCanvas.fogging{cursor:crosshair;touch-action:none}
 .fog-tools{border:0;padding:0;margin:14px 0 0;min-width:0}
 .fog-tools[disabled]{opacity:.45}
@@ -1025,6 +1031,9 @@ nav a[data-view=whispers]{--ic:url("data:image/svg+xml,%3Csvg xmlns='http://www.
       <div class="field"><label>Theme</label>
         <select id="mapTheme"><option value="crypt">Crypt / Tomb</option><option value="cavern">Cavern</option><option value="keep">Keep / Castle</option><option value="sewer">Sewers</option><option value="temple">Temple</option><option value="mine">Mine</option></select>
       </div>
+      <div class="field"><label>Style</label>
+        <select id="mapStyle"><option value="parchment">Parchment</option><option value="blue">Classic blue (graph paper)</option><option value="dark">Dark (for TVs and screens)</option></select>
+      </div>
       <div class="field row">
         <div><label>Size</label><select id="mapSize"><option value="small">Small</option><option value="medium" selected>Medium</option><option value="large">Large</option></select></div>
         <div><label>Rooms</label><input type="number" id="mapRooms" min="4" max="24" value="10"></div>
@@ -1042,13 +1051,15 @@ nav a[data-view=whispers]{--ic:url("data:image/svg+xml,%3Csvg xmlns='http://www.
         <button class="btn" type="button" id="mapDownload">Download PNG</button>
         <button class="btn" type="button" id="mapCopyKey">Copy room key</button>
       </div>
+      <button class="btn wide" type="button" id="mapDownloadPlayer" style="margin-top:8px" title="A copy without traps, secret doors, the boss marker or the seed, to hand to players">Download player map</button>
       <div class="field" style="margin-top:14px">
         <label>Save to campaign</label>
         <div class="row"><select id="mapCampaign" class="campSelect"></select><button class="btn" type="button" id="mapSave" style="flex:0 0 auto">Save</button></div>
       </div>
     </form>
     <div>
-      <div class="map-wrap"><canvas id="mapCanvas"></canvas></div>
+      <div class="map-tools"><button class="btn sm" type="button" id="mapZoomOut" aria-label="Zoom out">−</button><button class="btn sm" type="button" id="mapZoomIn" aria-label="Zoom in">+</button><button class="btn sm" type="button" id="mapFit">Fit</button><span class="muted" id="mapToolsHint">Hover a room to find it in the key, click it to jump there. Drag to move around when zoomed in.</span></div>
+      <div class="map-wrap" id="mapWrap"><div class="map-stage"><canvas id="mapCanvas"></canvas><canvas id="mapOverlay" aria-hidden="true"></canvas></div></div>
       <div class="card" id="hostCard" style="margin-top:14px">
         <div class="sec-h"><h3>Player Screen</h3><span class="sp"></span><span class="badge" id="hostStatus">Not connected</span></div>
         <p class="muted" style="margin:0 0 10px">Open a second window, drag it onto the TV or second monitor, and double-click it for full screen. Players only see what you reveal, and nothing is sent over the internet.</p>
@@ -2234,83 +2245,271 @@ function fogBox(fog, d, x1, y1, x2, y2, val) {
   for (let y = ya; y <= yb; y++) for (let x = xa; x <= xb; x++) fog[y * d.W + x] = val;
 }
 
+/* ---- map looks: styles, theme floors, furniture ----
+   Everything here draws only. It uses its own seeded random streams, so it can never change a dungeon's layout. */
+const MAP_STYLES = {
+  parchment: { ink: "#2a2018", hatch: "rgba(70,50,30,.55)", grid: "rgba(90,70,50,.16)", tex: true, hand: true, grain: true, dark: false },
+  blue: { ink: "#1d4f91", hatch: "rgba(29,79,145,.38)", grid: "rgba(29,79,145,.26)", tex: false, hand: false, grain: false, dark: false, bg: "#ffffff", floor: "#ffffff" },
+  dark: { ink: "#050403", hatch: null, grid: "rgba(255,255,255,.07)", tex: true, hand: false, grain: false, dark: true, bg: "#1d1b19" }
+};
+const MAP_BG = { crypt: "#e9e2d2", cavern: "#efe6cf", keep: "#efe3c6", sewer: "#e3e2cc", temple: "#f0e4c8", mine: "#ecdcc0" };
+const MAP_FLOOR = { crypt: ["#f2ede3", "#6f6b64"], cavern: ["#efe4cc", "#6b6053"], keep: ["#eed9b4", "#6e5739"], sewer: ["#e3e5d3", "#5d625b"], temple: ["#f7eed9", "#7a725f"], mine: ["#e8d2ae", "#6b5944"] };
+function mapStyle(d) { return MAP_STYLES[d.params.style] || MAP_STYLES.parchment; }
+
+// which furniture suits a room, by its name first and the dungeon's theme second
+const DRESS_BY_NAME = [
+  [/ossuary|bone pit/i, ["bones", "bones"]], [/sarcophag|burial|tomb|vault|rest\b/i, ["sarcophagus", "sarcophagus"]], [/embalm/i, ["table", "barrel"]],
+  [/library|scriptorium/i, ["bookshelf", "bookshelf", "table"]], [/armory|weapon/i, ["rack", "rack", "crate"]], [/barracks|quarters|cell|camp/i, ["bed", "bed", "crate"]],
+  [/kitchen|feast|great hall|mourners|offering/i, ["table", "barrel"]], [/chapel|shrine|sanctum|ritual|narthex|altar/i, ["altar", "brazier"]],
+  [/statue|trophy/i, ["statue", "statue"]], [/pool|cistern|baptist|flooded|underground pool/i, ["pool"]], [/store|cache|depot|powder|cellar/i, ["crate", "barrel", "crate"]],
+  [/fungus|glowworm|grotto/i, ["fungus", "fungus"]], [/collapsed|cave-in|chasm/i, ["rubble", "rubble"]], [/ore|cart|winch|shaft|seam|vein|miners|foreman/i, ["cart", "barrel", "crate"]],
+  [/crystal/i, ["crystal", "crystal"]], [/bat|lair|warren|roost/i, ["bones", "web"]], [/guard|well|junction|sluice/i, ["barrel", "crate"]], [/prison/i, ["bones", "bed"]]
+];
+const DRESS_BY_THEME = { crypt: ["bones", "web"], cavern: ["rubble", "fungus"], keep: ["crate", "barrel"], sewer: ["rubble", "barrel"], temple: ["statue", "brazier"], mine: ["barrel", "crate"] };
+const DRESS_TWO = new Set(["sarcophagus", "table", "bookshelf", "bed", "cart", "rack"]); // two squares long
+const DRESS_WALL = new Set(["bookshelf", "rack", "bed"]);                                   // against a wall
+function mapDress(d) {
+  if (d._dress) return d._dress;
+  const r = makeRng("dress", d.params.seed, d.params.theme, d.params.size, d.params.rooms), out = [], W = d.W;
+  const ridOf = o => d.rid[o.cy * W + o.cx];
+  d.rooms.forEach(o => {
+    const rid = ridOf(o), blocked = new Set();
+    const block = (x, y) => blocked.add(x + "," + y);
+    for (let dy = -1; dy <= 1; dy++) for (let dx = -1; dx <= 1; dx++) block(o.cx + dx, o.cy + dy);           // room number
+    d.rooms.forEach(q => (q.icons || []).forEach(i => block(i.x, i.y)));                                      // stairs, chests, traps
+    d.doors.forEach(dr => { const ix = dr.x + dr.dx, iy = dr.y + dr.dy; for (const [a, b] of [[0, 0], [1, 0], [-1, 0], [0, 1], [0, -1]]) block(ix + a, iy + b); });
+    const cave = d.params.theme === "cavern", F = (x, y) => x >= 0 && y >= 0 && x < d.W && y < d.H && d.grid[y * W + x] > 0;
+    const inner = (x, y) => { for (let dy = -1; dy <= 1; dy++) for (let dx = -1; dx <= 1; dx++) if (!F(x + dx, y + dy)) return false; return true; };
+    // caves have curved walls, so furniture stays off their ragged edges
+    const free = (x, y) => F(x, y) && d.grid[y * W + x] === 1 && d.rid[y * W + x] === rid && !blocked.has(x + "," + y) && (!cave || inner(x, y));
+    const take = cells => cells.forEach(([x, y]) => { for (let dy = -1; dy <= 1; dy++) for (let dx = -1; dx <= 1; dx++) if (!dx || !dy) block(x + dx, y + dy); });
+    let kinds = null; for (const [re, k] of DRESS_BY_NAME) if (re.test(o.type)) { kinds = k; break; }
+    kinds = kinds || DRESS_BY_THEME[d.params.theme];
+    // pillars in big halls
+    if (o.w >= 6 && o.h >= 6 && d.params.theme !== "cavern" && (/hall|sanctum|chapel|temple|narthex|statues/i.test(o.type) || r.chance(.35))) {
+      for (const [x, y] of [[o.x + 1, o.y + 1], [o.x + o.w - 2, o.y + 1], [o.x + 1, o.y + o.h - 2], [o.x + o.w - 2, o.y + o.h - 2]]) if (free(x, y)) { out.push({ kind: "pillar", room: o.num, cells: [[x, y]] }); take([[x, y]]); }
+    }
+    if (o.type === "Entrance" || r.chance(.12)) return;                                                     // some rooms stay bare
+    const n = Math.min(kinds.length, 1 + Math.floor((o.w * o.h) / 22) + (r.chance(.5) ? 1 : 0));
+    for (let i = 0; i < n; i++) {
+      const kind = kinds[i % kinds.length];
+      for (let t = 0; t < 30; t++) {
+        const x = r.int(o.x, o.x + o.w - 1), y = r.int(o.y, o.y + o.h - 1); if (!free(x, y)) continue;
+        if (DRESS_WALL.has(kind) && !(x === o.x || y === o.y || x === o.x + o.w - 1 || y === o.y + o.h - 1)) continue;
+        let cells = [[x, y]];
+        if (DRESS_TWO.has(kind)) {
+          const alongX = DRESS_WALL.has(kind) ? (y === o.y || y === o.y + o.h - 1) : r.chance(.5);
+          const nx = alongX ? x + 1 : x, ny = alongX ? y : y + 1; if (!free(nx, ny)) continue; cells.push([nx, ny]);
+        }
+        out.push({ kind, room: o.num, cells }); take(cells); break;
+      }
+    }
+  });
+  return (d._dress = out);
+}
+function drawProp(g, p, st) {
+  const ink = st.ink, [x0, y0] = p.cells[0], last = p.cells[p.cells.length - 1];
+  const X = x0 * CS, Y = y0 * CS, w = (last[0] - x0 + 1) * CS, h = (last[1] - y0 + 1) * CS, cx = X + w / 2, cy = Y + h / 2, horiz = w > h;
+  const fillA = st.dark ? "#4b4238" : "#d9ccb0", fillB = st.dark ? "#6e5a3f" : "#c8a979";
+  g.save(); g.lineWidth = 1.2; g.strokeStyle = ink; g.lineJoin = "round"; g.lineCap = "round";
+  const box = (x, y, bw, bh, f) => { g.fillStyle = f; g.fillRect(x, y, bw, bh); g.strokeRect(x, y, bw, bh); };
+  switch (p.kind) {
+    case "pillar": g.beginPath(); g.arc(cx, cy, CS * .34, 0, 7); g.fillStyle = st.dark ? "#8b8378" : "#bdb3a0"; g.fill(); g.stroke(); break;
+    case "sarcophagus": { const a = horiz ? [X + 3, Y + 4, w - 6, h - 8] : [X + 4, Y + 3, w - 8, h - 6]; box(...a, fillA); g.beginPath(); if (horiz) { g.moveTo(X + 8, cy); g.lineTo(X + w - 8, cy); g.moveTo(X + 14, cy - 4); g.lineTo(X + 14, cy + 4); } else { g.moveTo(cx, Y + 8); g.lineTo(cx, Y + h - 8); g.moveTo(cx - 4, Y + 14); g.lineTo(cx + 4, Y + 14); } g.stroke(); break; }
+    case "table": { const a = horiz ? [X + 3, Y + 5, w - 6, h - 10] : [X + 5, Y + 3, w - 10, h - 6]; box(...a, fillB); break; }
+    case "bed": { const a = horiz ? [X + 2, Y + 4, w - 4, h - 8] : [X + 4, Y + 2, w - 8, h - 4]; box(...a, fillA); g.fillStyle = st.dark ? "#a59a8a" : "#fffaf0"; horiz ? g.fillRect(X + 4, Y + 6, 5, h - 12) : g.fillRect(X + 6, Y + 4, w - 12, 5); break; }
+    case "bookshelf": case "rack": { const a = horiz ? [X + 1, Y + (y0 === 0 ? 1 : 2), w - 2, 6] : [X + 2, Y + 1, 6, h - 2]; box(...a, fillB); g.beginPath(); const n = Math.round((horiz ? w : h) / 5); for (let i = 1; i < n; i++) { if (horiz) { g.moveTo(X + 1 + i * 5, a[1]); g.lineTo(X + 1 + i * 5, a[1] + 6); } else { g.moveTo(a[0], Y + 1 + i * 5); g.lineTo(a[0] + 6, Y + 1 + i * 5); } } g.stroke(); break; }
+    case "cart": { const a = horiz ? [X + 4, Y + 5, w - 8, h - 10] : [X + 5, Y + 4, w - 10, h - 8]; box(...a, fillB); g.fillStyle = ink; for (const [px, py] of horiz ? [[X + 8, Y + 4], [X + w - 8, Y + 4], [X + 8, Y + h - 4], [X + w - 8, Y + h - 4]] : [[X + 4, Y + 8], [X + w - 4, Y + 8], [X + 4, Y + h - 8], [X + w - 4, Y + h - 8]]) { g.beginPath(); g.arc(px, py, 2, 0, 7); g.fill(); } break; }
+    case "crate": box(X + 4, Y + 4, CS - 8, CS - 8, fillB); g.beginPath(); g.moveTo(X + 4, Y + 4); g.lineTo(X + CS - 4, Y + CS - 4); g.moveTo(X + CS - 4, Y + 4); g.lineTo(X + 4, Y + CS - 4); g.stroke(); break;
+    case "barrel": g.beginPath(); g.arc(cx, cy, CS * .32, 0, 7); g.fillStyle = fillB; g.fill(); g.stroke(); g.beginPath(); g.arc(cx, cy, CS * .17, 0, 7); g.stroke(); break;
+    case "altar": box(X + 2, Y + 5, CS - 4, CS - 10, fillA); g.fillStyle = "#e8a33d"; g.beginPath(); g.arc(X + 6, Y + 8, 1.6, 0, 7); g.arc(X + CS - 6, Y + 8, 1.6, 0, 7); g.fill(); break;
+    case "statue": g.fillStyle = fillA; g.fillRect(X + 3, Y + 3, CS - 6, CS - 6); g.strokeRect(X + 3, Y + 3, CS - 6, CS - 6); g.beginPath(); g.arc(cx, cy, CS * .2, 0, 7); g.fillStyle = st.dark ? "#a39a8c" : "#9e9584"; g.fill(); g.stroke(); break;
+    case "brazier": g.beginPath(); g.arc(cx, cy, CS * .26, 0, 7); g.fillStyle = "#3a2e22"; g.fill(); g.stroke(); g.fillStyle = "#e8a33d"; g.beginPath(); g.arc(cx, cy, CS * .13, 0, 7); g.fill(); break;
+    case "pool": { g.beginPath(); g.ellipse(cx, cy, CS * .44, CS * .38, 0, 0, 7); g.fillStyle = st.dark ? "#2e4b52" : "#a9c6c4"; g.fill(); g.stroke(); g.strokeStyle = st.dark ? "#4d7480" : "#e9f2f0"; g.beginPath(); g.arc(cx - 2, cy - 1, 4, 3.6, 5.4); g.stroke(); break; }
+    case "bones": g.lineWidth = 1.6; g.strokeStyle = st.dark ? "#cfc6b4" : "#8b7e69"; g.beginPath(); g.moveTo(X + 5, Y + 6); g.lineTo(X + 13, Y + 12); g.moveTo(X + 13, Y + 6); g.lineTo(X + 7, Y + 14); g.moveTo(X + 10, Y + 15); g.lineTo(X + 16, Y + 14); g.stroke(); g.fillStyle = g.strokeStyle; g.beginPath(); g.arc(X + 15, Y + 7, 2.2, 0, 7); g.fill(); break;
+    case "rubble": g.fillStyle = st.dark ? "#575048" : "#b3a68e"; for (const [a, b, s] of [[5, 6, 4], [12, 5, 3], [9, 12, 5], [15, 13, 3], [4, 14, 2.5]]) { g.beginPath(); g.moveTo(X + a, Y + b - s); g.lineTo(X + a + s, Y + b); g.lineTo(X + a, Y + b + s); g.lineTo(X + a - s, Y + b); g.closePath(); g.fill(); g.stroke(); } break;
+    case "fungus": g.fillStyle = st.dark ? "#7fae6e" : "#9bb98a"; for (const [a, b, s] of [[6, 7, 3], [12, 6, 2.2], [10, 13, 3.4], [15, 12, 2]]) { g.beginPath(); g.arc(X + a, Y + b, s, 0, 7); g.fill(); g.stroke(); } break;
+    case "crystal": g.fillStyle = st.dark ? "#7a8fc0" : "#b9c8ea"; for (const [a, b] of [[7, 6], [13, 9], [8, 14]]) { g.beginPath(); g.moveTo(X + a, Y + b - 5); g.lineTo(X + a + 3, Y + b); g.lineTo(X + a, Y + b + 4); g.lineTo(X + a - 3, Y + b); g.closePath(); g.fill(); g.stroke(); } break;
+    case "web": g.lineWidth = .8; g.strokeStyle = st.dark ? "rgba(220,220,220,.5)" : "rgba(60,50,40,.55)"; g.beginPath(); for (let i = 0; i <= 4; i++) { const a = i * Math.PI / 8; g.moveTo(X, Y); g.lineTo(X + Math.cos(a) * CS, Y + Math.sin(a) * CS); } for (const rr of [6, 11, 16]) { g.moveTo(X + rr, Y); for (let i = 1; i <= 4; i++) { const a = i * Math.PI / 8; g.lineTo(X + Math.cos(a) * rr, Y + Math.sin(a) * rr); } } g.stroke(); break;
+  }
+  g.restore();
+}
+// smooth value noise in [-1, 1] (for wobbly cave edges)
+function mapNoise(seed) {
+  const r = makeRng("noise", seed), N = 64, t = Array.from({ length: N * N }, () => r.f() * 2 - 1), sm = v => v * v * (3 - 2 * v);
+  return (x, y) => { const xi = Math.floor(x), yi = Math.floor(y), fx = sm(x - xi), fy = sm(y - yi), at = (a, b) => t[((b & 63) * N) + (a & 63)];
+    const a = at(xi, yi) + (at(xi + 1, yi) - at(xi, yi)) * fx, b = at(xi, yi + 1) + (at(xi + 1, yi + 1) - at(xi, yi + 1)) * fx; return a + (b - a) * fy; };
+}
+// the grid-area picture (everything except room numbers, fog and the header), cached per map and look
+function mapBase(d, showGrid, player, found, s) {
+  const st = mapStyle(d), foundKey = found ? [...found].sort().join(";") : "";
+  const key = [showGrid, player, foundKey, s, d.params.style || "parchment"].join("|");
+  d._base = d._base || new Map(); if (d._base.has(key)) return d._base.get(key);
+  const { W, H, grid, rid } = d, th = d.params.theme, PW = W * CS, PH = H * CS;
+  const mk = () => { const c = document.createElement("canvas"); c.width = Math.round(PW * s); c.height = Math.round(PH * s); const g = c.getContext("2d"); g.setTransform(s, 0, 0, s, 0, 0); return [c, g]; };
+  const [cv, g] = mk();
+  const floor = (x, y) => x >= 0 && y >= 0 && x < W && y < H && grid[y * W + x] > 0;
+  const tr = makeRng("tex", d.params.seed, th);
+  const rockC = st.bg || MAP_BG[th], floorC = st.floor || MAP_FLOOR[th][st.dark ? 1 : 0];
+  g.fillStyle = rockC; g.fillRect(0, 0, PW, PH);
+  // rock beside the dungeon: hand-drawn hatching (or dark speckles)
+  for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) {
+    if (floor(x, y)) continue;
+    let near = false; for (let dy = -1; dy <= 1 && !near; dy++) for (let dx = -1; dx <= 1; dx++) if (floor(x + dx, y + dy)) { near = true; break; }
+    if (!near) continue;
+    if (st.dark) continue; // dark rock needs no hatching
+    g.strokeStyle = st.hatch; g.lineWidth = 1; g.beginPath();
+    const a = tr.f() * Math.PI, ca = Math.cos(a), sa = Math.sin(a), mx = x * CS + CS / 2 + (tr.f() - .5) * 4, my = y * CS + CS / 2 + (tr.f() - .5) * 4;
+    for (let k = -2; k <= 2; k++) { const ox = -sa * k * 3.6, oy = ca * k * 3.6, L = 7 - Math.abs(k) * .8; g.moveTo(mx + ox - ca * L, my + oy - sa * L); g.lineTo(mx + ox + ca * L, my + oy + sa * L); }
+    g.stroke();
+  }
+  // the floor layer: base colour, theme texture and grid, then cut to the dungeon's shape
+  const [fc, fg] = mk(); fg.fillStyle = floorC; fg.fillRect(0, 0, PW, PH);
+  if (st.tex) mapTexture(fg, d, st, tr);
+  if (showGrid) { fg.strokeStyle = st.grid; fg.lineWidth = 1; fg.beginPath(); for (let x = 0; x <= W; x++) { fg.moveTo(x * CS + .5, 0); fg.lineTo(x * CS + .5, PH); } for (let y = 0; y <= H; y++) { fg.moveTo(0, y * CS + .5); fg.lineTo(PW, y * CS + .5); } fg.stroke(); }
+  const smooth = th === "cavern" && typeof g.filter === "string";
+  if (smooth) {
+    // caves: blur the floor squares into a soft shape and trace a wobbly edge through it
+    const [mc, mg] = mk(); mg.fillStyle = "#fff"; for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) if (floor(x, y)) mg.fillRect(x * CS, y * CS, CS, CS);
+    const [bc, bg] = mk(); bg.setTransform(1, 0, 0, 1, 0, 0); bg.filter = `blur(${(CS * .32 * s).toFixed(1)}px)`; bg.drawImage(mc, 0, 0); bg.filter = "none";
+    const id = bg.getImageData(0, 0, bc.width, bc.height), px = id.data, nz = mapNoise(d.params.seed);
+    const inner = new ImageData(bc.width, bc.height), outer = new ImageData(bc.width, bc.height), ip = inner.data, op = outer.data;
+    const ink = st.ink.match(/\w\w/g).map(h => parseInt(h, 16));
+    for (let yy = 0; yy < bc.height; yy++) for (let xx = 0; xx < bc.width; xx++) {
+      const i = (yy * bc.width + xx) * 4, v = px[i + 3], n = nz(xx / s / 9, yy / s / 9) * 34;
+      if (v > 120 + n) ip[i + 3] = 255;
+      if (v > 78 + n) { op[i] = ink[0]; op[i + 1] = ink[1]; op[i + 2] = ink[2]; op[i + 3] = 255; }
+    }
+    const [ic, ig] = mk(); ig.setTransform(1, 0, 0, 1, 0, 0); ig.putImageData(inner, 0, 0);
+    const [oc, og] = mk(); og.setTransform(1, 0, 0, 1, 0, 0); og.putImageData(outer, 0, 0);
+    fg.setTransform(1, 0, 0, 1, 0, 0); fg.globalCompositeOperation = "destination-in"; fg.drawImage(ic, 0, 0); fg.globalCompositeOperation = "source-over";
+    g.setTransform(1, 0, 0, 1, 0, 0); g.drawImage(oc, 0, 0); g.drawImage(fc, 0, 0); g.setTransform(s, 0, 0, s, 0, 0);
+    d._caveSmooth = true;
+  } else {
+    const [mc, mg] = mk(); mg.fillStyle = "#fff"; for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) if (floor(x, y)) mg.fillRect(x * CS, y * CS, CS, CS);
+    fg.setTransform(1, 0, 0, 1, 0, 0); fg.globalCompositeOperation = "destination-in"; fg.drawImage(mc, 0, 0); fg.globalCompositeOperation = "source-over";
+    g.setTransform(1, 0, 0, 1, 0, 0); g.drawImage(fc, 0, 0); g.setTransform(s, 0, 0, s, 0, 0);
+    // walls: hand-inked (slightly wobbly, with a faint second stroke) or ruler-straight
+    const wr = makeRng("ink", d.params.seed, th), segs = [];
+    for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) {
+      if (!floor(x, y)) continue; const X = x * CS, Y = y * CS;
+      if (!floor(x, y - 1)) segs.push([X, Y, X + CS, Y]); if (!floor(x, y + 1)) segs.push([X, Y + CS, X + CS, Y + CS]);
+      if (!floor(x - 1, y)) segs.push([X, Y, X, Y + CS]); if (!floor(x + 1, y)) segs.push([X + CS, Y, X + CS, Y + CS]);
+    }
+    const pass = (lw, alpha, jit, off) => {
+      g.strokeStyle = st.ink; g.globalAlpha = alpha; g.lineWidth = lw; g.lineCap = st.hand ? "round" : "square"; g.beginPath();
+      segs.forEach(([a, b, c, e]) => { const mx = (a + c) / 2 + (a === c ? (wr.f() - .5) * jit : 0) + off, my = (b + e) / 2 + (b === e ? (wr.f() - .5) * jit : 0) + off; g.moveTo(a + off, b + off); g.quadraticCurveTo(mx, my, c + off, e + off); });
+      g.stroke(); g.globalAlpha = 1;
+    };
+    pass(st.dark ? 4 : 3, 1, st.hand ? 1.8 : 0, 0);
+    if (st.hand) pass(1, .35, 2.4, .9);
+    if (st.dark) { g.strokeStyle = "rgba(201,180,138,.35)"; g.lineWidth = 1; g.beginPath(); segs.forEach(([a, b, c, e]) => { g.moveTo(a, b); g.lineTo(c, e); }); g.stroke(); }
+  }
+  mapDrawDoors(g, d, st, player, found);
+  mapDress(d).forEach(pr => drawProp(g, pr, st));
+  if (st.grain) {
+    // paper: a little grain and darker edges
+    const nr = makeRng("grain", d.params.seed); g.fillStyle = "rgba(90,60,30,.06)";
+    for (let i = 0; i < (PW * PH) / 90; i++) g.fillRect(nr.f() * PW, nr.f() * PH, 1.2, 1.2);
+    const v = g.createRadialGradient(PW / 2, PH / 2, Math.min(PW, PH) * .35, PW / 2, PH / 2, Math.max(PW, PH) * .72);
+    v.addColorStop(0, "rgba(110,70,30,0)"); v.addColorStop(1, "rgba(110,70,30,.2)"); g.fillStyle = v; g.fillRect(0, 0, PW, PH);
+  }
+  mapDrawIcons(g, d, st, player);
+  if (d._base.size > 6) d._base.delete(d._base.keys().next().value);
+  d._base.set(key, cv); return cv;
+}
+function mapTexture(g, d, st, r) {
+  const { W, H, grid, rid } = d, th = d.params.theme, dark = st.dark;
+  const shade = a => dark ? `rgba(255,255,255,${a})` : `rgba(60,40,20,${a})`, lite = a => dark ? `rgba(0,0,0,${a})` : `rgba(255,255,255,${a})`;
+  const F = (x, y) => x >= 0 && y >= 0 && x < W && y < H && grid[y * W + x] > 0;
+  const corr = (x, y) => F(x, y) && rid[y * W + x] < 0;
+  // which way a corridor square runs: "h", "v" or "x" (a junction)
+  const dir = (x, y) => { const h = F(x - 1, y) || F(x + 1, y), v = F(x, y - 1) || F(x, y + 1); return h && v ? "x" : h ? "h" : "v"; };
+  let largest = null; d.rooms.forEach(o => { if (!largest || o.w * o.h > largest.w * largest.h) largest = o; });
+  const lid = largest ? rid[largest.cy * W + largest.cx] : -9;
+  const stones = (x, y) => { const X = x * CS, Y = y * CS; g.fillStyle = (r.f() < .5 ? shade : lite)(.05 + r.f() * .07); g.fillRect(X, Y, CS, CS); g.strokeStyle = shade(.14); g.lineWidth = .8; g.strokeRect(X + .5, Y + .5, CS - 1, CS - 1); if (r.f() < .08) { g.beginPath(); g.moveTo(X + 4, Y + 5 + r.f() * 8); g.lineTo(X + 10, Y + 9); g.lineTo(X + 15, Y + 6 + r.f() * 9); g.stroke(); } };
+  const specks = (x, y, n, a) => { g.fillStyle = shade(a); for (let i = 0; i < n; i++) g.fillRect(x * CS + r.f() * CS, y * CS + r.f() * CS, 1.4, 1.4); };
+  for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) {
+    if (!F(x, y)) continue; const X = x * CS, Y = y * CS, inRoom = rid[y * W + x] >= 0;
+    if (th === "crypt") stones(x, y);
+    else if (th === "cavern") { g.fillStyle = (r.f() < .5 ? shade : lite)(.04 + r.f() * .05); g.fillRect(X, Y, CS, CS); specks(x, y, 5, .22); }
+    else if (th === "keep") {
+      if (!inRoom) { stones(x, y); continue; }
+      g.strokeStyle = shade(.2); g.lineWidth = .8; g.beginPath(); for (let k = 1; k < 4; k++) { g.moveTo(X, Y + k * 5 + .5); g.lineTo(X + CS, Y + k * 5 + .5); }
+      for (let k = 0; k < 4; k++) if (r.f() < .35) { const jx = X + 3 + r.f() * (CS - 6); g.moveTo(jx, Y + k * 5); g.lineTo(jx, Y + k * 5 + 5); } g.stroke();
+      g.fillStyle = shade(.03 + r.f() * .04); g.fillRect(X, Y, CS, CS);
+    } else if (th === "sewer") {
+      stones(x, y);
+      if (corr(x, y)) { g.fillStyle = dark ? "rgba(60,110,105,.7)" : "rgba(80,130,120,.55)"; const t = dir(x, y); if (t !== "v") g.fillRect(X, Y + CS * .36, CS, CS * .28); if (t !== "h") g.fillRect(X + CS * .36, Y, CS * .28, CS); }
+    } else if (th === "temple") {
+      if (!inRoom) { stones(x, y); continue; }
+      g.fillStyle = ((x + y) & 1) ? shade(.08) : lite(.12); g.fillRect(X, Y, CS, CS);
+      if (rid[y * W + x] === lid) { g.strokeStyle = dark ? "rgba(214,170,90,.5)" : "rgba(170,120,50,.45)"; g.lineWidth = 1; g.beginPath(); g.moveTo(X + CS / 2, Y + 2); g.lineTo(X + CS - 2, Y + CS / 2); g.lineTo(X + CS / 2, Y + CS - 2); g.lineTo(X + 2, Y + CS / 2); g.closePath(); g.stroke(); }
+    } else if (th === "mine") {
+      specks(x, y, 7, .25); g.fillStyle = shade(.03 + r.f() * .05); g.fillRect(X, Y, CS, CS);
+      if (corr(x, y)) { const t = dir(x, y); g.strokeStyle = dark ? "rgba(200,170,130,.55)" : "rgba(90,60,30,.55)"; g.lineWidth = 1; g.beginPath();
+        if (t !== "v") { for (let k = 2; k < CS; k += 5) { g.moveTo(X + k, Y + 5); g.lineTo(X + k, Y + CS - 5); } g.moveTo(X, Y + 7); g.lineTo(X + CS, Y + 7); g.moveTo(X, Y + CS - 7); g.lineTo(X + CS, Y + CS - 7); }
+        if (t !== "h") { for (let k = 2; k < CS; k += 5) { g.moveTo(X + 5, Y + k); g.lineTo(X + CS - 5, Y + k); } g.moveTo(X + 7, Y); g.lineTo(X + 7, Y + CS); g.moveTo(X + CS - 7, Y); g.lineTo(X + CS - 7, Y + CS); }
+        g.stroke(); }
+    }
+  }
+}
+function mapDrawDoors(g, d, st, player, found) {
+  d.doors.forEach(dr => {
+    const ex = dr.dx > 0 ? (dr.x + 1) * CS : dr.dx < 0 ? dr.x * CS : dr.x * CS + CS / 2;
+    const ey = dr.dy > 0 ? (dr.y + 1) * CS : dr.dy < 0 ? dr.y * CS : dr.y * CS + CS / 2;
+    const isFound = found && found.has(dr.x + "," + dr.y);
+    if (dr.secret && player && !isFound) {
+      // to players an unfound secret door is just more wall
+      const wx = dr.dx > 0 ? (dr.x + 1) * CS : dr.x * CS, wy = dr.dy > 0 ? (dr.y + 1) * CS : dr.y * CS;
+      g.strokeStyle = st.ink; g.lineWidth = st.dark ? 4 : 3; g.beginPath();
+      if (dr.dx) { g.moveTo(wx, dr.y * CS); g.lineTo(wx, dr.y * CS + CS); } else { g.moveTo(dr.x * CS, wy); g.lineTo(dr.x * CS + CS, wy); }
+      g.stroke(); return;
+    }
+    if (dr.secret && !player) { g.fillStyle = isFound ? "#3f9a3a" : st.dark ? "#e7d9b8" : st.ink; /* green once the players have found it */ g.font = "bold 13px Cinzel, serif"; g.textAlign = "center"; g.textBaseline = "middle"; g.fillText("S", ex, ey); return; }
+    const vert = dr.dx !== 0, w = vert ? CS * .32 : CS * .72, h = vert ? CS * .72 : CS * .32;
+    g.fillStyle = st.dark ? "#8a6a3e" : "#c79a5b"; g.strokeStyle = st.ink; g.lineWidth = 1.5; g.fillRect(ex - w / 2, ey - h / 2, w, h); g.strokeRect(ex - w / 2, ey - h / 2, w, h);
+  });
+}
+function mapDrawIcons(g, d, st, player) {
+  const ink = st.dark ? "#e7d9b8" : st.ink;
+  d.rooms.forEach(o => (o.icons || []).forEach(ic => {
+    if (player && (ic.m === "trap" || ic.m === "down")) return;
+    const X = ic.x * CS, Y = ic.y * CS;
+    if (ic.m === "up" || ic.m === "down") {
+      g.strokeStyle = ink; g.lineWidth = 1.4; g.beginPath();
+      for (let k = 0; k < 5; k++) { const yy = Y + 3 + k * 3.5, inset = ic.m === "down" ? k * 1.5 : (4 - k) * 1.5; g.moveTo(X + 2 + inset, yy); g.lineTo(X + CS - 2 - inset, yy); }
+      g.stroke();
+    } else if (ic.m === "chest") {
+      g.fillStyle = "#b8862e"; g.strokeStyle = st.ink; g.lineWidth = 1.2; g.fillRect(X + 4, Y + 6, CS - 8, CS - 11); g.strokeRect(X + 4, Y + 6, CS - 8, CS - 11);
+      g.beginPath(); g.moveTo(X + 4, Y + 10); g.lineTo(X + CS - 4, Y + 10); g.stroke();
+    } else if (ic.m === "trap") {
+      g.strokeStyle = "#b02f2f"; g.lineWidth = 2; g.strokeRect(X + 3, Y + 3, CS - 6, CS - 6);
+      g.beginPath(); g.moveTo(X + 6, Y + 6); g.lineTo(X + CS - 6, Y + CS - 6); g.moveTo(X + CS - 6, Y + 6); g.lineTo(X + 6, Y + CS - 6); g.stroke();
+    }
+  }));
+}
+
 /* ======================= Dungeon rendering =======================
    o.player draws the player-safe view (no traps, unfound secret doors drawn as wall, no seed);
    o.fog covers hidden squares (solid for players, a see-through tint for the DM). */
 const CS = 20, TOP = 46, FOG_PLAYER = "#0b0a09", FOG_DM = "rgba(10,8,6,.5)";
 function drawDungeon(cv, d, showGrid, o = {}) {
-  const { W, H, grid } = d, pal = { crypt: "#e9e2d2", cavern: "#efe6cf", keep: "#efe3c6", sewer: "#e3e2cc", temple: "#f0e4c8", mine: "#ecdcc0" }[d.params.theme];
+  const { W, H } = d, st = mapStyle(d);
   const player = !!o.player, fog = o.fog || null, showNums = o.numbers !== undefined ? o.numbers : !player;
   const dpr = o.scale || Math.min(2, window.devicePixelRatio || 1);
-  cv.width = W * CS * dpr; cv.height = (H * CS + TOP) * dpr;
+  cv.width = Math.round(W * CS * dpr); cv.height = Math.round((H * CS + TOP) * dpr);
   const g = cv.getContext("2d"); g.setTransform(dpr, 0, 0, dpr, 0, 0);
-  g.fillStyle = pal; g.fillRect(0, 0, W * CS, H * CS + TOP);
+  g.fillStyle = st.bg || MAP_BG[d.params.theme]; g.fillRect(0, 0, W * CS, H * CS + TOP);
+  g.drawImage(mapBase(d, showGrid, player, o.found || null, dpr), 0, TOP, W * CS, H * CS);
   g.save(); g.translate(0, TOP);
-  const floor = (x, y) => x >= 0 && y >= 0 && x < W && y < H && grid[y * W + x] > 0;
-  // hatching near walls
-  const pc = document.createElement("canvas"); pc.width = pc.height = 10; const pg = pc.getContext("2d");
-  pg.strokeStyle = "rgba(60,45,30,.45)"; pg.lineWidth = 1; pg.beginPath(); pg.moveTo(0, 10); pg.lineTo(10, 0); pg.moveTo(-5, 5); pg.lineTo(5, -5); pg.moveTo(5, 15); pg.lineTo(15, 5); pg.stroke();
-  g.fillStyle = g.createPattern(pc, "repeat");
-  for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) {
-    if (floor(x, y)) continue;
-    let near = false; for (let dy = -1; dy <= 1 && !near; dy++) for (let dx = -1; dx <= 1; dx++) if (floor(x + dx, y + dy)) { near = true; break; }
-    if (near) g.fillRect(x * CS, y * CS, CS, CS);
-  }
-  // floors
-  g.fillStyle = "#fdfaf2";
-  for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) if (floor(x, y)) g.fillRect(x * CS, y * CS, CS, CS);
-  if (showGrid) {
-    g.strokeStyle = "rgba(90,70,50,.18)"; g.lineWidth = 1; g.beginPath();
-    for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) if (floor(x, y)) g.rect(x * CS + .5, y * CS + .5, CS, CS);
-    g.stroke();
-  }
-  // walls
-  g.strokeStyle = "#2a2018"; g.lineWidth = 3; g.lineCap = "square"; g.beginPath();
-  for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) {
-    if (!floor(x, y)) continue; const X = x * CS, Y = y * CS;
-    if (!floor(x, y - 1)) { g.moveTo(X, Y); g.lineTo(X + CS, Y); }
-    if (!floor(x, y + 1)) { g.moveTo(X, Y + CS); g.lineTo(X + CS, Y + CS); }
-    if (!floor(x - 1, y)) { g.moveTo(X, Y); g.lineTo(X, Y + CS); }
-    if (!floor(x + 1, y)) { g.moveTo(X + CS, Y); g.lineTo(X + CS, Y + CS); }
-  }
-  g.stroke();
-  // doors
-  d.doors.forEach(dr => {
-    const ex = dr.dx > 0 ? (dr.x + 1) * CS : dr.dx < 0 ? dr.x * CS : dr.x * CS + CS / 2;
-    const ey = dr.dy > 0 ? (dr.y + 1) * CS : dr.dy < 0 ? dr.y * CS : dr.y * CS + CS / 2;
-    if (dr.secret && player && !(o.found && o.found.has(dr.x + "," + dr.y))) {
-      // to players an unfound secret door is just more wall
-      const wx = dr.dx > 0 ? (dr.x + 1) * CS : dr.x * CS, wy = dr.dy > 0 ? (dr.y + 1) * CS : dr.y * CS;
-      g.strokeStyle = "#2a2018"; g.lineWidth = 3; g.beginPath();
-      if (dr.dx) { g.moveTo(wx, dr.y * CS); g.lineTo(wx, dr.y * CS + CS); } else { g.moveTo(dr.x * CS, wy); g.lineTo(dr.x * CS + CS, wy); }
-      g.stroke(); return;
-    }
-    if (dr.secret && !player) { g.fillStyle = o.found && o.found.has(dr.x + "," + dr.y) ? "#3f9a3a" : "#2a2018"; /* green once the players have found it */ g.font = "bold 13px Cinzel, serif"; g.textAlign = "center"; g.textBaseline = "middle"; g.fillText("S", ex, ey); return; }
-    const vert = dr.dx !== 0, w = vert ? CS * .32 : CS * .72, h = vert ? CS * .72 : CS * .32;
-    g.fillStyle = "#c79a5b"; g.strokeStyle = "#2a2018"; g.lineWidth = 1.5; g.fillRect(ex - w / 2, ey - h / 2, w, h); g.strokeRect(ex - w / 2, ey - h / 2, w, h);
-  });
-  // icons
-  d.rooms.forEach(o => (o.icons || []).forEach(ic => {
-    if (player && (ic.m === "trap" || ic.m === "down")) return;
-    const X = ic.x * CS, Y = ic.y * CS;
-    if (ic.m === "up" || ic.m === "down") {
-      g.strokeStyle = "#2a2018"; g.lineWidth = 1.4; g.beginPath();
-      for (let k = 0; k < 5; k++) { const yy = Y + 3 + k * 3.5, inset = ic.m === "down" ? k * 1.5 : (4 - k) * 1.5; g.moveTo(X + 2 + inset, yy); g.lineTo(X + CS - 2 - inset, yy); }
-      g.stroke();
-    } else if (ic.m === "chest") {
-      g.fillStyle = "#b8862e"; g.strokeStyle = "#2a2018"; g.lineWidth = 1.2; g.fillRect(X + 4, Y + 6, CS - 8, CS - 11); g.strokeRect(X + 4, Y + 6, CS - 8, CS - 11);
-      g.beginPath(); g.moveTo(X + 4, Y + 10); g.lineTo(X + CS - 4, Y + 10); g.stroke();
-    } else if (ic.m === "trap") {
-      g.strokeStyle = "#9b2f2f"; g.lineWidth = 2; g.strokeRect(X + 3, Y + 3, CS - 6, CS - 6);
-      g.beginPath(); g.moveTo(X + 6, Y + 6); g.lineTo(X + CS - 6, Y + CS - 6); g.moveTo(X + CS - 6, Y + 6); g.lineTo(X + 6, Y + CS - 6); g.stroke();
-    }
-  }));
   // room numbers
-  d.rooms.forEach(o => {
-    if (!showNums || (fog && !fog[o.cy * W + o.cx])) return;
-    const X = o.cx * CS + CS / 2, Y = o.cy * CS + CS / 2, boss = !player && (o.marks || []).includes("boss");
-    g.beginPath(); g.arc(X, Y, 10, 0, Math.PI * 2); g.fillStyle = boss ? "#9b2f2f" : "#2a2018"; g.fill();
-    g.fillStyle = "#fdfaf2"; g.font = "bold 11px Cinzel, Georgia, serif"; g.textAlign = "center"; g.textBaseline = "middle"; g.fillText(String(o.num), X, Y + .5);
+  d.rooms.forEach(r => {
+    if (!showNums || (fog && !fog[r.cy * W + r.cx])) return;
+    const X = r.cx * CS + CS / 2, Y = r.cy * CS + CS / 2, boss = !player && (r.marks || []).includes("boss");
+    g.beginPath(); g.arc(X, Y, 10, 0, Math.PI * 2); g.fillStyle = boss ? "#9b2f2f" : st.dark ? "#0b0a09" : st.ink; g.fill();
+    if (st.dark) { g.strokeStyle = "#c9b48a"; g.lineWidth = 1; g.stroke(); }
+    g.fillStyle = "#fdfaf2"; g.font = "bold 11px Cinzel, Georgia, serif"; g.textAlign = "center"; g.textBaseline = "middle"; g.fillText(String(r.num), X, Y + .5);
   });
   if (fog) {
     g.fillStyle = player ? FOG_PLAYER : FOG_DM; g.beginPath();
@@ -2319,11 +2518,12 @@ function drawDungeon(cv, d, showGrid, o = {}) {
   }
   g.restore();
   // header + scale + compass
-  g.fillStyle = "#2a2018"; g.font = "700 20px Cinzel, Georgia, serif"; g.textAlign = "left"; g.textBaseline = "middle";
+  const head = st.dark ? "#e7d9b8" : st.ink;
+  g.fillStyle = head; g.font = "700 20px Cinzel, Georgia, serif"; g.textAlign = "left"; g.textBaseline = "middle";
   g.fillText(d.params.name || "Dungeon", 14, TOP / 2);
   g.font = "italic 14px 'Crimson Pro', Georgia, serif"; g.textAlign = "right";
   if (!player) g.fillText(`${{ crypt: "Crypt", cavern: "Cavern", keep: "Keep", sewer: "Sewers", temple: "Temple", mine: "Mine" }[d.params.theme]} · ${d.rooms.length} areas · party level ${d.params.level} · seed ${d.params.seed}`, W * CS - 14, TOP / 2);
-  const legend = player && fog ? "#c9b48a" : "#2a2018"; // readable on top of solid fog
+  const legend = (player && fog) || st.dark ? "#c9b48a" : st.ink; // readable on top of solid fog and dark rock
   const by = TOP + H * CS - 14; g.strokeStyle = legend; g.fillStyle = legend; g.lineWidth = 2; g.beginPath(); g.moveTo(14, by); g.lineTo(14 + CS * 4, by); for (let k = 0; k <= 4; k++) { g.moveTo(14 + k * CS, by - 4); g.lineTo(14 + k * CS, by + 4); } g.stroke();
   g.font = "12px 'Crimson Pro', Georgia, serif"; g.textAlign = "left"; g.fillText("20 ft", 14 + CS * 4 + 6, by);
   const cx = W * CS - 26, cy = TOP + H * CS - 26; g.beginPath(); g.moveTo(cx, cy - 14); g.lineTo(cx + 5, cy); g.lineTo(cx, cy + 14); g.lineTo(cx - 5, cy); g.closePath(); g.fillStyle = legend; g.fill();
@@ -2343,7 +2543,7 @@ function readMapForm() {
   return {
     name: $("#mapName").value.trim().slice(0, 60) || "Untitled Dungeon", theme: $("#mapTheme").value, size: $("#mapSize").value,
     rooms: clamp(parseInt($("#mapRooms").value) || 10, 4, 24), level: clamp(parseInt($("#mapLevel").value) || 1, 1, 20),
-    party: clamp(parseInt($("#mapParty").value) || 4, 1, 8), seed: $("#mapSeed").value.trim().toUpperCase()
+    party: clamp(parseInt($("#mapParty").value) || 4, 1, 8), seed: $("#mapSeed").value.trim().toUpperCase(), style: $("#mapStyle").value
   };
 }
 // open a map saved in a campaign; its saved fog (if any) replaces the copy kept on this computer
@@ -2352,7 +2552,7 @@ function mapOpenSaved(m) {
   if (m.fog) fogStorePut(fogKey(m), m.fog, m.found || []);
   HOST.key = null; location.hash = "map"; renderMap();
 }
-function setMapForm(p) { $("#mapName").value = p.name; $("#mapTheme").value = p.theme; $("#mapSize").value = p.size; $("#mapRooms").value = p.rooms; $("#mapLevel").value = p.level; $("#mapParty").value = p.party; $("#mapSeed").value = p.seed; }
+function setMapForm(p) { $("#mapStyle").value = MAP_STYLES[p.style] ? p.style : "parchment"; $("#mapName").value = p.name; $("#mapTheme").value = p.theme; $("#mapSize").value = p.size; $("#mapRooms").value = p.rooms; $("#mapLevel").value = p.level; $("#mapParty").value = p.party; $("#mapSeed").value = p.seed; }
 function renderMap() {
   const p = readMapForm();
   const cap = { small: 10, medium: 16, large: 24 }[p.size];
@@ -2361,12 +2561,19 @@ function renderMap() {
   $("#roomKey").innerHTML = roomKeyHTML(currentMap) + (currentMap.rooms.length < p.rooms ? `<p class="hint">Only ${currentMap.rooms.length} rooms fit on this map size. Try a larger size.</p>` : ""); fogKeyButtons();
 }
 $("#mapForm").addEventListener("submit", e => { e.preventDefault(); $("#mapSeed").value = newSeed(); renderMap(); });
-["#mapTheme", "#mapSize", "#mapRooms", "#mapLevel", "#mapParty", "#mapGrid"].forEach(id => $(id).addEventListener("change", renderMap));
+["#mapTheme", "#mapStyle", "#mapSize", "#mapRooms", "#mapLevel", "#mapParty", "#mapGrid"].forEach(id => $(id).addEventListener("change", renderMap));
 $("#mapName").addEventListener("change", renderMap); $("#mapSeed").addEventListener("change", renderMap);
 $("#mapCopyKey").addEventListener("click", async () => { if (!currentMap) return; try { await navigator.clipboard.writeText(roomKeyText(currentMap)); toast("Room key copied"); } catch { toast("Couldn't copy here — select the key text instead"); } });
 $("#mapDownload").addEventListener("click", () => {
   if (!currentMap) return;
-  $("#mapCanvas").toBlob(blob => saveFile(currentMap.params.name.replace(/[^\w\- ]+/g, "").trim().replace(/\s+/g, "-") + ".png", blob), "image/png");
+  const cv = document.createElement("canvas"); drawDungeon(cv, currentMap, $("#mapGrid").checked, { scale: 2 });
+  cv.toBlob(blob => saveFile(mapFileName() + ".png", blob), "image/png");
+});
+function mapFileName() { return currentMap.params.name.replace(/[^\w\- ]+/g, "").trim().replace(/\s+/g, "-") || "dungeon"; }
+$("#mapDownloadPlayer").addEventListener("click", () => {
+  if (!currentMap) return;
+  const cv = document.createElement("canvas"); drawDungeon(cv, currentMap, $("#mapGrid").checked, { player: true, numbers: true, scale: 2 });
+  cv.toBlob(blob => saveFile(mapFileName() + "-players.png", blob), "image/png");
 });
 $("#mapSave").addEventListener("click", () => {
   const id = $("#mapCampaign").value; const c = Store.get(id);
@@ -2381,7 +2588,63 @@ $("#mapSave").addEventListener("click", () => {
    No network is used. */
 const HOST = { ch: null, up: null, win: null, on: false, tv: false, key: null, fog: null, found: new Set(), numbers: false, undo: [], timer: 0,
   show: "map", handout: null, enc: null /* {cid, eid}: the fight whose turn order is on the TV */ };
-function drawMapDM() { if (currentMap) drawDungeon($("#mapCanvas"), currentMap, $("#mapGrid").checked, { fog: HOST.on ? HOST.fog : null, found: HOST.found }); fogKeyButtons(); }
+function drawMapDM() {
+  if (!currentMap) return;
+  const cv = $("#mapCanvas"), d = currentMap; $("#mapOverlay").parentElement.style.width = (MAPUI.zoom * 100) + "%"; // the stage grows; the canvas fills it
+  // draw at the size it's shown, so zooming in stays sharp
+  const shown = Math.max(300, ($("#mapWrap").clientWidth - 20) * MAPUI.zoom) * (window.devicePixelRatio || 1);
+  const scale = Math.min(4, Math.max(1, Math.ceil((shown / (d.W * CS)) * 4) / 4));
+  drawDungeon(cv, d, $("#mapGrid").checked, { fog: HOST.on ? HOST.fog : null, found: HOST.found, scale });
+  mapOverlayDraw(); fogKeyButtons();
+}
+/* ---- reading the map: hover a room <-> its key entry, click to jump, zoom and drag ---- */
+const MAPUI = { zoom: 1, hover: null, pan: null };
+const MAP_ZOOMS = [1, 1.5, 2, 3];
+function mapRoomAt(c) { const d = currentMap; if (!d || !c || !c.inGrid) return null; const r = d.rid[c.y * d.W + c.x]; return r < 0 ? null : d.rooms.find(o => d.rid[o.cy * d.W + o.cx] === r) || null; }
+function mapSetHover(num) {
+  if (MAPUI.hover === num) return; MAPUI.hover = num;
+  document.querySelectorAll("#roomKey .key-room").forEach((el, i) => el.classList.toggle("hl", !!currentMap && currentMap.rooms[i] && currentMap.rooms[i].num === num));
+  mapOverlayDraw();
+}
+function mapOverlayDraw() {
+  const ov = $("#mapOverlay"), cv = $("#mapCanvas"), d = currentMap; if (!d) return;
+  ov.width = cv.width; ov.height = cv.height; const g = ov.getContext("2d"), k = cv.width / (d.W * CS); g.setTransform(k, 0, 0, k, 0, 0);
+  const o = MAPUI.hover && d.rooms.find(r => r.num === MAPUI.hover); if (!o) return;
+  const rid = d.rid[o.cy * d.W + o.cx], same = (x, y) => x >= 0 && y >= 0 && x < d.W && y < d.H && d.rid[y * d.W + x] === rid;
+  g.translate(0, TOP); g.fillStyle = "rgba(232,163,61,.14)"; g.strokeStyle = "#e8a33d"; g.lineWidth = 2.5; g.shadowColor = "rgba(232,163,61,.8)"; g.shadowBlur = 6; g.beginPath();
+  for (let y = 0; y < d.H; y++) for (let x = 0; x < d.W; x++) {
+    if (!same(x, y)) continue; const X = x * CS, Y = y * CS; g.fillRect(X, Y, CS, CS);
+    if (!same(x, y - 1)) { g.moveTo(X, Y); g.lineTo(X + CS, Y); } if (!same(x, y + 1)) { g.moveTo(X, Y + CS); g.lineTo(X + CS, Y + CS); }
+    if (!same(x - 1, y)) { g.moveTo(X, Y); g.lineTo(X, Y + CS); } if (!same(x + 1, y)) { g.moveTo(X + CS, Y); g.lineTo(X + CS, Y + CS); }
+  }
+  g.stroke();
+}
+function mapZoom(z) {
+  const w = $("#mapWrap"), cx = (w.scrollLeft + w.clientWidth / 2) / w.scrollWidth, cy = (w.scrollTop + w.clientHeight / 2) / w.scrollHeight;
+  MAPUI.zoom = z; drawMapDM();
+  w.scrollLeft = cx * w.scrollWidth - w.clientWidth / 2; w.scrollTop = cy * w.scrollHeight - w.clientHeight / 2;
+}
+$("#mapZoomIn").addEventListener("click", () => mapZoom(MAP_ZOOMS.find(z => z > MAPUI.zoom) || MAPUI.zoom));
+$("#mapZoomOut").addEventListener("click", () => mapZoom([...MAP_ZOOMS].reverse().find(z => z < MAPUI.zoom) || 1));
+$("#mapFit").addEventListener("click", () => mapZoom(1));
+$("#mapCanvas").addEventListener("pointermove", e => {
+  if (MAPUI.pan) { const p = MAPUI.pan, dx = e.clientX - p.x, dy = e.clientY - p.y; if (Math.abs(dx) + Math.abs(dy) > 4) p.moved = true; $("#mapWrap").scrollLeft = p.sl - dx; $("#mapWrap").scrollTop = p.st - dy; return; }
+  const o = mapRoomAt(canvasCell(e)); mapSetHover(o ? o.num : null);
+});
+$("#mapCanvas").addEventListener("pointerleave", () => { if (!MAPUI.pan) mapSetHover(null); });
+$("#mapCanvas").addEventListener("pointerdown", e => {
+  if (HOST.on || e.button !== 0) return; // while hosting, the mouse paints fog instead
+  MAPUI.pan = { x: e.clientX, y: e.clientY, sl: $("#mapWrap").scrollLeft, st: $("#mapWrap").scrollTop, moved: false };
+  e.target.setPointerCapture(e.pointerId); $("#mapWrap").classList.add("panning");
+});
+$("#mapCanvas").addEventListener("pointerup", e => {
+  const p = MAPUI.pan; if (!p) return; MAPUI.pan = null; $("#mapWrap").classList.remove("panning");
+  if (p.moved) return;
+  const o = mapRoomAt(canvasCell(e)), el = o && document.querySelectorAll("#roomKey .key-room")[currentMap.rooms.indexOf(o)];
+  if (el) { mapSetHover(o.num); el.scrollIntoView({ behavior: "smooth", block: "center" }); }
+});
+$("#roomKey").addEventListener("mouseover", e => { const el = e.target.closest(".key-room"); if (!el || !currentMap) return; const i = [...document.querySelectorAll("#roomKey .key-room")].indexOf(el); if (currentMap.rooms[i]) mapSetHover(currentMap.rooms[i].num); });
+$("#roomKey").addEventListener("mouseleave", () => mapSetHover(null));
 // "Reveal on TV" / "Hide on TV" buttons on each Room Key entry while hosting (a keyboard-friendly way to use the Room tool)
 function fogKeyButtons() {
   const d = currentMap; if (!d) return;
@@ -9398,6 +9661,12 @@ Store.init().then(() => { renderCampList(); pcAdoptRemote(); itemsAdopt(); if (l
 <script>
 /* ---- what's new: newest first. Add an entry (with a new id) whenever a change ships; the bell counts entries this browser hasn't seen. ---- */
 const NEWS = [
+  { id: "2026-11-15-mapstyles", date: "2026-11-15", title: "Better-looking dungeon maps", go: "map", items: [
+    "Every theme has its own floor: crypt flagstones, wooden keeps, temple tiles and mosaics, sewer channels, mine cart tracks and rocky caves.",
+    "Caves now have natural, curving walls, and rooms are furnished to match the room key: sarcophagi, altars, bookshelves, barrels, pools and more.",
+    "Pick a style: Parchment, Classic blue graph paper, or Dark for TVs and screens.",
+    "Hover a room to find it in the key, click it to jump there, and zoom in with + and −.",
+    "Download player map gives you a copy without traps, secret doors or spoilers to hand out."] },
   { id: "2026-11-15-tvextras", date: "2026-11-15", title: "Turn order and handouts on the TV", go: "map", items: [
     "In an encounter, press 📺 Show on TV: the TV shows whose turn it is and the round. Monsters show as Bloodied or Down, never their HP.",
     "Show a picture from your computer on the TV, or type a letter, note or riddle and it appears on parchment. Back to map returns to the dungeon."] },

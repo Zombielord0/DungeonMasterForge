@@ -18,6 +18,12 @@ Live at https://dungeonmasterforge.netlify.app
 - If the DM and a player save the same sheet at once, whoever saves second is asked which version to keep.
 - "Use without an account" keeps the old behaviour: DM tools, saved in this browser only.
 
+## Dungeon maps
+
+- Pick a **Theme** and a **Style**: Parchment, Classic blue graph paper, or Dark for TVs and screens.
+- Hover a room to find it in the Room Key, and click it to jump there. **+** and **−** zoom in and out, and you can drag to move around.
+- **Download player map** saves a copy without traps, secret doors or the boss marker, to hand to players.
+
 ## Showing the dungeon map on a TV
 
 1. Open **Dungeon Map** and generate (or open a saved) map.

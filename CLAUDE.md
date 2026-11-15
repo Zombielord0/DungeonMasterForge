@@ -39,6 +39,7 @@ npm test        # API tests (11 should pass)
 npm run build   # bundle src/portal.js -> public/portal.js
 npm run test:backup  # backup and restore checks (Playwright, any OS)
 npm run test:tv  # turn order + handouts on the TV (Playwright, any OS)
+npm run test:mapvis  # map styles, furniture, caves, hover, zoom (Playwright, any OS)
 npm run test:map  # map fog + TV player screen checks (Playwright, any OS)
 npm run dev     # full local copy at http://localhost:8899 (any OS); stand-in sign-in, data wiped on Ctrl+C
 ```
@@ -179,7 +180,7 @@ Items 15 to 28 came from **PR #5**, merged to `main` on 2026-11-15 together with
 
 ## Dungeon Map: player screen and fog (PR #6, 2026-11-15)
 
-- **Design and plan.** The design for the whole map upgrade is in `docs/superpowers/specs/2026-11-15-dungeon-map-upgrade-design.md`. Phase 3, the player screen, was built first, following `docs/superpowers/plans/2026-11-15-player-screen-fog.md`. Phase 1 (visuals) and Phase 2 (import/export) are still to do.
+- **Design and plan.** The design for the whole map upgrade is in `docs/superpowers/specs/2026-11-15-dungeon-map-upgrade-design.md`. Phase 3, the player screen, was built first, following `docs/superpowers/plans/2026-11-15-player-screen-fog.md`. Phase 1 (visuals) is done (see the next section); Phase 2 (import/export) is next.
 - **Fog.** A `Uint8Array` with one byte per map square (1 means players can see it).
   - Helpers: `fogKey`, `fogNew` (reveals the entrance), `fogEncode`/`fogDecode` (run-length encoded), `fogRevealRoom`, `fogPaint`, `fogBox`.
   - `fogRevealRoom` adds a 1-square ring around a room, so its walls show. A corridor reveal only uncovers the rock beside the corridor, not the rooms it leads to.
@@ -212,6 +213,31 @@ Items 15 to 28 came from **PR #5**, merged to `main` on 2026-11-15 together with
   - Handouts: `handoutPicture(file)` scales a picture to at most 2560px; `handoutWriting(title, text)` draws parchment sized to the text. Both go through `handoutShow`, and `#handoutBack` returns to the map. Pings are ignored while a handout is showing. Handouts aren't saved.
   - Tests: `npm run test:tv` (`test/e2e/tv.cjs`).
 - **Tests.** Run `npm run test:map` (`test/e2e/map-fog.cjs`). It starts its own static server and needs no database. It waits on `window.tvFrames`, because encoding the PNG is slow in the headless browser.
+
+## Dungeon Map looks (Stage 1, 2026-11-15)
+
+- **Layouts don't change.** `generateDungeon` is untouched. All the new drawing uses its own seeded streams (`makeRng("dress"|"tex"|"ink"|"noise"|"grain", seed, …)`). `npm run test:mapvis` compares the layouts of 18 seed and theme pairs against fingerprints taken before this work.
+- **Styles.** `d.params.style` is `parchment`, `blue` or `dark` (`MAP_STYLES`), set from `#mapStyle` and saved with campaign maps. A missing style means parchment.
+  - Theme colours are in `MAP_BG` and `MAP_FLOOR[theme][parchment, dark]`.
+- **Drawing order.**
+  - `mapBase(d, showGrid, player, found, scale)` draws the grid area and caches it on `d._base`, keeping at most 7 versions. It draws, in order:
+    1. Rock and hatching.
+    2. The floor layer (`mapTexture` for each theme), masked to the dungeon's shape.
+    3. Walls.
+    4. Doors (`mapDrawDoors`).
+    5. Furniture.
+    6. Paper grain and the edge shading.
+    7. Icons (`mapDrawIcons`).
+  - `drawDungeon` then adds room numbers, fog, the header and the legend on top.
+- **Caves.** The floor squares are blurred (`ctx.filter`), and the alpha is thresholded with `mapNoise` into an inner mask (the floor) and an outer mask (the wall ink). When this runs, `d._caveSmooth` is set. Browsers without `ctx.filter` get square walls.
+- **Furniture.** `mapDress(d)` is deterministic and cached on `d._dress`. It picks pieces by room name (`DRESS_BY_NAME`), falling back to the theme (`DRESS_BY_THEME`). `drawProp` draws each piece.
+  - Furniture never covers the 3×3 around the room number, icons, or doorway squares. In caves it only goes on squares surrounded by floor.
+- **Reading the map.**
+  - `MAPUI = {zoom, hover, pan}`, with zoom steps `MAP_ZOOMS`.
+  - `drawMapDM` draws at the shown size, so zooming stays sharp.
+  - `#mapOverlay` holds the hover outline (`mapOverlayDraw`); `mapSetHover` keeps the map and the key in sync.
+  - When not hosting, clicking a room scrolls to its key entry and dragging pans. While hosting, the mouse paints fog instead.
+- **Downloads.** Download PNG and Download player map render fresh at 2× (`mapFileName()`); the player map uses `{player:true, numbers:true}`.
 
 ## Backup and restore (2026-11-15)
 
