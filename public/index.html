@@ -2598,8 +2598,24 @@ function drawDungeon(cv, d, showGrid, o = {}) {
   const cx = W * CS - 26, cy = TOP + H * CS - 26; g.beginPath(); g.moveTo(cx, cy - 14); g.lineTo(cx + 5, cy); g.lineTo(cx, cy + 14); g.lineTo(cx - 5, cy); g.closePath(); g.fillStyle = legend; g.fill();
   g.font = "bold 11px Cinzel, serif"; g.textAlign = "center"; g.fillText("N", cx, cy - 20);
 }
+// a map room's fight -> the campaign chosen under "Save to campaign" (and, while hosting, onto the TV)
+function mapRunBtn(i) { return `<div><button class="btn sm" type="button" data-runenc="${i}" style="margin-top:6px" title="Add this fight to the campaign chosen under Save to campaign. While the TV is on, it also reveals the room and shows the turn order.">⚔ Run this fight</button></div>`; }
+function curCampForMap() { return Store.get($("#mapCampaign").value) || null; }
+function mapRunEncounter(i) {
+  const d = currentMap, o = d && d.rooms[i]; if (!o || !o.enc) return;
+  const c = curCampForMap(); if (!c) { toast("Create a campaign first (Campaign Tracker), then pick it under Save to campaign."); return; }
+  const groups = parseEncText(o.enc.text); if (!groups.length) { toast("Couldn't read the monsters in that fight."); return; }
+  const e = newEncounter(null, `${d.params.name} · Room ${o.num}: ${o.type || o.name || "Room"}`, d.params.level || c.currentLevel || 1, groups, { kind: "map", notes: `From the map “${d.params.name}”, room ${o.num}.` });
+  c.encounters = c.encounters || []; c.encounters.push(e); Store.save(c);
+  if (HOST.on && HOST.fog) {
+    const tmp = new Uint8Array(d.W * d.H); if (fogRevealRoom(d, tmp, o.cx, o.cy)) { fogSnap(); tmp.forEach((on, k) => { if (on) HOST.fog[k] = 1; }); fogSaveLocal(); }
+    HOST.enc = { cid: c.id, eid: e.id }; if (HOST.show === "handout") { HOST.show = "map"; handoutUI(); } drawMapDM(); hostSend();
+  }
+  toast(`Fight added to “${c.name}” → Encounters${HOST.on ? ", the room is revealed and the turn order is on the TV" : ""}.`);
+}
+$("#roomKey").addEventListener("click", e => { const b = e.target.closest("[data-runenc]"); if (b) mapRunEncounter(+b.dataset.runenc); });
 function roomKeyHTML(d) {
-  return d.rooms.map(o => `<div class="key-room"><span class="key-num">${o.num}</span><b>${esc(o.type)}</b> <span class="muted">(${o.w * 5} × ${o.h * 5} ft)</span><div>Features ${esc(o.feature)}.</div>${o.content.map(c => `<div>${esc(c)}</div>`).join("")}${o.enc ? encHTML(o.enc) : ""}</div>`).join("");
+  return d.rooms.map((o, i) => `<div class="key-room"><span class="key-num">${o.num}</span><b>${esc(o.type)}</b> <span class="muted">(${o.w * 5} × ${o.h * 5} ft)</span><div>Features ${esc(o.feature)}.</div>${o.content.map(c => `<div>${esc(c)}</div>`).join("")}${o.enc ? encHTML(o.enc) + mapRunBtn(i) : ""}</div>`).join("");
 }
 function roomKeyText(d) {
   return `${d.params.name}\n${"=".repeat(d.params.name.length)}\n` + d.rooms.map(o => `${o.num}. ${o.type} (${o.w * 5}×${o.h * 5} ft)\n   Features ${o.feature}.\n` + o.content.map(c => "   " + c + "\n").join("") + (o.enc ? `   Encounter: ${o.enc.text} [${o.enc.rating}]\n` : "")).join("\n");
@@ -2694,7 +2710,7 @@ function imgRecord(d) { // what a campaign keeps (no picture)
 function imageKeyHTML(d) {
   if (!d.rooms.length) return `<p class="muted">Turn on <b>Place rooms</b> above, then click the map to number each room. Each one gets an entry here for your notes.</p>`;
   return d.rooms.map((o, i) => `<div class="key-room"><div class="row" style="align-items:center;gap:6px"><span class="key-num">${o.num}</span><input type="text" data-imf="name" data-i="${i}" value="${esc(o.name)}" placeholder="Room name" style="flex:1;min-width:160px"><button class="btn sm" type="button" data-ima="roll" data-i="${i}" title="Fill this room with an encounter, trap, treasure or something odd, for your party's level">🎲 Roll contents</button><button class="icon-btn" type="button" data-ima="del" data-i="${i}" title="Remove room ${o.num}">✕</button></div>
-    <textarea data-imf="notes" data-i="${i}" placeholder="What's here: description, monsters, treasure, secrets…" style="margin-top:6px;min-height:52px">${esc(o.notes)}</textarea>${o.content.map(c => `<div>${esc(c)}</div>`).join("")}${o.enc ? encHTML(o.enc) : ""}</div>`).join("");
+    <textarea data-imf="notes" data-i="${i}" placeholder="What's here: description, monsters, treasure, secrets…" style="margin-top:6px;min-height:52px">${esc(o.notes)}</textarea>${o.content.map(c => `<div>${esc(c)}</div>`).join("")}${o.enc ? encHTML(o.enc) + mapRunBtn(i) : ""}</div>`).join("");
 }
 function imgKeyText(d) { return `${d.params.name}\n${"=".repeat(d.params.name.length)}\n` + d.rooms.map(o => `${o.num}. ${o.name || "Room"}\n` + (o.notes ? `   ${o.notes}\n` : "") + o.content.map(c => "   " + c + "\n").join("") + (o.enc ? `   Encounter: ${o.enc.text} [${o.enc.rating}]\n` : "")).join("\n"); }
 function renderImageMap() {
@@ -10025,6 +10041,9 @@ Store.init().then(() => { renderCampList(); pcAdoptRemote(); itemsAdopt(); if (l
 <script>
 /* ---- what's new: newest first. Add an entry (with a new id) whenever a change ships; the bell counts entries this browser hasn't seen. ---- */
 const NEWS = [
+  { id: "2026-11-15-runfight", date: "2026-11-15", title: "Run a map room's fight", go: "map", items: [
+    "Rooms with a fight in the map's Room Key have ⚔ Run this fight: it adds the fight to your campaign's encounters.",
+    "While the TV is on, it also reveals that room and puts the turn order on the TV."] },
   { id: "2026-11-15-spellcards", date: "2026-11-15", title: "Printable spell cards", go: "roster", items: [
     "On My Characters, press 🃏 Spell cards for a printable card for each prepared spell: casting time, range, components, duration and the full text.",
     "Print them or save them as a PDF. Item cards now print with their full text again too."] },
