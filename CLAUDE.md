@@ -22,7 +22,7 @@ Live site: https://dungeonmasterforge.netlify.app (Netlify; production branch `m
 
 | Path | What it is |
 | --- | --- |
-| `public/index.html` | The whole app on one page: vanilla JS with global functions (~8,300 lines). Most feature work happens here. |
+| `public/index.html` | The whole app on one page: vanilla JS with global functions (~10,300 lines). Most feature work happens here. |
 | `src/portal.js` | Sign-in, campaigns, shared characters, the Party tab, whispers, homebrew sync. esbuild bundles it into `public/portal.js`, which is gitignored and never edited by hand. |
 | `netlify/functions/api.mjs` → `netlify/lib/api.mjs` | Campaign API at `/api/*`. `handle(req, user, db)` holds all the routes. `netlify/lib/diff.mjs` writes the activity feed text. |
 | `netlify/database/migrations/` | Postgres tables, applied automatically on deploy: `campaigns`, `members`, `characters` (versioned jsonb), `activity`, `whispers`, `homebrew`. |
@@ -30,6 +30,9 @@ Live site: https://dungeonmasterforge.netlify.app (Netlify; production branch `m
 | `test/e2e/` | `server.mjs` serves the app, the API and an in-memory database on one port. `fake-identity.js` stands in for Netlify Identity locally. `walkthrough.cjs` is a Playwright walkthrough. |
 | `tools/convert-srd-monsters.py` | Generated the SRD monster data for the Monster Manual. Its `FIXES` list corrects mistakes in the SRD source. |
 | `public/manifest.webmanifest`, `public/sw.js`, `public/icons/` | Install as an app (PWA). See item 27. |
+| `public/player.html` | The TV player screen. It shows only the pictures the DM's window sends. |
+| `test/e2e/*.cjs` | Self-contained Playwright checks for each feature (`npm run test:…`). Each starts its own static server and needs no database. |
+| `docs/superpowers/` | The design and plan for the Dungeon Map upgrade. |
 
 ## Commands
 
@@ -57,7 +60,18 @@ Playwright and Chromium are pre-installed in cloud sessions. To test offline mod
 
 ## Saved data
 
-- **In the browser** (also used by "Use without an account"): `dmforge.pcs.v1` (characters), `dmforge.campaigns.v1`, `dmforge.homebrew.v1`, `dmforge.items.v1`, `dmforge.mymonsters.v1`, `dmforge.favspells`, `dmforge.offline`.
+- **In the browser** (also used by "Use without an account"):
+  - `dmforge.pcs.v1` (characters), `dmforge.campaigns.v1`, `dmforge.homebrew.v1`, `dmforge.items.v1`, `dmforge.mymonsters.v1`, `dmforge.favspells` and `dmforge.offline`.
+  - `dmforge.fog.v1`: map fog, found secret doors and tokens for the 40 most recent maps.
+  - `dmforge.lastBackup`.
+  - **Imported map pictures** are in IndexedDB (database `dmforge-maps`), not localStorage.
+  - The 💾 Backup file covers the keys in `BACKUP_KEYS`, but not the pictures.
+- **Campaign fields added on 2026-11-15** (saved with the campaign, signed in or not):
+  - `cal`, the calendar.
+  - `recapAt` and `recapDay`.
+  - Encounters: `kind` ("random" or "map"), `room` and `recapped`.
+  - Quests: `recappedAs`. Loot and chapters: `recapped`.
+  - Map entries: `style`, `fog`, `found` and `tokens`, plus `kind:"image"` records for imported maps.
 - **Signed in:** characters and homebrew live in Postgres, per campaign. Homebrew is polled every 30 seconds. Every character save bumps `version`, so if two people save the same sheet at once, the second one is asked which version to keep.
 
 ## Feature history (oldest first)
@@ -113,6 +127,15 @@ Playwright and Chromium are pre-installed in cloud sessions. To test offline mod
 Items 4 to 14 were merged to `main` on 2026-11-14 (commit `5d44a7b`).
 
 Items 15 to 28 came from **PR #5**, merged to `main` on 2026-11-15 together with PR #6 (the TV map). At that time the live Netlify site was still on the PR #3 build: Netlify had not published `main` since then.
+
+Everything in the sections from "Dungeon Map looks" to "Tokens" below was built on branch `ccr-aa67926e-f8zxc7` on 2026-11-15, and opened as **PR #7**:
+- map styles
+- map import and export
+- the TV extras
+- shops, random encounters and spell cards
+- the calendar and session recaps
+- the sheet checks and tokens
+- backup and restore
 
 15. **Collapsible toolbar and character sheet upgrade** (PR #5, branch `ccr-ee7865d5-1wx9vg`)
     - **Toolbar:** "▴ Hide tabs" collapses the header (`dmforge.hdrMini`, the `hdr-mini` class on `<html>`); the strip has a tab menu (`hdrSync`).
@@ -418,3 +441,10 @@ From PR #5:
 - In Chromium tests the service worker takes control after the first load; `ctx.setOffline(true)` checks the offline copy.
 - `npm run dev` keeps its accounts and campaigns until it's stopped. Restart it before running `test/e2e/walkthrough.cjs` again, or the walkthrough times out waiting for the sign-in form.
 - Opening `public/index.html` straight from disk (`file://`) blocks `portal.js`. Test through `npm run dev` or another local server.
+- The browser checks share a pattern:
+  - Bring the DM page to the front (`bringToFront`) after the TV pop-up opens, or its timers are throttled.
+  - Wait for the next TV picture through `window.tvFrames` instead of fixed sleeps.
+  - Scroll the map canvas below the sticky header before clicking cells.
+  - `test:map` still fails about one run in four on TV picture timing. Rerun it before suspecting the app.
+- **Comments in one-line functions:** a `//` comment swallows the rest of the line, including closing braces. Use `/* … */` there. This once broke the whole page.
+- **The `.ds` class** is the death-save dot. Don't reuse it for anything else.
