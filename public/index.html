@@ -3330,7 +3330,7 @@ function renderSub(c) {
       : `<p class="muted">No maps yet. Generate one on the Dungeon Map tab and press “Save”. Saved maps redraw exactly the same every time.</p>`;
   }
   const L = LISTS[subTab]; const items = c[subTab];
-  return `<div class="sec-h"><h3>${L.label}</h3><span class="sp"></span><button class="btn sm primary" data-add="${subTab}">+ ${L.add}</button></div>` +
+  return (subTab === "sessions" ? recapBarHTML() : "") + `<div class="sec-h"><h3>${L.label}</h3><span class="sp"></span><button class="btn sm primary" data-add="${subTab}">+ ${L.add}</button></div>` +
     (items.length ? items.map(it => `<div class="item">` + (() => {
       const [first, ...rest] = L.fields; const inline = rest.filter(f => f[1] !== "textarea"), areas = rest.filter(f => f[1] === "textarea");
       return `<div class="item-h">${fieldHTML(subTab, it, first)}${subTab === "loot" ? lootGiveHTML(c, it) : ""}<button class="icon-btn" data-del="${subTab}" data-id="${it.id}" title="Delete">✕</button></div>
@@ -3380,6 +3380,40 @@ $("#importFile").addEventListener("change", async e => {
   } catch { toast("That file isn't a Forge campaign export"); }
 });
 const campMain = $("#campMain");
+/* ======================= Session recaps =======================
+   recapMake(c) gathers what's happened since the last recap: finished fights (with XP), quests completed or failed,
+   chapters done, loot handed out, and the calendar's log. mark() flags them so the next recap only has what's new. */
+function recapMake(c) {
+  const since = c.recapAt || 0, cal = c.cal || null;
+  const fights = (c.encounters || []).filter(e => (e.status === "Done" || e.xpAwarded) && !e.recapped);
+  const quests = (c.quests || []).filter(q => (q.status === "Completed" || q.status === "Failed") && q.recappedAs !== q.status);
+  const loot = (c.loot || []).filter(l => l.givenTo && !l.recapped);
+  const chapters = (c.chapters || []).filter(ch => ch.done && !ch.recapped);
+  const log = cal ? cal.log.filter(e => (e.at || 0) > since).slice().reverse() : [];
+  const foes = e => { const n = {}; e.enemies.forEach(m => { n[m.stat] = (n[m.stat] || 0) + 1; }); return Object.entries(n).map(([k, v]) => v > 1 ? `${v} × ${k}` : k).join(", ") || "no enemies listed"; };
+  const out = [], from = c.recapDay || 1;
+  if (cal) out.push(`Session recap — ${from === cal.day ? `Day ${cal.day}` : `Day ${from} to Day ${cal.day}`} (${cap1(calSeason(cal))})`); else out.push("Session recap");
+  const sec = (title, lines) => { if (lines.length) out.push("", title, ...lines.map(l => "• " + l)); };
+  sec("Fights", fights.map(e => { const M = encMath(c, e); return `${e.name}: ${foes(e)}${e.xpAwarded && M.raw ? ` (${M.raw.toLocaleString()} XP shared by the party)` : ""}`; }));
+  sec("Quests", quests.map(q => `${q.status === "Completed" ? "Completed" : "Failed"}: ${q.title}${q.giver ? ` (for ${q.giver})` : ""}`));
+  sec("Story", chapters.map(ch => `Finished ${ch.title}`));
+  sec("Loot", loot.map(l => `${l.givenTo} took ${l.item}${l.value ? ` (${l.value})` : ""}`));
+  sec("Along the way", log.map(e => `Day ${e.day}, ${calTime(e.min)}: ${e.text}`));
+  return {
+    text: out.join("\n"), empty: !(fights.length || quests.length || loot.length || chapters.length || log.length),
+    mark() { fights.forEach(e => e.recapped = true); quests.forEach(q => q.recappedAs = q.status); loot.forEach(l => l.recapped = true); chapters.forEach(ch => ch.recapped = true); c.recapAt = Date.now(); if (cal) c.recapDay = cal.day; }
+  };
+}
+function recapWrite(c) {
+  const r = recapMake(c); if (r.empty) { toast("Nothing new since the last recap. Finish a fight, a quest or some travel first."); return; }
+  const num = Math.max(0, ...c.sessions.map(s => +s.num || 0)) + 1, t = new Date(), ymd = [t.getFullYear(), t.getMonth() + 1, t.getDate()].map(x => String(x).padStart(2, "0")).join("-");
+  c.sessions.unshift({ id: uid("s"), title: `Session ${num}`, num, date: ymd, summary: r.text });
+  r.mark(); Store.save(c); renderTracker(); toast(`Session ${num} logged with a recap. Edit it as you like.`);
+}
+function recapBarHTML() {
+  return `<div class="card rand-enc"><div class="row" style="align-items:center;gap:10px;flex-wrap:wrap"><b style="font-family:Cinzel,serif">📝 Session recap</b><span class="muted" style="font-size:14px;flex:1;min-width:220px">Collects the fights finished, XP, quests, chapters, loot handed out and the calendar's log since the last recap into a new session you can edit.</span><button class="btn sm primary" type="button" id="recapBtn" style="flex:0 0 auto">Write a recap</button></div></div>`;
+}
+campMain.addEventListener("click", ev => { if (ev.target.id === "recapBtn") { const c = curCamp(); if (c) recapWrite(c); } });
 /* ======================= Calendar and weather =======================
    c.cal = {day, min (minutes since midnight), climate, season (the season on day 1), weather, log: [{day, min, text, at}]}.
    Weather follows the usual d20 tables (temperature, wind, precipitation), seeded by campaign and day so a day's weather never changes. */
@@ -10115,6 +10149,9 @@ Store.init().then(() => { renderCampList(); pcAdoptRemote(); itemsAdopt(); if (l
 <script>
 /* ---- what's new: newest first. Add an entry (with a new id) whenever a change ships; the bell counts entries this browser hasn't seen. ---- */
 const NEWS = [
+  { id: "2026-11-15-recap", date: "2026-11-15", title: "Session recaps", go: "tracker", items: [
+    "On a campaign's Sessions tab, press Write a recap. It gathers the fights you finished, XP, quests done or failed, chapters, loot handed out and the calendar's log since last time.",
+    "It's saved as a new session that you can edit, ready to share with your players."] },
   { id: "2026-11-15-calendar", date: "2026-11-15", title: "Calendar and weather", go: "tracker", items: [
     "Each campaign has a Calendar tab: the day, season, time of day and today's weather.",
     "Buttons for short and long rests, the next morning and travelling several days, with new weather each day.",

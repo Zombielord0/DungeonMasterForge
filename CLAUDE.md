@@ -46,6 +46,7 @@ npm run test:random  # random encounters (Playwright, any OS)
 npm run test:cards  # printable spell cards (Playwright, any OS)
 npm run test:mapenc  # map room -> encounter (Playwright, any OS)
 npm run test:calendar  # calendar and weather (Playwright, any OS)
+npm run test:recap  # session recaps (Playwright, any OS)
 npm run test:map  # map fog + TV player screen checks (Playwright, any OS)
 npm run dev     # full local copy at http://localhost:8899 (any OS); stand-in sign-in, data wiped on Ctrl+C
 ```
@@ -310,6 +311,18 @@ Items 15 to 28 came from **PR #5**, merged to `main` on 2026-11-15 together with
   - Climates are in `CAL_CLIMATES`; the season changes every 91 days (`calSeason`).
 - **On the page.** The Campaign Tracker has a "Calendar" sub-tab (`calHTML`), with `data-cal` buttons and the `#calClimate`, `#calSeason` and `#calDay` fields.
 - **Tests:** `npm run test:calendar` (`test/e2e/calendar.cjs`).
+
+## Session recaps (2026-11-15)
+
+- **What goes in.** `recapMake(c)` collects everything since `c.recapAt`, and returns `{text, empty, mark()}`:
+  - fights with status Done or with XP awarded, unless they have `e.recapped`
+  - quests that are Completed or Failed, unless `q.recappedAs` already matches their status
+  - chapters that are done, unless they have `ch.recapped`
+  - loot with `givenTo`, unless it has `l.recapped`
+  - calendar log entries newer than `c.recapAt`
+- **Marking.** `mark()` sets those flags plus `c.recapAt` and `c.recapDay`, so the next recap only has what's new.
+- **On the page.** `recapWrite(c)` adds `{title:"Session N", num, date, summary}` to `c.sessions` (newest first). `recapBarHTML()` adds the `#recapBtn` bar to the top of the Sessions tab.
+- **Tests:** `npm run test:recap` (`test/e2e/recap.cjs`).
 
 ## Backup and restore (2026-11-15)
 
