@@ -861,6 +861,11 @@ nav a[data-view=whispers]{--ic:url("data:image/svg+xml,%3Csvg xmlns='http://www.
     </form>
     <div>
       <div class="map-wrap"><canvas id="mapCanvas"></canvas></div>
+      <div class="card" id="hostCard" style="margin-top:14px">
+        <div class="sec-h"><h3>Player Screen</h3><span class="sp"></span><span class="badge" id="hostStatus">Not connected</span></div>
+        <p class="muted" style="margin:0 0 10px">Open a second window, drag it onto the TV or second monitor, and double-click it for full screen. Players only see what you reveal, and nothing is sent over the internet.</p>
+        <button class="btn primary" type="button" id="hostStart">📺 Host for players</button>
+      </div>
       <div class="card" style="margin-top:14px">
         <div class="sec-h"><h3>Room Key</h3><span class="sp"></span><span class="muted" style="font-size:14px">1 square = 5 ft · encounter math uses the 5e DMG XP thresholds</span></div>
         <div id="roomKey"></div>
@@ -2120,7 +2125,7 @@ function renderMap() {
   const p = readMapForm();
   const cap = { small: 10, medium: 16, large: 24 }[p.size];
   currentMap = generateDungeon({ ...p, rooms: Math.min(p.rooms, cap) });
-  drawDungeon($("#mapCanvas"), currentMap, $("#mapGrid").checked);
+  hostLoad(currentMap); drawMapDM();
   $("#roomKey").innerHTML = roomKeyHTML(currentMap) + (currentMap.rooms.length < p.rooms ? `<p class="hint">Only ${currentMap.rooms.length} rooms fit on this map size. Try a larger size.</p>` : "");
 }
 $("#mapForm").addEventListener("submit", e => { e.preventDefault(); $("#mapSeed").value = newSeed(); renderMap(); });
@@ -2137,6 +2142,49 @@ $("#mapSave").addEventListener("click", () => {
   c.maps = c.maps || []; c.maps.unshift({ id: uid("m"), ...currentMap.params, saved: Date.now() });
   Store.save(c); toast(`Map saved to “${c.name}”`); if (activeId === id) renderTracker();
 });
+
+/* ======================= Player screen (same computer) =======================
+   The TV window (player.html) only ever receives finished pictures over a BroadcastChannel:
+   DM -> TV on "dmforge.map" ({t:"frame",blob} | {t:"ping",x,y} | {t:"bye"}), TV -> DM on "dmforge.map.tv" ({t:"hello"} | {t:"bye"}).
+   No network is used. */
+const HOST = { ch: null, up: null, win: null, on: false, tv: false, key: null, fog: null, found: new Set(), numbers: false, undo: [], timer: 0 };
+function drawMapDM() { if (currentMap) drawDungeon($("#mapCanvas"), currentMap, $("#mapGrid").checked, { fog: HOST.on ? HOST.fog : null }); }
+function hostLoad(d) {
+  const key = fogKey(d.params); if (HOST.key === key && HOST.fog) return;
+  HOST.key = key; HOST.fog = fogNew(d); HOST.found = new Set(); HOST.undo = [];
+  if (HOST.on) hostSend();
+}
+function hostStatus() {
+  const b = $("#hostStatus"); b.textContent = !HOST.on ? "Not connected" : HOST.tv ? "📺 TV connected" : "Waiting for the TV window…";
+  b.className = "badge" + (HOST.on && HOST.tv ? " ok" : "");
+  $("#hostStart").textContent = HOST.on ? "Stop hosting" : "📺 Host for players"; $("#hostStart").classList.toggle("primary", !HOST.on);
+}
+function hostSend() {
+  clearTimeout(HOST.timer);
+  HOST.timer = setTimeout(() => {
+    if (!HOST.on || !currentMap || !HOST.ch) return;
+    const cv = document.createElement("canvas");
+    drawDungeon(cv, currentMap, $("#mapGrid").checked, { player: true, fog: HOST.fog, found: HOST.found, numbers: HOST.numbers, scale: 2 });
+    cv.toBlob(blob => { if (blob && HOST.on) HOST.ch.postMessage({ t: "frame", blob }); }, "image/png");
+  }, 80);
+}
+function hostPing(fx, fy) { if (HOST.on && HOST.ch) HOST.ch.postMessage({ t: "ping", x: fx, y: fy }); }
+function hostStart() {
+  if (!HOST.ch) {
+    HOST.ch = new BroadcastChannel("dmforge.map"); HOST.up = new BroadcastChannel("dmforge.map.tv");
+    HOST.up.onmessage = e => { const m = e.data || {}; if (m.t === "hello") { HOST.tv = true; hostSend(); } else if (m.t === "bye") HOST.tv = false; hostStatus(); };
+  }
+  const w = window.open("player.html", "dmforge-tv", "popup,width=1280,height=800");
+  if (!w) { toast("Your browser blocked the player window. Allow pop-ups for this site and try again."); return; }
+  HOST.win = w; HOST.on = true; hostStatus(); drawMapDM(); hostSend();
+}
+function hostStop() {
+  if (HOST.ch) HOST.ch.postMessage({ t: "bye" });
+  HOST.on = false; HOST.tv = false; hostStatus(); drawMapDM();
+}
+$("#hostStart").addEventListener("click", () => HOST.on ? hostStop() : hostStart());
+setInterval(() => { if (HOST.on && HOST.tv && HOST.win && HOST.win.closed) { HOST.tv = false; hostStatus(); } }, 2000);
+addEventListener("pagehide", () => { if (HOST.on && HOST.ch) HOST.ch.postMessage({ t: "bye" }); });
 
 /* ======================= Downloads ======================= */
 let downloads = null;

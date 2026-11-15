@@ -79,6 +79,29 @@ async function setMap(page, seed, theme = "crypt") {
   check("player view shows revealed rooms", t1.entClear);
   check("fogKey format", t1.key);
 
+  // ---------- Task 2: player screen window ----------
+  // an observer page on the same site records everything sent to the TV
+  const obs = await ctx.newPage(); await obs.goto(URL + "observer-404");
+  await obs.evaluate(() => { window.__msgs = []; new BroadcastChannel("dmforge.map").onmessage = e => window.__msgs.push(e.data); });
+  // fraction position of a room centre inside the whole map picture
+  const frac = (o) => dm.evaluate(([cx, cy]) => ({ fx: (cx * CS + CS / 2) / (currentMap.W * CS), fy: (TOP + cy * CS + CS / 2) / (currentMap.H * CS + TOP) }), [o.cx, o.cy]);
+  const rooms = await dm.evaluate(() => ({ ent: currentMap.rooms[0], boss: currentMap.rooms.find(o => o.marks.includes("boss")) }));
+  const [tv] = await Promise.all([ctx.waitForEvent("page"), dm.click("#hostStart")]);
+  tv.on("pageerror", e => errs.push("tv: " + e.message));
+  await tv.waitForSelector("#tv");
+  const frameIn = (p, ms = 3000) => p.waitForFunction(() => window.tvRect, null, { timeout: ms }).then(() => true, () => false);
+  check("TV receives a picture", await frameIn(tv));
+  await tv.waitForTimeout(300);
+  const tvPx = async (o) => { const f = await frac(o); return tv.evaluate(({ fx, fy }) => { const R = window.tvRect, c = document.getElementById("tv"); const p = c.getContext("2d").getImageData(Math.round(R.x + fx * R.w), Math.round(R.y + fy * R.h), 1, 1).data; return [p[0], p[1], p[2]]; }, f); };
+  const isFog = px => Math.abs(px[0] - 0x0b) <= 8 && Math.abs(px[1] - 0x0a) <= 8 && Math.abs(px[2] - 0x09) <= 8;
+  check("TV shows the entrance", !isFog(await tvPx(rooms.ent)));
+  check("TV hides the boss room", isFog(await tvPx(rooms.boss)));
+  const msgsOk = await obs.evaluate(() => window.__msgs.length > 0) && await obs.evaluate(() => window.__msgs.every(m => Object.keys(m).every(k => ["t", "blob", "x", "y"].includes(k)) && ["frame", "ping", "bye"].includes(m.t) && (m.t !== "frame" || m.blob instanceof Blob)));
+  check("TV only ever receives pictures, pings and bye", msgsOk);
+  check("DM sees 'TV connected'", /TV connected/.test(await dm.textContent("#hostStatus")));
+  await tv.reload(); await tv.waitForSelector("#tv");
+  check("reloaded TV gets the picture again within 2 s", await frameIn(tv, 2000));
+
   check("no page errors", errs.length === 0, errs.join(" | "));
   await browser.close(); server.close();
   console.log(fails ? `\n${fails} check(s) failed` : "\nAll map checks passed");
