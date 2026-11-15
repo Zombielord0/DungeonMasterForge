@@ -48,6 +48,7 @@ npm run test:mapenc  # map room -> encounter (Playwright, any OS)
 npm run test:calendar  # calendar and weather (Playwright, any OS)
 npm run test:recap  # session recaps (Playwright, any OS)
 npm run test:sheet  # character sheet maths vs the rules, 432 sheets (Playwright, any OS)
+npm run test:tokens  # tokens on the TV map (Playwright, any OS)
 npm run test:map  # map fog + TV player screen checks (Playwright, any OS)
 npm run dev     # full local copy at http://localhost:8899 (any OS); stand-in sign-in, data wiped on Ctrl+C
 ```
@@ -342,6 +343,19 @@ Items 15 to 28 came from **PR #5**, merged to `main` on 2026-11-15 together with
   - 2014 Jack of All Trades now adds to initiative, in the generator and in the `pcRecompute` init line.
   - 2024 half casters now get slots at level 1.
 - **When you change sheet maths, run `npm run test:sheet`.**
+
+## Tokens on the TV map (2026-11-15)
+
+- **Data.** `HOST.tokens` holds `[{id, name, kind: "pc"|"foe"|"npc", x, y}]`.
+  - Locally they're saved in the fog store (the `k` field, through `fogStorePut(key, fog, found, tokens)`). Campaign map entries carry `tokens` too.
+  - `hostLoad` restores them for the map.
+- **Drawing.** `drawDungeon` and `drawImageMap` call `mapDrawTokens(g, o.tokens)` before the fog, so tokens in fogged squares are hidden from players.
+  - `tokenView()` adds `state` ("Bloodied"/"Down") for monsters, taken from the fight on the TV (`hostEnc`) by name. **No HP numbers.**
+- **Adding and moving.** `tokAdd(name, kind, room)` places a token on the nearest free floor square (`tokFree`).
+  - `#tokParty` takes the party from the campaign picked in `#mapCampaign`, or from My Characters.
+  - `#tokFight` takes the monsters of the fight on the TV, placed in its map room (`e.room`, set by `mapRunEncounter`).
+  - The Tokens fog tool (`value="token"`) drags them through `HOST.tokDrag`. `#tokList` lists them with remove buttons.
+- **Tests:** `npm run test:tokens` (`test/e2e/tokens.cjs`).
 
 ## Backup and restore (2026-11-15)
 

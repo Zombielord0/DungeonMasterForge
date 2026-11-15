@@ -157,6 +157,10 @@ ul.plain{margin:4px 0 0;padding-left:20px}
 .cal-wx{flex:1;min-width:240px;font-size:17px}.cal-wx ul{margin:6px 0 0;padding-left:18px;font-size:15px;color:#e6c08a}
 .cal-btns{flex-wrap:wrap;gap:6px}.cal-btns .btn{flex:0 0 auto}.cal-travel{display:inline-flex;gap:6px;align-items:center}.cal-travel input{width:70px}
 .cal-log{list-style:none;margin:0;padding:0}.cal-log li{padding:4px 0;border-bottom:1px solid rgba(0,0,0,.35)}
+.tok-list{display:flex;flex-wrap:wrap;gap:5px;margin-top:8px}
+.tok-chip{display:inline-flex;align-items:center;gap:5px;padding:2px 4px 2px 8px;border-radius:12px;background:rgba(0,0,0,.35);border:1px solid #0d0c0b;font-size:14px}
+.tok-chip i{width:10px;height:10px;border-radius:50%;display:inline-block}
+.tok-chip button{background:none;border:0;color:var(--muted);cursor:pointer;font-size:14px;padding:0 4px}
 .rand-enc{padding:10px 14px;margin-bottom:12px}
 .key-room.hl{background:rgba(232,163,61,.12);box-shadow:inset 3px 0 0 #e8a33d}
 #mapCanvas.fogging{cursor:crosshair;touch-action:none}
@@ -1101,7 +1105,7 @@ nav a[data-view=whispers]{--ic:url("data:image/svg+xml,%3Csvg xmlns='http://www.
         <button class="btn primary" type="button" id="hostStart">📺 Host for players</button>
         <fieldset id="fogTools" class="fog-tools" disabled>
           <div class="field"><label>Fog tool</label>
-            <div class="seg"><label class="opt"><input type="radio" name="fogTool" value="room" checked><span>Room</span></label><label class="opt"><input type="radio" name="fogTool" value="brush"><span>Brush</span></label><label class="opt"><input type="radio" name="fogTool" value="box"><span>Box</span></label><label class="opt"><input type="radio" name="fogTool" value="secret"><span>Secret door</span></label></div>
+            <div class="seg"><label class="opt"><input type="radio" name="fogTool" value="room" checked><span>Room</span></label><label class="opt"><input type="radio" name="fogTool" value="brush"><span>Brush</span></label><label class="opt"><input type="radio" name="fogTool" value="box"><span>Box</span></label><label class="opt"><input type="radio" name="fogTool" value="secret"><span>Secret door</span></label><label class="opt"><input type="radio" name="fogTool" value="token"><span>Tokens</span></label></div>
           </div>
           <div class="field row">
             <div><label>Mode</label><div class="seg"><label class="opt"><input type="radio" name="fogVal" value="reveal" checked><span>Reveal</span></label><label class="opt"><input type="radio" name="fogVal" value="hide"><span>Hide</span></label></div></div>
@@ -1112,6 +1116,12 @@ nav a[data-view=whispers]{--ic:url("data:image/svg+xml,%3Csvg xmlns='http://www.
           </div>
           <label class="check"><input type="checkbox" id="fogNums"><span>Show room numbers on the TV</span></label>
           <p class="hint" style="margin:6px 0 0"><b>Room:</b> click a room or corridor. <b>Brush:</b> paint over squares. <b>Box:</b> drag a rectangle. <b>Secret door:</b> click an “S” once the players find it, and it appears on the TV. <b>Shift+click</b> flashes a ring on the TV to point something out. Fog is kept on this computer; press Save to store it with a campaign.</p>
+          <div class="field" style="margin:16px 0 0">
+            <label>Tokens</label>
+            <div class="row" style="flex-wrap:wrap;gap:6px;align-items:center"><button class="btn sm" type="button" id="tokParty" style="flex:0 0 auto" title="A token for each hero in the campaign chosen under Save to campaign, placed in the entrance">+ Party</button><button class="btn sm" type="button" id="tokFight" style="flex:0 0 auto" title="The monsters of the fight on the TV">+ Fight on TV</button><input type="text" id="tokName" placeholder="Name" style="width:150px;flex:0 0 auto"><select id="tokKind" style="width:auto;flex:0 0 auto"><option value="pc">Hero</option><option value="foe">Monster</option><option value="npc">NPC</option></select><button class="btn sm" type="button" id="tokAdd" style="flex:0 0 auto">Add</button></div>
+            <div id="tokList" class="tok-list"></div>
+            <p class="hint" style="margin:4px 0 0">Choose the <b>Tokens</b> tool above to drag them. Tokens in the fog stay hidden from players; monsters in the fight on the TV show Bloodied or Down.</p>
+          </div>
           <div class="field" style="margin:16px 0 0">
             <label>Handout</label>
             <div class="row" style="margin-bottom:8px"><label class="btn sm" style="flex:0 0 auto">🖼 Show a picture…<input type="file" id="handoutFile" accept="image/*" hidden></label><button class="btn sm primary" type="button" id="handoutBack" hidden style="flex:0 0 auto">🗺 Back to map</button></div>
@@ -2563,10 +2573,23 @@ function drawImageMap(cv, d, showGrid, o) {
     g.beginPath(); g.arc(X, Y, 10, 0, Math.PI * 2); g.fillStyle = "#2a2018"; g.fill(); g.strokeStyle = "#fdfaf2"; g.lineWidth = 1.5; g.stroke();
     g.fillStyle = "#fdfaf2"; g.font = "bold 11px Cinzel, Georgia, serif"; g.textAlign = "center"; g.textBaseline = "middle"; g.fillText(String(r.num), X, Y + .5);
   });
+  mapDrawTokens(g, o.tokens);
   if (fog) { g.fillStyle = player ? FOG_PLAYER : FOG_DM; g.beginPath(); for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) if (!fog[y * W + x]) g.rect(x * CS, y * CS, CS, CS); g.fill(); }
   g.restore();
   g.fillStyle = "#2a2018"; g.font = "700 20px Cinzel, Georgia, serif"; g.textAlign = "left"; g.textBaseline = "middle"; g.fillText(d.params.name || "Map", 14, TOP / 2);
   if (!player) { g.font = "italic 14px 'Crimson Pro', Georgia, serif"; g.textAlign = "right"; g.fillText(`Imported map · ${W} × ${H} squares · ${d.rooms.length} rooms`, W * CS - 14, TOP / 2); }
+}
+// tokens: a coloured disc with initials; Bloodied gets an orange ring, Down a grey disc with a cross
+const TOKEN_COLORS = { pc: "#2f8a4a", npc: "#2f5f9b", foe: "#9b2f2f" };
+function mapDrawTokens(g, tokens) {
+  (tokens || []).forEach(t => {
+    const X = t.x * CS + CS / 2, Y = t.y * CS + CS / 2, down = t.state === "Down";
+    g.beginPath(); g.arc(X, Y, CS * .42, 0, 7); g.fillStyle = down ? "#6a625a" : TOKEN_COLORS[t.kind] || TOKEN_COLORS.npc; g.fill();
+    g.lineWidth = t.state === "Bloodied" ? 2.5 : 1.5; g.strokeStyle = t.state === "Bloodied" ? "#f08a24" : "#fdfaf2"; g.stroke();
+    const ini = String(t.name).replace(/[^\p{L}\p{N} ]/gu, "").split(/\s+/).filter(Boolean); const tag = (ini.length > 1 && /\d+/.test(ini[ini.length - 1]) ? ini[0][0] + ini[ini.length - 1] : ini.slice(0, 2).map(w => w[0]).join("")).toUpperCase().slice(0, 3);
+    g.fillStyle = "#fdfaf2"; g.font = `bold ${tag.length > 2 ? 7 : 8.5}px Georgia, serif`; g.textAlign = "center"; g.textBaseline = "middle"; g.fillText(tag, X, Y + .5);
+    if (down) { g.strokeStyle = "#1a1612"; g.lineWidth = 1.6; g.beginPath(); g.moveTo(X - 5, Y - 5); g.lineTo(X + 5, Y + 5); g.moveTo(X + 5, Y - 5); g.lineTo(X - 5, Y + 5); g.stroke(); }
+  });
 }
 function drawDungeon(cv, d, showGrid, o = {}) {
   if (d.kind === "image") return drawImageMap(cv, d, showGrid, o);
@@ -2586,6 +2609,7 @@ function drawDungeon(cv, d, showGrid, o = {}) {
     if (st.dark) { g.strokeStyle = "#c9b48a"; g.lineWidth = 1; g.stroke(); }
     g.fillStyle = "#fdfaf2"; g.font = "bold 11px Cinzel, Georgia, serif"; g.textAlign = "center"; g.textBaseline = "middle"; g.fillText(String(r.num), X, Y + .5);
   });
+  mapDrawTokens(g, o.tokens); // under the fog, so tokens in fogged squares stay hidden from players
   if (fog) {
     g.fillStyle = player ? FOG_PLAYER : FOG_DM; g.beginPath();
     for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) if (!fog[y * W + x]) g.rect(x * CS, y * CS, CS, CS);
@@ -2611,7 +2635,7 @@ function mapRunEncounter(i) {
   const d = currentMap, o = d && d.rooms[i]; if (!o || !o.enc) return;
   const c = curCampForMap(); if (!c) { toast("Create a campaign first (Campaign Tracker), then pick it under Save to campaign."); return; }
   const groups = parseEncText(o.enc.text); if (!groups.length) { toast("Couldn't read the monsters in that fight."); return; }
-  const e = newEncounter(null, `${d.params.name} · Room ${o.num}: ${o.type || o.name || "Room"}`, d.params.level || c.currentLevel || 1, groups, { kind: "map", notes: `From the map “${d.params.name}”, room ${o.num}.` });
+  const e = newEncounter(null, `${d.params.name} · Room ${o.num}: ${o.type || o.name || "Room"}`, d.params.level || c.currentLevel || 1, groups, { kind: "map", room: o.num, notes: `From the map “${d.params.name}”, room ${o.num}.` });
   c.encounters = c.encounters || []; c.encounters.push(e); Store.save(c);
   if (HOST.on && HOST.fog) {
     const tmp = new Uint8Array(d.W * d.H); if (fogRevealRoom(d, tmp, o.cx, o.cy)) { fogSnap(); tmp.forEach((on, k) => { if (on) HOST.fog[k] = 1; }); fogSaveLocal(); }
@@ -2641,7 +2665,7 @@ function readMapForm() {
 function mapOpenSaved(m) {
   if (m.kind === "image") { imgOpenSaved(m); return; }
   setMapForm(m);
-  if (m.fog) fogStorePut(fogKey(m), m.fog, m.found || []);
+  if (m.fog) fogStorePut(fogKey(m), m.fog, m.found || [], m.tokens);
   HOST.key = null; location.hash = "map"; renderMap();
 }
 function setMapForm(p) { $("#mapStyle").value = MAP_STYLES[p.style] ? p.style : "parchment"; $("#mapName").value = p.name; $("#mapTheme").value = p.theme; $("#mapSize").value = p.size; $("#mapRooms").value = p.rooms; $("#mapLevel").value = p.level; $("#mapParty").value = p.party; $("#mapSeed").value = p.seed; }
@@ -2675,7 +2699,7 @@ $("#mapSave").addEventListener("click", () => {
   const id = $("#mapCampaign").value; const c = Store.get(id);
   if (!c || !currentMap) { toast("Create a campaign first"); return; }
   c.maps = c.maps || [];
-  const fogPart = HOST.fog && HOST.key === fogKey(currentMap.kind === "image" ? imgRecord(currentMap) : currentMap.params) ? { fog: fogEncode(HOST.fog), found: [...HOST.found] } : {};
+  const fogPart = HOST.fog && HOST.key === fogKey(currentMap.kind === "image" ? imgRecord(currentMap) : currentMap.params) ? { fog: fogEncode(HOST.fog), found: [...HOST.found], tokens: HOST.tokens } : {};
   c.maps.unshift({ ...(currentMap.kind === "image" ? imgRecord(currentMap) : currentMap.params), id: uid("m"), saved: Date.now(), ...fogPart });
   Store.save(c); toast(`Map saved to “${c.name}”`); if (activeId === id) renderTracker();
 });
@@ -2797,17 +2821,17 @@ $("#mapImportFile").addEventListener("change", async e => {
     let loaded; try { loaded = await loadImageCanvas(j.image); } catch { toast("Couldn't read the picture in that map file."); return; }
     const id = m.imgId || uid("img"); MAPIMG.put(id, await canvasBlob(loaded.cv)).catch(() => {});
     const d = imageMapBuild({ ...m, imgId: id, px: m.px * loaded.k, ox: Math.round((m.ox || 0) * loaded.k), oy: Math.round((m.oy || 0) * loaded.k) }, loaded.cv);
-    if (m.fog) fogStorePut(fogKey(imgRecord(d)), m.fog, m.found || []);
+    if (m.fog) fogStorePut(fogKey(imgRecord(d)), m.fog, m.found || [], m.tokens);
     imgUse(d, `“${d.params.name}” loaded.`); return;
   }
-  setMapForm(m); if (m.fog) fogStorePut(fogKey(m), m.fog, m.found || []);
+  setMapForm(m); if (m.fog) fogStorePut(fogKey(m), m.fog, m.found || [], m.tokens);
   HOST.key = null; location.hash = "map"; renderMap(); toast(`“${m.name}” loaded.`);
 });
 async function imgOpenSaved(m) {
   let blob = null; try { blob = await MAPIMG.get(m.imgId); } catch { /* storage unavailable */ }
   if (!blob) { toast("This map's picture isn't on this computer. Use Import → Map file to load it."); return; }
   const loaded = await loadImageCanvas(blob), d = imageMapBuild(m, loaded.cv);
-  if (m.fog) fogStorePut(fogKey(imgRecord(d)), m.fog, m.found || []);
+  if (m.fog) fogStorePut(fogKey(imgRecord(d)), m.fog, m.found || [], m.tokens);
   imgUse(d);
 }
 // exporting
@@ -2855,14 +2879,14 @@ $("#mapExportRoll20").addEventListener("click", () => { const d = currentMap; if
    DM -> TV on "dmforge.map" ({t:"frame",blob} | {t:"ping",x,y} | {t:"bye"}), TV -> DM on "dmforge.map.tv" ({t:"hello"} | {t:"bye"}).
    No network is used. */
 const HOST = { ch: null, up: null, win: null, on: false, tv: false, key: null, fog: null, found: new Set(), numbers: false, undo: [], timer: 0,
-  show: "map", handout: null, enc: null /* {cid, eid}: the fight whose turn order is on the TV */ };
+  show: "map", handout: null, enc: null /* {cid, eid}: the fight whose turn order is on the TV */, tokens: [], tokDrag: null };
 function drawMapDM() {
   if (!currentMap) return;
   const cv = $("#mapCanvas"), d = currentMap; $("#mapOverlay").parentElement.style.width = (MAPUI.zoom * 100) + "%"; // the stage grows; the canvas fills it
   // draw at the size it's shown, so zooming in stays sharp
   const shown = Math.max(300, ($("#mapWrap").clientWidth - 20) * MAPUI.zoom) * (window.devicePixelRatio || 1);
   const scale = Math.min(4, Math.max(1, Math.ceil((shown / (d.W * CS)) * 4) / 4));
-  drawDungeon(cv, d, $("#mapGrid").checked, { fog: HOST.on ? HOST.fog : null, found: HOST.found, scale });
+  drawDungeon(cv, d, $("#mapGrid").checked, { fog: HOST.on ? HOST.fog : null, found: HOST.found, scale, tokens: HOST.on ? tokenView() : [] });
   mapOverlayDraw(); fogKeyButtons();
 }
 /* ---- reading the map: hover a room <-> its key entry, click to jump, zoom and drag ---- */
@@ -2931,7 +2955,7 @@ function fogKeyButtons() {
 function hostLoad(d) {
   const key = fogKey(d.params); if (HOST.key === key && HOST.fog) return;
   const saved = fogLoadLocal(key);
-  HOST.key = key; HOST.fog = saved ? saved.fog : fogNew(d); HOST.found = saved ? saved.found : new Set(); HOST.undo = [];
+  HOST.key = key; HOST.fog = saved ? saved.fog : fogNew(d); HOST.found = saved ? saved.found : new Set(); HOST.undo = []; HOST.tokens = saved && saved.tokens ? saved.tokens : []; tokListRender();
   if (HOST.on) hostSend();
 }
 function hostStatus() {
@@ -2952,7 +2976,7 @@ function hostSend() {
 function hostFrameCanvas() {
   if (HOST.show === "handout" && HOST.handout) return HOST.handout;
   let cv = null;
-  if (currentMap) { cv = document.createElement("canvas"); drawDungeon(cv, currentMap, $("#mapGrid").checked, { player: true, fog: HOST.fog, found: HOST.found, numbers: HOST.numbers, scale: 2 }); }
+  if (currentMap) { cv = document.createElement("canvas"); drawDungeon(cv, currentMap, $("#mapGrid").checked, { player: true, fog: HOST.fog, found: HOST.found, numbers: HOST.numbers, scale: 2, tokens: tokenView() }); }
   const f = hostEnc();
   if (f) { const rows = tvInitRows(f.c, f.e); if (cv) tvDrawInitStrip(cv, rows, f.e.round); else cv = tvInitBoard(rows, f.e.round); }
   if (!cv) { cv = document.createElement("canvas"); cv.width = 1920; cv.height = 1080; const g = cv.getContext("2d"); g.fillStyle = "#0b0a09"; g.fillRect(0, 0, 1920, 1080); } // nothing to show yet: a dark screen
@@ -3027,6 +3051,43 @@ function handoutWriting(title, text) {
 }
 function handoutShow(cv) { HOST.handout = cv; HOST.show = "handout"; handoutUI(); hostSend(); }
 function handoutUI() { $("#handoutBack").hidden = HOST.show !== "handout"; hostStatus(); }
+/* ---- tokens ---- */
+function tokenView() { // tokens with the fight-on-TV state (Bloodied/Down) for monsters
+  const f = hostEnc(), st = {}; if (f) f.e.enemies.forEach(m => { st[m.name] = m.hp <= 0 ? "Down" : m.hp <= m.max / 2 ? "Bloodied" : ""; }); // same words as the TV's turn order, never HP
+  return HOST.tokens.map(t => ({ ...t, state: t.kind === "foe" ? st[t.name] || "" : "" }));
+}
+function tokFree(tx, ty) { // the nearest floor square to (tx,ty) without a token
+  const d = currentMap, seen = new Set([ty * d.W + tx]), q = [[tx, ty]];
+  while (q.length) {
+    const [x, y] = q.shift(), k = y * d.W + x;
+    if (d.grid[k] > 0 && !HOST.tokens.some(t => t.x === x && t.y === y) && !d.rooms.some(r => r.cx === x && r.cy === y)) return [x, y];
+    for (const [dx, dy] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) { const nx = x + dx, ny = y + dy, j = ny * d.W + nx; if (nx >= 0 && ny >= 0 && nx < d.W && ny < d.H && !seen.has(j)) { seen.add(j); q.push([nx, ny]); } }
+  }
+  return [tx, ty];
+}
+function tokAdd(name, kind, room) {
+  const d = currentMap; if (!d || !name) return;
+  const o = (room && d.rooms.find(r => r.num === room)) || d.rooms[0], [x, y] = o ? tokFree(o.cx, o.cy) : tokFree(d.W >> 1, d.H >> 1);
+  HOST.tokens.push({ id: uid("t"), name: String(name).slice(0, 40), kind, x, y });
+}
+function tokListRender() {
+  const el = $("#tokList"); if (!el) return;
+  el.innerHTML = HOST.tokens.map(t => `<span class="tok-chip"><i style="background:${TOKEN_COLORS[t.kind]}"></i>${esc(t.name)}<button type="button" data-tokdel="${t.id}" title="Remove ${esc(t.name)}" aria-label="Remove ${esc(t.name)}">✕</button></span>`).join("");
+}
+function tokChanged() { tokListRender(); fogChanged(); }
+$("#tokParty").addEventListener("click", () => {
+  const c = curCampForMap(), names = c && c.party && c.party.length ? c.party.map(p => p.name).filter(Boolean) : PCS.roster.map(p => p.name);
+  const add = names.filter(n => !HOST.tokens.some(t => t.name === n));
+  if (!add.length) { toast(names.length ? "The party's tokens are already on the map." : "No heroes yet: add them to the campaign's Party, or save characters to My Characters."); return; }
+  add.forEach(n => tokAdd(n, "pc")); tokChanged();
+});
+$("#tokFight").addEventListener("click", () => {
+  const f = hostEnc(); if (!f) { toast("Put a fight on the TV first: 📺 Show on TV in Encounters, or ⚔ Run this fight in the Room Key."); return; }
+  const add = f.e.enemies.map(m => m.name).filter(n => !HOST.tokens.some(t => t.name === n));
+  add.forEach(n => tokAdd(n, "foe", f.e.room)); tokChanged();
+});
+$("#tokAdd").addEventListener("click", () => { const n = $("#tokName").value.trim(); if (!n) { toast("Type a name for the token"); return; } tokAdd(n, $("#tokKind").value); $("#tokName").value = ""; tokChanged(); });
+$("#tokList").addEventListener("click", e => { const b = e.target.closest("[data-tokdel]"); if (!b) return; HOST.tokens = HOST.tokens.filter(t => t.id !== b.dataset.tokdel); tokChanged(); });
 function hostPing(fx, fy) { if (HOST.on && HOST.ch) HOST.ch.postMessage({ t: "ping", x: fx, y: fy }); }
 function hostStart() {
   if (!HOST.ch) {
@@ -3046,15 +3107,15 @@ $("#hostStart").addEventListener("click", () => HOST.on ? hostStop() : hostStart
 /* ---- fog: kept on this computer while playing; goes into a campaign only on Save ---- */
 const FOG_LS = "dmforge.fog.v1", FOG_KEEP = 40;
 function fogStoreRead() { try { return JSON.parse(localStorage.getItem(FOG_LS) || "{}"); } catch { return {}; } }
-function fogStorePut(key, fogStr, found) {
-  const all = fogStoreRead(); all[key] = { f: fogStr, s: found, t: Date.now() };
+function fogStorePut(key, fogStr, found, tokens) {
+  const all = fogStoreRead(); all[key] = { f: fogStr, s: found, k: tokens || [], t: Date.now() };
   const keys = Object.keys(all).sort((a, b) => all[b].t - all[a].t); keys.slice(FOG_KEEP).forEach(k => delete all[k]);
   try { localStorage.setItem(FOG_LS, JSON.stringify(all)); } catch { /* storage full: fog just won't persist */ }
 }
-function fogSaveLocal() { if (currentMap && HOST.fog) fogStorePut(HOST.key, fogEncode(HOST.fog), [...HOST.found]); }
+function fogSaveLocal() { if (currentMap && HOST.fog) fogStorePut(HOST.key, fogEncode(HOST.fog), [...HOST.found], HOST.tokens); }
 function fogLoadLocal(key) {
   const e = fogStoreRead()[key]; if (!e || !currentMap) return null;
-  return { fog: fogDecode(e.f, currentMap.W * currentMap.H), found: new Set(e.s || []) };
+  return { fog: fogDecode(e.f, currentMap.W * currentMap.H), found: new Set(e.s || []), tokens: (e.k || []).filter(t => t.x < currentMap.W && t.y < currentMap.H) };
 }
 function fogChanged() { fogSaveLocal(); drawMapDM(); hostSend(); }
 function fogSnap() { HOST.undo.push({ f: HOST.fog.slice(), s: new Set(HOST.found) }); if (HOST.undo.length > 50) HOST.undo.shift(); }
@@ -3080,18 +3141,23 @@ $("#mapCanvas").addEventListener("pointerdown", e => {
     const dr = d.doors.find(o => o.secret && o.x === c.x && o.y === c.y); if (!dr) { toast("Click on a secret door (S)"); return; }
     fogSnap(); const k = dr.x + "," + dr.y; HOST.found.has(k) ? HOST.found.delete(k) : HOST.found.add(k); fogChanged();
     toast(HOST.found.has(k) ? "Secret door found: now shown on the TV" : "Secret door hidden again");
+  } else if (t === "token") {
+    const tk = HOST.tokens.find(k => k.x === c.x && k.y === c.y); if (!tk) { toast("Press on a token and drag it. Add tokens under Tokens below."); return; }
+    HOST.tokDrag = tk; e.target.setPointerCapture(e.pointerId);
   } else {
     fogSnap(); fogDrag = { t, v, x: c.x, y: c.y, cx: c.x, cy: c.y }; e.target.setPointerCapture(e.pointerId);
     if (t === "brush") { fogPaint(HOST.fog, d, c.x, c.y, +$("#fogSize").value, v); fogChanged(); } else fogBoxPreview();
   }
 });
 $("#mapCanvas").addEventListener("pointermove", e => {
+  if (HOST.tokDrag) { const c = canvasCell(e), k = HOST.tokDrag; if (c && c.inGrid && (c.x !== k.x || c.y !== k.y) && !HOST.tokens.some(o => o !== k && o.x === c.x && o.y === c.y)) { k.x = c.x; k.y = c.y; drawMapDM(); } return; }
   if (!fogDrag) return; const c = canvasCell(e); if (!c) return;
   const x = Math.max(0, Math.min(currentMap.W - 1, c.x)), y = Math.max(0, Math.min(currentMap.H - 1, c.y));
   if (x === fogDrag.cx && y === fogDrag.cy) return; fogDrag.cx = x; fogDrag.cy = y;
   if (fogDrag.t === "brush") { fogPaint(HOST.fog, currentMap, x, y, +$("#fogSize").value, fogDrag.v); fogChanged(); } else fogBoxPreview();
 });
 function fogDragEnd() {
+  if (HOST.tokDrag) { HOST.tokDrag = null; fogChanged(); return; }
   if (!fogDrag) return; const g = fogDrag; fogDrag = null;
   if (g.t === "box") { fogBox(HOST.fog, currentMap, g.x, g.y, g.cx, g.cy, g.v); fogChanged(); }
 }
@@ -10149,6 +10215,10 @@ Store.init().then(() => { renderCampList(); pcAdoptRemote(); itemsAdopt(); if (l
 <script>
 /* ---- what's new: newest first. Add an entry (with a new id) whenever a change ships; the bell counts entries this browser hasn't seen. ---- */
 const NEWS = [
+  { id: "2026-11-15-tokens", date: "2026-11-15", title: "Tokens on the TV map", go: "map", items: [
+    "While hosting the player screen, add tokens for the party, for the fight on the TV, or by name, then drag them with the Tokens tool.",
+    "Tokens in the fog stay hidden from players, and monsters show Bloodied (orange ring) or Down (grey with a cross) to match the fight.",
+    "Tokens are kept with the map's fog and saved with the campaign."] },
   { id: "2026-11-15-rulesfix", date: "2026-11-15", title: "Character sheet rules fixes", go: "roster", items: [
     "Sorcerers were getting 1 extra hit point per level (Draconic sorcerers got their bonus twice). Their HP is corrected the next time the sheet is levelled or rebuilt.",
     "2024 paladins and rangers now have their two spell slots at level 1.",
