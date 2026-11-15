@@ -37,6 +37,7 @@ Live site: https://dungeonmasterforge.netlify.app (Netlify; production branch `m
 npm install
 npm test        # API tests (11 should pass)
 npm run build   # bundle src/portal.js -> public/portal.js
+npm run test:backup  # backup and restore checks (Playwright, any OS)
 npm run test:map  # map fog + TV player screen checks (Playwright, any OS)
 npm run dev     # full local copy at http://localhost:8899 (any OS); stand-in sign-in, data wiped on Ctrl+C
 ```
@@ -100,7 +101,7 @@ Playwright and Chromium are pre-installed in cloud sessions. To test offline mod
 
 Items 4 to 14 were merged to `main` on 2026-11-14 (commit `5d44a7b`).
 
-Items 15 to 28 are in **PR #5** (branch `ccr-ee7865d5-1wx9vg`). It's **not merged yet**. It already contains everything on `main` up to `ef08b0c`, the commit that added these notes.
+Items 15 to 28 came from **PR #5**, merged to `main` on 2026-11-15 together with PR #6 (the TV map). At that time the live Netlify site was still on the PR #3 build: Netlify had not published `main` since then.
 
 15. **Collapsible toolbar and character sheet upgrade** (PR #5, branch `ccr-ee7865d5-1wx9vg`)
     - **Toolbar:** "▴ Hide tabs" collapses the header (`dmforge.hdrMini`, the `hdr-mini` class on `<html>`); the strip has a tab menu (`hdrSync`).
@@ -201,6 +202,18 @@ Items 15 to 28 are in **PR #5** (branch `ccr-ee7865d5-1wx9vg`). It's **not merge
   - `#mapSave` adds `fog` and `found` to the campaign's map entry. `mapOpenSaved(m)` restores them.
   - Nothing touches Netlify during play.
 - **Tests.** Run `npm run test:map` (`test/e2e/map-fog.cjs`). It starts its own static server and needs no database. It waits on `window.tvFrames`, because encoding the PNG is slow in the headless browser.
+
+## Backup and restore (2026-11-15)
+
+- **💾 Backup** (`#backupBtn`, beside the storage badge) appears only in browser-only mode; `setBadge` hides it when `Store.mode === "db"`. It opens `#backupModal`.
+- **The file format:** `{app:"dmforge-backup", v:1, made, data:{key: raw localStorage string}}`, holding the keys in `BACKUP_KEYS`.
+  - **When you add a new kind of saved data, add its key to `BACKUP_KEYS`.**
+  - Settings are left out on purpose: offline mode, the header, What's new, and the portal's keys.
+- **Functions:** `backupMake`, `backupSummary`, `backupInfo`, `backupOpen`/`backupClose` and `backupRestore(file)`.
+  - Restoring checks the `app` marker, asks with `confirmBox`, writes every key in `BACKUP_KEYS` (removing ones the backup doesn't have) and reloads.
+  - The last download time is kept in `dmforge.lastBackup`.
+- **Downloads:** `saveFile` now falls back to a normal browser download (Blob and `<a download>`) when the Claude `downloads` helper isn't there. Before this, Download PNG and Export JSON did nothing on the website.
+- **Tests:** `npm run test:backup` (`test/e2e/backup.cjs`).
 
 ## How a character is built (read this before changing sheet maths)
 

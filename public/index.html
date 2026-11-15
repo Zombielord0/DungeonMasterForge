@@ -69,7 +69,7 @@ section.view.active{display:block;animation:rise .25s ease-out}
 .layout{display:grid;grid-template-columns:330px 1fr;gap:20px;align-items:start}
 @media (max-width:900px){.layout{grid-template-columns:1fr}}
 /* stone slabs */
-.card,.sec,#modal .box,#lvModal .box,#featModal .box,#choiceModal .box,#actModal .box{position:relative;background:var(--slab);border:1px solid #0f0e0d;border-radius:var(--radius);padding:16px;
+.card,.sec,#modal .box,#backupModal .box,#lvModal .box,#featModal .box,#choiceModal .box,#actModal .box{position:relative;background:var(--slab);border:1px solid #0f0e0d;border-radius:var(--radius);padding:16px;
   box-shadow:inset 1px 1px 0 rgba(255,255,255,.09),inset -2px -3px 0 rgba(0,0,0,.35),0 8px 22px rgba(0,0,0,.65)}
 .card::after,.sec::after{content:"";position:absolute;inset:0;border-radius:inherit;pointer-events:none;background:var(--grit);opacity:.35;mix-blend-mode:multiply}
 .card>*,.sec>*{position:relative;z-index:1}
@@ -276,10 +276,11 @@ textarea[data-list=party]{min-height:150px}
 .sp-table th{font-family:Cinzel,serif;font-size:12px;color:var(--gold2);background:rgba(0,0,0,.3)}
 @media (max-width:700px){.sp-head{grid-template-columns:24px 1fr auto auto}.hide-sm{display:none}}
 /* modal + toast */
-#modal{position:fixed;inset:0;background:rgba(0,0,0,.7);display:none;align-items:center;justify-content:center;z-index:50;padding:20px}
-#modal.open{display:flex}
-#modal .box{border-color:#7a4415;max-width:440px;width:100%;padding:20px}
-#modal .box p{margin:10px 0 18px}
+#modal,#backupModal{position:fixed;inset:0;background:rgba(0,0,0,.7);display:none;align-items:center;justify-content:center;z-index:50;padding:20px}
+#modal.open,#backupModal.open{display:flex}
+#modal .box,#backupModal .box{border-color:#7a4415;max-width:440px;width:100%;padding:20px}
+#backupModal .box{max-width:520px}
+#modal .box p,#backupModal .box p{margin:10px 0 18px}
 #lvModal{position:fixed;inset:0;background:rgba(0,0,0,.7);display:none;align-items:center;justify-content:center;z-index:50;padding:20px}
 #lvModal.open{display:flex}
 #lvModal .box{border-color:#7a4415;max-width:640px;width:100%;max-height:90vh;overflow:auto;padding:20px}
@@ -435,7 +436,7 @@ body{background:none!important}
 #bgScene{position:fixed;inset:0;width:100vw;height:100vh;z-index:-1;display:block;pointer-events:none;background:#06070e}
 body::before{background:radial-gradient(ellipse 70% 55% at 50% 38%,transparent 40%,rgba(2,3,8,.55) 100%),linear-gradient(rgba(4,5,12,.15),rgba(4,5,12,.45))!important;animation:none!important;z-index:-1!important}
 header{background:var(--noise),linear-gradient(rgba(22,24,40,.9),rgba(10,11,22,.86))!important;backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px);border-bottom:1px solid rgba(255,170,80,.18)!important;box-shadow:0 6px 24px rgba(0,0,0,.75),inset 0 -1px 0 rgba(120,140,220,.08),inset 0 1px 0 rgba(255,255,255,.06)!important}
-.card,.sec,#modal .box,#lvModal .box,#featModal .box,#choiceModal .box{backdrop-filter:blur(3px);-webkit-backdrop-filter:blur(3px);border-color:#090a12!important;
+.card,.sec,#modal .box,#backupModal .box,#lvModal .box,#featModal .box,#choiceModal .box{backdrop-filter:blur(3px);-webkit-backdrop-filter:blur(3px);border-color:#090a12!important;
   box-shadow:inset 0 1px 0 rgba(255,200,140,.10),inset 1px 0 0 rgba(140,160,230,.05),inset -2px -3px 0 rgba(0,0,0,.35),0 10px 28px rgba(0,0,0,.7),0 0 0 1px rgba(255,160,70,.04)!important}
 .sec{background:var(--noise),linear-gradient(165deg,rgba(36,40,60,.72),rgba(18,20,34,.8))!important}
 .card::after,.sec::after{opacity:.22!important}
@@ -950,6 +951,7 @@ nav a[data-view=whispers]{--ic:url("data:image/svg+xml,%3Csvg xmlns='http://www.
     <a href="#whispers" data-view="whispers" hidden>Whispers<span id="whisperN" hidden></span></a>
   </nav>
   <span id="storeBadge" class="badge" title="Where your campaigns are saved">Connecting…</span>
+  <button class="btn sm" type="button" id="backupBtn" hidden aria-haspopup="dialog" title="Download or restore a backup of everything saved in this browser">💾 Backup</button>
   <span class="hdr-mini-label" id="hdrMiniLabel">Dungeon Master's Forge ·</span>
   <select class="hdr-tabsel" id="hdrTabSel" aria-label="Go to tab"></select>
   <button class="news-btn" type="button" id="newsBtn" aria-haspopup="dialog" aria-expanded="false" title="What's new in the Forge"><svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/><path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"/></svg><span class="news-n" id="newsN" hidden></span><span class="sr-only" id="newsSr">What's new</span></button>
@@ -1440,6 +1442,13 @@ nav a[data-view=whispers]{--ic:url("data:image/svg+xml,%3Csvg xmlns='http://www.
 </section>
 </main>
 
+<div id="backupModal" role="dialog" aria-modal="true" aria-labelledby="backupTitle"><div class="box">
+  <h3 id="backupTitle">Backup</h3>
+  <p>Without an account, everything you make is saved only in this browser: characters, campaigns and their maps, homebrew, custom items, your monsters, favourite spells and map fog. Clearing your browser data, or using another computer, loses it. Keep a backup file somewhere safe.</p>
+  <p class="muted" id="backupInfo"></p>
+  <div class="row"><button class="btn primary" type="button" id="backupDownload">⬇ Download backup</button><label class="btn" style="text-align:center">⬆ Restore from backup…<input type="file" id="backupFile" accept=".json,application/json" hidden></label></div>
+  <div class="row" style="justify-content:flex-end;margin-top:14px"><button class="btn" type="button" id="backupClose" style="flex:0">Close</button></div>
+</div></div>
 <div id="modal" role="dialog" aria-modal="true"><div class="box"><h3 id="modalTitle">Are you sure?</h3><p id="modalMsg"></p><div class="row" style="justify-content:flex-end"><button class="btn" id="modalNo" style="flex:0">Cancel</button><button class="btn danger" id="modalYes" style="flex:0">Confirm</button></div></div></div>
 <div id="toast"></div>
 
@@ -2488,10 +2497,59 @@ addEventListener("pagehide", () => { if (HOST.on && HOST.ch) HOST.ch.postMessage
 /* ======================= Downloads ======================= */
 let downloads = null;
 async function saveFile(filename, data) {
-  if (!downloads) { toast("Downloads aren't available in this view"); return; }
+  if (!downloads) { // a normal website: hand the file to the browser
+    const blob = data instanceof Blob ? data : new Blob([data], { type: /\.json$/i.test(filename) ? "application/json" : "application/octet-stream" });
+    const a = document.createElement("a"); a.href = URL.createObjectURL(blob); a.download = filename;
+    document.body.appendChild(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(a.href), 30000); return;
+  }
   try { await downloads.save({ filename, data }); }
   catch (e) { if (e && e.code === "declined") return; toast("Download failed: " + ((e && e.message) || "unavailable")); }
 }
+
+/* ======================= Backup and restore (browser-only data) =======================
+   A backup is {app:"dmforge-backup", v:1, made, data:{key: raw string}} for the keys in BACKUP_KEYS.
+   Add new kinds of saved data to BACKUP_KEYS. Settings (offline mode, header, What's new) are left out on purpose. */
+const BACKUP_KEYS = ["dmforge.pcs.v1", "dmforge.campaigns.v1", "dmforge.homebrew.v1", "dmforge.items.v1", "dmforge.mymonsters.v1", "dmforge.favspells", "dmforge.fog.v1"];
+const BACKUP_LAST = "dmforge.lastBackup";
+function backupMake() {
+  const data = {}; BACKUP_KEYS.forEach(k => { const v = localStorage.getItem(k); if (v !== null) data[k] = v; });
+  return { app: "dmforge-backup", v: 1, made: new Date().toISOString(), data };
+}
+function backupSummary(data) {
+  const n = (k, f) => { try { return f(JSON.parse(data[k] || "null")) || 0; } catch { return 0; } };
+  const pcs = n("dmforge.pcs.v1", v => v && v.roster && v.roster.length), camps = n("dmforge.campaigns.v1", v => Array.isArray(v) && v.length);
+  const plural = (x, w) => `${x} ${w}${x === 1 ? "" : "s"}`;
+  return `${plural(pcs, "character")} · ${plural(camps, "campaign")}`;
+}
+function backupInfo() {
+  const last = localStorage.getItem(BACKUP_LAST), d = last ? new Date(last) : null;
+  const when = !d ? "never" : d.toDateString() === new Date().toDateString() ? "today" : d.toLocaleDateString();
+  $("#backupInfo").textContent = `In this browser: ${backupSummary(backupMake().data)}. Last backup: ${when}.`;
+}
+function backupOpen() { backupInfo(); $("#backupModal").classList.add("open"); $("#backupDownload").focus(); }
+function backupClose() { $("#backupModal").classList.remove("open"); $("#backupBtn").focus(); }
+async function backupRestore(file) {
+  let bk = null;
+  try { bk = JSON.parse(await file.text()); } catch { /* not JSON */ }
+  if (!bk || bk.app !== "dmforge-backup" || !bk.data || typeof bk.data !== "object" || Object.values(bk.data).some(v => typeof v !== "string")) {
+    toast("That file isn't a Forge backup. Choose a file made with 💾 Backup."); return;
+  }
+  const made = bk.made ? new Date(bk.made).toLocaleString() : "an unknown date";
+  backupClose();
+  if (!(await confirmBox("Restore backup?", `Replace everything saved in this browser with the backup from ${made} (${backupSummary(bk.data)})? What's here now will be lost, so download a backup first if you might need it.`, "Replace"))) return;
+  BACKUP_KEYS.forEach(k => { if (typeof bk.data[k] === "string") localStorage.setItem(k, bk.data[k]); else localStorage.removeItem(k); });
+  location.reload();
+}
+$("#backupBtn").addEventListener("click", backupOpen);
+$("#backupClose").addEventListener("click", backupClose);
+$("#backupModal").addEventListener("click", e => { if (e.target.id === "backupModal") backupClose(); });
+$("#backupModal").addEventListener("keydown", e => { if (e.key === "Escape") backupClose(); });
+$("#backupDownload").addEventListener("click", () => {
+  const t = new Date(), ymd = [t.getFullYear(), t.getMonth() + 1, t.getDate()].map(x => String(x).padStart(2, "0")).join("-");
+  saveFile(`forge-backup-${ymd}.json`, JSON.stringify(backupMake()));
+  localStorage.setItem(BACKUP_LAST, new Date().toISOString()); backupInfo(); toast("Backup downloaded. Keep the file somewhere safe.");
+});
+$("#backupFile").addEventListener("change", e => { const f = e.target.files[0]; e.target.value = ""; if (f) backupRestore(f); });
 
 /* ======================= Storage ======================= */
 const LS_KEY = "dmforge.campaigns.v1";
@@ -2557,8 +2615,9 @@ const Store = {
 function setBadge(state) {
   const b = $("#storeBadge");
   if (state) { b.textContent = state; return; }
+  $("#backupBtn").hidden = Store.mode === "db"; // signed in: it's all on the server already
   if (Store.mode === "db") { b.textContent = "✓ Saved to your account"; b.className = "badge ok"; b.title = "Campaigns are stored privately with your Claude account"; }
-  else { b.textContent = "Saved in this browser only"; b.className = "badge"; b.title = "Export campaigns as JSON to keep a backup"; }
+  else { b.textContent = "Saved in this browser only"; b.className = "badge"; b.title = "Use 💾 Backup to keep a copy somewhere safe"; }
 }
 
 /* ======================= Campaign tracker ======================= */
@@ -9243,6 +9302,10 @@ Store.init().then(() => { renderCampList(); pcAdoptRemote(); itemsAdopt(); if (l
 <script>
 /* ---- what's new: newest first. Add an entry (with a new id) whenever a change ships; the bell counts entries this browser hasn't seen. ---- */
 const NEWS = [
+  { id: "2026-11-15-backup", date: "2026-11-15", title: "Back up your characters and campaigns", items: [
+    "Using the Forge without an account? Press 💾 Backup at the top to download a backup file of your characters, campaigns, homebrew, items, monsters, favourite spells and map fog.",
+    "Restore from backup puts it all back, in this browser or on another computer.",
+    "Download buttons (map pictures, campaign exports) now work on the website too."] },
   { id: "2026-11-15-tvmap", date: "2026-11-15", title: "Show the dungeon map on a TV", go: "map", items: [
     "On Dungeon Map, press 📺 Host for players to open a second window for a TV or second monitor.",
     "Players only see what you reveal: click a room, paint with the brush, or drag a box. Undo, Reveal all and Hide all are there too.",

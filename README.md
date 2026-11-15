@@ -34,6 +34,15 @@ Live at https://dungeonmasterforge.netlify.app
 
 Everything stays on your computer, and no internet traffic or Netlify usage happens during play. Fog is remembered on this computer. Press **Save** to keep it with a campaign.
 
+## Keeping a backup
+
+If you use the Forge without an account, everything is saved only in that browser. Press **💾 Backup** at the top of the page:
+
+- **Download backup** saves one file with your characters, campaigns, homebrew, items, monsters, favourite spells and map fog.
+- **Restore from backup** puts a backup file back, in the same browser or on another computer. It replaces what's there, so it asks first.
+
+Signed-in accounts don't need this, because their data is saved on the server.
+
 ## One-time Netlify setup
 
 1. Link this GitHub repo to the site: Project configuration → Build & deploy → Link repository, production branch `main`.
