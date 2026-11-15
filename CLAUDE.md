@@ -22,7 +22,7 @@ Live site: https://dungeonmasterforge.netlify.app (Netlify; production branch `m
 
 | Path | What it is |
 | --- | --- |
-| `public/index.html` | The whole app on one page: vanilla JS with global functions (~8,300 lines). Most feature work happens here. |
+| `public/index.html` | The whole app on one page: vanilla JS with global functions (~10,300 lines). Most feature work happens here. |
 | `src/portal.js` | Sign-in, campaigns, shared characters, the Party tab, whispers, homebrew sync. esbuild bundles it into `public/portal.js`, which is gitignored and never edited by hand. |
 | `netlify/functions/api.mjs` → `netlify/lib/api.mjs` | Campaign API at `/api/*`. `handle(req, user, db)` holds all the routes. `netlify/lib/diff.mjs` writes the activity feed text. |
 | `netlify/database/migrations/` | Postgres tables, applied automatically on deploy: `campaigns`, `members`, `characters` (versioned jsonb), `activity`, `whispers`, `homebrew`. |
@@ -30,6 +30,9 @@ Live site: https://dungeonmasterforge.netlify.app (Netlify; production branch `m
 | `test/e2e/` | `server.mjs` serves the app, the API and an in-memory database on one port. `fake-identity.js` stands in for Netlify Identity locally. `walkthrough.cjs` is a Playwright walkthrough. |
 | `tools/convert-srd-monsters.py` | Generated the SRD monster data for the Monster Manual. Its `FIXES` list corrects mistakes in the SRD source. |
 | `public/manifest.webmanifest`, `public/sw.js`, `public/icons/` | Install as an app (PWA). See item 27. |
+| `public/player.html` | The TV player screen. It shows only the pictures the DM's window sends. |
+| `test/e2e/*.cjs` | Self-contained Playwright checks for each feature (`npm run test:…`). Each starts its own static server and needs no database. |
+| `docs/superpowers/` | The design and plan for the Dungeon Map upgrade. |
 
 ## Commands
 
@@ -37,6 +40,18 @@ Live site: https://dungeonmasterforge.netlify.app (Netlify; production branch `m
 npm install
 npm test        # API tests (11 should pass)
 npm run build   # bundle src/portal.js -> public/portal.js
+npm run test:backup  # backup and restore checks (Playwright, any OS)
+npm run test:tv  # turn order + handouts on the TV (Playwright, any OS)
+npm run test:mapvis  # map styles, furniture, caves, hover, zoom (Playwright, any OS)
+npm run test:mapio  # map import/export: pictures, VTT files, map files, Foundry/Roll20 (Playwright, any OS)
+npm run test:shop  # shop generator (Playwright, any OS)
+npm run test:random  # random encounters (Playwright, any OS)
+npm run test:cards  # printable spell cards (Playwright, any OS)
+npm run test:mapenc  # map room -> encounter (Playwright, any OS)
+npm run test:calendar  # calendar and weather (Playwright, any OS)
+npm run test:recap  # session recaps (Playwright, any OS)
+npm run test:sheet  # character sheet maths vs the rules, 432 sheets (Playwright, any OS)
+npm run test:tokens  # tokens on the TV map (Playwright, any OS)
 npm run test:map  # map fog + TV player screen checks (Playwright, any OS)
 npm run dev     # full local copy at http://localhost:8899 (any OS); stand-in sign-in, data wiped on Ctrl+C
 ```
@@ -45,7 +60,18 @@ Playwright and Chromium are pre-installed in cloud sessions. To test offline mod
 
 ## Saved data
 
-- **In the browser** (also used by "Use without an account"): `dmforge.pcs.v1` (characters), `dmforge.campaigns.v1`, `dmforge.homebrew.v1`, `dmforge.items.v1`, `dmforge.mymonsters.v1`, `dmforge.favspells`, `dmforge.offline`.
+- **In the browser** (also used by "Use without an account"):
+  - `dmforge.pcs.v1` (characters), `dmforge.campaigns.v1`, `dmforge.homebrew.v1`, `dmforge.items.v1`, `dmforge.mymonsters.v1`, `dmforge.favspells` and `dmforge.offline`.
+  - `dmforge.fog.v1`: map fog, found secret doors and tokens for the 40 most recent maps.
+  - `dmforge.lastBackup`.
+  - **Imported map pictures** are in IndexedDB (database `dmforge-maps`), not localStorage.
+  - The 💾 Backup file covers the keys in `BACKUP_KEYS`, but not the pictures.
+- **Campaign fields added on 2026-11-15** (saved with the campaign, signed in or not):
+  - `cal`, the calendar.
+  - `recapAt` and `recapDay`.
+  - Encounters: `kind` ("random" or "map"), `room` and `recapped`.
+  - Quests: `recappedAs`. Loot and chapters: `recapped`.
+  - Map entries: `style`, `fog`, `found` and `tokens`, plus `kind:"image"` records for imported maps.
 - **Signed in:** characters and homebrew live in Postgres, per campaign. Homebrew is polled every 30 seconds. Every character save bumps `version`, so if two people save the same sheet at once, the second one is asked which version to keep.
 
 ## Feature history (oldest first)
@@ -100,7 +126,16 @@ Playwright and Chromium are pre-installed in cloud sessions. To test offline mod
 
 Items 4 to 14 were merged to `main` on 2026-11-14 (commit `5d44a7b`).
 
-Items 15 to 28 are in **PR #5** (branch `ccr-ee7865d5-1wx9vg`). It's **not merged yet**. It already contains everything on `main` up to `ef08b0c`, the commit that added these notes.
+Items 15 to 28 came from **PR #5**, merged to `main` on 2026-11-15 together with PR #6 (the TV map). At that time the live Netlify site was still on the PR #3 build: Netlify had not published `main` since then.
+
+Everything in the sections from "Dungeon Map looks" to "Tokens" below was built on branch `ccr-aa67926e-f8zxc7` on 2026-11-15, and opened as **PR #7**:
+- map styles
+- map import and export
+- the TV extras
+- shops, random encounters and spell cards
+- the calendar and session recaps
+- the sheet checks and tokens
+- backup and restore
 
 15. **Collapsible toolbar and character sheet upgrade** (PR #5, branch `ccr-ee7865d5-1wx9vg`)
     - **Toolbar:** "▴ Hide tabs" collapses the header (`dmforge.hdrMini`, the `hdr-mini` class on `<html>`); the strip has a tab menu (`hdrSync`).
@@ -177,7 +212,7 @@ Items 15 to 28 are in **PR #5** (branch `ccr-ee7865d5-1wx9vg`). It's **not merge
 
 ## Dungeon Map: player screen and fog (PR #6, 2026-11-15)
 
-- **Design and plan.** The design for the whole map upgrade is in `docs/superpowers/specs/2026-11-15-dungeon-map-upgrade-design.md`. Phase 3, the player screen, was built first, following `docs/superpowers/plans/2026-11-15-player-screen-fog.md`. Phase 1 (visuals) and Phase 2 (import/export) are still to do.
+- **Design and plan.** The design for the whole map upgrade is in `docs/superpowers/specs/2026-11-15-dungeon-map-upgrade-design.md`. Phase 3, the player screen, was built first, following `docs/superpowers/plans/2026-11-15-player-screen-fog.md`. Phase 1 (visuals) and Phase 2 (import/export) are done; see the sections below.
 - **Fog.** A `Uint8Array` with one byte per map square (1 means players can see it).
   - Helpers: `fogKey`, `fogNew` (reveals the entrance), `fogEncode`/`fogDecode` (run-length encoded), `fogRevealRoom`, `fogPaint`, `fogBox`.
   - `fogRevealRoom` adds a 1-square ring around a room, so its walls show. A corridor reveal only uncovers the rock beside the corridor, not the rooms it leads to.
@@ -200,7 +235,162 @@ Items 15 to 28 are in **PR #5** (branch `ccr-ee7865d5-1wx9vg`). It's **not merge
   - Fog autosaves to localStorage `dmforge.fog.v1`, keyed by `fogKey`, keeping the 40 most recent maps.
   - `#mapSave` adds `fog` and `found` to the campaign's map entry. `mapOpenSaved(m)` restores them.
   - Nothing touches Netlify during play.
+- **Turn order and handouts on the TV.**
+  - `hostFrameCanvas()` builds each TV picture:
+    - With `HOST.show === "handout"`, it's the handout canvas.
+    - Otherwise it's the player map with a turn-order bar (`tvDrawInitStrip`) when `HOST.enc = {cid, eid}` is set.
+    - With a fight but no map, it's a large list (`tvInitBoard`). With nothing at all, it's a dark screen.
+  - `tvInitRows(c, e)` is all the TV may know about a fight: `{name, foe, cur, state}`, where state is "", "Bloodied" or "Down". **Never add HP numbers.**
+  - The encounter card's `data-ea="tv"` button toggles `HOST.enc` and starts hosting if needed. `rerenderEnc` re-sends the picture while that fight is on the TV.
+  - Handouts: `handoutPicture(file)` scales a picture to at most 2560px; `handoutWriting(title, text)` draws parchment sized to the text. Both go through `handoutShow`, and `#handoutBack` returns to the map. Pings are ignored while a handout is showing. Handouts aren't saved.
+  - Tests: `npm run test:tv` (`test/e2e/tv.cjs`).
 - **Tests.** Run `npm run test:map` (`test/e2e/map-fog.cjs`). It starts its own static server and needs no database. It waits on `window.tvFrames`, because encoding the PNG is slow in the headless browser.
+
+## Dungeon Map looks (Stage 1, 2026-11-15)
+
+- **Layouts don't change.** `generateDungeon` is untouched. All the new drawing uses its own seeded streams (`makeRng("dress"|"tex"|"ink"|"noise"|"grain", seed, …)`). `npm run test:mapvis` compares the layouts of 18 seed and theme pairs against fingerprints taken before this work.
+- **Styles.** `d.params.style` is `parchment`, `blue` or `dark` (`MAP_STYLES`), set from `#mapStyle` and saved with campaign maps. A missing style means parchment.
+  - Theme colours are in `MAP_BG` and `MAP_FLOOR[theme][parchment, dark]`.
+- **Drawing order.**
+  - `mapBase(d, showGrid, player, found, scale)` draws the grid area and caches it on `d._base`, keeping at most 7 versions. It draws, in order:
+    1. Rock and hatching.
+    2. The floor layer (`mapTexture` for each theme), masked to the dungeon's shape.
+    3. Walls.
+    4. Doors (`mapDrawDoors`).
+    5. Furniture.
+    6. Paper grain and the edge shading.
+    7. Icons (`mapDrawIcons`).
+  - `drawDungeon` then adds room numbers, fog, the header and the legend on top.
+- **Caves.** The floor squares are blurred (`ctx.filter`), and the alpha is thresholded with `mapNoise` into an inner mask (the floor) and an outer mask (the wall ink). When this runs, `d._caveSmooth` is set. Browsers without `ctx.filter` get square walls.
+- **Furniture.** `mapDress(d)` is deterministic and cached on `d._dress`. It picks pieces by room name (`DRESS_BY_NAME`), falling back to the theme (`DRESS_BY_THEME`). `drawProp` draws each piece.
+  - Furniture never covers the 3×3 around the room number, icons, or doorway squares. In caves it only goes on squares surrounded by floor.
+- **Reading the map.**
+  - `MAPUI = {zoom, hover, pan}`, with zoom steps `MAP_ZOOMS`.
+  - `drawMapDM` draws at the shown size, so zooming stays sharp.
+  - `#mapOverlay` holds the hover outline (`mapOverlayDraw`); `mapSetHover` keeps the map and the key in sync.
+  - When not hosting, clicking a room scrolls to its key entry and dragging pans. While hosting, the mouse paints fog instead.
+- **Downloads.** Download PNG and Download player map render fresh at 2× (`mapFileName()`); the player map uses `{player:true, numbers:true}`.
+
+## Dungeon Map import and export (Stage 2, 2026-11-15)
+
+- **Imported maps** are `{kind:"image", id, img (canvas), px, ox, oy, W, H, rooms, walls, params}`. Here `px` is the image's pixels per square and `walls` are segments in squares. `drawDungeon` hands them to `drawImageMap`.
+  - The rooms are numbered markers (`imgRoom`): `cx`/`cy`, `name`, `notes`, `content`, `enc`.
+  - `imgRegrid` recomputes `W`/`H` from `px` and the offsets, and drops markers that fall off the grid.
+- **Pictures** are kept on this computer in IndexedDB (`MAPIMG`, database "dmforge-maps", store "images"), capped at 4096 px (`loadImageCanvas`).
+  - Campaigns store only `imgRecord(d)`, with no picture.
+  - `imgOpenSaved` says so if the picture isn't on this device.
+  - Backups don't include pictures; map files do.
+- **Fog** on imported maps is keyed `img|id|WxH`, so changing the grid starts fresh fog.
+  - `fogNew` starts fully hidden.
+  - `fogRevealRoom` hands off to `fogRevealArea`: a flood fill blocked by walls (from VTT files, with doors counting as walls), capped at 900 squares; with no walls, a circle of radius about 3.
+- **The panel** is `#impPanel`: name, theme for rolled rooms, Squares across (`#impAcross`), the nudge sliders (`#impOffX`/`#impOffY`), and Place rooms (`#impPlace`).
+  - Placing uses `imgDown`/`imgMove`/`imgUp` through `MAPUI.drag`.
+  - The key comes from `imageKeyHTML`, with `data-imf` fields and `data-ima` roll/delete buttons. `rollRoomContents` copies the generator's rules for ordinary rooms.
+- **Files.**
+  - **Map files:** `{app:"dmforge-map", v:1, map, image?}`. For a generated map, `map` holds its params plus fog. For an imported one, it's `imgRecord`, fog and the picture as a data URL.
+  - **Universal VTT import** (`#mapImportVtt`) reads `resolution`, `line_of_sight`, `objects_line_of_sight`, `portals` and `image`.
+  - **VTT export** (`#mapExportVtt`) writes `.dd2vtt`:
+    - The picture comes from `mapVttPicture` at 100 px per square; it's the players' version.
+    - Walls come from `mapVttWalls`, with runs merged and unfound secret doors written as walls.
+    - Doors become portals (`mapDoorEdge`).
+  - **Roll20** (`#mapExportRoll20`) is a 70 px per square PNG.
+- **Tests:** `npm run test:mapio` (`test/e2e/map-import.cjs`).
+
+## Shops (2026-11-15)
+
+- **Making a shop.** `shopMake({type, size, level, seed, ed})` builds a shop from `IT.data`, and the same seed always gives the same shop. It returns `{name, label, keeper, mood, stock}`, with each stock item as `{id, n, cat, g, kind, rk, gp, c, qty}`.
+  - **Shop kinds** are in `SHOPS` (`general`, `smith`, `bowyer`, `alchemist`, `magic`, `temple`). Each has a `gear` filter, a `magic` filter, and stock counts for village, town and city.
+  - **Magic rarity** is capped by settlement and level: villages sell up to uncommon; towns up to rare from level 5; cities up to very rare from level 11.
+  - **Prices:** the shopkeeper's manner (`SHOP_MOODS`) scales them, and `shopNiceGp` rounds them.
+- **On the page.** `#itShopBtn` opens it in `#itShop` on the Items tab, through `shopNew` and `shopRender`. The shop is held in `IT.shop` and isn't saved.
+  - Buy calls the existing `itBuy` with the shop's price, and lowers `qty` only if the coins actually changed.
+- **Tests:** `npm run test:shop` (`test/e2e/shop.cjs`).
+
+## Random encounters (2026-11-15)
+
+- **Building a fight.** `randomEncounter(rng, env, level, party, diff)` picks monsters from the 2014 Monster Manual data (`randMonsters()`, which reads `#monsterData`), filtered by their `env` tags. It sizes the group against `partyThr` with the usual `mult` multiplier, capped at 1.5× the target. It returns `{groups, hook}`.
+  - When nothing fits, it falls back to the weakest monster that lives there.
+- **On the page.** `randHTML()` draws the controls at the top of the Encounters tab: `#randEnv`, `#randDiff` and `#randRoll`, with the current choices kept in `RAND`.
+  - `randRoll(c)` creates the encounter with `kind:"random"` and the hook in its notes, and takes AC and HP from the Monster Manual.
+- **Places** are listed in `RAND_ENVS`; the hooks in `RAND_HOOKS`.
+- **Tests:** `npm run test:random` (`test/e2e/random-enc.cjs`).
+
+## Spell cards (2026-11-15)
+
+- **How it works.** `openSpellCards(c)` makes one card per prepared spell (`spellCardHTML`) in the item-card style (`ITEMCARD_CSS`), opened through `openOverlay` with a downloadable HTML file. The `data-ra="cards"` button is on My Characters.
+- **The `.ds` clash.** `.icard .ds` resets the death-save dot style that shares the `.ds` class name. Before this fix, card text was squeezed into a 13 px column, in item cards too.
+- **Tests:** `npm run test:cards` (`test/e2e/spell-cards.cjs`).
+
+## Map rooms to encounters (2026-11-15)
+
+- **The button.** `roomKeyHTML` and `imageKeyHTML` add `mapRunBtn(i)` under any room with an `enc`.
+- **What it does.** `mapRunEncounter(i)` parses `o.enc.text` with `parseEncText` and adds a `kind:"map"` encounter to the campaign picked in `#mapCampaign` (`curCampForMap()`).
+  - While hosting, it also reveals the room (with an undo snapshot) and sets `HOST.enc` so the turn order shows on the TV.
+- **Tests:** `npm run test:mapenc` (`test/e2e/map-enc.cjs`).
+
+## Calendar and weather (2026-11-15)
+
+- **Data.** `c.cal = {day, min, climate, season, weather, log}`. `calEnsure(c)` creates it, `calAdvance(c, minutes, note)` moves the clock and rolls each new day's weather, and `calLog` keeps the 200 most recent entries.
+- **Weather.** `calWeather(seed, day, climate, season)` follows the usual d20 tables for temperature, wind and precipitation, seeded by campaign and day. It returns `{day, f, sky, text, effects}`.
+  - `effects` holds the rules text for strong wind, heavy rain or snow, extreme cold and extreme heat.
+  - Climates are in `CAL_CLIMATES`; the season changes every 91 days (`calSeason`).
+- **On the page.** The Campaign Tracker has a "Calendar" sub-tab (`calHTML`), with `data-cal` buttons and the `#calClimate`, `#calSeason` and `#calDay` fields.
+- **Tests:** `npm run test:calendar` (`test/e2e/calendar.cjs`).
+
+## Session recaps (2026-11-15)
+
+- **What goes in.** `recapMake(c)` collects everything since `c.recapAt`, and returns `{text, empty, mark()}`:
+  - fights with status Done or with XP awarded, unless they have `e.recapped`
+  - quests that are Completed or Failed, unless `q.recappedAs` already matches their status
+  - chapters that are done, unless they have `ch.recapped`
+  - loot with `givenTo`, unless it has `l.recapped`
+  - calendar log entries newer than `c.recapAt`
+- **Marking.** `mark()` sets those flags plus `c.recapAt` and `c.recapDay`, so the next recap only has what's new.
+- **On the page.** `recapWrite(c)` adds `{title:"Session N", num, date, summary}` to `c.sessions` (newest first). `recapBarHTML()` adds the `#recapBtn` bar to the top of the Sessions tab.
+- **Tests:** `npm run test:recap` (`test/e2e/recap.cjs`).
+
+## Sheet maths checks and rules fixes (2026-11-15)
+
+- **The checks.** `npm run test:sheet` (`test/e2e/sheet-maths.cjs`) generates 432 sheets: both rule sets, all 12 classes, 9 levels and 2 seeds each. It checks them against rules written out independently of the app:
+  - proficiency bonus, ability modifiers and the 3 to 20 score range
+  - class saving throws, allowing for Gloom Stalker, Monk 14+, Rogue 15+ and Resilient
+  - average HP, leaving out Tough, Boon of Fortitude, dwarves and Draconic, which is checked separately
+  - skills, including expertise, Jack of All Trades and 2014 Remarkable Athlete
+  - initiative (`initBonus` already includes Alert)
+  - passive Perception and spell DC and attack
+  - spell slots for full, half (2024 from level 1) and pact casters
+  - `pcLevelTo` keeping base scores and skills
+- **Bugs fixed:**
+  - Removed `hpBonus: 1` from `CLASS_DATA.Sorcerer`. Draconic HP comes only from `subBonuses`.
+  - `athleteBonus` and the initiative lines now round Remarkable Athlete up.
+  - 2014 Jack of All Trades now adds to initiative, in the generator and in the `pcRecompute` init line.
+  - 2024 half casters now get slots at level 1.
+- **When you change sheet maths, run `npm run test:sheet`.**
+
+## Tokens on the TV map (2026-11-15)
+
+- **Data.** `HOST.tokens` holds `[{id, name, kind: "pc"|"foe"|"npc", x, y}]`.
+  - Locally they're saved in the fog store (the `k` field, through `fogStorePut(key, fog, found, tokens)`). Campaign map entries carry `tokens` too.
+  - `hostLoad` restores them for the map.
+- **Drawing.** `drawDungeon` and `drawImageMap` call `mapDrawTokens(g, o.tokens)` before the fog, so tokens in fogged squares are hidden from players.
+  - `tokenView()` adds `state` ("Bloodied"/"Down") for monsters, taken from the fight on the TV (`hostEnc`) by name. **No HP numbers.**
+- **Adding and moving.** `tokAdd(name, kind, room)` places a token on the nearest free floor square (`tokFree`).
+  - `#tokParty` takes the party from the campaign picked in `#mapCampaign`, or from My Characters.
+  - `#tokFight` takes the monsters of the fight on the TV, placed in its map room (`e.room`, set by `mapRunEncounter`).
+  - The Tokens fog tool (`value="token"`) drags them through `HOST.tokDrag`. `#tokList` lists them with remove buttons.
+- **Tests:** `npm run test:tokens` (`test/e2e/tokens.cjs`).
+
+## Backup and restore (2026-11-15)
+
+- **💾 Backup** (`#backupBtn`, beside the storage badge) appears only in browser-only mode; `setBadge` hides it when `Store.mode === "db"`. It opens `#backupModal`.
+- **The file format:** `{app:"dmforge-backup", v:1, made, data:{key: raw localStorage string}}`, holding the keys in `BACKUP_KEYS`.
+  - **When you add a new kind of saved data, add its key to `BACKUP_KEYS`.**
+  - Settings are left out on purpose: offline mode, the header, What's new, and the portal's keys.
+- **Functions:** `backupMake`, `backupSummary`, `backupInfo`, `backupOpen`/`backupClose` and `backupRestore(file)`.
+  - Restoring checks the `app` marker, asks with `confirmBox`, writes every key in `BACKUP_KEYS` (removing ones the backup doesn't have) and reloads.
+  - The last download time is kept in `dmforge.lastBackup`.
+- **Downloads:** `saveFile` now falls back to a normal browser download (Blob and `<a download>`) when the Claude `downloads` helper isn't there. Before this, Download PNG and Export JSON did nothing on the website.
+- **Tests:** `npm run test:backup` (`test/e2e/backup.cjs`).
 
 ## How a character is built (read this before changing sheet maths)
 
@@ -251,3 +441,10 @@ From PR #5:
 - In Chromium tests the service worker takes control after the first load; `ctx.setOffline(true)` checks the offline copy.
 - `npm run dev` keeps its accounts and campaigns until it's stopped. Restart it before running `test/e2e/walkthrough.cjs` again, or the walkthrough times out waiting for the sign-in form.
 - Opening `public/index.html` straight from disk (`file://`) blocks `portal.js`. Test through `npm run dev` or another local server.
+- The browser checks share a pattern:
+  - Bring the DM page to the front (`bringToFront`) after the TV pop-up opens, or its timers are throttled.
+  - Wait for the next TV picture through `window.tvFrames` instead of fixed sleeps.
+  - Scroll the map canvas below the sticky header before clicking cells.
+  - `test:map` still fails about one run in four on TV picture timing. Rerun it before suspecting the app.
+- **Comments in one-line functions:** a `//` comment swallows the rest of the line, including closing braces. Use `/* … */` there. This once broke the whole page.
+- **The `.ds` class** is the death-save dot. Don't reuse it for anything else.
