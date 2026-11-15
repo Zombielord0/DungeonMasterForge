@@ -4139,7 +4139,7 @@ const CLASS_DATA = {
   Paladin: { hd: 10, pri: ["str", "cha", "con"], saves: ["wis", "cha"], skills: [["Athletics", "Insight", "Intimidation", "Medicine", "Persuasion", "Religion"], 2], ac: () => [18, "Chain mail + shield"], kit: ["Longsword", "Shield", "Chain mail", "Five javelins", "Holy symbol", "Priest's pack"], wpn: ["Longsword", "1d8", "str"], f: { 1: ["Divine Sense", "Lay on Hands"], 2: ["Fighting Style", "Spellcasting", "Divine Smite"], 3: ["Divine Health", "Sacred Oath"], 5: ["Extra Attack"], 6: ["Aura of Protection"], 10: ["Aura of Courage"], 11: ["Improved Divine Smite"], 14: ["Cleansing Touch"] }, sub: ["Oath of Devotion", 3], cast: ["half", "cha"] },
   Ranger: { hd: 10, pri: ["dex", "wis", "con"], saves: ["str", "dex"], skills: [["Animal Handling", "Athletics", "Insight", "Investigation", "Nature", "Perception", "Stealth", "Survival"], 3], ac: (m) => [11 + m.dex, "Leather armor"], kit: ["Longbow + 20 arrows", "Two shortswords", "Leather armor", "Explorer's pack"], wpn: ["Longbow", "1d8", "dex"], f: { 1: ["Favored Enemy", "Natural Explorer"], 2: ["Fighting Style", "Spellcasting"], 3: ["Ranger Archetype", "Primeval Awareness"], 5: ["Extra Attack"], 8: ["Land's Stride"], 10: ["Hide in Plain Sight"], 14: ["Vanish"], 18: ["Feral Senses"], 20: ["Foe Slayer"] }, sub: ["Hunter", 3], cast: ["half", "wis"] },
   Rogue: { hd: 8, pri: ["dex", "con", "wis"], saves: ["dex", "int"], skills: [["Acrobatics", "Athletics", "Deception", "Insight", "Intimidation", "Investigation", "Perception", "Performance", "Persuasion", "Sleight of Hand", "Stealth"], 4], ac: (m) => [11 + m.dex, "Leather armor"], kit: ["Rapier", "Shortbow + 20 arrows", "Leather armor", "Two daggers", "Thieves' tools", "Burglar's pack"], wpn: ["Rapier", "1d8", "dex"], f: { 1: ["Expertise", "Sneak Attack", "Thieves' Cant"], 2: ["Cunning Action"], 3: ["Roguish Archetype"], 5: ["Uncanny Dodge"], 6: ["Expertise"], 7: ["Evasion"], 11: ["Reliable Talent"], 14: ["Blindsense"], 15: ["Slippery Mind"], 18: ["Elusive"], 20: ["Stroke of Luck"] }, sub: ["Thief", 3], asi: [4, 8, 10, 12, 16, 19], expertise: [[1, 2], [6, 2]] },
-  Sorcerer: { hd: 6, pri: ["cha", "con", "dex"], saves: ["con", "cha"], skills: [["Arcana", "Deception", "Insight", "Intimidation", "Persuasion", "Religion"], 2], ac: (m) => [10 + m.dex, "No armor (Mage Armor: " + (13 + m.dex) + ")"], kit: ["Light crossbow + 20 bolts", "Two daggers", "Arcane focus", "Dungeoneer's pack"], wpn: ["Light crossbow", "1d8", "dex"], f: { 1: ["Spellcasting", "Sorcerous Origin"], 2: ["Font of Magic"], 3: ["Metamagic"], 20: ["Sorcerous Restoration"] }, sub: ["Draconic Bloodline", 1], cast: ["full", "cha"], hpBonus: 1 },
+  Sorcerer: { hd: 6, pri: ["cha", "con", "dex"], saves: ["con", "cha"], skills: [["Arcana", "Deception", "Insight", "Intimidation", "Persuasion", "Religion"], 2], ac: (m) => [10 + m.dex, "No armor (Mage Armor: " + (13 + m.dex) + ")"], kit: ["Light crossbow + 20 bolts", "Two daggers", "Arcane focus", "Dungeoneer's pack"], wpn: ["Light crossbow", "1d8", "dex"], f: { 1: ["Spellcasting", "Sorcerous Origin"], 2: ["Font of Magic"], 3: ["Metamagic"], 20: ["Sorcerous Restoration"] }, sub: ["Draconic Bloodline", 1], cast: ["full", "cha"] },
   Warlock: { hd: 8, pri: ["cha", "con", "dex"], saves: ["wis", "cha"], skills: [["Arcana", "Deception", "History", "Intimidation", "Investigation", "Nature", "Religion"], 2], ac: (m) => [11 + m.dex, "Leather armor"], kit: ["Light crossbow + 20 bolts", "Leather armor", "Two daggers", "Arcane focus", "Scholar's pack"], wpn: ["Light crossbow", "1d8", "dex"], f: { 1: ["Otherworldly Patron", "Pact Magic"], 2: ["Eldritch Invocations"], 3: ["Pact Boon"], 11: ["Mystic Arcanum"], 20: ["Eldritch Master"] }, sub: ["The Fiend", 1], cast: ["pact", "cha"] },
   Wizard: { hd: 6, pri: ["int", "con", "dex"], saves: ["int", "wis"], skills: [["Arcana", "History", "Insight", "Investigation", "Medicine", "Religion"], 2], ac: (m) => [10 + m.dex, "No armor (Mage Armor: " + (13 + m.dex) + ")"], kit: ["Quarterstaff", "Spellbook", "Arcane focus", "Scholar's pack"], wpn: ["Quarterstaff", "1d6", "str"], f: { 1: ["Spellcasting", "Arcane Recovery"], 2: ["Arcane Tradition"], 18: ["Spell Mastery"], 20: ["Signature Spells"] }, sub: ["School of Evocation", 2], cast: ["full", "int"] }
 };
@@ -4529,7 +4529,7 @@ function subBonuses(ed, sub, lv, m, prof) {
 const subBonusOf = c => subBonuses(edOf(c), c.subclass, c.level, c.mods, c.prof);
 // Iron Mind: Wisdom saves, or Intelligence / Charisma if already proficient
 function subAddSaves(saves, B) { B.saves.forEach(a => { const pick = [a, "int", "cha"].find(x => !saves.includes(x)); if (pick) saves.push(pick); }); return saves; }
-const athleteBonus = (B, s, prof) => B.athlete && !s.p && ["str", "dex", "con"].includes(s.ab) ? Math.floor(prof / 2) : 0;
+const athleteBonus = (B, s, prof) => B.athlete && !s.p && ["str", "dex", "con"].includes(s.ab) ? Math.ceil(prof / 2) : 0; // 2014 Remarkable Athlete rounds up
 // bring a saved character's subclass numbers up to date; the hit point and speed bonuses are tracked so they're applied once
 function pcSubNumbers(c) {
   const B = subBonusOf(c), before = JSON.stringify([c.hp, c.hpCur, c.speed, c.saves, c.ac, c.acSrc]);
@@ -5340,7 +5340,7 @@ function generateCharacter(o) {
   if (C.cast) {
     const [kind, sa] = C.cast; let slots = [], note = "";
     if (kind === "full") slots = FULL_SLOTS[lv];
-    else if (kind === "half") slots = lv >= 2 ? FULL_SLOTS[Math.ceil(lv / 2)] : [];
+    else if (kind === "half") slots = lv >= 2 || ed === "2024" ? FULL_SLOTS[Math.ceil(lv / 2)] : []; // 2024 half casters get Spellcasting at level 1
     else { const n = lv >= 17 ? 4 : lv >= 11 ? 3 : lv >= 2 ? 2 : 1, sl = Math.min(5, Math.ceil(lv / 2)); note = `${n} pact slot${n > 1 ? "s" : ""} of level ${sl}, regained on a short rest`; }
     const max = kind === "pact" ? Math.min(5, Math.ceil(lv / 2)) : Math.max(1, slots.length);
     const sb = fxSum("spell");
@@ -5406,7 +5406,7 @@ function generateCharacter(o) {
   return {
     seed: o.seed, method: o.method, bonus: o.bonus, name: pcName, gender, race, ed, sub, ancestry: anc, subclass, custom: !!o.custom, customData: o.custom || null, cls, bg, level: lv, align: (o.custom && o.custom.align) || r.pick(ALIGN), base, scores: sc, mods: m, rolls,
     prof, saves, skills: skillVals, hp, ac, acSrc, speed: R.speed + fxSum("speed") + SB.speed + (C.f && Object.entries(C.f).some(([l, L]) => +l <= lv && L.includes("Unarmored Movement")) ? unarmoredMove(lv) : 0) + (cls === "Barbarian" && lv >= 5 ? 10 : 0) + (hasFeat("Mobile") || hasFeat("Speedy") ? 10 : 0) + (hasFeat("Boon of Speed") ? 30 : 0),
-    init: m.dex + initBonus + SB.init + (SB.athlete ? Math.floor(prof / 2) : 0), initBonus, atkBonus, hbAc, hbSpeed: fxSum("speed"), hbSig: fx.length ? JSON.stringify(fx) : "",
+    init: m.dex + initBonus + SB.init + (SB.athlete ? Math.ceil(prof / 2) : 0) + (jack && ed === "2014" ? Math.floor(prof / 2) : 0) /* 2014 Jack of All Trades counts on initiative, a Dexterity check */, initBonus, atkBonus, hbAc, hbSpeed: fxSum("speed"), hbSig: fx.length ? JSON.stringify(fx) : "",
     ...Object.fromEntries(["res", "imm", "vul", "cimm"].map(t => [t, [...new Set([...fx.filter(e => e.t === t).map(e => e.a), ...(t === "res" ? traitRes(R.traits, anc, ed) : [])])].sort()])),
     sadv: [...new Set([...traitSadv(R.traits), ...fx.filter(e => e.t === "sadv").map(e => e.a)])], passive: 10 + skillVals.find(s => s.s === "Perception").v, subHp: SB.hp, subSpd: SB.speed,
     attacks, spell, feats, extras, traits: R.traits.filter(t => !RL.hidden.has(t)), kit: [...C.kit, ...((BGI && BGI.gear && !(bgGold50 && ed === "2024")) ? BGI.gear : [])], startGold: bgGold50 && ed === "2024" && BGI && !BGI.hb ? 50 : (BGI && BGI.gp) || 0, bgGold50: bgGold50 || undefined, bgV: 2, skilled, expertOrder, multi: MC.length ? MC : undefined, totalLevel: TL, mcSkills, hdList: [C.hd, ...MC.map(x => CLASS_DATA[x.cls].hd)], bgAsiLegacy: o.bgAsiLegacy || undefined, hd: C.hd,
@@ -8174,7 +8174,7 @@ const RC = { id: null };
 function rosterCur() { return PCS.roster.find(c => c.id === RC.id) || PCS.roster[0] || null; }
 function pcRecompute(c) {
   const m = {}; AB.forEach(a => m[a] = mod(+c.scores[a] || 10)); c.mods = m; const SB = subBonusOf(c);
-  c.init = m.dex + (c.initBonus ?? ((c.feats || []).some(f => f.f === "Feat: Alert") ? (edOf(c) === "2024" ? c.prof : 5) : 0)) + SB.init + (SB.athlete ? Math.floor(c.prof / 2) : 0);
+  c.init = m.dex + (c.initBonus ?? ((c.feats || []).some(f => f.f === "Feat: Alert") ? (edOf(c) === "2024" ? c.prof : 5) : 0)) + SB.init + (SB.athlete ? Math.ceil(c.prof / 2) : 0) + (c.cls === "Bard" && c.level >= 2 && edOf(c) === "2014" ? Math.floor(c.prof / 2) : 0);
   const jack = c.cls === "Bard" && c.level >= 2;
   c.skills.forEach(s => s.v = m[s.ab] + (s.x ? c.prof * 2 : s.p ? c.prof : jack ? Math.floor(c.prof / 2) : 0) + athleteBonus(SB, s, c.prof));
   const per = c.skills.find(s => s.s === "Perception"); c.passive = 10 + (per ? per.v : m.wis);
@@ -10149,6 +10149,11 @@ Store.init().then(() => { renderCampList(); pcAdoptRemote(); itemsAdopt(); if (l
 <script>
 /* ---- what's new: newest first. Add an entry (with a new id) whenever a change ships; the bell counts entries this browser hasn't seen. ---- */
 const NEWS = [
+  { id: "2026-11-15-rulesfix", date: "2026-11-15", title: "Character sheet rules fixes", go: "roster", items: [
+    "Sorcerers were getting 1 extra hit point per level (Draconic sorcerers got their bonus twice). Their HP is corrected the next time the sheet is levelled or rebuilt.",
+    "2024 paladins and rangers now have their two spell slots at level 1.",
+    "2014 bards add Jack of All Trades to initiative, and 2014 Champion fighters' Remarkable Athlete now rounds up as the rules say.",
+    "The sheet maths is now checked automatically against the rules for every class and level."] },
   { id: "2026-11-15-recap", date: "2026-11-15", title: "Session recaps", go: "tracker", items: [
     "On a campaign's Sessions tab, press Write a recap. It gathers the fights you finished, XP, quests done or failed, chapters, loot handed out and the calendar's log since last time.",
     "It's saved as a new session that you can edit, ready to share with your players."] },

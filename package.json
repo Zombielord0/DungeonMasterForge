@@ -16,7 +16,8 @@
     "test:cards": "node test/e2e/spell-cards.cjs",
     "test:mapenc": "node test/e2e/map-enc.cjs",
     "test:calendar": "node test/e2e/calendar.cjs",
-    "test:recap": "node test/e2e/recap.cjs"
+    "test:recap": "node test/e2e/recap.cjs",
+    "test:sheet": "node test/e2e/sheet-maths.cjs"
   },
   "dependencies": {
     "@netlify/database": "^2.0.3",

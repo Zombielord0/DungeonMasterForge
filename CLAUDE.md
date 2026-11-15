@@ -47,6 +47,7 @@ npm run test:cards  # printable spell cards (Playwright, any OS)
 npm run test:mapenc  # map room -> encounter (Playwright, any OS)
 npm run test:calendar  # calendar and weather (Playwright, any OS)
 npm run test:recap  # session recaps (Playwright, any OS)
+npm run test:sheet  # character sheet maths vs the rules, 432 sheets (Playwright, any OS)
 npm run test:map  # map fog + TV player screen checks (Playwright, any OS)
 npm run dev     # full local copy at http://localhost:8899 (any OS); stand-in sign-in, data wiped on Ctrl+C
 ```
@@ -323,6 +324,24 @@ Items 15 to 28 came from **PR #5**, merged to `main` on 2026-11-15 together with
 - **Marking.** `mark()` sets those flags plus `c.recapAt` and `c.recapDay`, so the next recap only has what's new.
 - **On the page.** `recapWrite(c)` adds `{title:"Session N", num, date, summary}` to `c.sessions` (newest first). `recapBarHTML()` adds the `#recapBtn` bar to the top of the Sessions tab.
 - **Tests:** `npm run test:recap` (`test/e2e/recap.cjs`).
+
+## Sheet maths checks and rules fixes (2026-11-15)
+
+- **The checks.** `npm run test:sheet` (`test/e2e/sheet-maths.cjs`) generates 432 sheets: both rule sets, all 12 classes, 9 levels and 2 seeds each. It checks them against rules written out independently of the app:
+  - proficiency bonus, ability modifiers and the 3 to 20 score range
+  - class saving throws, allowing for Gloom Stalker, Monk 14+, Rogue 15+ and Resilient
+  - average HP, leaving out Tough, Boon of Fortitude, dwarves and Draconic, which is checked separately
+  - skills, including expertise, Jack of All Trades and 2014 Remarkable Athlete
+  - initiative (`initBonus` already includes Alert)
+  - passive Perception and spell DC and attack
+  - spell slots for full, half (2024 from level 1) and pact casters
+  - `pcLevelTo` keeping base scores and skills
+- **Bugs fixed:**
+  - Removed `hpBonus: 1` from `CLASS_DATA.Sorcerer`. Draconic HP comes only from `subBonuses`.
+  - `athleteBonus` and the initiative lines now round Remarkable Athlete up.
+  - 2014 Jack of All Trades now adds to initiative, in the generator and in the `pcRecompute` init line.
+  - 2024 half casters now get slots at level 1.
+- **When you change sheet maths, run `npm run test:sheet`.**
 
 ## Backup and restore (2026-11-15)
 
