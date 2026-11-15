@@ -151,6 +151,12 @@ ul.plain{margin:4px 0 0;padding-left:20px}
 .shop-tbl td{padding:4px 6px;border-bottom:1px solid rgba(0,0,0,.3)}
 .shop-tbl td:nth-child(2),.shop-tbl td:nth-child(3){white-space:nowrap}
 .shop-tbl tr.sold{opacity:.45}
+.cal-now{display:flex;gap:18px;align-items:flex-start;flex-wrap:wrap;margin-bottom:12px}
+.cal-day{font-family:Cinzel,serif;font-size:30px;font-weight:700;color:var(--gold);line-height:1.1}
+.cal-day span{display:block;font-family:'Crimson Pro',Georgia,serif;font-size:17px;font-weight:400;color:var(--muted)}
+.cal-wx{flex:1;min-width:240px;font-size:17px}.cal-wx ul{margin:6px 0 0;padding-left:18px;font-size:15px;color:#e6c08a}
+.cal-btns{flex-wrap:wrap;gap:6px}.cal-btns .btn{flex:0 0 auto}.cal-travel{display:inline-flex;gap:6px;align-items:center}.cal-travel input{width:70px}
+.cal-log{list-style:none;margin:0;padding:0}.cal-log li{padding:4px 0;border-bottom:1px solid rgba(0,0,0,.35)}
 .rand-enc{padding:10px 14px;margin-bottom:12px}
 .key-room.hl{background:rgba(232,163,61,.12);box-shadow:inset 3px 0 0 #e8a33d}
 #mapCanvas.fogging{cursor:crosshair;touch-action:none}
@@ -3291,7 +3297,7 @@ function renderTracker() {
   registerBestiary(c);
   const done = c.chapters.filter(x => x.done).length, tot = c.chapters.length, pct = tot ? Math.round(done / tot * 100) : 0;
   const active = c.quests.filter(q => q.status === "Active").length;
-  const tabs = [["overview", "Overview"], ["encounters", "Encounters", (c.encounters || []).length], ["sessions", "Sessions", c.sessions.length], ["party", "Party", c.party.length], ["npcs", "NPCs", c.npcs.length], ["quests", "Quests", c.quests.length], ["loot", "Loot", c.loot.length], ["notes", "Notes"], ["maps", "Maps", (c.maps || []).length]];
+  const tabs = [["overview", "Overview"], ["encounters", "Encounters", (c.encounters || []).length], ["sessions", "Sessions", c.sessions.length], ["party", "Party", c.party.length], ["npcs", "NPCs", c.npcs.length], ["quests", "Quests", c.quests.length], ["loot", "Loot", c.loot.length], ["notes", "Notes"], ["maps", "Maps", (c.maps || []).length], ["calendar", "Calendar"]];
   let h = `<div class="card">
     <div class="row" style="align-items:flex-start"><input class="title-input" type="text" data-field="name" value="${esc(c.name)}" aria-label="Campaign name">
       <div style="flex:0 0 auto;display:flex;gap:6px"><button class="btn sm" id="exportCamp">Export JSON</button><button class="btn sm danger" id="delCamp">Delete</button></div></div>
@@ -3308,6 +3314,7 @@ function renderTracker() {
 }
 function renderSub(c) {
   if (subTab === "encounters") return renderEncounters(c);
+  if (subTab === "calendar") return calHTML(c);
   if (subTab === "overview") {
     return `<div class="sec-h"><h3>${c.gen && c.gen.outline.kind === "oneshot" ? "Scenes" : "Chapters"}</h3><span class="sp"></span><button class="btn sm" data-add="chapters">+ Add</button></div>
       ${c.chapters.length ? c.chapters.map(ch => `<div class="chapter ${ch.done ? "done" : ""}"><input type="checkbox" data-list="chapters" data-id="${ch.id}" data-key="done" ${ch.done ? "checked" : ""} aria-label="Completed"><div class="body"><input type="text" class="ch-title" data-list="chapters" data-id="${ch.id}" data-key="title" value="${esc(ch.title)}" placeholder="Chapter title" style="font-weight:600"><textarea data-list="chapters" data-id="${ch.id}" data-key="note" placeholder="Notes for this chapter" class="ch-note" style="min-height:90px;margin-top:6px">${esc(ch.note)}</textarea><button class="btn sm" type="button" data-goenc="${ch.id}" style="margin-top:6px">⚔ Encounters (${(c.encounters || []).filter(x => x.chId === ch.id).length})</button></div><button class="icon-btn" data-del="chapters" data-id="${ch.id}" title="Remove">✕</button></div>`).join("") : `<p class="muted">Add chapters or story beats and tick them off as the party completes them.</p>`}
@@ -3373,6 +3380,73 @@ $("#importFile").addEventListener("change", async e => {
   } catch { toast("That file isn't a Forge campaign export"); }
 });
 const campMain = $("#campMain");
+/* ======================= Calendar and weather =======================
+   c.cal = {day, min (minutes since midnight), climate, season (the season on day 1), weather, log: [{day, min, text, at}]}.
+   Weather follows the usual d20 tables (temperature, wind, precipitation), seeded by campaign and day so a day's weather never changes. */
+const CAL_SEASONS = ["spring", "summer", "autumn", "winter"];
+const CAL_CLIMATES = { temperate: ["Temperate", [55, 75, 55, 30]], cold: ["Cold (north, mountains)", [35, 50, 30, 5]], hot: ["Hot (desert, south)", [85, 100, 85, 70]], wet: ["Wet (jungle, coast)", [75, 82, 75, 68]] };
+function calEnsure(c) { if (!c.cal) c.cal = { day: 1, min: 8 * 60, climate: "temperate", season: "spring", weather: null, log: [] }; if (!c.cal.weather) c.cal.weather = calWeather(c.id, c.cal.day, c.cal.climate, calSeason(c.cal)); return c.cal; }
+function calSeason(cal) { return CAL_SEASONS[(CAL_SEASONS.indexOf(cal.season || "spring") + Math.floor((cal.day - 1) / 91)) % 4]; }
+function calTime(min) {
+  const h = Math.floor(min / 60) % 24, m = min % 60, part = h < 5 ? "Night" : h < 7 ? "Dawn" : h < 12 ? "Morning" : h < 14 ? "Midday" : h < 18 ? "Afternoon" : h < 21 ? "Evening" : "Night";
+  return `${part}, ${h}:${String(m).padStart(2, "0")}`;
+}
+function calWeather(seed, day, climate, season) {
+  const r = makeRng("weather", seed, day, climate), base = (CAL_CLIMATES[climate] || CAL_CLIMATES.temperate)[1][CAL_SEASONS.indexOf(season)] ?? 55;
+  const tr = r.int(1, 20), f = base + (tr >= 18 ? r.int(1, 4) * 10 : tr >= 15 ? -r.int(1, 4) * 10 : r.int(-5, 5));
+  const wr = r.int(1, 20), wind = wr >= 18 ? "strong" : wr >= 13 ? "light" : "none";
+  const pr = r.int(1, 20) + (climate === "wet" ? 3 : climate === "hot" ? -4 : 0), precip = pr >= 18 ? "heavy" : pr >= 13 ? "light" : "none";
+  const snow = f <= 32, c = Math.round((f - 32) * 5 / 9);
+  const tempWord = f <= 0 ? "Bitterly cold" : f <= 32 ? "Freezing" : f <= 50 ? "Cold" : f <= 65 ? "Cool" : f <= 80 ? "Mild" : f < 100 ? "Hot" : "Scorching";
+  const sky = precip === "none" ? (wind === "strong" ? "windswept and clear" : r.chance(.5) ? "clear skies" : "clouds") : `${precip === "heavy" ? "heavy" : "light"} ${snow ? "snow" : "rain"}`;
+  const effects = [];
+  if (wind === "strong") effects.push("Strong wind: disadvantage on ranged weapon attacks and on Perception checks that rely on hearing; open flames go out; flying creatures must land at the end of their turn or fall.");
+  if (precip === "heavy") effects.push(`Heavy ${snow ? "snow" : "rain"}: everything is lightly obscured, with disadvantage on Perception checks that rely on sight; open flames go out.`);
+  if (f <= 0) effects.push("Extreme cold: each hour outside, a DC 10 Constitution save or gain a level of exhaustion, unless dressed for the cold or resistant to cold.");
+  if (f >= 100) effects.push("Extreme heat: each hour without water, a Constitution save (DC 5, +1 for each further hour) or gain a level of exhaustion; medium or heavy armour gives disadvantage.");
+  const icon = precip !== "none" ? (snow ? "❄️" : "🌧") : wind === "strong" ? "💨" : f >= 90 ? "🔥" : sky === "clouds" ? "☁️" : "☀️";
+  return { day, f, sky: sky + (wind === "strong" ? ", strong wind" : ""), text: `${icon} ${tempWord} (${f}°F / ${c}°C), ${sky}${wind === "light" ? ", a light breeze" : wind === "strong" ? ", strong wind" : ""}`, effects };
+}
+function calLog(cal, text) { cal.log.unshift({ day: cal.day, min: cal.min, text, at: Date.now() }); if (cal.log.length > 200) cal.log.length = 200; }
+function calAdvance(c, minutes, note) {
+  const cal = calEnsure(c); cal.min += minutes;
+  while (cal.min >= 1440) { cal.min -= 1440; cal.day++; cal.weather = calWeather(c.id, cal.day, cal.climate, calSeason(cal)); }
+  if (note) calLog(cal, note);
+}
+function calHTML(c) {
+  const cal = calEnsure(c), w = cal.weather;
+  return `<div class="cal-now" id="calNow"><div class="cal-day">Day ${cal.day}<span>${cap1(calSeason(cal))} · ${calTime(cal.min)}</span></div><div class="cal-wx">${esc(w.text)}${w.effects.length ? `<ul>${w.effects.map(e => `<li>${esc(e)}</li>`).join("")}</ul>` : ""}</div></div>
+    <div class="row cal-btns"><button class="btn sm" type="button" data-cal="10m">+10 min</button><button class="btn sm" type="button" data-cal="1h">+1 hour</button><button class="btn sm" type="button" data-cal="short">Short rest (1 h)</button><button class="btn sm" type="button" data-cal="long">Long rest (8 h)</button><button class="btn sm" type="button" data-cal="morning">Next morning</button>
+      <span class="cal-travel"><input type="number" id="calTravel" min="1" max="60" value="1" aria-label="Days to travel"><button class="btn sm primary" type="button" data-cal="travel">Travel days</button></span></div>
+    <div class="field row" style="margin-top:12px">
+      <div><label>Climate</label><select id="calClimate">${Object.entries(CAL_CLIMATES).map(([k, v]) => `<option value="${k}" ${k === cal.climate ? "selected" : ""}>${v[0]}</option>`).join("")}</select></div>
+      <div><label>Season on day 1</label><select id="calSeason">${CAL_SEASONS.map(k => `<option value="${k}" ${k === cal.season ? "selected" : ""}>${cap1(k)}</option>`).join("")}</select></div>
+      <div><label>Day</label><input type="number" id="calDay" min="1" value="${cal.day}"></div>
+      <div style="flex:0 0 auto;align-self:end"><button class="btn sm" type="button" data-cal="reroll" title="Roll today's weather again">🎲 New weather</button></div>
+    </div>
+    <div class="field"><label>Log</label><div class="row"><input type="text" id="calNote" placeholder="Note what happened, e.g. Met the ferryman"><button class="btn sm" type="button" data-cal="note" style="flex:0 0 auto">Add</button></div></div>
+    ${cal.log.length ? `<ul class="cal-log">${cal.log.slice(0, 30).map(e => `<li><span class="muted">Day ${e.day}, ${esc(calTime(e.min))}</span> ${esc(e.text)}</li>`).join("")}</ul>` : `<p class="muted">Nothing logged yet. Rests, travel and your notes appear here, and go into session recaps.</p>`}`;
+}
+campMain.addEventListener("click", ev => {
+  const b = ev.target.closest("[data-cal]"); if (!b) return; const c = curCamp(); if (!c) return; const cal = calEnsure(c), a = b.dataset.cal;
+  if (a === "10m") calAdvance(c, 10);
+  else if (a === "1h") calAdvance(c, 60);
+  else if (a === "short") calAdvance(c, 60, "Short rest");
+  else if (a === "long") calAdvance(c, 480, "Long rest");
+  else if (a === "morning") calAdvance(c, ((24 * 60 - cal.min) + 8 * 60) % 1440 || 1440, "Slept until morning");
+  else if (a === "travel") {
+    const n = clamp(parseInt($("#calTravel").value) || 1, 1, 60), skies = [];
+    for (let i = 0; i < n; i++) { calAdvance(c, 1440); skies.push(cal.weather.sky); }
+    calLog(cal, `Travelled ${n} day${n > 1 ? "s" : ""} (${[...new Set(skies)].slice(0, 4).join("; ")})`);
+  } else if (a === "reroll") { cal.weather = calWeather(c.id + "|" + Date.now(), cal.day, cal.climate, calSeason(cal)); cal.weather.day = cal.day; }
+  else if (a === "note") { const t = $("#calNote").value.trim(); if (!t) return; calLog(cal, t.slice(0, 200)); }
+  Store.save(c); renderTracker();
+});
+campMain.addEventListener("change", ev => {
+  const id = ev.target.id; if (!["calClimate", "calSeason", "calDay"].includes(id)) return; const c = curCamp(); if (!c) return; const cal = calEnsure(c);
+  if (id === "calClimate") cal.climate = ev.target.value; else if (id === "calSeason") cal.season = ev.target.value; else cal.day = Math.max(1, parseInt(ev.target.value) || 1);
+  cal.weather = calWeather(c.id, cal.day, cal.climate, calSeason(cal)); Store.save(c); renderTracker();
+});
 campMain.addEventListener("click", async e => {
   const c = curCamp(); if (!c) return;
   const t = e.target;
@@ -10041,6 +10115,10 @@ Store.init().then(() => { renderCampList(); pcAdoptRemote(); itemsAdopt(); if (l
 <script>
 /* ---- what's new: newest first. Add an entry (with a new id) whenever a change ships; the bell counts entries this browser hasn't seen. ---- */
 const NEWS = [
+  { id: "2026-11-15-calendar", date: "2026-11-15", title: "Calendar and weather", go: "tracker", items: [
+    "Each campaign has a Calendar tab: the day, season, time of day and today's weather.",
+    "Buttons for short and long rests, the next morning and travelling several days, with new weather each day.",
+    "Weather that matters in play says what it does, like strong wind or extreme cold. Rests, travel and your notes are logged."] },
   { id: "2026-11-15-runfight", date: "2026-11-15", title: "Run a map room's fight", go: "map", items: [
     "Rooms with a fight in the map's Room Key have ⚔ Run this fight: it adds the fight to your campaign's encounters.",
     "While the TV is on, it also reveals that room and puts the turn order on the TV."] },

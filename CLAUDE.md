@@ -45,6 +45,7 @@ npm run test:shop  # shop generator (Playwright, any OS)
 npm run test:random  # random encounters (Playwright, any OS)
 npm run test:cards  # printable spell cards (Playwright, any OS)
 npm run test:mapenc  # map room -> encounter (Playwright, any OS)
+npm run test:calendar  # calendar and weather (Playwright, any OS)
 npm run test:map  # map fog + TV player screen checks (Playwright, any OS)
 npm run dev     # full local copy at http://localhost:8899 (any OS); stand-in sign-in, data wiped on Ctrl+C
 ```
@@ -300,6 +301,15 @@ Items 15 to 28 came from **PR #5**, merged to `main` on 2026-11-15 together with
 - **What it does.** `mapRunEncounter(i)` parses `o.enc.text` with `parseEncText` and adds a `kind:"map"` encounter to the campaign picked in `#mapCampaign` (`curCampForMap()`).
   - While hosting, it also reveals the room (with an undo snapshot) and sets `HOST.enc` so the turn order shows on the TV.
 - **Tests:** `npm run test:mapenc` (`test/e2e/map-enc.cjs`).
+
+## Calendar and weather (2026-11-15)
+
+- **Data.** `c.cal = {day, min, climate, season, weather, log}`. `calEnsure(c)` creates it, `calAdvance(c, minutes, note)` moves the clock and rolls each new day's weather, and `calLog` keeps the 200 most recent entries.
+- **Weather.** `calWeather(seed, day, climate, season)` follows the usual d20 tables for temperature, wind and precipitation, seeded by campaign and day. It returns `{day, f, sky, text, effects}`.
+  - `effects` holds the rules text for strong wind, heavy rain or snow, extreme cold and extreme heat.
+  - Climates are in `CAL_CLIMATES`; the season changes every 91 days (`calSeason`).
+- **On the page.** The Campaign Tracker has a "Calendar" sub-tab (`calHTML`), with `data-cal` buttons and the `#calClimate`, `#calSeason` and `#calDay` fields.
+- **Tests:** `npm run test:calendar` (`test/e2e/calendar.cjs`).
 
 ## Backup and restore (2026-11-15)
 

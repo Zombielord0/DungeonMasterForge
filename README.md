@@ -58,6 +58,10 @@ On the **Items** tab, press **🏪 Generate a shop**. Choose the kind of shop, t
 
 In **Campaign Tracker → Encounters**, pick where the party is and how hard the fight should be, then press **Roll**. You get monsters that live there, sized for your party's level, with a note on what they're doing. The fight is added to your encounters.
 
+## Calendar and weather
+
+Each campaign in the **Campaign Tracker** has a **Calendar** tab. It shows the day, season, time and weather. Use the buttons for rests, the next morning or travelling several days, and new weather is rolled for each day. Pick the climate and starting season to suit your world. Rests, travel and your own notes are logged.
+
 ## Keeping a backup
 
 If you use the Forge without an account, everything is saved only in that browser. Press **💾 Backup** at the top of the page:

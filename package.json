@@ -14,7 +14,8 @@
     "test:shop": "node test/e2e/shop.cjs",
     "test:random": "node test/e2e/random-enc.cjs",
     "test:cards": "node test/e2e/spell-cards.cjs",
-    "test:mapenc": "node test/e2e/map-enc.cjs"
+    "test:mapenc": "node test/e2e/map-enc.cjs",
+    "test:calendar": "node test/e2e/calendar.cjs"
   },
   "dependencies": {
     "@netlify/database": "^2.0.3",
