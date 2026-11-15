@@ -26,7 +26,8 @@ Live site: https://dungeonmasterforge.netlify.app (Netlify; production branch `m
 | `netlify/database/migrations/` | Postgres tables, applied automatically on deploy: `campaigns`, `members`, `characters` (versioned jsonb), `activity`, `whispers`, `homebrew`. |
 | `test/api.test.mjs` | API tests (node:test against PGlite through `@netlify/database-dev`). |
 | `test/e2e/` | `server.mjs` serves the app, the API and an in-memory database on one port. `fake-identity.js` stands in for Netlify Identity locally. `walkthrough.cjs` is a Playwright walkthrough. |
-| `tools/convert-srd-monsters.py` | Generated the SRD monster data for the Monster Manual. |
+| `tools/convert-srd-monsters.py` | Generated the SRD monster data for the Monster Manual. Its `FIXES` list corrects mistakes in the SRD source. |
+| `public/manifest.webmanifest`, `public/sw.js`, `public/icons/` | Install as an app (PWA). See item 27. |
 
 ## Commands
 
@@ -96,7 +97,7 @@ Playwright and Chromium are pre-installed in cloud sessions. To test offline mod
 
 Items 4 to 14 were merged to `main` on 2026-11-14 (commit `5d44a7b`).
 
-Items 15 to 17 are in **PR #5** (branch `ccr-ee7865d5-1wx9vg`). It's **not merged yet**. It already contains everything on `main` up to `ef08b0c`, the commit that added these notes.
+Items 15 to 27 are in **PR #5** (branch `ccr-ee7865d5-1wx9vg`). It's **not merged yet**. It already contains everything on `main` up to `ef08b0c`, the commit that added these notes.
 
 15. **Collapsible toolbar and character sheet upgrade** (PR #5, branch `ccr-ee7865d5-1wx9vg`)
     - **Toolbar:** "▴ Hide tabs" collapses the header (`dmforge.hdrMini`, the `hdr-mini` class on `<html>`); the strip has a tab menu (`hdrSync`).
@@ -128,6 +129,45 @@ Items 15 to 17 are in **PR #5** (branch `ccr-ee7865d5-1wx9vg`). It's **not merge
     - The cause: the seeded random picks for species, class and background happen only when those aren't given.
     - `pcKeep(c)` passes the stored `base`, `rolls`, proficient skills (`keepSkills`), expertise in the order it was gained (`expertOrder`) and Skilled picks (`skilled`) into `generateCharacter`.
     - New expertise is chosen only when a level grants it, and is trimmed when levelling down.
+18. **Gender** (PR #5)
+    - The quick forge has `#pcGender` (Random/Male/Female); the builder has the `cbGender` control (`CB.gender`).
+    - `generateCharacter` takes `o.gender`, or picks one with `makeRng("gender", seed)`, and names match it (`personNameG`, `fullName`, `N3_M` / `N3_F`).
+    - My Characters has a Gender select (`data-rf="gender"`). It isn't in the `pcLevelTo` copy list, so a level change keeps it.
+19. **Dice, conditions, concentration and death saves** (PR #5)
+    - Ability checks, saves, skills, initiative and attack and damage rows are buttons (`data-roll`). `rollD20` / `rollDamage` roll them; `rollState` adds advantage, disadvantage or auto-fail from conditions, exhaustion, armor and encumbrance.
+    - The bottom-right dock (`rollDockHTML`, `ROLL.mode` Normal/Adv./Dis.) shows the last 30 rolls (`c.rollLog`).
+    - `rcStatusHTML` draws the condition bar (`CONDS`, stored in `c.conds`), exhaustion (`c.exh`, 0–6), concentration (`c.conc = {spell}`) and the dying box (`c.death = {s, f, stable, dead}`).
+    - HP changes go through `pcDamaged` / `pcHealed`: damage at 0 HP is a death save failure, dropping to 0 knocks you out, and damage while concentrating sets `c.concCheck` (the save DC).
+    - Conditions and exhaustion change speed in `pcSpeed` (the 2014 and 2024 rules differ).
+20. **Casting from the sheet** (PR #5)
+    - The ✦ button next to a prepared spell (`data-cast`) opens `castDialog`: slot, pact slot, ritual or free. `castGo` spends the slot and rolls.
+    - `spellPlan` reads dice, healing, upcasting, rays or darts, saves and attack rolls from the spell text. `spellTweak` handles Eldritch Blast beams and Agonizing Blast. `spellCaster` picks the right class's DC and attack.
+21. **Multiclassing** (PR #5)
+    - `c.multi = [{cls, lv, subclass}]` holds the extra classes; `c.cls` / `c.level` stay the first class. Use `totalLv(c)` for character level and `clsLv(c, "Class")` for one class.
+    - `generateCharacter` takes `o.multi` (passed by `pcKeep`): hit points, proficiency, the multiclass spell slot table (`casterLv`, pact slots apart in `spell.pact`), features tagged `{mc}` / `{mcsub}`, and `mcSkills`.
+    - `mcDialog` adds a class (checks `MC_PREREQ`); the class tags in `lvBarHTML` have − to remove a level.
+    - Resources and abilities use each class's own level (`CLV`).
+22. **Choices inside features and feats** (PR #5)
+    - `CHOICES[feature]` describes a pick (maneuvers, invocations, metamagic, Hunter options, Pact Boon, Dragon Ancestor, Crafter, Musician and more). Picks are stored in `c.choices[feature]`; read them with `choiceOf` / `hasChoice`.
+    - Magic Initiate: `miHTML` / `miSync` add the chosen spells to `c.prepared` with `src: "Magic Initiate"` (they don't count against the spell limit).
+23. **Background 50 gp, proficiencies and languages** (PR #5)
+    - 2024 characters can take 50 gp instead of the background's gear (`bgGold50`; `cbGold` in the builder, `#pcGold50` in the quick forge).
+    - `profSecHTML` shows armor, weapons, tools and languages from `profInfo(c)`. Typed choices are saved in `c.langs` and `c.toolsChosen`.
+24. **Encumbrance, buying and loot** (PR #5)
+    - `pcLoad(c)` adds up item and coin weight. Over capacity, speed becomes 5 ft. 2014 sheets can turn on variant encumbrance (`c.varEnc`).
+    - Items tab: "Buy" (`itBuy`) pays from the character's coins with `payCoins`, making change.
+    - Campaign loot rows have a "Give to…" select (`lootGiveHTML`) that moves the item into a character's inventory.
+25. **Party at a glance and XP** (PR #5)
+    - The Encounters tab starts with `partyGlanceHTML`: each party member's AC, HP, passive Perception, initiative, conditions and concentration, with damage and heal buttons (through `actApply`).
+    - Each encounter has "Award XP" (`data-ea="xp"`): its XP is split between the party's saved characters (`c.xp`), and `e.xpAwarded` is set.
+    - `XP_LEVELS` / `xpNext` drive the "Enough XP for level N" tag in `lvBarHTML`.
+26. **Monster data and phone layout** (PR #5)
+    - Fixed in the 2014 data: Donkey (40 ft.), Drow (30 ft.), Deep Gnome (20 ft.), Cult Fanatic HP 33, Reef Shark 4d8+4. Other "0 ft." walking speeds (ghosts, sharks, Shrieker) are correct.
+    - Under 600px wide the header is compact with one scrolling row of tabs (the active tab scrolls into view), and the roll dock hides its Normal/Adv./Dis. buttons until opened.
+27. **Install as an app (PWA)** (PR #5)
+    - `manifest.webmanifest`, icons in `public/icons/` (made from the header emblem) and `sw.js`.
+    - The service worker fetches pages and scripts fresh when online and falls back to its saved copy offline. It never caches `/api/`, `/.netlify/` (sign-in) or other sites. Bump `CACHE` in `sw.js` if its caching rules change.
+    - Browsers that offer installing show "⬇ Install app" in the header (`#installBtn`, `beforeinstallprompt`). `netlify.toml` serves `sw.js` with `no-cache`.
 
 ## How a character is built (read this before changing sheet maths)
 
@@ -159,6 +199,7 @@ From PR #5:
   - `subHp` and `subSpd`: subclass bonuses already applied.
 - **Stored on the sheet:** `inv[].eq`, `kitMoved`, `used`, `active`, `fx`, `fightStyles`, `acManual`, `speedManual`, `formHp`.
 - **Backgrounds:** `bgV`, `bgAsiLegacy`, `startGold` / `goldAdded`, `skilled`, `expertOrder`. `skilled` and `expertOrder` are also in the `pcLevelTo` copy list.
+- **Items 18 to 25:** `gender`, `multi`, `mcSkills`, `totalLevel`, `hdList` (the last three are in the copy list), `choices`, `conds`, `exh`, `conc`, `concCheck`, `death`, `rollLog`, `bgGold50`, `langs`, `toolsChosen`, `varEnc`, `xp`. On encounters: `xpAwarded`. On loot: `givenTo`.
 
 ## Gotchas found along the way
 
@@ -169,6 +210,10 @@ From PR #5:
 - Tag wording: "Condition immunities", "Advantage on: saves vs frightened, WIS saves", and "immune to exhaustion" rather than "can't be exhaustion".
 - On My Characters, `renderRosterMain` runs `pcInvUpgrade`, `pcSubSync`, `pcSubNumbers` and then `pcRecompute`. `pcRecompute` rebuilds attacks, AC and speed from equipment and active effects, so don't set `c.ac`, `c.speed` or `c.attacks` directly there.
 - `pcFx` calls `pcAbilities`. Never call `pcAC` from inside an `ACT` effect, or they'll loop forever; use `wearingArmor(c)` instead.
-- The 2014 Donkey in the monster data has a speed of "0 ft.", which is wrong in the data.
+- The SRD source data has a few mistakes (missing walking speeds, HP that doesn't match the hit dice). Fix them in `FIXES` in `tools/convert-srd-monsters.py` as well as in the embedded data, so a re-run keeps them.
+- Use `totalLv(c)` rather than `c.level` for anything that depends on character level (proficiency, cantrip dice, XP). `c.level` is only the first class's level.
+- The Bash safety check can block commands whose text contains the app's double-dollar query helper followed by a bracket. Use the Edit tool, or write a script file first.
+- `test/e2e/server.mjs` sets content types by file extension. Add new types there if you add a new kind of file to `public/`.
+- In Chromium tests the service worker takes control after the first load; `ctx.setOffline(true)` checks the offline copy.
 - `npm run dev` keeps its accounts and campaigns until it's stopped. Restart it before running `test/e2e/walkthrough.cjs` again, or the walkthrough times out waiting for the sign-in form.
 - Opening `public/index.html` straight from disk (`file://`) blocks `portal.js`. Test through `npm run dev` or another local server.

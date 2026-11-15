@@ -11,3 +11,9 @@
   for = "/api/*"
   [headers.values]
     Cache-Control = "no-store"
+
+# The service worker must always be checked for updates.
+[[headers]]
+  for = "/sw.js"
+  [headers.values]
+    Cache-Control = "no-cache"
