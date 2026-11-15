@@ -43,6 +43,7 @@ npm run test:mapvis  # map styles, furniture, caves, hover, zoom (Playwright, an
 npm run test:mapio  # map import/export: pictures, VTT files, map files, Foundry/Roll20 (Playwright, any OS)
 npm run test:shop  # shop generator (Playwright, any OS)
 npm run test:random  # random encounters (Playwright, any OS)
+npm run test:cards  # printable spell cards (Playwright, any OS)
 npm run test:map  # map fog + TV player screen checks (Playwright, any OS)
 npm run dev     # full local copy at http://localhost:8899 (any OS); stand-in sign-in, data wiped on Ctrl+C
 ```
@@ -285,6 +286,12 @@ Items 15 to 28 came from **PR #5**, merged to `main` on 2026-11-15 together with
   - `randRoll(c)` creates the encounter with `kind:"random"` and the hook in its notes, and takes AC and HP from the Monster Manual.
 - **Places** are listed in `RAND_ENVS`; the hooks in `RAND_HOOKS`.
 - **Tests:** `npm run test:random` (`test/e2e/random-enc.cjs`).
+
+## Spell cards (2026-11-15)
+
+- **How it works.** `openSpellCards(c)` makes one card per prepared spell (`spellCardHTML`) in the item-card style (`ITEMCARD_CSS`), opened through `openOverlay` with a downloadable HTML file. The `data-ra="cards"` button is on My Characters.
+- **The `.ds` clash.** `.icard .ds` resets the death-save dot style that shares the `.ds` class name. Before this fix, card text was squeezed into a 13 px column, in item cards too.
+- **Tests:** `npm run test:cards` (`test/e2e/spell-cards.cjs`).
 
 ## Backup and restore (2026-11-15)
 

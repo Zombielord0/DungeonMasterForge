@@ -5917,7 +5917,7 @@ const ITEMCARD_CSS = `
 .icard h2{font-family:Cinzel,Georgia,serif;font-size:17px;font-weight:700;margin:0 0 2px;color:#6b2412;letter-spacing:.02em;text-shadow:none}
 .icard .ty{font-style:italic;color:#4b3a26;padding-bottom:5px;margin-bottom:6px;border-bottom:2px solid #8b3a1a}
 .icard .st{margin:1px 0}.icard .st b{color:#6b2412}
-.icard .ds{flex:1;margin-top:6px}.icard .ds p{margin:0 0 6px}.icard .ds ul{margin:0 0 6px;padding-left:16px}.icard .ds b{color:#3b1a0c}
+.icard .ds{flex:1;margin-top:6px;width:auto;height:auto;border:0;border-radius:0;display:block} /* undo the death-save dot style that shares the .ds name */.icard .ds p{margin:0 0 6px}.icard .ds ul{margin:0 0 6px;padding-left:16px}.icard .ds b{color:#3b1a0c}
 .icard table,.icard .sp-table{border-collapse:collapse;width:100%;margin:4px 0 6px;font-size:10.5px}
 .icard th,.icard td,.icard .sp-table th,.icard .sp-table td{border:1px solid #a88c5f;padding:2px 4px;text-align:left;color:#1d140a;background:transparent;font-family:Georgia,serif}
 .icard .sp-table th{color:#6b2412;font-size:10px}
@@ -5944,6 +5944,24 @@ function openOverlay(html, dlName, dlHtml, label) {
   ov.setAttribute("aria-label", label || "Printable view");
   $("#sheetBody").innerHTML = html;
   ov.classList.add("open"); ov.scrollTop = 0;
+}
+/* ---- spell cards: one printable card per prepared spell, in the item-card style ---- */
+function spellCardHTML(s) {
+  const kind = s.l === 0 ? `${s.s} cantrip` : `Level ${s.l} ${String(s.s).toLowerCase()}`;
+  const du = (s.co && !/concentration/i.test(s.du) ? "Concentration, " : "") + s.du;
+  const st = [["Casting time", s.t + (s.ri && !/ritual/i.test(s.t) ? " (ritual)" : "")], ["Range", s.r], ["Components", s.cp + (s.m ? ` (${s.m})` : "")], ["Duration", du]];
+  return `<div class="icard r-${s.l === 0 ? "g" : s.l <= 2 ? "u" : s.l <= 4 ? "r" : s.l <= 6 ? "vr" : "l"}"><h2>${esc(s.n)}</h2><div class="ty">${esc(kind)}</div>
+    ${st.map(([k, v]) => `<div class="st"><b>${esc(k)}:</b> ${esc(v || "—")}</div>`).join("")}
+    <div class="ds">${spFormat(s.d || "")}</div><div class="ft"><span>${esc((s.c || []).join(", "))}</span><span class="rb">${s.l === 0 ? "Cantrip" : "Level " + s.l}</span></div></div>`;
+}
+function openSpellCards(c) {
+  spLoad(); const seen = new Set();
+  const list = (c.prepared || []).map(x => (SP.data[x.ed || edOf(c)] || []).find(s => s.n === x.n)).filter(s => s && !seen.has(s.n) && seen.add(s.n)).sort((a, b) => a.l - b.l || a.n.localeCompare(b.n));
+  if (!list.length) { toast("No prepared spells on this sheet yet. Add some in the Spells section first."); return; }
+  const cards = list.map(spellCardHTML).join(""), file = c.name.replace(/[^\w\- ]+/g, "").trim().replace(/\s+/g, "-") + "-spell-cards.html";
+  const html = `<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><title>${esc(c.name)} · Spell Cards</title><style>${ITEMCARD_CSS}
+body{margin:0;padding:24px;background:#5a5a5a}@media print{body{background:#fff;padding:0}.icard{break-inside:avoid}}</style></head><body><div class="icards">${cards}</div></body></html>`;
+  openOverlay(`<div class="icards">${cards}</div>`, file, html, "Spell cards");
 }
 function openSheet(c) {
   if (!c) { toast("Forge a character first"); return; }
@@ -9308,7 +9326,7 @@ function rosterHTML(c) {
   const L = c.spell ? spellLimits(c) : null;
   return `<div class="card">
     <div class="row" style="align-items:flex-start;flex-wrap:wrap"><input class="title-input" type="text" data-rf="name" value="${esc(c.name)}" aria-label="Character name" style="flex:1 1 260px">
-      <div style="flex:0 1 auto;min-width:0;display:flex;gap:6px;flex-wrap:wrap"><button class="btn sm" type="button" data-ra="sheet">⎙ Export character sheet</button><button class="btn sm" type="button" data-ra="copy">Copy as text</button><button class="btn sm danger" type="button" data-ra="del">✕ Delete</button></div></div>
+      <div style="flex:0 1 auto;min-width:0;display:flex;gap:6px;flex-wrap:wrap"><button class="btn sm" type="button" data-ra="sheet">⎙ Export character sheet</button><button class="btn sm" type="button" data-ra="cards" title="Printable cards for this character's prepared spells">🃏 Spell cards</button><button class="btn sm" type="button" data-ra="copy">Copy as text</button><button class="btn sm danger" type="button" data-ra="del">✕ Delete</button></div></div>
     <div class="gen-sub"><span class="tag gold">${esc(raceLabel(c))} ${esc((c.multi || []).length ? classLine(c) : c.cls)}</span>${(c.multi || []).length ? `<span class="tag">Level ${totalLv(c)}</span>` : ""}<span class="tag">${edOf(c)} rules</span><span class="tag">${esc(c.bg)}</span>${c.custom ? `<span class="tag">Custom build</span>` : ""}</div>
     <div class="rc-grid">
       <label>Level<input type="number" min="1" max="20" data-rlv="1" value="${c.level}"></label>
@@ -9480,6 +9498,7 @@ function rosterHTML(c) {
     if (a) {
       const k = a.dataset.ra;
       if (k === "sheet") openSheet(c);
+      else if (k === "cards") openSpellCards(c);
       else if (k === "copy") { try { await navigator.clipboard.writeText(sheetText(c)); toast("Character sheet copied"); } catch { toast("Couldn't copy here"); } }
       else if (k === "camp") addPCToCampaign($("#rcCamp").value, c);
       else if (k === "del") {
@@ -10006,6 +10025,9 @@ Store.init().then(() => { renderCampList(); pcAdoptRemote(); itemsAdopt(); if (l
 <script>
 /* ---- what's new: newest first. Add an entry (with a new id) whenever a change ships; the bell counts entries this browser hasn't seen. ---- */
 const NEWS = [
+  { id: "2026-11-15-spellcards", date: "2026-11-15", title: "Printable spell cards", go: "roster", items: [
+    "On My Characters, press 🃏 Spell cards for a printable card for each prepared spell: casting time, range, components, duration and the full text.",
+    "Print them or save them as a PDF. Item cards now print with their full text again too."] },
   { id: "2026-11-15-random", date: "2026-11-15", title: "Random encounters", go: "tracker", items: [
     "In Campaign Tracker → Encounters, pick a place (forest, swamp, city streets, the Underdark and more) and a difficulty, then press Roll.",
     "You get monsters that live there, sized for your party's level, with their real AC and HP and a note on what they're up to.",
