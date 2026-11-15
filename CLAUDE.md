@@ -38,6 +38,7 @@ npm install
 npm test        # API tests (11 should pass)
 npm run build   # bundle src/portal.js -> public/portal.js
 npm run test:backup  # backup and restore checks (Playwright, any OS)
+npm run test:tv  # turn order + handouts on the TV (Playwright, any OS)
 npm run test:map  # map fog + TV player screen checks (Playwright, any OS)
 npm run dev     # full local copy at http://localhost:8899 (any OS); stand-in sign-in, data wiped on Ctrl+C
 ```
@@ -201,6 +202,15 @@ Items 15 to 28 came from **PR #5**, merged to `main` on 2026-11-15 together with
   - Fog autosaves to localStorage `dmforge.fog.v1`, keyed by `fogKey`, keeping the 40 most recent maps.
   - `#mapSave` adds `fog` and `found` to the campaign's map entry. `mapOpenSaved(m)` restores them.
   - Nothing touches Netlify during play.
+- **Turn order and handouts on the TV.**
+  - `hostFrameCanvas()` builds each TV picture:
+    - With `HOST.show === "handout"`, it's the handout canvas.
+    - Otherwise it's the player map with a turn-order bar (`tvDrawInitStrip`) when `HOST.enc = {cid, eid}` is set.
+    - With a fight but no map, it's a large list (`tvInitBoard`). With nothing at all, it's a dark screen.
+  - `tvInitRows(c, e)` is all the TV may know about a fight: `{name, foe, cur, state}`, where state is "", "Bloodied" or "Down". **Never add HP numbers.**
+  - The encounter card's `data-ea="tv"` button toggles `HOST.enc` and starts hosting if needed. `rerenderEnc` re-sends the picture while that fight is on the TV.
+  - Handouts: `handoutPicture(file)` scales a picture to at most 2560px; `handoutWriting(title, text)` draws parchment sized to the text. Both go through `handoutShow`, and `#handoutBack` returns to the map. Pings are ignored while a handout is showing. Handouts aren't saved.
+  - Tests: `npm run test:tv` (`test/e2e/tv.cjs`).
 - **Tests.** Run `npm run test:map` (`test/e2e/map-fog.cjs`). It starts its own static server and needs no database. It waits on `window.tvFrames`, because encoding the PNG is slow in the headless browser.
 
 ## Backup and restore (2026-11-15)

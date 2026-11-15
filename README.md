@@ -29,8 +29,10 @@ Live at https://dungeonmasterforge.netlify.app
    - **Secret door:** click an "S" once the players find it.
    - Use the **Reveal on TV** buttons in the Room Key, which also work with the keyboard. A secret door turns green on your map once the players have found it.
    - Switch **Mode** to **Hide** to cover areas again, and use **Undo** if you make a mistake.
-4. **Shift+click** the map to flash a ring on the TV.
-5. Traps never show on the TV.
+4. **Turn order:** in Campaign Tracker → Encounters, press **📺 Show on TV** on a fight. The TV shows whose turn it is and the round. Monsters show only as Bloodied or Down.
+5. **Handouts:** under the fog tools, show a picture from your computer, or type a letter or note to show on parchment. **Back to map** returns to the dungeon.
+6. **Shift+click** the map to flash a ring on the TV.
+7. Traps never show on the TV.
 
 Everything stays on your computer, and no internet traffic or Netlify usage happens during play. Fog is remembered on this computer. Press **Save** to keep it with a campaign.
 

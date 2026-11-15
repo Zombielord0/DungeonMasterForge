@@ -1066,6 +1066,13 @@ nav a[data-view=whispers]{--ic:url("data:image/svg+xml,%3Csvg xmlns='http://www.
           </div>
           <label class="check"><input type="checkbox" id="fogNums"><span>Show room numbers on the TV</span></label>
           <p class="hint" style="margin:6px 0 0"><b>Room:</b> click a room or corridor. <b>Brush:</b> paint over squares. <b>Box:</b> drag a rectangle. <b>Secret door:</b> click an “S” once the players find it, and it appears on the TV. <b>Shift+click</b> flashes a ring on the TV to point something out. Fog is kept on this computer; press Save to store it with a campaign.</p>
+          <div class="field" style="margin:16px 0 0">
+            <label>Handout</label>
+            <div class="row" style="margin-bottom:8px"><label class="btn sm" style="flex:0 0 auto">🖼 Show a picture…<input type="file" id="handoutFile" accept="image/*" hidden></label><button class="btn sm primary" type="button" id="handoutBack" hidden style="flex:0 0 auto">🗺 Back to map</button></div>
+            <input type="text" id="handoutTitle" placeholder="Title (optional), e.g. A torn letter" style="margin-bottom:6px">
+            <textarea id="handoutText" placeholder="Or write a letter, note or riddle to show on the TV…" style="min-height:70px"></textarea>
+            <button class="btn sm" type="button" id="handoutTextShow" style="margin-top:6px">📜 Show writing on TV</button>
+          </div>
         </fieldset>
       </div>
       <div class="card" style="margin-top:14px">
@@ -2372,7 +2379,8 @@ $("#mapSave").addEventListener("click", () => {
    The TV window (player.html) only ever receives finished pictures over a BroadcastChannel:
    DM -> TV on "dmforge.map" ({t:"frame",blob} | {t:"ping",x,y} | {t:"bye"}), TV -> DM on "dmforge.map.tv" ({t:"hello"} | {t:"bye"}).
    No network is used. */
-const HOST = { ch: null, up: null, win: null, on: false, tv: false, key: null, fog: null, found: new Set(), numbers: false, undo: [], timer: 0 };
+const HOST = { ch: null, up: null, win: null, on: false, tv: false, key: null, fog: null, found: new Set(), numbers: false, undo: [], timer: 0,
+  show: "map", handout: null, enc: null /* {cid, eid}: the fight whose turn order is on the TV */ };
 function drawMapDM() { if (currentMap) drawDungeon($("#mapCanvas"), currentMap, $("#mapGrid").checked, { fog: HOST.on ? HOST.fog : null, found: HOST.found }); fogKeyButtons(); }
 // "Reveal on TV" / "Hide on TV" buttons on each Room Key entry while hosting (a keyboard-friendly way to use the Room tool)
 function fogKeyButtons() {
@@ -2392,7 +2400,7 @@ function hostLoad(d) {
   if (HOST.on) hostSend();
 }
 function hostStatus() {
-  const b = $("#hostStatus"); b.textContent = !HOST.on ? "Not connected" : HOST.tv ? "📺 TV connected" : "Waiting for the TV window…";
+  const b = $("#hostStatus"); b.textContent = !HOST.on ? "Not connected" : (HOST.tv ? "📺 TV connected" : "Waiting for the TV window…") + (HOST.show === "handout" ? " · showing a handout" : "");
   b.className = "badge" + (HOST.on && HOST.tv ? " ok" : "");
   $("#hostStart").textContent = HOST.on ? "Stop hosting" : "📺 Host for players"; $("#hostStart").classList.toggle("primary", !HOST.on);
   $("#fogTools").disabled = !HOST.on; $("#mapCanvas").classList.toggle("fogging", HOST.on);
@@ -2400,12 +2408,90 @@ function hostStatus() {
 function hostSend() {
   clearTimeout(HOST.timer);
   HOST.timer = setTimeout(() => {
-    if (!HOST.on || !currentMap || !HOST.ch) return;
-    const cv = document.createElement("canvas");
-    drawDungeon(cv, currentMap, $("#mapGrid").checked, { player: true, fog: HOST.fog, found: HOST.found, numbers: HOST.numbers, scale: 2 });
+    if (!HOST.on || !HOST.ch) return;
+    const cv = hostFrameCanvas(); if (!cv) return;
     cv.toBlob(blob => { if (blob && HOST.on) HOST.ch.postMessage({ t: "frame", blob }); }, "image/png");
   }, 80);
 }
+// the picture the TV gets: a handout, or the player map (with the turn order across the top when a fight is on the TV)
+function hostFrameCanvas() {
+  if (HOST.show === "handout" && HOST.handout) return HOST.handout;
+  let cv = null;
+  if (currentMap) { cv = document.createElement("canvas"); drawDungeon(cv, currentMap, $("#mapGrid").checked, { player: true, fog: HOST.fog, found: HOST.found, numbers: HOST.numbers, scale: 2 }); }
+  const f = hostEnc();
+  if (f) { const rows = tvInitRows(f.c, f.e); if (cv) tvDrawInitStrip(cv, rows, f.e.round); else cv = tvInitBoard(rows, f.e.round); }
+  if (!cv) { cv = document.createElement("canvas"); cv.width = 1920; cv.height = 1080; const g = cv.getContext("2d"); g.fillStyle = "#0b0a09"; g.fillRect(0, 0, 1920, 1080); } // nothing to show yet: a dark screen
+  return cv;
+}
+function hostEnc() { if (!HOST.enc) return null; const c = Store.get(HOST.enc.cid), e = c && findEnc(c, HOST.enc.eid); return e ? { c, e } : null; }
+// what the TV may know about a fight: names, whose turn, Bloodied/Down. Never HP numbers.
+function tvInitRows(c, e) {
+  return encOrder(c, e).map(o => {
+    const m = o.foe ? e.enemies.find(x => x.id === o.key) : null;
+    const state = !m ? "" : m.hp <= 0 ? "Down" : m.hp <= m.max / 2 ? "Bloodied" : "";
+    return { name: o.name, foe: !!o.foe, cur: e.turn === o.key, state };
+  });
+}
+function tvChipLabel(r) { return (r.cur ? "▶ " : "") + r.name + (r.state ? " · " + r.state : ""); }
+function tvDrawInitStrip(cv, rows, round) {
+  const g = cv.getContext("2d"); g.setTransform(1, 0, 0, 1, 0, 0);
+  const W = cv.width, h = Math.round(Math.max(70, Math.min(130, W * .05))), pad = Math.round(h * .22);
+  g.fillStyle = "#0c0a08"; g.fillRect(0, 0, W, h);
+  g.fillStyle = "#c79a5b"; g.fillRect(0, h - 3, W, 3);
+  let fs = Math.round(h * .36), label = `Round ${round || 1}`;
+  const widths = f => { g.font = `600 ${f}px 'Crimson Pro', Georgia, serif`; return rows.map(r => g.measureText(tvChipLabel(r)).width + f * 1.2); };
+  g.font = `700 ${fs}px Cinzel, Georgia, serif`; const lw = g.measureText(label).width + pad * 2;
+  let ws = widths(fs); while (fs > 14 && lw + ws.reduce((a, b) => a + b + pad / 2, 0) > W - pad) { fs -= 2; ws = widths(fs); }
+  g.textBaseline = "middle"; g.font = `700 ${fs}px Cinzel, Georgia, serif`; g.fillStyle = "#f5bb63"; g.textAlign = "left"; g.fillText(label, pad, h / 2);
+  let x = lw; const ch = fs * 1.7, y = (h - 3 - ch) / 2;
+  for (let i = 0; i < rows.length; i++) {
+    const r = rows[i], w = ws[i]; if (x + w > W - pad) { g.fillStyle = "#c9b48a"; g.fillText("…", x, h / 2); break; }
+    g.fillStyle = r.cur ? "#e8a33d" : "rgba(255,255,255,.07)"; g.fillRect(x, y, w, ch);
+    g.font = `600 ${fs}px 'Crimson Pro', Georgia, serif`;
+    g.fillStyle = r.cur ? "#1a120a" : r.state === "Down" ? "#7d7266" : r.foe ? "#f2b8ae" : "#bcd8a8"; g.fillText(tvChipLabel(r), x + fs * .6, h / 2);
+    if (r.state === "Down") { g.fillRect(x + fs * .5, h / 2, w - fs, 2); }
+    x += w + pad / 2;
+  }
+}
+function tvInitBoard(rows, round) {
+  const cv = document.createElement("canvas"); cv.width = 1920; cv.height = 1080; const g = cv.getContext("2d");
+  g.fillStyle = "#15110d"; g.fillRect(0, 0, 1920, 1080);
+  g.textAlign = "center"; g.textBaseline = "middle"; g.fillStyle = "#f5bb63"; g.font = "700 64px Cinzel, Georgia, serif"; g.fillText(`Round ${round || 1}`, 960, 110);
+  const lh = Math.min(90, 820 / Math.max(1, rows.length)), fs = Math.round(lh * .55), top = 200;
+  rows.forEach((r, i) => {
+    const y = top + i * lh + lh / 2;
+    if (r.cur) { g.fillStyle = "#e8a33d"; g.fillRect(460, y - lh * .42, 1000, lh * .84); }
+    g.font = `600 ${fs}px 'Crimson Pro', Georgia, serif`; g.fillStyle = r.cur ? "#1a120a" : r.state === "Down" ? "#7d7266" : r.foe ? "#f2b8ae" : "#bcd8a8";
+    g.fillText(tvChipLabel(r), 960, y);
+  });
+  return cv;
+}
+// handouts: a picture from the DM's computer, or writing on parchment
+async function handoutPicture(file) {
+  let bmp; try { bmp = await createImageBitmap(file); } catch { toast("Couldn't open that picture. Try a PNG or JPG."); return; }
+  const k = Math.min(1, 2560 / Math.max(bmp.width, bmp.height)), cv = document.createElement("canvas");
+  cv.width = Math.round(bmp.width * k); cv.height = Math.round(bmp.height * k); cv.getContext("2d").drawImage(bmp, 0, 0, cv.width, cv.height);
+  handoutShow(cv);
+}
+function handoutWriting(title, text) {
+  // size the parchment to the writing: short notes get big letters, long letters shrink to fit
+  const W = 1200, M = 100, MAXH = 1600, top = title ? 240 : 120;
+  const meas = document.createElement("canvas").getContext("2d");
+  const wrap = f => { meas.font = `italic ${f}px 'Crimson Pro', Georgia, serif`; const out = []; String(text).split(/\n/).forEach(par => { let line = ""; par.split(/\s+/).forEach(w => { const t = line ? line + " " + w : w; if (meas.measureText(t).width > W - 2 * M && line) { out.push(line); line = w; } else line = t; }); out.push(line); }); return out; };
+  let fs = 60, lines = wrap(fs);
+  while (fs > 22 && top + lines.length * fs * 1.4 > MAXH - M) { fs -= 2; lines = wrap(fs); }
+  const H = Math.max(900, Math.min(MAXH, Math.round(top + lines.length * fs * 1.4 + M)));
+  const cv = document.createElement("canvas"); cv.width = W; cv.height = H; const g = cv.getContext("2d");
+  g.fillStyle = "#e9dcbd"; g.fillRect(0, 0, W, H);
+  const v = g.createRadialGradient(W / 2, H / 2, H * .2, W / 2, H / 2, H * .75); v.addColorStop(0, "rgba(120,80,30,0)"); v.addColorStop(1, "rgba(120,80,30,.45)"); g.fillStyle = v; g.fillRect(0, 0, W, H);
+  g.fillStyle = "#2a2018"; g.textBaseline = "top";
+  if (title) { g.textAlign = "center"; g.font = "700 64px Cinzel, Georgia, serif"; g.fillText(title.slice(0, 60), W / 2, 120, W - 2 * M); }
+  g.textAlign = "left"; g.font = `italic ${fs}px 'Crimson Pro', Georgia, serif`;
+  lines.forEach((l, i) => g.fillText(l, M, top + i * fs * 1.4));
+  handoutShow(cv);
+}
+function handoutShow(cv) { HOST.handout = cv; HOST.show = "handout"; handoutUI(); hostSend(); }
+function handoutUI() { $("#handoutBack").hidden = HOST.show !== "handout"; hostStatus(); }
 function hostPing(fx, fy) { if (HOST.on && HOST.ch) HOST.ch.postMessage({ t: "ping", x: fx, y: fy }); }
 function hostStart() {
   if (!HOST.ch) {
@@ -2449,7 +2535,7 @@ let fogDrag = null;
 $("#mapCanvas").addEventListener("pointerdown", e => {
   if (!HOST.on || !currentMap || e.button !== 0) return;
   const c = canvasCell(e); if (!c) return;
-  if (e.shiftKey) { hostPing(c.fx, c.fy); return; }
+  if (e.shiftKey) { if (HOST.show === "map") hostPing(c.fx, c.fy); else toast("The TV is showing a handout. Press Back to map first."); return; }
   if (!c.inGrid) return;
   const d = currentMap, t = fogTool(), v = fogVal();
   if (t === "room") {
@@ -2490,6 +2576,9 @@ $("#roomKey").addEventListener("click", e => {
   const tmp = new Uint8Array(d.W * d.H); fogRevealRoom(d, tmp, o.cx, o.cy);
   const v = HOST.fog[o.cy * d.W + o.cx] ? 0 : 1; fogSnap(); tmp.forEach((on, i) => { if (on) HOST.fog[i] = v; }); fogChanged();
 });
+$("#handoutFile").addEventListener("change", e => { const f = e.target.files[0]; e.target.value = ""; if (f) handoutPicture(f); });
+$("#handoutTextShow").addEventListener("click", () => { const t = $("#handoutText").value.trim(); if (!t) { toast("Write something to show first"); return; } handoutWriting($("#handoutTitle").value.trim(), t); });
+$("#handoutBack").addEventListener("click", () => { HOST.show = "map"; handoutUI(); hostSend(); });
 $("#fogNums").addEventListener("change", e => { HOST.numbers = e.target.checked; hostSend(); });
 setInterval(() => { if (HOST.on && HOST.tv && HOST.win && HOST.win.closed) { HOST.tv = false; hostStatus(); } }, 2000);
 addEventListener("pagehide", () => { if (HOST.on && HOST.ch) HOST.ch.postMessage({ t: "bye" }); });
@@ -3044,6 +3133,7 @@ function encCard(c, e) {
       <button class="btn sm primary" data-ea="roll" data-eid="${e.id}">🎲 Roll enemy initiative</button>
       <button class="btn sm" data-ea="next" data-eid="${e.id}" ${order.length ? "" : "disabled"}>Next turn ▶</button>
       <button class="btn sm" data-ea="reset" data-eid="${e.id}">Reset</button>
+      <button class="btn sm" data-ea="tv" data-eid="${e.id}" title="Show the turn order on the player screen (TV). Monsters show as Bloodied or Down, never their HP.">${HOST.enc && HOST.enc.eid === e.id ? "📺 Off TV" : "📺 Show on TV"}</button>
       <span class="muted" style="font-size:14px">${e.round ? `Round <b>${e.round}</b>` : "Not started"}</span>
     </div>
     ${order.length ? `<div class="init-strip">${order.map(o => `<span class="init-chip ${o.foe ? "foe" : "pc"} ${o.down ? "down" : ""} ${e.turn === o.key ? "cur" : ""}">${e.turn === o.key ? "▶ " : ""}${esc(o.name)} <b>${o.init}</b></span>`).join("")}</div>` : ""}
@@ -3105,6 +3195,7 @@ function renderEncounters(c) {
 const encPending = new Set();
 function rerenderEnc(c, e) {
   // Deferred so a focused input being replaced (which fires blur/change) can't re-enter mid-update.
+  if (HOST.on && HOST.enc && HOST.enc.eid === e.id) hostSend(); // keep the TV's turn order current
   if (encPending.has(e.id)) return; encPending.add(e.id);
   setTimeout(() => { encPending.delete(e.id); const el = document.getElementById("enc-" + e.id); const cc = curCamp(); const ee = cc && findEnc(cc, e.id); if (el && ee) el.outerHTML = encCard(cc, ee); }, 0);
 }
@@ -3114,6 +3205,11 @@ campMain.addEventListener("click", async ev => {
   const c = curCamp(); if (!c) return;
   if (b.dataset.goenc !== undefined) { subTab = "encounters"; renderTracker(); const t = document.getElementById("encch-" + b.dataset.goenc); if (t) t.scrollIntoView({ behavior: "smooth", block: "start" }); return; }
   const a = b.dataset.ea, e = findEnc(c, b.dataset.eid);
+  if (a === "tv" && e) {
+    if (HOST.enc && HOST.enc.eid === e.id) { HOST.enc = null; toast("Turn order taken off the TV"); }
+    else { HOST.enc = { cid: c.id, eid: e.id }; if (HOST.show === "handout") { HOST.show = "map"; handoutUI(); } if (!HOST.on) hostStart(); toast("Turn order is on the TV"); }
+    hostSend(); renderTracker(); return;
+  }
   if (a === "addEnc") {
     const ne = newEncounter(b.dataset.ch || null, "New encounter", c.currentLevel || 1, []);
     c.encounters = c.encounters || []; c.encounters.push(ne); Store.save(c); renderTracker();
@@ -9302,6 +9398,9 @@ Store.init().then(() => { renderCampList(); pcAdoptRemote(); itemsAdopt(); if (l
 <script>
 /* ---- what's new: newest first. Add an entry (with a new id) whenever a change ships; the bell counts entries this browser hasn't seen. ---- */
 const NEWS = [
+  { id: "2026-11-15-tvextras", date: "2026-11-15", title: "Turn order and handouts on the TV", go: "map", items: [
+    "In an encounter, press 📺 Show on TV: the TV shows whose turn it is and the round. Monsters show as Bloodied or Down, never their HP.",
+    "Show a picture from your computer on the TV, or type a letter, note or riddle and it appears on parchment. Back to map returns to the dungeon."] },
   { id: "2026-11-15-backup", date: "2026-11-15", title: "Back up your characters and campaigns", items: [
     "Using the Forge without an account? Press 💾 Backup at the top to download a backup file of your characters, campaigns, homebrew, items, monsters, favourite spells and map fog.",
     "Restore from backup puts it all back, in this browser or on another computer.",
