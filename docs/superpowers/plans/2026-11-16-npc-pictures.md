@@ -12,8 +12,9 @@
 
 ## Global Constraints
 
-- Uploads: at most 1024 px on the long side, WebP, IndexedDB key `npc-<npc id>`, NPC field `img`.
+- Uploads: at most 2048 px on the long side, WebP, IndexedDB key `npc-<npc id>`, NPC field `img`.
 - Links: NPC field `imgUrl`, `https:` only; anything else is refused with a toast.
+- Pictures never distort. The TV keeps each picture's shape (letterboxed), and the Tracker frame uses `object-fit: contain`.
 - The TV gets only the picture. Never NPC names, notes or secrets.
 - The `NEWS` entry goes at the top of the list, in plain words. The `test:npcpic` script runs on Windows through npm.
 
@@ -51,19 +52,21 @@
 - [ ] **Step 1: Write the failing check `test/e2e/npc-pictures.cjs`.** It runs in offline mode and seeds one campaign with NPC `{id:"n1", name:"Aldric"}` in `dmforge.campaigns.v1`. It checks, in order:
   1. Tracker → NPCs: `.npc-pic` exists for Aldric, with Add and Link buttons and no TV button.
   2. Upload a 2000×1000 PNG made on the fly in the test (a canvas-drawn blob written to the scratch folder). Then:
-     - the frame's `img` has `naturalWidth` ≤ 1024
+     - the frame's `img` has `naturalWidth` ≤ 2048
      - the stored campaign has `img: "npc-n1"`
      - IndexedDB `dmforge-maps` has the key `npc-n1`
   3. Reload: the picture is still shown.
   4. Uploading a text file → the toast text matches /Couldn't open that picture/, and `img` is unchanged.
   5. 📺 Show on TV → the TV pop-up opens and `window.tvFrames` increases. The frame canvas is the handout: check that its size matches the picture.
+  - On the TV, `window.tvRect.w / window.tvRect.h` equals the picture's width ÷ height (to 1%) for both a wide 2000×1000 and a tall 600×1200 picture.
+  - The frame `img` has computed `object-fit: contain`.
   6. Link `http://example.com/a.png` → refused (toast /https/). Link `https://…` is stored as `imgUrl`.
   7. Delete the NPC → IndexedDB no longer has `npc-n1`.
   8. Seed `img: "npc-gone"` with no stored picture → the frame text matches /not on this device/.
 - [ ] **Step 2:** Run `npm run test:npcpic`. Expected: FAIL at check 1 (no `.npc-pic`).
 - [ ] **Step 3: Implement.**
   - In the item renderer, when `subTab === "npcs"`, wrap the item in a two-column layout: `npcPicHTML(it)` on the left, the fields on the right. Under 600 px wide, stack them.
-  - Uploads go through `loadImageCanvas`, then get scaled to 1024, then `canvasBlob`, then `MAPIMG.put`.
+  - Uploads go through `loadImageCanvas`, then get scaled to 2048, then `canvasBlob`, then `MAPIMG.put`.
   - On TV:
     - For an upload, use the stored blob.
     - For a link, `fetch(url, {mode:"cors"})`. On failure, toast "That website doesn't let the Forge copy its picture. Download it and use 🖼 Add picture instead."

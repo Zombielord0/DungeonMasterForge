@@ -40,7 +40,34 @@ The owner wants the same **⬆ Import character** button to take PDFs too. The b
 - **Spells:** read from the spell page by name. Known spells match the built-ins; an unknown name becomes a homebrew spell with a blank description.
 - **Class and level:** "ClassLevel" text such as "Ranger 5 / Rogue 2" is split into the main class and multiclasses.
 - **Unreadable PDFs.** A PDF with no form fields (a scan or a "flattened" printout) shows: "This PDF has no fillable fields, so the Forge can't read it. Export it again as a fillable sheet, or type the character in." Nothing is guessed from images.
-- **Test fixture:** a filled copy of the standard sheet in `test/e2e/fixtures/`, plus the owner's players' PDFs once supplied.
+- **Test fixture:** a filled copy of the standard sheet in `test/e2e/fixtures/`. Make it synthetic, with the same field names as the sample below. Don't commit players' own files.
+
+### Confirmed against the owner's sample (Jasper Tallfellow, 2026-11-16)
+
+It's the official WotC 3-page fillable sheet, re-saved by macOS Preview: 334 fields, with some broken cross-references that pdf.js tolerates. Filled fields:
+
+- **Basics:** `CharacterName`, `ClassLevel` ("Wizard 6"), `Race ` (trailing space: "Halfling"), `Background` ("Charlatan"), `Alignment` ("CG", so abbreviations must map to full names), `XP`, `Age`, `Height`, `Weight`.
+- **Numbers:** `STR`…`CHA` hold the final scores. `DEXmod ` and `CHamod` have odd spacing and casing, but the mods aren't needed; the Forge works them out. Also `AC`, `HPMax`, `HPCurrent` (may start with a newline, so trim it), `HD`, `HDTotal`, `GP` (may end with a newline) and the other coins.
+- **Proficiency check boxes** (value `/Yes`):
+  - **Saves:** Check Box 11 = STR, 18 = DEX, 19 = CON, 20 = INT, 21 = WIS, 22 = CHA.
+  - **Skills:** Check Box 23 to 40 run alphabetically: Acrobatics, Animal Handling, Arcana, Athletics, Deception, History, Insight, Intimidation, Investigation, Medicine, Nature, Perception, Performance, Persuasion, Religion, Sleight of Hand, Stealth, Survival.
+  - The sample confirms it: boxes 20 and 21 (wizard saves) and boxes 25, 27, 31 and 38 (Arcana, Deception, Investigation, Sleight of Hand) match the filled skill numbers.
+  - **Expertise:** the sheet has no expertise box. Infer it when a skill's number equals mod + 2 × proficiency.
+- **Text boxes:** `Equipment`, `Features and Traits`, `ProficienciesLang` (tools and languages, one per line), `Treasure`, `Allies`, `Feat+Traits` (the page-2 overflow), `Wpn Name`/`Wpn1 AtkBonus`/`Wpn1 Damage` (rows 1–3). They go to inventory (one item per line), languages and tools, and notes.
+- **Spells:** `Spells 10xx` lines. Spell level comes from the line:
+  - Cantrips: 1014 and 1016–1022.
+  - 1st level: 1015 and 1023–1033.
+  - 2nd level: 1034–1045.
+  - 3rd level starts at 1046, and each higher level follows the same pattern: the first line of each level is out of sequence.
+  - **Don't hard-code past 3rd level from this sample.** Take each line's level from its position on page 3, under the nearest `SlotsTotal 19…27` header (19 = 1st level … 27 = 9th). Only fall back to the numbers above if positions aren't available.
+  - The prepared check boxes (`Check Box 3xx`) are ignored. Every listed spell goes to `prepared`.
+- **Spell names are hand-typed:** "Firebolt", "Magic Missle", "Protection from Evil", "Tensers Floating Disc (R)", "Fleshstitch (Bonus)".
+  - Match leniently: drop text in brackets, ignore apostrophes, spaces and case, allow 2 letters different, and allow a name that starts a built-in name (so "Protection from Evil" → "Protection from Evil and Good").
+  - The summary shows each fuzzy match ("Magic Missle → Magic Missile").
+  - Names that still don't match ("Cheers", "Fleshstitch", "Bone Shard", "Consume Essence", "Melwyn's Flying Furnishings") become name-only homebrew spells at that line's level.
+- **Subrace:** a PDF says just "Halfling". Pick the subrace whose trait name appears in `Features and Traits` ("Naturally Stealthy" → Lightfoot). Otherwise leave it unchosen and say so in the summary.
+- **Subclass:** often missing ("Wizard 6" has no school). Then the sheet shows the Forge's usual "choose a subclass" warning, and the summary points to it.
+- **`CHARACTER IMAGE`:** a picture button. Its picture isn't read in this version; the summary says "Portrait not imported".
 
 ## Non-goals
 
