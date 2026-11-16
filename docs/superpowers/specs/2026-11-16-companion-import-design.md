@@ -83,7 +83,7 @@ For players, the owner picked **"import works, and new homebrew waits for the DM
   - `opts` are the `generateCharacter` options: ed, cls, level, subclass, race, sub, bg, base, multi, `keepSkills`, `expertOrder`, `bonusFeats` and a seed.
   - `extras` are the stored fields applied after the build: inv, coins, prepared, story, choices, hpCur, xp, conds.
 - **Rule set:** the app is 2014-based, so imports default to **2014**. The import dialog has a 2014/2024 choice, defaulting to 2014.
-- **Ability scores:** see the open question below. Whichever way the app stores them, the aim is that the Forge's final scores **equal the scores the player sees in the app**. `base` = app final score − the Forge's species bonus for that species, kept between 3 and 20. A homebrew species takes its ability bonus from `requiredRace.abilityScores`.
+- **Ability scores:** the owner checked: the app shows Zook as STR 5 and WIS 15, the same as the file. So **the file's `score` is the final score**, after the species bonus. The Forge's final scores must **equal the file's scores**. `base` = file score − the Forge's species bonus for that species (a homebrew species takes its bonus from `requiredRace.abilityScores`). If that drops a base below 3, keep it anyway, so the final score still matches the app. The sheet shows full scores with modifiers under them, as it already does. The owner doesn't want a modifiers-only view like the app's default.
 - **Saving throws** come from the class, as in the Forge. If the app marks an extra save, such as one from Resilient, the summary mentions it.
 - **Skills:** FULL and EXPERTISE pass through `pcKeep`'s mechanism (`keepSkills`, `expertOrder`), so the rebuild keeps them. HALF comes from Jack of All Trades and needs nothing extra.
 - Then build: `generateCharacter(opts)`, apply `extras`, `pcEnsure`, run `pcInvUpgrade` with `kitMoved: true`, so the Forge doesn't add its own starting kit on top of the imported gear.
@@ -163,6 +163,6 @@ For players, the owner picked **"import works, and new homebrew waits for the DM
   - packs like "Dungeoneer's Pack" stay one item, as the app lists them
   - placeholder names like "Set of artisan's tools Of Your Choice" keep their text
 
-## Open question for the owner
+## Settled with the owner
 
-- **Ability scores:** in the 5e Companion App, does Zook show **STR 5** or **STR 6** (and WIS 15 or 16)? This tells us whether the file stores scores before or after the species bonus.
+- **Ability scores:** the app shows STR 5 and WIS 15 for Zook, matching the file. The file stores final scores.
