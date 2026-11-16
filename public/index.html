@@ -3486,7 +3486,10 @@ async function npcPicClear(id) {
   delete n.img; delete n.imgUrl; Store.save(curCamp()); renderTracker();
 }
 async function npcPicTV(id) {
-  const n = npcOf(id); if (!n) return;
+  const n = npcOf(id); if (!n || !(n.img || npcUrlOk(n.imgUrl))) return;
+  // open the TV window straight from the click, before any waiting, so pop-up blockers allow it
+  if (!HOST.on) hostStart();
+  if (!HOST.on) return;
   let blob = null;
   if (n.img) { try { blob = await MAPIMG.get(n.img); } catch { } if (!blob) { toast("This picture isn't on this device. Add it again with 🖼 Add picture."); return; } }
   else if (npcUrlOk(n.imgUrl)) {
@@ -3494,8 +3497,6 @@ async function npcPicTV(id) {
     catch { toast("That website doesn't let the Forge copy its picture. Download it and use 🖼 Add picture instead."); return; }
   } else return;
   let cv; try { ({ cv } = await loadImageCanvas(blob)); } catch { toast("Couldn't open that picture. Try a PNG or JPG."); return; }
-  if (!HOST.on) hostStart();
-  if (!HOST.on) return;
   handoutShow(cv);
 }
 $("#npcPicFile").addEventListener("change", e => { const f = e.target.files[0], id = e.target.dataset.id; e.target.value = ""; if (f && id) npcPicSet(id, f); });
