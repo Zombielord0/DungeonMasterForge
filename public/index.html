@@ -189,6 +189,15 @@ ul.plain{margin:4px 0 0;padding-left:20px}
 .item{margin-bottom:8px}
 .item .row{margin-bottom:6px}
 .item-h{display:flex;gap:8px;align-items:center}
+.npc-row{display:flex;gap:12px;align-items:flex-start}
+.npc-body{flex:1;min-width:0}
+.npc-pic{flex:0 0 118px;display:flex;flex-direction:column;gap:6px}
+.npc-frame{width:118px;height:118px;display:flex;align-items:center;justify-content:center;background:#0d0c0b;border:1px solid #3a332b;border-radius:4px;overflow:hidden}
+.npc-frame img{width:100%;height:100%;object-fit:contain;display:block}
+.npc-pic-empty{color:var(--muted,#9a8f80);font-size:13px;text-align:center;padding:6px}
+.npc-pic-btns{display:flex;flex-wrap:wrap;gap:4px}
+.npc-pic-btns .btn{padding:3px 7px;font-size:13px;white-space:nowrap;line-height:1.3;height:auto}
+@media (max-width:600px){.npc-row{flex-direction:column}.npc-pic{flex-basis:auto;flex-direction:row;align-items:flex-start;width:100%}.npc-frame{flex:0 0 96px;width:96px;height:96px}.npc-pic-btns{flex:1;min-width:0;align-content:flex-start}}
 .item-h input[type=text]{font-weight:600}
 .chapter{display:flex;gap:10px;align-items:flex-start;padding:10px;border:1px solid #0d0c0b;border-radius:4px;margin-bottom:8px;background:var(--well);box-shadow:inset 0 2px 6px rgba(0,0,0,.6)}
 .chapter.done{opacity:.6}
@@ -1147,6 +1156,7 @@ nav a[data-view=whispers]{--ic:url("data:image/svg+xml,%3Csvg xmlns='http://www.
       <div id="campList"></div>
       <button class="btn wide" id="newCamp" style="margin-top:6px">+ New blank campaign</button>
       <label class="btn wide" style="display:block;text-align:center;margin-top:6px">Import JSON<input type="file" id="importFile" accept=".json,application/json" hidden></label>
+      <input type="file" id="npcPicFile" accept="image/*" hidden>
     </div>
     <div id="campMain"></div>
   </div>
@@ -2711,7 +2721,8 @@ const MAPIMG = {
   db: null,
   open() { return this.db || (this.db = new Promise((res, rej) => { const r = indexedDB.open("dmforge-maps", 1); r.onupgradeneeded = () => r.result.createObjectStore("images"); r.onsuccess = () => res(r.result); r.onerror = () => rej(r.error); })); },
   async put(id, blob) { const db = await this.open(); return new Promise((res, rej) => { const t = db.transaction("images", "readwrite"); t.objectStore("images").put(blob, id); t.oncomplete = () => res(); t.onerror = () => rej(t.error); }); },
-  async get(id) { const db = await this.open(); return new Promise((res, rej) => { const q = db.transaction("images").objectStore("images").get(id); q.onsuccess = () => res(q.result || null); q.onerror = () => rej(q.error); }); }
+  async get(id) { const db = await this.open(); return new Promise((res, rej) => { const q = db.transaction("images").objectStore("images").get(id); q.onsuccess = () => res(q.result || null); q.onerror = () => rej(q.error); }); },
+  async del(id) { const db = await this.open(); return new Promise((res, rej) => { const t = db.transaction("images", "readwrite"); t.objectStore("images").delete(id); t.oncomplete = () => res(); t.onerror = () => rej(t.error); }); }
 };
 const IMG_MAX = 4096;
 async function loadImageCanvas(src) { // a File, Blob or data: URL -> a canvas no bigger than 4096 px, and how much it was shrunk
@@ -3397,12 +3408,12 @@ function renderSub(c) {
   }
   const L = LISTS[subTab]; const items = c[subTab];
   return (subTab === "sessions" ? recapBarHTML() : "") + `<div class="sec-h"><h3>${L.label}</h3><span class="sp"></span><button class="btn sm primary" data-add="${subTab}">+ ${L.add}</button></div>` +
-    (items.length ? items.map(it => `<div class="item">` + (() => {
+    (items.length ? items.map(it => `<div class="item${subTab === "npcs" ? " npc-row" : ""}">` + (subTab === "npcs" ? npcPicHTML(it) + `<div class="npc-body">` : "") + (() => {
       const [first, ...rest] = L.fields; const inline = rest.filter(f => f[1] !== "textarea"), areas = rest.filter(f => f[1] === "textarea");
       return `<div class="item-h">${fieldHTML(subTab, it, first)}${subTab === "loot" ? lootGiveHTML(c, it) : ""}<button class="icon-btn" data-del="${subTab}" data-id="${it.id}" title="Delete">✕</button></div>
         ${inline.length ? `<div class="row" style="margin-top:6px">${inline.map(f => fieldHTML(subTab, it, f)).join("")}</div>` : ""}
         ${areas.map(f => fieldHTML(subTab, it, f)).join("")}`;
-    })() + `</div>`).join("") : `<p class="muted">Nothing here yet.</p>`);
+    })() + (subTab === "npcs" ? `</div>` : "") + `</div>`).join("") : `<p class="muted">Nothing here yet.</p>`);
 }
 // hand a loot item to one of your characters: party members first, then anyone on My Characters
 function lootGiveHTML(camp, it) {
@@ -3428,6 +3439,66 @@ function fieldHTML(list, it, [key, type, ph, opts]) {
   if (type === "select") return `<select ${a}>${opts.map(o => `<option ${it[key] === o ? "selected" : ""}>${o}</option>`).join("")}</select>`;
   return `<input type="${type}" ${a} placeholder="${esc(ph)}" value="${esc(it[key] ?? "")}" ${type === "number" ? 'min="0" max="99"' : ""}>`;
 }
+/* ======================= NPC pictures =======================
+   An uploaded picture lives in this browser's picture store (MAPIMG, key "npc-<id>", at most 2048 px) and the NPC keeps
+   img: that key. A link is kept as imgUrl (https only). Show on TV sends only the picture, as a handout. */
+const NPC_PIC_MAX = 2048, npcPicUrls = [];
+const npcUrlOk = u => /^https:\/\/\S+$/i.test(String(u || ""));
+function npcPicHTML(it) {
+  const id = esc(it.id), url = !it.img && npcUrlOk(it.imgUrl) ? it.imgUrl : "", has = !!(it.img || url);
+  const pic = it.img ? `<img alt="Picture of ${esc(it.name || "this NPC")}" data-npcimg="${esc(it.img)}">` : url ? `<img alt="Picture of ${esc(it.name || "this NPC")}" src="${esc(url)}" referrerpolicy="no-referrer">` : `<span class="npc-pic-empty">No picture</span>`;
+  clearTimeout(npcPicFill._t); npcPicFill._t = setTimeout(npcPicFill);
+  return `<div class="npc-pic"><div class="npc-frame">${pic}</div><div class="npc-pic-btns">
+    <button class="btn sm" type="button" data-npcpic="add" data-id="${id}" title="Add a picture from this computer">🖼 ${has ? "Change" : "Add picture…"}</button>
+    <button class="btn sm" type="button" data-npcpic="link" data-id="${id}" title="Use a picture link (https://…)">🔗 Link</button>
+    ${has ? `<button class="btn sm" type="button" data-npcpic="tv" data-id="${id}" title="Show this picture on the TV">📺 TV</button>
+    <button class="icon-btn" type="button" data-npcpic="clear" data-id="${id}" title="Remove the picture">✕</button>` : ""}</div></div>`;
+}
+async function npcPicFill() {
+  npcPicUrls.splice(0).forEach(u => URL.revokeObjectURL(u));
+  for (const im of $$("img[data-npcimg]", campMain)) {
+    let blob = null; try { blob = await MAPIMG.get(im.dataset.npcimg); } catch { }
+    if (!im.isConnected) continue;
+    if (blob) { const u = URL.createObjectURL(blob); npcPicUrls.push(u); im.src = u; }
+    else im.replaceWith(Object.assign(document.createElement("span"), { className: "npc-pic-empty", textContent: "Picture not on this device" }));
+  }
+}
+const npcOf = id => { const c = curCamp(); return c && (c.npcs || []).find(n => n.id === id); };
+async function npcPicSet(id, file) {
+  let cv; try { ({ cv } = await loadImageCanvas(file)); } catch { toast("Couldn't open that picture. Try a PNG or JPG."); return; }
+  const k = Math.min(1, NPC_PIC_MAX / Math.max(cv.width, cv.height));
+  if (k < 1) { const s = document.createElement("canvas"); s.width = Math.round(cv.width * k); s.height = Math.round(cv.height * k); s.getContext("2d").drawImage(cv, 0, 0, s.width, s.height); cv = s; }
+  const c = curCamp(), n = npcOf(id); if (!n) return;
+  const key = "npc-" + n.id;
+  try { await MAPIMG.put(key, await canvasBlob(cv)); } catch { toast("Couldn't store that picture in this browser"); return; }
+  n.img = key; delete n.imgUrl; Store.save(c); renderTracker();
+}
+async function npcPicLink(id) {
+  const n = npcOf(id); if (!n) return;
+  const v = prompt("Picture link (starts with https://)", n.imgUrl || ""); if (v === null) return;
+  const url = v.trim(); if (!npcUrlOk(url)) { toast("Use a picture link that starts with https://"); return; }
+  if (n.img) { try { await MAPIMG.del(n.img); } catch { } delete n.img; }
+  n.imgUrl = url; Store.save(curCamp()); renderTracker();
+}
+async function npcPicClear(id) {
+  const n = npcOf(id); if (!n) return;
+  if (n.img) { try { await MAPIMG.del(n.img); } catch { } }
+  delete n.img; delete n.imgUrl; Store.save(curCamp()); renderTracker();
+}
+async function npcPicTV(id) {
+  const n = npcOf(id); if (!n) return;
+  let blob = null;
+  if (n.img) { try { blob = await MAPIMG.get(n.img); } catch { } if (!blob) { toast("This picture isn't on this device. Add it again with 🖼 Add picture."); return; } }
+  else if (npcUrlOk(n.imgUrl)) {
+    try { const r = await fetch(n.imgUrl, { mode: "cors" }); if (!r.ok) throw 0; blob = await r.blob(); }
+    catch { toast("That website doesn't let the Forge copy its picture. Download it and use 🖼 Add picture instead."); return; }
+  } else return;
+  let cv; try { ({ cv } = await loadImageCanvas(blob)); } catch { toast("Couldn't open that picture. Try a PNG or JPG."); return; }
+  if (!HOST.on) hostStart();
+  if (!HOST.on) return;
+  handoutShow(cv);
+}
+$("#npcPicFile").addEventListener("change", e => { const f = e.target.files[0], id = e.target.dataset.id; e.target.value = ""; if (f && id) npcPicSet(id, f); });
 function curCamp() { return Store.get(activeId); }
 function updateProgress(c) {
   const done = c.chapters.filter(x => x.done).length, tot = c.chapters.length, pct = tot ? Math.round(done / tot * 100) : 0;
@@ -3569,7 +3640,15 @@ campMain.addEventListener("click", async e => {
     const it = (c[k] || []).find(x => x.id === id);
     const label = it && (it.name || it.title || it.item) ? `“${it.name || it.title || it.item}”` : "this entry";
     if (!(await confirmBox("Delete entry?", `Remove ${label}? This can't be undone.`))) return;
+    if (k === "npcs" && it && it.img) { try { await MAPIMG.del(it.img); } catch { } }
     c[k] = c[k].filter(x => x.id !== id); Store.save(c); renderTracker(); return;
+  }
+  const np = t.closest("[data-npcpic]");
+  if (np) {
+    const a = np.dataset.npcpic, id = np.dataset.id;
+    if (a === "add") { const f = $("#npcPicFile"); f.dataset.id = id; f.click(); }
+    else if (a === "link") npcPicLink(id); else if (a === "clear") npcPicClear(id); else if (a === "tv") npcPicTV(id);
+    return;
   }
   const om = t.closest("[data-openmap]");
   if (om) { const m = (c.maps || []).find(x => x.id === om.dataset.openmap); if (m) mapOpenSaved(m); return; }
@@ -10215,6 +10294,10 @@ Store.init().then(() => { renderCampList(); pcAdoptRemote(); itemsAdopt(); if (l
 <script>
 /* ---- what's new: newest first. Add an entry (with a new id) whenever a change ships; the bell counts entries this browser hasn't seen. ---- */
 const NEWS = [
+  { id: "2026-11-16-npcpics", date: "2026-11-16", title: "Pictures for your NPCs", go: "tracker", items: [
+    "Every NPC in the Campaign Tracker now has a picture frame. Add a picture from your computer, or paste a picture link that starts with https://.",
+    "Press 📺 TV to show the picture on the players' screen. Only the picture goes to the TV, never the NPC's name or notes, and it keeps its shape with no stretching.",
+    "Pictures you add are kept on this computer, like imported maps, so they aren't in Backup files. Picture links work on any device."] },
   { id: "2026-11-15-signin-fix", date: "2026-11-15", title: "Sign-in screen fixed", items: [
     "If your saved sign-in had expired, the Forge showed \"Please sign in\" with no way to sign in. It now shows the email and password form again, with \"Use without an account\" below it.",
     "If the campaign server can't be reached, you can now try again, sign in with another account, or use the Forge without an account."] },

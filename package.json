@@ -18,7 +18,8 @@
     "test:calendar": "node test/e2e/calendar.cjs",
     "test:recap": "node test/e2e/recap.cjs",
     "test:sheet": "node test/e2e/sheet-maths.cjs",
-    "test:tokens": "node test/e2e/tokens.cjs"
+    "test:tokens": "node test/e2e/tokens.cjs",
+    "test:npcpic": "node test/e2e/npc-pictures.cjs"
   },
   "dependencies": {
     "@netlify/database": "^2.0.3",

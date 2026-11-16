@@ -63,6 +63,10 @@ In **Campaign Tracker → Encounters**, pick where the party is and how hard the
 
 Each campaign in the **Campaign Tracker** has a **Calendar** tab. It shows the day, season, time and weather. Use the buttons for rests, the next morning or travelling several days, and new weather is rolled for each day. Pick the climate and starting season to suit your world. Rests, travel and your own notes are logged.
 
+## NPC pictures
+
+On a campaign's **NPCs** tab, every NPC has a picture frame. Press **🖼 Add picture…** to pick one from your computer, or **🔗 Link** to use a picture link that starts with https://. Press **📺 TV** to show it on the players' screen. Only the picture is shown, never the NPC's notes, and it keeps its shape. Pictures you add are kept on this computer (not in backups); links work anywhere.
+
 ## Session recaps
 
 On a campaign's **Sessions** tab, press **Write a recap**. It collects what has happened since the last recap: fights finished, XP, quests completed or failed, chapters, loot handed out, and the calendar's log. It saves all of that as a new session you can edit.

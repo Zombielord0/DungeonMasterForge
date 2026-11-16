@@ -52,6 +52,7 @@ npm run test:calendar  # calendar and weather (Playwright, any OS)
 npm run test:recap  # session recaps (Playwright, any OS)
 npm run test:sheet  # character sheet maths vs the rules, 432 sheets (Playwright, any OS)
 npm run test:tokens  # tokens on the TV map (Playwright, any OS)
+npm run test:npcpic  # NPC pictures: upload, link, TV without distortion (Playwright, any OS)
 npm run test:map  # map fog + TV player screen checks (Playwright, any OS)
 npm run dev     # full local copy at http://localhost:8899 (any OS); stand-in sign-in, data wiped on Ctrl+C
 ```
@@ -391,6 +392,15 @@ Everything in the sections from "Dungeon Map looks" to "Tokens" below was built 
   - The last download time is kept in `dmforge.lastBackup`.
 - **Downloads:** `saveFile` now falls back to a normal browser download (Blob and `<a download>`) when the Claude `downloads` helper isn't there. Before this, Download PNG and Export JSON did nothing on the website.
 - **Tests:** `npm run test:backup` (`test/e2e/backup.cjs`).
+
+## NPC pictures (2026-11-16)
+
+- **Data.** A Tracker NPC can have `img` (a key `npc-<npc id>` in the `MAPIMG` IndexedDB, the same store as imported map pictures) or `imgUrl` (https only, checked by `npcUrlOk`). Setting one removes the other. Uploads are shrunk to `NPC_PIC_MAX` (2048 px).
+- **Functions.** `npcPicHTML(it)` draws the frame inside the NPC list item (`.npc-row`, `.npc-body`); `npcPicFill()` loads stored pictures into object URLs, or says "Picture not on this device". The buttons are `data-npcpic="add|link|tv|clear"` and the hidden file input is `#npcPicFile`. `npcPicSet`, `npcPicLink`, `npcPicClear` and `npcPicTV` do the work. `MAPIMG.del` was added, and deleting an NPC deletes its stored picture.
+- **On the TV** it's a handout (`handoutShow`), started with `hostStart` if needed. Only the picture is sent. The player screen already letterboxes every picture (`Math.min` scale), so nothing is stretched; the frame uses `object-fit: contain`.
+- Pictures aren't in backups (like map pictures). A link from a site without CORS can be shown in the frame but can't be sent to the TV; the toast says to upload it instead.
+- **Tests:** `npm run test:npcpic` (`test/e2e/npc-pictures.cjs`).
+- **Campaign saves are written 600 ms after a change** (`Store.save`). Tests that reload must wait for that first.
 
 ## How a character is built (read this before changing sheet maths)
 
