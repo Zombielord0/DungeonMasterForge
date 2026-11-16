@@ -11,6 +11,11 @@ These are project notes for the next chat (human or Claude). They cover what the
 - Explain things plainly. The owner tests in the browser rather than reading code.
 - Don't open pull requests unless asked.
 - Pushing to a pull request's branch starts a Netlify **deploy preview**, which also uses build credits. Push when the work is ready or when asked, rather than after every small change. Cloud sessions have a stop hook that asks for unpushed commits to be pushed.
+- **Test on preview pages, not the live site (owner, 2026-11-16).**
+  - Work goes on a branch with a **draft** pull request into `main`, so Netlify builds a deploy preview the owner can try in the browser (`deploy-preview-<PR number>--dungeonmasterforge.netlify.app`).
+  - Run the automated checks locally first, and push in batches: one preview build per finished piece of work.
+  - Merge to `main` (a production build) only when the owner has tried the preview and asks.
+  - Previews may use their own copy of the campaign database, so test there with fresh accounts and campaigns.
 
 ## What the app is
 
