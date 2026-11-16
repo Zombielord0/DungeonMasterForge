@@ -414,7 +414,19 @@ Everything in the sections from "Dungeon Map looks" to "Tokens" below was built 
   - `pendKey(x)` = `kind|cls|name`. The DM's queue is `hbPendHTML()` (`#hbPendBox`, rows `data-pendrow`, buttons `data-pendact`); `hbApprove` and `hbReject` act on it.
   - Rejecting a subclass, feat or spell takes it off the character. A species or background stays, with `rejected: true`, and the sheet shows `hbRejectedHTML`.
   - Party cards show "N homebrew to approve".
-- **Tests:** `npm run test:import` (`test/e2e/char-import.cjs` plus `char-import-ui.cjs`, with the fixture `test/e2e/fixtures/companion-zook.json`), `npm run test:hbspell` and `npm run test:hbpend`.
+- **PDF sheets:**
+  - `pdfFields(buf)` loads pdf.js on demand from `public/vendor/pdfjs/` (legacy build of `pdfjs-dist` 6.5.438, Apache-2.0, unchanged; `netlify.toml` serves its `.mjs` as JavaScript). It reads each page's widgets with `getAnnotations()`; `getFieldObjects()` came back empty in this version. It returns `{fields:{name: value}, pos:{name:{page, x, y, x2, y2}}}`, and checked boxes read "Yes".
+  - `pdfImport(F, ed)` maps the official sheet's field names, ignoring spaces and case (`Race `, `DEXmod `):
+    - Check Box 11/18–22 are the saves; 23–40 are the skills in alphabetical order.
+    - Expertise is inferred from a skill's number.
+    - A spell line's level comes from its position: the nearest `SlotsTotal 19…27` header above it in the same column (`pdfSpellLevel`).
+    - The subrace is guessed from the trait names in Features and Traits.
+    - Unknown names become name-only homebrew.
+    - `D.check` holds HP, AC, speed and spell DC, which `importBuild` compares after `pcRecompute`.
+  - `spellMatch` is lenient. It ignores text in brackets and compares letters only, then tries a prefix (6+ letters), then an edit distance of 2. It also tries again without a leading wizard's name ("Tensers Floating Disc" → Floating Disk).
+- **Tests:** `npm run test:import` (`test/e2e/char-import.cjs` plus `char-import-ui.cjs` and `char-import-pdf.cjs`), `npm run test:hbspell` and `npm run test:hbpend`.
+  - The fixtures are `test/e2e/fixtures/companion-zook.json` and `sheet-wizard.pdf`. The PDF is made by `python tools/make-test-sheet.py` (needs pypdf) with the official sheet's names and spell positions.
+  - Players' own PDFs aren't committed.
 
 ## NPC pictures (2026-11-16)
 

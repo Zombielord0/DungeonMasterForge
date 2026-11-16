@@ -65,9 +65,9 @@ Each campaign in the **Campaign Tracker** has a **Calendar** tab. It shows the d
 
 ## Importing characters
 
-On **My Characters**, press **⬆ Import character** and choose a character file from the **5e Companion App** (in the app, open the character and use Export or Share). Pick the 2014 or 2024 rules. You'll see what matched, what becomes homebrew and anything that couldn't come across, then press **Import**. The Forge keeps the character's ability scores, skills, gear, coins, spells and story, and works out the rest itself, so levelling up, rests and dice all work.
+On **My Characters**, press **⬆ Import character** and choose a character file from the **5e Companion App** (in the app, open the character and use Export or Share) or a **fillable PDF character sheet** (one you can still type into, like the official 5e sheet). Pick the 2014 or 2024 rules. You'll see what matched, what becomes homebrew and anything that couldn't come across, then press **Import**. The Forge keeps the character's ability scores, skills, gear, coins, spells and story, and works out the rest itself, so levelling up, rests and dice all work.
 
-Subclasses, species, backgrounds, feats and spells the Forge doesn't have are added to **Homebrew** automatically, with their rules text from the file. If a player imports while signed in, that new homebrew waits for the DM: it appears under **Waiting for approval** on the DM's Homebrew tab, and only that player's character uses it until the DM approves it. If the DM doesn't approve a subclass, feat or spell, it's taken off the character; a species or background stays, with a note to choose another with the DM.
+Subclasses, species, backgrounds, feats and spells the Forge doesn't have are added to **Homebrew** automatically, with their rules text from the file. A PDF has only names, so homebrew made from a PDF has no rules text: add it in the Homebrew tab. A scanned or "flattened" PDF can't be read. If a player imports while signed in, that new homebrew waits for the DM: it appears under **Waiting for approval** on the DM's Homebrew tab, and only that player's character uses it until the DM approves it. If the DM doesn't approve a subclass, feat or spell, it's taken off the character; a species or background stays, with a note to choose another with the DM.
 
 ## NPC pictures
 

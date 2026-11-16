@@ -17,3 +17,9 @@
   for = "/sw.js"
   [headers.values]
     Cache-Control = "no-cache"
+
+# The PDF reader (pdf.js) is loaded as a JavaScript module, which browsers only accept with a JavaScript content type.
+[[headers]]
+  for = "/vendor/pdfjs/*.mjs"
+  [headers.values]
+    Content-Type = "text/javascript; charset=utf-8"

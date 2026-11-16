@@ -70,6 +70,7 @@ const ZOOK = fs.readFileSync(path.join(FIX, "companion-zook.json"), "utf8");
 
   const UI = path.join(__dirname, "char-import-ui.cjs"); // the dialog checks (added with the dialog)
   if (fs.existsSync(UI)) await require(UI)(p, { URL, check, FIX, errs, ctx });
+  await require("./char-import-pdf.cjs")(p, { URL, check, FIX, errs, ctx });
   check("no page errors", errs.length === 0, errs.join(" | "));
   await browser.close(); server.close();
   console.log(fails ? `\n${fails} check(s) failed` : "\nAll character import checks passed");

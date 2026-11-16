@@ -10431,12 +10431,36 @@ function impGear(ed, raw) {
   const tries = [name, name.replace(/^(a\s+)?set\s+of\s+/i, "")];
   if (/^\S+$/.test(name)) for (let i = 3; i <= name.length - 3; i++) tries.push(name.slice(0, i) + " " + name.slice(i));
   for (const t of tries) { const g = eqGear(ed, t); if (g) return { g, n: g.n, qty }; }
-  return { g: null, n: name, qty };
+  itLoad(); const k = impLetters(name), ks = k.replace(/s$/, ""), G = IT.data[ed === "2014" ? "2014" : "2024"].filter(x => x.kind === "gear");
+  const g = G.find(x => [k, ks].includes(impLetters(x.n)) || [k, ks].includes(impLetters(x.n).replace(/s$/, "")));
+  return g ? { g, n: g.n, qty } : { g: null, n: name, qty };
 }
 // spells: an exact name (any case) in this rule set, then the other one
+// spells: exact letters first, then a name that starts a built-in name, then up to 2 letters different (names of 6+ letters)
+const impLetters = s => String(s || "").toLowerCase().replace(/\([^)]*\)/g, "").replace(/[^a-z]/g, "");
+function impDist(a, b, max) {
+  if (Math.abs(a.length - b.length) > max) return max + 1;
+  let prev = Array.from({ length: b.length + 1 }, (_, j) => j);
+  for (let i = 1; i <= a.length; i++) { const cur = [i]; let low = i; for (let j = 1; j <= b.length; j++) { cur[j] = Math.min(prev[j] + 1, cur[j - 1] + 1, prev[j - 1] + (a[i - 1] === b[j - 1] ? 0 : 1)); low = Math.min(low, cur[j]); } if (low > max) return max + 1; prev = cur; }
+  return prev[b.length];
+}
 function spellMatch(ed, name) {
-  spLoad(); const k = impNorm(String(name || "").replace(/\([^)]*\)/g, ""));
-  for (const e of [ed, ed === "2014" ? "2024" : "2014"]) { const s = (SP.data[e] || []).find(x => !x.pend && impNorm(x.n) === k); if (s) return { s, ed: e, fuzzy: false }; }
+  const m = spellMatch1(ed, name); if (m) return m;
+  const rest = String(name || "").replace(/^\s*[A-Z][a-z]+(?:[’']s|s)\s+/, "");
+  if (rest !== String(name || "") && impLetters(rest).length >= 6) { const m2 = spellMatch1(ed, rest); if (m2) return { ...m2, fuzzy: true }; }
+  return null;
+}
+function spellMatch1(ed, name) {
+  spLoad(); const k = impLetters(name); if (!k) return null;
+  const eds = [ed, ed === "2014" ? "2024" : "2014"], fuzzy = s => s.n.toLowerCase() !== String(name).trim().toLowerCase();
+  for (const e of eds) { const s = (SP.data[e] || []).find(x => !x.pend && impLetters(x.n) === k); if (s) return { s, ed: e, fuzzy: fuzzy(s) }; }
+  if (k.length < 6) return null;
+  for (const e of eds) { const L = (SP.data[e] || []).filter(x => !x.pend && impLetters(x.n).startsWith(k)).sort((a, b) => a.n.length - b.n.length); if (L.length) return { s: L[0], ed: e, fuzzy: true }; }
+  for (const e of eds) {
+    let best = null;
+    for (const x of SP.data[e] || []) { if (x.pend) continue; const d = impDist(k, impLetters(x.n), 2); if (d <= 2 && (!best || d < best.d || d === best.d && x.n.length < best.s.n.length)) best = { s: x, d }; }
+    if (best) return { s: best.s, ed: e, fuzzy: true };
+  }
   return null;
 }
 const IMP_SKILL = Object.fromEntries(ALL_SKILLS.map(k => [k.toUpperCase().replace(/ /g, "_"), k]));
@@ -10572,9 +10596,154 @@ function importBuild(D) {
     if (X.conds && X.conds.length) c.conds = X.conds;
     if (X.death) c.death = X.death;
     pcEnsure(c);
+    try { pcRecompute(c); } catch { }
     c.hpCur = X.hpCur === undefined || isNaN(X.hpCur) ? c.hp : clamp(X.hpCur, 0, c.hp);
+    const K = D.check || {}, say = (what, ours, theirs) => { if (theirs > 0 && ours !== theirs) report.differ.push(`${what} is ${ours} in the Forge (the sheet says ${theirs})`); };
+    say("Max HP", c.hp, K.hp); say("Armor class", c.ac, K.ac); say("Speed", (() => { try { return pcSpeed(c).speed; } catch { return c.speed; } })(), K.speed);
+    if (c.spell && K.dc > 0) say("Spell save DC", c.spell.dc, K.dc);
     return { c, report };
   } finally { HB.pend = keep.pend; HB.pendSig = keep.sig; hbApply(); }
+}
+
+/* ---- fillable PDF character sheets (the official 5e sheet's field names) ----
+   pdf.js (vendor/pdfjs, Apache-2.0) is loaded only when a PDF is chosen. */
+const PDF_SRC = "PDF character sheet";
+async function pdfFields(buf) {
+  const lib = await import(new URL("vendor/pdfjs/pdf.min.mjs", location.href).href);
+  lib.GlobalWorkerOptions.workerSrc = new URL("vendor/pdfjs/pdf.worker.min.mjs", location.href).href;
+  const doc = await lib.getDocument({ data: new Uint8Array(buf), isEvalSupported: false }).promise, fields = {}, pos = {};
+  try {
+    // each page's form boxes (widgets): name, value and where they sit
+    for (let i = 1; i <= doc.numPages; i++) {
+      const anns = await (await doc.getPage(i)).getAnnotations();
+      for (const a of anns) {
+        if (!a || !a.fieldName) continue;
+        const name = a.fieldName;
+        const v = a.fieldType === "Btn" ? (a.checkBox || a.radioButton ? (a.fieldValue && a.fieldValue !== "Off" ? "Yes" : "") : "") : a.fieldValue == null ? "" : String(Array.isArray(a.fieldValue) ? a.fieldValue.join(", ") : a.fieldValue);
+        if (!fields[name]) fields[name] = v;
+        if (a.rect && !pos[name]) pos[name] = { page: i - 1, x: a.rect[0], y: a.rect[1], x2: a.rect[2], y2: a.rect[3] };
+      }
+    }
+  } finally { try { doc.destroy(); } catch { } }
+  return { fields, pos };
+}
+const PDF_ALIGN = { LG: "Lawful Good", NG: "Neutral Good", CG: "Chaotic Good", LN: "Lawful Neutral", N: "True Neutral", TN: "True Neutral", NN: "True Neutral", CN: "Chaotic Neutral", LE: "Lawful Evil", NE: "Neutral Evil", CE: "Chaotic Evil" };
+const PDF_SAVES = { 11: "str", 18: "dex", 19: "con", 20: "int", 21: "wis", 22: "cha" };
+const PDF_SKILLS = ["Acrobatics", "Animal Handling", "Arcana", "Athletics", "Deception", "History", "Insight", "Intimidation", "Investigation", "Medicine", "Nature", "Perception", "Performance", "Persuasion", "Religion", "Sleight of Hand", "Stealth", "Survival"];
+const PDF_SKILL_BOX = { "Animal Handling": "Animal", "Sleight of Hand": "SleightofHand" };
+const PDF_LANGS = ["Common", "Dwarvish", "Elvish", "Giant", "Gnomish", "Goblin", "Halfling", "Orc", "Abyssal", "Celestial", "Draconic", "Deep Speech", "Infernal", "Primordial", "Sylvan", "Undercommon", "Thieves' Cant", "Druidic", "Aquan", "Auran", "Ignan", "Terran", "Sign Language", "Common Sign Language"];
+// a spell line's level: the nearest "slots total" header above it in the same column (19 = 1st level … 27 = 9th); none above = cantrip
+function pdfSpellLevel(name, pos) {
+  const p = pos[name];
+  if (p) {
+    let best = null;
+    for (const [k, h] of Object.entries(pos)) {
+      const m = k.match(/^SlotsTotal (\d+)$/); if (!m || +m[1] < 19 || +m[1] > 27 || h.page !== p.page) continue;
+      if (!(h.x < p.x2 && h.x2 > p.x) || h.y <= p.y) continue;
+      if (!best || h.y - p.y < best.d) best = { d: h.y - p.y, l: +m[1] - 18 };
+    }
+    return best ? best.l : 0;
+  }
+  const n = +String(name).replace(/\D/g, "");
+  return n === 1014 || (n >= 1016 && n <= 1022) ? 0 : n === 1015 || (n >= 1023 && n <= 1033) ? 1 : n === 1046 || (n >= 1034 && n <= 1045) ? 2 : 3;
+}
+function pdfImport(F, ed) {
+  ed = ed === "2024" ? "2024" : "2014";
+  const fields = (F && F.fields) || {}, pos = (F && F.pos) || {};
+  const norm = k => String(k).replace(/\s+/g, "").toLowerCase(), N = {};
+  Object.entries(fields).forEach(([k, v]) => { const n = norm(k); if (!(n in N) || (!N[n] && v)) N[n] = v; });
+  const get = k => String(N[norm(k)] ?? "").replace(/\r/g, "").trim(), num = k => { const m = get(k).match(/-?\d+/); return m ? +m[0] : NaN; }, on = k => !!get(k);
+  if (!Object.keys(fields).length) return { error: "This PDF has no fillable fields, so the Forge can't read it. Export it again as a fillable sheet, or type the character in." };
+  if (!get("CharacterName") && !get("ClassLevel")) return { error: "This PDF isn't a 5e character sheet the Forge can read. It needs the official sheet's boxes (name, class and level, scores)." };
+  const D = { src: PDF_SRC, opts: {}, final: {}, extras: {}, homebrew: [], report: { matched: [], made: [], differ: [], dropped: [] }, check: {} }, notes = [];
+  // classes: "Wizard 6", "Ranger 5 / Rogue 2", "Wizard (Evocation) 6"
+  const segs = get("ClassLevel").split(/\s*(?:\/|,|;|&|\band\b)\s*/i).filter(x => /[a-z]/i.test(x));
+  if (!segs.length) return { error: "This sheet has no class and level filled in." };
+  const classes = [];
+  for (const seg of segs) {
+    const cls = Object.keys(CLASS_DATA).find(k => new RegExp(`\\b${k}\\b`, "i").test(seg));
+    if (!cls) return { error: `The Forge doesn't support the ${seg.replace(/\d+/g, "").replace(/[()]/g, "").trim()} class yet, so this character can't be imported.` };
+    const lvs = seg.match(/\d+/g), lv = clamp(lvs ? +lvs[lvs.length - 1] : 1, 1, 20);
+    const rest = seg.replace(new RegExp(`\\b${cls}\\b`, "i"), "").replace(/\d+/g, "").replace(/\b(lvl|level|lv)\b/gi, "").replace(/[()[\]]/g, " ").replace(/\s+/g, " ").trim();
+    let subclass = null;
+    if (rest.length >= 3) {
+      const built = subclassList(ed, cls).find(x => impSame(x[0], rest) || impNorm(x[0]).includes(impNorm(rest)));
+      const have = !built && impHave("subclass", rest, cls);
+      if (built || have) { subclass = built ? built[0] : have.name; D.report.matched.push(`${cls} subclass: ${subclass}`); }
+      else { subclass = impCut(rest, 60); D.homebrew.push({ id: uid("hb"), kind: "subclass", src: PDF_SRC, ed, cls, name: subclass, desc: "Imported from a PDF; add its features here.", features: [] }); D.report.made.push(`${subclass} (${cls} subclass, name only)`); }
+    }
+    classes.push({ cls, lv, subclass });
+  }
+  const [main, ...more] = classes;
+  D.report.matched.push(classes.map(x => `${x.cls} ${x.lv}`).join(" / "));
+  const TL = classes.reduce((t, x) => t + x.lv, 0), prof = 2 + Math.floor((TL - 1) / 4);
+  // species: a subrace name ("Lightfoot Halfling"), a species ("Halfling", subrace from the features text), or homebrew
+  const rText = get("Race"), feat = [get("Features and Traits"), get("Feat+Traits")].join("\n"), R = PC_RACES[ed];
+  let race = null, sub = "none";
+  for (const k of Object.keys(R)) { if (R[k].pend) continue; const S = R[k].subs || {}; const sk = Object.keys(S).find(s => impSame(s, rText) || impSame(S[s].label, rText)); if (sk) { race = k; sub = sk; break; } }
+  if (!race) race = Object.keys(R).filter(k => !R[k].pend && new RegExp(`\\b${k.replace(/[-]/g, "\\-")}\\b`, "i").test(rText)).sort((a, b) => b.length - a.length)[0] || null;
+  if (race && sub === "none" && R[race].subs) {
+    const S = R[race].subs, hit = Object.keys(S).find(s => (S[s].traits || []).some(t => new RegExp(`\\b${t.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}\\b`, "i").test(feat)) || new RegExp(`\\b${s.split(" ")[0]}\\b`, "i").test(rText));
+    if (hit) sub = hit; else D.report.differ.push(`The sheet doesn't say which kind of ${race}: the Forge leaves the subrace out`);
+  }
+  if (race) D.report.matched.push(`Species: ${sub !== "none" ? sub : race}`);
+  else if (rText) {
+    const have = impHave("species", rText);
+    if (have) { race = have.name; D.report.matched.push(`Species: ${race} (homebrew)`); }
+    else { race = impCut(rText, 60); D.homebrew.push({ id: uid("hb"), kind: "species", src: PDF_SRC, ed, name: race, desc: "Imported from a PDF; add its traits here.", asi: {}, speed: num("Speed") || 30, skills: [], term: "", traits: [], subs: [] }); D.report.made.push(`${race} (species, name only)`); }
+  } else return { error: "This sheet has no species (race) filled in." };
+  // background
+  const bText = get("Background");
+  let bg = bText ? bgList(ed).find(k => impSame(k, bText)) || (impHave("background", bText) || {}).name || null : null;
+  if (bg) D.report.matched.push(`Background: ${bg}`);
+  else if (bText) { bg = impCut(bText, 60); D.homebrew.push({ id: uid("hb"), kind: "background", src: PDF_SRC, ed, name: bg, desc: "Imported from a PDF; add its feature here.", skills: [], feat: "", gear: "", fx: [] }); D.report.made.push(`${bg} (background, name only)`); }
+  // scores, saves, skills
+  for (const a of AB) { const v = num(a.toUpperCase()); if (!(v > 0)) return { error: "This sheet's ability scores aren't filled in." }; D.final[a] = v; }
+  D.appSaves = Object.entries(PDF_SAVES).filter(([n]) => on(`Check Box ${n}`)).map(([, a]) => a);
+  const keepSkills = [], keepExpert = [];
+  PDF_SKILLS.forEach((k, i) => {
+    if (!on(`Check Box ${23 + i}`)) return; keepSkills.push(k);
+    const v = num(PDF_SKILL_BOX[k] || k), md = Math.floor((D.final[SKILLS[k]] - 10) / 2);
+    if (v === md + 2 * prof) keepExpert.push(k);
+  });
+  // spells, by line position
+  const prepared = [];
+  Object.keys(fields).filter(k => /^Spells 1\d{3}$/.test(k.trim()) && get(k)).forEach(k => {
+    const raw = get(k), l = pdfSpellLevel(k, pos), m = spellMatch(ed, raw);
+    if (m) { if (!prepared.some(x => x.n === m.s.n)) prepared.push({ n: m.s.n, l: m.s.l, ed: m.ed }); if (m.fuzzy) D.report.matched.push(`${raw} → ${m.s.n}`); return; }
+    const nm = impCut(raw.replace(/\s*\([^)]*\)\s*/g, " ").trim(), 60); if (!nm) return;
+    const have = impHave("spell", nm) || D.homebrew.find(x => x.kind === "spell" && impSame(x.name, nm));
+    if (!have) { D.homebrew.push({ id: uid("hb"), kind: "spell", src: PDF_SRC, ed, name: nm, desc: "", l, s: "Evocation", c: [main.cls], t: "", r: "", cp: "", m: "", du: "", co: false, ri: false, h: "" }); D.report.made.push(`${nm} (${l ? `level ${l} spell` : "cantrip"}, name only)`); }
+    if (!prepared.some(x => x.n === (have ? have.name : nm))) prepared.push({ n: have ? have.name : nm, l: have ? +have.l || l : l, ed });
+  });
+  // gear: equipment and treasure, one item per line; weapons from the attack rows
+  const inv = [];
+  const addGear = (line, eq) => {
+    let t = line.replace(/^[-•*]\s*/, "").trim(); if (!t) return;
+    let note = ""; const pm = t.match(/^(.*?)\s*\((.*)\)\s*$/); if (pm && pm[1]) { t = pm[1]; note = pm[2]; }
+    const { g, n, qty } = impGear(ed, t);
+    const ex = inv.find(i => i.n.toLowerCase() === n.toLowerCase()); if (ex) { if (eq === null) ex.qty += qty; return; }
+    inv.push({ id: uid("i"), ref: g ? g.id : undefined, n: impCut(n, 80), qty, w: g ? g.w || 0 : 0, att: false, attuned: false, value: g ? g.c : undefined, note: impCut(note, 300), eq: eq === null ? eqIsWeapon(g) || eqIsArmor(g) : eq });
+  };
+  [get("Equipment"), get("Treasure")].join("\n").split(/\n/).forEach(l => addGear(l, null));
+  ["Wpn Name", "Wpn Name 2", "Wpn Name 3"].map(get).filter(Boolean).forEach(w => addGear(w, true));
+  // languages and tools
+  const langs = [], tools = [];
+  get("ProficienciesLang").split(/\n|,|;/).map(x => x.trim()).filter(Boolean).forEach(x => (PDF_LANGS.some(L => impSame(L, x)) ? langs : tools).push(x));
+  // story and notes
+  const look = ["Age", "Height", "Weight", "Eyes", "Skin", "Hair"].filter(k => get(k)).map(k => `${k}: ${get(k)}`).join(", ");
+  [["Allies", get("Allies")], ["Organisation", get("FactionName")], ["Backstory", get("Backstory")], ["Features and traits", get("Features and Traits")], ["More features and traits", get("Feat+Traits")]].filter(([, v]) => v).forEach(([k, v]) => notes.push(`${k}:\n${v}`));
+  if (get("Features and Traits") || get("Feat+Traits")) D.report.dropped.push("Features and traits text (saved in notes)");
+  if ("CHARACTER IMAGE" in fields || "CHARACTERIMAGE" in N) D.report.dropped.push("Portrait not imported");
+  D.opts = { seed: impCut(`${get("CharacterName")}|${get("ClassLevel")}`, 120), name: impCut(get("CharacterName"), 80) || "Imported character", ed, bonus: "fixed", method: "array", cls: main.cls, level: main.lv, subclass: main.subclass || "none", race, sub, bg: bg || undefined,
+    multi: more.length ? more.map(x => ({ cls: x.cls, lv: x.lv, subclass: x.subclass })) : undefined, keepSkills, keepExpert };
+  const a = get("Alignment");
+  D.extras = { inv, coins: { pp: num("PP") || 0, gp: num("GP") || 0, ep: num("EP") || 0, sp: num("SP") || 0, cp: num("CP") || 0 }, prepared,
+    align: PDF_ALIGN[a.toUpperCase().replace(/[^A-Z]/g, "")] || impCut(a, 40), xp: num("XP") || 0, hpCur: isNaN(num("HPCurrent")) ? undefined : num("HPCurrent"), player: impCut(get("PlayerName"), 60),
+    trait: impCut(get("PersonalityTraits"), 1000), ideal: impCut(get("Ideals"), 1000), bond: impCut(get("Bonds"), 1000), flaw: impCut(get("Flaws"), 1000), look, notes: notes.join("\n\n"), langs: langs.join(", "), toolsChosen: tools.join(", ") };
+  D.check = { hp: num("HPMax"), ac: num("AC"), speed: num("Speed"), dc: num("SpellSaveDC 2") };
+  if (!main.subclass && main.lv >= subclassLevel(ed, main.cls)) D.report.differ.push(`No ${main.cls} subclass on the sheet: choose a ${main.cls} subclass on the sheet after importing`);
+  return D;
 }
 
 /* ---- the Import character window ---- */
@@ -10635,8 +10804,9 @@ document.getElementById("impCharGo").addEventListener("click", async () => {
 });
 
 const NEWS = [
-  { id: "2026-11-16-charimport", date: "2026-11-16", title: "Import characters from the 5e Companion App", go: "roster", items: [
-    "My Characters has a new ⬆ Import character button. Choose a character file exported from the 5e Companion App and the Forge rebuilds it as a Forge character, with the same ability scores, skills, gear, coins, spells and story.",
+  { id: "2026-11-16-charimport", date: "2026-11-16", title: "Import characters from the 5e Companion App or a PDF", go: "roster", items: [
+    "My Characters has a new ⬆ Import character button. Choose a character file exported from the 5e Companion App, or a fillable PDF character sheet, and the Forge rebuilds it as a Forge character, with the same ability scores, skills, gear, coins, spells and story.",
+    "PDF sheets need to be ones you can still type into (the official fillable 5e sheet). Hand-typed spell names are matched even with small spelling mistakes, and spells the Forge doesn't know are added as homebrew at the right level.",
     "Before anything is saved you see what matched, what becomes homebrew, and anything that couldn't come across (those go into the character's notes).",
     "Subclasses, species, backgrounds, feats and spells the Forge doesn't have are added to Homebrew automatically, with their rules text from the file. Homebrew can now have spells too.",
     "When a player imports while signed in, any new homebrew waits for the DM: it shows under Waiting for approval on the Homebrew tab, and only that player's character uses it until the DM approves."] },
