@@ -77,6 +77,14 @@ const server = http.createServer((req, res) => {
   check("approving clears the entry from every character", await p.evaluate(() => PCS.roster.every(c => !(c.hbPending || []).some(x => x.kind === "species" && !x.rejected))));
   check("the queue is empty", (await queue()).length === 0);
 
+  // homebrew reloaded from the campaign (the DM approved it on another device) leaves the queue
+  await p.evaluate(() => { const c = PCS.roster[0]; c.hbPending = [...(c.hbPending || []), { id: "hb-ig", kind: "feat", name: "Iron Gut", ed: "both", desc: "Hardy.", fx: [] }]; pcPersist(); renderRoster(); renderHomebrew(); });
+  await p.waitForTimeout(200);
+  check("a new pending entry shows in the queue", (await queue()).length === 1);
+  await p.evaluate(() => { hbSet([...HB.list, { id: "hb-ig", kind: "feat", name: "Iron Gut", ed: "both", desc: "Hardy.", fx: [] }]); renderHomebrew(); });
+  await p.waitForTimeout(200);
+  check("an entry that arrives in the campaign homebrew leaves the queue", (await queue()).length === 0, JSON.stringify(await queue()));
+
   check("no page errors", errs.length === 0, errs.join(" | "));
   await browser.close(); server.close();
   console.log(fails ? `\n${fails} check(s) failed` : "\nAll pending homebrew checks passed");

@@ -4988,7 +4988,7 @@ function hbRefreshUI() {
   if (CB.on && location.hash === "#character") renderCB();
   if (location.hash === "#homebrew") renderHomebrew();
 }
-function hbSet(list) { HB.list = Array.isArray(list) ? list.filter(x => x && HB_KINDS[x.kind] && x.name) : []; hbApply(); hbRefreshUI(); }
+function hbSet(list) { HB.list = Array.isArray(list) ? list.filter(x => x && HB_KINDS[x.kind] && x.name) : []; HB.pendSig = ""; hbPendSync(); hbApply(); hbRefreshUI(); }
 function hbLoadLocal() { let l = []; try { l = JSON.parse(localStorage.getItem(HB_KEY) || "[]"); } catch { } hbSet(l); }
 const hbCloud = () => !!(window.Portal && Portal.cloud);
 async function hbPut(item) {
