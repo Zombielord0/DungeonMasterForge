@@ -10380,6 +10380,186 @@ Store.init().then(() => { renderCampList(); pcAdoptRemote(); itemsAdopt(); if (l
 </script>
 <script>
 /* ---- what's new: newest first. Add an entry (with a new id) whenever a change ships; the bell counts entries this browser hasn't seen. ---- */
+/* ======================= Character import =======================
+   A reader turns a file into a Draft: { opts (generateCharacter options), final (the scores the file shows), extras (stored
+   fields applied after the build), homebrew (entries to create), report: { matched, made, differ, dropped } }.
+   compImport reads the 5e Companion App's JSON; pdfImport reads a fillable PDF sheet. importBuild turns a Draft into a
+   character without saving it; importCommit saves it. */
+const IMP_SRC = "5e Companion App";
+const impNorm = s => String(s || "").toLowerCase().replace(/[’']/g, "").replace(/[^a-z0-9\[\]]+/g, " ").trim();
+const impStrip = s => String(s || "").replace(/\s*\[(?!ua\])[^\]]*\]\s*$/i, "").trim(); // drop a source tag like [PHB] or [TCE], keep [UA]
+const impTitle = s => String(s || "").replace(/_/g, " ").replace(/\s*\[[^\]]*\]\s*$/, "").replace(/\b\w/g, ch => ch.toUpperCase()).replace(/\bOf\b/g, "of").replace(/\bThe\b/g, "the").trim();
+const impSame = (a, b) => impNorm(a) === impNorm(b);
+const impCut = (s, n) => String(s ?? "").trim().slice(0, n);
+const impJSON = s => { if (s && typeof s === "object") return s; try { return JSON.parse(s); } catch { return null; } };
+const impDesc = f => impCut((f && (f.descriptionModels || f.descriptions) || []).map(d => d.description).filter(Boolean).join("\n\n") || (f && f.description) || "", 4000);
+const impFeat = x => (x && x.feat) || x || {};
+// a homebrew entry of this kind and name that already exists (campaign or pending), or null
+const impHave = (kind, name, cls) => hbAny(kind).find(x => impSame(x.name, name) && (kind !== "subclass" || x.cls === cls)) || null;
+function impSubclass(ed, cls, name, arch, D) {
+  const nm = impStrip(name); if (!nm) return null;
+  const built = subclassList(ed, cls).find(x => impSame(x[0], nm));
+  if (built) { D.report.matched.push(`${cls} subclass: ${built[0]}`); return built[0]; }
+  const have = impHave("subclass", nm, cls) || D.homebrew.find(x => x.kind === "subclass" && x.cls === cls && impSame(x.name, nm));
+  if (have) { D.report.matched.push(`${cls} subclass: ${have.name} (homebrew)`); return have.name; }
+  D.homebrew.push({ id: uid("hb"), kind: "subclass", src: IMP_SRC, ed, cls, name: impCut(nm, 60), desc: "",
+    features: ((arch && arch.features) || []).map(f => ({ l: clamp(+f.level || +impFeat(f).level || 1, 1, 20), n: impCut(impFeat(f).name, 60), d: impDesc(impFeat(f)), fx: [] })).filter(f => f.n) });
+  D.report.made.push(`${impCut(nm, 60)} (${cls} subclass)`);
+  return impCut(nm, 60);
+}
+// "20 Arrows" -> qty 20; Items-tab matching with a few extra tries ("Scalemail", "Set Of Common Clothes")
+function impGear(ed, raw) {
+  let name = String(raw || "").trim(), qty = 1;
+  const m = name.match(/^(\d+)\s+(.+)$/); if (m) { qty = +m[1]; name = m[2]; }
+  const tries = [name, name.replace(/^(a\s+)?set\s+of\s+/i, "")];
+  if (/^\S+$/.test(name)) for (let i = 3; i <= name.length - 3; i++) tries.push(name.slice(0, i) + " " + name.slice(i));
+  for (const t of tries) { const g = eqGear(ed, t); if (g) return { g, n: g.n, qty }; }
+  return { g: null, n: name, qty };
+}
+// spells: an exact name (any case) in this rule set, then the other one
+function spellMatch(ed, name) {
+  spLoad(); const k = impNorm(String(name || "").replace(/\([^)]*\)/g, ""));
+  for (const e of [ed, ed === "2014" ? "2024" : "2014"]) { const s = (SP.data[e] || []).find(x => !x.pend && impNorm(x.n) === k); if (s) return { s, ed: e, fuzzy: false }; }
+  return null;
+}
+const IMP_SKILL = Object.fromEntries(ALL_SKILLS.map(k => [k.toUpperCase().replace(/ /g, "_"), k]));
+function compImport(j, ed) {
+  const bad = { error: "This file isn't a 5e Companion App character. In the app, open the character and use Export or Share to save its file." };
+  if (!j || typeof j !== "object" || j.jsonType !== "character" || !Array.isArray(j.jobs) || !j.jobs.length) return bad;
+  ed = ed === "2024" ? "2024" : "2014";
+  const D = { src: IMP_SRC, opts: {}, final: {}, extras: {}, homebrew: [], report: { matched: [], made: [], differ: [], dropped: [] } }, notes = [];
+  // classes
+  const defs = {}; ((j.allRequiredClasses && j.allRequiredClasses.jobs) || []).map(impJSON).filter(Boolean).forEach(d => defs[d.id] = d);
+  const classes = [];
+  for (const jb of j.jobs) {
+    const def = defs[jb.jobId] || {}, nm = impStrip(def.name || impTitle(jb.jobId));
+    const cls = Object.keys(CLASS_DATA).find(k => impSame(k, nm));
+    if (!cls) return { error: `The Forge doesn't support the ${nm} class yet, so this character can't be imported. Homebrew classes are planned.` };
+    const lv = clamp(+jb.level || 1, 1, 20);
+    let subclass = null;
+    const arch = (def.archetypes || []).find(a => a.id === jb.archetypeId);
+    if (jb.archetypeId) subclass = impSubclass(ed, cls, arch ? arch.name : impTitle(jb.archetypeId), arch, D);
+    const st = (def.subtypes || []).find(a => a.id === jb.subtypeId);
+    classes.push({ cls, lv, subclass, style: st ? impStrip(st.name) : jb.subtypeId ? impTitle(jb.subtypeId.replace(/^[a-z]+_/, "")) : "" });
+  }
+  const [main, ...more] = classes;
+  D.report.matched.push(classes.map(x => `${x.cls} ${x.lv}`).join(" / "));
+  // species
+  const rr = impJSON(j.requiredRace) || {}, rName = impStrip(rr.name || impTitle(j.race && j.race.raceId));
+  let race = null, sub = "none";
+  const R = PC_RACES[ed];
+  race = Object.keys(R).find(k => !R[k].pend && impSame(k, rName)) || null;
+  if (!race) for (const k of Object.keys(R)) { const subs = R[k].subs || {}; const sk = Object.keys(subs).find(s => impSame(s, rName) || impSame(subs[s].label, rName)); if (sk) { race = k; sub = sk; break; } }
+  if (race) D.report.matched.push(`Species: ${sub !== "none" ? sub : race}`);
+  else {
+    const have = impHave("species", rName) || null;
+    if (have) { race = have.name; D.report.matched.push(`Species: ${have.name} (homebrew)`); }
+    else {
+      const A = rr.abilityScores || {}, map = { str: "str", dex: "dex", con: "con", int: "int", intelligence: "int", wis: "wis", cha: "cha" };
+      const asi = {}; Object.entries(A).forEach(([k, v]) => { if (map[k] && +v) asi[map[k]] = clamp(+v, -2, 3); });
+      race = impCut(rName || "Unknown species", 60);
+      D.homebrew.push({ id: uid("hb"), kind: "species", src: IMP_SRC, ed, name: race, desc: "", asi, speed: clamp(+((rr.speed && rr.speed.normal) ?? rr.speed) || 30, 0, 120), skills: [], term: "",
+        traits: (rr.traits || []).map(t => ({ l: clamp(+t.level || 1, 1, 20), n: impCut(impFeat(t).name, 60), d: impDesc(impFeat(t)), fx: [] })).filter(t => t.n), subs: [] });
+      D.report.made.push(`${race} (species)`);
+    }
+  }
+  // background
+  const bb = impJSON(j.requiredBackground) || {}, bName = impStrip(bb.name || impTitle(j.background && j.background.backgroundId));
+  let bg = bgList(ed).find(k => impSame(k, bName)) || (impHave("background", bName) || {}).name || null;
+  if (bg) D.report.matched.push(`Background: ${bg}`);
+  else if (bName) {
+    bg = impCut(bName, 60);
+    const sk = [...new Set(((j.background && j.background.skillProficiencies) || []).map(x => IMP_SKILL[x.name]).filter(Boolean))].slice(0, 2);
+    D.homebrew.push({ id: uid("hb"), kind: "background", src: IMP_SRC, ed, name: bg, desc: impCut((bb.features || []).map(f => `${impFeat(f).name}: ${impDesc(impFeat(f))}`).join("\n\n"), 4000), skills: sk, feat: "", gear: "", fx: [] });
+    D.report.made.push(`${bg} (background)`);
+  }
+  // feats
+  const bonusFeats = [];
+  (j.feats || []).forEach(f => {
+    const F = impFeat(f), nm = impStrip(F.name); if (!nm) return;
+    const built = featList(ed).find(x => impSame(x[0], nm)), have = impHave("feat", nm);
+    if (built || have) { bonusFeats.push({ n: (built || [have.name])[0] || have.name, l: 1 }); D.report.matched.push(`Feat: ${nm}`); return; }
+    D.homebrew.push({ id: uid("hb"), kind: "feat", src: IMP_SRC, ed, name: impCut(nm, 60), desc: impDesc(F), group: "g", req: "", ab: "", fx: [] });
+    bonusFeats.push({ n: impCut(nm, 60), l: 1 }); D.report.made.push(`${nm} (feat)`);
+  });
+  // scores and skills
+  const AK = { str: "strength", dex: "dexterity", con: "constitution", int: "intelligence", wis: "wisdom", cha: "charisma" };
+  for (const a of AB) { const v = +((j[AK[a]] || {}).score); if (!v) return { error: "This Companion App file has no ability scores." }; D.final[a] = v; }
+  const keepSkills = [], keepExpert = [];
+  (j.skills || []).forEach(s => { const k = IMP_SKILL[s.typeName]; if (!k) return; if (["FULL", "EXPERTISE"].includes(s.proficiencyName)) keepSkills.push(k); if (s.proficiencyName === "EXPERTISE") keepExpert.push(k); });
+  const appSaves = AB.filter(a => (j[AK[a]] || {}).save);
+  // spells
+  const prepared = [];
+  (j.spells || []).forEach(sp => {
+    const m = spellMatch(ed, sp.name);
+    if (m) { if (!prepared.some(x => x.n === m.s.n)) prepared.push({ n: m.s.n, l: m.s.l, ed: m.ed }); return; }
+    const nm = impCut(sp.name, 60); if (!nm) return;
+    const have = impHave("spell", nm) || D.homebrew.find(x => x.kind === "spell" && impSame(x.name, nm));
+    if (!have) {
+      const comp = String(sp.components || ""), mat = comp.match(/M\s*\(([^)]*)\)/);
+      D.homebrew.push({ id: uid("hb"), kind: "spell", src: IMP_SRC, ed, name: nm, desc: impCut(sp.description, 4000), l: clamp(+sp.level || 0, 0, 9), s: SP_SCHOOLS.find(k => impSame(k, sp.school)) || "Evocation",
+        c: String(sp.classes || "").split(/,\s*/).map(x => Object.keys(CLASS_DATA).find(k => impSame(k, x))).filter(Boolean), t: impCut(sp.castingTime, 120), r: impCut(sp.range, 80),
+        cp: ["V", "S", "M"].filter(k => new RegExp(`(^|[ ,])${k}([ ,(]|$)`).test(comp)).join(""), m: mat ? impCut(mat[1], 200) : "", du: impCut(sp.duration, 80), co: /concentration/i.test(sp.duration || ""), ri: !!sp.isRitual, h: impCut(sp.higherLevels, 2000) });
+      D.report.made.push(`${nm} (spell)`);
+    }
+    prepared.push({ n: have ? have.name : nm, l: clamp(+sp.level || 0, 0, 9), ed });
+  });
+  // gear: an item marked equipped in the app is equipped; when the app marks nothing, weapons and armor start equipped as in the Forge
+  const gearList = [...(j.equipment || []), ...(j.weapons || []), ...(j.armors || [])], anyEq = gearList.some(x => x.isEquipped);
+  const inv = [];
+  gearList.forEach(x => {
+    if (!x || !x.name) return;
+    const { g, n, qty } = impGear(ed, x.name), q = qty * Math.max(1, +x.amount || 1);
+    const ex = inv.find(i => i.n.toLowerCase() === n.toLowerCase()); if (ex) { ex.qty += q; return; }
+    inv.push({ id: uid("i"), ref: g ? g.id : undefined, n, qty: q, w: g ? g.w || 0 : 0, att: false, attuned: !!x.isAttuned, value: g ? g.c : undefined, note: impCut(x.description, 300), eq: anyEq ? !!x.isEquipped : eqIsWeapon(g) || eqIsArmor(g) });
+  });
+  // fighting style, feature picks
+  const fightStyles = [];
+  if (main.style) { const k = Object.keys(FIGHT_STYLES).find(s => impSame(s, main.style)); if (k) { fightStyles.push(k); D.report.matched.push(`Fighting style: ${k}`); } else { D.report.dropped.push(`Fighting style: ${main.style} (saved in notes)`); notes.push(`Fighting style: ${main.style}`); } }
+  (j.selectableFeatures || []).forEach(s => { const L = (s.selectedFeatures || []).map(f => impFeat(f).name).filter(Boolean); if (L.length) { D.report.dropped.push(`${s.name}: ${L.join(", ")} (saved in notes)`); notes.push(`${s.name}: ${L.join(", ")}`); } });
+  const profs = j.proficiencies || [], langs = profs.filter(p => p.typeName === "LANGUAGE").map(p => p.name), tools = profs.filter(p => p.typeName === "TOOL").map(p => p.name);
+  if (j.about) notes.unshift(String(j.about));
+  (j.notes || []).map(n => n && n.text).filter(t => t && !/Swipe this message to dismiss/i.test(t)).forEach(t => notes.push(t));
+  D.opts = { seed: String(j.id || uid("imp")), name: impCut(j.name, 80) || "Imported character", ed, bonus: "fixed", method: "array", cls: main.cls, level: main.lv, subclass: main.subclass || "none", race, sub, bg: bg || undefined,
+    multi: more.length ? more.map(x => ({ cls: x.cls, lv: x.lv, subclass: x.subclass })) : undefined, keepSkills, keepExpert, bonusFeats: bonusFeats.length ? bonusFeats : undefined };
+  const conds = Object.entries(j.conditions || {}).filter(([k, v]) => v).map(([k]) => String(k).toLowerCase()).filter(k => CONDS.some(c2 => c2[0] === k));
+  D.extras = { inv, coins: { pp: +j.platinum || 0, gp: +j.gold || 0, ep: +j.electrum || 0, sp: +j.silver || 0, cp: +j.copper || 0 }, prepared, fightStyles,
+    align: impTitle(String(j.alignmentName || "").toLowerCase()), xp: +j.exp || 0, hpCur: j.hp === undefined ? undefined : +j.hp, player: impCut(j.player, 60),
+    trait: impCut(j.personalityTraits, 1000), ideal: impCut(j.ideals, 1000), bond: impCut(j.bonds, 1000), flaw: impCut(j.flaws, 1000),
+    notes: notes.join("\n\n"), langs: langs.join(", "), toolsChosen: tools.join(", "), conds,
+    ...((+j.successes || +j.failures) ? { death: { s: clamp(+j.successes || 0, 0, 3), f: clamp(+j.failures || 0, 0, 3) } } : {}) };
+  D.appSaves = appSaves;
+  if (!main.subclass && main.lv >= subclassLevel(ed, main.cls)) D.report.differ.push(`No ${main.cls} subclass in the file: choose one on the sheet`);
+  return D;
+}
+// Build the character a Draft describes. Its homebrew is applied for the build only; the base scores are solved so the
+// final scores equal the file's.
+function importBuild(D) {
+  const keep = { pend: HB.pend, sig: HB.pendSig };
+  const fresh = D.homebrew.filter(x => !hbAny(x.kind).some(y => pendKey(y) === pendKey(x)));
+  HB.pend = [...HB.pend, ...fresh.map(x => ({ ...x, pend: true, from: [] }))]; HB.pendSig = ""; hbApply();
+  try {
+    const base = { ...D.final }; let n = null;
+    for (let i = 0; i < 6; i++) {
+      n = generateCharacter({ ...D.opts, base: { ...base } });
+      const off = AB.filter(a => n.scores[a] !== D.final[a]); if (!off.length) break;
+      off.forEach(a => base[a] = Math.max(1, base[a] + D.final[a] - n.scores[a]));
+    }
+    const c = n, report = JSON.parse(JSON.stringify(D.report));
+    AB.filter(a => c.scores[a] !== D.final[a]).forEach(a => report.differ.push(`${AB_NAME[a]} is ${c.scores[a]} in the Forge (the file says ${D.final[a]})`));
+    if (D.appSaves) { const extra = D.appSaves.filter(a => !c.saves.includes(a)), less = c.saves.filter(a => !D.appSaves.includes(a)); if (extra.length || less.length) report.differ.push(`Saving throws: the Forge gives ${c.saves.map(a => AB_NAME[a]).join(", ")}${D.appSaves.length ? ` (the file marks ${D.appSaves.map(a => AB_NAME[a]).join(", ")})` : ""}`); }
+    const X = D.extras;
+    Object.assign(c, { id: uid("pc"), kit: [], kitMoved: true, goldAdded: true, inv: X.inv || [], coins: X.coins || { cp: 0, sp: 0, ep: 0, gp: 0, pp: 0 }, prepared: X.prepared || [], importedFrom: { app: D.src, at: Date.now() } });
+    ["align", "xp", "player", "trait", "ideal", "bond", "flaw", "notes", "langs", "toolsChosen", "look"].forEach(k => { if (X[k] !== undefined && X[k] !== "") c[k] = X[k]; });
+    if (X.fightStyles && X.fightStyles.length) c.fightStyles = X.fightStyles;
+    if (X.conds && X.conds.length) c.conds = X.conds;
+    if (X.death) c.death = X.death;
+    pcEnsure(c);
+    c.hpCur = X.hpCur === undefined || isNaN(X.hpCur) ? c.hp : clamp(X.hpCur, 0, c.hp);
+    return { c, report };
+  } finally { HB.pend = keep.pend; HB.pendSig = keep.sig; hbApply(); }
+}
+
 const NEWS = [
   { id: "2026-11-16-npcpics", date: "2026-11-16", title: "Pictures for your NPCs", go: "tracker", items: [
     "Every NPC in the Campaign Tracker now has a picture frame. Add a picture from your computer, or paste a picture link that starts with https://.",
