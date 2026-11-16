@@ -189,6 +189,11 @@ ul.plain{margin:4px 0 0;padding-left:20px}
 .item{margin-bottom:8px}
 .item .row{margin-bottom:6px}
 .item-h{display:flex;gap:8px;align-items:center}
+.hb-pend-box{border:1px solid #8a6a2a;border-radius:4px;padding:8px 10px;margin:8px 0 12px;background:rgba(138,106,42,.12)}
+.hb-pend-box h4{margin:0 0 4px}
+.hb-pend{padding:6px 0;border-top:1px solid rgba(255,255,255,.08)}
+.hb-pend summary{cursor:pointer}
+.hb-pend-text{white-space:pre-wrap;font-size:14px;max-height:260px;overflow:auto;margin:6px 0;color:#d8cfbf}
 .npc-row{display:flex;gap:12px;align-items:flex-start}
 .npc-body{flex:1;min-width:0}
 .npc-pic{flex:0 0 118px;display:flex;flex-direction:column;gap:6px}
@@ -4241,7 +4246,7 @@ const BG_DESC_2024 = {
   Soldier: "Trained for war, you know weapons, drills and the hardships of battle.", Wayfarer: "You grew up on the streets and roads, getting by on wits and luck."
 };
 // the backgrounds offered for a rule set: its own, plus homebrew that fits it
-const bgList = ed => [...Object.keys(BG_DATA[ed === "2014" ? "2014" : "2024"]), ...Object.keys(HB_BG).filter(n => { const x = HB_BG[n]; return !x.ed || x.ed === "both" || x.ed === ed; })];
+const bgList = ed => [...Object.keys(BG_DATA[ed === "2014" ? "2014" : "2024"]), ...Object.keys(HB_BG).filter(n => { const x = HB_BG[n]; return !x.pend && (!x.ed || x.ed === "both" || x.ed === ed); })];
 // a background's rules for a rule set (built-in, or homebrew shaped the same way)
 function bgInfo(ed, name) {
   const B = BG_DATA[ed === "2014" ? "2014" : "2024"][name]; if (B) return B;
@@ -4692,7 +4697,7 @@ const subAblKey = n => "sub:" + n.toLowerCase().replace(/[^a-z]+/g, "-");
 const subclassList = (ed, cls) => [...(((SUBCLASSES[ed] || SUBCLASSES["2014"])[cls]) || []), ...hbOf("subclass").filter(x => x.cls === cls && hbEdOk(x, ed)).map(x => [x.name, x.desc || "", true])];
 const subclassLevel = (ed, cls) => ed === "2024" ? 3 : (CLASS_DATA[cls] ? CLASS_DATA[cls].sub[1] : 3);
 function subclassDesc(name) {
-  const h = hbOf("subclass").find(x => x.name === name); if (h) return h.desc || "";
+  const h = hbAny("subclass").find(x => x.name === name); if (h) return h.desc || "";
   for (const ed of ["2024", "2014"]) for (const list of Object.values(SUBCLASSES[ed])) { const h = list.find(x => x[0] === name); if (h) return h[1]; }
   return SUB_DESC[name] || "";
 }
@@ -4830,7 +4835,7 @@ const featReqText = F => !F[2] ? "" : F[2][0] === "@" ? F[2].slice(1) : F[2] ===
 const HB_KEY = "dmforge.homebrew.v1";
 const HB_KINDS = { subclass: "Subclasses", background: "Backgrounds", feat: "Feats", species: "Species & races", spell: "Spells" };
 const SP_SCHOOLS = ["Abjuration", "Conjuration", "Divination", "Enchantment", "Evocation", "Illusion", "Necromancy", "Transmutation"];
-const HB = { list: [], applied: { bg: [], races: [], raceDesc: [] } };
+const HB = { list: [], pend: [], pendSig: "", applied: { bg: [], races: [], raceDesc: [] } };
 const HB_DESC = {};      // homebrew feature / trait name -> description
 const HB_BG = {};        // homebrew background name -> its entry
 const hbEdOk = (x, ed) => !x.ed || x.ed === "both" || x.ed === ed;
@@ -4869,15 +4874,64 @@ const fxNote = l => { const c = fxClean(l); return c.length ? ` [On the sheet: $
 // Every homebrew effect a character has: species traits and subrace, background, subclass features reached, feats taken.
 function hbEffects(ed, race, sub, bg, cls, subclass, lv, featNames) {
   const out = [], add = (src, l) => fxClean(l).forEach(e => out.push({ ...e, src }));
-  const sp = hbOf("species").find(x => x.name === race && hbEdOk(x, ed) && PC_RACES[ed][race] && PC_RACES[ed][race].hb);
+  const sp = hbAny("species").find(x => x.name === race && hbEdOk(x, ed) && PC_RACES[ed][race] && PC_RACES[ed][race].hb);
   if (sp) { (sp.traits || []).filter(t => (+t.l || 1) <= lv).forEach(t => add(t.n, t.fx)); const su = (sp.subs || []).find(t => t.n === sub); if (su) add(su.n, su.fx); }
   if (HB_BG[bg]) add(`${bg} background`, HB_BG[bg].fx);
-  const sc = subclass && hbOf("subclass").find(x => x.name === subclass && x.cls === cls);
+  const sc = subclass && hbAny("subclass").find(x => x.name === subclass && x.cls === cls);
   if (sc) (sc.features || []).filter(f => f.n && +f.l <= lv).forEach(f => add(f.n, f.fx));
-  featNames.forEach(nm => { const f = hbOf("feat").find(x => x.name === nm && hbEdOk(x, ed)); if (f) add(nm, f.fx); });
+  featNames.forEach(nm => { const f = hbAny("feat").find(x => x.name === nm && hbEdOk(x, ed)); if (f) add(nm, f.fx); });
   return out;
 }
 const hbOf = kind => HB.list.filter(x => x.kind === kind);
+/* ---- pending homebrew: brought in with a player's imported character, waiting for the DM ----
+   It lives on the character (c.hbPending). HB.pend gathers it from the roster so those characters build properly,
+   but pickers only read hbOf (HB.list), so nobody else can choose it until the DM approves. */
+const pendKey = x => `${x.kind}|${x.kind === "subclass" ? String(x.cls || "").toLowerCase() : ""}|${String(x.name || "").toLowerCase()}`;
+const hbAny = kind => [...hbOf(kind), ...HB.pend.filter(x => x.kind === kind)];
+function hbPendSync() {
+  const have = new Set(HB.list.map(pendKey)), by = new Map();
+  for (const c of PCS.roster) for (const e of (c.hbPending || [])) {
+    if (!e || !HB_KINDS[e.kind] || !e.name) continue;
+    if (e.rejected && !["species", "background"].includes(e.kind)) continue; // rejected subclasses, feats and spells were taken off the character
+    const k = pendKey(e); if (have.has(k)) continue;
+    if (!by.has(k)) { const { from, rejected, ...clean } = e; by.set(k, { ...clean, pend: true, rejected: !!e.rejected, from: [] }); }
+    const x = by.get(k); x.from.push({ id: c.id, name: c.name || "Unnamed" }); if (!e.rejected) x.rejected = false;
+  }
+  const L = [...by.values()], sig = JSON.stringify(L);
+  if (sig === HB.pendSig) return;
+  HB.pend = L; HB.pendSig = sig; hbApply();
+  if (location.hash === "#homebrew" && typeof renderHomebrew === "function") renderHomebrew();
+}
+const hbClean = x => { const { from, pend, rejected, ...y } = x; return y; };
+async function hbApprove(key) {
+  const x = HB.pend.find(e => pendKey(e) === key); if (!x) return;
+  if (!(await hbPut(hbClean(x)))) return;
+  PCS.roster.forEach(c => { if ((c.hbPending || []).some(e => pendKey(e) === key)) { c.hbPending = c.hbPending.filter(e => pendKey(e) !== key); if (!c.hbPending.length) delete c.hbPending; } });
+  pcPersist(); hbPendSync(); renderHomebrew(); toast(`${x.name} added to your homebrew`);
+}
+async function hbReject(key) {
+  const x = HB.pend.find(e => pendKey(e) === key); if (!x) return;
+  const keeps = ["species", "background"].includes(x.kind);
+  if (!(await confirmBox(`Don't approve ${x.name}?`, keeps ? `${x.from.map(f => f.name).join(", ")} keep${x.from.length > 1 ? "" : "s"} it so the sheet still works, with a note to choose another ${x.kind} with you.` : `It is taken off ${x.from.map(f => f.name).join(", ")}${x.kind === "subclass" ? ", who will be asked to choose another subclass" : ""}.`, "Don't approve"))) return;
+  PCS.roster.forEach(c => {
+    const e = (c.hbPending || []).find(y => pendKey(y) === key); if (!e) return;
+    e.rejected = true;
+    if (x.kind === "subclass") { let ch = false; if (c.subclass === x.name && c.cls === x.cls) { c.subclass = null; ch = true; } (c.multi || []).forEach(m => { if (m.subclass === x.name && m.cls === x.cls) { m.subclass = null; ch = true; } }); if (ch) pcRebuild(c); }
+    if (x.kind === "feat" && (c.bonusFeats || []).some(b => b.n === x.name)) { c.bonusFeats = c.bonusFeats.filter(b => b.n !== x.name); pcRebuild(c); }
+    if (x.kind === "spell") c.prepared = (c.prepared || []).filter(s2 => s2.n !== x.name);
+  });
+  pcPersist(); hbPendSync(); renderHomebrew(); toast(`${x.name} not approved`);
+}
+// the note on a sheet whose species or background the DM didn't approve
+const hbRejectedHTML = c => (c.hbPending || []).filter(e => e.rejected && ["species", "background"].includes(e.kind)).map(e => `<div class="lv-bar"><span class="lv-need">⚠ Your DM didn't approve ${esc(e.name)}. Talk to them about another ${e.kind}.</span></div>`).join("");
+function hbPendHTML() {
+  const L = HB.pend.filter(x => !x.rejected); if (!L.length) return "";
+  const kindName = { subclass: "subclass", background: "background", feat: "feat", species: "species", spell: "spell" };
+  const body = x => [x.desc, ...(x.features || []).map(f => `Level ${f.l} · ${f.n}: ${f.d}`), ...(x.traits || []).map(f => `${f.n}: ${f.d}`)].filter(Boolean).join("\n\n");
+  return `<div id="hbPendBox" class="hb-pend-box"><h4>Waiting for approval</h4><p class="hint" style="margin:0 0 6px">Brought in with players' imported characters. Only those characters use them until you approve.</p>
+    ${L.map(x => { const k = esc(pendKey(x)); return `<div class="hb-pend" data-pendrow="${k}"><details><summary><b>${esc(x.name)}</b> <small class="muted">${kindName[x.kind]}${x.kind === "subclass" ? ` (${esc(x.cls)})` : ""} · from ${esc(x.from.map(f => f.name).join(", "))}</small></summary><div class="hb-pend-text">${esc(body(x) || "No description.")}</div></details>
+      <div class="row" style="gap:6px;margin-top:4px"><button class="btn sm primary" type="button" data-pendact="ok" data-pendkey="${k}">✓ Approve</button><button class="btn sm" type="button" data-pendact="no" data-pendkey="${k}">✕ Don't approve</button></div></div>`; }).join("")}</div>`;
+}
 function hbApply() {
   const A = HB.applied;
   A.bg.forEach(n => { delete BACKGROUNDS[n]; delete HB_BG[n]; });
@@ -4885,23 +4939,23 @@ function hbApply() {
   A.raceDesc.forEach(n => { delete RACE_DESC[n]; });
   Object.keys(HB_DESC).forEach(k => delete HB_DESC[k]);
   const N = HB.applied = { bg: [], races: [], raceDesc: [] };
-  hbOf("background").forEach(x => {
+  hbAny("background").forEach(x => {
     if (BACKGROUNDS[x.name]) return; // never replace a built-in
     BACKGROUNDS[x.name] = (x.skills || []).filter(k => SKILLS[k]).slice(0, 2); HB_BG[x.name] = x; N.bg.push(x.name);
     HB_DESC[`${x.name} background`] = [x.desc, x.feat ? `Origin feat: ${x.feat}.` : "", x.gear ? `Gear: ${x.gear}.` : ""].filter(Boolean).join(" ") + fxNote(x.fx);
   });
-  hbOf("species").forEach(x => {
+  hbAny("species").forEach(x => {
     const traits = (x.traits || []).filter(t => t.n), subs = (x.subs || []).filter(t => t.n);
     traits.concat(subs).forEach(t => HB_DESC[t.n] = (t.d || "") + fxNote(t.fx));
     ["2014", "2024"].filter(ed => hbEdOk(x, ed) && !PC_RACES[ed][x.name]).forEach(ed => {
-      PC_RACES[ed][x.name] = { hb: true, asi: ed === "2014" ? Object.fromEntries(AB.filter(a => +(x.asi || {})[a]).map(a => [a, +x.asi[a]])) : {}, speed: +x.speed || 30,
+      PC_RACES[ed][x.name] = { hb: true, ...(x.pend ? { pend: true } : {}), asi: ed === "2014" ? Object.fromEntries(AB.filter(a => +(x.asi || {})[a]).map(a => [a, +x.asi[a]])) : {}, speed: +x.speed || 30,
         traits: traits.map(t => t.n), skills: (x.skills || []).filter(k => SKILLS[k]), term: x.term || (ed === "2024" ? "Lineage" : "Subrace"),
         ...(subs.length ? { subs: Object.fromEntries(subs.map(t => [t.n, { label: `${t.n}`, traits: [t.n], d: t.d || "" }])) } : {}) };
       N.races.push([ed, x.name]);
     });
     if (!RACE_DESC[x.name]) { RACE_DESC[x.name] = x.desc || ""; N.raceDesc.push(x.name); }
   });
-  hbOf("subclass").forEach(x => (x.features || []).forEach(f => { if (f.n) HB_DESC[f.n] = (f.d || "") + fxNote(f.fx); }));
+  hbAny("subclass").forEach(x => (x.features || []).forEach(f => { if (f.n) HB_DESC[f.n] = (f.d || "") + fxNote(f.fx); }));
   hbSpellsApply();
 }
 /* homebrew spells join the spell data (after the built-ins, so built-in ids stay the same) */
@@ -4909,7 +4963,7 @@ function hbSpellsApply() {
   if (!SP.data) return;
   for (const ed of ["2014", "2024"]) {
     const L = SP.data[ed] = SP.data[ed].filter(s => !s.hb);
-    hbOf("spell").filter(x => hbEdOk(x, ed)).forEach(x => { const s = { n: x.name, l: +x.l || 0, s: x.s || "", c: x.c || [], t: x.t || "", r: x.r || "", cp: x.cp || "", m: x.m || "", du: x.du || "", co: x.co ? 1 : 0, ri: x.ri ? 1 : 0, d: x.desc || "", h: x.h || "", dt: "", at: "", sv: "", hb: true, ...(x.pend ? { pend: true } : {}) }; spPrep(s, ed, L.length); L.push(s); });
+    hbAny("spell").filter(x => hbEdOk(x, ed)).forEach(x => { const s = { n: x.name, l: +x.l || 0, s: x.s || "", c: x.c || [], t: x.t || "", r: x.r || "", cp: x.cp || "", m: x.m || "", du: x.du || "", co: x.co ? 1 : 0, ri: x.ri ? 1 : 0, d: x.desc || "", h: x.h || "", dt: "", at: "", sv: "", hb: true, ...(x.pend ? { pend: true } : {}) }; spPrep(s, ed, L.length); L.push(s); });
   }
 }
 function hbRefreshUI() {
@@ -4987,7 +5041,7 @@ const PC_RACES = {
 };
 Object.assign(RACE_DESC, { Aasimar: "Touched by the heavens: healing hands and a radiant transformation.", Goliath: "Giant-blooded: a giant's boon, and grows Large in battle.", Orc: "Relentless and tireless: bursts of speed, hard to put down." });
 const edOf = c => (c && c.ed) || "2014";
-const raceList = ed => Object.keys(PC_RACES[ed] || PC_RACES["2014"]);
+const raceList = ed => { const R = PC_RACES[ed] || PC_RACES["2014"]; return Object.keys(R).filter(x => !R[x].pend); };
 function raceInfo(ed, race, sub) {
   const B = (PC_RACES[ed] || PC_RACES["2014"])[race] || RACE_DATA[race] || { asi: {}, speed: 30, traits: [] };
   const S = (B.subs && sub && B.subs[sub]) || null;
@@ -5187,7 +5241,7 @@ Object.entries(RACE_LV["2024"]).forEach(([t, l]) => l.forEach(([, sp]) => { if (
 function raceLevelFeats(ed, race, traits, lv) {
   const feats = [], hidden = new Set(), M = RACE_LV[ed] || {};
   (traits || []).forEach(t => (M[t] || []).forEach(([l, sp]) => { if (!sp) hidden.add(t); if (lv >= l) feats.push({ l, f: sp ? `${sp} (${t})` : t, race: true }); }));
-  const hb = PC_RACES[ed] && PC_RACES[ed][race] && PC_RACES[ed][race].hb && hbOf("species").find(x => x.name === race);
+  const hb = PC_RACES[ed] && PC_RACES[ed][race] && PC_RACES[ed][race].hb && hbAny("species").find(x => x.name === race);
   if (hb) (hb.traits || []).filter(t => t.n && (+t.l || 1) > 1).forEach(t => { hidden.add(t.n); if (lv >= +t.l) feats.push({ l: +t.l, f: t.n, race: true }); });
   return { feats, hidden };
 }
@@ -5522,7 +5576,7 @@ function generateCharacter(o) {
   const feats = [];
   Object.entries(C.f).forEach(([l, list]) => { if (+l <= lv) list.forEach(f => feats.push({ l: +l, f })); });
   if (lv >= subLv) feats.push({ l: subLv, f: subclass ? `Subclass: ${subclass}` : "Subclass: not chosen yet" });
-  const hbSub = subclass && hbOf("subclass").find(x => x.name === subclass && x.cls === cls);
+  const hbSub = subclass && hbAny("subclass").find(x => x.name === subclass && x.cls === cls);
   if (hbSub) (hbSub.features || []).filter(f => f.n && +f.l <= lv).forEach(f => feats.push({ l: +f.l, f: f.n }));
   else if (subclass) feats.push(...subFeatList(ed, subclass, lv));
   const SB = subBonuses(ed, subclass, lv, m, prof);
@@ -5799,7 +5853,7 @@ function spFiltered() {
   const cls = $("#spClass").value, sch = $("#spSchool").value, tm = $("#spTime").value, conc = $("#spConc").value;
   const dmg = $("#spDmg").value, sv = $("#spSave").value, rit = $("#spRitual").checked, noM = $("#spNoM").checked, fav = $("#spFav").checked;
   const words = q.split(/\s+/).filter(Boolean);
-  let list = SP.data[SP.ed].filter(s =>
+  let list = SP.data[SP.ed].filter(s => !s.pend &&
     (!words.length || words.every(w => (inD ? s.hayD : s.hay).includes(w))) &&
     (!SP.levels.size || SP.levels.has(s.l)) && (!cls || s.c.includes(cls)) && (!sch || s.s === sch) &&
     (!tm || s.tc === tm) && (conc === "" || s.co === +conc) && (!dmg || s.dt === dmg) &&
@@ -6010,7 +6064,7 @@ function pcChanged(c) {
 }
 function pcSpellPool(c, ed) {
   spLoad();
-  return SP.data[ed].filter(s => s.c.includes(c.cls) && s.l <= c.spell.max && (s.l > 0 || c.spell.cantrips));
+  return SP.data[ed].filter(s => !s.pend && s.c.includes(c.cls) && s.l <= c.spell.max && (s.l > 0 || c.spell.cantrips));
 }
 function preparedHTML(c, cast) {
   const L = spellLimits(c), P = c.prepared || [], PC = P.filter(p => !p.src);
@@ -8109,7 +8163,7 @@ function renderHomebrew() {
   const side = $("#hbSide"), main = $("#hbMain"); if (!side) return;
   if (hbCloud() && !Portal.isDM()) { side.innerHTML = ""; main.innerHTML = `<div class="card empty"><h2>Homebrew</h2><p>Your DM adds homebrew for this campaign. It appears in your character choices.</p></div>`; return; }
   const where = hbCloud() ? `Shared with everyone in ${esc(Portal.campName())}. Players pick these when building and levelling characters.` : "Saved in this browser. Sign in and join a campaign to share homebrew with your players.";
-  side.innerHTML = `<div class="sec-h"><h3>Homebrew</h3></div><p class="hint" style="margin:0 0 4px">${where}</p>
+  side.innerHTML = `<div class="sec-h"><h3>Homebrew</h3></div><p class="hint" style="margin:0 0 4px">${where}</p>${hbPendHTML()}
     ${Object.entries(HB_KINDS).map(([k, l]) => `<div class="hb-kind"><h4>${l}</h4><button class="btn sm" type="button" data-hbnew="${k}" style="flex:0 0 auto" aria-label="New ${l.toLowerCase()}">+ New</button></div>
       ${hbOf(k).map(x => `<button class="camp-item ${HBE.id === x.id ? "on" : ""}" type="button" data-hbsel="${esc(x.id)}"><b>${esc(x.name)}</b><small>${esc([x.kind === "subclass" ? x.cls : "", x.ed === "both" || !x.ed ? "2014 & 2024" : x.ed + " rules"].filter(Boolean).join(" · "))}</small></button>`).join("") || `<p class="muted" style="font-size:14px;margin:0">None yet.</p>`}`).join("")}`;
   const d = HBE.draft;
@@ -8185,6 +8239,8 @@ function hbFormHTML(d) {
 (function initHomebrew() {
   const side = $("#hbSide"), main = $("#hbMain");
   side.addEventListener("click", e => {
+    const pa = e.target.closest("[data-pendact]");
+    if (pa) { if (pa.dataset.pendact === "ok") hbApprove(pa.dataset.pendkey); else hbReject(pa.dataset.pendkey); return; }
     const n = e.target.closest("[data-hbnew]"), s = e.target.closest("[data-hbsel]");
     if (n) hbOpen(null, n.dataset.hbnew); else if (s && s.dataset.hbsel !== HBE.id) hbOpen(s.dataset.hbsel);
   });
@@ -9533,7 +9589,7 @@ function miState(c) { const L = choiceOf(c, "Feat: Magic Initiate"); return { li
 function miLists(c) { const bg = (c.feats || []).find(f => f.bgFeat && f.f === "Feat: Magic Initiate"); if (bg && bg.note) return [bg.note]; return edOf(c) === "2024" ? ["Cleric", "Druid", "Wizard"] : ["Bard", "Cleric", "Druid", "Sorcerer", "Warlock", "Wizard"]; }
 function miHTML(c) {
   spLoad(); const ed = edOf(c), M = miState(c), lists = miLists(c), list = M.list || (lists.length === 1 ? lists[0] : "");
-  const pool = l => (SP.data[ed] || []).filter(s => s.l === l && (s.c || []).includes(list)).map(s => s.n).sort();
+  const pool = l => (SP.data[ed] || []).filter(s => !s.pend && s.l === l && (s.c || []).includes(list)).map(s => s.n).sort();
   const pick = (kind, l, n, have) => `${have.map(x => `<span class="tag gold">${esc(x)}<button type="button" class="icon-btn" data-mirm="${kind}:${esc(x)}" aria-label="Remove ${esc(x)}">✕</button></span>`).join("")}${have.length < n ? `<select data-mi="${kind}" aria-label="${l ? "1st-level spell" : "Cantrip"}"><option value="">${l ? "Choose a 1st-level spell…" : "Choose a cantrip…"}</option>${pool(l).filter(x => !have.includes(x)).map(x => `<option>${esc(x)}</option>`).join("")}</select>` : ""}`;
   return `<div class="choice"><span class="lbl" style="margin:0">Spell list</span>${lists.length > 1 ? `<select data-mi="list" aria-label="Spell list"><option value="">Choose…</option>${lists.map(l => `<option ${list === l ? "selected" : ""}>${esc(l)}</option>`).join("")}</select>` : `<span class="tag">${esc(list)}</span>`}
     ${list ? `<span class="lbl" style="margin:0">Cantrips ${M.can.length}/2</span>${pick("c", 0, 2, M.can)}<span class="lbl" style="margin:0">1st level ${M.one.length}/1</span>${pick("s", 1, 1, M.one)}
@@ -9603,6 +9659,7 @@ function rcEquippedHTML(c) {
   }).join("")}</ul>`;
 }
 function renderRoster() {
+  hbPendSync();
   const list = $("#rosterList"), cur = rosterCur();
   if (list) list.innerHTML = PCS.roster.length ? PCS.roster.map(c => `<button class="camp-item ${cur && c.id === cur.id ? "on" : ""}" data-rc="${esc(c.id)}"><b>${esc(c.name)}${window.Portal ? Portal.ownerTag(c) : ""}</b><small>${(c.multi || []).length ? `${esc(c.race)} ${esc(classLine(c))}` : `Lv ${c.level} ${esc(c.race)} ${esc(c.cls)}`}</small></button>`).join("")
     : `<p class="muted" style="font-size:15px">No saved characters yet. Forge one on the Characters tab and press “Save to My characters”.</p>`;
@@ -9635,7 +9692,7 @@ function rosterHTML(c) {
       <label>Experience<input type="number" min="0" data-rf="xp" value="${esc(c.xp ?? "")}" placeholder="XP"></label>
     </div>
     ${lvBarHTML(c)}
-    ${hbStale(c) ? `<div class="lv-bar"><span class="lv-need">⚠ Homebrew this character uses has changed.</span><button class="btn sm" type="button" data-hbupdate="${esc(c.id)}" title="Rebuilds the numbers from the homebrew; current HP, notes, inventory and spells stay">Update sheet</button></div>` : ""}
+    ${hbRejectedHTML(c)}${hbStale(c) ? `<div class="lv-bar"><span class="lv-need">⚠ Homebrew this character uses has changed.</span><button class="btn sm" type="button" data-hbupdate="${esc(c.id)}" title="Rebuilds the numbers from the homebrew; current HP, notes, inventory and spells stay">Update sheet</button></div>` : ""}
     <p class="hint">Changes save automatically. Level up, or changing the level, rebuilds hit points, proficiency, features, spell slots and ability scores for the new level; your notes, inventory and spells stay.</p>
     <div class="pc-actions"><select class="campSelect" id="rcCamp" aria-label="Campaign"></select><button class="btn primary sm" type="button" data-ra="camp">+ Add to campaign party</button></div>
   </div>

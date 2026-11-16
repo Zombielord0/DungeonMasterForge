@@ -510,7 +510,7 @@ function partyCard(c) {
   const hp = c.hpCur ?? c.hp;
   const low = c.hp && hp / c.hp <= 0.35;
   return `<button class="party-card" type="button" data-open="${esc(c.id)}">
-    <b>${esc(c.name)}</b> <small class="muted">${esc(o.id === S.user.id ? "DM" : o.name || "")}</small>
+    <b>${esc(c.name)}</b> <small class="muted">${esc(o.id === S.user.id ? "DM" : o.name || "")}</small>${(c.hbPending || []).some(e => !e.rejected) ? ` <span class="tag gold">${(c.hbPending || []).filter(e => !e.rejected).length} homebrew to approve</span>` : ""}
     <span class="pc-line">Lv ${esc(c.level)} ${esc(c.race || "")} ${esc(c.cls || "")}</span>
     <span class="pc-stats"><span class="${low ? "hp-low" : ""}">HP ${esc(hp)}/${esc(c.hp)}</span><span>AC ${esc(c.ac)}</span></span>
     ${last ? `<small class="muted">● edited ${esc(ago(last.at))}</small>` : ""}
