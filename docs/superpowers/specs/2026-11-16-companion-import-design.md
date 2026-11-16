@@ -1,6 +1,6 @@
 # Import characters from the 5e Companion App: design
 
-Date: 2026-11-16. Status: waiting for the owner's approval.
+Date: 2026-11-16. Status: approved by the owner (Companion App part). The PDF part was added at the owner's request; its field names will be confirmed against a sample.
 
 ## Why
 
@@ -29,11 +29,24 @@ This is the first of four pieces, agreed in this order:
   - anything that couldn't be brought across
 - **Players can import**, even when they're signed in and not allowed to make homebrew. Their new homebrew **waits for the DM** to approve or reject it. In the meantime the player's own character uses it. (The owner picked this option.)
 
+## PDF character sheets (added 2026-11-16, same button)
+
+The owner wants the same **⬆ Import character** button to take PDFs too. The button accepts both kinds of file and decides by content: a file starting with `%PDF` is a PDF, and anything else is tried as Companion App JSON.
+
+- **One pipeline.** A PDF reader, `pdfImport(fields)`, returns the same `{opts, extras, homebrew, report}` as `compImport`. Everything after that is shared: the summary, the rebuild, auto-homebrew and DM approval.
+- **Reading the PDF.** Use pdf.js (`pdfjs-dist`, Apache-2.0), vendored into `public/vendor/pdfjs/`, so there's no outside site and it works offline. It's loaded only when a PDF is picked. `getFieldObjects()` reads the form fields.
+- **Which sheets it reads.** Fillable sheets that use the official 5e character sheet field names: `CharacterName`, `ClassLevel`, `Race `, `Background`, `Alignment`, `XP`, `STR`…`CHA`, `HPMax`, `HPCurrent`, `AC`, `Speed`, the save and skill check boxes, `CP`…`PP`, `Equipment`, `Features and Traits`, `ProficienciesLang`, `PersonalityTraits `, `Ideals`, `Bonds`, `Flaws`, and the spell page fields. Other apps' PDFs (for example D&D Beyond's) get their own field-name table **once we have a sample**.
+- **What a PDF lacks.** A PDF has names but no rules text. So an unknown subclass, species or feat becomes homebrew with the **name only** and a note: "Imported from a PDF; add its features in the Homebrew tab." The summary says so.
+- **Spells:** read from the spell page by name. Known spells match the built-ins; an unknown name becomes a homebrew spell with a blank description.
+- **Class and level:** "ClassLevel" text such as "Ranger 5 / Rogue 2" is split into the main class and multiclasses.
+- **Unreadable PDFs.** A PDF with no form fields (a scan or a "flattened" printout) shows: "This PDF has no fillable fields, so the Forge can't read it. Export it again as a fillable sheet, or type the character in." Nothing is guessed from images.
+- **Test fixture:** a filled copy of the standard sheet in `test/e2e/fixtures/`, plus the owner's players' PDFs once supplied.
+
 ## Non-goals
 
 - Homebrew **classes**. That's piece 2. A file whose main class or a multiclass isn't one of the Forge's 12 classes stops with a plain message: "The Forge doesn't support the Blood Hunter class yet." Nothing is saved.
 - Exporting back to the Companion App.
-- PDF and MythWeaver imports (pieces 3 and 4).
+- MythWeaver import (piece 4).
 - Keeping the app's custom dice and colour scheme.
 
 ## Anti-goals (it would be a failure if…)

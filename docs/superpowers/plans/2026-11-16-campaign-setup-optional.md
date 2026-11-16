@@ -1,5 +1,7 @@
 # Optional Campaign Setup Implementation Plan
 
+> **Superseded (2026-11-16):** the owner says this was fixed on the live site through Netlify, so this plan is not being carried out.
+
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
 **Goal:** a new DM can get past the campaign setup screen without typing a name, can name or rename the campaign later, and can skip setup entirely for now.
