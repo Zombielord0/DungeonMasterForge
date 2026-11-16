@@ -19,7 +19,8 @@
     "test:recap": "node test/e2e/recap.cjs",
     "test:sheet": "node test/e2e/sheet-maths.cjs",
     "test:tokens": "node test/e2e/tokens.cjs",
-    "test:npcpic": "node test/e2e/npc-pictures.cjs"
+    "test:npcpic": "node test/e2e/npc-pictures.cjs",
+    "test:hbspell": "node test/e2e/homebrew-spells.cjs"
   },
   "dependencies": {
     "@netlify/database": "^2.0.3",

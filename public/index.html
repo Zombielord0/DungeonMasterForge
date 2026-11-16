@@ -4828,7 +4828,8 @@ const featReqText = F => !F[2] ? "" : F[2][0] === "@" ? F[2].slice(1) : F[2] ===
    Signed in to a campaign they come from the campaign database (Portal); otherwise from this browser.
    Backgrounds and species are merged into BACKGROUNDS / PC_RACES so every picker and the generator see them. */
 const HB_KEY = "dmforge.homebrew.v1";
-const HB_KINDS = { subclass: "Subclasses", background: "Backgrounds", feat: "Feats", species: "Species & races" };
+const HB_KINDS = { subclass: "Subclasses", background: "Backgrounds", feat: "Feats", species: "Species & races", spell: "Spells" };
+const SP_SCHOOLS = ["Abjuration", "Conjuration", "Divination", "Enchantment", "Evocation", "Illusion", "Necromancy", "Transmutation"];
 const HB = { list: [], applied: { bg: [], races: [], raceDesc: [] } };
 const HB_DESC = {};      // homebrew feature / trait name -> description
 const HB_BG = {};        // homebrew background name -> its entry
@@ -4901,6 +4902,15 @@ function hbApply() {
     if (!RACE_DESC[x.name]) { RACE_DESC[x.name] = x.desc || ""; N.raceDesc.push(x.name); }
   });
   hbOf("subclass").forEach(x => (x.features || []).forEach(f => { if (f.n) HB_DESC[f.n] = (f.d || "") + fxNote(f.fx); }));
+  hbSpellsApply();
+}
+/* homebrew spells join the spell data (after the built-ins, so built-in ids stay the same) */
+function hbSpellsApply() {
+  if (!SP.data) return;
+  for (const ed of ["2014", "2024"]) {
+    const L = SP.data[ed] = SP.data[ed].filter(s => !s.hb);
+    hbOf("spell").filter(x => hbEdOk(x, ed)).forEach(x => { const s = { n: x.name, l: +x.l || 0, s: x.s || "", c: x.c || [], t: x.t || "", r: x.r || "", cp: x.cp || "", m: x.m || "", du: x.du || "", co: x.co ? 1 : 0, ri: x.ri ? 1 : 0, d: x.desc || "", h: x.h || "", dt: "", at: "", sv: "", hb: true, ...(x.pend ? { pend: true } : {}) }; spPrep(s, ed, L.length); L.push(s); });
+  }
 }
 function hbRefreshUI() {
   if (window.pcSelectsRefresh) pcSelectsRefresh();
@@ -5757,19 +5767,22 @@ function spTimeCat(t) {
   if (x.startsWith("action") || x.startsWith("1 action")) return "Action";
   return "Longer";
 }
+function spPrep(s, ed, i) {
+  s.id = ed + "-" + i;
+  s.tc = spTimeCat(s.t);
+  s.ts = s.tc === "Longer" ? s.t : s.tc;
+  if (s.sv) s.save = SAVE_ABBR[s.sv] || s.sv;
+  else { const m = s.d.match(/(Strength|Dexterity|Constitution|Intelligence|Wisdom|Charisma) saving throw/i); s.save = m ? cap1(m[1].toLowerCase()) : ""; }
+  if (!s.at && /(melee|ranged) spell attack/i.test(s.d)) s.at = /ranged spell attack/i.test(s.d) ? "ranged" : "melee";
+  s.hay = s.n.toLowerCase(); s.hayD = (s.n + " " + s.d + " " + s.h).toLowerCase();
+  return s;
+}
 function spLoad() {
   if (SP.data) return;
   const raw = JSON.parse(document.getElementById("spellData").textContent);
-  for (const ed of Object.keys(raw)) raw[ed].forEach((s, i) => {
-    s.id = ed + "-" + i;
-    s.tc = spTimeCat(s.t);
-    s.ts = s.tc === "Longer" ? s.t : s.tc;
-    if (s.sv) s.save = SAVE_ABBR[s.sv] || s.sv;
-    else { const m = s.d.match(/(Strength|Dexterity|Constitution|Intelligence|Wisdom|Charisma) saving throw/i); s.save = m ? cap1(m[1].toLowerCase()) : ""; }
-    if (!s.at && /(melee|ranged) spell attack/i.test(s.d)) s.at = /ranged spell attack/i.test(s.d) ? "ranged" : "melee";
-    s.hay = s.n.toLowerCase(); s.hayD = (s.n + " " + s.d + " " + s.h).toLowerCase();
-  });
+  for (const ed of Object.keys(raw)) raw[ed].forEach((s, i) => spPrep(s, ed, i));
   SP.data = raw;
+  hbSpellsApply();
   const all = [...raw["2014"], ...raw["2024"]];
   const fillSel = (id, vals) => vals.forEach(v => $(id).insertAdjacentHTML("beforeend", `<option>${esc(v)}</option>`));
   fillSel("#spClass", [...new Set(all.flatMap(s => s.c))].sort());
@@ -5830,7 +5843,7 @@ function spRow(s) {
       <span class="sp-meta">${esc(s.s)}</span>
       <span class="sp-meta hide-sm">${esc(s.ts.length > 22 ? s.tc + "*" : s.ts)}</span>
       <span class="sp-meta hide-sm">${esc(s.r)}</span>
-      <span class="sp-tags">${s.co ? `<span class="tag" title="Concentration">C</span>` : ""}${s.ri ? `<span class="tag" title="Ritual">R</span>` : ""}${s.dt ? `<span class="tag hide-sm">${esc(s.dt)}</span>` : ""}${spTargetPC() && isPrep(spTargetPC(), s.n, SP.ed) ? `<span class="tag gold" title="Prepared for ${esc(spTargetPC().name)}">✦</span>` : ""}</span>
+      <span class="sp-tags">${s.hb ? `<span class="tag gold" title="Homebrew spell">Homebrew</span>` : ""}${s.co ? `<span class="tag" title="Concentration">C</span>` : ""}${s.ri ? `<span class="tag" title="Ritual">R</span>` : ""}${s.dt ? `<span class="tag hide-sm">${esc(s.dt)}</span>` : ""}${spTargetPC() && isPrep(spTargetPC(), s.n, SP.ed) ? `<span class="tag gold" title="Prepared for ${esc(spTargetPC().name)}">✦</span>` : ""}</span>
     </div>
     ${open ? spDetail(s) : ""}
   </div>`;
@@ -8037,6 +8050,7 @@ const HBE = { id: null, draft: null, saved: "" };
 const hbBuiltIn = (kind, name, cls) => {
   const n = name.toLowerCase(), has = l => l.some(x => x.toLowerCase() === n);
   if (kind === "background") return has(Object.keys(BACKGROUNDS).filter(x => !HB_BG[x]));
+  if (kind === "spell") { spLoad(); return has([...SP.data["2014"], ...SP.data["2024"]].filter(x => !x.hb).map(x => x.n)); }
   if (kind === "species") return ["2014", "2024"].some(ed => has(Object.keys(PC_RACES[ed]).filter(x => !PC_RACES[ed][x].hb)));
   if (kind === "feat") return has([...FEATS["2014"], ...FEATS["2024"]].map(F => F[0]));
   return ["2014", "2024"].some(ed => has(((SUBCLASSES[ed] || {})[cls] || []).map(x => x[0])));
@@ -8047,6 +8061,7 @@ function hbNew(kind) {
   if (kind === "background") Object.assign(d, { skills: ["", ""], feat: "", gear: "" });
   if (kind === "feat") Object.assign(d, { group: "g", reqType: "none", reqAb: "str", reqMin: 13, reqText: "", abType: "none", abs: [] });
   if (kind === "species") Object.assign(d, { speed: 30, skills: [""], asi: {}, traits: [{ l: 1, n: "", d: "" }], subs: [], term: "" });
+  if (kind === "spell") Object.assign(d, { l: 1, s: "Evocation", c: [], t: "1 action", r: "60 feet", cp: "VS", m: "", du: "Instantaneous", co: false, ri: false, h: "" });
   return d;
 }
 function hbDraftOf(x) { // a saved entry -> editable form state
@@ -8062,8 +8077,9 @@ function hbDraftOf(x) { // a saved entry -> editable form state
 }
 function hbItemOf(d) { // form state -> the entry that is saved and shared
   const t = (v, n) => String(v ?? "").trim().slice(0, n);
-  const rows = (l, lv) => (l || []).map(r => ({ ...(lv ? { l: clamp(parseInt(r.l) || 1, 1, 20) } : {}), n: t(r.n, 60), d: t(r.d, 800), fx: fxClean(r.fx) })).filter(r => r.n);
-  const x = { id: d.id, kind: d.kind, name: t(d.name, 60), ed: d.ed || "both", desc: t(d.desc, 1500) };
+  const rows = (l, lv) => (l || []).map(r => ({ ...(lv ? { l: clamp(parseInt(r.l) || 1, 1, 20) } : {}), n: t(r.n, 60), d: t(r.d, 4000), fx: fxClean(r.fx) })).filter(r => r.n);
+  const x = { id: d.id, kind: d.kind, name: t(d.name, 60), ed: d.ed || "both", desc: t(d.desc, 4000) };
+  if (d.kind === "spell") Object.assign(x, { l: clamp(parseInt(d.l) || 0, 0, 9), s: SP_SCHOOLS.includes(d.s) ? d.s : "Evocation", c: (d.c || []).filter(k => CLASS_DATA[k]), t: t(d.t, 120), r: t(d.r, 80), cp: ["V", "S", "M"].filter(k => String(d.cp || "").includes(k)).join(""), m: t(d.m, 200), du: t(d.du, 80), co: !!d.co, ri: !!d.ri, h: t(d.h, 2000) });
   if (d.kind === "subclass") Object.assign(x, { cls: d.cls, features: rows(d.features, true).sort((a, b) => a.l - b.l) });
   if (d.kind === "background") Object.assign(x, { skills: d.skills.filter(k => SKILLS[k]), feat: t(d.feat, 60), gear: t(d.gear, 300), fx: fxClean(d.fx) });
   if (d.kind === "feat") Object.assign(x, {
@@ -8097,7 +8113,7 @@ function renderHomebrew() {
     ${Object.entries(HB_KINDS).map(([k, l]) => `<div class="hb-kind"><h4>${l}</h4><button class="btn sm" type="button" data-hbnew="${k}" style="flex:0 0 auto" aria-label="New ${l.toLowerCase()}">+ New</button></div>
       ${hbOf(k).map(x => `<button class="camp-item ${HBE.id === x.id ? "on" : ""}" type="button" data-hbsel="${esc(x.id)}"><b>${esc(x.name)}</b><small>${esc([x.kind === "subclass" ? x.cls : "", x.ed === "both" || !x.ed ? "2014 & 2024" : x.ed + " rules"].filter(Boolean).join(" · "))}</small></button>`).join("") || `<p class="muted" style="font-size:14px;margin:0">None yet.</p>`}`).join("")}`;
   const d = HBE.draft;
-  if (!d) { main.innerHTML = `<div class="card empty"><h2>Make your own rules content</h2><p>Create subclasses, backgrounds, feats and species. They show up next to the built-in options in the character creator, the Level up window and the feat list${hbCloud() ? " for every player in your campaign" : ""}.</p><p>Pick “+ New” on the left to start.</p></div>`; return; }
+  if (!d) { main.innerHTML = `<div class="card empty"><h2>Make your own rules content</h2><p>Create subclasses, backgrounds, feats, species and spells. They show up next to the built-in options in the character creator, the Level up window, the feat list and the Spells tab${hbCloud() ? " for every player in your campaign" : ""}.</p><p>Pick “+ New” on the left to start.</p></div>`; return; }
   main.innerHTML = hbFormHTML(d); $$("textarea", main).forEach(autoGrow);
 }
 function fxHTML(path, list) {
@@ -8113,13 +8129,13 @@ function fxHTML(path, list) {
 }
 const fxList = (d, path) => { if (path === "fx") return d.fx = d.fx || []; const [k, i] = path.split("."); const r = d[k][+i]; return r.fx = r.fx || []; };
 function hbFormHTML(d) {
-  const isNew = !HB.list.some(x => x.id === d.id), kindName = { subclass: "subclass", background: "background", feat: "feat", species: "species" }[d.kind];
+  const isNew = !HB.list.some(x => x.id === d.id), kindName = { subclass: "subclass", background: "background", feat: "feat", species: "species", spell: "spell" }[d.kind];
   const sel = (f, opts, v) => `<select data-hbf="${f}">${opts.map(([k, l]) => `<option value="${esc(k)}" ${String(v) === String(k) ? "selected" : ""}>${esc(l)}</option>`).join("")}</select>`;
   const skillOpts = [["", "Choose…"], ...ALL_SKILLS.map(k => [k, k])];
   const rowsHTML = (key, lv, nameLbl) => `<div class="hb-rows">${(d[key] || []).map((r, i) => `<div class="hb-row ${lv ? "" : "nolv"}">
       ${lv ? `<label class="lbl" style="margin:0">Level<input type="number" min="1" max="20" data-hbrow="${key}" data-i="${i}" data-k="l" value="${esc(r.l)}"></label>` : ""}
       <label class="lbl" style="margin:0">${nameLbl}<input type="text" maxlength="60" data-hbrow="${key}" data-i="${i}" data-k="n" value="${esc(r.n)}"></label>
-      <label class="lbl" style="margin:0">What it does<textarea maxlength="800" data-hbrow="${key}" data-i="${i}" data-k="d">${esc(r.d)}</textarea></label>
+      <label class="lbl" style="margin:0">What it does<textarea maxlength="4000" data-hbrow="${key}" data-i="${i}" data-k="d">${esc(r.d)}</textarea></label>
       <button class="icon-btn" type="button" data-hbdel="${key}" data-i="${i}" title="Remove" aria-label="Remove ${esc(r.n || "row")}" style="margin-top:22px">✕</button>
       ${fxHTML(`${key}.${i}`, r.fx)}</div>`).join("")}</div>`;
   let body = "";
@@ -8145,12 +8161,22 @@ function hbFormHTML(d) {
       <p class="hint" style="margin:4px 0 0">Level 1 traits apply from the start. Give a trait a higher level and it is added to the sheet when the character reaches it.</p>${rowsHTML("traits", true, "Trait name")}
       <div class="sec-h" style="margin-top:14px"><h3>Subraces / lineages (optional)</h3><span class="sp"></span><button class="btn sm" type="button" data-hbadd="subs">+ Add</button></div>
       ${d.subs.length ? `<div class="field" style="margin-top:6px"><label>Called</label><input type="text" maxlength="30" data-hbf="term" value="${esc(d.term)}" placeholder="Subrace"></div>` : ""}${rowsHTML("subs", false, "Name")}`;
+  if (d.kind === "spell") {
+    const tick = (attr, on, label) => `<label class="check" style="flex:0 0 auto;margin:0"><input type="checkbox" ${attr} ${on ? "checked" : ""}><span>${label}</span></label>`;
+    body = `<div class="field row"><div><label>Level</label>${sel("l", Array.from({ length: 10 }, (_, i) => [i, i ? `Level ${i}` : "Cantrip"]), d.l)}</div><div><label>School</label>${sel("s", SP_SCHOOLS.map(k => [k, k]), d.s)}</div></div>
+      <div class="field"><label>Classes that can learn it</label><div class="row" style="flex-wrap:wrap">${Object.keys(CLASS_DATA).map(k => tick(`data-hbcls="${k}"`, (d.c || []).includes(k), k)).join("")}</div></div>
+      <div class="field row"><div><label>Casting time</label><input type="text" maxlength="120" data-hbf="t" value="${esc(d.t)}"></div><div><label>Range</label><input type="text" maxlength="80" data-hbf="r" value="${esc(d.r)}"></div><div><label>Duration</label><input type="text" maxlength="80" data-hbf="du" value="${esc(d.du)}"></div></div>
+      <div class="field"><label>Components</label><div class="row" style="flex-wrap:wrap;align-items:center">${["V", "S", "M"].map(k => tick(`data-hbcp="${k}"`, String(d.cp || "").includes(k), { V: "Verbal", S: "Somatic", M: "Material" }[k])).join("")}
+        ${String(d.cp || "").includes("M") ? `<input type="text" maxlength="200" data-hbf="m" value="${esc(d.m)}" placeholder="Material, e.g. a pinch of salt" style="flex:1;min-width:200px">` : ""}</div></div>
+      <div class="field"><div class="row" style="flex-wrap:wrap">${tick('data-hbflag="co"', d.co, "Concentration")}${tick('data-hbflag="ri"', d.ri, "Ritual")}</div></div>
+      <div class="field"><label>At higher levels (optional)</label><textarea maxlength="2000" data-hbf="h">${esc(d.h)}</textarea></div>`;
+  }
   return `<div class="card">
     <div class="row" style="align-items:flex-start;flex-wrap:wrap"><div class="sheet-h" style="font-size:22px;flex:1">${isNew ? `New ${kindName}` : esc(d.name || kindName)}</div>
       ${isNew ? "" : `<button class="btn sm danger" type="button" data-hbact="del" style="flex:0 0 auto">✕ Delete</button>`}</div>
     <div class="field row" style="margin-top:10px"><div style="flex:2"><label>Name</label><input type="text" maxlength="60" data-hbf="name" value="${esc(d.name)}"></div>
       <div><label>Rules edition</label>${sel("ed", [["both", "2014 & 2024"], ["2014", "2014 only"], ["2024", "2024 only"]], d.ed)}</div></div>
-    <div class="field"><label>Description</label><textarea maxlength="1500" data-hbf="desc" placeholder="What players should know when choosing it">${esc(d.desc)}</textarea></div>
+    <div class="field"><label>Description</label><textarea maxlength="4000" data-hbf="desc" placeholder="${d.kind === "spell" ? "What the spell does" : "What players should know when choosing it"}">${esc(d.desc)}</textarea></div>
     ${body}
     <div class="row" style="justify-content:flex-end;margin-top:16px;flex-wrap:wrap;gap:8px"><span class="hint" id="hbMsg" style="flex:1;margin:0" aria-live="polite"></span>
       <button class="btn" type="button" data-hbact="close" style="flex:0 0 auto">Close</button><button class="btn primary" type="button" data-hbact="save" style="flex:0 0 auto">${isNew ? "Create" : "Save changes"}</button></div>
@@ -8175,6 +8201,9 @@ function hbFormHTML(d) {
     const d = HBE.draft, t = e.target; if (!d) return;
     if (t.tagName === "SELECT" && t.dataset.hbf) { set(d, t.dataset.hbf, t.value); if (["ed", "cls", "reqType", "abType"].includes(t.dataset.hbf)) { renderHomebrew(); const f = $(`#hbMain [data-hbf="${t.dataset.hbf}"]`); if (f) f.focus(); } }
     else if (t.dataset.hbab) { d.abs = AB.filter(a => a === t.dataset.hbab ? t.checked : d.abs.includes(a)); }
+    else if (t.dataset.hbcls) { const k = t.dataset.hbcls; d.c = Object.keys(CLASS_DATA).filter(x => x === k ? t.checked : (d.c || []).includes(x)); }
+    else if (t.dataset.hbcp) { const k = t.dataset.hbcp; d.cp = ["V", "S", "M"].filter(x => x === k ? t.checked : String(d.cp || "").includes(x)).join(""); if (k === "M") renderHomebrew(); }
+    else if (t.dataset.hbflag) d[t.dataset.hbflag] = t.checked;
     else if (t.dataset.fx && t.tagName === "SELECT") {
       const e = fxList(d, t.dataset.fx)[+t.dataset.j]; e[t.dataset.k] = t.value;
       if (t.dataset.k === "t") { e.a = fxAb(e.t) ? "str" : fxSkill(e.t) ? ALL_SKILLS[0] : fxDmg(e.t) ? "fire" : fxCond(e.t) || fxSadv(e.t) ? "charmed" : undefined; if (fxNum(e.t) && !e.v) e.v = 1; renderHomebrew(); const f = $(`#hbMain [data-fx="${t.dataset.fx}"][data-j="${t.dataset.j}"][data-k="t"]`); if (f) f.focus(); }

@@ -6,7 +6,7 @@ import { describeChange } from "./diff.mjs";
 const MAX_SHEET_BYTES = 300_000;
 const MAX_WHISPER = 2000;
 const MAX_HOMEBREW_BYTES = 50_000;
-const HOMEBREW_KINDS = ["subclass", "background", "feat", "species"];
+const HOMEBREW_KINDS = ["subclass", "background", "feat", "species", "spell"];
 const MERGE_WINDOW = "60 seconds";
 const CODE_CHARS = "ABCDEFGHJKMNPQRSTUVWXYZ23456789"; // no 0/O, 1/I/L
 

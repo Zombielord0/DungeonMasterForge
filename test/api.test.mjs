@@ -143,6 +143,15 @@ test("full campaign flow", async (t) => {
     assert.deepEqual((await call(BEN, "GET", `campaigns/${cid}/homebrew`)).body, []);
   });
 
+  await t.test("homebrew spells: only the DM adds them", async () => {
+    const spell = { kind: "spell", name: "Cheers", ed: "2014", desc: "Drinks for all.", l: 0, s: "Enchantment", c: ["Wizard"] };
+    assert.equal((await call(AVA, "PUT", `campaigns/${cid}/homebrew/hb-sp`, { data: spell })).status, 403);
+    assert.equal((await call(DM, "PUT", `campaigns/${cid}/homebrew/hb-sp`, { data: spell })).status, 200);
+    const list = await call(AVA, "GET", `campaigns/${cid}/homebrew`);
+    assert.deepEqual(list.body.map(h => [h.kind, h.name]), [["spell", "Cheers"]]);
+    await call(DM, "DELETE", `campaigns/${cid}/homebrew/hb-sp`);
+  });
+
   await t.test("DM can remove a player", async () => {
     await call(DM, "DELETE", `campaigns/${cid}/members/${BEN.id}`);
     assert.equal((await call(BEN, "GET", `campaigns/${cid}/characters`)).status, 403);
