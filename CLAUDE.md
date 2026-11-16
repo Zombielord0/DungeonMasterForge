@@ -38,7 +38,7 @@ Live site: https://dungeonmasterforge.netlify.app (Netlify; production branch `m
 
 ```
 npm install
-npm test        # API tests (11 should pass)
+npm test        # API tests (12 should pass)
 npm run build   # bundle src/portal.js -> public/portal.js
 npm run test:backup  # backup and restore checks (Playwright, any OS)
 npm run test:tv  # turn order + handouts on the TV (Playwright, any OS)
@@ -52,6 +52,9 @@ npm run test:calendar  # calendar and weather (Playwright, any OS)
 npm run test:recap  # session recaps (Playwright, any OS)
 npm run test:sheet  # character sheet maths vs the rules, 432 sheets (Playwright, any OS)
 npm run test:tokens  # tokens on the TV map (Playwright, any OS)
+npm run test:import  # character import: Companion App files and the Import window (Playwright, any OS)
+npm run test:hbspell  # homebrew spells (Playwright, any OS)
+npm run test:hbpend  # pending homebrew and the DM's approval queue (Playwright, any OS)
 npm run test:npcpic  # NPC pictures: upload, link, TV without distortion (Playwright, any OS)
 npm run test:map  # map fog + TV player screen checks (Playwright, any OS)
 npm run dev     # full local copy at http://localhost:8899 (any OS); stand-in sign-in, data wiped on Ctrl+C
@@ -392,6 +395,26 @@ Everything in the sections from "Dungeon Map looks" to "Tokens" below was built 
   - The last download time is kept in `dmforge.lastBackup`.
 - **Downloads:** `saveFile` now falls back to a normal browser download (Blob and `<a download>`) when the Claude `downloads` helper isn't there. Before this, Download PNG and Export JSON did nothing on the website.
 - **Tests:** `npm run test:backup` (`test/e2e/backup.cjs`).
+
+## Character import (2026-11-16)
+
+- **Design and plan:** `docs/superpowers/specs/2026-11-16-companion-import-design.md` and `docs/superpowers/plans/2026-11-16-character-import.md`.
+- **Readers make a Draft:** `{src, opts, final, extras, homebrew, report:{matched, made, differ, dropped}, appSaves?}`.
+  - `compImport(json, ed)` reads the 5e Companion App's export (JSON, `jsonType:"character"`). Its `allRequiredClasses.jobs`, `requiredRace` and `requiredBackground` are JSON strings holding the full rules text.
+  - Unknown classes refuse the import. An unknown subclass, species, background, feat or spell becomes a homebrew entry (`src: "5e Companion App"`), unless a homebrew entry with that name already exists (`impHave`).
+  - Gear goes through `impGear` (counts like "20 Arrows", `eqGear` with extra tries). If the app marks nothing as equipped, weapons and armor start equipped.
+  - `opts` always has `bonus: "fixed"`, so a level-up keeps the species bonus (`pcLevelTo` defaults to "flex").
+- **`importBuild(draft)`** applies the draft's homebrew as pending for the build only, then solves the base scores so the final scores equal `final` (they can go below 3). It returns `{c, report}` without saving. Imported characters have `kitMoved`, `goldAdded` and `importedFrom: {app, at}`.
+- **`importCommit(draft, c)`:** a signed-in player (`impPlayer()`) gets `c.hbPending` and nothing goes to the campaign. Otherwise each entry goes through `hbPut`.
+- **The window** is `#impCharModal`, opened by `#impCharBtn` on My Characters: rules choice `impEd`, `#impCharFile`, summary `#impCharOut` (`impSummaryHTML`), and `#impCharGo`/`#impCharCancel`. `impCharRead` picks the reader by content: `%PDF-` goes to `pdfImport`.
+- **Homebrew spells:** `kind: "spell"` (also in the API's `HOMEBREW_KINDS`) with `l, s, c, t, r, cp, m, du, co, ri, h` and `desc`. `hbSpellsApply()` appends them to `SP.data` (`hb: true`) after the built-ins; `spPrep` is the shared per-spell setup. Homebrew text limits are 4000 characters.
+- **Pending homebrew:**
+  - It's stored on the character as `c.hbPending`. `hbPendSync()` (run from `renderRoster`) gathers it into `HB.pend`, each with `pend: true` and `from: [{id, name}]`.
+  - `hbAny(kind)` is used wherever a character is built. `hbOf(kind)` and every picker (`raceList`, `bgList`, `subclassList`, `featList` and the spell lists) leave pending out.
+  - `pendKey(x)` = `kind|cls|name`. The DM's queue is `hbPendHTML()` (`#hbPendBox`, rows `data-pendrow`, buttons `data-pendact`); `hbApprove` and `hbReject` act on it.
+  - Rejecting a subclass, feat or spell takes it off the character. A species or background stays, with `rejected: true`, and the sheet shows `hbRejectedHTML`.
+  - Party cards show "N homebrew to approve".
+- **Tests:** `npm run test:import` (`test/e2e/char-import.cjs` plus `char-import-ui.cjs`, with the fixture `test/e2e/fixtures/companion-zook.json`), `npm run test:hbspell` and `npm run test:hbpend`.
 
 ## NPC pictures (2026-11-16)
 

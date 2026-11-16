@@ -63,6 +63,12 @@ In **Campaign Tracker → Encounters**, pick where the party is and how hard the
 
 Each campaign in the **Campaign Tracker** has a **Calendar** tab. It shows the day, season, time and weather. Use the buttons for rests, the next morning or travelling several days, and new weather is rolled for each day. Pick the climate and starting season to suit your world. Rests, travel and your own notes are logged.
 
+## Importing characters
+
+On **My Characters**, press **⬆ Import character** and choose a character file from the **5e Companion App** (in the app, open the character and use Export or Share). Pick the 2014 or 2024 rules. You'll see what matched, what becomes homebrew and anything that couldn't come across, then press **Import**. The Forge keeps the character's ability scores, skills, gear, coins, spells and story, and works out the rest itself, so levelling up, rests and dice all work.
+
+Subclasses, species, backgrounds, feats and spells the Forge doesn't have are added to **Homebrew** automatically, with their rules text from the file. If a player imports while signed in, that new homebrew waits for the DM: it appears under **Waiting for approval** on the DM's Homebrew tab, and only that player's character uses it until the DM approves it. If the DM doesn't approve a subclass, feat or spell, it's taken off the character; a species or background stays, with a note to choose another with the DM.
+
 ## NPC pictures
 
 On a campaign's **NPCs** tab, every NPC has a picture frame. Press **🖼 Add picture…** to pick one from your computer, or **🔗 Link** to use a picture link that starts with https://. Press **📺 TV** to show it on the players' screen. Only the picture is shown, never the NPC's notes, and it keeps its shape. Pictures you add are kept on this computer (not in backups); links work anywhere.
