@@ -1111,6 +1111,14 @@ function featDesc(f, c) {
   if (f === "Damage Resistance") return A ? `Resistance to ${A.type} damage.` : "Resistance to your ancestry's damage type.";
   return FEAT_DESC[f] || HB_DESC[f] || "";
 }
+/* The Features & Traits list, shared by both sheets (the Characters tab and My Characters): each feature with where it
+   comes from (subclass, multiclass, species, level), then the species traits. My Characters passes edit (features can
+   be opened to make choices) and leaves out "Feat: …" entries, which it lists in its own Feats section. */
+const featTagOf = (c, f) => f.sub ? `${esc(c.subclass)}, lv ${f.l}` : f.mcsub ? `${esc(f.mcsub)}, ${esc(f.mc)} lv ${f.l}` : f.mc ? `${esc(f.mc)} lv ${f.l}` : (f.race ? esc(raceLabel(c)) + ", " : "") + "lv " + f.l;
+function featuresListHTML(c, edit) {
+  const feats = (c.feats || []).filter(f => !edit || !String(f.f).startsWith("Feat: "));
+  return `<ul class="plain">${feats.map(f => featLi(f.f, featTagOf(c, f), c, edit || undefined)).join("")}${(c.traits || []).map(t => featLi(t, esc(raceLabel(c)), c)).join("")}</ul>`;
+}
 function featLi(f, tag, c, edit) {
   const d = featDesc(f, c), full = subFeatDesc(f, c) ? "" : FEAT_FULL[f];
   const head = `<b>${esc(f)}</b> <span class="muted" style="font-size:13px">(${tag})</span>${d ? `<div class="ft-desc">${esc(d)}</div>` : ""}${edit && CHOICES[f] ? choiceHTML(c, f) : ""}`;
@@ -1546,7 +1554,7 @@ function sheetHTML(c) {
   ${c.spell ? `<div class="sec" id="pcPrepSec"><div class="sec-h"><h3>${spellLimits(c).word === "known" ? "Spells Known" : "Prepared Spells"}</h3><span class="sp"></span><button class="btn sm" type="button" id="pcPrepBtn">✦ Prepare spells</button></div>
     <div id="pcPrepared">${preparedHTML(c)}</div>${prepPanelHTML(c)}</div>` : ""}
   <div class="grid2" style="margin-top:0">
-    <div class="sec"><div class="sec-h"><h3>Features & Traits</h3></div><ul class="plain">${c.feats.map(f => featLi(f.f, f.sub ? `${esc(c.subclass)}, lv ${f.l}` : f.mcsub ? `${esc(f.mcsub)}, ${esc(f.mc)} lv ${f.l}` : f.mc ? `${esc(f.mc)} lv ${f.l}` : (f.race ? esc(raceLabel(c)) + ", " : "") + "lv " + f.l, c)).join("")}${c.traits.map(t => featLi(t, esc(raceLabel(c)), c)).join("")}</ul></div>
+    <div class="sec"><div class="sec-h"><h3>Features & Traits</h3></div>${featuresListHTML(c)}</div>
     <div class="sec"><div class="sec-h"><h3>Equipment</h3></div><ul class="plain">${c.kit.map(k => `<li>${esc(k)}</li>`).join("")}${c.bgV >= 2 ? (+c.startGold ? `<li>${+c.startGold} gp</li>` : "") : `<li>${esc(c.bg)} background gear</li>`}</ul></div>
   </div>
   <div class="sec"><div class="sec-h"><h3>Personality & Backstory</h3></div>

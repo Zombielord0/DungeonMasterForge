@@ -1337,7 +1337,7 @@ function rosterHTML(c) {
     <p class="hint">Attuned to <b class="${attN > 3 ? "over" : ""}">${attN} / 3</b> magic items · ${(() => { const LD = pcLoad(c); return `carrying <b class="${LD.lb > LD.cap ? "over" : ""}">${LD.lb} lb</b> of ${LD.cap} lb${LD.lb > LD.cap ? " — over your carrying capacity: speed 5 ft" : LD.variant && LD.lb > LD.heavy ? " — heavily encumbered" : LD.variant && LD.lb > LD.enc ? " — encumbered" : ""}`; })()}.</p>
     ${edOf(c) === "2014" ? `<label style="display:flex;gap:8px;align-items:center;font-size:14px"><input type="checkbox" data-varenc ${c.varEnc ? "checked" : ""}> Use variant encumbrance (−10 ft over ${pcLoad(c).enc} lb, −20 ft and disadvantage over ${pcLoad(c).heavy} lb)</label>` : ""}</div>
   <div class="grid2 rc-two" style="margin-top:0">
-    <div class="sec"><div class="sec-h"><h3>Features & Traits</h3></div><ul class="plain">${(c.feats || []).filter(f => !String(f.f).startsWith("Feat: ")).map(f => featLi(f.f, f.sub ? `${esc(c.subclass)}, lv ${f.l}` : f.mcsub ? `${esc(f.mcsub)}, ${esc(f.mc)} lv ${f.l}` : f.mc ? `${esc(f.mc)} lv ${f.l}` : (f.race ? esc(raceLabel(c)) + ", " : "") + "lv " + f.l, c, true)).join("")}${(c.traits || []).map(t => featLi(t, esc(raceLabel(c)), c)).join("")}</ul>
+    <div class="sec"><div class="sec-h"><h3>Features & Traits</h3></div>${featuresListHTML(c, true)}
       <textarea data-rf="featNotes" placeholder="Extra features, feats, boons…" style="margin-top:8px">${esc(c.featNotes || "")}</textarea></div>
     <div class="sec"><div class="sec-h"><h3>Equipped Items</h3></div><div id="rcEquipped">${rcEquippedHTML(c)}</div><div id="rcACLine">${rcACLine(c)}</div></div>
   </div>

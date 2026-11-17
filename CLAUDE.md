@@ -179,7 +179,7 @@ Playwright and Chromium are pre-installed in cloud sessions. To test offline mod
 
 - **Edit `src/`, not `public/index.html`.** `public/index.html`, `public/sw.js` and `public/assets/` are rebuilt from `src/` and `data/` and aren't in git.
 - **Comments in one-line functions:** a `//` comment swallows the rest of the line, including closing braces. Use `/* … */` there. (The build now catches the syntax errors this causes.)
-- **The sheet markup exists twice.** `sheetHTML` (the Characters tab) and `renderRosterMain` (My Characters) build the same sections. Make sure an edit lands in the one you mean.
+- **The sheet markup exists twice.** `sheetHTML` (the Characters tab, read-only with Reroll) and `renderRosterMain` (My Characters, editable with roll buttons and counters) build the same sections differently. The Features & Traits list is shared (`featuresListHTML`, `featTagOf`), and so are `lvBarHTML`, `defHTML` and `preparedHTML`. For anything else, make sure an edit lands in the one you mean.
 - Segmented radio inputs are hidden. In Playwright, click `label.opt:has(input[...])`.
 - Once `portal.js` is built, the sign-in gate covers the page. Set `dmforge.offline` to `1` for offline tests.
 - Resilient is **not** repeatable.
