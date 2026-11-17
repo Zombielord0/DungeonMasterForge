@@ -93,10 +93,11 @@ The **NPC** tab lists every NPC from all your campaigns under **Your NPCs**, wit
 
 - Tick a campaign to put that NPC in it. An NPC can be in several campaigns at once.
 - Click an NPC's name to change its name, role, attitude or notes. A change made here, or in a campaign's NPCs tab in the Campaign Tracker, shows in every campaign that NPC is in. So does its picture.
+- **Places:** use **📍 Move to…** on an NPC to file it under a town, district or dungeon. You can pick a place you've used before, a Place from your campaigns' Lore, or **＋ New place…**. The tabs above the list show one place at a time, or **No place** for NPCs not filed yet. The Campaign Tracker's NPCs tab has a **Place** box too.
 - Untick every campaign and the NPC stays in the list, marked "Not in a campaign". **+ New NPC** adds one there (or straight into the campaign you're viewing).
 - **✕** deletes an NPC from every campaign.
 - Search the list, or show one campaign's NPCs only.
-- NPCs you summon and **Save to campaign**, and NPCs from an imported campaign, appear here too.
+- NPCs you summon and **Save to campaign**, and NPCs from an imported campaign, appear here too. MythWeaver NPCs tagged with one of the campaign's places are filed under it.
 
 ## Items and spells from imported campaigns
 
@@ -106,6 +107,8 @@ When you bring in a campaign with **⬆ Import campaign** in the Campaign Tracke
 - **Spells** appear in **Homebrew** (only the DM can add homebrew when signed in), and then in the spell lists.
 - **From MythWeaver**, entries filed as items become custom items, entries filed or tagged as spells become homebrew spells, and monsters go to **Monster Manual → My monsters**. A monster whose MythWeaver text has a stat block (AC, hit points and the six scores) gets its numbers, traits and actions; one without is marked **needs stats** for you to finish in **Build a monster**. They all stay in Lore too. DM-only notes aren't copied onto them. Untick **Items, spells and monsters** in the import window to skip this.
 - **Forge campaign files**: **Export JSON** saves your custom items, homebrew and custom monsters with the campaign, and importing the file adds them back. Monsters go to **Monster Manual → My monsters**. Files exported before 17 November 2026 don't hold these, so export them again first.
+
+- **MythWeaver encounters** also go to the campaign's **Encounters** tab, ready to run. Monsters the text names, like "three goblins and a bugbear", are added with their AC and HP from the Monster Manual or your own monsters. They're read from the text, so check them.
 
 Anything you already have isn't added twice, and importing the same MythWeaver campaign again updates its items.
 

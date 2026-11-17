@@ -215,6 +215,11 @@ ul.plain{margin:4px 0 0;padding-left:20px}
 .hb-pend-text{white-space:pre-wrap;font-size:14px;max-height:260px;overflow:auto;margin:6px 0;color:#d8cfbf}
 .npc-row{display:flex;gap:12px;align-items:flex-start}
 #npcLib{margin-top:18px}
+.npc-tabs{display:flex;gap:6px;overflow-x:auto;padding:2px 2px 8px;margin:4px 0 4px;scrollbar-width:thin}
+.npc-tabs .chip{flex:0 0 auto;font-size:14px;padding:4px 11px;white-space:nowrap;font-family:inherit;color:inherit}
+.npc-tab-n{opacity:.7;font-size:12.5px;margin-left:2px}
+@media (max-width:600px){.npc-lib-row .item-h{flex-wrap:wrap}.npc-lib-row .npc-lib-name{flex:1 1 0}.npc-lib-row .npc-move{order:3;flex:1 1 100%;max-width:none}}
+.npc-move{width:auto!important;max-width:42%;flex:0 1 auto;font-size:14px;padding-top:4px!important;padding-bottom:4px!important}
 .npc-lib-row .item-h{align-items:center}
 .npc-lib-name{background:none;border:0;padding:2px 0;color:inherit;font:inherit;text-align:left;cursor:pointer;flex:1;min-width:0}
 .npc-lib-name:hover b,.npc-lib-name:focus-visible b{color:var(--gold2)}
@@ -3446,7 +3451,7 @@ function saveGenAsCampaign(g) {
 const LISTS = {
   sessions: { label: "Sessions", add: "Log session", fields: [["title", "text", "Session title"], ["num", "number", "#"], ["date", "date", "Date"], ["summary", "textarea", "What happened? Key decisions, loot, cliffhanger…"]] },
   party: { label: "Party", add: "Add character", fields: [["name", "text", "Character name"], ["cls", "text", "Race & class"], ["level", "number", "Level"], ["player", "text", "Player"], ["notes", "textarea", "Backstory hooks, goals, bonds…"]] },
-  npcs: { label: "NPCs", add: "Add NPC", fields: [["name", "text", "NPC name"], ["role", "text", "Role"], ["attitude", "select", "Attitude", ["Friendly", "Neutral", "Unknown", "Hostile", "Dead"]], ["notes", "textarea", "Notes"]] },
+  npcs: { label: "NPCs", add: "Add NPC", fields: [["name", "text", "NPC name"], ["role", "text", "Role"], ["attitude", "select", "Attitude", ["Friendly", "Neutral", "Unknown", "Hostile", "Dead"]], ["place", "text", "Place (town, area…)"], ["notes", "textarea", "Notes"]] },
   quests: { label: "Quests", add: "Add quest", fields: [["title", "text", "Quest"], ["status", "select", "Status", ["Active", "On hold", "Completed", "Failed"]], ["giver", "text", "Given by"], ["notes", "textarea", "Details, clues, rewards…"]] },
   loot: { label: "Loot", add: "Add item", fields: [["item", "text", "Item"], ["holder", "text", "Carried by"], ["value", "text", "Value"], ["notes", "textarea", "Properties, attunement…"]] }
 };
@@ -4455,9 +4460,13 @@ function drawNPCs() { $("#npcOut").innerHTML = `<div class="npc-grid">${npcs.map
    campaigns share a lib id (npcLibId); editing a copy here or in the Tracker updates the others (npcSync).
    NPCs in no campaign are kept in localStorage dmforge.npclib.v1 ("loose"). */
 const NPCLIB_KEY = "dmforge.npclib.v1";
-const NPC_SHARED = ["name", "role", "attitude", "notes", "img", "imgUrl"];
+const NPC_SHARED = ["name", "role", "attitude", "place", "notes", "img", "imgUrl"];
 const NPC_ATT = ["Friendly", "Neutral", "Unknown", "Hostile", "Dead"];
-const NL = { q: "", camp: "", open: new Set() };
+const NL = { q: "", camp: "", tab: "", open: new Set() };
+const NL_NEW = "\u0001new";
+/* places NPCs are filed under, and Places from the campaigns' Lore that aren't used yet */
+function npcPlaceNames(groups) { return [...new Set(groups.map(g => String(g.n.place || "").trim()).filter(Boolean))].sort((a, b) => a.localeCompare(b)); }
+function lorePlaceNames() { return [...new Set(Store.list().flatMap(c => (c.lore || []).filter(l => l.type === "place").map(l => String(l.name || "").trim())).filter(Boolean))].sort((a, b) => a.localeCompare(b)); }
 function npcLoose() { try { const l = JSON.parse(localStorage.getItem(NPCLIB_KEY) || "[]"); return Array.isArray(l) ? l.filter(n => n && typeof n === "object") : []; } catch { return []; } }
 function npcLooseSave(l) { try { localStorage.setItem(NPCLIB_KEY, JSON.stringify(l)); return true; } catch { toast("Couldn't save: this browser's storage is full"); return false; } }
 const npcLibId = n => n.lib || (n.lib = n.mwId ? "mw-" + n.mwId : "nl-" + n.id);
@@ -4504,10 +4513,18 @@ async function npcLibDelete(lib) {
   for (const k of imgs) if (!npcImgUsed(k)) { try { await MAPIMG.del(k); } catch { } }
   NL.open.delete(lib); renderNpcLib(); toast(`${g.n.name || "NPC"} deleted`);
 }
+function npcMoveHTML(n) {
+  const cur = String(n.place || "").trim(), used = NL.places || [], lore = (NL.lorePlaces || []).filter(p => !used.includes(p));
+  const opt = p => `<option value="${esc(p)}" ${p === cur ? "selected" : ""}>📍 ${esc(p)}</option>`;
+  return `<select class="npc-move" data-nlmove aria-label="Move ${esc(n.name || "this NPC")} to a place" title="Move to a place">
+    <option value="" ${cur ? "" : "selected"}>${cur ? "No place" : "📍 Move to…"}</option>${used.map(opt).join("")}
+    ${lore.length ? `<optgroup label="Places in your Lore">${lore.map(opt).join("")}</optgroup>` : ""}<option value="${NL_NEW}">＋ New place…</option></select>`;
+}
 function npcLibRowHTML(g, camps) {
   const n = g.n, open = NL.open.has(g.lib), f = (k, ph, w) => `<input type="text" data-nlf="${k}" value="${esc(n[k] || "")}" placeholder="${ph}" aria-label="${ph}" maxlength="120" style="flex:${w}">`;
   return `<div class="item npc-lib-row" data-lib="${esc(g.lib)}">
     <div class="item-h"><button class="npc-lib-name" type="button" data-nl="open" aria-expanded="${open}"><b>${esc(n.name || "Unnamed NPC")}</b>${n.role ? ` <span class="muted">· ${esc(n.role)}</span>` : ""}${n.attitude ? ` <span class="tag">${esc(n.attitude)}</span>` : ""}</button>
+      ${npcMoveHTML(n)}
       <button class="icon-btn" type="button" data-nl="del" title="Delete ${esc(n.name || "this NPC")} from every campaign" aria-label="Delete ${esc(n.name || "this NPC")}">✕</button></div>
     <div class="npc-camps">${camps.length ? camps.map(c => { const on = g.camps.includes(c.id); return `<label class="chip${on ? " on" : ""}" title="${on ? "In" : "Not in"} ${esc(c.name)}"><input type="checkbox" data-nlc="${esc(c.id)}" ${on ? "checked" : ""}>${on ? "✓ " : ""}${esc(c.name)}</label>`; }).join("") : `<span class="muted" style="font-size:14px">Make a campaign in the Campaign Tracker to put NPCs in it.</span>`}${camps.length && !g.camps.length ? `<span class="muted" style="font-size:14px">Not in a campaign</span>` : ""}</div>
     ${open ? `<div class="row" style="margin-top:8px;gap:8px;flex-wrap:wrap">${f("name", "NPC name", "2 1 160px")}${f("role", "Role", "2 1 160px")}<select data-nlf="attitude" aria-label="Attitude" style="flex:1 1 120px">${NPC_ATT.map(a => `<option ${n.attitude === a ? "selected" : ""}>${a}</option>`).join("")}</select></div>
@@ -4516,8 +4533,14 @@ function npcLibRowHTML(g, camps) {
 }
 function npcLibListHTML() {
   const camps = Store.list(), all = npcGroups(), q = NL.q.trim().toLowerCase();
-  const L = all.filter(g => (!q || [g.n.name, g.n.role, g.n.notes].join(" ").toLowerCase().includes(q)) && (!NL.camp || (NL.camp === "-" ? !g.camps.length : g.camps.includes(NL.camp))));
-  return L.length ? L.map(g => npcLibRowHTML(g, camps)).join("") : `<p class="muted">${all.length ? "No NPCs match." : "No NPCs yet. Summon some above and press Save to campaign, add them in the Campaign Tracker, import a campaign, or press + New NPC."}</p>`;
+  NL.places = npcPlaceNames(all); NL.lorePlaces = lorePlaceNames();
+  if (NL.tab && NL.tab !== "-" && !NL.places.includes(NL.tab)) NL.tab = "";
+  const shown = all.filter(g => (!q || [g.n.name, g.n.role, g.n.place, g.n.notes].join(" ").toLowerCase().includes(q)) && (!NL.camp || (NL.camp === "-" ? !g.camps.length : g.camps.includes(NL.camp))));
+  const placeOf = g => String(g.n.place || "").trim(), count = t => shown.filter(g => t === "" ? true : t === "-" ? !placeOf(g) : placeOf(g) === t).length;
+  const tabs = [["", "All"], ...NL.places.map(p => [p, "📍 " + p]), ["-", "No place"]].filter(([t]) => t === "" || t === NL.tab || count(t));
+  const L = shown.filter(g => NL.tab === "" || (NL.tab === "-" ? !placeOf(g) : placeOf(g) === NL.tab));
+  return `${all.length ? `<div class="npc-tabs" role="tablist" aria-label="Places">${tabs.map(([t, lab]) => `<button type="button" role="tab" class="chip${t === NL.tab ? " on" : ""}" aria-selected="${t === NL.tab}" data-nltab="${esc(t)}">${esc(lab)} <span class="npc-tab-n">${count(t)}</span></button>`).join("")}</div>` : ""}
+    ${L.length ? L.map(g => npcLibRowHTML(g, camps)).join("") : `<p class="muted">${all.length ? "No NPCs match." : "No NPCs yet. Summon some above and press Save to campaign, add them in the Campaign Tracker, import a campaign, or press + New NPC."}</p>`}`;
 }
 function renderNpcLib(listOnly) {
   const box = $("#npcLib"); if (!box) return;
@@ -4525,7 +4548,7 @@ function renderNpcLib(listOnly) {
   if (listOnly && $("#npcLibList")) { $("#npcLibList").innerHTML = npcLibListHTML(); return; }
   const camps = Store.list(), n = npcGroups().length;
   box.innerHTML = `<div class="sec-h"><h3>Your NPCs</h3><span class="sp"></span><button class="btn sm" type="button" data-nl="new">+ New NPC</button></div>
-    <p class="hint" style="margin:0 0 8px">Every NPC from your campaigns. Tick a campaign to put an NPC in it. An NPC can be in several campaigns, and a change here or in the Campaign Tracker changes it everywhere.</p>
+    <p class="hint" style="margin:0 0 8px">Every NPC from your campaigns. Tick a campaign to put an NPC in it; an NPC can be in several. Use 📍 Move to… to file NPCs under a place, like a town, and the tabs to see one place at a time. A change here or in the Campaign Tracker changes the NPC everywhere.</p>
     <div class="row" style="gap:8px;flex-wrap:wrap;margin-bottom:6px"><input type="text" id="npcLibQ" placeholder="Search names, roles and notes…" aria-label="Search NPCs" value="${esc(NL.q)}" style="flex:2 1 180px">
       <select id="npcLibCamp" aria-label="Show NPCs from" style="flex:1 1 160px"><option value="">All campaigns (${n})</option><option value="-" ${NL.camp === "-" ? "selected" : ""}>Not in a campaign</option>${camps.map(c => `<option value="${esc(c.id)}" ${NL.camp === c.id ? "selected" : ""}>${esc(c.name)}</option>`).join("")}</select></div>
     <div id="npcLibList">${npcLibListHTML()}</div>`;
@@ -4536,17 +4559,27 @@ function renderNpcLib(listOnly) {
     const b = e.target.closest("[data-nl]"); if (!b) return;
     const row = b.closest("[data-lib]"), lib = row && row.dataset.lib;
     if (b.dataset.nl === "new") {
-      const id = uid("n"), n = { id, lib: "nl-" + id, name: "New NPC", role: "", attitude: "Unknown", notes: "" }, c = NL.camp && NL.camp !== "-" ? Store.get(NL.camp) : null;
+      const id = uid("n"), n = { id, lib: "nl-" + id, name: "New NPC", role: "", attitude: "Unknown", notes: "", ...(NL.tab && NL.tab !== "-" ? { place: NL.tab } : {}) }, c = NL.camp && NL.camp !== "-" ? Store.get(NL.camp) : null;
       if (c) { c.npcs = c.npcs || []; c.npcs.push(n); Store.save(c); } else { const L = npcLoose(); L.push(n); npcLooseSave(L); }
       NL.q = ""; NL.open.add(n.lib); renderNpcLib();
       const i = box.querySelector(`[data-lib="${n.lib}"] [data-nlf="name"]`); if (i) { i.focus(); i.select(); }
     } else if (b.dataset.nl === "open") { NL.open.has(lib) ? NL.open.delete(lib) : NL.open.add(lib); renderNpcLib(true); const nb = box.querySelector(`[data-lib="${CSS.escape(lib)}"] [data-nl="open"]`); if (nb) nb.focus(); }
     else if (b.dataset.nl === "del") npcLibDelete(lib);
   });
+  box.addEventListener("click", e => { const t = e.target.closest("[data-nltab]"); if (!t) return; NL.tab = t.dataset.nltab; renderNpcLib(true); const nb = box.querySelector(`[data-nltab="${CSS.escape(NL.tab)}"]`); if (nb) nb.focus(); });
   box.addEventListener("change", e => {
     const t = e.target;
     if (t.id === "npcLibCamp") { NL.camp = t.value; renderNpcLib(true); return; }
     const row = t.closest("[data-lib]"); if (!row) return;
+    if (t.hasAttribute("data-nlmove")) {
+      const lib = row.dataset.lib, name = (row.querySelector(".npc-lib-name b") || {}).textContent || "NPC";
+      let v = t.value;
+      if (v === NL_NEW) { const a = prompt(`New place for ${name} (a town, district, dungeon…)`, ""); v = a === null ? null : a.trim().slice(0, 60); if (!v) { renderNpcLib(true); return; } }
+      npcLibEdit(lib, "place", v); renderNpcLib(true);
+      toast(v ? `${name} moved to ${v}` : `${name} has no place now`);
+      const sel = box.querySelector(`[data-lib="${CSS.escape(lib)}"] [data-nlmove]`); if (sel) sel.focus();
+      return;
+    }
     if (t.dataset.nlc) { npcLibToggle(row.dataset.lib, t.dataset.nlc, t.checked); renderNpcLib(true); const cb = box.querySelector(`[data-lib="${CSS.escape(row.dataset.lib)}"] [data-nlc="${CSS.escape(t.dataset.nlc)}"]`); if (cb) cb.focus(); return; }
     if (t.dataset.nlf) { npcLibEdit(row.dataset.lib, t.dataset.nlf, t.value); if (t.dataset.nlf !== "notes") { const h = row.querySelector(".npc-lib-name"); if (h) h.innerHTML = `<b>${esc(row.querySelector('[data-nlf="name"]').value || "Unnamed NPC")}</b>${row.querySelector('[data-nlf="role"]').value ? ` <span class="muted">· ${esc(row.querySelector('[data-nlf="role"]').value)}</span>` : ""} <span class="tag">${esc(row.querySelector('[data-nlf="attitude"]').value)}</span>`; } }
   });
@@ -11210,11 +11243,22 @@ function mwPlanCamp(R, i, existing) {
   if (!updated || !String(camp.notes || "").trim()) camp.notes = src.desc;
   const upsert = (list, item, fresh) => { const j = list.findIndex(x => x.mwId && x.mwId === item.mwId); if (j >= 0) { list[j] = { ...list[j], ...item, id: list[j].id }; return list[j]; } const it = { id: uid(fresh), ...fresh === "n" ? { attitude: "Unknown" } : {}, ...item }; list.push(it); return it; };
   const lore = src.lore.filter(x => String(x.type || "").toLowerCase() !== "npc"), npcs = src.lore.filter(x => String(x.type || "").toLowerCase() === "npc");
-  npcs.forEach(x => { const n = mwNpc(x), had = camp.npcs.find(y => y.mwId === n.mwId); if (had && had.img) delete n.imgUrl; upsert(camp.npcs, n, "n"); });
-  [...lore.map(x => mwLore(x)), ...R.other.map(x => mwLore(x, "Account"))].forEach(x => upsert(camp.lore, x, "lo"));
+  const loreL = lore.map(x => mwLore(x));
+  const places = [...new Set([...loreL, ...camp.lore].filter(l => l.type === "place").map(l => l.name).filter(Boolean))];
+  npcs.forEach(x => { const n = mwNpc(x), had = camp.npcs.find(y => y.mwId === n.mwId); if (had && had.img) delete n.imgUrl;
+    if (!(had && had.place)) { const pl = mwNpcPlace(x, places); if (pl) n.place = pl; }
+    upsert(camp.npcs, n, "n"); });
+  [...loreL, ...R.other.map(x => mwLore(x, "Account"))].forEach(x => upsert(camp.lore, x, "lo"));
+  // encounters also become fights on the Encounters tab, with the monsters their text names
+  const encL = loreL.filter(l => l.type === "encounter");
+  if (encL.length) {
+    const idx = mwMonsterIndex(lore.filter(x => mwLore(x).type === "monster").map(mwMonster));
+    encL.forEach(l => { const e = mwEncounter(l, camp, idx), had = camp.encounters.find(y => y.mwId && y.mwId === e.mwId);
+      if (had) { had.name = e.name; had.notes = e.notes; if (!(had.enemies || []).length) had.enemies = e.enemies; } else camp.encounters.push(e); });
+  }
   src.sessions.forEach(s => upsert(camp.sessions, { mwId: String(s.id ?? uid("mw")), title: String(s.name || `Session ${s.number || ""}`).trim(), num: +s.number || 0, date: String(s.playedOn || "").slice(0, 10), summary: mwText(s.detailedRecap || s.summary || s.shortRecap || "") }, "s"));
   camp.sessions.sort((a, b) => (+b.num || 0) - (+a.num || 0)); // newest first, as the Sessions tab keeps them
-  return { camp, stats: { npcs: npcs.length, lore: lore.length + R.other.length, sessions: src.sessions.length, updated } };
+  return { camp, stats: { npcs: npcs.length, lore: lore.length + R.other.length, sessions: src.sessions.length, encounters: encL.length, updated } };
 }
 /* MythWeaver items and spells -> custom items (Items → Custom) and homebrew spells, so they can be handed out.
    Ones the Forge already has built in (same name) are left out; they're in Items or Spells already. They stay in Lore too. */
@@ -11288,6 +11332,47 @@ function mwMonster(x) {
   }
   return f;
 }
+/* MythWeaver NPC -> a place: a tag, or the first line of a Location / Lives / Home section, naming one of the campaign's Places */
+function mwNpcPlace(x, places) {
+  if (!places.length) return "";
+  const hit = t => places.find(p => impSame(p, t)) || "";
+  for (const t of x.tags || []) { const h = hit(String(t)); if (h) return h; }
+  for (const sec of x.sections || []) if (/location|lives|home|based|found|residence|where/i.test(sec.title || "")) {
+    const txt = mwPlain(mwText(sec.text).split("\n")[0]).toLowerCase(); const h = places.find(p => txt.includes(p.toLowerCase())); if (h) return h; }
+  return "";
+}
+/* Every monster an encounter's text might name: the Monster Manual (both rule sets), My monsters and the ones in this import. Longest names first. */
+function mwMonsterIndex(extra) {
+  const seen = new Map(), add = (n, cr, ac, hp) => { const k = String(n || "").toLowerCase(); if (k.length >= 3 && !seen.has(k)) seen.set(k, { n, cr: +cr || 0, ac: +ac || 12, hp: +hp || 10 }); };
+  [...MB.lib, ...(extra || [])].forEach(f => { try { const m = mbCompile(f, "x"); add(m.n, m.cr, m.ac, m.hp); } catch { } });
+  try { const d = JSON.parse(document.getElementById("monsterData").textContent); ["2014", "2024"].forEach(ed => (d[ed] || []).forEach(m => add(m.n, m.cr, m.ac, m.hp))); } catch { }
+  return [...seen.values()].sort((a, b) => b.n.length - a.n.length);
+}
+const MW_NUMS = { a: 1, an: 1, one: 1, two: 2, three: 3, four: 4, five: 5, six: 6, seven: 7, eight: 8, nine: 9, ten: 10, eleven: 11, twelve: 12, pair: 2, couple: 2, several: 3, few: 3 };
+// "3 goblins", "two Bugbears", "Ogre x2", "a wolf": the largest count named for each monster, matching each stretch of text once
+function mwFoes(text, idx) {
+  const low = " " + String(text || "").toLowerCase().replace(/[*_#]/g, " ") + " ", used = [], out = [];
+  for (const m of idx) {
+    const nm = m.n.toLowerCase().replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+    if (!low.includes(m.n.toLowerCase().slice(0, -1))) continue;
+    const re = new RegExp(`(?:\\b(\\d{1,2}|a|an|one|two|three|four|five|six|seven|eight|nine|ten|eleven|twelve|pair|couple|several|few)\\s+(?:of\\s+)?(?:[x×]\\s*)?)?\\b${nm}(?:e?s)?\\b(?:\\s*[x×]\\s*(\\d{1,2}))?`, "gi");
+    let r, count = 0;
+    while ((r = re.exec(low))) {
+      const a = r.index, b = a + r[0].length; if (used.some(([x, y]) => a < y && b > x)) continue; used.push([a, b]);
+      count = Math.max(count, r[2] ? +r[2] : r[1] ? (/^\d/.test(r[1]) ? +r[1] : MW_NUMS[r[1].toLowerCase()] || 1) : 1);
+    }
+    if (count) out.push({ ...m, count: clamp(count, 1, 20) });
+  }
+  return out;
+}
+function mwEncounter(l, camp, idx) {
+  const text = [l.desc, ...l.sections.map(t => (t.t ? `${t.t}${t.dm ? " (DM only)" : ""}: ` : "") + t.x)].filter(Boolean).join("\n\n");
+  const foes = mwFoes([l.name, text].join("\n"), idx);
+  const e = newEncounter(null, l.name, camp.currentLevel || 1, foes.map(f => ({ name: f.n, stat: f.n, cr: f.cr, count: f.count, boss: false })),
+    { kind: "import", mwId: l.mwId, notes: impCut(text, 4000) + `\n\n(Imported from MythWeaver.${foes.length ? " Monsters were read from the text: check them." : " No monsters were found in its text: add them here."})` });
+  e.enemies.forEach(m => { const f = foes.find(x => x.n === m.stat); if (f) { m.ac = f.ac; m.hp = m.max = f.hp; } });
+  return e;
+}
 // a MythWeaver character -> a Draft for importBuild (its scores are starting scores, before the species bonus)
 function mwChar(ch, ed) {
   ed = ed === "2024" ? "2024" : "2014";
@@ -11327,9 +11412,9 @@ function mwWindowHTML(R) {
   const have = i => Store.list().find(c => c.mwId && c.mwId === R.campaigns[i].mwId);
   const size = R.campaigns.reduce((t, c, i) => t + JSON.stringify(mwPlanCamp(R, i, null).camp).length, 0), free = Math.max(0, 5e6 - lsUsed());
   const ed = /5e\.2|2024/.test((R.characters[0] || {}).gameSystem || "") ? "2024" : "2014";
-  return `<p>Choose what to bring into the Campaign Tracker. NPCs go to each campaign's NPCs tab (and to Your NPCs on the NPC tab), sessions to Sessions, and everything else to its <b>Lore</b> tab.</p>
+  return `<p>Choose what to bring into the Campaign Tracker. NPCs go to each campaign's NPCs tab (and to Your NPCs on the NPC tab), encounters to Encounters (and Lore), sessions to Sessions, and everything else to its <b>Lore</b> tab.</p>
     <h4>Campaigns</h4>${R.campaigns.map((c, i) => { const h = have(i), npcs = c.lore.filter(x => String(x.type).toLowerCase() === "npc").length;
-      return `<label class="check"><input type="checkbox" data-mwcamp="${i}" checked><span><b>${esc(c.name)}</b><br><small class="muted">${npcs} NPC${npcs === 1 ? "" : "s"} · ${c.lore.length - npcs + R.other.length} lore · ${c.sessions.length} session${c.sessions.length === 1 ? "" : "s"}${h ? ` · Updates ${esc(h.name)} (imported ${new Date(h.mwAt || h.updated || Date.now()).toLocaleDateString()})` : ""}</small></span></label>`; }).join("")}
+      return `<label class="check"><input type="checkbox" data-mwcamp="${i}" checked><span><b>${esc(c.name)}</b><br><small class="muted">${npcs} NPC${npcs === 1 ? "" : "s"} · ${c.lore.length - npcs + R.other.length} lore · ${(n => n ? `${n} encounter${n === 1 ? "" : "s"} · ` : "")(c.lore.filter(x => mwLore(x).type === "encounter").length)}${c.sessions.length} session${c.sessions.length === 1 ? "" : "s"}${h ? ` · Updates ${esc(h.name)} (imported ${new Date(h.mwAt || h.updated || Date.now()).toLocaleDateString()})` : ""}</small></span></label>`; }).join("")}
     ${R.characters.length ? `<h4>Characters (to My Characters)</h4>${R.characters.map((c, i) => `<label class="check"><input type="checkbox" data-mwchar="${i}" ${PCS.roster.some(x => x.mwId === c.mwId) ? "" : "checked"}><span><b>${esc(c.name)}</b><br><small class="muted">${esc(impTitle(c.cls || (c.sheet.selectionsBySlot || {}).class || ""))} ${c.level} · ${esc(c.ancestry)}${PCS.roster.some(x => x.mwId === c.mwId) ? " · already on My Characters" : ""}</small></span></label>`).join("")}
       <div class="field"><label>Rules for characters</label><div class="seg"><label class="opt"><input type="radio" name="impCampEd" value="2014" ${ed === "2014" ? "checked" : ""}><span>2014 rules</span></label><label class="opt"><input type="radio" name="impCampEd" value="2024" ${ed === "2024" ? "checked" : ""}><span>2024 rules</span></label></div></div>` : ""}
     ${(() => { const X = mwExtras(R, R.campaigns.map((c, i) => i)), ni = X.items.length, ns = X.homebrew.length, nm = X.monsters.length, nb = X.monsters.filter(f => f.needsStats).length, pl = (n, w) => `${n} ${w}${n === 1 ? "" : "s"}`;
@@ -11442,6 +11527,11 @@ document.getElementById("impCharGo").addEventListener("click", async () => {
 });
 
 const NEWS = [
+  { id: "2026-11-17-npc-places", date: "2026-11-17", title: "NPCs sorted by place, and imported encounters", go: "npc", items: [
+    "Your NPCs on the NPC tab now has a tab for each place. Use 📍 Move to… on an NPC to file it under a town, district or dungeon: pick one of your places, a Place from your campaigns' Lore, or ＋ New place….",
+    "Click a place's tab to see only the NPCs there, or No place for the ones not filed yet. + New NPC adds to the place you're looking at. The Campaign Tracker's NPCs tab has a Place box too.",
+    "MythWeaver NPCs tagged with one of the campaign's places are filed there when you import.",
+    "MythWeaver encounters now also go to the campaign's Encounters tab, ready to run. Monsters the text names (like “three goblins and a bugbear”) are added with their AC and HP; check them, since they're read from the text."] },
   { id: "2026-11-17-npc-list", date: "2026-11-17", title: "All your NPCs in one place, and imported monsters", go: "npc", items: [
     "The NPC tab now has Your NPCs: every NPC from all your campaigns, with a tick box for each campaign. Tick one to put that NPC in it; an NPC can be in several campaigns at once.",
     "Change an NPC's name, role, attitude, notes or picture there or in the Campaign Tracker, and it changes in every campaign it's in. Untick every campaign and the NPC stays in the list, ready for later.",

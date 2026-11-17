@@ -167,7 +167,7 @@ Everything from "Character import" to "Your NPCs and imported monsters" below wa
 - the phone and laptop layout work
 - the Lore tab and MythWeaver campaign import
 - imported campaigns adding their custom items and spells to Items and Homebrew
-- Your NPCs on the NPC tab, and MythWeaver monsters in My monsters
+- Your NPCs on the NPC tab (with places), MythWeaver monsters in My monsters, and MythWeaver encounters in Encounters
 
 PR #8 (the expired sign-in fix) was merged before that chat.
 
@@ -534,7 +534,15 @@ PR #8 (the expired sign-in fix) was merged before that chat.
 - **MythWeaver monsters:** `mwMonster(x)` returns a builder form (`mbBlank` shape) with `mwId` and `src`. It reads size/type, AC, HP and hit dice, the six scores (`STR 16` or a row of `16 (+3)`), speed, CR (nearest `CR_LIST`), senses, languages and defences. "Name. Text" lines become traits, or actions/bonus/reacts/legend under those headings.
   - Without AC, HP and all six scores it sets `needsStats` (shown as "needs stats" in `mbRenderLib`; cleared when saved from the builder in `mbStore`).
   - `mwExtras` now also returns `monsters`; `campExtrasAdopt` skips ones whose `mwId` or name is already in `MB.lib`.
-- **Tests:** `npm run test:npclib` (`test/e2e/npc-lib.cjs`).
+- **Places:** an NPC's `place` (in `NPC_SHARED`, and a "Place" field in the Tracker's `npcs` list) files it under a town or area.
+  - The list has tabs (`.npc-tabs`, `[data-nltab]`, `NL.tab`: "" = all, "-" = no place). Only places with NPCs get a tab.
+  - Each row has a `[data-nlmove]` select (`npcMoveHTML`): used places (`npcPlaceNames`), then Lore places not used yet (`lorePlaceNames`), then `NL_NEW` ("＋ New place…", asks with `prompt`).
+  - MythWeaver NPCs get a place from `mwNpcPlace(x, places)`: a tag, or a Location/Lives/Home section, naming one of the campaign's Place lore entries. A place the DM already set isn't changed on re-import.
+- **MythWeaver encounters** → `c.encounters` too (`mwEncounter`, `kind: "import"`, `mwId`), alongside Lore.
+  - `mwFoes(text, idx)` finds monster names with counts ("3 goblins", "two bugbears", "Ogre x2", "a wolf"), longest names first, each stretch of text used once, the largest count per monster.
+  - `mwMonsterIndex(extra)` = My monsters, this import's monsters (`mwMonster`), then the Monster Manual (2014 first). Enemies take AC and HP from it.
+  - Re-import updates the name and notes only, and fills enemies only if the fight has none, so play progress is kept.
+- **Tests:** `npm run test:npclib` (`test/e2e/npc-lib.cjs`), including places and encounters.
 
 ## Where things stand (end of the 2026-11-17 chat)
 

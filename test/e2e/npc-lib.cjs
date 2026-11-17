@@ -18,7 +18,8 @@ const server = http.createServer((req, res) => {
   const ctx = await browser.newContext({ viewport: { width: 1300, height: 900 }, serviceWorkers: "block" });
   await ctx.addInitScript(() => localStorage.setItem("dmforge.offline", "1"));
   const p = await ctx.newPage(); p.on("pageerror", e => errs.push(e.message));
-  p.on("dialog", d => d.type() === "prompt" ? d.accept("https://example.com/hilda.png") : d.accept());
+  let answer = "https://example.com/hilda.png";
+  p.on("dialog", d => d.type() === "prompt" ? d.accept(answer) : d.accept());
   await p.goto(URL + "#tracker");
   await p.waitForFunction(() => typeof renderNpcLib === "function" && $("#storeBadge").textContent !== "Connecting…", null, { timeout: 15000 });
 
@@ -71,6 +72,24 @@ const server = http.createServer((req, res) => {
   check("ticking again moves her back into a campaign", st.b.join() === "Hilda" && st.loose === 0, JSON.stringify(st));
   await p.selectOption("#npcLibCamp", ""); await p.waitForTimeout(100);
 
+  // places: move Hilda to a new place, see the tab, and the place in the Tracker
+  answer = "Saltmarsh";
+  await row().locator("[data-nlmove]").selectOption("\u0001new"); await p.waitForTimeout(200);
+  st = await p.evaluate(ids => [ids.a, ids.b].flatMap(id => Store.get(id).npcs.map(n => n.place)), ids);
+  check("Move to → New place files Hilda under it, in every campaign", st.length === 1 && st[0] === "Saltmarsh", JSON.stringify(st));
+  check("a Saltmarsh tab appears", await p.locator('[data-nltab="Saltmarsh"]').count() === 1);
+  await p.click('[data-nl="new"]'); await p.waitForTimeout(150); await p.keyboard.type("Old Tom"); await p.keyboard.press("Tab");
+  await p.click('[data-nltab="Saltmarsh"]'); await p.waitForTimeout(100);
+  let names = await p.locator(".npc-lib-row .npc-lib-name b").allTextContents();
+  check("the Saltmarsh tab shows only Saltmarsh NPCs", names.join() === "Hilda", names.join());
+  await p.click('[data-nltab="-"]'); await p.waitForTimeout(100);
+  names = await p.locator(".npc-lib-row .npc-lib-name b").allTextContents();
+  check("the No place tab shows the rest", names.join() === "Old Tom", names.join());
+  await p.locator(".npc-lib-row", { hasText: "Old Tom" }).locator("[data-nlmove]").selectOption("Saltmarsh"); await p.waitForTimeout(150);
+  check("moving to an existing place works", await p.evaluate(() => npcLoose().find(n => n.name === "Old Tom").place === "Saltmarsh"));
+  await p.click('[data-nltab=""]'); await p.waitForTimeout(100);
+  await p.locator(".npc-lib-row", { hasText: "Old Tom" }).locator('[data-nl="del"]').click(); await p.click("#modalYes"); await p.waitForTimeout(150);
+
   // + New NPC, then delete it everywhere
   await p.click('[data-nl="new"]'); await p.waitForTimeout(150);
   await p.keyboard.type("Brother Oswin"); await p.keyboard.press("Tab"); await p.waitForTimeout(100); /* the new NPC's name box has focus, with its text selected */
@@ -81,7 +100,10 @@ const server = http.createServer((req, res) => {
 
   // MythWeaver: NPCs show on the NPC tab ticked for the imported campaign; monsters go to My monsters
   const mw = { format: "mythweaver-account-export", campaigns: [{ id: 7, name: "Ember Reach", lore: [
-    { id: 11, name: "Garrick Vane", type: "npc", description: "Innkeeper of the Gilded Goose.", tags: ["NPC"] },
+    { id: 10, name: "Ashford", type: "location", description: "A river town.", tags: ["Location"] },
+    { id: 11, name: "Garrick Vane", type: "npc", description: "Innkeeper of the Gilded Goose.", tags: ["NPC", "Ashford"] },
+    { id: 14, name: "Ambush on the Ford", type: "encounter", description: "<p>Three goblins and a bugbear leap from the reeds. Cinder Hound x2 follow behind.</p>", tags: ["Encounter"] },
+    { id: 15, name: "Quiet Shrine", type: "encounter", description: "Nothing stirs here.", tags: ["Encounter"] },
     { id: 12, name: "Ash Wraith", type: "monster", description: "A drifting shape of soot.", tags: [] },
     { id: 13, name: "Cinder Hound", type: "monster", description: "<p>Medium monstrosity, unaligned</p><p><strong>Armor Class</strong> 14 (natural armor)<br><strong>Hit Points</strong> 33 (6d8 + 6)<br><strong>Speed</strong> 40 ft.</p><p>STR 16 (+3) DEX 14 (+2) CON 13 (+1) INT 3 (−4) WIS 12 (+1) CHA 6 (−2)</p><p><strong>Senses</strong> darkvision 60 ft., passive Perception 13<br><strong>Challenge</strong> 2 (450 XP)</p><p><strong><em>Fire Aura.</em></strong> Creatures that touch it take 1d4 fire damage.</p>", tags: ["Monster"],
       sections: [{ title: "Actions", text: "<p><strong>Bite.</strong> Melee Weapon Attack: +5 to hit, reach 5 ft., one target. Hit: 8 (1d10 + 3) piercing damage plus 3 (1d6) fire damage.</p>" }] }], sessions: [] }], otherLore: [], characters: [], images: [] };
@@ -95,6 +117,13 @@ const server = http.createServer((req, res) => {
   const ember = await p.evaluate(() => Store.list().find(c => c.name === "Ember Reach").id);
   const g = p.locator(".npc-lib-row", { hasText: "Garrick Vane" });
   check("imported NPC is on the NPC tab, ticked for its campaign", await g.count() === 1 && await g.locator(`[data-nlc="${ember}"]`).isChecked());
+  check("imported NPC is filed under the place its tags name", await p.evaluate(() => npcGroups().find(g => g.n.name === "Garrick Vane").n.place) === "Ashford" && await p.locator('[data-nltab="Ashford"]').count() === 1);
+  const encs = await p.evaluate(() => Store.list().find(c => c.name === "Ember Reach").encounters.map(e => ({ n: e.name, foes: e.enemies.map(m => m.stat + ":" + m.ac + "/" + m.hp), notes: e.notes })));
+  const amb = encs.find(e => e.n === "Ambush on the Ford"), quiet = encs.find(e => e.n === "Quiet Shrine");
+  const cnt = k => amb ? amb.foes.filter(f => f.startsWith(k + ":")).length : 0;
+  check("encounter goes to the Encounters tab with its monsters", amb && cnt("Goblin") === 3 && cnt("Bugbear") === 1 && cnt("Cinder Hound") === 2 && amb.foes.length === 6, JSON.stringify(amb));
+  check("monster AC and HP come from the Monster Manual and the import", amb && amb.foes.includes("Goblin:15/7") && amb.foes.includes("Cinder Hound:14/33"), JSON.stringify(amb && amb.foes));
+  check("an encounter naming no monsters is still added, with a note", quiet && !quiet.foes.length && /No monsters were found/.test(quiet.notes), JSON.stringify(quiet));
   st = await p.evaluate(() => MB.lib.map(f => ({ n: f.name, needs: !!f.needsStats, ac: f.ac, hp: f.hp, hd: f.hdN + "d" + f.hdD, sc: f.scores.join(","), cr: f.cr, size: f.size, type: f.type, walk: f.speed.walk, dark: f.senses.dark, traits: f.traits.map(t => t.n), actions: f.actions.map(t => t.n) })));
   const ch = st.find(x => x.n === "Cinder Hound"), aw = st.find(x => x.n === "Ash Wraith");
   check("monster with a stat block gets its numbers", ch && !ch.needs && ch.ac === 14 && ch.hp === 33 && ch.hd === "6d8" && ch.sc === "16,14,13,3,12,6" && ch.cr === 2 && ch.size === "medium" && ch.type === "monstrosity" && ch.walk === 40 && ch.dark === 60, JSON.stringify(ch));
@@ -106,8 +135,8 @@ const server = http.createServer((req, res) => {
   // import again: no duplicate monsters or NPCs
   await p.goto(URL + "#tracker"); await p.waitForTimeout(200);
   await p.setInputFiles("#importFile", mwFile); await p.waitForTimeout(500); await p.click("#impCampGo"); await p.waitForTimeout(900);
-  st = await p.evaluate(() => ({ m: MB.lib.length, n: npcGroups().filter(g => g.n.name === "Garrick Vane").length }));
-  check("importing again adds no duplicates", st.m === 2 && st.n === 1, JSON.stringify(st));
+  st = await p.evaluate(() => ({ m: MB.lib.length, n: npcGroups().filter(g => g.n.name === "Garrick Vane").length, e: Store.list().find(c => c.name === "Ember Reach").encounters.length }));
+  check("importing again adds no duplicates", st.m === 2 && st.n === 1 && st.e === 2, JSON.stringify(st));
 
   check("no page errors", !errs.length, errs.join(" | "));
   await browser.close(); server.close();
