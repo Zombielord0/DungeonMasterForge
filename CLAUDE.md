@@ -27,7 +27,7 @@ Live site: https://dungeonmasterforge.netlify.app (Netlify; production branch `m
 
 | Path | What it is |
 | --- | --- |
-| `public/index.html` | The whole app on one page: vanilla JS with global functions (~11,350 lines). Most feature work happens here. |
+| `public/index.html` | The whole app on one page: vanilla JS with global functions (~12,250 lines). Most feature work happens here. |
 | `src/portal.js` | Sign-in, campaigns, shared characters, the Party tab, whispers, homebrew sync. esbuild bundles it into `public/portal.js`, which is gitignored and never edited by hand. |
 | `netlify/functions/api.mjs` → `netlify/lib/api.mjs` | Campaign API at `/api/*`. `handle(req, user, db)` holds all the routes. `netlify/lib/diff.mjs` writes the activity feed text. |
 | `netlify/database/migrations/` | Postgres tables, applied automatically on deploy: `campaigns`, `members`, `characters` (versioned jsonb), `activity`, `whispers`, `homebrew`. |
@@ -40,7 +40,7 @@ Live site: https://dungeonmasterforge.netlify.app (Netlify; production branch `m
 | `test/e2e/fixtures/` | Test files: `companion-zook.json` (a real 5e Companion App character, no personal details), `sheet-wizard.pdf` (made up) and `mythweaver-sample.json` (made up). Never commit players' own files or the owner's MythWeaver export: it holds their email. |
 | `public/vendor/pdfjs/` | pdf.js (`pdfjs-dist` 6.5.438 legacy build, Apache-2.0, unchanged), loaded only when someone imports a PDF. |
 | `tools/make-test-sheet.py` | Writes `test/e2e/fixtures/sheet-wizard.pdf` with the official sheet's field names and spell positions (needs pypdf). |
-| `docs/superpowers/` | One design (`specs/`) and one plan (`plans/`) per piece of work, dated. Read the matching pair before changing a feature. |
+| `docs/superpowers/` | One design (`specs/`) and one plan (`plans/`) per piece of work, dated. Read the matching pair before changing a feature. The later 2026-11-17 work (campaign extras, Your NPCs, World tab, World builder, place maps) has no design docs: its notes are the sections below. |
 | `.superpowers/` | Scratch space for build sessions (gitignored). Nothing there is needed. |
 
 ## Commands
@@ -84,6 +84,7 @@ Playwright and Chromium are pre-installed in cloud sessions. To test offline mod
   - `dmforge.pcs.v1` (characters), `dmforge.campaigns.v1`, `dmforge.homebrew.v1`, `dmforge.items.v1`, `dmforge.mymonsters.v1`, `dmforge.favspells` and `dmforge.offline`.
   - `dmforge.npclib.v1`: NPCs that aren't in any campaign (Your NPCs on the NPC tab).
   - `dmforge.world.v1`: World places (the World tab).
+  - `dmforge.setupLater.<user id>`: "Not now" on the DM setup screen (signed in, no campaign yet).
   - `dmforge.fog.v1`: map fog, found secret doors and tokens for the 40 most recent maps.
   - `dmforge.lastBackup`.
   - **Imported map pictures** are in IndexedDB (database `dmforge-maps`), not localStorage.
@@ -99,6 +100,11 @@ Playwright and Chromium are pre-installed in cloud sessions. To test offline mod
   - Tracker NPCs: `img` (an uploaded picture, key `npc-<npc id>` in the `dmforge-maps` IndexedDB) or `imgUrl` (an https link).
   - Characters: `hbPending` (homebrew waiting for the DM), `importedFrom: {app, at}` and `mwId`.
   - Homebrew can be `kind: "spell"`.
+  - NPCs (in campaigns and in `dmforge.npclib.v1`): `lib` (links copies of one NPC across campaigns), `placeId` (a World place) and `place` (its name, kept in step).
+  - Lore entries of type place: `wpId` (the World place they mirror).
+  - World places: `type`, `parent`, `tags`, `sections`, `imgUrl`, `mwId`, `nestTried`, `map` (a saved map entry) and `shop` (shop settings for `shopMake`).
+  - Encounters: `kind: "import"` and `mwId` (from MythWeaver).
+  - Custom items and My monsters can carry `mwId` and `src`; monsters can have `needsStats`.
 - **Signed in:** characters and homebrew live in Postgres, per campaign. Homebrew is polled every 30 seconds. Every character save bumps `version`, so if two people save the same sheet at once, the second one is asked which version to keep.
 
 ## Feature history (oldest first)
@@ -513,13 +519,13 @@ PR #8 (the expired sign-in fix) was merged before that chat.
 
 ## Campaign files carry custom content (2026-11-17)
 
-- **Export JSON** (`#exportCamp`) writes the campaign plus `extras: campExtras()` = `{items: IT.custom, homebrew: HB.list, monsters: MB.lib}`.
+- **Export JSON** (`#exportCamp`) writes the campaign plus `extras: campExtras(c)` = `{items: IT.custom, homebrew: HB.list, monsters: MB.lib, world}`, where `world` is the World places the campaign uses plus their parents.
 - **Import JSON** (`#importFile`) strips `extras` off the campaign and passes it to `campExtrasAdopt(ex)`, which adds what this browser doesn't have (same id, or same name and text, counts as a match):
   - custom items into `IT.custom` (Items → Custom, ready for Give/Buy), saved with `itPersist`;
   - homebrew through `hbPut` (skipped for signed-in players, who can't add homebrew);
   - custom monsters into `MB.lib`, then `bsCustomRefresh`.
 - The loot "Give to…" handler now looks up custom items as well as built-ins, so the inventory row links (`ref`) to the custom item.
-- **MythWeaver:** `mwExtras(R, camps)` turns the chosen campaigns' lore (plus `otherLore`) into `{items, homebrew}` for the same `campExtrasAdopt`:
+- **MythWeaver:** `mwExtras(R, camps)` turns the chosen campaigns' lore (plus `otherLore`) into `{items, homebrew, monsters}` for the same `campExtrasAdopt` (monsters: see "Your NPCs and imported monsters"):
   - `type: "item"` lore (or tag-sorted as item) → a custom item built through `ciNew` + `ciRecord`, so Edit works. The category comes from the name, tags and first line (`MW_ITEM_CAT`); rarity and attunement from the text. It carries `mwId: "mw-<id>"`, and a re-import replaces it in place.
   - `type: "spell"` or a "Spell" tag (`mwIsSpell`) → a homebrew spell, with level, school, casting time, range, components and duration read from the text, and classes from tags.
   - Built-in items and spells (exact name) are skipped. DM-only sections are left off. Everything stays in Lore.
@@ -531,9 +537,9 @@ PR #8 (the expired sign-in fix) was merged before that chat.
 - **NPC data stays in each campaign** (`c.npcs`), so the Tracker's NPCs tab is unchanged. Copies of one NPC in several campaigns share `lib` (`npcLibId(n)`: set lazily to `"mw-<mwId>"` or `"nl-<id>"`).
   - NPCs in no campaign are kept in localStorage `dmforge.npclib.v1` (`npcLoose`/`npcLooseSave`, in `BACKUP_KEYS`). Tracker campaigns are browser-only even when signed in, so this matches.
   - `npcGroups()` merges campaigns and loose NPCs into `{lib, n, camps, loose?}`.
-  - `npcSync(n)` copies `NPC_SHARED` (name, role, attitude, notes, img, imgUrl) to every other copy. It runs from the Tracker's `onEdit` (list `npcs`) and from `npcPicSet`/`npcPicLink`/`npcPicClear`.
+  - `npcSync(n)` copies `NPC_SHARED` (name, role, attitude, place, placeId, notes, img, imgUrl) to every other copy. It runs from the Tracker's `onEdit` (list `npcs`) and from `npcPicSet`/`npcPicLink`/`npcPicClear`.
   - A picture key may be shared by copies: delete it from `MAPIMG` only when `npcImgUsed(key)` is false.
-- **The list** is `#npcLib` on the NPC tab (`renderNpcLib(listOnly)`, state `NL = {q, camp, open}`), drawn by `route()` for `#npc`.
+- **The list** is `#npcLib` on the NPC tab (`renderNpcLib(listOnly)`, state `NL = {q, camp, tab, open}`), drawn by `route()` for `#npc` (after `worldAdopt`).
   - Campaign tick boxes are `[data-nlc=<campaign id>]` inside `.chip` labels → `npcLibToggle(lib, campId, on)`. Unticking the last campaign moves the NPC to the loose list.
   - Fields `[data-nlf]` → `npcLibEdit`; buttons `[data-nl]` = new, open, del (`npcLibDelete`, everywhere).
 - **MythWeaver monsters:** `mwMonster(x)` returns a builder form (`mbBlank` shape) with `mwId` and `src`. It reads size/type, AC, HP and hit dice, the six scores (`STR 16` or a row of `16 (+3)`), speed, CR (nearest `CR_LIST`), senses, languages and defences. "Name. Text" lines become traits, or actions/bonus/reacts/legend under those headings.
@@ -594,7 +600,12 @@ PR #8 (the expired sign-in fix) was merged before that chat.
 
 ## Where things stand (end of the 2026-11-17 chat)
 
-- **PR #9** (all the 2026-11-16/17 work) was merged to `main` at the owner's request on 2026-11-17, which starts a production deploy. New work goes on a new branch with a new draft PR.
+- **PR #9** (all the 2026-11-16/17 work) was merged to `main` at the owner's request on 2026-11-17 (merge commit `88a66d4`), which started a production deploy. Nothing is waiting on a branch.
+- **New work** goes on a new branch with a new draft PR, so the owner can try it on a deploy preview before asking for a merge.
+- **Ideas the owner raised that aren't built:**
+  - A settlement map generator: towns and cities can only have uploaded map pictures, because the map generator makes dungeons.
+  - Editing Lore sections on the World tab: they're read-only there, and edited in a campaign's Lore tab.
+  - The World builder's gods are invented placeholders ("the Dawnmother" and so on), and temple service prices are a rough guide.
 - **The owner's order of import work:**
   1. Companion App import: done.
   2. Homebrew classes, for classes the Forge doesn't have, like Blood Hunter: **not started**. Imports with an unknown class are refused with a message for now.
@@ -670,5 +681,9 @@ From PR #5:
 - **Scores in imports differ by source.** The Companion App and PDFs give final scores (solved backwards in `importBuild`); MythWeaver gives starting scores (`D.base`). Imports must set `bonus: "fixed"`, or `pcLevelTo` moves the species bonus on the first level-up.
 - **pdf.js 6.5's `getFieldObjects()` returned nothing** for real sheets; read widgets with `page.getAnnotations()` instead.
 - **On phones the header can be away** (`hdr-away` on `<html>`). Anything placed relative to header elements must measure where the header ends up, not where it is mid-slide (see `newsOpen`).
+- **The `.field label` rule is strong.** `.field label:not(.check):not(.opt)` makes labels uppercase Cinzel blocks. A chip or toggle written as a `<label>` inside a `.field` needs a selector at least as specific, such as `.field .npc-camps label.chip`.
+- **esbuild's file in `node_modules/.bin` is a native program.** Scripts that bundle (like `test/e2e/setup-screen.cjs`) should call `require("esbuild").buildSync(...)`, which also works on Windows.
+- **The World tab opens in "By type" with its groups closed.** Browser checks that click places in the tree switch to the Map view first (`label.opt:has(input[value="tree"])`).
+- **`worldAdopt()` writes as it links.** It saves any campaign whose Lore or NPCs it changed, and it can make World places from Lore and NPC place names. Call it before reading `placeId` or `wpId`, and don't put it in a loop.
 - **Grid columns need `min-width:0`** (already set for `.layout` and `.tlayout`). Without it, one wide child, like a scrolling row of buttons, widens the whole page on phones.
 - **A stale sign-in.** The browser's `getUser()` trusts any `nf_jwt` cookie, even one the server rejects (expired, or from a re-created Identity instance). `enter()` treats a 401 from `/api/me` by calling `dropSession()` (logout, clear the cookies and `gotrue.user`, put back the browser's own characters) and showing the sign-in form. Other `/api/me` errors offer Try again, another account, or offline use. Never leave the gate without a way out.
