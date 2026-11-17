@@ -2,6 +2,15 @@
    When a change ships, add an entry to the top of NEWS with a new id, in plain words for players and DMs. */
 
 const NEWS = [
+  { id: "2026-11-17-players-journal", date: "2026-11-17", title: "A Journal for players, turn order on phones, and homebrew classes", go: "journal", items: [
+    "Players have a new Journal tab: the quests, session recaps and lore the DM shares, plus the day and weather. DMs: quests and sessions show unless you set “Players see it” to No; tick “Players see this” on a Lore entry to share it. Quest notes and DM-only sections stay with you. Your Journal tab shows what players see.",
+    "DMs: press “📱 Show players” on an encounter and your players see the turn order on their phones, with a “Your turn!” when it's theirs. Monsters show as Bloodied or Down, never their hit points.",
+    "Players: tick “Share my rolls with the DM” in the 🎲 Rolls box and your rolls show up in the DM's activity feed.",
+    "Homebrew classes: in the Homebrew tab, DMs can now make a whole class (Blood Hunter, Gunslinger…) with its hit die, skills, armour, spellcasting and features by level. Characters can take it, level up in it and multiclass into it.",
+    "Importing a character whose class the Forge doesn't have no longer fails: the class comes in as homebrew, with its features, for the DM to approve.",
+    "Imported characters keep their gender when the file or the backstory says it.",
+    "The 💾 Backup file now includes your map and NPC pictures.",
+    "The torchlit background uses less battery on phones."] },
   { id: "2026-11-17-account-saves", date: "2026-11-17", title: "Your Campaign Tracker on every device", go: "tracker", items: [
     "DMs: when you're signed in, your Campaign Tracker, World places, NPCs, custom items and homebrew monsters are now saved to your account, not just this browser. Sign in on your laptop, tablet or phone and they're all there.",
     "It's private to you. Players never see it.",
