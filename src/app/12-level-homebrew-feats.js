@@ -132,7 +132,7 @@ function featPick(name) { LV.asi.feat = name; LV.asi.featAb = ""; featClose(); l
 function featClose() { const m = $("#featModal"); if (m) m.classList.remove("open"); const f = $("#lvModal [data-featopen]"); if (f) f.focus(); }
 function mcDialog(c) {
   pcEnsure(c); ACTX.c = c; ACTX.mc = { pick: "", sub: "", ok: false };
-  const ed = edOf(c), have = (c.multi || []).filter(x => +x.lv > 0), fresh = Object.keys(CLASS_DATA).filter(k => k !== c.cls && !have.some(x => x.cls === k));
+  const ed = edOf(c), have = (c.multi || []).filter(x => +x.lv > 0), fresh = classList(ed).filter(k => k !== c.cls && !have.some(x => x.cls === k));
   const needAll = [c.cls, ...have.map(x => x.cls)].filter(k => !mcMeets(c, k));
   const opt = (k, label) => { const ok = mcMeets(c, k); return `<label class="mc-opt"><input type="radio" name="mcPick" value="${esc(k)}"> <b>${esc(label)}</b> <span class="${ok ? "muted" : "warn"}">${ok ? "✓" : "✗"} needs ${esc(mcPrereqText(k))}</span></label>`; };
   actDialog(`<h3 id="actTitle">Level up in another class</h3>
@@ -284,12 +284,15 @@ const hbBuiltIn = (kind, name, cls) => {
   if (kind === "background") return has(Object.keys(BACKGROUNDS).filter(x => !HB_BG[x]));
   if (kind === "spell") { spLoad(); return has([...SP.data["2014"], ...SP.data["2024"]].filter(x => !x.hb).map(x => x.n)); }
   if (kind === "species") return ["2014", "2024"].some(ed => has(Object.keys(PC_RACES[ed]).filter(x => !PC_RACES[ed][x].hb)));
+  if (kind === "class") return has(builtInClasses());
   if (kind === "feat") return has([...FEATS["2014"], ...FEATS["2024"]].map(F => F[0]));
   return ["2014", "2024"].some(ed => has(((SUBCLASSES[ed] || {})[cls] || []).map(x => x[0])));
 };
 function hbNew(kind) {
   const d = { id: uid("hb"), kind, name: "", ed: "both", desc: "" };
   if (kind === "subclass") Object.assign(d, { cls: Object.keys(CLASS_DATA)[0], features: [{ l: 3, n: "", d: "" }] });
+  if (kind === "class") Object.assign(d, { hd: 8, pri: ["str", ""], saves: ["str", "con"], skN: 2, skFrom: [], skAny: false, armor: [], weapons: "Simple weapons", tools: "", kit: "",
+    wpnN: "Club", wpnD: "1d4", wpnAb: "str", cast: "none", castAb: "int", spellsFrom: "", subName: "Subclass", subLv: 3, features: [{ l: 1, n: "", d: "" }] });
   if (kind === "background") Object.assign(d, { skills: ["", ""], feat: "", gear: "" });
   if (kind === "feat") Object.assign(d, { group: "g", reqType: "none", reqAb: "str", reqMin: 13, reqText: "", abType: "none", abs: [] });
   if (kind === "species") Object.assign(d, { speed: 30, skills: [""], asi: {}, traits: [{ l: 1, n: "", d: "" }], subs: [], term: "" });
@@ -305,6 +308,12 @@ function hbDraftOf(x) { // a saved entry -> editable form state
   }
   if (d.kind === "species") { d.skills = d.skills && d.skills.length ? d.skills : [""]; d.asi = d.asi || {}; d.traits = d.traits || []; d.subs = d.subs || []; }
   if (d.kind === "background") d.skills = [...(d.skills || []), "", ""].slice(0, 2);
+  if (d.kind === "class") {
+    const sk = d.skills || {}, w = d.wpn || {};
+    Object.assign(d, { pri: [...(d.pri || []), "", ""].slice(0, 2), saves: [...(d.saves || []), "", ""].slice(0, 2), skN: sk.n ?? 2, skFrom: sk.from || [], skAny: !!sk.any, armor: d.armor || [],
+      wpnN: w.n || "", wpnD: w.d || "1d4", wpnAb: w.ab || "str", cast: d.cast || "none", castAb: d.castAb || "int", spellsFrom: d.spellsFrom || "", features: d.features || [] });
+    delete d.skills; delete d.wpn;
+  }
   return d;
 }
 function hbItemOf(d) { // form state -> the entry that is saved and shared
@@ -313,6 +322,16 @@ function hbItemOf(d) { // form state -> the entry that is saved and shared
   const x = { id: d.id, kind: d.kind, name: t(d.name, 60), ed: d.ed || "both", desc: t(d.desc, 4000) };
   if (d.kind === "spell") Object.assign(x, { l: clamp(parseInt(d.l) || 0, 0, 9), s: SP_SCHOOLS.includes(d.s) ? d.s : "Evocation", c: (d.c || []).filter(k => CLASS_DATA[k]), t: t(d.t, 120), r: t(d.r, 80), cp: ["V", "S", "M"].filter(k => String(d.cp || "").includes(k)).join(""), m: t(d.m, 200), du: t(d.du, 80), co: !!d.co, ri: !!d.ri, h: t(d.h, 2000) });
   if (d.kind === "subclass") Object.assign(x, { cls: d.cls, features: rows(d.features, true).sort((a, b) => a.l - b.l) });
+  if (d.kind === "class") {
+    const ab = a => AB.includes(a) ? a : null, cast = ["full", "half", "pact"].includes(d.cast) ? d.cast : "none";
+    Object.assign(x, { hd: [6, 8, 10, 12].includes(+d.hd) ? +d.hd : 8, pri: [...new Set(d.pri.map(ab).filter(Boolean))], saves: [...new Set(d.saves.map(ab).filter(Boolean))],
+      skills: { n: clamp(parseInt(d.skN) || 0, 0, 8), any: !!d.skAny, from: d.skAny ? [] : (d.skFrom || []).filter(k => SKILLS[k]) },
+      armor: ["light", "medium", "heavy", "shield"].filter(k => (d.armor || []).includes(k)), weapons: t(d.weapons, 300), tools: t(d.tools, 300), kit: t(d.kit, 300),
+      wpn: { n: t(d.wpnN, 40) || "Club", d: /^\d+d\d+$/.test(String(d.wpnD).trim()) ? String(d.wpnD).trim() : "1d4", ab: ab(d.wpnAb) || "str" },
+      cast, ...(cast !== "none" ? { castAb: ab(d.castAb) || "int", spellsFrom: CLASS_DATA[d.spellsFrom] && !CLASS_DATA[d.spellsFrom].hb ? d.spellsFrom : "" } : {}),
+      subName: t(d.subName, 60) || "Subclass", subLv: clamp(parseInt(d.subLv) || 3, 1, 20), features: rows(d.features, true).sort((a, b) => a.l - b.l) });
+    if (d.src) x.src = d.src;
+  }
   if (d.kind === "background") Object.assign(x, { skills: d.skills.filter(k => SKILLS[k]), feat: t(d.feat, 60), gear: t(d.gear, 300), fx: fxClean(d.fx) });
   if (d.kind === "feat") Object.assign(x, {
     fx: fxClean(d.fx), group: d.group === "o" ? "o" : "g",
@@ -328,6 +347,9 @@ function hbProblem(x) {
   if (hbBuiltIn(x.kind, x.name, x.cls)) return `“${x.name}” is already a built-in ${x.kind === "species" ? "species" : x.kind}. Pick another name.`;
   if (HB.list.some(y => y.id !== x.id && y.kind === x.kind && y.name.toLowerCase() === x.name.toLowerCase() && (x.kind !== "subclass" || y.cls === x.cls))) return `You already have a homebrew ${x.kind} called “${x.name}”`;
   if (x.kind === "background" && (x.skills.length !== 2 || x.skills[0] === x.skills[1])) return "Pick two different skills";
+  if (x.kind === "class" && !x.pri.length) return "Pick the class's main ability";
+  if (x.kind === "class" && x.saves.length !== 2) return "Pick two different saving throws";
+  if (x.kind === "class" && !x.skills.any && x.skills.n > x.skills.from.length) return `Tick at least ${x.skills.n} skills to choose from, or tick Any skill`;
   if (x.kind === "feat" && HBE.draft.abType === "some" && !x.ab) return "Tick at least one ability the feat can raise, or choose None";
   return "";
 }
@@ -343,9 +365,9 @@ function renderHomebrew() {
   const where = hbCloud() ? `Shared with everyone in ${esc(Portal.campName())}. Players pick these when building and levelling characters.` : "Saved in this browser. Sign in and join a campaign to share homebrew with your players.";
   side.innerHTML = `<div class="sec-h"><h3>Homebrew</h3></div><p class="hint" style="margin:0 0 4px">${where}</p>${hbPendHTML()}
     ${Object.entries(HB_KINDS).map(([k, l]) => `<div class="hb-kind"><h4>${l}</h4><button class="btn sm" type="button" data-hbnew="${k}" style="flex:0 0 auto" aria-label="New ${l.toLowerCase()}">+ New</button></div>
-      ${hbOf(k).map(x => `<button class="camp-item ${HBE.id === x.id ? "on" : ""}" type="button" data-hbsel="${esc(x.id)}"><b>${esc(x.name)}</b><small>${esc([x.kind === "subclass" ? x.cls : "", x.ed === "both" || !x.ed ? "2014 & 2024" : x.ed + " rules"].filter(Boolean).join(" · "))}</small></button>`).join("") || `<p class="muted" style="font-size:14px;margin:0">None yet.</p>`}`).join("")}`;
+      ${hbOf(k).map(x => `<button class="camp-item ${HBE.id === x.id ? "on" : ""}" type="button" data-hbsel="${esc(x.id)}"><b>${esc(x.name)}</b><small>${esc([x.kind === "subclass" ? x.cls : x.kind === "class" ? `d${x.hd}${x.cast && x.cast !== "none" ? ", spellcaster" : ""}` : "", x.ed === "both" || !x.ed ? "2014 & 2024" : x.ed + " rules"].filter(Boolean).join(" · "))}</small></button>`).join("") || `<p class="muted" style="font-size:14px;margin:0">None yet.</p>`}`).join("")}`;
   const d = HBE.draft;
-  if (!d) { main.innerHTML = `<div class="card empty"><h2>Make your own rules content</h2><p>Create subclasses, backgrounds, feats, species and spells. They show up next to the built-in options in the character creator, the Level up window, the feat list and the Spells tab${hbCloud() ? " for every player in your campaign" : ""}.</p><p>Pick “+ New” on the left to start.</p></div>`; return; }
+  if (!d) { main.innerHTML = `<div class="card empty"><h2>Make your own rules content</h2><p>Create classes, subclasses, backgrounds, feats, species and spells. They show up next to the built-in options in the character creator, the Level up window, the feat list and the Spells tab${hbCloud() ? " for every player in your campaign" : ""}.</p><p>Pick “+ New” on the left to start.</p></div>`; return; }
   main.innerHTML = hbFormHTML(d); $$("textarea", main).forEach(autoGrow);
 }
 function fxHTML(path, list) {
@@ -361,7 +383,7 @@ function fxHTML(path, list) {
 }
 const fxList = (d, path) => { if (path === "fx") return d.fx = d.fx || []; const [k, i] = path.split("."); const r = d[k][+i]; return r.fx = r.fx || []; };
 function hbFormHTML(d) {
-  const isNew = !HB.list.some(x => x.id === d.id), kindName = { subclass: "subclass", background: "background", feat: "feat", species: "species", spell: "spell" }[d.kind];
+  const isNew = !HB.list.some(x => x.id === d.id), kindName = { class: "class", subclass: "subclass", background: "background", feat: "feat", species: "species", spell: "spell" }[d.kind];
   const sel = (f, opts, v) => `<select data-hbf="${f}">${opts.map(([k, l]) => `<option value="${esc(k)}" ${String(v) === String(k) ? "selected" : ""}>${esc(l)}</option>`).join("")}</select>`;
   const skillOpts = [["", "Choose…"], ...ALL_SKILLS.map(k => [k, k])];
   const rowsHTML = (key, lv, nameLbl) => `<div class="hb-rows">${(d[key] || []).map((r, i) => `<div class="hb-row ${lv ? "" : "nolv"}">
@@ -375,6 +397,24 @@ function hbFormHTML(d) {
     const sl = d.ed === "2024" ? 3 : d.ed === "2014" ? CLASS_DATA[d.cls].sub[1] : null;
     body = `<div class="field"><label>Class</label>${sel("cls", Object.keys(CLASS_DATA).map(k => [k, k]), d.cls)}
       <p class="hint" style="margin:6px 0 0">${esc(d.cls)}s choose a subclass at level ${sl || `${CLASS_DATA[d.cls].sub[1]} (2014) or 3 (2024)`}. Features appear on the sheet once the character reaches their level.</p></div>
+      <div class="sec-h" style="margin-top:6px"><h3>Features</h3><span class="sp"></span><button class="btn sm" type="button" data-hbadd="features">+ Add feature</button></div>${rowsHTML("features", true, "Feature name")}`;
+  }
+  if (d.kind === "class") {
+    const abOpts = (none) => [...(none ? [["", none]] : []), ...AB.map(a => [a, AB_FULL[a]])];
+    const tick = (attr, on, label) => `<label class="check" style="flex:0 0 auto;margin:0"><input type="checkbox" ${attr} ${on ? "checked" : ""}><span>${label}</span></label>`;
+    body = `<div class="field row"><div><label>Hit die</label>${sel("hd", [6, 8, 10, 12].map(n => [n, "d" + n]), d.hd)}</div>
+        <div><label>Main ability</label>${sel("pri.0", abOpts(), d.pri[0])}</div><div><label>Second ability (optional)</label>${sel("pri.1", abOpts("None"), d.pri[1])}</div></div>
+      <div class="field row"><div><label>Saving throw</label>${sel("saves.0", abOpts(), d.saves[0])}</div><div><label>Second saving throw</label>${sel("saves.1", abOpts(), d.saves[1])}</div></div>
+      <div class="field"><label>Skills: choose <input type="number" min="0" max="8" data-hbf="skN" value="${esc(d.skN)}" style="width:64px;display:inline-block" aria-label="How many skills"> from</label>
+        <div class="row" style="flex-wrap:wrap">${tick("data-hbskany", d.skAny, "Any skill")}${d.skAny ? "" : ALL_SKILLS.map(k => tick(`data-hbsk="${esc(k)}"`, d.skFrom.includes(k), k)).join("")}</div></div>
+      <div class="field"><label>Armor training</label><div class="row" style="flex-wrap:wrap">${[["light", "Light armor"], ["medium", "Medium armor"], ["heavy", "Heavy armor"], ["shield", "Shields"]].map(([k, l]) => tick(`data-hbarm="${k}"`, d.armor.includes(k), l)).join("")}</div></div>
+      <div class="field row"><div><label>Weapons</label><input type="text" maxlength="300" data-hbf="weapons" value="${esc(d.weapons)}" placeholder="e.g. Simple and martial weapons"></div><div><label>Tools (optional)</label><input type="text" maxlength="300" data-hbf="tools" value="${esc(d.tools)}" placeholder="e.g. Alchemist's supplies"></div></div>
+      <div class="field"><label>Starting equipment (commas between items)</label><input type="text" maxlength="300" data-hbf="kit" value="${esc(d.kit)}" placeholder="e.g. Longsword, Studded leather armor, Explorer's pack"></div>
+      <div class="field row"><div style="flex:2"><label>Main weapon (for the sheet's attack)</label><input type="text" maxlength="40" data-hbf="wpnN" value="${esc(d.wpnN)}"></div><div><label>Damage</label><input type="text" maxlength="8" data-hbf="wpnD" value="${esc(d.wpnD)}" placeholder="1d8"></div><div><label>Uses</label>${sel("wpnAb", abOpts(), d.wpnAb)}</div></div>
+      <div class="field row"><div><label>Spellcasting</label>${sel("cast", [["none", "None"], ["full", "Full caster (like a Wizard)"], ["half", "Half caster (like a Paladin)"], ["pact", "Pact magic (like a Warlock)"]], d.cast)}</div>
+        ${d.cast !== "none" ? `<div><label>Spellcasting ability</label>${sel("castAb", abOpts(), d.castAb)}</div><div><label>Spell list</label>${sel("spellsFrom", [["", "Only spells marked for this class"], ...builtInClasses().filter(k => CLASS_DATA[k].cast).map(k => [k, `The ${k} list`])], d.spellsFrom)}</div>` : ""}</div>
+      <div class="field row"><div style="flex:2"><label>Subclasses are called</label><input type="text" maxlength="60" data-hbf="subName" value="${esc(d.subName)}" placeholder="e.g. Blood Hunter Order"></div><div><label>Chosen at level</label><input type="number" min="1" max="20" data-hbf="subLv" value="${esc(d.subLv)}"></div></div>
+      <p class="hint" style="margin:0 0 6px">Make its subclasses as homebrew subclasses for this class. Ability Score Improvements come at levels 4, 8, 12, 16 and 19.</p>
       <div class="sec-h" style="margin-top:6px"><h3>Features</h3><span class="sp"></span><button class="btn sm" type="button" data-hbadd="features">+ Add feature</button></div>${rowsHTML("features", true, "Feature name")}`;
   }
   if (d.kind === "background") body = `<div class="field row"><div><label>Skill proficiency</label>${sel("skills.0", skillOpts, d.skills[0])}</div><div><label>Second skill</label>${sel("skills.1", skillOpts, d.skills[1])}</div></div>
@@ -433,8 +473,11 @@ function hbFormHTML(d) {
   });
   main.addEventListener("change", e => {
     const d = HBE.draft, t = e.target; if (!d) return;
-    if (t.tagName === "SELECT" && t.dataset.hbf) { set(d, t.dataset.hbf, t.value); if (["ed", "cls", "reqType", "abType"].includes(t.dataset.hbf)) { renderHomebrew(); const f = $(`#hbMain [data-hbf="${t.dataset.hbf}"]`); if (f) f.focus(); } }
+    if (t.tagName === "SELECT" && t.dataset.hbf) { set(d, t.dataset.hbf, t.value); if (["ed", "cls", "reqType", "abType", "cast"].includes(t.dataset.hbf)) { renderHomebrew(); const f = $(`#hbMain [data-hbf="${t.dataset.hbf}"]`); if (f) f.focus(); } }
     else if (t.dataset.hbab) { d.abs = AB.filter(a => a === t.dataset.hbab ? t.checked : d.abs.includes(a)); }
+    else if (t.dataset.hbsk) { const k = t.dataset.hbsk; d.skFrom = ALL_SKILLS.filter(x => x === k ? t.checked : d.skFrom.includes(x)); }
+    else if (t.dataset.hbskany !== undefined) { d.skAny = t.checked; renderHomebrew(); }
+    else if (t.dataset.hbarm) { const k = t.dataset.hbarm; d.armor = ["light", "medium", "heavy", "shield"].filter(x => x === k ? t.checked : d.armor.includes(x)); }
     else if (t.dataset.hbcls) { const k = t.dataset.hbcls; d.c = Object.keys(CLASS_DATA).filter(x => x === k ? t.checked : (d.c || []).includes(x)); }
     else if (t.dataset.hbcp) { const k = t.dataset.hbcp; d.cp = ["V", "S", "M"].filter(x => x === k ? t.checked : String(d.cp || "").includes(x)).join(""); if (k === "M") renderHomebrew(); }
     else if (t.dataset.hbflag) d[t.dataset.hbflag] = t.checked;
@@ -549,8 +592,9 @@ const RACE_LANG_PICK = { Human: 1, "Half-Elf": 1 };
 function profInfo(c) {
   const ed = edOf(c), B = bgInfo(ed, c.bg) || {}, T = armorTraining(c);
   const armor = [T.has("light") && "Light armor", T.has("medium") && "Medium armor", T.has("heavy") && "Heavy armor", T.has("shield") && "Shields"].filter(Boolean);
-  const weapons = [(CLASS_WEAPONS[ed] || CLASS_WEAPONS["2014"])[c.cls] || "", ...(c.multi || []).filter(x => MC_MARTIAL.includes(x.cls)).length ? ["Martial weapons (multiclass)"] : [], ...(c.multi || []).some(x => x.cls === "Monk") ? ["Shortswords (multiclass)"] : []].filter(Boolean);
-  const tools = [CLASS_TOOLS[c.cls], ...(c.multi || []).map(x => MC_TOOLS[x.cls]), B.tools && `${B.tools} (background)`, ...choiceOf(c, "Feat: Crafter"), ...choiceOf(c, "Feat: Musician"), (c.subclass === "Battle Master" && "One artisan's tool (Student of War)")].filter(Boolean);
+  const HC = CLASS_DATA[c.cls] && CLASS_DATA[c.cls].hb ? CLASS_DATA[c.cls] : null;
+  const weapons = [(CLASS_WEAPONS[ed] || CLASS_WEAPONS["2014"])[c.cls] || (HC && HC.weapons) || "", ...(c.multi || []).filter(x => MC_MARTIAL.includes(x.cls)).length ? ["Martial weapons (multiclass)"] : [], ...(c.multi || []).some(x => x.cls === "Monk") ? ["Shortswords (multiclass)"] : []].filter(Boolean);
+  const tools = [CLASS_TOOLS[c.cls] || (HC && HC.tools), ...(c.multi || []).map(x => MC_TOOLS[x.cls]), B.tools && `${B.tools} (background)`, ...choiceOf(c, "Feat: Crafter"), ...choiceOf(c, "Feat: Musician"), (c.subclass === "Battle Master" && "One artisan's tool (Student of War)")].filter(Boolean);
   const langs = ["Common"], picks = [];
   if (ed === "2024") picks.push("two languages of your choice (species)");
   else { (RACE_LANG[c.race] || []).forEach(l => langs.push(l)); if (RACE_LANG_PICK[c.race]) picks.push(`${RACE_LANG_PICK[c.race]} of your choice (${c.race})`); if (/High Elf/.test(raceLabel(c))) picks.push("1 of your choice (High Elf)"); }

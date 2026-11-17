@@ -101,7 +101,7 @@ npm run build     # build the page and bundle the portal (what Netlify runs)
 npm run build:app # build the page only
 ```
 
-One check per feature (Playwright, any OS): `test:assets` (fingerprinted files, repeat visits, offline), `test:map`, `test:backup`, `test:tv`, `test:mapvis`, `test:mapio`, `test:shop`, `test:random`, `test:cards`, `test:mapenc`, `test:calendar`, `test:recap`, `test:sheet` (432 sheets vs the rules), `test:tokens`, `test:npcpic`, `test:hbspell`, `test:hbpend`, `test:import`, `test:layout`, `test:lore`, `test:mythweaver`, `test:campextras`, `test:npclib`, `test:world`, `test:setup` (builds the portal, port 8897), `test:sync` (the DM's data in their account, two devices, port 8896), `test:share` (the players' Journal, turn order on phones, shared rolls; port 8895).
+One check per feature (Playwright, any OS): `test:assets` (fingerprinted files, repeat visits, offline), `test:map`, `test:backup`, `test:tv`, `test:mapvis`, `test:mapio`, `test:shop`, `test:random`, `test:cards`, `test:mapenc`, `test:calendar`, `test:recap`, `test:sheet` (432 sheets vs the rules), `test:tokens`, `test:npcpic`, `test:hbspell`, `test:hbpend`, `test:import`, `test:layout`, `test:lore`, `test:mythweaver`, `test:campextras`, `test:npclib`, `test:world`, `test:setup` (builds the portal, port 8897), `test:sync` (the DM's data in their account, two devices, port 8896), `test:share` (the players' Journal, turn order on phones, shared rolls; port 8895), `test:hbclass` (homebrew classes).
 
 Playwright and Chromium are pre-installed in cloud sessions. To test offline mode (no sign-in screen), run `localStorage.setItem('dmforge.offline','1')` in an init script.
 
@@ -116,6 +116,7 @@ Playwright and Chromium are pre-installed in cloud sessions. To test offline mod
 | `docs/features/import.md` | Character import (Companion App, PDF), pending homebrew, Lore and MythWeaver, campaign files with custom content. |
 | `docs/features/npcs-world.md` | NPC pictures, Your NPCs and imported monsters, the World tab. |
 | `docs/features/players-share.md` | What the DM shares with signed-in players: the Journal tab, turn order on phones (`📱 Show players`), shared rolls. |
+| `docs/features/homebrew-classes.md` | Homebrew classes: how they join `CLASS_DATA`, `classList(ed)`, the editor, and import of unknown classes. |
 | `docs/features/layout.md` | Phone and laptop layout. |
 | `docs/features/accounts.md` | The DM setup screen, renaming a campaign, and **the DM's data saved to their account** (`Cloud`, `/api/me/docs`). |
 
@@ -124,6 +125,7 @@ Playwright and Chromium are pre-installed in cloud sessions. To test offline mod
 - Loading an older save goes through `pcEnsure`; new data fields need a migration there.
 - **When you add a new kind of saved data, add its localStorage key to `BACKUP_KEYS`.**
 - Use `totalLv(c)` rather than `c.level` for anything that depends on character level.
+- **Class pickers use `classList(ed)`; random picks use `builtInClasses()`** (homebrew classes live in `CLASS_DATA` with `hb: true`).
 - **Never send the TV map data, room key text or HP numbers.** It only gets finished pictures, and monster state as "Bloodied" or "Down". The same goes for the turn order on players' phones (`turnsNow`), and the players' Journal never carries quest notes or DM-only Lore sections.
 
 ## Saved data
@@ -163,7 +165,7 @@ Playwright and Chromium are pre-installed in cloud sessions. To test offline mod
   - The page went from 829 KB to about 14 KB compressed on repeat visits when nothing changed. The code (about 360 KB compressed) and the data (about 440 KB) are downloaded again only when they change.
 - **The owner's order of import work:**
   1. Companion App import: done.
-  2. Homebrew classes, for classes the Forge doesn't have, like Blood Hunter: **not started**. Imports with an unknown class are refused with a message for now.
+  2. Homebrew classes, for classes the Forge doesn't have, like Blood Hunter: **done** (2026-11-17). Imports with an unknown class make a homebrew class.
   3. PDF import: done.
   4. MythWeaver: done.
 - **Small things left alone (the owner knows):**

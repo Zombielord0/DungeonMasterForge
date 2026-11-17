@@ -9,8 +9,9 @@ const clsLv = (c, k) => !c ? 0 : c.cls === k ? c.level : (((c.multi || []).find(
 const totalLv = c => (c.level || 0) + (c.multi || []).reduce((s2, x) => s2 + (+x.lv || 0), 0);
 const classLine = c => [`${c.cls} ${c.level}`, ...(c.multi || []).filter(x => +x.lv > 0).map(x => `${x.cls} ${x.lv}`)].join(" / ");
 const MC_PREREQ = { Barbarian: [["str"]], Bard: [["cha"]], Cleric: [["wis"]], Druid: [["wis"]], Fighter: [["str", "dex"]], Monk: [["dex"], ["wis"]], Paladin: [["str"], ["cha"]], Ranger: [["dex"], ["wis"]], Rogue: [["dex"]], Sorcerer: [["cha"]], Warlock: [["cha"]], Wizard: [["int"]] };
-const mcPrereqText = k => (MC_PREREQ[k] || []).map(g => g.map(a => `${AB_NAME[a]} 13`).join(" or ")).join(" and ");
-const mcMeets = (c, k) => (MC_PREREQ[k] || []).every(g => g.some(a => (+c.scores[a] || 0) >= 13));
+const mcPrereq = k => MC_PREREQ[k] || (CLASS_DATA[k] && CLASS_DATA[k].hb ? [[CLASS_DATA[k].pri[0]]] : []); // a homebrew class: its main ability
+const mcPrereqText = k => mcPrereq(k).map(g => g.map(a => `${AB_NAME[a]} 13`).join(" or ")).join(" and ");
+const mcMeets = (c, k) => mcPrereq(k).every(g => g.some(a => (+c.scores[a] || 0) >= 13));
 const MC_ARMOR = { Barbarian: "shield", Bard: "light", Cleric: "light medium shield", Druid: "light medium shield", Fighter: "light medium shield", Paladin: "light medium shield", Ranger: "light medium shield", Rogue: "light", Warlock: "light", Monk: "", Sorcerer: "", Wizard: "" };
 const MC_MARTIAL = ["Barbarian", "Fighter", "Paladin", "Ranger"];
 // a class's own caster level for multiclass slots
@@ -85,8 +86,9 @@ function spellLimits(c) {
     const ab = CLASS_DATA[cls].cast[1];
     if (KNOWN_SPELLS[cls]) { n += KNOWN_SPELLS[cls][lv - 1] || 0; if (list.length === 1) word = "known"; }
     else if (cls === "Paladin") n += lv >= 2 ? Math.max(1, m.cha + Math.floor(lv / 2)) : 0;
+    else if (CLASS_DATA[cls].hb && CLASS_DATA[cls].cast[0] === "half") n += Math.max(1, m[ab] + Math.floor(lv / 2)); // a homebrew half caster prepares like a 2014 Paladin
     else n += Math.max(1, m[ab] + lv);
-    const cb = CANTRIP_BASE[cls]; if (cb) cant += cb + (lv >= 4 ? 1 : 0) + (lv >= 10 ? 1 : 0);
+    const cb = CANTRIP_BASE[cls] || (CLASS_DATA[cls].hb && CLASS_DATA[cls].cast[0] !== "half" ? CANTRIP_BASE[clsSpellList(cls)] || 2 : 0); if (cb) cant += cb + (lv >= 4 ? 1 : 0) + (lv >= 10 ? 1 : 0);
   });
   return { n, word, cantrips: cant };
 }
@@ -112,7 +114,8 @@ function pcChanged(c) {
 }
 function pcSpellPool(c, ed) {
   spLoad();
-  return SP.data[ed].filter(s => !s.pend && s.c.includes(c.cls) && s.l <= c.spell.max && (s.l > 0 || c.spell.cantrips));
+  const list = clsSpellList(c.cls);
+  return SP.data[ed].filter(s => !s.pend && (s.c.includes(c.cls) || s.c.includes(list)) && s.l <= c.spell.max && (s.l > 0 || c.spell.cantrips));
 }
 function preparedHTML(c, cast) {
   const L = spellLimits(c), P = c.prepared || [], PC = P.filter(p => !p.src);
@@ -163,7 +166,7 @@ function spPrepBtn(s) {
 }
 function spPrepToggle(s) {
   const t = spTargetPC(); if (!t) { toast("Pick a character to prepare spells for"); return; }
-  if (!isPrep(t, s.n, SP.ed) && !s.c.includes(t.cls)) toast(`${s.n} isn't on the ${t.cls} list, added anyway`);
+  if (!isPrep(t, s.n, SP.ed) && !s.c.includes(t.cls) && !s.c.includes(clsSpellList(t.cls))) toast(`${s.n} isn't on the ${t.cls} list, added anyway`);
   togglePrep(t, s, SP.ed); pcChanged(t);
 }
 $("#spTargetRow").addEventListener("change", e => { if (e.target.id === "spTarget") { SP.target = e.target.value; renderSpells(); } });
@@ -246,7 +249,7 @@ function sheetDoc(c) {
         </div>
       </div>
       <div class="pill"><span class="num">${c.passive}</span><span class="lab">Passive wisdom (perception)</span></div>
-      <div class="box"><div><b>Armor &amp; weapons:</b> ${esc(CLASS_PROFS[c.cls] || "")}</div><div style="margin-top:4px"><b>Languages:</b> ${esc(RACE_LANGS[c.race] || "Common")}</div><div class="boxt">Other proficiencies &amp; languages</div></div>
+      <div class="box"><div><b>Armor &amp; weapons:</b> ${esc(CLASS_PROFS[c.cls] || (CLASS_DATA[c.cls] && CLASS_DATA[c.cls].hb ? [CLASS_DATA[c.cls].armorT.replace(/shield/, "shields").split(" ").filter(Boolean).map(k => k === "shields" ? k : k + " armor").join(", "), CLASS_DATA[c.cls].weapons, CLASS_DATA[c.cls].tools].filter(Boolean).join("; ") : ""))}</div><div style="margin-top:4px"><b>Languages:</b> ${esc(RACE_LANGS[c.race] || "Common")}</div><div class="boxt">Other proficiencies &amp; languages</div></div>
     </div>
     <div>
       <div class="trio"><div class="stat"><div class="v">${c.ac}</div><div class="lab">Armor class</div></div><div class="stat"><div class="v">${sgn(c.init)}</div><div class="lab">Initiative</div></div><div class="stat"><div class="v">${c.speed}</div><div class="lab">Speed</div></div></div>

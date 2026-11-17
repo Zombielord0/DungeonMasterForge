@@ -514,7 +514,29 @@ function pcSubNumbers(c) {
 }
 const subAblKey = n => "sub:" + n.toLowerCase().replace(/[^a-z]+/g, "-");
 const subclassList = (ed, cls) => [...(((SUBCLASSES[ed] || SUBCLASSES["2014"])[cls]) || []), ...hbOf("subclass").filter(x => x.cls === cls && hbEdOk(x, ed)).map(x => [x.name, x.desc || "", true])];
-const subclassLevel = (ed, cls) => ed === "2024" ? 3 : (CLASS_DATA[cls] ? CLASS_DATA[cls].sub[1] : 3);
+const subclassLevel = (ed, cls) => CLASS_DATA[cls] && CLASS_DATA[cls].hb ? CLASS_DATA[cls].sub[1] : ed === "2024" ? 3 : (CLASS_DATA[cls] ? CLASS_DATA[cls].sub[1] : 3);
+/* the classes a rules set offers: the built-ins plus the campaign's homebrew classes (not ones waiting for the DM) */
+const classList = ed => Object.keys(CLASS_DATA).filter(k => { const C = CLASS_DATA[k]; return !C.pend && (!C.hb || hbEdOk(C.hbx, ed)); });
+const builtInClasses = () => Object.keys(CLASS_DATA).filter(k => !CLASS_DATA[k].hb);
+/* whose spell list a class uses: its own, or for a homebrew class the class the DM chose */
+const clsSpellList = cls => (CLASS_DATA[cls] && CLASS_DATA[cls].spellsFrom) || cls;
+/* A homebrew class entry -> the shape CLASS_DATA uses (see Barbarian above), so the generator, level up, multiclassing
+   and the sheet treat it like a built-in class. hbx keeps the entry for its edition, armor, weapons, tools and features. */
+function hbClassData(x) {
+  const ab = a => AB.includes(a) ? a : null;
+  const pri = [...new Set((x.pri || []).map(ab).filter(Boolean))]; if (!pri.length) pri.push("str");
+  const f = {}; (x.features || []).filter(t => t && t.n).forEach(t => { const l = clamp(+t.l || 1, 1, 20); (f[l] = f[l] || []).push(t.n); });
+  const sk = x.skills || {}, from = sk.any || !(sk.from || []).length ? ALL_SKILLS : sk.from.filter(k => SKILLS[k]);
+  const cast = ["full", "half", "pact"].includes(x.cast) ? [x.cast, ab(x.castAb) || "int"] : undefined;
+  const w = x.wpn || {}, asi = (Array.isArray(x.asi) ? x.asi : [4, 8, 12, 16, 19]).map(Number).filter(l => l >= 1 && l <= 20);
+  return { hb: true, hbx: x, ...(x.pend ? { pend: true } : {}), hd: [6, 8, 10, 12].includes(+x.hd) ? +x.hd : 8, pri, saves: (x.saves || []).filter(ab).slice(0, 2),
+    skills: [from, clamp(parseInt(sk.n) || 0, 0, 8)], ac: m => [10 + m.dex, "No armor"],
+    kit: String(x.kit || "").split(",").map(t => t.trim()).filter(Boolean).slice(0, 20),
+    wpn: [String(w.n || "Club").slice(0, 40), /^\d+d\d+$/.test(String(w.d || "")) ? w.d : "1d4", ab(w.ab) || pri[0]],
+    f, sub: [String(x.subName || "Subclass").slice(0, 60), clamp(parseInt(x.subLv) || 3, 1, 20)], asi,
+    ...(cast ? { cast } : {}), spellsFrom: x.spellsFrom && CLASS_DATA[x.spellsFrom] && !CLASS_DATA[x.spellsFrom].hb ? x.spellsFrom : undefined,
+    armorT: (x.armor || []).filter(k => ["light", "medium", "heavy", "shield"].includes(k)).join(" "), weapons: String(x.weapons || "").slice(0, 300), tools: String(x.tools || "").slice(0, 300) };
+}
 function subclassDesc(name) {
   const h = hbAny("subclass").find(x => x.name === name); if (h) return h.desc || "";
   for (const ed of ["2024", "2014"]) for (const list of Object.values(SUBCLASSES[ed])) { const h = list.find(x => x[0] === name); if (h) return h[1]; }
@@ -652,9 +674,9 @@ const featReqText = F => !F[2] ? "" : F[2][0] === "@" ? F[2].slice(1) : F[2] ===
    Signed in to a campaign they come from the campaign database (Portal); otherwise from this browser.
    Backgrounds and species are merged into BACKGROUNDS / PC_RACES so every picker and the generator see them. */
 const HB_KEY = "dmforge.homebrew.v1";
-const HB_KINDS = { subclass: "Subclasses", background: "Backgrounds", feat: "Feats", species: "Species & races", spell: "Spells" };
+const HB_KINDS = { class: "Classes", subclass: "Subclasses", background: "Backgrounds", feat: "Feats", species: "Species & races", spell: "Spells" };
 const SP_SCHOOLS = ["Abjuration", "Conjuration", "Divination", "Enchantment", "Evocation", "Illusion", "Necromancy", "Transmutation"];
-const HB = { list: [], pend: [], pendSig: "", applied: { bg: [], races: [], raceDesc: [] } };
+const HB = { list: [], pend: [], pendSig: "", applied: { bg: [], races: [], raceDesc: [], classes: [] } };
 const HB_DESC = {};      // homebrew feature / trait name -> description
 const HB_BG = {};        // homebrew background name -> its entry
 const hbEdOk = (x, ed) => !x.ed || x.ed === "both" || x.ed === ed;
@@ -698,6 +720,8 @@ function hbEffects(ed, race, sub, bg, cls, subclass, lv, featNames) {
   if (HB_BG[bg]) add(`${bg} background`, HB_BG[bg].fx);
   const sc = subclass && hbAny("subclass").find(x => x.name === subclass && x.cls === cls);
   if (sc) (sc.features || []).filter(f => f.n && +f.l <= lv).forEach(f => add(f.n, f.fx));
+  const hc = CLASS_DATA[cls] && CLASS_DATA[cls].hb && CLASS_DATA[cls].hbx;
+  if (hc) (hc.features || []).filter(f => f.n && +f.l <= lv).forEach(f => add(f.n, f.fx));
   featNames.forEach(nm => { const f = hbAny("feat").find(x => x.name === nm && hbEdOk(x, ed)); if (f) add(nm, f.fx); });
   return out;
 }
@@ -730,7 +754,7 @@ async function hbApprove(key) {
 }
 async function hbReject(key) {
   const x = HB.pend.find(e => pendKey(e) === key); if (!x) return;
-  const keeps = ["species", "background"].includes(x.kind);
+  const keeps = ["species", "background", "class"].includes(x.kind);
   if (!(await confirmBox(`Don't approve ${x.name}?`, keeps ? `${x.from.map(f => f.name).join(", ")} keep${x.from.length > 1 ? "" : "s"} it so the sheet still works, with a note to choose another ${x.kind} with you.` : `It is taken off ${x.from.map(f => f.name).join(", ")}${x.kind === "subclass" ? ", who will be asked to choose another subclass" : ""}.`, "Don't approve"))) return;
   PCS.roster.forEach(c => {
     const e = (c.hbPending || []).find(y => pendKey(y) === key); if (!e) return;
@@ -756,8 +780,14 @@ function hbApply() {
   A.bg.forEach(n => { delete BACKGROUNDS[n]; delete HB_BG[n]; });
   A.races.forEach(([ed, n]) => { delete PC_RACES[ed][n]; });
   A.raceDesc.forEach(n => { delete RACE_DESC[n]; });
+  (A.classes || []).forEach(n => { if (CLASS_DATA[n] && CLASS_DATA[n].hb) delete CLASS_DATA[n]; });
   Object.keys(HB_DESC).forEach(k => delete HB_DESC[k]);
-  const N = HB.applied = { bg: [], races: [], raceDesc: [] };
+  const N = HB.applied = { bg: [], races: [], raceDesc: [], classes: [] };
+  hbAny("class").forEach(x => {
+    if (CLASS_DATA[x.name]) return; // never replace a built-in
+    CLASS_DATA[x.name] = hbClassData(x); N.classes.push(x.name);
+    (x.features || []).forEach(f => { if (f.n) HB_DESC[f.n] = (f.d || "") + fxNote(f.fx); });
+  });
   hbAny("background").forEach(x => {
     if (BACKGROUNDS[x.name]) return; // never replace a built-in
     BACKGROUNDS[x.name] = (x.skills || []).filter(k => SKILLS[k]).slice(0, 2); HB_BG[x.name] = x; N.bg.push(x.name);
@@ -1150,7 +1180,7 @@ function cbBody() {
     ${B && B.subs ? `<div class="field" style="margin-top:16px"><label>${esc(B.term || "Subrace")}</label><div class="pick-grid">${Object.entries(B.subs).map(([k, S]) => `<button type="button" class="pick ${CB.sub === k ? "on" : ""}" data-cbsub="${esc(k)}"><b>${esc(subLabel(CB.ed, CB.race, k))}</b>${S.asi && CB.ed === "2014" ? `<small>${Object.entries(S.asi).map(([a, v]) => `+${v} ${AB_NAME[a]}`).join(", ")}</small>` : ""}<small>${esc(S.d || "")}</small></button>`).join("")}</div></div>` : B ? `<p class="hint" style="margin-top:12px">${esc(CB.race)} has no ${CB.ed === "2024" ? "lineages" : "subraces"} in the ${CB.ed} rules.</p>` : ""}`;
   }
   if (CB.step === 1) return `<p class="hint" style="margin-top:0">Pick a class. This sets hit points, armor, saves, skills and spellcasting.</p>
-    <div class="pick-grid">${Object.keys(CLASS_DATA).map(x => { const d = CLASS_DATA[x]; return `<button type="button" class="pick ${CB.cls === x ? "on" : ""}" data-cbcls="${esc(x)}"><b>${esc(x)}</b><small>d${d.hd} hit die · ${d.pri.slice(0, 2).map(a => AB_NAME[a]).join(" & ")}${d.cast ? ` · ${d.cast[0] === "half" ? "half caster" : d.cast[0] === "pact" ? "pact magic" : "full caster"}` : ""}</small><small>${CLASS_DESC[x]}</small></button>`; }).join("")}</div>`;
+    <div class="pick-grid">${classList(CB.ed).map(x => { const d = CLASS_DATA[x]; return `<button type="button" class="pick ${CB.cls === x ? "on" : ""}" data-cbcls="${esc(x)}"><b>${esc(x)}</b><small>d${d.hd} hit die · ${d.pri.slice(0, 2).map(a => AB_NAME[a]).join(" & ")}${d.cast ? ` · ${d.cast[0] === "half" ? "half caster" : d.cast[0] === "pact" ? "pact magic" : "full caster"}` : ""}</small><small>${CLASS_DESC[x]}</small></button>`; }).join("")}</div>`;
   if (CB.step === 2) {
     const L = bgList(CB.ed); if (CB.bg && !L.includes(CB.bg)) CB.bg = "";
     const desc = x => HB_BG[x] ? HB_BG[x].desc || "" : CB.ed === "2024" ? BG_DESC_2024[x] || "" : BG_DESC[x] || "";
@@ -1262,7 +1292,7 @@ function generateCharacter(o) {
   const r = makeRng("pc", o.seed);
   const ed = o.ed === "2024" ? "2024" : "2014";
   // random picks stay with the built-in rules; homebrew is chosen on purpose
-  const race = o.race || r.pick(raceList(ed).filter(x => !PC_RACES[ed][x].hb)), cls = o.cls || r.pick(Object.keys(CLASS_DATA)), bg = o.bg || r.pick(bgList(ed).filter(x => !HB_BG[x]));
+  const race = o.race || r.pick(raceList(ed).filter(x => !PC_RACES[ed][x].hb)), cls = o.cls || r.pick(builtInClasses()), bg = o.bg || r.pick(bgList(ed).filter(x => !HB_BG[x]));
   const lv = clamp(o.level, 1, 20), C = CLASS_DATA[cls], RB = PC_RACES[ed][race];
   // a separate rng for the subrace, so older characters re-level to the same results
   let sub = o.sub === "none" ? null : o.sub || (race === "Dragonborn" && o.ancestry) || null;
@@ -1551,8 +1581,13 @@ async function discardPC() {
 }
 (function initPC() {
 
-  Object.keys(CLASS_DATA).forEach(x => $("#pcClass").insertAdjacentHTML("beforeend", `<option>${x}</option>`));
   const curEd = () => ($("input[name=pcEd]:checked") || {}).value || "2024";
+  const fillClasses = () => {
+    const keep = $("#pcClass").value, L = classList(curEd());
+    $("#pcClass").innerHTML = `<option value="">Random</option>` + L.map(x => `<option>${esc(x)}</option>`).join("");
+    $("#pcClass").value = L.includes(keep) ? keep : "";
+  };
+  fillClasses();
   const fillBgs = () => {
     const keep = $("#pcBg").value, L = bgList(curEd());
     $("#pcBg").innerHTML = `<option value="">Random</option>` + L.map(x => `<option>${esc(x)}</option>`).join("");
@@ -1584,10 +1619,10 @@ async function discardPC() {
   };
   fillRaces();
   window.pcSelectsRefresh = () => {
-    fillBgs();
+    fillBgs(); fillClasses();
     fillRaces(); syncRace();
   };
-  $$("input[name=pcEd]").forEach(rd => rd.addEventListener("change", () => { fillRaces(); syncRace(); fillBgs(); }));
+  $$("input[name=pcEd]").forEach(rd => rd.addEventListener("change", () => { fillRaces(); syncRace(); fillBgs(); fillClasses(); }));
   $("#pcRace").addEventListener("change", syncRace);
   $("#pcAnc").addEventListener("change", ancHint);
   const bgHint = () => {

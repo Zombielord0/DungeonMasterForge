@@ -27,6 +27,39 @@ function impSubclass(ed, cls, name, arch, D) {
   D.report.made.push(`${impCut(nm, 60)} (${cls} subclass)`);
   return impCut(nm, 60);
 }
+/* A class the Forge doesn't have -> a homebrew class (a matching homebrew class is used if there is one). `def` is the
+   Companion App's class (hit die, saves, skills, proficiencies, equipment, caster type, features with their text);
+   without one (PDF, MythWeaver) the class is a sketch for the DM to fill in, with the saves the sheet shows if known. */
+const IMP_AB = { strength: "str", dexterity: "dex", constitution: "con", intelligence: "int", wisdom: "wis", charisma: "cha", str: "str", dex: "dex", con: "con", int: "int", wis: "wis", cha: "cha" };
+function impClass(ed, name, def, D, src, saves) {
+  const nm = impCut(impStrip(name), 60); if (!nm) return null;
+  const have = impHave("class", nm) || D.homebrew.find(x => x.kind === "class" && impSame(x.name, nm));
+  if (have) { D.report.matched.push(`Class: ${have.name} (homebrew)`); return have.name; }
+  const d = def || {}, abOf = v => IMP_AB[String(v || "").toLowerCase()] || null;
+  const sv = def ? Object.entries(d.savingThrows || {}).filter(([, v]) => v).map(([k]) => abOf(k)).filter(Boolean) : (saves || []);
+  const cs = (d.classSkills || [])[0] || {}, skFrom = (cs.skillsModels || []).map(x => ALL_SKILLS.find(k => impSame(k, x.name))).filter(Boolean);
+  const prof = l => (l || []).map(x => String(x.proficiency || x.name || "").trim()).filter(Boolean);
+  const armorTxt = prof(d.armorProficiencies).join(" ").toLowerCase();
+  const weapons = prof(d.weaponProficiencies).map(x => x === "all_simple" ? "Simple weapons" : x === "all_martial" ? "Martial weapons" : x.replace(/_/g, " "));
+  const kit = (d.classEquipment || []).map(g => ((g.equipmentsModels || [])[0])).filter(Boolean).map(e => (+e.number > 1 ? `${e.number} ` : "") + e.name);
+  const cw = d.classWeapon || {}, castKind = { FULL: "full", HALF: "half", PACT: "pact", WARLOCK: "pact" }[String(d.effectiveCasterLevel || "").toUpperCase()] || "none";
+  const castAb = abOf(d.spellcastingAbility), wAb = abOf(cw.abilityName);
+  const x = { id: uid("hb"), kind: "class", src: src || IMP_SRC, ed, name: nm, desc: def ? "" : `Imported from ${src}: fill in its details (hit die, skills, features).`,
+    hd: +(String(d.hitDie || "").replace(/\D/g, "")) || 8, pri: [...new Set([castKind !== "none" && castAb, wAb, ...sv].filter(Boolean))].slice(0, 2),
+    saves: sv.slice(0, 2), skills: { n: clamp(+cs.amountOfChoice || 2, 0, 8), any: !skFrom.length, from: skFrom },
+    armor: ["light", "medium", "heavy"].filter(k => armorTxt.includes(k)).concat(/shield/.test(armorTxt) ? ["shield"] : []),
+    weapons: impCut(weapons.join(", "), 300), tools: impCut(prof(d.toolProficiencies).join(", "), 300), kit: impCut(kit.join(", "), 300),
+    wpn: { n: impCut(cw.name, 40) || "Simple weapon", d: `${+cw.diceAmount || 1}${String(cw.diceTypeName || "d4").toLowerCase()}`, ab: wAb || "str" },
+    cast: castKind, ...(castKind !== "none" ? { castAb: castAb || "int", spellsFrom: "" } : {}),
+    subName: `${nm} subclass`, subLv: clamp(+d.archetypeSelectionLevel || 3, 1, 20),
+    features: (d.features || []).map(f => ({ l: clamp(+f.level || +impFeat(f).level || 1, 1, 20), n: impCut(impFeat(f).name, 60), d: impDesc(impFeat(f)), fx: [] })).filter(f => f.n) };
+  if (!x.pri.length) x.pri = ["str"];
+  if (x.saves.length < 2) x.saves = [...new Set([...x.saves, ...x.pri, "con", "wis"])].slice(0, 2);
+  if (!/^\d+d\d+$/.test(x.wpn.d)) x.wpn.d = "1d4";
+  D.homebrew.push(x);
+  D.report.made.push(`${nm} (class${def ? "" : ", details to fill in"})`);
+  return nm;
+}
 // "20 Arrows" -> qty 20; Items-tab matching with a few extra tries ("Scalemail", "Set Of Common Clothes")
 function impGear(ed, raw) {
   let name = String(raw || "").trim(), qty = 1;
@@ -106,8 +139,8 @@ function compImport(j, ed) {
   const classes = [];
   for (const jb of j.jobs) {
     const def = defs[jb.jobId] || {}, nm = impStrip(def.name || impTitle(jb.jobId));
-    const cls = Object.keys(CLASS_DATA).find(k => impSame(k, nm));
-    if (!cls) return { error: `The Forge doesn't support the ${nm} class yet, so this character can't be imported. Homebrew classes are planned.` };
+    const cls = classList(ed).find(k => impSame(k, nm)) || impClass(ed, nm, defs[jb.jobId], D, IMP_SRC);
+    if (!cls) return { error: "This character's class has no name in the file, so it can't be imported." };
     const lv = clamp(+jb.level || 1, 1, 20);
     let subclass = null;
     const arch = (def.archetypes || []).find(a => a.id === jb.archetypeId);
@@ -296,8 +329,9 @@ function pdfImport(F, ed) {
   if (!segs.length) return { error: "This sheet has no class and level filled in." };
   const classes = [];
   for (const seg of segs) {
-    const cls = Object.keys(CLASS_DATA).find(k => new RegExp(`\\b${k}\\b`, "i").test(seg));
-    if (!cls) return { error: `The Forge doesn't support the ${seg.replace(/\d+/g, "").replace(/[()]/g, "").trim()} class yet, so this character can't be imported.` };
+    const cls = classList(ed).find(k => new RegExp(`\\b${k.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}\\b`, "i").test(seg))
+      || impClass(ed, seg.replace(/\d+/g, "").replace(/\b(lvl|level|lv)\b/gi, "").replace(/[()[\]]/g, " ").replace(/\s+/g, " ").trim(), null, D, PDF_SRC, Object.entries(PDF_SAVES).filter(([n]) => on(`Check Box ${n}`)).map(([, a]) => a));
+    if (!cls) return { error: "This sheet's class and level box has no class name the Forge can read." };
     const lvs = seg.match(/\d+/g), lv = clamp(lvs ? +lvs[lvs.length - 1] : 1, 1, 20);
     const rest = seg.replace(new RegExp(`\\b${cls}\\b`, "i"), "").replace(/\d+/g, "").replace(/\b(lvl|level|lv)\b/gi, "").replace(/[()[\]]/g, " ").replace(/\s+/g, " ").trim();
     let subclass = null;

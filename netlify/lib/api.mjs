@@ -6,7 +6,7 @@ import { describeChange } from "./diff.mjs";
 const MAX_SHEET_BYTES = 300_000;
 const MAX_WHISPER = 2000;
 const MAX_HOMEBREW_BYTES = 50_000;
-const HOMEBREW_KINDS = ["subclass", "background", "feat", "species", "spell"];
+const HOMEBREW_KINDS = ["class", "subclass", "background", "feat", "species", "spell"];
 const SHARED_IDS = ["journal", "turns"];
 const MAX_SHARED_BYTES = 1_000_000;
 const MAX_ROLL = 200;
@@ -87,7 +87,7 @@ function homebrewItem(id, data) {
   if (!data || typeof data !== "object" || Array.isArray(data)) throw new HttpError(400, "Homebrew data is missing");
   if (!HOMEBREW_KINDS.includes(data.kind)) throw new HttpError(400, "Unknown kind of homebrew");
   if (!clean(data.name, 80)) throw new HttpError(400, "Give it a name");
-  if (JSON.stringify(data).length > MAX_HOMEBREW_BYTES) throw new HttpError(413, "This homebrew entry is too large to save");
+  if (JSON.stringify(data).length > (data.kind === "class" ? MAX_HOMEBREW_BYTES * 6 : MAX_HOMEBREW_BYTES)) throw new HttpError(413, "This homebrew entry is too large to save"); // a class carries 20 levels of features
   return { ...data, id };
 }
 

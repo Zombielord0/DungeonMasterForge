@@ -120,7 +120,7 @@ const fightSlots = c => ((c.feats || []).some(f => f.f === "Fighting Style") ? 1
 const hasStyle = (c, n) => (c.fightStyles || []).slice(0, fightSlots(c)).includes(n);
 // armor the character is trained in: class, subclass, species and feats
 function armorTraining(c) {
-  const ed = edOf(c), T = new Set(({ Barbarian: "light medium shield", Bard: "light", Cleric: "light medium shield", Druid: ed === "2024" ? "light shield" : "light medium shield", Fighter: "light medium heavy shield", Monk: "", Paladin: "light medium heavy shield", Ranger: "light medium shield", Rogue: "light", Sorcerer: "", Warlock: "light", Wizard: "" }[c.cls] || "").split(" ").filter(Boolean));
+  const ed = edOf(c), T = new Set(({ Barbarian: "light medium shield", Bard: "light", Cleric: "light medium shield", Druid: ed === "2024" ? "light shield" : "light medium shield", Fighter: "light medium heavy shield", Monk: "", Paladin: "light medium heavy shield", Ranger: "light medium shield", Rogue: "light", Sorcerer: "", Warlock: "light", Wizard: "" }[c.cls] || (CLASS_DATA[c.cls] && CLASS_DATA[c.cls].armorT) || "").split(" ").filter(Boolean));
   const sub = c.subclass || "", f = n => (c.feats || []).some(x => x.f.replace(/ \(.*$/, "") === "Feat: " + n);
   if (ed === "2014" && ["Life Domain", "Nature Domain", "Tempest Domain", "War Domain"].includes(sub) && c.level >= 1) T.add("heavy");
   if (sub === "College of Valor" && c.level >= 3) { T.add("medium"); T.add("shield"); }

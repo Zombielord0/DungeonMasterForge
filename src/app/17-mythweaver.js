@@ -193,8 +193,9 @@ function mwChar(ch, ed) {
   ed = ed === "2024" ? "2024" : "2014";
   const sh = ch.sheet || {}, sel = sh.selectionsBySlot || {}, A = sh.abilityScores || {};
   const D = { src: MW_SRC, mwId: ch.mwId, opts: {}, extras: {}, homebrew: [], report: { matched: [], made: [], differ: [], dropped: [] }, base: {} };
-  const cName = impTitle(String(sel.class || ch.cls || "").replace(/-/g, " ")), cls = Object.keys(CLASS_DATA).find(k => impSame(k, cName));
-  if (!cls) return { error: `The Forge doesn't support the ${cName || "unknown"} class yet, so ${ch.name} can't be imported.` };
+  const cName = impTitle(String(sel.class || ch.cls || "").replace(/-/g, " "));
+  const cls = classList(ed).find(k => impSame(k, cName)) || impClass(ed, cName, null, D, MW_SRC);
+  if (!cls) return { error: `${ch.name} has no class in the file.` };
   for (const a of AB) { const v = +A[a] || +A[{ int: "intelligence" }[a]]; if (!(v > 0)) return { error: `${ch.name} has no ability scores in the file.` }; D.base[a] = v; }
   const lv = clamp(+sh.level || ch.level || 1, 1, 20);
   // species: a species, or a subrace's name; a species with subraces the file doesn't name gets the first one
