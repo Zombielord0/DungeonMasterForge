@@ -2,6 +2,11 @@
    When a change ships, add an entry to the top of NEWS with a new id, in plain words for players and DMs. */
 
 const NEWS = [
+  { id: "2026-11-17-shops", date: "2026-11-17", title: "Better shops", go: "world", items: [
+    "“🏪 Generate a shop” on the Items tab now opens the World builder on Shop, so every shop you make belongs to a place in your World.",
+    "Choose the shop's name, kind, where it is (the settlement size fills itself in), the party level, which magic item rarities it sells, how much stock it carries and the shopkeeper's manner. Tick a rarity and the shop will have some magic items of it.",
+    "Open a saved shop with “🛒 Open the shop”. Set a markup, such as +20% or −10%, and every price changes. Type in your own price for any item; it stays put when the markup changes.",
+    "What's sold stays sold, even after you close the page. Press “🔄 Restock” to fill the shelves again with new stock."] },
   { id: "2026-11-17-safety", date: "2026-11-17", title: "A safety fix for shared campaigns", items: [
     "The Journal and the turn order on players' phones now only ever carry plain names, numbers and text, checked by the server. Nothing in them can run as code in a player's browser."] },
   { id: "2026-11-17-world-maps", date: "2026-11-17", title: "World and region maps", go: "world", items: [
