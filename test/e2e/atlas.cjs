@@ -45,6 +45,62 @@ const server = http.createServer((req, res) => {
   check("atlas: rivers end in sea or a lake", t1.riversOk && t1.anyRiver);
   check("atlas: feature names come back and are drawn", t1.names.length >= 2 && t1.names.every(n => t1.drawn.includes(n)), JSON.stringify(t1));
 
+  // ---------- Task 2: map data and pins ----------
+  const setup = () => p.evaluate(() => {
+    W.places = []; W.atlas = null; W.loaded = true;
+    const R = wpNew({ name: "The Ashen Vale", type: "region" }), R2 = wpNew({ name: "Far Isles", type: "region" });
+    const mk = (name, type, parent) => wpNew({ name, type, parent }).id;
+    const ids = { r: R.id, r2: R2.id, velmor: mk("Velmor", "city", R.id), raven: mk("Ravenhold", "town", R.id), mill: mk("Millbrook", "village", R.id), crypt: mk("Sunken Crypt", "dungeon", R.id),
+      bell: mk("Bell Tower", "landmark", R.id), witch: mk("Witchwood", "wilderness", R.id), north: mk("Northmarch", "region", R.id) };
+    ids.goose = mk("Gilded Goose", "tavern", ids.velmor); ids.frost = mk("Frostford", "village", ids.north); ids.cellar = mk("Crypt Cellar", "dungeon", ids.crypt);
+    worldSave(); return ids;
+  });
+  let ids = await setup();
+  const t2 = await p.evaluate(ids => {
+    atlasMake(ids.r, { shape: "coast", land: "balanced" }); atlasPinsFill(ids.r);
+    const m = atlasOf(ids.r), T = atlasTerrain(m), pins = m.pins, keys = Object.keys(pins);
+    const onLand = keys.every(k => { const q = pins[k]; return T.h[Math.min(T.H - 1, Math.floor(q.y * T.H)) * T.W + Math.min(T.W - 1, Math.floor(q.x * T.W))] >= 0; });
+    let minD = 9; keys.forEach((a, i) => keys.slice(i + 1).forEach(b => { minD = Math.min(minD, Math.hypot(pins[a].x - pins[b].x, pins[a].y - pins[b].y)); }));
+    const listed = atlasPlaces(ids.r);
+    return { keys: keys.sort(), onLand, minD, area: listed.filter(x => x.area).map(x => x.p.name), pinned: listed.filter(x => !x.area).map(x => x.p.name).sort(), drawPins: atlasPins(ids.r, false).length, player: atlasPins(ids.r, true).length };
+  }, ids);
+  check("atlas: every mappable place inside a region gets a pin on land, at least 0.04 apart", t2.onLand && t2.minD >= .04 && t2.keys.length === 8, JSON.stringify(t2));
+  check("atlas: an inn inside a city or a dungeon inside a dungeon isn't pinned; a sub-region is an area", JSON.stringify(t2.area) === '["Northmarch"]' && !t2.pinned.includes("Gilded Goose") && !t2.pinned.includes("Crypt Cellar") && t2.pinned.includes("Frostford"), JSON.stringify(t2));
+  check("atlas: nothing is found at first, so the players' version has no pins", t2.player === 0 && t2.drawPins === 8, JSON.stringify(t2));
+  const water = await p.evaluate(ids => {
+    let city = 0, dun = 0;
+    for (const seed of ["W1", "W2", "W3", "W4", "W5"]) {
+      const r = wp(ids.r); r.atlas = { v: 1, seed, shape: "coast", land: "balanced", pins: {}, names: [] }; atlasPinsFill(ids.r);
+      const T = atlasTerrain(r.atlas), wd = atlasWaterDist(T), at = q => wd[Math.min(T.H - 1, Math.floor(q.y * T.H)) * T.W + Math.min(T.W - 1, Math.floor(q.x * T.W))];
+      city += at(r.atlas.pins[ids.velmor]); dun += at(r.atlas.pins[ids.crypt]);
+    }
+    return { city, dun };
+  }, ids);
+  check("atlas: a city sits nearer water than a dungeon", water.city < water.dun, JSON.stringify(water));
+  const moved = await p.evaluate(ids => {
+    atlasMake(ids.r, { shape: "coast", land: "balanced" }); atlasPinsFill(ids.r);
+    wp(ids.raven).parent = ids.r2; W.places = W.places.filter(x => x.id !== ids.mill); atlasPinsFill(ids.r);
+    return Object.keys(atlasOf(ids.r).pins);
+  }, ids);
+  check("atlas: a moved or deleted place loses its pin", !moved.includes(ids.raven) && !moved.includes(ids.mill) && moved.includes(ids.velmor), JSON.stringify(moved));
+  const rr = await p.evaluate(ids => {
+    const m = atlasOf(ids.r); m.pins[ids.velmor] = { x: .31, y: .47, m: 1 }; m.pins[ids.bell] = { x: .01, y: .01, m: 1 };
+    atlasReroll(ids.r, { shape: "island", land: "mountains" });
+    const n = atlasOf(ids.r), T = atlasTerrain(n), land = q => T.h[Math.min(T.H - 1, Math.floor(q.y * T.H)) * T.W + Math.min(T.W - 1, Math.floor(q.x * T.W))] >= 0;
+    return { shape: n.shape, velmor: n.pins[ids.velmor], velmorWasLand: land({ x: .31, y: .47 }), bellLand: land(n.pins[ids.bell]), bellMoved: n.pins[ids.bell].x !== .01, allLand: Object.values(n.pins).every(land) };
+  }, ids);
+  check("atlas: re-rolling keeps a dragged pin where it's still on land", rr.shape === "island" && rr.velmor.m && (rr.velmorWasLand ? rr.velmor.x === .31 && rr.velmor.y === .47 : true), JSON.stringify(rr));
+  check("atlas: …and every pin is on land after a re-roll", rr.allLand && rr.bellLand && rr.bellMoved, JSON.stringify(rr));
+  const wm = await p.evaluate(ids => { atlasMake("world", { shape: "island", land: "balanced" }); atlasPinsFill("world"); worldSave(); return { areas: atlasPlaces("world").filter(x => x.area).map(x => x.p.name).sort() }; }, ids);
+  check("atlas: the world map shows the top-level regions as areas", JSON.stringify(wm.areas) === '["Far Isles","The Ashen Vale"]', JSON.stringify(wm));
+  await p.reload(); await p.waitForFunction(() => typeof renderWorld === "function");
+  const kept = await p.evaluate(ids => { worldLoad(); const bk = JSON.parse(backupData()["dmforge.world.v1"]); return { world: !!(W.atlas && W.atlas.seed), region: !!(wp(ids.r).atlas && wp(ids.r).atlas.pins[ids.velmor]), backup: !!(bk.atlas && bk.atlas.seed) }; }, ids);
+  check("atlas: the world map and region maps survive a reload and are in a backup", kept.world && kept.region && kept.backup, JSON.stringify(kept));
+  const synced = await p.evaluate(() => { const D = CLOUD_LISTS.world, a = D.make([{ id: "x", name: "X" }], { places: [], atlas: { seed: "keep" } }); return a.atlas && a.atlas.seed; });
+  check("atlas: merging two devices' World keeps the world map", synced === "keep");
+  const cf = await p.evaluate(ids => { const c = blankCampaign("Vale campaign"); c.lore.push({ id: "lx", name: "The Ashen Vale", type: "place", wpId: ids.r, desc: "", sections: [] }); Store.save(c); const ex = campExtras(c); return { worldMap: !!(ex.worldMap && ex.worldMap.seed), region: !!(ex.world.find(x => x.id === ids.r) || {}).atlas }; }, ids);
+  check("atlas: a campaign file carries its region's map and the world map", cf.worldMap && cf.region, JSON.stringify(cf));
+
   check("no page errors", errs.length === 0, errs.join(" | "));
   await browser.close(); server.close();
   console.log(fails ? `\n${fails} check(s) failed` : "\nAll world map checks passed");

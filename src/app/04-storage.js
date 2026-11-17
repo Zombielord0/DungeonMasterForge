@@ -161,7 +161,8 @@ function setBadge(state) {
    - Two devices: a campaign changed on both asks which to keep; a list keeps the entries from both. */
 const SYNC_KEY = "dmforge.sync.v1", STASH_KEY = "dmforge.stash.v1", STASH_OFFERED = "dmforge.stashOffered.";
 const CLOUD_LISTS = {
-  world: { key: "dmforge.world.v1", items: v => (v && Array.isArray(v.places) ? v.places : []), make: l => ({ places: l }), reload: () => worldLoad() },
+  /* the world doc also carries the world map (W.atlas): a merge keeps the first copy's */
+  world: { key: "dmforge.world.v1", items: v => (v && Array.isArray(v.places) ? v.places : []), make: (l, ...from) => { const a = from.map(v => v && v.atlas).find(Boolean); return a ? { places: l, atlas: a } : { places: l }; }, reload: () => worldLoad() },
   npclib: { key: "dmforge.npclib.v1", items: v => (Array.isArray(v) ? v : []), make: l => l, reload: () => { } },
   items: { key: "dmforge.items.v1", items: v => (v && Array.isArray(v.list) ? v.list : []), make: l => ({ list: l, updated: Date.now() }), reload: () => { IT.custom = []; IT.updated = 0; itRestore(); } },
   mymonsters: { key: "dmforge.mymonsters.v1", items: v => (Array.isArray(v) ? v : []), make: l => l, reload: () => { mbLoadLib(); bsCustomRefresh(); } },
@@ -233,7 +234,7 @@ const Cloud = {
       if (id.startsWith("c-")) {
         const copy = { ...L, id: uid("c"), name: `${L.name || "Campaign"} (copy from this device)` };
         this.setLocal(id, S.data); this.setLocal(copy.id, copy); meta.dirty[copy.id] = true; delete meta.dirty[id]; copies++;
-      } else { const D = CLOUD_LISTS[id]; this.setLocal(id, D.make(listUnion(D.items(L), D.items(S.data)))); }
+      } else { const D = CLOUD_LISTS[id]; this.setLocal(id, D.make(listUnion(D.items(L), D.items(S.data)), L, S.data)); }
     }
     Store.lsWrite(); this.saveMeta(); this.reloadAll();
     if (copies) toast(`${copies} campaign${copies > 1 ? "s were" : " was"} changed on another device too; this device's version was kept as a copy`);
@@ -272,7 +273,7 @@ const Cloud = {
       try {
         const now = JSON.parse(raw), old = JSON.parse(stash[k]);
         const D = k === LS_KEY ? { items: v => v || [], make: l => l } : Object.values(CLOUD_LISTS).find(d => d.key === k);
-        stash[k] = JSON.stringify(D.make(listUnion(D.items(old), D.items(now))));
+        stash[k] = JSON.stringify(D.make(listUnion(D.items(old), D.items(now)), old, now));
       } catch { }
     }
     try { localStorage.setItem(STASH_KEY, JSON.stringify(stash)); } catch { toast("This browser is full, so its own campaigns couldn't be set aside"); }
@@ -291,7 +292,7 @@ const Cloud = {
       `This browser has ${what} saved without an account. Add them to your account, so they're on every device you sign in on? They also stay in this browser for when you're signed out.`, "Add them");
     if (!yes) return;
     for (const c of camps) if (!Store.get(c.id)) { Store.cache.set(c.id, c); this.meta.dirty[c.id] = true; }
-    for (const [id, items] of lists) { if (!items.length) continue; const D = CLOUD_LISTS[id]; this.setLocal(id, D.make(listUnion(D.items(this.local(id)), items))); this.meta.dirty[id] = true; }
+    for (const [id, items] of lists) { if (!items.length) continue; const D = CLOUD_LISTS[id], here = this.local(id); this.setLocal(id, D.make(listUnion(D.items(here), items), here, get(D.key))); this.meta.dirty[id] = true; }
     Store.lsWrite(); this.saveMeta(); this.reloadAll();
     Object.keys(this.meta.dirty).forEach(id => this.push(id));
     toast(`Added ${what} to your account`);
@@ -328,7 +329,7 @@ const Cloud = {
   async clash(id, current) {
     this.meta.v[id] = current.version;
     if (!id.startsWith("c-")) { // lists: keep both devices' entries
-      const D = CLOUD_LISTS[id]; this.setLocal(id, D.make(listUnion(D.items(this.local(id)), D.items(current.data))));
+      const D = CLOUD_LISTS[id], here = this.local(id); this.setLocal(id, D.make(listUnion(D.items(here), D.items(current.data)), here, current.data));
       try { D.reload(); } catch { }
       this.again[id] = true; return;
     }

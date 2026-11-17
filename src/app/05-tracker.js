@@ -214,7 +214,8 @@ $("#importFile").addEventListener("change", async e => {
 function campExtras(c) {
   const ids = new Set([...(c ? c.lore || [] : []).map(l => l.wpId), ...(c ? c.npcs || [] : []).map(n => n.placeId)].filter(id => id && wp(id)));
   [...ids].forEach(id => wpPath(wp(id)).forEach(x => ids.add(x.id)));
-  return { items: IT.custom.map(({ hay, hayD, ...x }) => x), homebrew: HB.list.slice(), monsters: MB.lib.slice(), world: W.places.filter(p => ids.has(p.id)) };
+  const world = W.places.filter(p => ids.has(p.id));
+  return { items: IT.custom.map(({ hay, hayD, ...x }) => x), homebrew: HB.list.slice(), monsters: MB.lib.slice(), world, ...(W.atlas && world.some(p => p.type === "region" && !p.parent) ? { worldMap: W.atlas } : {}) };
 }
 async function campExtrasAdopt(ex) {
   const out = [], plural = (n, w) => `${n} ${w}${n === 1 ? "" : "s"}`;
@@ -253,8 +254,11 @@ async function campExtrasAdopt(ex) {
     if (!W.loaded) worldLoad();
     const map = {}, add = [];
     ex.world.forEach(x => { if (!x || !x.id || !x.name) return; const had = wp(x.id) || W.places.find(y => lc(y.name) === lc(x.name)); if (had) map[x.id] = had.id; else { add.push({ ...x }); map[x.id] = x.id; } });
-    add.forEach(x => { x.parent = x.parent ? map[x.parent] || null : null; W.places.push(x); });
-    if (add.length) { worldSave(); out.push(plural(add.length, "World place")); }
+    const repin = a => a && a.pins ? { ...a, pins: Object.fromEntries(Object.entries(a.pins).map(([k, v]) => [map[k] || k, v])) } : a; // pins follow places that matched by name
+    add.forEach(x => { x.parent = x.parent ? map[x.parent] || null : null; if (x.atlas) x.atlas = repin(x.atlas); W.places.push(x); });
+    const wmap = !W.atlas && ex.worldMap && ex.worldMap.seed;
+    if (wmap) { W.atlas = repin(ex.worldMap); out.push("the World map"); }
+    if (add.length || wmap) { worldSave(); if (add.length) out.push(plural(add.length, "World place")); }
   }
   return out;
 }

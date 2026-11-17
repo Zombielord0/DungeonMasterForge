@@ -218,8 +218,8 @@ const WP_TYPES = { region: ["🗺️", "Region"], city: ["🏰", "City"], town: 
 const WP_LORE = ["name", "desc", "sections", "tags", "imgUrl"];
 const W = { places: [], sel: null, open: new Set(), q: "", loaded: false, dirty: false, view: "type", camp: "", openT: new Set(), mode: "place", build: null };
 const WP_PLURAL = { region: "Regions", city: "Cities", town: "Towns", village: "Villages", district: "Districts", building: "Buildings", tavern: "Taverns & inns", shop: "Shops", temple: "Temples", dungeon: "Dungeons", wilderness: "Wilderness", landmark: "Landmarks", other: "Other places" };
-function worldLoad() { try { const d = JSON.parse(localStorage.getItem(WORLD_KEY) || "null"); W.places = d && Array.isArray(d.places) ? d.places.filter(p => p && p.id && p.name) : []; } catch { W.places = []; } W.loaded = true; }
-function worldSave() { W.dirty = false; try { localStorage.setItem(WORLD_KEY, JSON.stringify({ places: W.places })); Cloud.touch("world"); return true; } catch { toast("Couldn't save: this browser's storage is full"); return false; } }
+function worldLoad() { try { const d = JSON.parse(localStorage.getItem(WORLD_KEY) || "null"); W.places = d && Array.isArray(d.places) ? d.places.filter(p => p && p.id && p.name) : []; W.atlas = d && d.atlas && d.atlas.seed ? d.atlas : null; } catch { W.places = []; W.atlas = null; } W.loaded = true; }
+function worldSave() { W.dirty = false; try { localStorage.setItem(WORLD_KEY, JSON.stringify(W.atlas ? { places: W.places, atlas: W.atlas } : { places: W.places })); Cloud.touch("world"); return true; } catch { toast("Couldn't save: this browser's storage is full"); return false; } }
 const wp = id => (W.loaded || worldLoad(), id ? W.places.find(p => p.id === id) || null : null);
 const wpIcon = p => (WP_TYPES[p && p.type] || WP_TYPES.other)[0];
 function wpPath(p) { const out = []; let x = p, k = 0; while (x && k++ < 30) { out.unshift(x); x = wp(x.parent); } return out; }

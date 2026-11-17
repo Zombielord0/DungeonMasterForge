@@ -176,3 +176,98 @@ function atlasDraw(cv, m, o = {}) {
   if (o.title) { g.textAlign = "left"; atlasLabel(g, o.title, 34, 44, "italic bold 40px Georgia, serif", "#fff"); labels.push(o.title); }
   return { labels, w, h: hh };
 }
+
+/* ======================= Map data and pins =======================
+   A region's map is p.atlas; the world map is W.atlas (saved with the places in the world doc). Both are
+   { v: 1, seed, shape, land, pins: { placeId: { x, y, m? } }, names: [...], img?, imgW?, imgH? }: pins are fractions of the
+   map, m marks a pin the DM moved. "Found by the players" is place.found (one campaign per world). */
+const ATLAS_PIN = new Set(["city", "town", "village", "dungeon", "landmark", "wilderness", "other"]);
+const ATLAS_STOP = new Set(["city", "town", "village", "dungeon"]); // what's inside these isn't on a terrain map
+function atlasOf(id) { if (id === "world") return W.atlas || null; const p = wp(id); return p && p.type === "region" ? p.atlas || null : null; }
+function atlasSet(id, m) { if (id === "world") W.atlas = m; else wp(id).atlas = m; return m; }
+function atlasMake(id, o = {}) {
+  const m = { v: 1, seed: uid("at"), shape: ATLAS_SHAPES[o.shape] ? o.shape : "coast", land: ATLAS_LANDS[o.land] ? o.land : "balanced", pins: {}, names: [] };
+  m.names = atlasNames(m); return atlasSet(id, m);
+}
+/* what a map shows: [{ p, area }]. A region shows what's inside it, regions as areas; the world shows top-level ones. */
+function atlasPlaces(id) {
+  if (!W.loaded) worldLoad();
+  const out = [], walk = pid => wpKids(pid).forEach(k => {
+    if (k.type === "region") { out.push({ p: k, area: true }); walk(k.id); return; }
+    if (ATLAS_PIN.has(k.type)) out.push({ p: k, area: false });
+    if (!ATLAS_STOP.has(k.type)) walk(k.id);
+  });
+  if (id === "world") W.places.filter(x => !x.parent || !wp(x.parent)).forEach(x => { if (x.type === "region") out.push({ p: x, area: true }); else if (ATLAS_PIN.has(x.type)) out.push({ p: x, area: false }); });
+  else walk(id);
+  return out;
+}
+/* distance in cells to the nearest water (sea, lake or river), capped at 60 */
+function atlasWaterDist(T) {
+  if (T.wd) return T.wd;
+  const { W, H, h } = T, d = new Uint8Array(W * H).fill(60), q = [];
+  for (let i = 0; i < W * H; i++) if (h[i] < 0) { d[i] = 0; q.push(i); }
+  T.rivers.forEach(r => r.forEach(([x, y]) => { const i = y * W + x; if (d[i]) { d[i] = 0; q.push(i); } }));
+  for (let k = 0; k < q.length; k++) { const i = q[k], x = i % W, y = (i - x) / W; for (const [ax, ay] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) { const nx = x + ax, ny = y + ay; if (nx < 0 || ny < 0 || nx >= W || ny >= H) continue; const j = ny * W + nx; if (d[j] > d[i] + 1) { d[j] = d[i] + 1; q.push(j); } } }
+  return T.wd = d;
+}
+/* how much a place of this type likes a spot (higher is better) */
+function atlasLikes(type, T, i) {
+  const h = T.h[i], wd = atlasWaterDist(T)[i], wet = T.wet[i];
+  switch (type) {
+    case "city": return -wd * .9 - Math.abs(h - .1) * 6;
+    case "town": return -wd * .6 - Math.abs(h - .14) * 5;
+    case "village": return -wd * .35 - Math.abs(h - .12) * 4;
+    case "dungeon": return h * 14 - Math.max(0, .55 - h) * 4;
+    case "landmark": return -Math.abs(h - .32) * 10;
+    case "wilderness": return (wet > .55 && h < .3 ? 6 : 0) + wet * 4;
+    case "region": return -Math.abs(h - .2) * 3;
+    default: return 0;
+  }
+}
+const atlasCell = (T, q) => Math.min(T.H - 1, Math.max(0, Math.floor(q.y * T.H))) * T.W + Math.min(T.W - 1, Math.max(0, Math.floor(q.x * T.W)));
+/* the nearest land to a spot, as fractions */
+function atlasToLand(T, q) {
+  if (T.h[atlasCell(T, q)] >= 0) return q;
+  const cx = Math.floor(q.x * T.W), cy = Math.floor(q.y * T.H);
+  for (let r = 1; r < Math.max(T.W, T.H); r++) for (let a = 0; a < 8 * r; a++) {
+    const x = Math.round(cx + r * Math.cos(a / (8 * r) * Math.PI * 2)), y = Math.round(cy + r * Math.sin(a / (8 * r) * Math.PI * 2));
+    if (x < 3 || y < 3 || x >= T.W - 3 || y >= T.H - 3) continue;
+    if (T.h[y * T.W + x] >= .01) return { x: (x + .5) / T.W, y: (y + .5) / T.H, ...(q.m ? { m: 1 } : {}) };
+  }
+  return q;
+}
+/* every listed place without a pin gets a starting spot; pins of places no longer on this map go */
+function atlasPinsFill(id) {
+  const m = atlasOf(id); if (!m) return null;
+  const list = atlasPlaces(id), want = new Set(list.map(x => x.p.id));
+  Object.keys(m.pins).forEach(k => { if (!want.has(k)) delete m.pins[k]; });
+  const T = m.img ? null : atlasTerrain(m), taken = () => Object.values(m.pins);
+  for (const { p } of list) {
+    if (m.pins[p.id]) continue;
+    const r = makeRng("pin", m.seed + "|" + p.id); let best = null, bs = -Infinity;
+    for (let k = 0; k < 400; k++) {
+      const q = { x: .05 + r.f() * .9, y: .06 + r.f() * .88 };
+      let s = r.f() * .5;
+      if (T) { const i = atlasCell(T, q); if (T.h[i] < .01) continue; s += atlasLikes(p.type, T, i); }
+      for (const o of taken()) { const d = Math.hypot(o.x - q.x, (o.y - q.y) * ATLAS_H / ATLAS_W); if (d < .07) s -= (.07 - d) * 400; }
+      if (s > bs) { bs = s; best = q; }
+    }
+    if (best) m.pins[p.id] = { x: +best.x.toFixed(4), y: +best.y.toFixed(4) };
+  }
+  return m;
+}
+/* a new roll (or new shape / land): the DM's moved pins stay unless they'd be in the sea; the others are placed again */
+function atlasReroll(id, o = {}) {
+  const old = atlasOf(id); if (!old) return atlasMake(id, o);
+  const m = { ...old, seed: o.keepSeed ? old.seed : uid("at"), shape: ATLAS_SHAPES[o.shape] ? o.shape : old.shape, land: ATLAS_LANDS[o.land] ? o.land : old.land, pins: {} };
+  m.names = atlasNames(m);
+  const T = atlasTerrain(m);
+  Object.entries(old.pins).forEach(([k, q]) => { if (q.m) m.pins[k] = atlasToLand(T, q); });
+  atlasSet(id, m); atlasPinsFill(id); return m;
+}
+/* the pins to draw: hidden ones are the places the players haven't found; the players' version leaves them out */
+function atlasPins(id, player) {
+  const m = atlasOf(id); if (!m) return [];
+  return atlasPlaces(id).filter(({ p }) => m.pins[p.id] && (!player || p.found)).map(({ p, area }) => ({
+    id: p.id, name: p.name || "Unnamed", icon: (WP_TYPES[p.type] || WP_TYPES.other)[0], x: m.pins[p.id].x, y: m.pins[p.id].y, hidden: !p.found, area, big: p.type === "city" }));
+}
