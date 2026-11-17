@@ -70,6 +70,7 @@ npm run test:hbpend  # pending homebrew and the DM's approval queue (Playwright,
 npm run test:npcpic  # NPC pictures: upload, link, TV without distortion (Playwright, any OS)
 npm run test:map  # map fog + TV player screen checks (Playwright, any OS)
 npm run test:campextras  # campaign export/import carries custom items, homebrew, monsters (Playwright, any OS)
+npm run test:npclib  # Your NPCs on the NPC tab, campaign tick boxes, MythWeaver monsters (Playwright, any OS)
 npm run dev     # full local copy at http://localhost:8899 (any OS); stand-in sign-in, data wiped on Ctrl+C
 ```
 
@@ -79,6 +80,7 @@ Playwright and Chromium are pre-installed in cloud sessions. To test offline mod
 
 - **In the browser** (also used by "Use without an account"):
   - `dmforge.pcs.v1` (characters), `dmforge.campaigns.v1`, `dmforge.homebrew.v1`, `dmforge.items.v1`, `dmforge.mymonsters.v1`, `dmforge.favspells` and `dmforge.offline`.
+  - `dmforge.npclib.v1`: NPCs that aren't in any campaign (Your NPCs on the NPC tab).
   - `dmforge.fog.v1`: map fog, found secret doors and tokens for the 40 most recent maps.
   - `dmforge.lastBackup`.
   - **Imported map pictures** are in IndexedDB (database `dmforge-maps`), not localStorage.
@@ -159,12 +161,13 @@ Everything in the sections from "Dungeon Map looks" to "Tokens" below was built 
 - the sheet checks and tokens
 - backup and restore
 
-Everything from "Character import" to "Campaign files carry custom content" below was built in one chat on 2026-11-16 and 17, on branch `ccr-c51c8c32-xn2c0j`. It's open as **draft PR #9**, which is **not merged**: the owner is trying it on the preview at `deploy-preview-9--dungeonmasterforge.netlify.app`. It contains:
+Everything from "Character import" to "Your NPCs and imported monsters" below was built in one chat on 2026-11-16 and 17, on branch `ccr-c51c8c32-xn2c0j`. It's open as **draft PR #9**, which is **not merged**: the owner is trying it on the preview at `deploy-preview-9--dungeonmasterforge.netlify.app`. It contains:
 - character import (Companion App and PDF), homebrew spells, and pending homebrew with DM approval
 - NPC pictures
 - the phone and laptop layout work
 - the Lore tab and MythWeaver campaign import
 - imported campaigns adding their custom items and spells to Items and Homebrew
+- Your NPCs on the NPC tab, and MythWeaver monsters in My monsters
 
 PR #8 (the expired sign-in fix) was merged before that chat.
 
@@ -517,6 +520,21 @@ PR #8 (the expired sign-in fix) was merged before that chat.
   - Built-in items and spells (exact name) are skipped. DM-only sections are left off. Everything stays in Lore.
   - The window shows a ticked `[data-mwextras]` box with the counts; the Go handler adopts after `mwCommit`.
 - **Tests:** `npm run test:campextras` (`test/e2e/camp-extras.cjs`), Forge files and MythWeaver.
+
+## Your NPCs and imported monsters (2026-11-17)
+
+- **NPC data stays in each campaign** (`c.npcs`), so the Tracker's NPCs tab is unchanged. Copies of one NPC in several campaigns share `lib` (`npcLibId(n)`: set lazily to `"mw-<mwId>"` or `"nl-<id>"`).
+  - NPCs in no campaign are kept in localStorage `dmforge.npclib.v1` (`npcLoose`/`npcLooseSave`, in `BACKUP_KEYS`). Tracker campaigns are browser-only even when signed in, so this matches.
+  - `npcGroups()` merges campaigns and loose NPCs into `{lib, n, camps, loose?}`.
+  - `npcSync(n)` copies `NPC_SHARED` (name, role, attitude, notes, img, imgUrl) to every other copy. It runs from the Tracker's `onEdit` (list `npcs`) and from `npcPicSet`/`npcPicLink`/`npcPicClear`.
+  - A picture key may be shared by copies: delete it from `MAPIMG` only when `npcImgUsed(key)` is false.
+- **The list** is `#npcLib` on the NPC tab (`renderNpcLib(listOnly)`, state `NL = {q, camp, open}`), drawn by `route()` for `#npc`.
+  - Campaign tick boxes are `[data-nlc=<campaign id>]` inside `.chip` labels → `npcLibToggle(lib, campId, on)`. Unticking the last campaign moves the NPC to the loose list.
+  - Fields `[data-nlf]` → `npcLibEdit`; buttons `[data-nl]` = new, open, del (`npcLibDelete`, everywhere).
+- **MythWeaver monsters:** `mwMonster(x)` returns a builder form (`mbBlank` shape) with `mwId` and `src`. It reads size/type, AC, HP and hit dice, the six scores (`STR 16` or a row of `16 (+3)`), speed, CR (nearest `CR_LIST`), senses, languages and defences. "Name. Text" lines become traits, or actions/bonus/reacts/legend under those headings.
+  - Without AC, HP and all six scores it sets `needsStats` (shown as "needs stats" in `mbRenderLib`; cleared when saved from the builder in `mbStore`).
+  - `mwExtras` now also returns `monsters`; `campExtrasAdopt` skips ones whose `mwId` or name is already in `MB.lib`.
+- **Tests:** `npm run test:npclib` (`test/e2e/npc-lib.cjs`).
 
 ## Where things stand (end of the 2026-11-17 chat)
 

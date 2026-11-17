@@ -87,13 +87,24 @@ On a campaign's **NPCs** tab, every NPC has a picture frame. Press **🖼 Add pi
 
 On a campaign's **Sessions** tab, press **Write a recap**. It collects what has happened since the last recap: fights finished, XP, quests completed or failed, chapters, loot handed out, and the calendar's log. It saves all of that as a new session you can edit.
 
+## Your NPCs
+
+The **NPC** tab lists every NPC from all your campaigns under **Your NPCs**, with a tick box for each campaign:
+
+- Tick a campaign to put that NPC in it. An NPC can be in several campaigns at once.
+- Click an NPC's name to change its name, role, attitude or notes. A change made here, or in a campaign's NPCs tab in the Campaign Tracker, shows in every campaign that NPC is in. So does its picture.
+- Untick every campaign and the NPC stays in the list, marked "Not in a campaign". **+ New NPC** adds one there (or straight into the campaign you're viewing).
+- **✕** deletes an NPC from every campaign.
+- Search the list, or show one campaign's NPCs only.
+- NPCs you summon and **Save to campaign**, and NPCs from an imported campaign, appear here too.
+
 ## Items and spells from imported campaigns
 
 When you bring in a campaign with **⬆ Import campaign** in the Campaign Tracker, its custom items and spells come along, so you can hand them out:
 
 - **Custom items** appear in **Items → Custom**. Choose a character in "Give items to" and press **Give** or **Buy**.
 - **Spells** appear in **Homebrew** (only the DM can add homebrew when signed in), and then in the spell lists.
-- **From MythWeaver**, entries filed as items become custom items, and entries filed or tagged as spells become homebrew spells. They stay in Lore too. DM-only notes aren't copied onto them. Untick **Items and spells** in the import window to skip this.
+- **From MythWeaver**, entries filed as items become custom items, entries filed or tagged as spells become homebrew spells, and monsters go to **Monster Manual → My monsters**. A monster whose MythWeaver text has a stat block (AC, hit points and the six scores) gets its numbers, traits and actions; one without is marked **needs stats** for you to finish in **Build a monster**. They all stay in Lore too. DM-only notes aren't copied onto them. Untick **Items, spells and monsters** in the import window to skip this.
 - **Forge campaign files**: **Export JSON** saves your custom items, homebrew and custom monsters with the campaign, and importing the file adds them back. Monsters go to **Monster Manual → My monsters**. Files exported before 17 November 2026 don't hold these, so export them again first.
 
 Anything you already have isn't added twice, and importing the same MythWeaver campaign again updates its items.
