@@ -222,7 +222,7 @@ function shopRender() {
       : `<p class="muted">Nothing on the shelves today. Press Restock, or make a shop with more stock in the World builder.</p>`}
     <p class="hint" style="margin:8px 0 0">Buy pays from the coins of the character chosen in “Give items to” below, and puts the item in their inventory. Type in a price to set your own; empty it to go back to the markup price.</p>`;
 }
-$("#itShopBtn").addEventListener("click", () => { shopNew(false); $("#itShop").scrollIntoView({ behavior: "smooth", block: "start" }); });
+$("#itShopBtn").addEventListener("click", () => { wbStart("shop"); W.mode = "build"; location.hash = "world"; });
 $("#itShop").addEventListener("input", e => {
   const s = IT.shop; if (!s || e.target.id !== "shopMarkup") return;
   const v = parseFloat(e.target.value); s.markup = isNaN(v) ? 0 : clamp(Math.round(v), -90, 500);
@@ -248,6 +248,7 @@ $("#itShop").addEventListener("click", async e => {
 });
 function renderItems() {
   itLoad(); renderItTargets();
+  $("#itShopBtn").hidden = !!(window.Portal && Portal.views && !Portal.views.includes("world"));
   $("#itGearF").classList.toggle("hidden", IT.mode === "magic" || IT.mode === "custom");
   $("#itMagicF").classList.toggle("hidden", IT.mode === "gear");
   const list = itFiltered();

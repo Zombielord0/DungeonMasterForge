@@ -505,7 +505,8 @@ const WB = {
     return d;
   },
   shop(r, o) {
-    const sh = shopMake({ type: SHOPS[o.type] ? o.type : r.pick(Object.keys(SHOPS)), size: o.size || "town", level: +o.level || shopLevelGuess(), seed: r.int(1, 1e9).toString(36).toUpperCase(), ed: IT.ed || "2024" });
+    const sh = shopMake({ type: SHOPS[o.type] ? o.type : r.pick(Object.keys(SHOPS)), size: o.size || "town", level: +o.level || shopLevelGuess(), seed: r.int(1, 1e9).toString(36).toUpperCase(), ed: IT.ed || "2024",
+      ...(Array.isArray(o.rar) && o.rar.length ? { rar: o.rar } : {}), ...(o.amount && o.amount !== "normal" ? { amount: o.amount } : {}), ...(o.moodIx !== undefined && o.moodIx !== "" ? { moodIx: +o.moodIx } : {}) });
     const name = String(o.name || "").trim() || sh.name, full = { ...sh, markup: 0 }, sale = shopSaleText(full); full.sale = sale;
     const d = { name, type: sh.type === "temple" ? "temple" : "shop", desc: `${sh.label}, run by ${sh.keeper}, who is ${sh.mood}.`, shop: { type: sh.type, size: sh.size, level: sh.level, seed: sh.seed, ed: sh.ed }, shopFull: full,
       sections: [{ t: "For sale", x: sale, dm: false, auto: true }], kids: [], npcs: [] };
@@ -528,7 +529,9 @@ const WB = {
     return d;
   }
 };
-const WB_DEFAULTS = { settlement: { size: "town", terrain: "", npcs: true, places: true }, tavern: { quality: "", npcs: true }, shop: { type: "", size: "town", level: "", npcs: true }, temple: { domain: "", size: "town", npcs: true }, dungeon: { theme: "", level: "", map: true } };
+const WB_DEFAULTS = { settlement: { size: "town", terrain: "", npcs: true, places: true }, tavern: { quality: "", npcs: true }, shop: { type: "", size: "town", level: "", npcs: true, rar: [], amount: "normal", moodIx: "" }, temple: { domain: "", size: "town", npcs: true }, dungeon: { theme: "", level: "", map: true } };
+/* The settlement size of the nearest village, town or city a place is in (or the place itself), or null. */
+function wpSettleSize(id) { const p = id && wp(id); if (!p) return null; const hit = wpPath(p).reverse().find(x => ["village", "town", "city"].includes(x.type)); return hit ? hit.type : null; }
 function wbStart(kind) { const prev = W.build; W.build = { kind, seed: newSeed(), o: { ...WB_DEFAULTS[kind], name: "" }, parent: prev ? prev.parent : (W.sel && wp(W.sel) ? W.sel : null), camp: prev ? prev.camp : W.camp }; }
 const wbDraft = () => WB[W.build.kind](makeRng("wb", W.build.kind, W.build.seed), W.build.o);
 function wbCount(d) { let p = 0, n = 0; const walk = x => { p++; n += x.npcs.length; x.kids.forEach(walk); }; walk(d); return { p, n }; }
@@ -539,7 +542,9 @@ function wbHTML() {
   const opts = {
     settlement: f("Size", sel("size", [["village", "Village"], ["town", "Town"], ["city", "City"]], "")) + f("Where", sel("terrain", Object.keys(WB_TERRAIN).map(k => [k, cap1(k)]))),
     tavern: f("Quality", sel("quality", Object.entries(WB_TAV_Q).map(([k, v]) => [k, v[0]]))),
-    shop: f("Kind of shop", sel("type", Object.entries(SHOPS).map(([k, v]) => [k, v.label]))) + f("Settlement", sel("size", [["village", "Village"], ["town", "Town"], ["city", "City"]], "")) + f("Party level", `<input type="number" data-wb="level" min="1" max="20" value="${esc(o.level)}" placeholder="${shopLevelGuess()}" aria-label="Party level">`),
+    shop: f("Kind of shop", sel("type", Object.entries(SHOPS).map(([k, v]) => [k, v.label]))) + f("Settlement", sel("size", [["village", "Village"], ["town", "Town"], ["city", "City"]], "")) + f("Party level", `<input type="number" data-wb="level" min="1" max="20" value="${esc(o.level)}" placeholder="${shopLevelGuess()}" aria-label="Party level">`)
+      + f("How much stock", sel("amount", [["small", "Small"], ["normal", "Normal"], ["large", "Large"]], "")) + f("Shopkeeper's manner", sel("moodIx", SHOP_MOODS.map((m, i) => [i, cap1(m[0])]), "Random"))
+      + `<div class="field" style="flex:1 1 100%"><label>Magic item rarities</label><div class="wb-rar">${[["auto", "Automatic"], ...RARITY.slice(0, 5).map((n, i) => [i, n])].map(([v, l]) => `<label class="check"><input type="checkbox" data-wbrar="${v}" ${v === "auto" ? (!(o.rar || []).length ? "checked" : "") : (o.rar || []).includes(v) ? "checked" : ""}> ${esc(l)}</label>`).join("")}</div>${o.type && SHOPS[o.type] && !SHOPS[o.type].magic ? `<p class="hint wb-note">A ${esc(SHOPS[o.type].label.toLowerCase())} doesn't sell magic items, so rarity doesn't apply.</p>` : ""}</div>`,
     temple: f("God of", sel("domain", Object.keys(WB_GODS).map(k => [k, `${k} (${WB_GODS[k]})`]))) + f("Settlement", sel("size", [["village", "Village (a shrine)"], ["town", "Town"], ["city", "City (a great temple)"]], "")),
     dungeon: f("Kind", sel("theme", Object.keys(WB_DUN_N).map(k => [k, cap1(k)]))) + f("Party level", `<input type="number" data-wb="level" min="1" max="20" value="${esc(o.level)}" placeholder="${shopLevelGuess()}" aria-label="Party level">`)
   }[B.kind];
@@ -566,7 +571,7 @@ function wbHTML() {
 function wbCommit() {
   const B = W.build; if (!B) return null; const d = wbDraft(), camp = B.camp && Store.get(B.camp), looseL = npcLoose();
   const make = (x, parent) => {
-    const p = wpNew({ name: x.name.slice(0, 120), type: x.type, parent: parent || null, desc: x.desc, sections: x.sections.map(s2 => ({ ...s2 })), ...(x.shop ? { shop: x.shop } : {}), ...(x.map ? { map: { ...x.map, id: uid("m"), saved: Date.now() } } : {}) });
+    const p = wpNew({ name: x.name.slice(0, 120), type: x.type, parent: parent || null, desc: x.desc, sections: x.sections.map(s2 => ({ ...s2 })), ...(x.shop ? { shop: x.shopFull || x.shop } : {}), ...(x.map ? { map: { ...x.map, id: uid("m"), saved: Date.now() } } : {}) });
     x.npcs.forEach(n => { const id = uid("n"), rec = { id, lib: "nl-" + id, name: n.name, role: `${n.race} ${n.occupation}`, attitude: { Wary: "Neutral" }[n.attitude] || n.attitude, notes: npcText(n).split("\n").slice(1).join("\n"), placeId: p.id, place: p.name };
       if (camp) { camp.npcs = camp.npcs || []; camp.npcs.push(rec); } else looseL.push(rec); });
     x.kids.forEach(k => make(k, p.id));
@@ -636,6 +641,8 @@ function worldGoNpc(lib, placeId) { NL.tab = placeId || ""; NL.camp = ""; NL.q =
     const t = e.target;
     if (t.id === "worldCamp") { W.camp = t.value; renderWorld(true); return; }
     if (t.name === "wview") { W.view = t.value; renderWorld(true); return; }
+    if (t.dataset.wbrar) { const o = W.build.o; if (t.dataset.wbrar === "auto") o.rar = []; else { const v = +t.dataset.wbrar, set = new Set(o.rar || []); t.checked ? set.add(v) : set.delete(v); o.rar = [...set].sort((a, b) => a - b); } renderWorld(); const f = $(`#worldMain [data-wbrar="${t.dataset.wbrar}"]`); if (f) f.focus(); return; }
+    if (t.dataset.wb === "parent" && (W.build.kind === "shop" || W.build.kind === "temple")) { const sz = wpSettleSize(t.value); if (sz) W.build.o.size = sz; }
     if (t.dataset.wb === "parent" || t.dataset.wb === "camp") { W.build[t.dataset.wb] = t.value || (t.dataset.wb === "parent" ? null : ""); renderWorld(); const f = $(`#worldMain [data-wb="${t.dataset.wb}"]`); if (f) f.focus(); return; }
     if (t.dataset.wb) { const o = W.build.o, k = t.dataset.wb; o[k] = t.type === "checkbox" ? t.checked : t.value; if (k === "name") return; renderWorld(); const f = $(`#worldMain [data-wb="${k}"]`); if (f) f.focus(); return; }
     const p = wp(W.sel); if (!p) return;

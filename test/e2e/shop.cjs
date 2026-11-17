@@ -70,6 +70,11 @@ const server = http.createServer((req, res) => {
   check("an alchemist sells potions and the like", r.alchemist);
   check("cities have bigger shops than villages", r.sizes);
 
+  // the Items button opens the World builder on Shop
+  await p.click("#itShopBtn"); await p.waitForTimeout(300);
+  check("Generate a shop opens the World builder on Shop", await p.evaluate(() => location.hash === "#world" && W.mode === "build" && W.build.kind === "shop"));
+  await p.goto(URL + "#items"); await p.waitForTimeout(200);
+  check("players without the World tab don't see the button", await p.evaluate(() => { const old = window.Portal; window.Portal = { views: ["items"] }; renderItems(); const vis = () => !!$("#itShopBtn").offsetParent, h = !vis(); window.Portal = old; renderItems(); return h && vis(); }));
   // a saved World shop: stock kept, markup, own prices, restock (2026-11-17)
   await p.evaluate(() => { PCS.roster[0].coins = { cp: 0, sp: 0, ep: 0, gp: 100000, pp: 0 }; pcPersist(); });
   const pid = await p.evaluate(() => {
