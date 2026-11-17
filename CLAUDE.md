@@ -133,7 +133,7 @@ Playwright and Chromium are pre-installed in cloud sessions. To test offline mod
   - `dmforge.fog.v1`: map fog, found secret doors and tokens for the 40 most recent maps.
   - `dmforge.lastBackup`, `dmforge.newsSeen`, `dmforge.hdrMini`.
   - **Imported map pictures and NPC pictures** are in IndexedDB (database `dmforge-maps`), not localStorage.
-  - The 💾 Backup file covers the keys in `BACKUP_KEYS`, but not the pictures.
+  - The 💾 Backup file (v2) covers the keys in `BACKUP_KEYS` and the pictures (`images`: key → data URL, from `MAPIMG.all()`). Restoring a v2 backup replaces the pictures; a v1 backup leaves them alone.
 - **Campaign fields added on 2026-11-15** (saved with the campaign, signed in or not):
   - `cal`, the calendar. `recapAt` and `recapDay`.
   - Encounters: `kind` ("random", "map" or "import"), `room` and `recapped`. Quests: `recappedAs`. Loot and chapters: `recapped`.
@@ -169,7 +169,7 @@ Playwright and Chromium are pre-installed in cloud sessions. To test offline mod
   - A PDF's portrait isn't imported.
   - Deleting a whole campaign leaves its NPCs' uploaded pictures in IndexedDB.
   - The tag-based sorting of MythWeaver "generic" lore is a best guess.
-- **Ideas not yet done:** a Campaign journal tab for players (quests, recaps, shared Lore); turn order on players' phones; sharing dice rolls with the DM; one shared sheet layout instead of two (`sheetHTML` and `renderRosterMain`); pictures in backups and account saves. Also: the header torch animation draws every frame while the page is visible (it stops when hidden); slowing it or stopping it when the header is scrolled away could save phone battery, but measure first. The 512 px icons could be about a third of their size.
+- **Ideas not yet done:** a Campaign journal tab for players (quests, recaps, shared Lore); turn order on players' phones; sharing dice rolls with the DM; one shared sheet layout instead of two (`sheetHTML` and `renderRosterMain`); pictures in account saves (they're in backups now). Also: the header torch animation draws every frame while the page is visible (it stops when hidden); slowing it or stopping it when the header is scrolled away could save phone battery, but measure first. The 512 px icons could be about a third of their size.
 
 ## Gotchas found along the way
 

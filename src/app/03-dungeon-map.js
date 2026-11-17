@@ -602,6 +602,9 @@ const MAPIMG = {
   open() { return this.db || (this.db = new Promise((res, rej) => { const r = indexedDB.open("dmforge-maps", 1); r.onupgradeneeded = () => r.result.createObjectStore("images"); r.onsuccess = () => res(r.result); r.onerror = () => rej(r.error); })); },
   async put(id, blob) { const db = await this.open(); return new Promise((res, rej) => { const t = db.transaction("images", "readwrite"); t.objectStore("images").put(blob, id); t.oncomplete = () => res(); t.onerror = () => rej(t.error); }); },
   async get(id) { const db = await this.open(); return new Promise((res, rej) => { const q = db.transaction("images").objectStore("images").get(id); q.onsuccess = () => res(q.result || null); q.onerror = () => rej(q.error); }); },
+  /* every stored picture: [[key, Blob]] (map pictures and NPC pictures), for backups */
+  async all() { const db = await this.open(); return new Promise((res, rej) => { const out = [], q = db.transaction("images").objectStore("images").openCursor(); q.onsuccess = () => { const c = q.result; if (!c) return res(out); out.push([String(c.key), c.value]); c.continue(); }; q.onerror = () => rej(q.error); }); },
+  async clear() { const db = await this.open(); return new Promise((res, rej) => { const t = db.transaction("images", "readwrite"); t.objectStore("images").clear(); t.oncomplete = () => res(); t.onerror = () => rej(t.error); }); },
   async del(id) { const db = await this.open(); return new Promise((res, rej) => { const t = db.transaction("images", "readwrite"); t.objectStore("images").delete(id); t.oncomplete = () => res(); t.onerror = () => rej(t.error); }); }
 };
 const IMG_MAX = 4096;

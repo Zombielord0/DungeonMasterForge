@@ -34,6 +34,11 @@ let SAMPLE = {};
     localStorage.setItem("dmforge.favspells", JSON.stringify(["Shield"]));
     localStorage.setItem("dmforge.fog.v1", JSON.stringify({ "gen|X|crypt|medium|10": { f: "01,", s: [], t: 1 } }));
   });
+  // two pictures: an imported map and an NPC portrait (kept in IndexedDB, not localStorage)
+  await p.evaluate(async () => {
+    const pic = async (w, colour) => { const cv = document.createElement("canvas"); cv.width = w; cv.height = 20; const g = cv.getContext("2d"); g.fillStyle = colour; g.fillRect(0, 0, w, 20); return await new Promise(r => cv.toBlob(r, "image/png")); };
+    await MAPIMG.put("img-test", await pic(40, "#a33")); await MAPIMG.put("npc-test", await pic(30, "#3a3"));
+  });
   await p.goto(URL + "#tracker"); await ready(); await p.click("#newCamp"); await p.waitForTimeout(1200);
   await p.goto(URL); await ready();
   SAMPLE = await p.evaluate(keys => Object.fromEntries(keys.map(k => [k, localStorage.getItem(k)])), KEYS);
@@ -46,20 +51,22 @@ let SAMPLE = {};
   check("Backup button shows when saving in this browser", await p.isVisible("#backupBtn"));
   await p.click("#backupBtn");
   check("Backup window opens", await p.isVisible("#backupModal"));
-  check("Backup window counts characters and campaigns", /2 characters/.test(await p.textContent("#backupInfo")) && /1 campaign\b/.test(await p.textContent("#backupInfo")));
+  await p.waitForFunction(() => /picture/.test($("#backupInfo").textContent));
+  check("Backup window counts characters, campaigns and pictures", /2 characters/.test(await p.textContent("#backupInfo")) && /1 campaign\b/.test(await p.textContent("#backupInfo")) && /2 pictures/.test(await p.textContent("#backupInfo")), await p.textContent("#backupInfo"));
 
   const [dl] = await Promise.all([p.waitForEvent("download", { timeout: 5000 }).catch(() => null), p.click("#backupDownload")]);
   check("Download backup saves a file", !!dl);
   const file = dl && await dl.path();
   const bk = file ? JSON.parse(fs.readFileSync(file, "utf8")) : {};
   check("backup file name has the date", !!dl && /^forge-backup-\d{4}-\d{2}-\d{2}\.json$/.test(dl.suggestedFilename()), dl && dl.suggestedFilename());
-  check("backup is marked as a Forge backup", bk.app === "dmforge-backup" && bk.v === 1 && !!bk.made);
+  check("backup is marked as a Forge backup", bk.app === "dmforge-backup" && bk.v === 2 && !!bk.made);
+  check("backup holds the map and NPC pictures", bk.images && /^data:image\/png;base64,/.test(bk.images["img-test"] || "") && /^data:image\/png;base64,/.test(bk.images["npc-test"] || ""), JSON.stringify(Object.keys(bk.images || {})));
   check("backup holds every saved item exactly", Object.keys(SAMPLE).every(k => bk.data && bk.data[k] === SAMPLE[k]));
   check("backup leaves out settings like offline mode", bk.data && !("dmforge.offline" in bk.data));
   check("Backup window remembers the last backup", /Last backup: (today|\d)/.test(await p.textContent("#backupInfo")));
 
   // restore: change things, then restore the file
-  await p.evaluate(() => { localStorage.setItem("dmforge.pcs.v1", JSON.stringify({ cur: null, roster: [], updated: 2 })); localStorage.removeItem("dmforge.favspells"); });
+  await p.evaluate(async () => { localStorage.setItem("dmforge.pcs.v1", JSON.stringify({ cur: null, roster: [], updated: 2 })); localStorage.removeItem("dmforge.favspells"); await MAPIMG.del("img-test"); await MAPIMG.put("stray", new Blob(["x"])); });
   const bkNoItems = { ...bk, data: { ...bk.data } }; delete bkNoItems.data["dmforge.fog.v1"];
   const f2 = path.join(require("os").tmpdir(), "forge-restore-test.json"); fs.writeFileSync(f2, JSON.stringify(bkNoItems));
   await p.setInputFiles("#backupFile", f2);
@@ -72,6 +79,16 @@ let SAMPLE = {};
   check("restore removes saved data the backup didn't have", !("dmforge.fog.v1" in after));
   check("restore keeps this browser's settings", after["dmforge.offline"] === "1");
   check("restored characters appear in the app", await p.evaluate(() => PCS.roster.length === 2));
+  const pics = await p.evaluate(async () => { const all = await MAPIMG.all(); const m = all.find(([k]) => k === "img-test"); const bmp = m && await createImageBitmap(m[1]); return { keys: all.map(([k]) => k).sort(), w: bmp && bmp.width }; });
+  check("restore brings back a deleted picture, intact", pics.w === 40, JSON.stringify(pics));
+  check("restore replaces the pictures: one the backup didn't have is gone", JSON.stringify(pics.keys) === JSON.stringify(["img-test", "npc-test"]), JSON.stringify(pics.keys));
+  // an older backup (no pictures) keeps the pictures that are here
+  const old = { ...bk, v: 1 }; delete old.images;
+  const f5 = path.join(require("os").tmpdir(), "forge-restore-v1.json"); fs.writeFileSync(f5, JSON.stringify(old));
+  await p.click("#backupBtn"); await p.setInputFiles("#backupFile", f5); await p.waitForSelector("#modal.open");
+  check("an older backup says it keeps the pictures", /pictures here are kept/.test(await p.textContent("#modalMsg")));
+  await Promise.all([p.waitForEvent("load"), p.click("#modalYes")]); await ready();
+  check("…and does", (await p.evaluate(async () => (await MAPIMG.all()).length)) === 2);
 
   // a file that isn't a backup changes nothing
   const f3 = path.join(require("os").tmpdir(), "forge-not-backup.json"); fs.writeFileSync(f3, JSON.stringify({ hello: 1 }));

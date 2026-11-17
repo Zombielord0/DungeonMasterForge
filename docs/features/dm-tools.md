@@ -55,3 +55,4 @@ Moved here from `CLAUDE.md` on 2026-11-17, unchanged except that `public/index.h
   - The last download time is kept in `dmforge.lastBackup`.
 - **Downloads:** `saveFile` now falls back to a normal browser download (Blob and `<a download>`) when the Claude `downloads` helper isn't there. Before this, Download PNG and Export JSON did nothing on the website.
 - **Tests:** `npm run test:backup` (`test/e2e/backup.cjs`).
+- **Pictures (2026-11-17):** backups are `v: 2` with `images: {key: data URL}` for every picture in `MAPIMG` (imported maps and NPC pictures; `MAPIMG.all()` and `MAPIMG.clear()`). `backupMake` is async. The window counts pictures and their size. Restoring a v2 backup clears the picture store and puts the backup's pictures back; a v1 backup keeps the pictures that are there (and says so).

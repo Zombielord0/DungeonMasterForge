@@ -14,24 +14,31 @@ async function saveFile(filename, data) {
 }
 
 /* ======================= Backup and restore (browser-only data) =======================
-   A backup is {app:"dmforge-backup", v:1, made, data:{key: raw string}} for the keys in BACKUP_KEYS.
-   Add new kinds of saved data to BACKUP_KEYS. Settings (offline mode, header, What's new) are left out on purpose. */
+   A backup is {app:"dmforge-backup", v:2, made, data:{key: raw string}, images:{key: data URL}}: the keys in BACKUP_KEYS,
+   plus the map and NPC pictures from the MAPIMG store (v1 backups have no images). Add new kinds of saved data to BACKUP_KEYS.
+   Settings (offline mode, header, What's new) are left out on purpose. */
 const BACKUP_KEYS = ["dmforge.pcs.v1", "dmforge.campaigns.v1", "dmforge.homebrew.v1", "dmforge.items.v1", "dmforge.mymonsters.v1", "dmforge.npclib.v1", "dmforge.world.v1", "dmforge.favspells", "dmforge.fog.v1"];
 const BACKUP_LAST = "dmforge.lastBackup";
-function backupMake() {
-  const data = {}; BACKUP_KEYS.forEach(k => { const v = localStorage.getItem(k); if (v !== null) data[k] = v; });
-  return { app: "dmforge-backup", v: 1, made: new Date().toISOString(), data };
+function backupData() { const data = {}; BACKUP_KEYS.forEach(k => { const v = localStorage.getItem(k); if (v !== null) data[k] = v; }); return data; }
+const blobToDataURL = b => new Promise((res, rej) => { const r = new FileReader(); r.onload = () => res(r.result); r.onerror = () => rej(r.error); r.readAsDataURL(b); });
+async function backupPictures() { try { return await MAPIMG.all(); } catch { return []; } }
+async function backupMake() {
+  const images = {};
+  for (const [k, b] of await backupPictures()) { try { images[k] = await blobToDataURL(b); } catch { } }
+  return { app: "dmforge-backup", v: 2, made: new Date().toISOString(), data: backupData(), images };
 }
-function backupSummary(data) {
+const sizeText = n => n >= 1048576 ? `${(n / 1048576).toFixed(1)} MB` : `${Math.max(1, Math.round(n / 1024))} KB`;
+function backupSummary(data, pics) {
   const n = (k, f) => { try { return f(JSON.parse(data[k] || "null")) || 0; } catch { return 0; } };
   const pcs = n("dmforge.pcs.v1", v => v && v.roster && v.roster.length), camps = n("dmforge.campaigns.v1", v => Array.isArray(v) && v.length);
   const plural = (x, w) => `${x} ${w}${x === 1 ? "" : "s"}`;
-  return `${plural(pcs, "character")} · ${plural(camps, "campaign")}`;
+  return `${plural(pcs, "character")} · ${plural(camps, "campaign")}${pics ? ` · ${plural(pics.n, "picture")}${pics.size ? ` (${sizeText(pics.size)})` : ""}` : ""}`;
 }
-function backupInfo() {
+async function backupInfo() {
   const last = localStorage.getItem(BACKUP_LAST), d = last ? new Date(last) : null;
   const when = !d ? "never" : d.toDateString() === new Date().toDateString() ? "today" : d.toLocaleDateString();
-  $("#backupInfo").textContent = `In this browser: ${backupSummary(backupMake().data)}. Last backup: ${when}.`;
+  const pics = await backupPictures(), size = pics.reduce((t, [, b]) => t + ((b && b.size) || 0), 0);
+  $("#backupInfo").textContent = `In this browser: ${backupSummary(backupData(), { n: pics.length, size })}. Last backup: ${when}.`;
 }
 function backupOpen() { backupInfo(); $("#backupModal").classList.add("open"); $("#backupDownload").focus(); }
 function backupClose() { $("#backupModal").classList.remove("open"); $("#backupBtn").focus(); }
@@ -41,19 +48,26 @@ async function backupRestore(file) {
   if (!bk || bk.app !== "dmforge-backup" || !bk.data || typeof bk.data !== "object" || Object.values(bk.data).some(v => typeof v !== "string")) {
     toast("That file isn't a Forge backup. Choose a file made with 💾 Backup."); return;
   }
+  const images = bk.images && typeof bk.images === "object" ? Object.entries(bk.images).filter(([, v]) => typeof v === "string" && v.startsWith("data:image/")) : null;
   const made = bk.made ? new Date(bk.made).toLocaleString() : "an unknown date";
   backupClose();
-  if (!(await confirmBox("Restore backup?", `Replace everything saved in this browser with the backup from ${made} (${backupSummary(bk.data)})? What's here now will be lost, so download a backup first if you might need it.`, "Replace"))) return;
+  const pics = images ? { n: images.length } : null;
+  if (!(await confirmBox("Restore backup?", `Replace everything saved in this browser with the backup from ${made} (${backupSummary(bk.data, pics)})? What's here now will be lost, so download a backup first if you might need it.${images ? "" : " This backup was made before backups held pictures, so the pictures here are kept."}`, "Replace"))) return;
   BACKUP_KEYS.forEach(k => { if (typeof bk.data[k] === "string") localStorage.setItem(k, bk.data[k]); else localStorage.removeItem(k); });
+  if (images) { // pictures: replace them too
+    toast("Restoring pictures…");
+    try { await MAPIMG.clear(); for (const [k, url] of images) await MAPIMG.put(k, await (await fetch(url)).blob()); }
+    catch { toast("Some pictures couldn't be restored"); await new Promise(r => setTimeout(r, 1500)); }
+  }
   location.reload();
 }
 $("#backupBtn").addEventListener("click", backupOpen);
 $("#backupClose").addEventListener("click", backupClose);
 $("#backupModal").addEventListener("click", e => { if (e.target.id === "backupModal") backupClose(); });
 $("#backupModal").addEventListener("keydown", e => { if (e.key === "Escape") backupClose(); });
-$("#backupDownload").addEventListener("click", () => {
+$("#backupDownload").addEventListener("click", async () => {
   const t = new Date(), ymd = [t.getFullYear(), t.getMonth() + 1, t.getDate()].map(x => String(x).padStart(2, "0")).join("-");
-  saveFile(`forge-backup-${ymd}.json`, JSON.stringify(backupMake()));
+  saveFile(`forge-backup-${ymd}.json`, JSON.stringify(await backupMake()));
   localStorage.setItem(BACKUP_LAST, new Date().toISOString()); backupInfo(); toast("Backup downloaded. Keep the file somewhere safe.");
 });
 $("#backupFile").addEventListener("change", e => { const f = e.target.files[0]; e.target.value = ""; if (f) backupRestore(f); });
