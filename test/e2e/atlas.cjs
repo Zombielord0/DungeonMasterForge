@@ -133,6 +133,8 @@ const server = http.createServer((req, res) => {
   check("atlas view: revealing a place also reveals the regions above it", await p.evaluate(ids => !!(wp(ids.frost).found && wp(ids.north).found && wp(ids.r).found), ids));
   const fits = await p.evaluate(ids => { const m = atlasOf(ids.r); m.pins[ids.bell] = { x: .5, y: .97, m: 1 }; atlasRender(); const pin = atlasPins(ids.r, false).find(x => x.id === ids.bell); atlasMenuShow(pin); const a = $("#atlasMenu").getBoundingClientRect(), w = $(".atlas-wrap").getBoundingClientRect(); atlasMenuHide(); return a.bottom <= w.bottom + 1 && a.top >= w.top - 1; }, ids);
   check("atlas view: a pin near the bottom opens its menu above it, inside the map", fits);
+  const offOk = await p.evaluate(ids => { const m = atlasOf(ids.r); delete m.pins[ids.witch]; m.off = [ids.witch]; atlasPinsFill(ids.r); const gone = !m.pins[ids.witch]; m.off = []; atlasPinsFill(ids.r); return gone && !!m.pins[ids.witch]; }, ids);
+  check("atlas view: a place taken off the map stays off until it's put back", offOk);
   // roll again with a new shape, rename a feature
   const seed0 = await p.evaluate(ids => atlasOf(ids.r).seed, ids);
   await p.selectOption("[data-at-shape]", "island"); await p.click('[data-at="roll"]');

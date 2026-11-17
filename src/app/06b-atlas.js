@@ -259,8 +259,9 @@ function atlasPinsFill(id) {
   const list = atlasPlaces(id), want = new Set(list.map(x => x.p.id));
   Object.keys(m.pins).forEach(k => { if (!want.has(k)) delete m.pins[k]; });
   const T = m.img ? null : atlasTerrain(m), taken = () => Object.values(m.pins);
+  const off = new Set(m.off || []); // places the DM took off this map
   for (const { p } of list) {
-    if (m.pins[p.id]) continue;
+    if (m.pins[p.id] || off.has(p.id)) continue;
     const r = makeRng("pin", m.seed + "|" + p.id); let best = null, bs = -Infinity;
     for (let k = 0; k < 400; k++) {
       const q = { x: .05 + r.f() * .9, y: .06 + r.f() * .88 };
