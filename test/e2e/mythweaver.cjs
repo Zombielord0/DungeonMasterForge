@@ -2,7 +2,7 @@
 const http = require("http"), fs = require("fs"), path = require("path");
 const { chromium } = require("playwright");
 const ROOT = path.join(__dirname, "..", "..", "public"), FIX = path.join(__dirname, "fixtures");
-const TYPES = { ".html": "text/html", ".js": "text/javascript", ".mjs": "text/javascript", ".json": "application/json", ".png": "image/png" };
+const TYPES = { ".html": "text/html", ".js": "text/javascript", ".mjs": "text/javascript", ".json": "application/json", ".css": "text/css", ".png": "image/png" };
 let fails = 0;
 const check = (name, ok, extra = "") => { console.log((ok ? "PASS " : "FAIL ") + name + (ok || !extra ? "" : "  -> " + extra)); if (!ok) fails++; };
 const server = http.createServer((req, res) => {
@@ -53,6 +53,8 @@ const SAMPLE = fs.readFileSync(path.join(FIX, "mythweaver-sample.json"), "utf8")
   check("its scores are starting scores, with the species bonus added", ch.base === 15 && ch.str === 16, JSON.stringify(ch));
   check("its class skills come across", ch.skills && ch.skills.includes("Athletics") && ch.skills.includes("Perception"), JSON.stringify(ch.skills));
   check("it remembers where it came from", ch.mw === "ch-brin");
+  const mwg = await p.evaluate(txt => { const j = JSON.parse(txt); j.characters[0].sheet.gender = "Female"; j.characters[0].backstory = "He is not."; const R = mwRead(j); const D = mwChar(R.characters[0], "2014"); return [importBuild(D).c.gender, D.report.matched.find(t => /Gender/.test(t))]; }, SAMPLE);
+  check("a MythWeaver character's gender comes across", mwg[0] === "female" && /from the file/.test(mwg[1] || ""), JSON.stringify(mwg));
   // importing again updates in place
   const U = await p.evaluate(txt => {
     const R = mwRead(JSON.parse(txt)), first = mwPlanCamp(R, 0, null).camp;

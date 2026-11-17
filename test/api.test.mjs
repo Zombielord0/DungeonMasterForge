@@ -169,9 +169,163 @@ test("full campaign flow", async (t) => {
   });
 });
 
+test("two saves of one sheet at the same moment: one wins, the other is asked", async () => {
+  const kit = { id: "u-kit", email: "kit@example.com" }, rue = { id: "u-rue", email: "rue@example.com" };
+  const made = await call(kit, "POST", "campaigns", { name: "Race Test", displayName: "Kit" });
+  const cid = made.body.id;
+  await call(rue, "POST", "join", { code: made.body.code, displayName: "Rue" });
+  const pc = { id: "pc-race", name: "Pip", hpCur: 10 };
+  // creating the same character twice at once: one is made, the other is told it exists (not a server error)
+  const [c1, c2] = await Promise.all([
+    call(rue, "POST", `campaigns/${cid}/characters`, { data: pc }),
+    call(rue, "POST", `campaigns/${cid}/characters`, { data: pc }),
+  ]);
+  assert.deepEqual([c1.status, c2.status].sort(), [201, 409]);
+  // the player and the DM both save from version 1 at once
+  const [a, b] = await Promise.all([
+    call(rue, "PUT", `campaigns/${cid}/characters/pc-race`, { data: { ...pc, hpCur: 4 }, baseVersion: 1 }),
+    call(kit, "PUT", `campaigns/${cid}/characters/pc-race`, { data: { ...pc, hpCur: 15 }, baseVersion: 1 }),
+  ]);
+  assert.deepEqual([a.status, b.status].sort(), [200, 409], "exactly one save wins");
+  const loser = a.status === 409 ? a : b, winner = a.status === 409 ? b : a;
+  assert.equal(winner.body.version, 2);
+  assert.equal(loser.body.current.version, 2, "the other is handed the winning version");
+  const now = (await call(kit, "GET", `campaigns/${cid}/characters`)).body.characters[0];
+  assert.equal(now.version, 2);
+  assert.equal(now.data.hpCur, loser.body.current.data.hpCur);
+  // the activity feed describes the save that won, from the version it replaced
+  const feed = (await call(kit, "GET", `campaigns/${cid}/activity`)).body.map(x => x.summary);
+  assert.equal(feed.filter(x => /HP 10 →/.test(x)).length, 1, feed.join(" | "));
+});
+
+test("the DM shares the Journal and turn order; players share their rolls", async () => {
+  const dm = { id: "u-sh-dm", email: "shdm@example.com" }, pl = { id: "u-sh-pl", email: "shpl@example.com" }, out = { id: "u-sh-x" };
+  const made = await call(dm, "POST", "campaigns", { name: "Shared", displayName: "DM" });
+  const cid = made.body.id;
+  await call(pl, "POST", "join", { code: made.body.code, displayName: "Pia" });
+  assert.deepEqual((await call(pl, "GET", `campaigns/${cid}/shared`)).body, {}, "nothing shared yet");
+  const journal = { quests: [{ title: "Find the bell", status: "Active" }] };
+  assert.equal((await call(pl, "PUT", `campaigns/${cid}/shared/journal`, { data: journal })).status, 403, "players can't publish");
+  assert.equal((await call(dm, "PUT", `campaigns/${cid}/shared/secrets`, { data: {} })).status, 404, "only the known kinds");
+  assert.equal((await call(dm, "PUT", `campaigns/${cid}/shared/journal`, { data: journal })).status, 200);
+  await call(dm, "PUT", `campaigns/${cid}/shared/turns`, { data: { round: 2, rows: [{ name: "Goblin", foe: true, cur: true, state: "Bloodied" }] } });
+  const seen = (await call(pl, "GET", `campaigns/${cid}/shared`)).body;
+  assert.equal(seen.journal.data.quests[0].title, "Find the bell");
+  assert.equal(seen.turns.data.round, 2);
+  assert.equal((await call(out, "GET", `campaigns/${cid}/shared`)).status, 403, "outsiders see nothing");
+  await call(dm, "DELETE", `campaigns/${cid}/shared/turns`);
+  assert.equal((await call(pl, "GET", `campaigns/${cid}/shared`)).body.turns, undefined, "the fight ended");
+  // rolls
+  await call(pl, "POST", `campaigns/${cid}/characters`, { data: { id: "pc-pia", name: "Pia", hpCur: 9 } });
+  await call(dm, "POST", `campaigns/${cid}/characters`, { data: { id: "pc-npc", name: "Guard", hpCur: 9 } });
+  assert.equal((await call(pl, "POST", `campaigns/${cid}/rolls`, { characterId: "pc-pia", text: "Perception: 17" })).status, 201);
+  assert.equal((await call(pl, "POST", `campaigns/${cid}/rolls`, { characterId: "pc-npc", text: "Stealth: 20" })).status, 403, "only for your own character");
+  assert.equal((await call(pl, "POST", `campaigns/${cid}/rolls`, { characterId: "pc-pia", text: "  " })).status, 400);
+  const feed = (await call(dm, "GET", `campaigns/${cid}/activity`)).body;
+  assert.equal(feed[0].summary, "🎲 Perception: 17");
+  assert.equal(feed[0].characterName, "Pia");
+});
+
+test("shared data is stored in its expected shape only, so no markup reaches players", async () => {
+  const dm = { id: "u-xs-dm", email: "xsdm@example.com" };
+  const cid = (await call(dm, "POST", "campaigns", { name: "XSS check", displayName: "DM" })).body.id;
+  const bad = "<img src=x onerror=alert(1)>";
+  const r = await call(dm, "PUT", `campaigns/${cid}/shared/turns`, { data: { name: "Fight", round: bad, evil: bad, rows: [{ name: "Goblin", foe: "yes", cur: 1, state: bad, hp: 7 }, "junk"] } });
+  assert.equal(r.status, 200);
+  const t = (await call(dm, "GET", `campaigns/${cid}/shared`)).body.turns.data;
+  assert.equal(t.round, 0, "a round that isn't a number is stored as 0");
+  assert.equal(t.evil, undefined, "unknown fields are dropped");
+  assert.deepEqual(t.rows, [{ name: "Goblin", foe: true, cur: true, state: "" }], "rows keep only name, foe, cur and a known state; never HP");
+  assert.equal((await call(dm, "PUT", `campaigns/${cid}/shared/turns`, { data: { name: "F", round: 3, rows: [] } })).status, 200);
+  assert.equal((await call(dm, "GET", `campaigns/${cid}/shared`)).body.turns.data.round, 3);
+  await call(dm, "PUT", `campaigns/${cid}/shared/journal`, { data: { name: "J", extra: bad, cal: { day: bad, season: "Spring", weather: "Rain" },
+    quests: [{ id: "q", title: "Find it", status: bad, giver: "Rue", notes: "secret" }], sessions: [{ id: "s", title: "One", num: 1, date: "2026-11-10", summary: "Hi" }],
+    lore: [{ id: "l", name: "Tower", type: bad, tags: ["a", 5], imgUrl: "javascript:alert(1)", desc: "Old", sections: [{ t: "H", x: "Y", dm: true }] }] } });
+  const j = (await call(dm, "GET", `campaigns/${cid}/shared`)).body.journal.data;
+  assert.equal(j.extra, undefined);
+  assert.equal(j.cal.day, 0);
+  assert.equal(j.quests[0].status, "Active", "an unknown quest status becomes Active");
+  assert.equal(j.quests[0].notes, undefined, "quest notes never go to players");
+  assert.equal(j.lore[0].type, "other");
+  assert.equal(j.lore[0].imgUrl, undefined, "only https picture links");
+  assert.deepEqual(j.lore[0].tags, ["a"]);
+  assert.deepEqual(j.lore[0].sections, [{ t: "H", x: "Y" }]);
+});
+
 test("a DM can create a campaign without naming it", async () => {
   const r = await call({ id: "u-new", email: "new@example.com" }, "POST", "campaigns", {});
   assert.equal(r.status, 201);
   assert.equal(r.body.name, "New Campaign");
   assert.equal(r.body.displayName, "DM");
+});
+
+test("each account keeps its own private saved data (Tracker, World, NPCs)", async t => {
+  const camp = { id: "c-velmor", name: "Ashes of Velmor", npcs: [{ id: "n1", name: "Sera" }] };
+  await t.test("starts empty", async () => {
+    const r = await call(DM, "GET", "me/docs");
+    assert.equal(r.status, 200);
+    assert.deepEqual(r.body, { docs: [], deleted: [] });
+  });
+  await t.test("saving a new doc gives version 1", async () => {
+    const r = await call(DM, "PUT", "me/docs/c-velmor", { data: camp, baseVersion: 0 });
+    assert.equal(r.status, 200);
+    assert.equal(r.body.version, 1);
+  });
+  await t.test("saving from an older copy is refused with the current one", async () => {
+    const ok = await call(DM, "PUT", "me/docs/c-velmor", { data: { ...camp, name: "Velmor" }, baseVersion: 1 });
+    assert.equal(ok.body.version, 2);
+    const clash = await call(DM, "PUT", "me/docs/c-velmor", { data: { ...camp, name: "Old copy" }, baseVersion: 1 });
+    assert.equal(clash.status, 409);
+    assert.equal(clash.body.current.version, 2);
+    assert.equal(clash.body.current.data.name, "Velmor");
+    const forced = await call(DM, "PUT", "me/docs/c-velmor", { data: { ...camp, name: "Old copy" }, baseVersion: 1, force: true });
+    assert.equal(forced.body.version, 3);
+  });
+  await t.test("a new doc with an id that's already saved is a clash", async () => {
+    const r = await call(DM, "PUT", "me/docs/c-velmor", { data: camp, baseVersion: 0 });
+    assert.equal(r.status, 409);
+  });
+  await t.test("nobody else can see it", async () => {
+    const r = await call(AVA, "GET", "me/docs");
+    assert.deepEqual(r.body.docs, []);
+    const w = await call(AVA, "PUT", "me/docs/c-velmor", { data: { name: "Ava's own" }, baseVersion: 0 });
+    assert.equal(w.status, 200, "the same id in another account is a separate doc");
+    const mine = await call(DM, "GET", "me/docs");
+    assert.equal(mine.body.docs.find(d => d.id === "c-velmor").data.name, "Old copy");
+  });
+  await t.test("deleting leaves a marker so other devices drop their copy", async () => {
+    await call(DM, "PUT", "me/docs/world", { data: { places: [{ id: "p1", name: "Velmor" }] }, baseVersion: 0 });
+    const d = await call(DM, "DELETE", "me/docs/c-velmor");
+    assert.equal(d.status, 200);
+    const r = await call(DM, "GET", "me/docs");
+    assert.deepEqual(r.body.docs.map(x => x.id), ["world"]);
+    assert.deepEqual(r.body.deleted, ["c-velmor"]);
+    const again = await call(DM, "PUT", "me/docs/c-velmor", { data: camp, baseVersion: 0 });
+    assert.equal(again.status, 200, "a deleted id can be saved again");
+    assert.deepEqual((await call(DM, "GET", "me/docs")).body.deleted, []);
+  });
+  await t.test("two devices saving from the same copy at once: one is told to merge", async () => {
+    const base = (await call(DM, "PUT", "me/docs/mymonsters", { data: [{ id: "m1" }], baseVersion: 0 })).body.version;
+    const [x, y] = await Promise.all([
+      call(DM, "PUT", "me/docs/mymonsters", { data: [{ id: "m1" }, { id: "m2" }], baseVersion: base }),
+      call(DM, "PUT", "me/docs/mymonsters", { data: [{ id: "m1" }, { id: "m3" }], baseVersion: base }),
+    ]);
+    assert.deepEqual([x.status, y.status].sort(), [200, 409]);
+  });
+  await t.test("a list (Your NPCs, My monsters) saves and comes back as a list", async () => {
+    const npcs = [{ id: "nl-1", name: "Old Tom" }, { id: "nl-2", name: "Sera" }];
+    const r = await call(DM, "PUT", "me/docs/npclib", { data: npcs, baseVersion: 0 });
+    assert.equal(r.status, 200);
+    assert.deepEqual((await call(DM, "GET", "me/docs")).body.docs.find(d => d.id === "npclib").data, npcs);
+  });
+  await t.test("bad ids, missing data and oversized docs are refused", async () => {
+    assert.equal((await call(DM, "PUT", "me/docs/../x", { data: {} })).status, 404);
+    assert.equal((await call(DM, "PUT", "me/docs/has%20space", { data: {} })).status, 400);
+    assert.equal((await call(DM, "PUT", "me/docs/c-x", {})).status, 400);
+    const big = { notes: "x".repeat(4_100_000) };
+    assert.equal((await call(DM, "PUT", "me/docs/c-big", { data: big, baseVersion: 0 })).status, 413);
+  });
+  await t.test("signed out: refused", async () => {
+    assert.equal((await call(null, "GET", "me/docs")).status, 401);
+  });
 });

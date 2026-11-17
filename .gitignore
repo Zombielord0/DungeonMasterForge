@@ -2,3 +2,7 @@ node_modules/
 public/portal.js
 .netlify/
 .dev/
+# Built by tools/build.mjs from src/ and data/ (npm run build:app)
+public/index.html
+public/sw.js
+public/assets/

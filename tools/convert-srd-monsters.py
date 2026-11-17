@@ -1,6 +1,6 @@
-# Builds the Monster Manual data embedded in public/index.html (<script id="monsterData">)
+# Builds the Monster Manual data in data/monsters.json (run npm run build:data afterwards to update the app).
 # from the Open5e SRD 5.1 / 5.2 fixtures (github.com/open5e/open5e-api, data/v2/wizards-of-the-coast).
-# Usage: python3 tools/convert-srd-monsters.py <open5e>/data/v2/wizards-of-the-coast monsters.json
+# Usage: python3 tools/convert-srd-monsters.py <open5e>/data/v2/wizards-of-the-coast data/monsters.json
 import json, sys, re
 from collections import defaultdict
 D, OUT = sys.argv[1], sys.argv[2]

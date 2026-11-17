@@ -4,7 +4,8 @@ Live at https://dungeonmasterforge.netlify.app
 
 ## Layout
 
-- `public/index.html`: the Forge itself (one page). **Upload new versions of the HTML here**, replacing this file.
+- `src/index.html`, `src/app.css` and `src/app/*.js`: the Forge itself (one page). `npm run build` puts them together into `public/index.html` and `public/assets/`.
+- `data/`: the built-in spells, monsters and items.
 - `src/portal.js`: player and DM portals (sign-in, shared characters, Party tab, whispers). Built into `public/portal.js`.
 - `netlify/functions/api.mjs` + `netlify/lib/`: the campaign API at `/api/*`.
 - `netlify/database/migrations/`: database tables, applied automatically on deploy.
@@ -12,10 +13,12 @@ Live at https://dungeonmasterforge.netlify.app
 ## How the portals work
 
 - The DM signs in, creates a campaign and shares its join code. The campaign name is optional (it's "New Campaign" until renamed), and the DM can rename it from the account button. **Not now** on the setup screen lets a new DM look around first.
-- Players create an account, enter the code once, and see: Characters, My Characters, Spells, Items, Whispers.
+- Players create an account, enter the code once, and see: Characters, My Characters, Spells, Items, Journal, Whispers.
+- The players' **Journal** shows the quests, session recaps and Lore the DM shares (quest notes and DM-only sections never). The DM's **📱 Show players** button on an encounter puts the turn order on players' phones (Bloodied or Down, never HP). Players can tick **Share my rolls with the DM** in the roll dock.
 - The DM sees every tool plus **Party**: every player's sheet (click to view or edit), an activity feed of changes, and whispers to one player.
 - The DM's **Homebrew** tab adds custom subclasses, backgrounds, feats and species. Everyone in the campaign sees them in the character creator, Level up window and feat list; only the DM can change them.
 - If the DM and a player save the same sheet at once, whoever saves second is asked which version to keep.
+- Signed in, the DM's Campaign Tracker, World, NPCs, custom items and homebrew monsters are saved privately to their account, so they're on every device they sign in on. Changes made without a connection upload when it comes back.
 - "Use without an account" keeps the old behaviour: DM tools, saved in this browser only.
 
 ## Dungeon maps
@@ -153,7 +156,8 @@ Signed-in accounts don't need this, because their data is saved on the server.
 ```bash
 npm install
 npm test          # API tests against a local Postgres
-npm run build     # bundle src/portal.js
+npm run test:all  # every check, with one pass/fail list at the end (Windows too)
+npm run build     # build the page from src/ and data/, and bundle src/portal.js
 ```
 
 ### Try the whole app on your computer (Windows, Mac or Linux)
@@ -172,6 +176,7 @@ Open http://localhost:8899. Sign-in is a stand-in: any name, email and password 
 Same stand-in login (Netlify's login doesn't run locally):
 
 ```bash
+npm run build:app
 npx esbuild src/portal.js --bundle --format=esm --alias:@netlify/identity=./test/e2e/fake-identity.js --outfile=/tmp/portal-test.js
 node test/e2e/server.mjs /tmp/portal-test.js 8899 &
 node test/e2e/walkthrough.cjs /tmp

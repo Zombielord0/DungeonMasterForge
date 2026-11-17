@@ -6,7 +6,12 @@ import { describeChange } from "./diff.mjs";
 const MAX_SHEET_BYTES = 300_000;
 const MAX_WHISPER = 2000;
 const MAX_HOMEBREW_BYTES = 50_000;
-const HOMEBREW_KINDS = ["subclass", "background", "feat", "species", "spell"];
+const HOMEBREW_KINDS = ["class", "subclass", "background", "feat", "species", "spell"];
+const SHARED_IDS = ["journal", "turns"];
+const MAX_SHARED_BYTES = 1_000_000;
+const MAX_ROLL = 200;
+const MAX_DOC_BYTES = 4_000_000;     // one saved Tracker campaign or list (a big MythWeaver campaign is about 1.4 MB)
+const MAX_USER_BYTES = 40_000_000;   // everything one account keeps
 const MERGE_WINDOW = "60 seconds";
 const CODE_CHARS = "ABCDEFGHJKMNPQRSTUVWXYZ23456789"; // no 0/O, 1/I/L
 
@@ -71,6 +76,30 @@ async function getChar(db, cid, id) {
   return rows[0] || null;
 }
 
+/* What the DM shares with players, rebuilt field by field: only the expected fields, as plain strings, numbers and booleans.
+   Players' browsers draw these, so nothing else (and never quest notes or DM-only sections) is passed on. */
+const str = (v, n) => typeof v === "string" ? v.slice(0, n) : typeof v === "number" ? String(v).slice(0, n) : "";
+const num = v => (typeof v === "number" && Number.isFinite(v) ? Math.max(0, Math.min(99999, Math.floor(v))) : 0);
+const arr = (v, n) => (Array.isArray(v) ? v.slice(0, n).filter(x => x && typeof x === "object" && !Array.isArray(x)) : []);
+function sharedClean(id, d) {
+  if (id === "turns") return {
+    name: str(d.name, 120), round: num(d.round),
+    rows: arr(d.rows, 80).map(r => ({ name: str(r.name, 80), foe: !!r.foe, cur: !!r.cur, state: ["Bloodied", "Down"].includes(r.state) ? r.state : "" })),
+  };
+  const cal = d.cal && typeof d.cal === "object" ? { day: num(d.cal.day), season: str(d.cal.season, 20), weather: str(d.cal.weather, 300) } : null;
+  return {
+    name: str(d.name, 120), cal,
+    quests: arr(d.quests, 300).map(q => ({ id: str(q.id, 64), title: str(q.title, 200), status: ["Active", "On hold", "Completed", "Failed"].includes(q.status) ? q.status : "Active", giver: str(q.giver, 120) })),
+    sessions: arr(d.sessions, 300).map(x => ({ id: str(x.id, 64), title: str(x.title, 200), num: str(x.num, 10), date: str(x.date, 20), summary: str(x.summary, 20000) })),
+    lore: arr(d.lore, 500).map(x => ({
+      id: str(x.id, 64), name: str(x.name, 120), type: ["place", "item", "monster", "encounter", "other"].includes(x.type) ? x.type : "other",
+      tags: (Array.isArray(x.tags) ? x.tags : []).filter(t => typeof t === "string").slice(0, 30).map(t => t.slice(0, 60)),
+      ...(typeof x.imgUrl === "string" && /^https:\/\/[^\s"'<>]+$/i.test(x.imgUrl) && x.imgUrl.length <= 500 ? { imgUrl: x.imgUrl } : {}),
+      desc: str(x.desc, 8000), sections: arr(x.sections, 40).map(z => ({ t: str(z.t, 120), x: str(z.x, 12000) })),
+    })),
+  };
+}
+
 function sheet(data) {
   if (!data || typeof data !== "object" || Array.isArray(data)) throw new HttpError(400, "Character data is missing");
   if (JSON.stringify(data).length > MAX_SHEET_BYTES) throw new HttpError(413, "This character sheet is too large to save");
@@ -82,7 +111,7 @@ function homebrewItem(id, data) {
   if (!data || typeof data !== "object" || Array.isArray(data)) throw new HttpError(400, "Homebrew data is missing");
   if (!HOMEBREW_KINDS.includes(data.kind)) throw new HttpError(400, "Unknown kind of homebrew");
   if (!clean(data.name, 80)) throw new HttpError(400, "Give it a name");
-  if (JSON.stringify(data).length > MAX_HOMEBREW_BYTES) throw new HttpError(413, "This homebrew entry is too large to save");
+  if (JSON.stringify(data).length > (data.kind === "class" ? MAX_HOMEBREW_BYTES * 6 : MAX_HOMEBREW_BYTES)) throw new HttpError(413, "This homebrew entry is too large to save"); // a class carries 20 levels of features
   return { ...data, id };
 }
 
@@ -95,7 +124,7 @@ export async function handle(req, user, db) {
     const [a, cid, b, id, c] = path;
 
     // ---- who am I, which campaigns ----
-    if (a === "me" && m === "GET") {
+    if (a === "me" && !cid && m === "GET") {
       const { rows } = await db.query(
         `SELECT k.id, k.name, k.code, m.role, m.display_name
            FROM members m JOIN campaigns k ON k.id = m.campaign_id
@@ -104,6 +133,55 @@ export async function handle(req, user, db) {
         user: { id: user.id, email: user.email, name: user.name },
         campaigns: rows.map(r => ({ id: r.id, name: r.name, role: r.role, displayName: r.display_name, code: r.role === "dm" ? r.code : undefined })),
       });
+    }
+
+    // ---- this account's own saved data (private: the Tracker, World, NPCs, custom items, My monsters) ----
+    if (a === "me" && cid === "docs") {
+      const docId = b;
+      if (!docId && m === "GET") {
+        const { rows } = await db.query(
+          "SELECT id, data, version, updated_at, deleted_at FROM user_docs WHERE user_id = $1 ORDER BY id", [user.id]);
+        return json({
+          docs: rows.filter(r => !r.deleted_at).map(r => ({ id: r.id, data: r.data, version: r.version, updatedAt: r.updated_at })),
+          deleted: rows.filter(r => r.deleted_at).map(r => r.id),
+        });
+      }
+      if (!docId || id) throw new HttpError(404, "Not found");
+      if (!/^[\w.-]{1,80}$/.test(docId)) throw new HttpError(400, "Bad id");
+      const { rows: [cur] } = await db.query(
+        "SELECT data, version, updated_at, deleted_at FROM user_docs WHERE user_id = $1 AND id = $2", [user.id, docId]);
+      const live = cur && !cur.deleted_at;
+      if (m === "DELETE") {
+        if (live) await db.query(
+          "UPDATE user_docs SET data = NULL, deleted_at = now(), updated_at = now(), version = version + 1 WHERE user_id = $1 AND id = $2",
+          [user.id, docId]);
+        return json({ ok: true });
+      }
+      if (m !== "PUT") throw new HttpError(404, "Not found");
+      const p = await body(req);
+      if (!p.data || typeof p.data !== "object") throw new HttpError(400, "Nothing to save");
+      const size = JSON.stringify(p.data).length;
+      if (size > MAX_DOC_BYTES) throw new HttpError(413, "This is too large to save to your account (over 4 MB). Trim long notes or split the campaign.");
+      const { rows: [{ total }] } = await db.query(
+        "SELECT COALESCE(SUM(octet_length(data::text)), 0)::bigint AS total FROM user_docs WHERE user_id = $1 AND id <> $2 AND deleted_at IS NULL",
+        [user.id, docId]);
+      if (Number(total) + size > MAX_USER_BYTES) throw new HttpError(413, "Your account's storage is full (40 MB). Delete an old campaign to make room.");
+      // Save only if nobody saved since this copy was loaded (or the caller chose to overwrite). The check is part of the
+      // same statement, so two devices saving at the same moment can't both pass it.
+      const text = JSON.stringify(p.data); // as text: pg would send a JS array as a Postgres array
+      const { rows } = cur
+        ? await db.query(
+          `UPDATE user_docs SET data = $3::jsonb, version = version + 1, updated_at = now(), deleted_at = NULL
+            WHERE user_id = $1 AND id = $2 AND ($4 OR deleted_at IS NOT NULL OR version = $5) RETURNING version`,
+          [user.id, docId, text, !!p.force, Number(p.baseVersion || 0)])
+        : await db.query(
+          `INSERT INTO user_docs (user_id, id, data) VALUES ($1, $2, $3::jsonb) ON CONFLICT (user_id, id) DO NOTHING RETURNING version`,
+          [user.id, docId, text]);
+      if (!rows.length) { // another device got there first: hand back its version
+        const { rows: [now] } = await db.query("SELECT data, version, updated_at FROM user_docs WHERE user_id = $1 AND id = $2", [user.id, docId]);
+        throw new HttpError(409, "Changed on another device", { current: { data: now.data, version: now.version, updatedAt: now.updated_at } });
+      }
+      return json({ version: rows[0].version });
     }
 
     if (a === "campaigns" && !cid && m === "POST") {
@@ -201,9 +279,15 @@ export async function handle(req, user, db) {
         if (existing.owner_id !== user.id && !isDM) throw new HttpError(403, "That character belongs to someone else");
         await db.query("DELETE FROM characters WHERE campaign_id = $1 AND id = $2", [cid, charId]);
       }
-      await db.query(
-        "INSERT INTO characters (campaign_id, id, owner_id, data, updated_by) VALUES ($1, $2, $3, $4, $3)",
-        [cid, charId, user.id, data]);
+      try {
+        await db.query(
+          "INSERT INTO characters (campaign_id, id, owner_id, data, updated_by) VALUES ($1, $2, $3, $4, $3)",
+          [cid, charId, user.id, data]);
+      } catch (e) { // made at the same moment by another save: hand that one back, as above
+        if (e.code !== "23505") throw e;
+        const now = await getChar(db, cid, charId);
+        throw new HttpError(409, "That character already exists", now ? { current: charRow(now) } : undefined);
+      }
       await logActivity(db, cid, charId, user.id, null, data);
       return json(charRow(await getChar(db, cid, charId)), 201);
     }
@@ -228,11 +312,19 @@ export async function handle(req, user, db) {
       if (!p.force && Number(p.baseVersion) !== cur.version) {
         throw new HttpError(409, "Someone else changed this sheet", { current: charRow(cur) });
       }
-      const { rows: [{ version }] } = await db.query(
+      // The version check is repeated inside the UPDATE, so two saves at the same moment can't both pass it:
+      // the second finds the version already moved on and is handed the winning sheet.
+      const { rows } = await db.query(
         `UPDATE characters SET data = $3, version = version + 1, updated_at = now(), updated_by = $4
-          WHERE campaign_id = $1 AND id = $2 RETURNING version`, [cid, id, data, user.id]);
+          WHERE campaign_id = $1 AND id = $2 AND deleted_at IS NULL AND ($5 OR version = $6) RETURNING version`,
+        [cid, id, data, user.id, !!p.force, Number(p.baseVersion)]);
+      if (!rows.length) {
+        const now = await getChar(db, cid, id);
+        if (!now || now.deleted_at) throw new HttpError(404, "That character no longer exists");
+        throw new HttpError(409, "Someone else changed this sheet", { current: charRow(now) });
+      }
       await logActivity(db, cid, id, user.id, cur.data, data);
-      return json({ version });
+      return json({ version: rows[0].version });
     }
 
     // ---- homebrew: everyone in the campaign reads it, only the DM changes it ----
@@ -252,6 +344,39 @@ export async function handle(req, user, db) {
       dmOnly();
       await db.query("DELETE FROM homebrew WHERE campaign_id = $1 AND id = $2", [cid, id]);
       return json({ ok: true });
+    }
+
+    // ---- what the DM shows the campaign: the players' Journal and the live turn order ----
+    if (b === "shared" && !id && m === "GET") {
+      const { rows } = await db.query("SELECT id, data, updated_at FROM campaign_shared WHERE campaign_id = $1", [cid]);
+      return json(Object.fromEntries(rows.map(r => [r.id, { data: r.data, updatedAt: r.updated_at }])));
+    }
+    if (b === "shared" && id && !c && (m === "PUT" || m === "DELETE")) {
+      dmOnly();
+      if (!SHARED_IDS.includes(id)) throw new HttpError(404, "Not found");
+      if (m === "DELETE") { await db.query("DELETE FROM campaign_shared WHERE campaign_id = $1 AND id = $2", [cid, id]); return json({ ok: true }); }
+      const p = await body(req);
+      if (!p.data || typeof p.data !== "object" || Array.isArray(p.data)) throw new HttpError(400, "Nothing to share");
+      if (JSON.stringify(p.data).length > MAX_SHARED_BYTES) throw new HttpError(413, "Too much to share with the players at once");
+      const text = JSON.stringify(sharedClean(id, p.data));
+      await db.query(
+        `INSERT INTO campaign_shared (campaign_id, id, data) VALUES ($1, $2, $3::jsonb)
+         ON CONFLICT (campaign_id, id) DO UPDATE SET data = EXCLUDED.data, updated_at = now()`, [cid, id, text]);
+      return json({ ok: true });
+    }
+
+    // ---- a dice roll a player shares with the DM: a line in the activity feed ----
+    if (b === "rolls" && !id && m === "POST") {
+      const p = await body(req);
+      const text = clean(p.text, MAX_ROLL);
+      if (!text) throw new HttpError(400, "Nothing rolled");
+      const ch = await getChar(db, cid, clean(p.characterId, 64));
+      if (!ch || ch.deleted_at) throw new HttpError(404, "That character no longer exists");
+      if (ch.owner_id !== user.id && !isDM) throw new HttpError(403, "That character belongs to someone else");
+      await db.query(
+        "INSERT INTO activity (campaign_id, character_id, actor_id, summary) VALUES ($1, $2, $3, $4)",
+        [cid, ch.id, user.id, "🎲 " + text]);
+      return json({ ok: true }, 201);
     }
 
     // ---- activity feed (DM) ----

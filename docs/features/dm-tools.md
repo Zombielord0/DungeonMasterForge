@@ -1,0 +1,58 @@
+# DM tools: shops, random encounters, calendar, recaps, backup
+
+Code: shops in `src/app/11-items-shops.js`; random encounters, the calendar and recaps in `05-tracker.js`; backup in `04-storage.js`.
+
+Moved here from `CLAUDE.md` on 2026-11-17, unchanged except that `public/index.html` now means the files in `src/app/` (see "How the page is built" in `CLAUDE.md`).
+
+## Shops (2026-11-15)
+
+- **Making a shop.** `shopMake({type, size, level, seed, ed})` builds a shop from `IT.data`, and the same seed always gives the same shop. It returns `{name, label, keeper, mood, stock}`, with each stock item as `{id, n, cat, g, kind, rk, gp, c, qty}`.
+  - **Shop kinds** are in `SHOPS` (`general`, `smith`, `bowyer`, `alchemist`, `magic`, `temple`). Each has a `gear` filter, a `magic` filter, and stock counts for village, town and city.
+  - **Magic rarity** is capped by settlement and level: villages sell up to uncommon; towns up to rare from level 5; cities up to very rare from level 11.
+  - **Prices:** the shopkeeper's manner (`SHOP_MOODS`) scales them, and `shopNiceGp` rounds them.
+- **On the page.** `#itShopBtn` opens it in `#itShop` on the Items tab, through `shopNew` and `shopRender`. The shop is held in `IT.shop` and isn't saved.
+  - Buy calls the existing `itBuy` with the shop's price, and lowers `qty` only if the coins actually changed.
+- **Tests:** `npm run test:shop` (`test/e2e/shop.cjs`).
+
+## Random encounters (2026-11-15)
+
+- **Building a fight.** `randomEncounter(rng, env, level, party, diff)` picks monsters from the 2014 Monster Manual data (`randMonsters()`, which reads `#monsterData`), filtered by their `env` tags. It sizes the group against `partyThr` with the usual `mult` multiplier, capped at 1.5× the target. It returns `{groups, hook}`.
+  - When nothing fits, it falls back to the weakest monster that lives there.
+- **On the page.** `randHTML()` draws the controls at the top of the Encounters tab: `#randEnv`, `#randDiff` and `#randRoll`, with the current choices kept in `RAND`.
+  - `randRoll(c)` creates the encounter with `kind:"random"` and the hook in its notes, and takes AC and HP from the Monster Manual.
+- **Places** are listed in `RAND_ENVS`; the hooks in `RAND_HOOKS`.
+- **Tests:** `npm run test:random` (`test/e2e/random-enc.cjs`).
+
+## Calendar and weather (2026-11-15)
+
+- **Data.** `c.cal = {day, min, climate, season, weather, log}`. `calEnsure(c)` creates it, `calAdvance(c, minutes, note)` moves the clock and rolls each new day's weather, and `calLog` keeps the 200 most recent entries.
+- **Weather.** `calWeather(seed, day, climate, season)` follows the usual d20 tables for temperature, wind and precipitation, seeded by campaign and day. It returns `{day, f, sky, text, effects}`.
+  - `effects` holds the rules text for strong wind, heavy rain or snow, extreme cold and extreme heat.
+  - Climates are in `CAL_CLIMATES`; the season changes every 91 days (`calSeason`).
+- **On the page.** The Campaign Tracker has a "Calendar" sub-tab (`calHTML`), with `data-cal` buttons and the `#calClimate`, `#calSeason` and `#calDay` fields.
+- **Tests:** `npm run test:calendar` (`test/e2e/calendar.cjs`).
+
+## Session recaps (2026-11-15)
+
+- **What goes in.** `recapMake(c)` collects everything since `c.recapAt`, and returns `{text, empty, mark()}`:
+  - fights with status Done or with XP awarded, unless they have `e.recapped`
+  - quests that are Completed or Failed, unless `q.recappedAs` already matches their status
+  - chapters that are done, unless they have `ch.recapped`
+  - loot with `givenTo`, unless it has `l.recapped`
+  - calendar log entries newer than `c.recapAt`
+- **Marking.** `mark()` sets those flags plus `c.recapAt` and `c.recapDay`, so the next recap only has what's new.
+- **On the page.** `recapWrite(c)` adds `{title:"Session N", num, date, summary}` to `c.sessions` (newest first). `recapBarHTML()` adds the `#recapBtn` bar to the top of the Sessions tab.
+- **Tests:** `npm run test:recap` (`test/e2e/recap.cjs`).
+
+## Backup and restore (2026-11-15)
+
+- **💾 Backup** (`#backupBtn`, beside the storage badge) appears only in browser-only mode; `setBadge` hides it when `Store.mode === "db"`. It opens `#backupModal`.
+- **The file format:** `{app:"dmforge-backup", v:1, made, data:{key: raw localStorage string}}`, holding the keys in `BACKUP_KEYS`.
+  - **When you add a new kind of saved data, add its key to `BACKUP_KEYS`.**
+  - Settings are left out on purpose: offline mode, the header, What's new, and the portal's keys.
+- **Functions:** `backupMake`, `backupSummary`, `backupInfo`, `backupOpen`/`backupClose` and `backupRestore(file)`.
+  - Restoring checks the `app` marker, asks with `confirmBox`, writes every key in `BACKUP_KEYS` (removing ones the backup doesn't have) and reloads.
+  - The last download time is kept in `dmforge.lastBackup`.
+- **Downloads:** `saveFile` now falls back to a normal browser download (Blob and `<a download>`) when the Claude `downloads` helper isn't there. Before this, Download PNG and Export JSON did nothing on the website.
+- **Tests:** `npm run test:backup` (`test/e2e/backup.cjs`).
+- **Pictures (2026-11-17):** backups are `v: 2` with `images: {key: data URL}` for every picture in `MAPIMG` (imported maps and NPC pictures; `MAPIMG.all()` and `MAPIMG.clear()`). `backupMake` is async. The window counts pictures and their size. Restoring a v2 backup clears the picture store and puts the backup's pictures back; a v1 backup keeps the pictures that are there (and says so).

@@ -2,7 +2,7 @@
 const http = require("http"), fs = require("fs"), path = require("path");
 const { chromium } = require("playwright");
 const ROOT = path.join(__dirname, "..", "..", "public"), FIX = path.join(__dirname, "fixtures");
-const TYPES = { ".html": "text/html", ".js": "text/javascript", ".mjs": "text/javascript", ".json": "application/json", ".png": "image/png", ".pdf": "application/pdf" };
+const TYPES = { ".html": "text/html", ".js": "text/javascript", ".mjs": "text/javascript", ".json": "application/json", ".css": "text/css", ".png": "image/png", ".pdf": "application/pdf" };
 let fails = 0;
 const check = (name, ok, extra = "") => { console.log((ok ? "PASS " : "FAIL ") + name + (ok || !extra ? "" : "  -> " + extra)); if (!ok) fails++; };
 const server = http.createServer((req, res) => {
@@ -62,9 +62,46 @@ const ZOOK = fs.readFileSync(path.join(FIX, "companion-zook.json"), "utf8");
   const s24 = await p.evaluate(txt => { const d = compImport(JSON.parse(txt), "2024"); return d.error || importBuild(d).c.scores; }, ZOOK);
   check("importing as 2024 rules keeps the scores too", JSON.stringify(s24) === JSON.stringify({ str: 5, dex: 12, con: 13, int: 14, wis: 15, cha: 9 }), JSON.stringify(s24));
 
+  // gender: a field in the file, else the pronouns in the character's own story; rules text and "he or she" don't count
+  const g = await p.evaluate(txt => {
+    const base = JSON.parse(txt), build = j => { const d = compImport(j, "2014"); return { g: importBuild(d).c.gender, rep: d.report }; };
+    return {
+      field: build({ ...base, gender: "Female", about: "He is a he, his, him." }),
+      story: build({ ...base, about: "She left her village when she was young. Her brother still writes to her.", notes: [] }),
+      storyM: build({ ...base, about: "He sailed with his father until he lost him at sea.", notes: [] }),
+      none: build({ ...base, about: "A ranger who keeps to the woods. Each player may choose; he or she decides.", notes: [], personalityTraits: "", ideals: "", bonds: "", flaws: "" }),
+      unit: [impGender({ pronouns: "they/them" }, ["She she she"]).g, impGender({ x: { sex: "M" } }, []).g, impGender({}, ["his or her choice, he/she may"]).g],
+    };
+  }, ZOOK);
+  check("a gender field in the file is used", g.field.g === "female" && g.field.rep.matched.some(t => /Gender: female \(from the file\)/.test(t)), JSON.stringify(g.field));
+  check("otherwise the backstory's pronouns are used", g.story.g === "female" && g.storyM.g === "male" && g.story.rep.matched.some(t => /from the backstory/.test(t)), JSON.stringify([g.story.g, g.storyM.g]));
+  check("with nothing to go on, the report says it was picked", ["male", "female"].includes(g.none.g) && g.none.rep.differ.some(t => /doesn't say the character's gender/.test(t)), JSON.stringify(g.none.rep.differ));
+  check("pronouns a field gives that the Forge has no names for, a nested 'sex', and 'he or she' text", JSON.stringify(g.unit) === JSON.stringify(["", "male", ""]), JSON.stringify(g.unit));
+
   // refusals
-  const bh = await p.evaluate(txt => { const j = JSON.parse(txt); j.jobs = [{ jobId: "blood_hunter", level: 3 }]; j.allRequiredClasses = { jobs: [JSON.stringify({ id: "blood_hunter", name: "Blood Hunter", archetypes: [] })] }; return compImport(j, "2014"); }, ZOOK);
-  check("an unknown class is refused by name", /doesn't support the Blood Hunter class/.test(bh.error || ""), JSON.stringify(bh.error));
+  // a class the Forge doesn't have becomes a homebrew class, built from the app's own rules text
+  const bh = await p.evaluate(txt => {
+    const j = JSON.parse(txt), ft = (level, name, text) => ({ level, feat: { name, descriptionModels: [{ description: text }] } });
+    j.jobs = [{ jobId: "blood_hunter", level: 5, archetypeId: "bh_lycan" }];
+    j.allRequiredClasses = { jobs: [JSON.stringify({ id: "blood_hunter", name: "Blood Hunter", hitDie: "D10", savingThrows: { str: false, dex: true, con: false, intelligence: true, wis: false, cha: false },
+      classSkills: [{ amountOfChoice: 3, skillsModels: [{ name: "Athletics" }, { name: "Acrobatics" }, { name: "Arcana" }, { name: "History" }, { name: "Insight" }, { name: "Investigation" }, { name: "Religion" }, { name: "Survival" }] }],
+      armorProficiencies: [{ proficiency: "Light Armor" }, { proficiency: "Medium Armor" }, { proficiency: "Shields" }], weaponProficiencies: [{ proficiency: "all_simple" }, { proficiency: "all_martial" }],
+      toolProficiencies: [{ proficiency: "Alchemist's Supplies" }], classEquipment: [{ amountOfChoice: 1, equipmentsModels: [{ name: "Scale Mail", number: 1 }] }],
+      classWeapon: { abilityName: "Strength", diceAmount: 1, diceTypeName: "D8", name: "Longsword" }, effectiveCasterLevel: "NONE", archetypeSelectionLevel: 3,
+      features: [ft(1, "Hunter's Bane", "You have survived the Hunter's Bane."), ft(1, "Blood Maledict", "You can invoke a blood curse."), ft(2, "Crimson Rite", "Your weapon burns with your blood."), ft(5, "Extra Attack", "Attack twice."), ft(7, "Brand of Castigation", "Later.")],
+      archetypes: [{ id: "bh_lycan", name: "Order of the Lycan", features: [ft(3, "Heightened Senses", "Advantage on Perception checks that use hearing or smell.")] }] })] };
+    const D = compImport(j, "2014"); if (D.error) return { error: D.error };
+    const { c } = importBuild(D), hc = D.homebrew.find(x => x.kind === "class");
+    return { cls: c.cls, sub: c.subclass, hp: c.hp, con: c.mods.con, saves: c.saves, feats: c.feats.map(f => f.f), made: D.report.made, hc,
+      sub2: D.homebrew.find(x => x.kind === "subclass"), stillThere: !!CLASS_DATA["Blood Hunter"] };
+  }, ZOOK);
+  check("an unknown class is imported as a homebrew class", !bh.error && bh.cls === "Blood Hunter" && bh.made.some(t => /Blood Hunter \(class\)/.test(t)), JSON.stringify(bh.error || bh.made));
+  const H = bh.hc || {};
+  check("…with the app's hit die, saves, skills and proficiencies", H.hd === 10 && JSON.stringify(H.saves) === '["dex","int"]' && H.skills && H.skills.n === 3 && H.skills.from.length === 8 && JSON.stringify(H.armor) === '["light","medium","shield"]' && /Martial weapons/.test(H.weapons) && /Alchemist/.test(H.tools) && H.kit === "Scale Mail", JSON.stringify(H));
+  check("…its features keep their levels and text", (H.features || []).length === 5 && H.features[2].n === "Crimson Rite" && H.features[2].l === 2 && /burns with your blood/.test(H.features[2].d));
+  check("the character is built with it: d10 hit points, its saves and features to level 5", bh.hp === 10 + bh.con + 4 * (6 + bh.con) && JSON.stringify(bh.saves) === '["dex","int"]' && ["Hunter's Bane", "Crimson Rite", "Extra Attack"].every(f => bh.feats.includes(f)) && !bh.feats.includes("Brand of Castigation"), JSON.stringify([bh.hp, bh.saves, bh.feats]));
+  check("its subclass becomes homebrew for that class", bh.sub === "Order of the Lycan" && bh.sub2 && bh.sub2.cls === "Blood Hunter" && bh.feats.includes("Heightened Senses"));
+  check("the class is only there for the build until it's saved", !bh.stillThere);
   const junk = await p.evaluate(() => compImport({ foo: 1 }, "2014"));
   check("a file that isn't a character is refused", /isn't a 5e Companion App character/.test(junk.error || ""), JSON.stringify(junk.error));
 
