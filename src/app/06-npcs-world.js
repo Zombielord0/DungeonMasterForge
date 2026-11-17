@@ -330,7 +330,8 @@ async function wpDelete(p) {
   if (!(await confirmBox("Delete place?", msg, "Delete"))) return;
   kids.forEach(x => { x.parent = p.parent || null; });
   W.places = W.places.filter(x => x.id !== p.id); if (p.map && p.map.imgId) mapImgTidy(p.map.imgId);
-  if (HOST.show === "atlas" && HOST.atlas && HOST.atlas.id === p.id) { HOST.show = "map"; HOST.atlas = null; handoutUI(); hostSend(); } // its map was on the TV if (p.atlas && p.atlas.img) MAPIMG.del(p.atlas.img).catch(() => { });
+  if (p.atlas && p.atlas.img) MAPIMG.del(p.atlas.img).catch(() => { });
+  if (HOST.show === "atlas" && HOST.atlas && HOST.atlas.id === p.id) { HOST.show = "map"; HOST.atlas = null; handoutUI(); hostSend(); } /* its map was on the TV */
   const move = n => { if (n.placeId !== p.id) return false; if (up) { n.placeId = up.id; n.place = up.name; } else { delete n.placeId; delete n.place; } return true; };
   for (const c of Store.list()) { let ch = false; (c.npcs || []).forEach(n => { if (move(n)) ch = true; }); const before = (c.lore || []).length; c.lore = (c.lore || []).filter(l => l.wpId !== p.id); if (ch || c.lore.length !== before) Store.save(c); }
   const L = npcLoose(); let lch = false; L.forEach(n => { if (move(n)) lch = true; }); if (lch) npcLooseSave(L);

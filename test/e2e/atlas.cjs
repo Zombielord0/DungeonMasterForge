@@ -216,8 +216,9 @@ const server = http.createServer((req, res) => {
   check("tv: an imported map goes to the TV", await waitFrame(n) && await p.evaluate(() => ATLAS_TV.pic));
   n = await tv.evaluate(() => window.tvFrames || 0); await p.click('[data-at="tv"]');
   check("tv: Off TV goes back to the dungeon map screen", await waitFrame(n) && await p.evaluate(() => HOST.show !== "atlas"));
-  const del = await p.evaluate(async ids => { atlasTv(ids.r); const p0 = wp(ids.r); confirmBox = async () => true; await wpDelete(p0); return { show: HOST.show, atlas: HOST.atlas }; }, ids);
+  const del = await p.evaluate(async ids => { atlasTv(ids.r); const p0 = wp(ids.r); confirmBox = async () => true; const hadPic = !!(await MAPIMG.get("atlas-" + ids.r)); await wpDelete(p0); await new Promise(r => setTimeout(r, 300)); return { show: HOST.show, atlas: HOST.atlas, hadPic, picLeft: !!(await MAPIMG.get("atlas-" + ids.r)) }; }, ids);
   check("tv: deleting a region whose map is on the TV takes the map off the TV", del.show !== "atlas" && !del.atlas, JSON.stringify(del));
+  check("deleting a region deletes its imported map picture", del.hadPic && !del.picLeft, JSON.stringify(del));
   await tv.close();
 
   check("no page errors", errs.length === 0, errs.join(" | "));
