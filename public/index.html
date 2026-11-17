@@ -232,6 +232,9 @@ ul.plain{margin:4px 0 0;padding-left:20px}
 .wsub{margin:12px 0 2px;font-size:14px;color:var(--muted,#9a8f80)}
 .wpic{display:block;max-width:100%;max-height:260px;margin-top:8px;border-radius:4px;border:1px solid #3a332b;object-fit:contain}
 .wsecs{margin-bottom:8px}
+.wmap-view{display:flex;align-items:center;justify-content:center;width:100%;min-height:120px;max-height:420px;overflow:hidden;background:#0d0c0b;border:1px solid #3a332b;border-radius:4px;padding:0;cursor:zoom-in;color:inherit;font:inherit}
+.wmap-view img,.wmap-view canvas{display:block;max-width:100%;max-height:420px;width:auto;height:auto;object-fit:contain}
+.wmap-view:hover,.wmap-view:focus-visible{border-color:#8a5a2a}
 @media (pointer:coarse){.wtog{flex-basis:40px;width:40px;height:40px}.wname{min-height:40px}}
 .npc-tabs{display:flex;gap:6px;overflow-x:auto;padding:2px 2px 8px;margin:4px 0 4px;scrollbar-width:thin}
 .npc-tabs .chip{flex:0 0 auto;font-size:14px;padding:4px 11px;white-space:nowrap;font-family:inherit;color:inherit}
@@ -1202,6 +1205,11 @@ nav a[data-view=whispers]{--ic:url("data:image/svg+xml,%3Csvg xmlns='http://www.
       <div class="field" style="margin-top:14px">
         <label>Save to campaign</label>
         <div class="row"><select id="mapCampaign" class="campSelect"></select><button class="btn" type="button" id="mapSave" style="flex:0 0 auto">Save</button></div>
+      </div>
+      <div class="field" style="margin-top:10px">
+        <label for="mapPlace">Save to a World place</label>
+        <div class="row"><select id="mapPlace" aria-label="World place"></select><button class="btn" type="button" id="mapSavePlace" style="flex:0 0 auto">Save</button></div>
+        <p class="hint" style="margin:6px 0 0">The place's page on the World tab shows this map, with its fog and room notes.</p>
       </div>
     </form>
     <div>
@@ -2845,14 +2853,36 @@ $("#mapDownloadPlayer").addEventListener("click", () => {
   const cv = document.createElement("canvas"); drawDungeon(cv, currentMap, $("#mapGrid").checked, { player: true, numbers: true, scale: 2 });
   cv.toBlob(blob => saveFile(mapFileName() + "-players.png", blob), "image/png");
 });
+/* the map on screen as a saved entry (generated: its settings; imported: imgRecord, no picture), with its fog and tokens */
+function mapEntryNow() {
+  if (!currentMap) return null;
+  const rec = currentMap.kind === "image" ? imgRecord(currentMap) : { ...currentMap.params };
+  const fogPart = HOST.fog && HOST.key === fogKey(rec) ? { fog: fogEncode(HOST.fog), found: [...HOST.found], tokens: HOST.tokens } : (e => e ? { fog: e.f, found: e.s || [], tokens: e.k } : {})(fogStoreRead()[fogKey(rec)]);
+  return { ...rec, id: uid("m"), saved: Date.now(), ...fogPart };
+}
 $("#mapSave").addEventListener("click", () => {
   const id = $("#mapCampaign").value; const c = Store.get(id);
   if (!c || !currentMap) { toast("Create a campaign first"); return; }
   c.maps = c.maps || [];
-  const fogPart = HOST.fog && HOST.key === fogKey(currentMap.kind === "image" ? imgRecord(currentMap) : currentMap.params) ? { fog: fogEncode(HOST.fog), found: [...HOST.found], tokens: HOST.tokens } : {};
-  c.maps.unshift({ ...(currentMap.kind === "image" ? imgRecord(currentMap) : currentMap.params), id: uid("m"), saved: Date.now(), ...fogPart });
+  c.maps.unshift(mapEntryNow());
   Store.save(c); toast(`Map saved to “${c.name}”`); if (activeId === id) renderTracker();
 });
+/* World places: which place the map on screen belongs to (set when it's opened from the World tab) */
+const MAPLINK = { place: null };
+function mapPlaceFill() { const sel = $("#mapPlace"); if (sel) sel.innerHTML = wpOptionsHTML(MAPLINK.place && wp(MAPLINK.place) ? MAPLINK.place : null, "Choose a place…").replace(/^<option value="" ([^>]*)>No place<\/option>/, '<option value="" $1>Choose a place…</option>'); }
+$("#mapSavePlace").addEventListener("click", () => {
+  if (!currentMap) { toast("Make or open a map first"); return; }
+  const pl = wpPick($("#mapPlace").value); if (!pl) { if (pl === "") toast("Choose a World place first"); mapPlaceFill(); return; }
+  const old = pl.map; pl.map = mapEntryNow(); MAPLINK.place = pl.id; worldSave(); mapPlaceFill();
+  if (old && old.imgId && old.imgId !== pl.map.imgId) mapImgTidy(old.imgId);
+  toast(`Map saved to ${pl.name} on the World tab`);
+});
+/* forget an imported map's picture once no campaign map or World place uses it */
+function mapImgTidy(imgId) {
+  if (!imgId || (currentMap && currentMap.kind === "image" && currentMap.id === imgId)) return;
+  const used = W.places.some(x => x.map && x.map.imgId === imgId) || Store.list().some(c => (c.maps || []).some(m => m.imgId === imgId));
+  if (!used) MAPIMG.del(imgId).catch(() => {});
+}
 
 /* ======================= Imported maps, map files and VTT exports =======================
    An imported map is {kind:"image", id, img (canvas), px (image pixels per square), ox, oy, W, H, rooms (numbered markers), walls (in squares), params}.
@@ -4757,7 +4787,7 @@ async function wpDelete(p) {
   const msg = [`Delete “${p.name}”?`, kids.length ? `The ${kids.length} place${kids.length === 1 ? "" : "s"} inside it move up to ${up ? up.name : "the top level"}.` : "", npcN ? `Its ${npcN} NPC${npcN === 1 ? "" : "s"} move to ${up ? up.name : "no place"}.` : "", camps.length ? `It's also taken out of the Lore of ${camps.map(c => c.name).join(", ")}.` : ""].filter(Boolean).join(" ");
   if (!(await confirmBox("Delete place?", msg, "Delete"))) return;
   kids.forEach(x => { x.parent = p.parent || null; });
-  W.places = W.places.filter(x => x.id !== p.id);
+  W.places = W.places.filter(x => x.id !== p.id); if (p.map && p.map.imgId) mapImgTidy(p.map.imgId);
   const move = n => { if (n.placeId !== p.id) return false; if (up) { n.placeId = up.id; n.place = up.name; } else { delete n.placeId; delete n.place; } return true; };
   for (const c of Store.list()) { let ch = false; (c.npcs || []).forEach(n => { if (move(n)) ch = true; }); const before = (c.lore || []).length; c.lore = (c.lore || []).filter(l => l.wpId !== p.id); if (ch || c.lore.length !== before) Store.save(c); }
   const L = npcLoose(); let lch = false; L.forEach(n => { if (move(n)) lch = true; }); if (lch) npcLooseSave(L);
@@ -4792,6 +4822,12 @@ function worldPlaceHTML(p, groups) {
     <div class="field"><label for="wpDesc">Description</label><textarea id="wpDesc" data-wf="desc" placeholder="What it's like, who runs it, what's going on…">${esc(p.desc || "")}</textarea></div>
     ${(p.sections || []).length ? `<div class="wsecs">${p.sections.map(x => `<div class="lore-sec"><h4>${esc(x.t || "")}${x.dm ? ` <span class="tag lore-dm" title="Only for you">🔒 DM only</span>` : ""}</h4>${mdHTML(x.x)}</div>`).join("")}<p class="hint">Edit these sections in a campaign's Lore tab.</p></div>` : ""}
     <div class="field"><label for="wpPic">Picture link</label><input type="text" id="wpPic" data-wf="imgUrl" value="${esc(p.imgUrl || "")}" placeholder="https://…">${pic ? `<img class="wpic" src="${esc(pic)}" alt="" referrerpolicy="no-referrer" loading="lazy">` : ""}</div>
+    <div class="sec-h"><h3>Map</h3></div>
+    ${p.map ? `<div class="wmap"><button type="button" class="wmap-view" id="wpMapView" data-w="openmap" title="Open on the Dungeon Map tab" aria-label="Open the map of ${esc(p.name)} on the Dungeon Map tab"><span class="muted">Loading map…</span></button>
+      <div class="row" style="flex-wrap:wrap;gap:6px;margin-top:6px"><button class="btn sm primary" type="button" data-w="openmap" style="flex:0 0 auto">🗺 Open on Dungeon Map</button><label class="btn sm" style="flex:0 0 auto">🖼 Replace with a picture…<input type="file" id="wpMapFile" accept="image/*" hidden></label><button class="btn sm" type="button" data-w="rmmap" style="flex:0 0 auto">✕ Remove map</button></div>
+      <p class="hint" style="margin:6px 0 0">${p.map.kind === "image" ? "A map picture" : `A generated ${esc(p.map.theme || "dungeon")} map`}${p.map.fog ? ", with its fog" : ""}. Open it to add room notes, show it on the TV and reveal it as the players explore, then press <b>Save to a World place</b> there to keep the changes.</p></div>`
+      : `<p class="muted" style="margin:0 0 6px">No map yet.</p><div class="row" style="flex-wrap:wrap;gap:6px"><label class="btn sm" style="flex:0 0 auto">🖼 Upload a map picture…<input type="file" id="wpMapFile" accept="image/*" hidden></label><button class="btn sm" type="button" data-w="genmap" style="flex:0 0 auto">🎲 Generate a dungeon map</button>${currentMap ? `<button class="btn sm" type="button" data-w="usemap" style="flex:0 0 auto">Use the map on the Dungeon Map tab (${esc(currentMap.params.name)})</button>` : ""}</div>
+        <p class="hint" style="margin:6px 0 0">A picture can be a city, town or region map, or a battle map from Dungeondraft or a book.</p>`}
     <div class="sec-h"><h3>Places inside</h3><span class="sp"></span><button class="btn sm" type="button" data-w="child">+ Add a place inside</button></div>
     ${kids.length ? `<div class="wkids">${kids.map(k => { const n = groups.filter(g => wpUnder(k.id).has(g.n.placeId)).length; return `<button type="button" class="chip" data-w="sel" data-id="${esc(k.id)}">${wpIcon(k)} ${esc(k.name)}${n ? ` <span class="npc-tab-n">${n} NPC${n === 1 ? "" : "s"}</span>` : ""}</button>`; }).join("")}</div>` : `<p class="muted">Nothing inside yet.</p>`}
     <div class="sec-h"><h3>NPCs here</h3><span class="sp"></span><button class="btn sm" type="button" data-w="npc">+ New NPC here</button></div>
@@ -4815,11 +4851,39 @@ function renderWorld(treeOnly) {
   const p = wp(W.sel);
   main.innerHTML = p ? worldPlaceHTML(p, groups) : `<div class="card empty"><h2>${W.places.length ? "Pick a place" : "Build your world"}</h2><p>${W.places.length ? "Choose a place on the left to see what's inside it and who lives there." : "Add regions, cities, towns, taverns and dungeons, put them inside each other, and file your NPCs under them. Places in your campaigns' Lore are added for you."}</p>${W.places.length ? "" : `<button class="btn primary" type="button" data-w="new">+ Add your first place</button>`}</div>`;
   main.querySelectorAll("textarea").forEach(autoGrow);
+  if (p && p.map) wpMapThumb(p);
 }
+/* the map's picture on the place page: a generated map is drawn from its settings, an imported one comes from this computer */
+let wpMapUrl = null;
+async function wpMapThumb(p) {
+  const box = $("#wpMapView"); if (!box) return; const m = p.map;
+  if (wpMapUrl) { URL.revokeObjectURL(wpMapUrl); wpMapUrl = null; }
+  try {
+    if (m.kind === "image") {
+      let blob = null; try { blob = await MAPIMG.get(m.imgId); } catch { }
+      if (!box.isConnected || W.sel !== p.id) return;
+      if (!blob) { box.innerHTML = `<span class="muted">The picture isn't on this computer. Upload it again with Replace.</span>`; return; }
+      wpMapUrl = URL.createObjectURL(blob); box.innerHTML = `<img src="${wpMapUrl}" alt="Map of ${esc(p.name)}">`;
+    } else {
+      const cap = { small: 10, medium: 16, large: 24 }[m.size] || 16, d = generateDungeon({ ...m, rooms: Math.min(m.rooms || 10, cap) }), cv = document.createElement("canvas");
+      drawDungeon(cv, d, true, { scale: 1 }); cv.setAttribute("aria-hidden", "true"); box.replaceChildren(cv);
+    }
+  } catch (e) { box.innerHTML = `<span class="muted">Couldn't draw this map.</span>`; }
+}
+const WP_MAP_THEME = { dungeon: "crypt", temple: "temple", wilderness: "cavern", landmark: "crypt", building: "keep", tavern: "keep", shop: "keep", city: "keep", town: "keep", village: "keep", district: "sewer", region: "cavern", other: "crypt" };
+function wpMapOpen(p) { MAPLINK.place = p.id; mapOpenSaved(p.map); setTimeout(mapPlaceFill, 50); toast(`${p.name}'s map is open. Press Save to a World place to keep changes.`); }
 function worldGoNpc(lib, placeId) { NL.tab = placeId || ""; NL.camp = ""; NL.q = ""; if (lib) NL.open.add(lib); location.hash = "npc";
   setTimeout(() => { const r = lib && document.querySelector(`#npcLib [data-lib="${CSS.escape(lib)}"]`); if (r) { r.scrollIntoView({ block: "center" }); const i = r.querySelector('[data-nlf="name"]'); if (i) i.focus({ preventScroll: true }); } }, 60); }
 (function initWorld() {
   const view = $("#view-world"); if (!view) return;
+  view.addEventListener("change", async e => {
+    if (e.target.id !== "wpMapFile") return; const f = e.target.files[0]; e.target.value = ""; const p = wp(W.sel); if (!f || !p) return;
+    let loaded; try { loaded = await loadImageCanvas(f); } catch { toast("Couldn't open that picture. Try a PNG, JPG or WebP."); return; }
+    const id = uid("img"); try { await MAPIMG.put(id, await canvasBlob(loaded.cv)); } catch { toast("Couldn't keep the picture on this computer."); return; }
+    const across = clamp(Math.round(loaded.cv.width / 70), 4, 200), d = imageMapBuild({ imgId: id, name: p.name.slice(0, 60), px: loaded.cv.width / across, theme: WP_MAP_THEME[p.type] || "crypt" }, loaded.cv);
+    const old = p.map; p.map = { ...imgRecord(d), id: uid("m"), saved: Date.now() }; worldSave(); if (old && old.imgId) mapImgTidy(old.imgId);
+    renderWorld(); toast(`Map added to ${p.name}`);
+  });
   view.addEventListener("click", async e => {
     const b = e.target.closest("[data-w]"); if (!b) return;
     const a = b.dataset.w, p = wp(W.sel);
@@ -4831,6 +4895,14 @@ function worldGoNpc(lib, placeId) { NL.tab = placeId || ""; NL.camp = ""; NL.q =
       renderWorld(); const i = $("#worldMain .title-input"); if (i) { i.focus(); i.select(); }
     }
     else if (a === "del" && p) wpDelete(p);
+    else if (a === "openmap" && p && p.map) wpMapOpen(p);
+    else if (a === "rmmap" && p && p.map) { if (!(await confirmBox("Remove map?", `Remove the map from ${p.name}? Campaigns that saved it keep their copy.`, "Remove"))) return; const old = p.map; delete p.map; worldSave(); if (old.imgId) mapImgTidy(old.imgId); renderWorld(); toast("Map removed"); }
+    else if (a === "usemap" && p && currentMap) { p.map = mapEntryNow(); worldSave(); renderWorld(); toast(`Map saved to ${p.name}`); }
+    else if (a === "genmap" && p) {
+      setMapForm({ ...readMapForm(), name: p.name.slice(0, 60), theme: WP_MAP_THEME[p.type] || "crypt", seed: newSeed() }); HOST.key = null;
+      MAPLINK.place = p.id; location.hash = "map"; renderMap(); p.map = mapEntryNow(); worldSave(); mapPlaceFill();
+      toast(`A map for ${p.name}. Press Generate Dungeon for a different one, then Save to a World place to keep it.`);
+    }
     else if (a === "opennpc") worldGoNpc(b.dataset.lib, W.sel);
     else if (a === "npc" && p) {
       const id = uid("n"), n = { id, lib: "nl-" + id, name: "New NPC", role: "", attitude: "Unknown", notes: "", placeId: p.id, place: p.name }, camps = wpCamps(p.id);
@@ -10632,6 +10704,7 @@ function route() {
   $$("nav a").forEach(a => a.classList.toggle("active", a.dataset.view === v));
   { const n = $("nav"), on = $("nav a.active"); if (n && on && n.scrollWidth > n.clientWidth) n.scrollTo({ left: Math.max(0, on.offsetLeft - n.clientWidth / 2 + on.offsetWidth / 2), behavior: "smooth" }); }
   if (v === "map" && !currentMap) renderMap();
+  if (v === "map") mapPlaceFill();
   if (v === "tracker") renderTracker();
   if (v === "npc") { worldAdopt(); renderNpcLib(); }
   if (v === "world") renderWorld();
@@ -11800,6 +11873,10 @@ document.getElementById("impCharGo").addEventListener("click", async () => {
 });
 
 const NEWS = [
+  { id: "2026-11-17-world-maps", date: "2026-11-17", title: "A map for every World place", go: "world", items: [
+    "Each place on the World tab has a Map section. Upload a map picture (a city, a region or a battle map), generate a dungeon map for it, or use the map that's open on the Dungeon Map tab.",
+    "The map shows on the place's page. Click it, or press Open on Dungeon Map, to add room notes, show it on the TV and reveal it with fog as the players explore.",
+    "The Dungeon Map tab has a new Save to a World place box, so your changes (fog, room notes, tokens, a new layout) are kept with the place."] },
   { id: "2026-11-17-world-nest", date: "2026-11-17", title: "MythWeaver places nest by themselves", go: "world", items: [
     "Places imported from MythWeaver are now put inside each other on the World tab, worked out from their text: a tag naming another place, a Location section, or wording like “an inn in Riverford” or “a district of Riverford”.",
     "A place only goes inside a bigger one (a tavern in a town, a town in a region), and “near” or “outside” doesn't count. Places you've already imported are sorted the next time you open the Forge.",

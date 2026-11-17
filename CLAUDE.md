@@ -567,6 +567,11 @@ PR #8 (the expired sign-in fix) was merged before that chat.
   - It looks in this order: a tag equal to another place's name; then a Location/Region/Part of section naming one; then "in/within/inside/of/beneath/under X" in the first two sentences of the description ("near" and "outside" don't count). A leading "The" is optional in names.
   - Only a bigger place can hold a smaller one (`WP_SIZE`: region 0 … tavern/shop/temple 5; an "other" place can go inside any typed place). The most specific candidate wins, and `wpUnder` blocks cycles.
   - In `worldAdopt`, a tag sets the type only when it's a single word ("Region", "Tavern"), so a tag like "Sword Coast" doesn't make a town Wilderness.
+- **Place maps:** `p.map` is a saved map entry, the same shape as a campaign's `c.maps` item: generated settings, or `imgRecord` with the picture in `MAPIMG`, plus fog, found and tokens.
+  - `mapEntryNow()` builds it from the map on screen, taking fog from `HOST` if this map is hosted, otherwise from the fog store. `#mapSave` uses it too.
+  - On the place page, the "Map" section (`#wpMapView`, drawn by `wpMapThumb`) has buttons `[data-w]` = openmap (`wpMapOpen`: sets `MAPLINK.place`, then `mapOpenSaved`), rmmap, usemap and genmap (`setMapForm` with the place's name and `WP_MAP_THEME[type]`, then `renderMap`). The `#wpMapFile` upload runs `imageMapBuild` and saves `imgRecord`.
+  - On the Dungeon Map tab, `#mapPlace` + `#mapSavePlace` save `mapEntryNow()` to a place (`mapPlaceFill`, refreshed by `route` for `#map`). `MAPLINK.place` preselects the place the map was opened from.
+  - `mapImgTidy(imgId)` deletes a picture once no World place or campaign map uses it (on Replace, Remove and place delete).
 - **Campaign files:** `campExtras(c)` adds `world`: the places the campaign uses, plus their ancestors. `campExtrasAdopt` merges them by id or name and remaps parents.
 - **Tests:** `npm run test:world` (`test/e2e/world.cjs`).
 

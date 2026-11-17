@@ -128,6 +128,37 @@ const server = http.createServer((req, res) => {
   await r.setInputFiles("#importFile", mwFile); await r.waitForTimeout(500); await r.click("#impCampGo"); await r.waitForTimeout(900);
   check("importing again doesn't move it back either", await r.evaluate(() => W.places.find(p => p.name === "Riverford").parent) === null);
 
+  // a map for a place: generate one, open it, save changes back, upload a picture, remove it
+  await r.goto(URL + "#world"); await r.waitForTimeout(300);
+  const kid = await r.evaluate(() => { const x = W.places.find(p => p.name === "Sunken Crypt"); W.sel = x.id; renderWorld(); return x.id; });
+  await r.click('#worldMain [data-w="genmap"]'); await r.waitForTimeout(500);
+  st = await r.evaluate(k => ({ hash: location.hash, name: $("#mapName").value, theme: $("#mapTheme").value, map: wp(k).map && { theme: wp(k).map.theme, seed: wp(k).map.seed }, sel: $("#mapPlace").value }), kid);
+  check("Generate a dungeon map makes one named after the place, and saves it", st.hash === "#map" && st.name === "Sunken Crypt" && st.theme === "crypt" && st.map && st.map.seed && st.sel === kid, JSON.stringify(st));
+  const seed1 = st.map.seed;
+  await r.click("#mapForm button[type=submit]"); await r.waitForTimeout(300);
+  await r.click("#mapSavePlace"); await r.waitForTimeout(200);
+  const seed2 = await r.evaluate(k => wp(k).map.seed, kid);
+  check("Save to a World place keeps the rerolled map", seed2 && seed2 !== seed1, seed1 + " / " + seed2);
+  await r.goto(URL + "#world"); await r.waitForTimeout(400);
+  check("the place page shows the map", await r.locator("#wpMapView canvas").count() === 1);
+  await r.click('#worldMain button[data-w="openmap"].primary'); await r.waitForTimeout(500);
+  check("Open on Dungeon Map opens that map", await r.evaluate(s2 => location.hash === "#map" && $("#mapSeed").value === s2, seed2));
+  // upload a picture instead
+  await r.goto(URL + "#world"); await r.waitForTimeout(300);
+  const png = Buffer.from(await r.evaluate(() => { const c = document.createElement("canvas"); c.width = 280; c.height = 210; const g = c.getContext("2d"); g.fillStyle = "#c9a"; g.fillRect(0, 0, 280, 210); return c.toDataURL("image/png").split(",")[1]; }), "base64");
+  await r.setInputFiles("#wpMapFile", { name: "crypt.png", mimeType: "image/png", buffer: png }); await r.waitForTimeout(800);
+  st = await r.evaluate(async k => { const m = wp(k).map; return { kind: m.kind, name: m.name, has: !!(await MAPIMG.get(m.imgId)) }; }, kid);
+  check("Replace with a picture keeps the picture on this computer", st.kind === "image" && st.name === "Sunken Crypt" && st.has, JSON.stringify(st));
+  await r.waitForSelector("#wpMapView img", { timeout: 5000 }).catch(() => {});
+  check("the place page shows the picture", await r.locator("#wpMapView img").count() === 1);
+  await r.click('#worldMain [data-w="openmap"].primary'); await r.waitForTimeout(700);
+  check("the picture opens as an imported map", await r.evaluate(() => location.hash === "#map" && currentMap && currentMap.kind === "image" && currentMap.params.name === "Sunken Crypt"));
+  await r.goto(URL + "#world"); await r.waitForTimeout(300);
+  const imgId = await r.evaluate(k => wp(k).map.imgId, kid);
+  await r.click('#worldMain [data-w="rmmap"]'); await r.click("#modalYes"); await r.waitForTimeout(300);
+  st = await r.evaluate(async ([k, id]) => ({ map: !!wp(k).map, gen: !!document.querySelector('#worldMain [data-w="genmap"]') }), [kid, imgId]);
+  check("Remove map takes it off the place", !st.map && st.gen, JSON.stringify(st));
+
   check("no page errors", !errs.length, errs.join(" | "));
   await browser.close(); server.close();
   console.log(fails ? `\n${fails} check(s) failed` : "\nAll World checks passed");
