@@ -77,16 +77,17 @@ const server = http.createServer((req, res) => {
   await row().locator("[data-nlmove]").selectOption("\u0001new"); await p.waitForTimeout(200);
   st = await p.evaluate(ids => [ids.a, ids.b].flatMap(id => Store.get(id).npcs.map(n => n.place)), ids);
   check("Move to → New place files Hilda under it, in every campaign", st.length === 1 && st[0] === "Saltmarsh", JSON.stringify(st));
-  check("a Saltmarsh tab appears", await p.locator('[data-nltab="Saltmarsh"]').count() === 1);
+  const salt = await p.evaluate(() => (W.places.find(x => x.name === "Saltmarsh") || {}).id);
+  check("New place makes a World place, and its tab appears", !!salt && await p.locator(`[data-nltab="${salt}"]`).count() === 1);
   await p.click('[data-nl="new"]'); await p.waitForTimeout(150); await p.keyboard.type("Old Tom"); await p.keyboard.press("Tab");
-  await p.click('[data-nltab="Saltmarsh"]'); await p.waitForTimeout(100);
+  await p.click(`[data-nltab="${salt}"]`); await p.waitForTimeout(100);
   let names = await p.locator(".npc-lib-row .npc-lib-name b").allTextContents();
   check("the Saltmarsh tab shows only Saltmarsh NPCs", names.join() === "Hilda", names.join());
   await p.click('[data-nltab="-"]'); await p.waitForTimeout(100);
   names = await p.locator(".npc-lib-row .npc-lib-name b").allTextContents();
   check("the No place tab shows the rest", names.join() === "Old Tom", names.join());
-  await p.locator(".npc-lib-row", { hasText: "Old Tom" }).locator("[data-nlmove]").selectOption("Saltmarsh"); await p.waitForTimeout(150);
-  check("moving to an existing place works", await p.evaluate(() => npcLoose().find(n => n.name === "Old Tom").place === "Saltmarsh"));
+  await p.locator(".npc-lib-row", { hasText: "Old Tom" }).locator("[data-nlmove]").selectOption(salt); await p.waitForTimeout(150);
+  check("moving to an existing place works", await p.evaluate(salt => { const n = npcLoose().find(n => n.name === "Old Tom"); return n.place === "Saltmarsh" && n.placeId === salt; }, salt));
   await p.click('[data-nltab=""]'); await p.waitForTimeout(100);
   await p.locator(".npc-lib-row", { hasText: "Old Tom" }).locator('[data-nl="del"]').click(); await p.click("#modalYes"); await p.waitForTimeout(150);
 
@@ -117,7 +118,8 @@ const server = http.createServer((req, res) => {
   const ember = await p.evaluate(() => Store.list().find(c => c.name === "Ember Reach").id);
   const g = p.locator(".npc-lib-row", { hasText: "Garrick Vane" });
   check("imported NPC is on the NPC tab, ticked for its campaign", await g.count() === 1 && await g.locator(`[data-nlc="${ember}"]`).isChecked());
-  check("imported NPC is filed under the place its tags name", await p.evaluate(() => npcGroups().find(g => g.n.name === "Garrick Vane").n.place) === "Ashford" && await p.locator('[data-nltab="Ashford"]').count() === 1);
+  const ash = await p.evaluate(() => { const n = npcGroups().find(g => g.n.name === "Garrick Vane").n, w = W.places.find(x => x.name === "Ashford"); return n.place === "Ashford" && w && n.placeId === w.id ? w.id : ""; });
+  check("imported NPC is filed under the World place its tags name", !!ash && await p.locator(`[data-nltab="${ash}"]`).count() === 1);
   const encs = await p.evaluate(() => Store.list().find(c => c.name === "Ember Reach").encounters.map(e => ({ n: e.name, foes: e.enemies.map(m => m.stat + ":" + m.ac + "/" + m.hp), notes: e.notes })));
   const amb = encs.find(e => e.n === "Ambush on the Ford"), quiet = encs.find(e => e.n === "Quiet Shrine");
   const cnt = k => amb ? amb.foes.filter(f => f.startsWith(k + ":")).length : 0;

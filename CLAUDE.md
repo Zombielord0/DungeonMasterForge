@@ -71,6 +71,7 @@ npm run test:npcpic  # NPC pictures: upload, link, TV without distortion (Playwr
 npm run test:map  # map fog + TV player screen checks (Playwright, any OS)
 npm run test:campextras  # campaign export/import carries custom items, homebrew, monsters (Playwright, any OS)
 npm run test:npclib  # Your NPCs on the NPC tab, campaign tick boxes, MythWeaver monsters (Playwright, any OS)
+npm run test:world  # World tab: nested places, Lore links, NPCs by place, Tracker place tabs (Playwright, any OS)
 npm run dev     # full local copy at http://localhost:8899 (any OS); stand-in sign-in, data wiped on Ctrl+C
 ```
 
@@ -81,6 +82,7 @@ Playwright and Chromium are pre-installed in cloud sessions. To test offline mod
 - **In the browser** (also used by "Use without an account"):
   - `dmforge.pcs.v1` (characters), `dmforge.campaigns.v1`, `dmforge.homebrew.v1`, `dmforge.items.v1`, `dmforge.mymonsters.v1`, `dmforge.favspells` and `dmforge.offline`.
   - `dmforge.npclib.v1`: NPCs that aren't in any campaign (Your NPCs on the NPC tab).
+  - `dmforge.world.v1`: World places (the World tab).
   - `dmforge.fog.v1`: map fog, found secret doors and tokens for the 40 most recent maps.
   - `dmforge.lastBackup`.
   - **Imported map pictures** are in IndexedDB (database `dmforge-maps`), not localStorage.
@@ -161,13 +163,14 @@ Everything in the sections from "Dungeon Map looks" to "Tokens" below was built 
 - the sheet checks and tokens
 - backup and restore
 
-Everything from "Character import" to "Your NPCs and imported monsters" below was built in one chat on 2026-11-16 and 17, on branch `ccr-c51c8c32-xn2c0j`. It's open as **draft PR #9**, which is **not merged**: the owner is trying it on the preview at `deploy-preview-9--dungeonmasterforge.netlify.app`. It contains:
+Everything from "Character import" to "World tab" below was built in one chat on 2026-11-16 and 17, on branch `ccr-c51c8c32-xn2c0j`. It's open as **draft PR #9**, which is **not merged**: the owner is trying it on the preview at `deploy-preview-9--dungeonmasterforge.netlify.app`. It contains:
 - character import (Companion App and PDF), homebrew spells, and pending homebrew with DM approval
 - NPC pictures
 - the phone and laptop layout work
 - the Lore tab and MythWeaver campaign import
 - imported campaigns adding their custom items and spells to Items and Homebrew
 - Your NPCs on the NPC tab (with places), MythWeaver monsters in My monsters, and MythWeaver encounters in Encounters
+- the World tab (nested places linked to Lore, NPCs filed by place)
 
 PR #8 (the expired sign-in fix) was merged before that chat.
 
@@ -534,15 +537,34 @@ PR #8 (the expired sign-in fix) was merged before that chat.
 - **MythWeaver monsters:** `mwMonster(x)` returns a builder form (`mbBlank` shape) with `mwId` and `src`. It reads size/type, AC, HP and hit dice, the six scores (`STR 16` or a row of `16 (+3)`), speed, CR (nearest `CR_LIST`), senses, languages and defences. "Name. Text" lines become traits, or actions/bonus/reacts/legend under those headings.
   - Without AC, HP and all six scores it sets `needsStats` (shown as "needs stats" in `mbRenderLib`; cleared when saved from the builder in `mbStore`).
   - `mwExtras` now also returns `monsters`; `campExtrasAdopt` skips ones whose `mwId` or name is already in `MB.lib`.
-- **Places:** an NPC's `place` (in `NPC_SHARED`, and a "Place" field in the Tracker's `npcs` list) files it under a town or area.
-  - The list has tabs (`.npc-tabs`, `[data-nltab]`, `NL.tab`: "" = all, "-" = no place). Only places with NPCs get a tab.
-  - Each row has a `[data-nlmove]` select (`npcMoveHTML`): used places (`npcPlaceNames`), then Lore places not used yet (`lorePlaceNames`), then `NL_NEW` ("＋ New place…", asks with `prompt`).
-  - MythWeaver NPCs get a place from `mwNpcPlace(x, places)`: a tag, or a Location/Lives/Home section, naming one of the campaign's Place lore entries. A place the DM already set isn't changed on re-import.
+- **Places:** superseded by the World tab (below): an NPC's place is now a World place id (`placeId`), with `place` kept as its name.
+  - The list has tabs (`.npc-tabs`, `[data-nltab]` = a World place id, `NL.tab`: "" = all, "-" = no place) from `npcPlaceTabs`. Only places with NPCs get a tab.
+  - Each row has a `[data-nlmove]` select (`npcMoveHTML` → `wpOptionsHTML`, with `NL_NEW` for "＋ New place…").
+  - MythWeaver NPCs get a place name from `mwNpcPlace(x, places)`: a tag, or a Location/Lives/Home section, naming one of the campaign's Place lore entries. `worldAdopt` then links it to the World place. A place the DM already set isn't changed on re-import.
 - **MythWeaver encounters** → `c.encounters` too (`mwEncounter`, `kind: "import"`, `mwId`), alongside Lore.
   - `mwFoes(text, idx)` finds monster names with counts ("3 goblins", "two bugbears", "Ogre x2", "a wolf"), longest names first, each stretch of text used once, the largest count per monster.
   - `mwMonsterIndex(extra)` = My monsters, this import's monsters (`mwMonster`), then the Monster Manual (2014 first). Enemies take AC and HP from it.
   - Re-import updates the name and notes only, and fills enemies only if the fight has none, so play progress is kept.
 - **Tests:** `npm run test:npclib` (`test/e2e/npc-lib.cjs`), including places and encounters.
+
+## World tab (2026-11-17)
+
+- **Data:** `W.places = [{id, name, type, parent, desc, sections?, tags?, imgUrl?, mwId?}]` in localStorage `dmforge.world.v1` (`worldLoad`/`worldSave`, in `BACKUP_KEYS`). It's shared by every campaign. Types and icons are in `WP_TYPES`; `wpGuessType(...texts)` guesses one (tags first, then name, then description).
+  - Helpers: `wp(id)`, `wpPath`/`wpPathText`, `wpKids(id)` (a place whose parent is missing counts as top level), `wpUnder(id)` (itself plus everything inside), `wpNew`.
+- **Lore link:** a campaign has a place when its Lore has `{type:"place", wpId}`.
+  - `worldAdopt()` links Lore places to World places (by `wpId`, then `mwId`, then name; otherwise it makes one), and turns NPC `place` names into `placeId` (`npcPlaceFix`). It runs after `Store.init`, on the NPC and World tabs, in the Tracker's NPCs tab, after Lore saves and after both kinds of campaign import.
+  - World → Lore: `wpSyncOut(p)` copies `WP_LORE` (name, desc, sections, tags, imgUrl) to every linked Lore entry, and the name to NPCs' `place`. Lore → World happens in the Lore save handler.
+  - Campaign tick boxes: `[data-wc]` → `wpSetCamp(p, c, on)` adds or removes the linked Lore entry.
+- **NPCs:** `placeId` (plus `place`, the name kept in step) is in `NPC_SHARED`. `npcLibSet(lib, obj)` sets several fields on every copy.
+  - `npcPlaceTabs(list, cur)` builds the tab strip for both lists: the NPC tab (`data-nltab`, `NL.tab`) and the Tracker (`data-tntab`, `TN.tab`). A place's tab includes `wpUnder`.
+  - Place pickers use `wpOptionsHTML(cur, noneLabel, skip)` (an indented tree, plus `NL_NEW`) and `wpPick(value, who)`, which asks for a new place's name.
+  - The Tracker's NPC rows have `[data-npcplace]`; `+ Add NPC` on a place tab files the new NPC there.
+- **The tab:** `#view-world` (`renderWorld(treeOnly)`, state `W.sel/open/q`). The tree is `worldTreeHTML(counts)`, with counts that include NPCs inside. The page is `worldPlaceHTML(p, groups)`: name, type, Inside, campaigns, description, read-only Lore sections, picture link, places inside, NPCs here (grouped by sub-place), "Move an NPC here" (`[data-w-move]`) and delete.
+  - Buttons are `[data-w]` = sel, tog, new, child, npc, opennpc, del. Fields are `[data-wf]`, saved on input and synced out on change.
+  - `wpDelete` moves the places inside up a level, moves its NPCs to the parent (or no place), and removes the linked Lore entries, so `worldAdopt` won't bring the place back.
+  - `"world"` is in `route()`'s views and the portal's `ALL_VIEWS` (DM only).
+- **Campaign files:** `campExtras(c)` adds `world`: the places the campaign uses, plus their ancestors. `campExtrasAdopt` merges them by id or name and remaps parents.
+- **Tests:** `npm run test:world` (`test/e2e/world.cjs`).
 
 ## Where things stand (end of the 2026-11-17 chat)
 

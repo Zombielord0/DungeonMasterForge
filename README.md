@@ -87,13 +87,23 @@ On a campaign's **NPCs** tab, every NPC has a picture frame. Press **🖼 Add pi
 
 On a campaign's **Sessions** tab, press **Write a recap**. It collects what has happened since the last recap: fights finished, XP, quests completed or failed, chapters, loot handed out, and the calendar's log. It saves all of that as a new session you can edit.
 
+## World
+
+The **World** tab is where you build your setting: regions, cities, towns, villages, districts, taverns, shops, temples, dungeons, wilderness and landmarks.
+
+- **+ Place** adds one. Give it a name, a type and a description, and choose what it's **Inside**, for example a tavern inside a district inside a city. The tree on the left shows how they nest; ▸ opens a place and ▾ closes it.
+- A place's page lists the **places inside** it and the **NPCs here**, including NPCs in the places inside it, grouped by where they are. **+ New NPC here** adds one, and **Move an NPC here** files an existing NPC there. Click an NPC to open it on the NPC tab.
+- **In campaigns:** tick a campaign to show the place in that campaign's **Lore** tab. Editing it there or on the World tab changes both. Places already in your campaigns' Lore, including ones imported from MythWeaver, are added to the World by themselves.
+- Renaming a place renames it for every NPC and campaign. Deleting one moves the places and NPCs inside it up a level.
+- The World is saved in this browser and is in your 💾 Backup file. **Export JSON** on a campaign includes the places it uses, with their nesting.
+
 ## Your NPCs
 
 The **NPC** tab lists every NPC from all your campaigns under **Your NPCs**, with a tick box for each campaign:
 
 - Tick a campaign to put that NPC in it. An NPC can be in several campaigns at once.
 - Click an NPC's name to change its name, role, attitude or notes. A change made here, or in a campaign's NPCs tab in the Campaign Tracker, shows in every campaign that NPC is in. So does its picture.
-- **Places:** use **📍 Move to…** on an NPC to file it under a town, district or dungeon. You can pick a place you've used before, a Place from your campaigns' Lore, or **＋ New place…**. The tabs above the list show one place at a time, or **No place** for NPCs not filed yet. The Campaign Tracker's NPCs tab has a **Place** box too.
+- **Places:** use **📍 Move to…** on an NPC to file it under a place from the **World** tab, or **＋ New place…** to make one. The tabs above the list show one place at a time (a city's tab includes the places inside it), or **No place** for NPCs not filed yet. The Campaign Tracker's NPCs tab has the same tabs and a place picker on each NPC.
 - Untick every campaign and the NPC stays in the list, marked "Not in a campaign". **+ New NPC** adds one there (or straight into the campaign you're viewing).
 - **✕** deletes an NPC from every campaign.
 - Search the list, or show one campaign's NPCs only.

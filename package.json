@@ -27,7 +27,8 @@
     "test:lore": "node test/e2e/lore.cjs",
     "test:mythweaver": "node test/e2e/mythweaver.cjs",
     "test:campextras": "node test/e2e/camp-extras.cjs",
-    "test:npclib": "node test/e2e/npc-lib.cjs"
+    "test:npclib": "node test/e2e/npc-lib.cjs",
+    "test:world": "node test/e2e/world.cjs"
   },
   "dependencies": {
     "@netlify/database": "^2.0.3",
