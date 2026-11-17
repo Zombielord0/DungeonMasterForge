@@ -24,7 +24,7 @@ function mwRead(j) {
   return {
     campaigns: (Array.isArray(j.campaigns) ? j.campaigns : []).map(c => ({ mwId: String(c.id ?? uid("mw")), name: String(c.name || "Untitled campaign").slice(0, 120), desc: mwText(c.description), gameSystem: String(c.gameSystem || ""), lore: Array.isArray(c.lore) ? c.lore : [], sessions: Array.isArray(c.sessions) ? c.sessions : [] })),
     other: Array.isArray(j.otherLore) ? j.otherLore : [],
-    characters: (Array.isArray(j.characters) ? j.characters : []).map(ch => ({ mwId: String(ch.id ?? uid("mw")), name: String(ch.name || (ch.sheet && ch.sheet.name) || "Unnamed").slice(0, 80), cls: ch.class || "", ancestry: ch.ancestry || "", level: +ch.level || 1, gameSystem: String(ch.gameSystem || ""), campaignIds: (ch.campaignIds || []).map(String), sheet: ch.sheet || {} })),
+    characters: (Array.isArray(j.characters) ? j.characters : []).map(ch => ({ mwId: String(ch.id ?? uid("mw")), name: String(ch.name || (ch.sheet && ch.sheet.name) || "Unnamed").slice(0, 80), cls: ch.class || "", ancestry: ch.ancestry || "", level: +ch.level || 1, gameSystem: String(ch.gameSystem || ""), campaignIds: (ch.campaignIds || []).map(String), sheet: ch.sheet || {}, raw: ch })),
     images: Array.isArray(j.images) ? j.images.length : 0
   };
 }
@@ -214,6 +214,8 @@ function mwChar(ch, ed) {
   const inv = gearIds.map(id => { const { g, n, qty } = impGear(ed, impTitle(id.replace(/-/g, " "))); return { id: uid("i"), ref: g ? g.id : undefined, n, qty, w: g ? g.w || 0 : 0, att: false, attuned: false, value: g ? g.c : undefined, note: "", eq: eqIsWeapon(g) || eqIsArmor(g) }; });
   D.report.matched.unshift(`${cls} ${lv}`);
   D.opts = { seed: "mw|" + ch.mwId, name: ch.name, ed, bonus: "fixed", method: "array", cls, level: lv, subclass: "none", race, sub, bg: bg || undefined, keepSkills };
+  { const texts = []; const walk = (v, d) => { if (d > 6 || v == null) return; if (typeof v === "string") { if (v.length > 12) texts.push(mwText(v)); } else if (typeof v === "object") Object.values(v).forEach(x => walk(x, d + 1)); };
+    walk(ch.raw || ch.sheet, 0); impGenderSet(D, impGender(ch.raw || ch.sheet, texts)); }
   D.extras = { inv, coins: { cp: 0, sp: 0, ep: 0, gp: 0, pp: 0 }, prepared: [], langs: (sel.background_language_choices || []).map(x => impTitle(String(x).replace(/-/g, " "))).join(", ") };
   if (lv >= subclassLevel(ed, cls)) D.report.differ.push(`No ${cls} subclass in the file: choose one on the sheet`);
   return D;

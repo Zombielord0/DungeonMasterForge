@@ -67,6 +67,35 @@ function spellMatch1(ed, name) {
   return null;
 }
 const IMP_SKILL = Object.fromEntries(ALL_SKILLS.map(k => [k.toUpperCase().replace(/ /g, "_"), k]));
+/* A character's gender from an imported file: a gender, sex or pronouns field anywhere in `src` (keys only), else the
+   pronouns used in its own story `texts` (backstory, personality, notes; never rules text). The Forge has male and female
+   names, so the answer is "male", "female" or "" (not known: the Forge picks one, as for a new character). */
+function impGender(src, texts) {
+  let field = "";
+  const walk = (v, k, d) => {
+    if (field || d > 6 || v == null) return;
+    if (typeof v !== "object") { if (/gender|^sex$|pronoun/i.test(k || "") && String(v).trim()) field = String(v); return; }
+    for (const [kk, vv] of Object.entries(v)) walk(vv, Array.isArray(v) ? k : kk, d + 1);
+  };
+  walk(src, "", 0);
+  const f = field.trim().toLowerCase();
+  if (f) {
+    if (/^(m|male|man|boy|masculine|he\b)/.test(f)) return { g: "male", from: "the file" };
+    if (/^(f|female|woman|girl|feminine|she\b)/.test(f)) return { g: "female", from: "the file" };
+    return { g: "", from: "" };
+  }
+  const all = (texts || []).filter(t => typeof t === "string").join(" ").toLowerCase().replace(/\b(he|she|his|her|him)\s*(or|\/)\s*(he|she|his|her|him|hers)\b/g, " ");
+  const he = (all.match(/\b(he|him|his|himself)\b/g) || []).length, she = (all.match(/\b(she|her|hers|herself)\b/g) || []).length;
+  if (he >= 2 && he >= 2 * she) return { g: "male", from: "the backstory" };
+  if (she >= 2 && she >= 2 * he) return { g: "female", from: "the backstory" };
+  return { g: "", from: "" };
+}
+/* puts the gender on the Draft and says where it came from */
+function impGenderSet(D, G) {
+  if (G.g) { D.opts.gender = G.g; D.report.matched.push(`Gender: ${G.g} (from ${G.from})`); }
+  else D.report.differ.push("The file doesn't say the character's gender, so the Forge picked one. Change it on the sheet if needed");
+}
+
 function compImport(j, ed) {
   const bad = { error: "This file isn't a 5e Companion App character. In the app, open the character and use Export or Share to save its file." };
   if (!j || typeof j !== "object" || j.jsonType !== "character" || !Array.isArray(j.jobs) || !j.jobs.length) return bad;
@@ -166,6 +195,8 @@ function compImport(j, ed) {
   (j.notes || []).map(n => n && n.text).filter(t => t && !/Swipe this message to dismiss/i.test(t)).forEach(t => notes.push(t));
   D.opts = { seed: String(j.id || uid("imp")), name: impCut(j.name, 80) || "Imported character", ed, bonus: "fixed", method: "array", cls: main.cls, level: main.lv, subclass: main.subclass || "none", race, sub, bg: bg || undefined,
     multi: more.length ? more.map(x => ({ cls: x.cls, lv: x.lv, subclass: x.subclass })) : undefined, keepSkills, keepExpert, bonusFeats: bonusFeats.length ? bonusFeats : undefined };
+  impGenderSet(D, impGender({ preferences: j.preferences, player: j.player, gender: j.gender, pronouns: j.pronouns, sex: j.sex },
+    [j.about, j.personalityTraits, j.ideals, j.bonds, j.flaws, ...(j.notes || []).map(n => n && n.text)]));
   const conds = Object.entries(j.conditions || {}).filter(([k, v]) => v).map(([k]) => String(k).toLowerCase()).filter(k => CONDS.some(c2 => c2[0] === k));
   D.extras = { inv, coins: { pp: +j.platinum || 0, gp: +j.gold || 0, ep: +j.electrum || 0, sp: +j.silver || 0, cp: +j.copper || 0 }, prepared, fightStyles,
     align: impTitle(String(j.alignmentName || "").toLowerCase()), xp: +j.exp || 0, hpCur: j.hp === undefined ? undefined : +j.hp, player: impCut(j.player, 60),
@@ -341,6 +372,8 @@ function pdfImport(F, ed) {
   if ("CHARACTER IMAGE" in fields || "CHARACTERIMAGE" in N) D.report.dropped.push("Portrait not imported");
   D.opts = { seed: impCut(`${get("CharacterName")}|${get("ClassLevel")}`, 120), name: impCut(get("CharacterName"), 80) || "Imported character", ed, bonus: "fixed", method: "array", cls: main.cls, level: main.lv, subclass: main.subclass || "none", race, sub, bg: bg || undefined,
     multi: more.length ? more.map(x => ({ cls: x.cls, lv: x.lv, subclass: x.subclass })) : undefined, keepSkills, keepExpert };
+  impGenderSet(D, impGender(Object.fromEntries(Object.entries(fields).filter(([k]) => /gender|^\s*sex\s*$|pronoun/i.test(k))),
+    ["Backstory", "PersonalityTraits", "Ideals", "Bonds", "Flaws", "Allies"].map(get)));
   const a = get("Alignment");
   D.extras = { inv, coins: { pp: num("PP") || 0, gp: num("GP") || 0, ep: num("EP") || 0, sp: num("SP") || 0, cp: num("CP") || 0 }, prepared,
     align: PDF_ALIGN[a.toUpperCase().replace(/[^A-Z]/g, "")] || impCut(a, 40), xp: num("XP") || 0, hpCur: isNaN(num("HPCurrent")) ? undefined : num("HPCurrent"), player: impCut(get("PlayerName"), 60),

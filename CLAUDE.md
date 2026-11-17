@@ -165,7 +165,6 @@ Playwright and Chromium are pre-installed in cloud sessions. To test offline mod
   3. PDF import: done.
   4. MythWeaver: done.
 - **Small things left alone (the owner knows):**
-  - Imported characters get a random gender.
   - PDF expertise beyond what the class grants is dropped without a note.
   - A PDF's portrait isn't imported.
   - Deleting a whole campaign leaves its NPCs' uploaded pictures in IndexedDB.

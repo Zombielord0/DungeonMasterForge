@@ -68,3 +68,9 @@ Moved here from `CLAUDE.md` on 2026-11-17, unchanged except that `public/index.h
   - Built-in items and spells (exact name) are skipped. DM-only sections are left off. Everything stays in Lore.
   - The window shows a ticked `[data-mwextras]` box with the counts; the Go handler adopts after `mwCommit`.
 - **Tests:** `npm run test:campextras` (`test/e2e/camp-extras.cjs`), Forge files and MythWeaver.
+
+## Gender on import (2026-11-17)
+
+- `impGender(src, texts)` (in `src/app/16-character-import.js`) looks for a key named gender, sex or pronouns anywhere in `src`, then counts he/him/his against she/her in the character's own story `texts` (2 or more, and twice the other). "he or she" and "his/her" don't count. The Forge only has male and female names, so a field like "they/them" leaves it unset.
+- `impGenderSet(D, G)` sets `D.opts.gender` and adds "Gender: … (from the file / the backstory)" to the report, or a note that one was picked.
+- Companion App: `about`, `personalityTraits`, `ideals`, `bonds`, `flaws` and notes. PDF: fields named like gender, sex or pronouns, plus Backstory, PersonalityTraits, Ideals, Bonds, Flaws and Allies. MythWeaver: the whole raw character (`raw`, kept by `mwRead`).

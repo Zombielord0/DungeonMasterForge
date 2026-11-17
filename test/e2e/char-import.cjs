@@ -62,6 +62,22 @@ const ZOOK = fs.readFileSync(path.join(FIX, "companion-zook.json"), "utf8");
   const s24 = await p.evaluate(txt => { const d = compImport(JSON.parse(txt), "2024"); return d.error || importBuild(d).c.scores; }, ZOOK);
   check("importing as 2024 rules keeps the scores too", JSON.stringify(s24) === JSON.stringify({ str: 5, dex: 12, con: 13, int: 14, wis: 15, cha: 9 }), JSON.stringify(s24));
 
+  // gender: a field in the file, else the pronouns in the character's own story; rules text and "he or she" don't count
+  const g = await p.evaluate(txt => {
+    const base = JSON.parse(txt), build = j => { const d = compImport(j, "2014"); return { g: importBuild(d).c.gender, rep: d.report }; };
+    return {
+      field: build({ ...base, gender: "Female", about: "He is a he, his, him." }),
+      story: build({ ...base, about: "She left her village when she was young. Her brother still writes to her.", notes: [] }),
+      storyM: build({ ...base, about: "He sailed with his father until he lost him at sea.", notes: [] }),
+      none: build({ ...base, about: "A ranger who keeps to the woods. Each player may choose; he or she decides.", notes: [], personalityTraits: "", ideals: "", bonds: "", flaws: "" }),
+      unit: [impGender({ pronouns: "they/them" }, ["She she she"]).g, impGender({ x: { sex: "M" } }, []).g, impGender({}, ["his or her choice, he/she may"]).g],
+    };
+  }, ZOOK);
+  check("a gender field in the file is used", g.field.g === "female" && g.field.rep.matched.some(t => /Gender: female \(from the file\)/.test(t)), JSON.stringify(g.field));
+  check("otherwise the backstory's pronouns are used", g.story.g === "female" && g.storyM.g === "male" && g.story.rep.matched.some(t => /from the backstory/.test(t)), JSON.stringify([g.story.g, g.storyM.g]));
+  check("with nothing to go on, the report says it was picked", ["male", "female"].includes(g.none.g) && g.none.rep.differ.some(t => /doesn't say the character's gender/.test(t)), JSON.stringify(g.none.rep.differ));
+  check("pronouns a field gives that the Forge has no names for, a nested 'sex', and 'he or she' text", JSON.stringify(g.unit) === JSON.stringify(["", "male", ""]), JSON.stringify(g.unit));
+
   // refusals
   const bh = await p.evaluate(txt => { const j = JSON.parse(txt); j.jobs = [{ jobId: "blood_hunter", level: 3 }]; j.allRequiredClasses = { jobs: [JSON.stringify({ id: "blood_hunter", name: "Blood Hunter", archetypes: [] })] }; return compImport(j, "2014"); }, ZOOK);
   check("an unknown class is refused by name", /doesn't support the Blood Hunter class/.test(bh.error || ""), JSON.stringify(bh.error));
