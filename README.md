@@ -73,6 +73,12 @@ On **My Characters**, press **⬆ Import character** and choose a character file
 
 Subclasses, species, backgrounds, feats and spells the Forge doesn't have are added to **Homebrew** automatically, with their rules text from the file. A PDF has only names, so homebrew made from a PDF has no rules text: add it in the Homebrew tab. A scanned or "flattened" PDF can't be read. If a player imports while signed in, that new homebrew waits for the DM: it appears under **Waiting for approval** on the DM's Homebrew tab, and only that player's character uses it until the DM approves it. If the DM doesn't approve a subclass, feat or spell, it's taken off the character; a species or background stays, with a note to choose another with the DM.
 
+## Lore and MythWeaver
+
+Each campaign in the **Campaign Tracker** has a **Lore** tab for places, items, monsters, encounters and anything else worth remembering. Search it, filter by type, tap an entry to read it, and use **+ Add entry** or **Edit** to write your own (you can use **bold**, *italic*, # headings and - lists). Parts marked 🔒 DM only are just for you. An entry with a picture link can be shown on the TV.
+
+To bring in a campaign from **MythWeaver**, export your account data from MythWeaver, then press **⬆ Import campaign** in the Campaign Tracker and choose the file. Tick the campaigns and characters you want. Sessions go to Sessions, NPCs to NPCs, everything else to Lore, and characters to My Characters. Your MythWeaver account details aren't kept. Importing the same campaign again updates it and keeps anything you added in the Forge. Lore is stored in this browser with the campaign, so it's in your 💾 Backup file; a big campaign takes a good share of the browser's space, and the import window tells you how much.
+
 ## NPC pictures
 
 On a campaign's **NPCs** tab, every NPC has a picture frame. Press **🖼 Add picture…** to pick one from your computer, or **🔗 Link** to use a picture link that starts with https://. Press **📺 TV** to show it on the players' screen. Only the picture is shown, never the NPC's notes, and it keeps its shape. Pictures you add are kept on this computer (not in backups); links work anywhere.

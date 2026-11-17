@@ -58,6 +58,8 @@ npm run test:recap  # session recaps (Playwright, any OS)
 npm run test:sheet  # character sheet maths vs the rules, 432 sheets (Playwright, any OS)
 npm run test:tokens  # tokens on the TV map (Playwright, any OS)
 npm run test:layout  # phone, tablet and laptop layout: windows, header, tap sizes, jump bar (Playwright, any OS)
+npm run test:lore  # the Tracker's Lore tab (Playwright, any OS)
+npm run test:mythweaver  # MythWeaver campaign import and the Import campaign window (Playwright, any OS)
 npm run test:import  # character import: Companion App files and the Import window (Playwright, any OS)
 npm run test:hbspell  # homebrew spells (Playwright, any OS)
 npm run test:hbpend  # pending homebrew and the DM's approval queue (Playwright, any OS)
@@ -401,6 +403,24 @@ Everything in the sections from "Dungeon Map looks" to "Tokens" below was built 
   - The last download time is kept in `dmforge.lastBackup`.
 - **Downloads:** `saveFile` now falls back to a normal browser download (Blob and `<a download>`) when the Claude `downloads` helper isn't there. Before this, Download PNG and Export JSON did nothing on the website.
 - **Tests:** `npm run test:backup` (`test/e2e/backup.cjs`).
+
+## Lore tab and MythWeaver import (2026-11-17)
+
+- **Design and plan:** `docs/superpowers/specs/2026-11-17-mythweaver-import-design.md` and `docs/superpowers/plans/2026-11-17-mythweaver-import.md`.
+- **Lore:** `c.lore = [{id, mwId?, name, type, tags[], imgUrl?, desc, sections:[{t, x, dm}], src?}]`.
+  - Types are in `LORE_TYPES` (place, item, monster, encounter, other). `blankCampaign` and the Forge campaign import add `lore: []`, and `renderTracker` makes sure older campaigns have it.
+  - The tab is `subTab === "lore"` → `loreHTML(c)`, with UI state in `LORE` (q, type, open, edit, draft). `loreRender()` redraws just `#subBody` and keeps focus in `#loreQ`.
+  - Buttons are `data-lore` (open, add, edit, save, cancel, del, tv, secadd, secdel), with chips `data-lt` and fields `data-lf`/`data-ls`. The listeners sit right after `const campMain`.
+- **`mdHTML(text)`:** escapes everything first, then formats `**bold**`, `*italic*`, `#`–`###` headings, `-`/`1.` lists and paragraphs. Use it for any user or imported text you want formatted.
+- **MythWeaver** (`format: "mythweaver-account-export"`):
+  - `mwRead(json)` never reads `account`. It keeps campaigns, `otherLore`, characters and the image count.
+  - `mwText` turns HTML into markdown-ish text. `mwLore` and `mwNpc` map entries; `mwTagType` sorts "generic" entries by their tags.
+  - `mwPlanCamp(R, i, existing)` builds or updates a Tracker campaign (`c.mwId`, `c.mwAt`). It matches NPCs, lore and sessions by `mwId`, never deletes, keeps an NPC's attitude and uploaded picture, and puts `otherLore` in every campaign tagged "Account".
+  - `mwChar(ch, ed)` makes a character Draft with `D.base`: MythWeaver scores are starting scores, so `importBuild` builds once instead of solving.
+- **The window:** `#impCampModal` (`impCampOpen`, `mwWindowHTML`, `mwCommit`), opened by the Tracker's **⬆ Import campaign** (`#importFile`), which still imports Forge campaign files.
+  - `mwCommit` writes with `Store.lsWrite()` straight away and restores the old campaigns if the browser is full.
+- **Real export (2026-11-16, not committed):** Undead Titan has 63 NPCs, 172 lore entries and 14 sessions, about 1.4 MB, and imports in under 2 s.
+- **Tests:** `npm run test:lore` (`test/e2e/lore.cjs`) and `npm run test:mythweaver` (`test/e2e/mythweaver.cjs` plus `mythweaver-ui.cjs`), with the made-up fixture `test/e2e/fixtures/mythweaver-sample.json`.
 
 ## Phone and laptop layout (2026-11-17)
 
