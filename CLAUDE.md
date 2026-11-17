@@ -190,7 +190,8 @@ Playwright and Chromium are pre-installed in cloud sessions. To test offline mod
 ## Where things stand (2026-11-17)
 
 - **PR #9** (all the 2026-11-16/17 work) was merged to `main` at the owner's request on 2026-11-17.
-- **Branch `ccr-b5259a07-6lu9sb`** (after PR #9): organization and speed work.
+- **PR #10** (branch `ccr-b5259a07-6lu9sb`, everything below) was merged to `main` at the owner's request on 2026-11-17, after the code and security reviews passed. New work goes on a new branch with a new draft PR.
+- **What PR #10 contained:** organization and speed work.
   - `npm run test:all`.
   - The rules data moved to `data/` and loads from fingerprinted files.
   - One shared monster list.
