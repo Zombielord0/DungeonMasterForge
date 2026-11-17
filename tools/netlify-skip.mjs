@@ -9,6 +9,7 @@ const SAFE = [
   /^docs\//,
   /^test\//,
   /^\.superpowers\//,
+  /^\.github\//,
   /\.md$/i,
   /^\.gitignore$/,
   /^tools\/(test-all\.mjs|netlify-skip\.mjs|make-test-sheet\.py|convert-srd-monsters\.py)$/,

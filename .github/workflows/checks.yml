@@ -1,0 +1,26 @@
+# Runs every check on GitHub for each pull request, so a ✓ or ✗ shows on the pull request before anyone opens the
+# Netlify preview. This uses GitHub's minutes, not Netlify build credits. Pushes that only change notes are skipped.
+name: Checks
+on:
+  pull_request:
+    paths-ignore: ["docs/**", "**/*.md"]
+  workflow_dispatch:
+concurrency:
+  group: checks-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  checks:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      # Playwright isn't in package.json (cloud sessions have their own copy), so it's added here for this run only
+      - run: npm install --no-save playwright@1.63
+      - run: npx playwright install --with-deps chromium
+      - run: npm run build
+      - run: npm run test:all

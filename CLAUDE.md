@@ -44,6 +44,7 @@ Live site: https://dungeonmasterforge.netlify.app (Netlify; production branch `m
 | `tools/convert-srd-monsters.py` | Writes `data/monsters.json` from the Open5e SRD files. Its `FIXES` list corrects mistakes in the SRD source. |
 | `tools/make-test-sheet.py` | Writes `test/e2e/fixtures/sheet-wizard.pdf` (needs pypdf). |
 | `tools/test-all.mjs` | `npm run test:all`. |
+| `.github/workflows/checks.yml` | GitHub runs `npm run build` and `npm run test:all` on every pull request (GitHub minutes, not Netlify credits; notes-only pushes skipped). It installs Playwright 1.63 for the run, because `package.json` doesn't list it. |
 | `tools/netlify-skip.mjs` | Netlify's `ignore` step: skips a build when a push only changes notes, tests or tools (exit 0 = skip). |
 | `docs/features/` | Notes on each feature: how it works and its function names (table below). |
 | `docs/superpowers/` | One design (`specs/`) and one plan (`plans/`) per piece of work, dated. Read the matching pair before changing a feature. |
