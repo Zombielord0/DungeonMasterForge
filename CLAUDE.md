@@ -18,17 +18,28 @@ These are project notes for the next chat (human or Claude). They cover what the
 
 ## Finishing a piece of work: reviews and tests (owner, 2026-11-17)
 
-When code is complete, before pushing it, the work goes through all three of these. **All of them must come back clean.**
-1. **The tests:** `npm test` and `npm run test:all` all pass. A check that passes on its automatic retry counts, but say which one.
-2. **The `code-reviewer` agent** (`.claude/agents/code-reviewer.md`) reviews the changes and also runs the tests. It must say `PASS`: no Critical or Important findings.
-3. **The `security-reviewer` agent** (`.claude/agents/security-reviewer.md`) reviews the same changes. It must say `PASS`: no finding with confidence 8 or more.
+When code is complete, before pushing it, the work goes through these checks. **All of them must come back clean.** The owner chose the cheaper setup on 2026-11-17, to save usage.
+1. **The tests, every time:** `npm test` and `npm run test:all` all pass. A check that passes on its automatic retry counts, but say which one.
+2. **The `code-reviewer` agent** (`.claude/agents/code-reviewer.md`) **on Sonnet** (set in its file; the cheaper model), every time. It must say `PASS`: no Critical or Important findings.
+3. **The `security-reviewer` agent** (`.claude/agents/security-reviewer.md`, the stronger model) **only when the change touches something risky.** It must say `PASS`: no finding with confidence 8 or more. Risky means:
+   - `netlify/` (the API, the database tables);
+   - `src/portal.js` (sign-in, campaigns, sharing);
+   - `Store` or `Cloud` in `src/app/04-storage.js` (saving to the account), or backups;
+   - anything that shows one person's text in another person's browser: character sheets, homebrew, whispers, the Journal, the turn order, rolls;
+   - `tools/`, `.github/` or `netlify.toml`.
 
-Run the two agents side by side on the same changes (for example `origin/main...HEAD` plus anything uncommitted). If any of the three fails:
+   When it's skipped, say so and why. For example: "security review skipped: only map drawing changed".
+
+**Keep reviews small.** Give each agent only the commits of the piece of work just finished. Never give it the whole branch, which costs about 150,000 tokens a review; one piece of work costs about 25,000. Tell the code reviewer the tests have just passed, so it only re-runs the checks for that area.
+
+Run the agents side by side. If any check fails:
 - fix the mistakes, each with a test that fails before the fix;
-- run all three again;
-- repeat until all three are clean.
+- run the tests again, and the reviewer(s) again on **just the fix commit**;
+- repeat until everything is clean.
 
 Only then push, and tell the owner what the reviewers found and what was fixed. Minor findings can wait; list them for the owner. If an agent can't run (for example a usage limit), say so and don't call the work reviewed.
+
+- **Agent files load when a session starts.** If `code-reviewer` or `security-reviewer` isn't offered as an agent type, start a general agent that reads the file and follows it, and pass `model: sonnet` for the code reviewer.
 
 ## What the app is
 
