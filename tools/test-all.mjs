@@ -38,6 +38,11 @@ async function pool(list, size) {
   return results;
 }
 
+// build the page once (each check would otherwise rebuild it), then tell the checks it's done
+const built = await new Promise(r => spawn("node", ["tools/build.mjs", "--quiet"], { shell: true, stdio: "inherit" }).on("close", r));
+if (built !== 0) process.exit(1);
+process.env.DMFORGE_BUILT = "1";
+
 const t0 = Date.now();
 console.log(`Running ${names.length} checks${serial ? " one at a time" : ""}...\n`);
 const first = await pool(names, serial ? 1 : 3);

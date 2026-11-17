@@ -24,9 +24,9 @@
   [headers.values]
     Content-Type = "text/javascript; charset=utf-8"
 
-# The built-in spells, monsters and items. Each file name has a fingerprint that changes with its contents,
-# so browsers can keep them for a year (tools/build-data.mjs).
+# The code, styling and built-in spells, monsters and items. Each file name has a fingerprint that changes with its contents,
+# so browsers can keep them for a year (tools/build.mjs).
 [[headers]]
-  for = "/data/*"
+  for = "/assets/*"
   [headers.values]
     Cache-Control = "public, max-age=31536000, immutable"

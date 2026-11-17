@@ -4,7 +4,8 @@ Live at https://dungeonmasterforge.netlify.app
 
 ## Layout
 
-- `public/index.html`: the Forge itself (one page). **Upload new versions of the HTML here**, replacing this file.
+- `src/index.html`, `src/app.css` and `src/app/*.js`: the Forge itself (one page). `npm run build` puts them together into `public/index.html` and `public/assets/`.
+- `data/`: the built-in spells, monsters and items.
 - `src/portal.js`: player and DM portals (sign-in, shared characters, Party tab, whispers). Built into `public/portal.js`.
 - `netlify/functions/api.mjs` + `netlify/lib/`: the campaign API at `/api/*`.
 - `netlify/database/migrations/`: database tables, applied automatically on deploy.
@@ -153,7 +154,8 @@ Signed-in accounts don't need this, because their data is saved on the server.
 ```bash
 npm install
 npm test          # API tests against a local Postgres
-npm run build     # bundle src/portal.js
+npm run test:all  # every check, with one pass/fail list at the end (Windows too)
+npm run build     # build the page from src/ and data/, and bundle src/portal.js
 ```
 
 ### Try the whole app on your computer (Windows, Mac or Linux)
@@ -172,6 +174,7 @@ Open http://localhost:8899. Sign-in is a stand-in: any name, email and password 
 Same stand-in login (Netlify's login doesn't run locally):
 
 ```bash
+npm run build:app
 npx esbuild src/portal.js --bundle --format=esm --alias:@netlify/identity=./test/e2e/fake-identity.js --outfile=/tmp/portal-test.js
 node test/e2e/server.mjs /tmp/portal-test.js 8899 &
 node test/e2e/walkthrough.cjs /tmp
