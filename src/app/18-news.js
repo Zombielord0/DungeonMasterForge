@@ -2,6 +2,13 @@
    When a change ships, add an entry to the top of NEWS with a new id, in plain words for players and DMs. */
 
 const NEWS = [
+  { id: "2026-11-17-world-maps", date: "2026-11-17", title: "World and region maps", go: "world", items: [
+    "On the World tab, open a region and press “🗺️ Make a map”: the Forge paints its land, coast, rivers, forests and mountains, and names the biggest of them. Pick Coast, Inland or Island and how mountainous it is, and press 🎲 Roll again until you like it.",
+    "Every town, village, dungeon, landmark and wild place inside the region gets a pin in a sensible spot: cities by water, dungeons in the hills. Drag a pin to move it. Places you add later are pinned too.",
+    "Have your own map from Inkarnate, Wonderdraft or a book? Press “⬆ Import a map” to use your picture instead, with the same pins.",
+    "Press “📺 Show on TV” to show the map to the players. Places they haven't found yet don't appear on the TV. Click a pin and choose “Reveal to the players” when they find it. Click the map while it's on the TV to ping a spot.",
+    "“🌍 World map” at the top of the World tab shows your regions on one map; click a region's name to open its map.",
+    "Map pictures you import stay on the computer you imported them on (they're in your 💾 Backup). Generated maps, pins and what the players have found go everywhere you sign in."] },
   { id: "2026-11-17-players-journal", date: "2026-11-17", title: "A Journal for players, turn order on phones, and homebrew classes", go: "journal", items: [
     "Players have a new Journal tab: the quests, session recaps and lore the DM shares, plus the day and weather. DMs: quests and sessions show unless you set “Players see it” to No; tick “Players see this” on a Lore entry to share it. Quest notes and DM-only sections stay with you. Your Journal tab shows what players see.",
     "DMs: press “📱 Show players” on an encounter and your players see the turn order on their phones, with a “Your turn!” when it's theirs. Monsters show as Bloodied or Down, never their hit points.",

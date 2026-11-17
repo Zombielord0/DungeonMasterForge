@@ -122,6 +122,8 @@ const server = http.createServer((req, res) => {
   await p.evaluate(() => $("#atlasCv").scrollIntoView({ block: "center" }));
   const hid = await p.evaluate(ids => ({ labels: ATLAS_VIEW.labels, crypt: atlasPins(ids.r, false).find(x => x.id === ids.crypt) }), ids);
   check("atlas view: places not found yet are shown to the DM, marked hidden", hid.labels.includes("Sunken Crypt") && hid.crypt.hidden, JSON.stringify(hid));
+  const pref = await p.evaluate(ids => { const m = atlasOf(ids.r), keep = JSON.stringify(m.pins); m.pins[ids.north] = { ...m.pins[ids.frost] }; m.pins[ids.north].x += .01; const cv = $("#atlasCv"), r = cv.getBoundingClientRect(), q = m.pins[ids.frost]; const h = atlasHit({ clientX: r.left + q.x * r.width, clientY: r.top + q.y * r.height }); m.pins = JSON.parse(keep); return h.pin && h.pin.id; }, ids);
+  check("atlas view: a click on a place's pin picks the place, even next to a region's name", pref === ids.frost, String(pref));
   // the pin menu: reveal
   const c0 = await pinAt(ids.crypt); await p.mouse.click(c0.x, c0.y);
   await p.waitForSelector('#atlasMenu:not([hidden]) [data-atp="reveal"]');

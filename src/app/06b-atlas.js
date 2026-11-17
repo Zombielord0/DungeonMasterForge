@@ -405,9 +405,10 @@ function atlasMenuShow(pin) {
 function atlasMenuHide() { const m = $("#atlasMenu"); if (m) m.hidden = true; ATLAS_VIEW.menu = null; }
 function atlasHit(e) {
   const cv = $("#atlasCv"), r = cv.getBoundingClientRect(), fx = (e.clientX - r.left) / r.width, fy = (e.clientY - r.top) / r.height;
-  let best = null, bd = 26; // css px
-  atlasPins(W.atlasId, false).forEach(q => { const d = Math.hypot((q.x - fx) * r.width, (q.y - fy) * r.height) - (q.area ? 10 : 0); if (d < bd) { bd = d; best = q; } });
-  return { pin: best, fx, fy };
+  // a place's pin wins over a region's name: names are big, pins are small
+  const near = (list, reach) => { let best = null, bd = reach; list.forEach(q => { const d = Math.hypot((q.x - fx) * r.width, (q.y - fy) * r.height); if (d < bd) { bd = d; best = q; } }); return best; };
+  const all = atlasPins(W.atlasId, false);
+  return { pin: near(all.filter(q => !q.area), 26) || near(all.filter(q => q.area), 40), fx, fy };
 }
 (function initAtlas() {
   const view = $("#view-world"); if (!view) return;

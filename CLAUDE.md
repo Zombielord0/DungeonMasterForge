@@ -60,6 +60,7 @@ Live site: https://dungeonmasterforge.netlify.app (Netlify; production branch `m
 | `04-storage.js` | `saveFile`, Backup and restore, `Store`, and `Cloud` (the DM's data saved to their account) |
 | `05-tracker.js` | Campaign Tracker: campaigns, NPC pictures, Lore, recaps, calendar, encounters, random encounters, campaign files |
 | `06-npcs-world.js` | NPC generator, Your NPCs, the World tab and World builder |
+| `06b-atlas.js` | World and region maps: terrain (`atlasTerrain`), drawing (`atlasDraw`), pins (`atlasPinsFill`), the map view, import, the TV |
 | `07a-classes.js` | `CLASS_DATA`, class feature text, subclasses (`subclassList`, `subclassLevel`), `classList`, homebrew classes (`hbClassData`) |
 | `07b-feats-homebrew.js` | Feats (`FEATS`, `featList`), homebrew (`HB`, `hbApply`, `HB_FX`, `hbEffects`), pending homebrew |
 | `07c-species.js` | Species (`PC_RACES`, `raceInfo`), their defences, species features by level |
@@ -109,7 +110,7 @@ npm run build     # build the page and bundle the portal (what Netlify runs)
 npm run build:app # build the page only
 ```
 
-One check per feature (Playwright, any OS): `test:assets` (fingerprinted files, repeat visits, offline), `test:map`, `test:backup`, `test:tv`, `test:mapvis`, `test:mapio`, `test:shop`, `test:random`, `test:cards`, `test:mapenc`, `test:calendar`, `test:recap`, `test:sheet` (432 sheets vs the rules), `test:tokens`, `test:npcpic`, `test:hbspell`, `test:hbpend`, `test:import`, `test:layout`, `test:lore`, `test:mythweaver`, `test:campextras`, `test:npclib`, `test:world`, `test:setup` (builds the portal, port 8897), `test:sync` (the DM's data in their account, two devices, port 8896), `test:share` (the players' Journal, turn order on phones, shared rolls; port 8895), `test:hbclass` (homebrew classes).
+One check per feature (Playwright, any OS): `test:assets` (fingerprinted files, repeat visits, offline), `test:map`, `test:backup`, `test:tv`, `test:mapvis`, `test:mapio`, `test:shop`, `test:random`, `test:cards`, `test:mapenc`, `test:calendar`, `test:recap`, `test:sheet` (432 sheets vs the rules), `test:tokens`, `test:npcpic`, `test:hbspell`, `test:hbpend`, `test:import`, `test:layout`, `test:lore`, `test:mythweaver`, `test:campextras`, `test:npclib`, `test:world`, `test:setup` (builds the portal, port 8897), `test:sync` (the DM's data in their account, two devices, port 8896), `test:share` (the players' Journal, turn order on phones, shared rolls; port 8895), `test:hbclass` (homebrew classes), `test:atlas` (World and region maps).
 
 Playwright and Chromium are pre-installed in cloud sessions. To test offline mode (no sign-in screen), run `localStorage.setItem('dmforge.offline','1')` in an init script.
 
@@ -125,6 +126,7 @@ Playwright and Chromium are pre-installed in cloud sessions. To test offline mod
 | `docs/features/npcs-world.md` | NPC pictures, Your NPCs and imported monsters, the World tab. |
 | `docs/features/players-share.md` | What the DM shares with signed-in players: the Journal tab, turn order on phones (`📱 Show players`), shared rolls. |
 | `docs/features/homebrew-classes.md` | Homebrew classes: how they join `CLASS_DATA`, `classList(ed)`, the editor, and import of unknown classes. |
+| `docs/features/world-maps.md` | World and region maps: data (`place.atlas`, `W.atlas`, `place.found`), pins, the map view, import, the TV. |
 | `docs/features/layout.md` | Phone and laptop layout. |
 | `docs/features/accounts.md` | The DM setup screen, renaming a campaign, and **the DM's data saved to their account** (`Cloud`, `/api/me/docs`). |
 
@@ -141,7 +143,7 @@ Playwright and Chromium are pre-installed in cloud sessions. To test offline mod
 - **In the browser** (also used by "Use without an account"):
   - `dmforge.pcs.v1` (characters), `dmforge.campaigns.v1`, `dmforge.homebrew.v1`, `dmforge.items.v1`, `dmforge.mymonsters.v1`, `dmforge.favspells` and `dmforge.offline`.
   - `dmforge.npclib.v1`: NPCs that aren't in any campaign (Your NPCs on the NPC tab).
-  - `dmforge.world.v1`: World places (the World tab).
+  - `dmforge.world.v1`: World places (the World tab), with region maps on the places and the world map as `atlas`.
   - `dmforge.fog.v1`: map fog, found secret doors and tokens for the 40 most recent maps.
   - `dmforge.lastBackup`, `dmforge.newsSeen`, `dmforge.hdrMini`.
   - **Imported map pictures and NPC pictures** are in IndexedDB (database `dmforge-maps`), not localStorage.
@@ -170,6 +172,7 @@ Playwright and Chromium are pre-installed in cloud sessions. To test offline mod
   - These notes split into `docs/features/`.
   - Netlify skips builds for notes-only pushes (`tools/netlify-skip.mjs`).
   - **The DM's Tracker, World, NPCs, custom items and monsters saved to their account** (`Cloud`, `/api/me/docs`, `npm run test:sync`).
+  - Later the same day, in the same PR: the players' Journal, turn order on phones and shared rolls; homebrew classes; **World and region maps** (`06b-atlas.js`, `npm run test:atlas`).
   - The page went from 829 KB to about 14 KB compressed on repeat visits when nothing changed. The code (about 360 KB compressed) and the data (about 440 KB) are downloaded again only when they change.
 - **The owner's order of import work:**
   1. Companion App import: done.
