@@ -302,6 +302,7 @@ const Cloud = {
   touch(id) {
     if (!this.on) return;
     this.meta.dirty[id] = true; this.saveMeta(); setBadge();
+    if (this.busy[id]) this.again[id] = true; // an upload is on its way with the older copy: send again after it, and keep this marked unsent
     clearTimeout(this.timers[id]); this.timers[id] = setTimeout(() => this.push(id), 2500);
   },
   async push(id) {

@@ -89,7 +89,7 @@ const server = http.createServer((req, res) => {
     const n = atlasOf(ids.r), T = atlasTerrain(n), land = q => T.h[Math.min(T.H - 1, Math.floor(q.y * T.H)) * T.W + Math.min(T.W - 1, Math.floor(q.x * T.W))] >= 0;
     return { shape: n.shape, velmor: n.pins[ids.velmor], velmorWasLand: land({ x: .31, y: .47 }), bellLand: land(n.pins[ids.bell]), bellMoved: n.pins[ids.bell].x !== .01, allLand: Object.values(n.pins).every(land) };
   }, ids);
-  check("atlas: re-rolling keeps a dragged pin where it's still on land", rr.shape === "island" && rr.velmor.m && (rr.velmorWasLand ? rr.velmor.x === .31 && rr.velmor.y === .47 : true), JSON.stringify(rr));
+  check("atlas: re-rolling keeps a dragged pin where it's still on land", rr.shape === "island" && rr.velmor.m && (rr.velmorWasLand ? rr.velmor.x === .31 && rr.velmor.y === .47 : rr.allLand && (rr.velmor.x !== .31 || rr.velmor.y !== .47)), JSON.stringify(rr));
   check("atlas: …and every pin is on land after a re-roll", rr.allLand && rr.bellLand && rr.bellMoved, JSON.stringify(rr));
   const wm = await p.evaluate(ids => { atlasMake("world", { shape: "island", land: "balanced" }); atlasPinsFill("world"); worldSave(); return { areas: atlasPlaces("world").filter(x => x.area).map(x => x.p.name).sort() }; }, ids);
   check("atlas: the world map shows the top-level regions as areas", JSON.stringify(wm.areas) === '["Far Isles","The Ashen Vale"]', JSON.stringify(wm));
@@ -105,7 +105,7 @@ const server = http.createServer((req, res) => {
   const pinAt = id => p.evaluate(id => { const cv = $("#atlasCv"), m = atlasOf(W.atlasId), q = m.pins[id]; let r = cv.getBoundingClientRect(); window.scrollBy(0, r.top + q.y * r.height - innerHeight / 2); r = cv.getBoundingClientRect(); return { x: r.left + q.x * r.width, y: r.top + q.y * r.height }; }, id);
   await p.evaluate(ids => { const r = wp(ids.r); delete r.atlas; worldSave(); W.sel = ids.r; W.mode = "place"; location.hash = "world"; renderWorld(); }, ids);
   await p.waitForSelector('#worldMain [data-at="make"]');
-  check("atlas view: a region's page offers Make a map", true);
+  check("atlas view: a region's page offers Make a map", await p.locator('#worldMain [data-at="make"]').count() === 1);
   await p.click('#worldMain [data-at="make"]'); await p.waitForSelector("#atlasCv");
   const v1 = await p.evaluate(ids => ({ id: W.atlasId, pins: Object.keys(atlasOf(ids.r).pins).length, mode: W.mode }), ids);
   check("atlas view: the map opens with every place pinned", v1.id === ids.r && v1.mode === "atlas" && v1.pins === 6, JSON.stringify(v1));
@@ -205,7 +205,7 @@ const server = http.createServer((req, res) => {
   let n = await tv.evaluate(() => window.tvFrames || 0);
   await p.evaluate(() => { $("#atlasCv").scrollIntoView({ block: "center" }); });
   const vp = await pinAt(ids.velmor); await p.mouse.click(vp.x, vp.y); await p.waitForSelector('#atlasMenu:not([hidden]) [data-atp="reveal"]'); await p.click('#atlasMenu [data-atp="reveal"]');
-  check("tv: revealing a place re-sends the picture with its name", await waitFrame(n) && (await p.evaluate(() => atlasTvLabels())).includes("Velmor"));
+  check("tv: revealing a place re-sends the picture with its name", await waitFrame(n) && await p.waitForFunction(() => atlasTvLabels().includes("Velmor"), null, { timeout: 8000 }).then(() => true, () => false));
   const nPing = await tv.evaluate(() => window.__msgs.filter(m => m.t === "ping").length);
   const box = await p.evaluate(() => { const r = $("#atlasCv").getBoundingClientRect(); return { x: r.left + 8, y: r.top + r.height - 8 }; });
   await p.mouse.click(box.x, box.y); await p.waitForTimeout(300);
@@ -216,6 +216,8 @@ const server = http.createServer((req, res) => {
   check("tv: an imported map goes to the TV", await waitFrame(n) && await p.evaluate(() => ATLAS_TV.pic));
   n = await tv.evaluate(() => window.tvFrames || 0); await p.click('[data-at="tv"]');
   check("tv: Off TV goes back to the dungeon map screen", await waitFrame(n) && await p.evaluate(() => HOST.show !== "atlas"));
+  const del = await p.evaluate(async ids => { atlasTv(ids.r); const p0 = wp(ids.r); confirmBox = async () => true; await wpDelete(p0); return { show: HOST.show, atlas: HOST.atlas }; }, ids);
+  check("tv: deleting a region whose map is on the TV takes the map off the TV", del.show !== "atlas" && !del.atlas, JSON.stringify(del));
   await tv.close();
 
   check("no page errors", errs.length === 0, errs.join(" | "));

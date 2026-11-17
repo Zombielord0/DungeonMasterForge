@@ -118,6 +118,18 @@ const check = (name, ok, extra = "") => { console.log((ok ? "PASS " : "FAIL ") +
     d = await docs(B);
     check("back online: a change made offline on an up-to-date copy uploads", (d.docs.find(x => x.id === cid).data.loot || []).length === 1);
 
+    // 8b. an edit made while an upload is still on its way isn't marked as sent when that upload finishes
+    await B.route("**/api/me/docs/**", async r => { if (r.request().method() === "PUT") await new Promise(res => setTimeout(res, 2000)); r.continue().catch(() => { }); });
+    await B.evaluate(id => { const c = Store.get(id); c.notes = "first edit"; Store.save(c); }, cid);
+    await B.waitForFunction(id => Cloud.busy[id], cid, { timeout: 8000 }); // the first upload is on its way (held for 2 s)
+    await B.evaluate(id => { const c = Store.get(id); c.notes = "second edit"; Store.save(c);
+      window.__snaps = []; const orig = Cloud.saveMeta; Cloud.saveMeta = function () { if (!this.busy[id]) window.__snaps.push(!!this.meta.dirty[id]); return orig.call(this); }; }, cid);
+    await B.waitForFunction(() => window.__snaps.length > 0, null, { timeout: 8000 });
+    check("an edit made during an upload stays marked as unsent after that upload finishes", await B.evaluate(() => window.__snaps[0] === true), JSON.stringify(await B.evaluate(() => window.__snaps)));
+    await B.unroute("**/api/me/docs/**"); await saved(B);
+    d = await docs(B);
+    check("…and then reaches the account", d.docs.find(x => x.id === cid).data.notes === "second edit");
+
     // 9. signing out puts the browser's own work back
     await A.click("#acctBtn"); await A.click('#gate [data-g="out"]'); await A.waitForTimeout(1500); await ready(A);
     check("signed out: the browser's own campaign is back as it was", JSON.stringify(await camps(A)) === JSON.stringify(["Home Game"]), (await camps(A)).join(", "));

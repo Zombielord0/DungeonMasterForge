@@ -108,6 +108,9 @@ const server = http.createServer((req, res) => {
   await p.waitForTimeout(300);
   check("a character with a class waiting for the DM builds and opens", pend.cls === "Gunslinger" && pend.grit && /Vex/.test(await p.textContent("#view-roster")), JSON.stringify(pend));
   check("…the waiting class isn't offered to others, and is in the DM's approval queue", !pend.offered && pend.queue, JSON.stringify(pend));
+  const words = await p.evaluate(() => { HB.list.push({ id: "hb-gw", kind: "class", name: "Warden", ed: "both", desc: "Keeps the old roads.", hd: 10, pri: ["wis"], saves: ["wis", "con"], skills: { n: 2, any: true, from: [] }, armor: [], kit: "", wpn: {}, cast: "none", subName: "Oath", subLv: 3, features: [] }); hbApply(); CB.ed = "2024"; CB.step = 1; const grid = cbBody(); HB.list = HB.list.filter(x => x.id !== "hb-gw"); hbApply(); return { queue: hbPendHTML(), grid }; });
+  check("the approval queue calls a waiting class a class, not 'undefined'", !/undefined/.test(words.queue) && /class/.test(words.queue), words.queue.slice(0, 300));
+  check("the builder shows a homebrew class's description, not 'undefined'", /Warden/.test(words.grid) && !/undefined/.test(words.grid) && /Keeps the old roads/.test(words.grid));
 
   check("no page errors", errs.length === 0, errs.join(" | "));
   await browser.close(); server.close();

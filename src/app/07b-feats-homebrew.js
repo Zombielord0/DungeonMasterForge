@@ -226,7 +226,7 @@ async function hbReject(key) {
 const hbRejectedHTML = c => (c.hbPending || []).filter(e => e.rejected && ["species", "background"].includes(e.kind)).map(e => `<div class="lv-bar"><span class="lv-need">⚠ Your DM didn't approve ${esc(e.name)}. Talk to them about another ${e.kind}.</span></div>`).join("");
 function hbPendHTML() {
   const L = HB.pend.filter(x => !x.rejected); if (!L.length) return "";
-  const kindName = { subclass: "subclass", background: "background", feat: "feat", species: "species", spell: "spell" };
+  const kindName = { class: "class", subclass: "subclass", background: "background", feat: "feat", species: "species", spell: "spell" };
   const body = x => [x.desc, ...(x.features || []).map(f => `Level ${f.l} · ${f.n}: ${f.d}`), ...(x.traits || []).map(f => `${f.n}: ${f.d}`)].filter(Boolean).join("\n\n");
   return `<div id="hbPendBox" class="hb-pend-box"><h4>Waiting for approval</h4><p class="hint" style="margin:0 0 6px">Brought in with players' imported characters. Only those characters use them until you approve.</p>
     ${L.map(x => { const k = esc(pendKey(x)); return `<div class="hb-pend" data-pendrow="${k}"><details><summary><b>${esc(x.name)}</b> <small class="muted">${kindName[x.kind]}${x.kind === "subclass" ? ` (${esc(x.cls)})` : ""} · from ${esc(x.from.map(f => f.name).join(", "))}</small></summary><div class="hb-pend-text">${esc(body(x) || "No description.")}</div></details>
