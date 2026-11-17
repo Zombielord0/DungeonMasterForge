@@ -87,6 +87,18 @@ On a campaign's **NPCs** tab, every NPC has a picture frame. Press **🖼 Add pi
 
 On a campaign's **Sessions** tab, press **Write a recap**. It collects what has happened since the last recap: fights finished, XP, quests completed or failed, chapters, loot handed out, and the calendar's log. It saves all of that as a new session you can edit.
 
+## Sharing a campaign file
+
+In the **Campaign Tracker**, **Export JSON** saves a campaign to one file. The file also holds your custom items, homebrew and custom monsters.
+
+**Import JSON** loads that file, on this computer or another one. It brings the extras along too:
+
+- **Custom items** appear in **Items → Custom**. Choose a character in "Give items to" and press **Give** or **Buy**.
+- **Homebrew** appears in the **Homebrew** tab. If you're signed in, only the DM's import adds it.
+- **Custom monsters** appear in **Monster Manual → My monsters**.
+
+Anything you already have isn't added twice. Campaign files exported before 17 November 2026 don't hold these extras, so export them again first.
+
 ## Keeping a backup
 
 If you use the Forge without an account, everything is saved only in that browser. Press **💾 Backup** at the top of the page:
