@@ -252,9 +252,15 @@ export async function handle(req, user, db) {
         if (existing.owner_id !== user.id && !isDM) throw new HttpError(403, "That character belongs to someone else");
         await db.query("DELETE FROM characters WHERE campaign_id = $1 AND id = $2", [cid, charId]);
       }
-      await db.query(
-        "INSERT INTO characters (campaign_id, id, owner_id, data, updated_by) VALUES ($1, $2, $3, $4, $3)",
-        [cid, charId, user.id, data]);
+      try {
+        await db.query(
+          "INSERT INTO characters (campaign_id, id, owner_id, data, updated_by) VALUES ($1, $2, $3, $4, $3)",
+          [cid, charId, user.id, data]);
+      } catch (e) { // made at the same moment by another save: hand that one back, as above
+        if (e.code !== "23505") throw e;
+        const now = await getChar(db, cid, charId);
+        throw new HttpError(409, "That character already exists", now ? { current: charRow(now) } : undefined);
+      }
       await logActivity(db, cid, charId, user.id, null, data);
       return json(charRow(await getChar(db, cid, charId)), 201);
     }
@@ -279,11 +285,19 @@ export async function handle(req, user, db) {
       if (!p.force && Number(p.baseVersion) !== cur.version) {
         throw new HttpError(409, "Someone else changed this sheet", { current: charRow(cur) });
       }
-      const { rows: [{ version }] } = await db.query(
+      // The version check is repeated inside the UPDATE, so two saves at the same moment can't both pass it:
+      // the second finds the version already moved on and is handed the winning sheet.
+      const { rows } = await db.query(
         `UPDATE characters SET data = $3, version = version + 1, updated_at = now(), updated_by = $4
-          WHERE campaign_id = $1 AND id = $2 RETURNING version`, [cid, id, data, user.id]);
+          WHERE campaign_id = $1 AND id = $2 AND deleted_at IS NULL AND ($5 OR version = $6) RETURNING version`,
+        [cid, id, data, user.id, !!p.force, Number(p.baseVersion)]);
+      if (!rows.length) {
+        const now = await getChar(db, cid, id);
+        if (!now || now.deleted_at) throw new HttpError(404, "That character no longer exists");
+        throw new HttpError(409, "Someone else changed this sheet", { current: charRow(now) });
+      }
       await logActivity(db, cid, id, user.id, cur.data, data);
-      return json({ version });
+      return json({ version: rows[0].version });
     }
 
     // ---- homebrew: everyone in the campaign reads it, only the DM changes it ----

@@ -143,7 +143,7 @@ Playwright and Chromium are pre-installed in cloud sessions. To test offline mod
   - Tracker NPCs: `img` (key `npc-<npc id>` in the `dmforge-maps` IndexedDB) or `imgUrl` (an https link), `lib`, `placeId` and `place`.
   - Characters: `hbPending` (homebrew waiting for the DM), `importedFrom: {app, at}` and `mwId`.
   - Homebrew can be `kind: "spell"`.
-- **Signed in:** characters and homebrew live in Postgres, per campaign. Homebrew is polled every 30 seconds. Every character save bumps `version`, so if two people save the same sheet at once, the second one is asked which version to keep.
+- **Signed in:** characters and homebrew live in Postgres, per campaign. Homebrew is polled every 30 seconds. Every character save bumps `version`, so if two people save the same sheet at once, the second one is asked which version to keep. The version check is inside the `UPDATE` (and a duplicate create returns 409, not 500), so saves at the very same moment can't both win; `user_docs` works the same way.
 - **Signed in as a DM:** the Tracker campaigns, World, Your NPCs, custom items and My monsters are also saved privately to the account (`user_docs`, `Cloud`). The usual localStorage keys then hold that account's copy; the browser's own data waits in `dmforge.stash.v1` and comes back on signing out. `dmforge.sync.v1` tracks versions and unsent changes. See `docs/features/accounts.md`.
 - **Campaign saves are written 600 ms after a change** (`Store.save`). Tests that reload must wait for that first.
 

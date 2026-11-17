@@ -7,7 +7,8 @@ const NEWS = [
     "It's private to you. Players never see it.",
     "Lost signal at the table? Keep going. Changes are kept on your device and upload as soon as you're back online. The badge at the top says “✓ Saved to your account” when everything is up.",
     "The first time you sign in on a browser that already has work in it, the Forge asks whether to add it to your account. Whatever you choose, it stays in that browser for when you're signed out.",
-    "Changed the same campaign on two devices? Nothing is lost: you're asked which version to keep, or both are kept."] },
+    "Changed the same campaign on two devices? Nothing is lost: you're asked which version to keep, or both are kept.",
+    "Fixed: if a player and the DM saved the same character sheet at the very same moment, one of the changes could be lost without warning. Now the second one is asked which version to keep, as it already was a moment later."] },
   { id: "2026-11-17-faster", date: "2026-11-17", title: "Opens faster", items: [
     "The Forge now keeps its spells, monsters, items and its own code on your device after the first visit, so it opens much faster, especially on phones at the table. Each visit after that only fetches the small part that might have changed.",
     "When the Forge is updated, your device still picks up the new version straight away.",

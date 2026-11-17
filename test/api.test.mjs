@@ -169,6 +169,35 @@ test("full campaign flow", async (t) => {
   });
 });
 
+test("two saves of one sheet at the same moment: one wins, the other is asked", async () => {
+  const kit = { id: "u-kit", email: "kit@example.com" }, rue = { id: "u-rue", email: "rue@example.com" };
+  const made = await call(kit, "POST", "campaigns", { name: "Race Test", displayName: "Kit" });
+  const cid = made.body.id;
+  await call(rue, "POST", "join", { code: made.body.code, displayName: "Rue" });
+  const pc = { id: "pc-race", name: "Pip", hpCur: 10 };
+  // creating the same character twice at once: one is made, the other is told it exists (not a server error)
+  const [c1, c2] = await Promise.all([
+    call(rue, "POST", `campaigns/${cid}/characters`, { data: pc }),
+    call(rue, "POST", `campaigns/${cid}/characters`, { data: pc }),
+  ]);
+  assert.deepEqual([c1.status, c2.status].sort(), [201, 409]);
+  // the player and the DM both save from version 1 at once
+  const [a, b] = await Promise.all([
+    call(rue, "PUT", `campaigns/${cid}/characters/pc-race`, { data: { ...pc, hpCur: 4 }, baseVersion: 1 }),
+    call(kit, "PUT", `campaigns/${cid}/characters/pc-race`, { data: { ...pc, hpCur: 15 }, baseVersion: 1 }),
+  ]);
+  assert.deepEqual([a.status, b.status].sort(), [200, 409], "exactly one save wins");
+  const loser = a.status === 409 ? a : b, winner = a.status === 409 ? b : a;
+  assert.equal(winner.body.version, 2);
+  assert.equal(loser.body.current.version, 2, "the other is handed the winning version");
+  const now = (await call(kit, "GET", `campaigns/${cid}/characters`)).body.characters[0];
+  assert.equal(now.version, 2);
+  assert.equal(now.data.hpCur, loser.body.current.data.hpCur);
+  // the activity feed describes the save that won, from the version it replaced
+  const feed = (await call(kit, "GET", `campaigns/${cid}/activity`)).body.map(x => x.summary);
+  assert.equal(feed.filter(x => /HP 10 →/.test(x)).length, 1, feed.join(" | "));
+});
+
 test("a DM can create a campaign without naming it", async () => {
   const r = await call({ id: "u-new", email: "new@example.com" }, "POST", "campaigns", {});
   assert.equal(r.status, 201);
