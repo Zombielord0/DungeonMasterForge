@@ -4,6 +4,7 @@
 (function () {
   "use strict";
   const reduce = window.matchMedia && matchMedia("(prefers-reduced-motion: reduce)").matches;
+  const COARSE = window.matchMedia && matchMedia("(pointer: coarse)").matches; /* phones and tablets */
   const rand = (a, b) => a + Math.random() * (b - a);
   // seeded rng so the corridor looks the same every load
   let seed = 1337; const srand = () => (seed = (seed * 16807) % 2147483647) / 2147483647;
@@ -386,7 +387,7 @@
     c.fillStyle = g; c.fillRect(0, CY, W, H - CY);
   }
   function resize() {
-    W = innerWidth; H = innerHeight; DPR = Math.min(1.5, window.devicePixelRatio || 1);
+    W = innerWidth; H = innerHeight; DPR = COARSE ? 1 : Math.min(1.5, window.devicePixelRatio || 1); /* a dim backdrop: phones draw it at normal resolution */
     cv.width = W * DPR; cv.height = H * DPR;
     F = Math.max(W, H * 1.3) * .5; CX = W / 2; CY = H * .44;
     drips = []; buildStatic(); draw(0);
@@ -436,11 +437,15 @@
     const x = c.getContext("2d"); x.scale(2, 2); return { x, f: new Flame(23, 130) };
   });
 
+  /* The scene is redrawn at most 30 times a second (20 on phones), not at the screen's 60+: flames look the same and it
+     saves battery. The header torches are skipped while the header is scrolled away (hdr-away on phones). */
+  const FRAME_MS = COARSE ? 50 : 33;
   let last = performance.now(), running = !reduce;
   function loop(now) {
-    const dt = Math.min(.05, (now - last) / 1000); last = now;
+    if (running && now - last < FRAME_MS - 2) { requestAnimationFrame(loop); return; }
+    const dt = Math.min(.06, (now - last) / 1000); last = now;
     draw(dt);
-    for (const h of heads) { h.x.clearRect(0, 0, 70, 80); h.f.update(dt); h.f.draw(h.x, 35, 72, 1); }
+    if (!document.documentElement.classList.contains("hdr-away")) for (const h of heads) { h.x.clearRect(0, 0, 70, 80); h.f.update(dt); h.f.draw(h.x, 35, 72, 1); }
     if (running) requestAnimationFrame(loop);
   }
   addEventListener("resize", () => { clearTimeout(resize.t); resize.t = setTimeout(resize, 120); });

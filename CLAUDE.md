@@ -67,7 +67,7 @@ Live site: https://dungeonmasterforge.netlify.app (Netlify; production branch `m
 | `12-level-homebrew-feats.js` | Level up, the Homebrew tab, the Feats tab |
 | `13-my-characters.js` | The My Characters sheet: abilities, rolls, conditions, casting, multiclassing, inventory |
 | `14-boot.js` | The toolbar, `route()` (switching tabs) and start-up |
-| `15-torch.js` | The header's torch animation |
+| `15-torch.js` | The torchlit backdrop and header torches: at most 30 frames a second (20 and normal resolution on phones), header torches skipped while the header is away |
 | `16-character-import.js` | Companion App and PDF import, the Import character window |
 | `17-mythweaver.js` | MythWeaver import and the Import campaign window |
 | `18-news.js` | What's new (`NEWS`) and Install app |
@@ -169,7 +169,7 @@ Playwright and Chromium are pre-installed in cloud sessions. To test offline mod
   - A PDF's portrait isn't imported.
   - Deleting a whole campaign leaves its NPCs' uploaded pictures in IndexedDB.
   - The tag-based sorting of MythWeaver "generic" lore is a best guess.
-- **Ideas not yet done:** a Campaign journal tab for players (quests, recaps, shared Lore); turn order on players' phones; sharing dice rolls with the DM; one shared sheet layout instead of two (`sheetHTML` and `renderRosterMain`); pictures in account saves (they're in backups now). Also: the header torch animation draws every frame while the page is visible (it stops when hidden); slowing it or stopping it when the header is scrolled away could save phone battery, but measure first. The 512 px icons could be about a third of their size.
+- **Ideas not yet done:** a Campaign journal tab for players (quests, recaps, shared Lore); turn order on players' phones; sharing dice rolls with the DM; one shared sheet layout instead of two (`sheetHTML` and `renderRosterMain`); pictures in account saves (they're in backups now).
 
 ## Gotchas found along the way
 
