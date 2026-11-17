@@ -154,7 +154,9 @@ function atlasLabel(g, text, x, y, font, fill, halo = "rgba(0,0,0,.72)", spacing
   if ("letterSpacing" in g) g.letterSpacing = "0px";
 }
 function atlasDraw(cv, m, o = {}) {
-  const k = o.scale || 1, base = atlasTerrainCanvas(m), w = ATLAS_W, hh = ATLAS_H;
+  // an imported picture keeps its own shape, with its long side at 1600; generated terrain is 1600 × 1100
+  const k = o.scale || 1, base = o.picture || atlasTerrainCanvas(m), fit = o.picture ? ATLAS_W / Math.max(base.width, base.height) : 1;
+  const w = o.picture ? Math.round(base.width * fit) : ATLAS_W, hh = o.picture ? Math.round(base.height * fit) : ATLAS_H;
   cv.width = Math.round(w * k); cv.height = Math.round(hh * k);
   const g = cv.getContext("2d"), labels = []; g.setTransform(k, 0, 0, k, 0, 0); g.drawImage(base, 0, 0, w, hh);
   g.textAlign = "center"; g.textBaseline = "middle";
@@ -291,7 +293,7 @@ function atlasPins(id, player) {
 /* ======================= The map view on the World tab =======================
    W.mode = "atlas" with W.atlasId (a region id or "world") shows atlasViewHTML() in #worldMain. On the canvas: press a pin
    and drag to move it; click a pin for its menu (#atlasMenu); click a region's name to open its map. */
-const ATLAS_VIEW = { labels: [], drag: null, menu: null };
+const ATLAS_VIEW = { labels: [], drag: null, menu: null, pic: false };
 function atlasName(id) { return id === "world" ? "The World" : (wp(id) || {}).name || "Region"; }
 function atlasOpen(id) {
   if (!W.loaded) worldLoad();
@@ -311,13 +313,17 @@ function atlasViewHTML() {
   if (!m) return `<div class="card atlas-card"><div class="row" style="gap:8px;flex-wrap:wrap;align-items:center"><h2 style="margin:0;flex:1">🗺️ ${esc(name)}</h2>${back}</div>
     <p class="muted">No map yet. Choose the kind of land and make one; you can roll again until you like it.</p>
     <div class="row" style="gap:8px;flex-wrap:wrap;align-items:flex-end"><div class="field" style="flex:0 1 160px"><label>Shape</label>${sel("data-at-shape", ATLAS_SHAPES, "coast")}</div>
-      <div class="field" style="flex:0 1 160px"><label>Land</label>${sel("data-at-land", ATLAS_LANDS, "balanced")}</div><button class="btn primary" type="button" data-at="make" style="flex:0 0 auto">🗺️ Make a map</button></div></div>`;
+      <div class="field" style="flex:0 1 160px"><label>Land</label>${sel("data-at-land", ATLAS_LANDS, "balanced")}</div><button class="btn primary" type="button" data-at="make" style="flex:0 0 auto">🗺️ Make a map</button>
+      <label class="btn" style="flex:0 0 auto">⬆ Or import your own map<input type="file" id="atlasFile" accept="image/*" hidden></label></div></div>`;
   const off = atlasPlaces(id).filter(x => !m.pins[x.p.id]);
   return `<div class="card atlas-card">
     <div class="row" style="gap:8px;flex-wrap:wrap;align-items:center"><h2 style="margin:0;flex:1 1 200px">🗺️ ${esc(name)}</h2>${back}</div>
+    <div id="atlasMissing" class="hint" hidden></div>
     <div class="row atlas-tools" style="gap:8px;flex-wrap:wrap;align-items:flex-end;margin:8px 0">
       ${m.img ? "" : `<div class="field" style="flex:0 1 140px"><label>Shape</label>${sel("data-at-shape", ATLAS_SHAPES, m.shape)}</div><div class="field" style="flex:0 1 140px"><label>Land</label>${sel("data-at-land", ATLAS_LANDS, m.land)}</div>
       <button class="btn sm" type="button" data-at="roll" style="flex:0 0 auto">🎲 Roll again</button>`}
+      <label class="btn sm" style="flex:0 0 auto" title="Use your own map picture (Inkarnate, Wonderdraft, a book scan) instead of the generated land">⬆ ${m.img ? "Replace the picture" : "Import a map"}<input type="file" id="atlasFile" accept="image/*" hidden></label>
+      ${m.img ? `<button class="btn sm" type="button" data-at="gen" style="flex:0 0 auto">Use generated land</button>` : ""}
       <button class="btn sm primary" type="button" data-at="tv" style="flex:0 0 auto">${HOST.show === "atlas" && HOST.atlas && HOST.atlas.id === id ? "📺 Off TV" : "📺 Show on TV"}</button></div>
     <div class="atlas-wrap"><canvas id="atlasCv" aria-label="Map of ${esc(name)}"></canvas><div id="atlasMenu" class="atlas-menu" hidden></div></div>
     <p class="hint" style="margin:6px 0 0">Dashed pins are places the players haven't found; the TV leaves them out. Click a pin to reveal it or open it, drag it to move it${id === "world" ? ", and click a region's name to open its map" : ""}.</p>
@@ -327,8 +333,41 @@ function atlasViewHTML() {
 }
 function atlasRender() {
   const cv = $("#atlasCv"), id = W.atlasId, m = atlasOf(id); if (!cv || !m) return;
-  const r = atlasDraw(cv, m, { pins: atlasPins(id, false), names: (m.names || []).filter(f => f.name), title: atlasName(id) });
-  ATLAS_VIEW.labels = r.labels;
+  ATLAS_VIEW.pic = false;
+  const draw = picture => { if (!cv.isConnected) return; const r = atlasDraw(cv, m, { picture, pins: atlasPins(id, false), names: m.img ? [] : (m.names || []).filter(f => f.name), title: atlasName(id) }); ATLAS_VIEW.labels = r.labels; ATLAS_VIEW.pic = !!picture; };
+  if (!m.img) return draw(null);
+  const have = ATLAS_PICS.get(m.img); if (have) return draw(have);
+  atlasPicture(m).then(pic => {
+    if (W.atlasId !== id || !cv.isConnected) return;
+    if (pic) return draw(pic);
+    const miss = $("#atlasMissing"); if (miss) { miss.hidden = false; miss.textContent = "This map's picture is on another device (pictures stay on the computer they were imported on). Import it again here, or use generated land. The pins are kept."; }
+    draw(atlasBlank(m));
+  });
+}
+
+/* ======================= Import a map =======================
+   m.img = "atlas-<id>": the DM's own picture in MAPIMG (this device; in backups, not account saves), used instead of terrain. */
+const ATLAS_PICS = new Map(); // picture key -> canvas
+async function atlasPicture(m) {
+  if (!m || !m.img) return null; if (ATLAS_PICS.has(m.img)) return ATLAS_PICS.get(m.img);
+  let blob = null; try { blob = await MAPIMG.get(m.img); } catch { } if (!blob) return null;
+  try { const { cv } = await loadImageCanvas(blob); ATLAS_PICS.set(m.img, cv); return cv; } catch { return null; }
+}
+/* stand-in while a picture is missing: plain parchment the picture's shape, so the pins still show */
+function atlasBlank(m) { const cv = document.createElement("canvas"); cv.width = m.imgW || ATLAS_W; cv.height = m.imgH || ATLAS_H; const g = cv.getContext("2d"); g.fillStyle = "#2a3550"; g.fillRect(0, 0, cv.width, cv.height); return cv; }
+async function atlasImport(id, file) {
+  let loaded; try { loaded = await loadImageCanvas(file); } catch { toast("Couldn't open that picture. Try a PNG, JPG or WebP."); return false; }
+  const key = "atlas-" + id; try { await MAPIMG.put(key, await canvasBlob(loaded.cv)); } catch { toast("Couldn't keep the picture on this computer."); return false; }
+  ATLAS_PICS.set(key, loaded.cv);
+  const m = atlasOf(id) || atlasMake(id, {}); Object.assign(m, { img: key, imgW: loaded.cv.width, imgH: loaded.cv.height });
+  atlasPinsFill(id); worldSave(); return true;
+}
+async function atlasUseGenerated(id) {
+  const m = atlasOf(id); if (!m || !m.img) return;
+  const key = m.img; delete m.img; delete m.imgW; delete m.imgH; ATLAS_PICS.delete(key);
+  if (!(m.names || []).length) m.names = atlasNames(m);
+  Object.keys(m.pins).forEach(k => { m.pins[k] = atlasToLand(atlasTerrain(m), m.pins[k]); });
+  worldSave(); try { await MAPIMG.del(key); } catch { }
 }
 function atlasMenuShow(pin) {
   const menu = $("#atlasMenu"), cv = $("#atlasCv"); if (!menu || !cv) return;
@@ -372,10 +411,17 @@ function atlasHit(e) {
       atlasMake(target, { shape, land }); atlasPinsFill(target); worldSave(); atlasOpen(target);
     }
     else if (a === "roll") { atlasReroll(id, { shape: $("[data-at-shape]").value, land: $("[data-at-land]").value }); worldSave(); renderWorld(); }
+    else if (a === "gen") { atlasUseGenerated(id).then(() => { renderWorld(); toast("Back to generated land"); }); }
     else if (a === "unhide") { const m = atlasOf(id); m.off = (m.off || []).filter(x => x !== b.dataset.id); atlasPinsFill(id); worldSave(); renderWorld(); }
   });
-  view.addEventListener("change", e => {
+  view.addEventListener("change", async e => {
     const t = e.target;
+    if (t.id === "atlasFile") {
+      const f = t.files[0]; t.value = ""; if (!f) return;
+      const id = W.mode === "atlas" ? W.atlasId : W.sel;
+      if (await atlasImport(id, f)) { toast("Your map picture is in. Drag the pins to where the places are."); atlasOpen(id); }
+      return;
+    }
     if (t.dataset.atname) { const m = atlasOf(W.atlasId), f = m && m.names.find(x => x.id === t.dataset.atname); if (f) { f.name = t.value.trim().slice(0, 60); worldSave(); atlasRender(); } }
     else if (t.hasAttribute("data-wfound")) { const p = wp(W.sel); if (p) { atlasFound(p, t.checked); toast(t.checked ? `${p.name} is revealed to the players` : `${p.name} is hidden from the players`); } }
   });

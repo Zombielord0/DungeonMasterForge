@@ -158,6 +158,33 @@ const server = http.createServer((req, res) => {
   check("atlas view: at 390 px wide the map fits the screen", fit.cv <= 390 && fit.page <= 390, JSON.stringify(fit));
   await p.setViewportSize({ width: 1300, height: 900 });
 
+  // ---------- Task 4: import a map ----------
+  const png = await p.evaluate(async () => { const cv = document.createElement("canvas"); cv.width = 1200; cv.height = 900; const g = cv.getContext("2d"); g.fillStyle = "#c33"; g.fillRect(0, 0, 1200, 900); g.fillStyle = "#3c3"; g.fillRect(0, 0, 600, 900); return cv.toDataURL("image/png").split(",")[1]; });
+  const tmp = path.join(require("os").tmpdir(), "atlas-import-test.png"); fs.writeFileSync(tmp, Buffer.from(png, "base64"));
+  await p.evaluate(ids => { location.hash = "world"; atlasOpen(ids.r); }, ids); await p.waitForSelector("#atlasFile", { state: "attached" });
+  const before4 = await p.evaluate(ids => JSON.stringify(atlasOf(ids.r).pins), ids);
+  await p.setInputFiles("#atlasFile", tmp);
+  await p.waitForFunction(ids => { const m = atlasOf(ids.r); return m && m.img && $("#atlasCv") && $("#atlasCv").width > 0 && ATLAS_VIEW.pic; }, ids, { timeout: 10000 }).catch(() => {});
+  const i4 = await p.evaluate(ids => { const m = atlasOf(ids.r), cv = $("#atlasCv"), px = cv.getContext("2d").getImageData(Math.round(cv.width * .75), Math.round(cv.height * .05), 1, 1).data; return { img: m.img, w: m.imgW, h: m.imgH, cv: [cv.width, cv.height], red: px[0] > 150 && px[1] < 100, pins: JSON.stringify(m.pins), roll: !!$('[data-at="roll"]'), names: !!$("[data-atname]") }; }, ids);
+  check("import: a picture replaces the terrain", i4.img === "atlas-" + ids.r && i4.red && i4.cv[0] === 1600 && i4.cv[1] === 1200, JSON.stringify(i4));
+  check("import: …and keeps the pins", i4.pins === before4);
+  check("import: Shape, Land, Roll and feature names are hidden for a picture", !i4.roll && !i4.names);
+  const spread = await p.evaluate(ids => { const m = atlasOf(ids.r); m.pins = {}; atlasPinsFill(ids.r); const q = Object.values(m.pins); let minD = 9; q.forEach((a, i) => q.slice(i + 1).forEach(b => { minD = Math.min(minD, Math.hypot(a.x - b.x, a.y - b.y)); })); return { n: q.length, minD }; }, ids);
+  check("import: pins are spread out on a picture", spread.n === 6 && spread.minD > .07, JSON.stringify(spread));
+  await p.waitForTimeout(400); await p.reload(); await p.waitForFunction(() => typeof atlasOpen === "function");
+  await p.evaluate(ids => { location.hash = "world"; worldLoad(); atlasOpen(ids.r); }, ids);
+  await p.waitForFunction(() => ATLAS_VIEW.pic, null, { timeout: 10000 }).catch(() => {});
+  check("import: it survives a reload", await p.evaluate(() => { const cv = $("#atlasCv"), px = cv.getContext("2d").getImageData(Math.round(cv.width * .75), 40, 1, 1).data; return px[0] > 150 && px[1] < 100; }));
+  // the picture isn't on this device
+  await p.evaluate(async ids => { await MAPIMG.del("atlas-" + ids.r); ATLAS_PICS.clear(); atlasOpen(ids.r); }, ids);
+  await p.waitForSelector("#atlasMissing", { timeout: 10000 }).catch(() => {});
+  check("import: without the picture on this device the view says so and offers Import again", /on another device/.test(await p.textContent("#atlasMissing").catch(() => "")) && !!(await p.$("#atlasFile")));
+  // back to generated terrain
+  await p.setInputFiles("#atlasFile", tmp); await p.waitForFunction(() => ATLAS_VIEW.pic, null, { timeout: 10000 }).catch(() => {});
+  await p.click('[data-at="gen"]'); await p.waitForTimeout(400);
+  const g4 = await p.evaluate(async ids => ({ img: atlasOf(ids.r).img, stored: !!(await MAPIMG.get("atlas-" + ids.r)), roll: !!$('[data-at="roll"]') }), ids);
+  check("import: Use generated terrain switches back and deletes the picture", !g4.img && !g4.stored && g4.roll, JSON.stringify(g4));
+
   check("no page errors", errs.length === 0, errs.join(" | "));
   await browser.close(); server.close();
   console.log(fails ? `\n${fails} check(s) failed` : "\nAll world map checks passed");

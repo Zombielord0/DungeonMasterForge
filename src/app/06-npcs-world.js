@@ -329,7 +329,7 @@ async function wpDelete(p) {
   const msg = [`Delete “${p.name}”?`, kids.length ? `The ${kids.length} place${kids.length === 1 ? "" : "s"} inside it move up to ${up ? up.name : "the top level"}.` : "", npcN ? `Its ${npcN} NPC${npcN === 1 ? "" : "s"} move to ${up ? up.name : "no place"}.` : "", camps.length ? `It's also taken out of the Lore of ${camps.map(c => c.name).join(", ")}.` : ""].filter(Boolean).join(" ");
   if (!(await confirmBox("Delete place?", msg, "Delete"))) return;
   kids.forEach(x => { x.parent = p.parent || null; });
-  W.places = W.places.filter(x => x.id !== p.id); if (p.map && p.map.imgId) mapImgTidy(p.map.imgId);
+  W.places = W.places.filter(x => x.id !== p.id); if (p.map && p.map.imgId) mapImgTidy(p.map.imgId); if (p.atlas && p.atlas.img) MAPIMG.del(p.atlas.img).catch(() => { });
   const move = n => { if (n.placeId !== p.id) return false; if (up) { n.placeId = up.id; n.place = up.name; } else { delete n.placeId; delete n.place; } return true; };
   for (const c of Store.list()) { let ch = false; (c.npcs || []).forEach(n => { if (move(n)) ch = true; }); const before = (c.lore || []).length; c.lore = (c.lore || []).filter(l => l.wpId !== p.id); if (ch || c.lore.length !== before) Store.save(c); }
   const L = npcLoose(); let lch = false; L.forEach(n => { if (move(n)) lch = true; }); if (lch) npcLooseSave(L);
@@ -426,7 +426,7 @@ function renderWorld(treeOnly) {
   main.innerHTML = p ? worldPlaceHTML(p, groups) : `<div class="card empty"><h2>${W.places.length ? "Pick a place" : "Build your world"}</h2><p>${W.places.length ? "Choose a place on the left to see what's inside it and who lives there." : "Add regions, cities, towns, taverns and dungeons, put them inside each other, and file your NPCs under them. Places in your campaigns' Lore are added for you."}</p><div class="row" style="justify-content:center;gap:8px;flex-wrap:wrap"><button class="btn primary" type="button" data-w="build" style="flex:0 0 auto">🛠 World builder</button>${W.places.length ? "" : `<button class="btn" type="button" data-w="new" style="flex:0 0 auto">+ Add a place yourself</button>`}</div></div>`;
   main.querySelectorAll("textarea").forEach(autoGrow);
   if (p && p.map) wpMapThumb(p);
-  if (p && p.atlas && $("#atlasThumb")) { const m = p.atlas; atlasPinsFill(p.id); atlasDraw($("#atlasThumb"), m, { pins: atlasPins(p.id, false), names: (m.names || []).filter(f => f.name), scale: .4 }); }
+  if (p && p.atlas && $("#atlasThumb")) { const m = p.atlas, cv = $("#atlasThumb"); atlasPinsFill(p.id); (m.img ? atlasPicture(m) : Promise.resolve(null)).then(pic => { if (cv.isConnected) atlasDraw(cv, m, { picture: m.img ? pic || atlasBlank(m) : null, pins: atlasPins(p.id, false), names: m.img ? [] : (m.names || []).filter(f => f.name), scale: .4 }); }); }
 }
 /* the map's picture on the place page: a generated map is drawn from its settings, an imported one comes from this computer */
 let wpMapUrl = null;
