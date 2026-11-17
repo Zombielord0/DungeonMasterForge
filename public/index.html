@@ -189,6 +189,25 @@ ul.plain{margin:4px 0 0;padding-left:20px}
 .item{margin-bottom:8px}
 .item .row{margin-bottom:6px}
 .item-h{display:flex;gap:8px;align-items:center}
+.lore-tools{display:flex;flex-direction:column;gap:8px;margin:6px 0 12px}
+.lore-chips{display:flex;gap:6px;overflow-x:auto;scrollbar-width:none;padding-bottom:2px}
+.lore-chips::-webkit-scrollbar{display:none}
+.lore-chips .chip{flex:0 0 auto;font-size:14px}
+.lore-chips .chip .n{opacity:.75;margin-left:3px}
+.lore-card{background:var(--well);border:1px solid #0d0c0b;border-radius:4px;margin-bottom:8px;box-shadow:inset 0 2px 7px rgba(0,0,0,.55)}
+.lore-head{display:flex;align-items:center;gap:8px;padding:8px 10px}
+.lore-pic{width:48px;height:48px;object-fit:contain;background:#0d0c0b;border-radius:4px;flex:0 0 auto}
+.lore-open{flex:1;min-width:0;display:flex;flex-direction:column;align-items:flex-start;gap:2px;background:none;border:0;color:inherit;text-align:left;cursor:pointer;padding:4px 0;font:inherit}
+.lore-name{font-weight:700;color:#efe6d4}
+.lore-open small{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:100%}
+.lore-body,.lore-form{padding:4px 12px 12px;border-top:1px solid rgba(255,255,255,.06)}
+.lore-body p{margin:6px 0}
+.lore-sec h4{margin:12px 0 4px;font-size:15px;color:var(--gold2)}
+.lore-dm{font-size:11px;margin-left:6px}
+.lore-body .md-h{margin:10px 0 4px}
+.lore-newbox{background:var(--well);border:1px solid #7a4415;border-radius:4px;margin-bottom:10px}
+.lore-sec-edit{border-top:1px dashed rgba(255,255,255,.1);padding-top:8px;margin-top:8px}
+.lore-sec-edit .row{align-items:center;gap:8px;margin-bottom:6px}
 .hb-pend-box{border:1px solid #8a6a2a;border-radius:4px;padding:8px 10px;margin:8px 0 12px;background:rgba(138,106,42,.12)}
 .hb-pend-box h4{margin:0 0 4px}
 .hb-pend{padding:6px 0;border-top:1px solid rgba(255,255,255,.08)}
@@ -3391,7 +3410,7 @@ function setBadge(state) {
 /* ======================= Campaign tracker ======================= */
 let activeId = null, subTab = "overview";
 function blankCampaign(name = "New Campaign") {
-  return { id: uid("c"), name, created: Date.now(), updated: Date.now(), currentLevel: 1, gen: null, chapters: [], encounters: [], sessions: [], party: [], npcs: [], quests: [], loot: [], maps: [], notes: "", secrets: "" };
+  return { id: uid("c"), name, created: Date.now(), updated: Date.now(), currentLevel: 1, gen: null, chapters: [], encounters: [], sessions: [], party: [], npcs: [], lore: [], quests: [], loot: [], maps: [], notes: "", secrets: "" };
 }
 function saveGenAsCampaign(g) {
   const c = blankCampaign(g.core.title);
@@ -3441,7 +3460,7 @@ function renderTracker() {
   registerBestiary(c);
   const done = c.chapters.filter(x => x.done).length, tot = c.chapters.length, pct = tot ? Math.round(done / tot * 100) : 0;
   const active = c.quests.filter(q => q.status === "Active").length;
-  const tabs = [["overview", "Overview"], ["encounters", "Encounters", (c.encounters || []).length], ["sessions", "Sessions", c.sessions.length], ["party", "Party", c.party.length], ["npcs", "NPCs", c.npcs.length], ["quests", "Quests", c.quests.length], ["loot", "Loot", c.loot.length], ["notes", "Notes"], ["maps", "Maps", (c.maps || []).length], ["calendar", "Calendar"]];
+  const tabs = [["overview", "Overview"], ["encounters", "Encounters", (c.encounters || []).length], ["sessions", "Sessions", c.sessions.length], ["party", "Party", c.party.length], ["npcs", "NPCs", c.npcs.length], ["lore", "Lore", (c.lore = c.lore || []).length], ["quests", "Quests", c.quests.length], ["loot", "Loot", c.loot.length], ["notes", "Notes"], ["maps", "Maps", (c.maps || []).length], ["calendar", "Calendar"]];
   let h = `<div class="card">
     <div class="row" style="align-items:flex-start"><input class="title-input" type="text" data-field="name" value="${esc(c.name)}" aria-label="Campaign name">
       <div style="flex:0 0 auto;display:flex;gap:6px"><button class="btn sm" id="exportCamp">Export JSON</button><button class="btn sm danger" id="delCamp">Delete</button></div></div>
@@ -3458,6 +3477,7 @@ function renderTracker() {
 }
 function renderSub(c) {
   if (subTab === "encounters") return renderEncounters(c);
+  if (subTab === "lore") return loreHTML(c);
   if (subTab === "calendar") return calHTML(c);
   if (subTab === "overview") {
     return `<div class="sec-h"><h3>${c.gen && c.gen.outline.kind === "oneshot" ? "Scenes" : "Chapters"}</h3><span class="sp"></span><button class="btn sm" data-add="chapters">+ Add</button></div>
@@ -3580,11 +3600,127 @@ $("#importFile").addEventListener("change", async e => {
     const c = JSON.parse(await f.text());
     if (!c || typeof c !== "object" || !c.name) throw 0;
     const base = blankCampaign(); const merged = { ...base, ...c, id: uid("c") };
-    ["chapters", "encounters", "sessions", "party", "npcs", "quests", "loot", "maps"].forEach(k => { if (!Array.isArray(merged[k])) merged[k] = []; });
+    ["chapters", "encounters", "sessions", "party", "npcs", "lore", "quests", "loot", "maps"].forEach(k => { if (!Array.isArray(merged[k])) merged[k] = []; });
     Store.save(merged); activeId = merged.id; renderTracker(); toast("Campaign imported");
   } catch { toast("That file isn't a Forge campaign export"); }
 });
 const campMain = $("#campMain");
+
+/* ======================= Lore (a Campaign Tracker tab) =======================
+   c.lore = [{id, mwId?, name, type, tags[], imgUrl?, desc, sections:[{t, x, dm}], src?}]. Text is shown through mdHTML,
+   which escapes everything first and then turns a small set of markdown into formatting. */
+const LORE_TYPES = { place: "Places", item: "Items", monster: "Monsters", encounter: "Encounters", other: "Other" };
+const LORE_ONE = { place: "Place", item: "Item", monster: "Monster", encounter: "Encounter", other: "Other" };
+const LORE = { q: "", type: "", open: new Set(), edit: null, draft: null };
+function mdInline(s) { return s.replace(/\*\*([^*]+?)\*\*/g, "<strong>$1</strong>").replace(/(^|[^*])\*([^*\s][^*]*?)\*(?!\*)/g, "$1<em>$2</em>"); }
+function mdHTML(text) {
+  const lines = esc(String(text || "")).replace(/\r/g, "").split("\n"), out = []; let list = null, para = [];
+  const flushP = () => { if (para.length) { out.push(`<p>${para.map(mdInline).join("<br>")}</p>`); para = []; } };
+  const flushL = () => { if (list) { out.push(`<${list.t}>${list.items.map(i => `<li>${mdInline(i)}</li>`).join("")}</${list.t}>`); list = null; } };
+  for (const raw of lines) {
+    const l = raw.trim(), h = l.match(/^(#{1,3})\s+(.*)$/), ul = l.match(/^[-*•]\s+(.*)$/), ol = l.match(/^\d+[.)]\s+(.*)$/);
+    if (!l) { flushP(); flushL(); continue; }
+    if (h) { flushP(); flushL(); out.push(`<h${h[1].length + 3} class="md-h">${mdInline(h[2])}</h${h[1].length + 3}>`); continue; }
+    if (ul || ol) { flushP(); const t = ul ? "ul" : "ol"; if (!list || list.t !== t) { flushL(); list = { t, items: [] }; } list.items.push((ul || ol)[1]); continue; }
+    flushL(); para.push(l);
+  }
+  flushP(); flushL();
+  return out.join("");
+}
+const loreNew = () => ({ id: uid("lo"), name: "", type: "place", tags: [], desc: "", sections: [] });
+const loreHay = x => [x.name, (x.tags || []).join(" "), x.desc, ...(x.sections || []).flatMap(s => [s.t, s.x])].join(" ").toLowerCase();
+function loreFormHTML(d) {
+  return `<div class="lore-form">
+    <div class="field row"><div style="flex:2"><label>Name</label><input type="text" maxlength="120" data-lf="name" value="${esc(d.name)}"></div>
+      <div><label>Type</label><select data-lf="type">${Object.entries(LORE_ONE).map(([k, l]) => `<option value="${k}" ${d.type === k ? "selected" : ""}>${l}</option>`).join("")}</select></div></div>
+    <div class="field row"><div><label>Tags (comma separated)</label><input type="text" maxlength="300" data-lf="tags" value="${esc((d.tags || []).join(", "))}"></div>
+      <div><label>Picture link (https, optional)</label><input type="url" maxlength="500" data-lf="imgUrl" value="${esc(d.imgUrl || "")}" placeholder="https://…"></div></div>
+    <div class="field"><label>Description</label><textarea maxlength="8000" data-lf="desc">${esc(d.desc)}</textarea></div>
+    ${(d.sections || []).map((s, i) => `<div class="lore-sec-edit"><div class="row"><input type="text" maxlength="120" data-ls="t" data-i="${i}" value="${esc(s.t)}" placeholder="Section title" aria-label="Section title">
+      <label class="check" style="flex:0 0 auto;margin:0"><input type="checkbox" data-ls="dm" data-i="${i}" ${s.dm ? "checked" : ""}><span>DM only</span></label>
+      <button class="icon-btn" type="button" data-lore="secdel" data-i="${i}" title="Remove section" aria-label="Remove section">✕</button></div>
+      <textarea maxlength="12000" data-ls="x" data-i="${i}" placeholder="Text (you can use **bold**, *italic*, # headings and - lists)">${esc(s.x)}</textarea></div>`).join("")}
+    <button class="btn sm" type="button" data-lore="secadd">+ Add section</button>
+    <div class="row" style="justify-content:flex-end;gap:8px;margin-top:10px"><button class="btn" type="button" data-lore="cancel" style="flex:0 0 auto">Cancel</button><button class="btn primary" type="button" data-lore="save" style="flex:0 0 auto">Save</button></div>
+  </div>`;
+}
+function loreHTML(c) {
+  const L = c.lore || [], q = LORE.q.trim().toLowerCase();
+  const n = k => L.filter(x => !k || x.type === k).length;
+  const shown = L.filter(x => (!LORE.type || x.type === LORE.type) && (!q || loreHay(x).includes(q)));
+  const card = x => {
+    const open = LORE.open.has(x.id), editing = LORE.edit === x.id, pic = npcUrlOk(x.imgUrl) ? x.imgUrl : "";
+    return `<div class="lore-card ${open || editing ? "open" : ""}" data-id="${esc(x.id)}">
+      <div class="lore-head">${pic ? `<img class="lore-pic" src="${esc(pic)}" alt="" referrerpolicy="no-referrer" loading="lazy">` : ""}
+        <button class="lore-open" type="button" data-lore="open" data-id="${esc(x.id)}" aria-expanded="${open}"><span class="lore-name">${esc(x.name || "Untitled")}</span>
+          <small class="muted">${LORE_ONE[x.type] || "Other"}${(x.tags || []).length ? " · " + esc(x.tags.join(", ")) : ""}</small></button>
+        ${pic ? `<button class="btn sm" type="button" data-lore="tv" data-id="${esc(x.id)}" title="Show the picture on the TV">📺 TV</button>` : ""}
+        <button class="btn sm" type="button" data-lore="edit" data-id="${esc(x.id)}">Edit</button>
+        <button class="icon-btn" type="button" data-lore="del" data-id="${esc(x.id)}" title="Delete" aria-label="Delete ${esc(x.name || "entry")}">✕</button></div>
+      ${editing ? loreFormHTML(LORE.draft) : open ? `<div class="lore-body">${x.desc ? `<div class="lore-desc">${mdHTML(x.desc)}</div>` : ""}
+        ${(x.sections || []).map(s => `<div class="lore-sec"><h4>${esc(s.t || "")}${s.dm ? ` <span class="tag lore-dm" title="Only for you">🔒 DM only</span>` : ""}</h4>${mdHTML(s.x)}</div>`).join("")}
+        ${!x.desc && !(x.sections || []).length ? `<p class="muted">Nothing written yet.</p>` : ""}</div>` : ""}
+    </div>`;
+  };
+  return `<div class="sec-h"><h3>Lore</h3><span class="sp"></span><button class="btn sm primary" type="button" data-lore="add">+ Add entry</button></div>
+    <div class="lore-tools"><input type="search" id="loreQ" placeholder="Search names, tags and text…" value="${esc(LORE.q)}" aria-label="Search lore">
+      <div class="lore-chips">${[["", "All"], ...Object.entries(LORE_TYPES)].map(([k, l]) => `<button type="button" class="chip ${LORE.type === k ? "on" : ""}" data-lt="${k}">${l} <span class="n">${n(k)}</span></button>`).join("")}</div></div>
+    ${LORE.edit === "new" ? `<div class="lore-newbox">${loreFormHTML(LORE.draft)}</div>` : ""}
+    <div class="lore-list">${shown.length ? shown.map(card).join("") : `<p class="muted">${L.length ? "Nothing matches." : "No lore yet. Add places, items, monsters and notes, or import a MythWeaver campaign."}</p>`}</div>`;
+}
+function loreRender() {
+  const box = document.getElementById("subBody"), q = document.getElementById("loreQ"), had = q && document.activeElement === q, pos = had ? q.selectionStart : 0;
+  const c = curCamp(); if (!box || !c) return;
+  box.innerHTML = loreHTML(c);
+  const tab = campMain.querySelector('[data-sub="lore"] .n'); if (tab) tab.textContent = (c.lore || []).length;
+  if (had) { const n = document.getElementById("loreQ"); n.focus(); n.setSelectionRange(pos, pos); }
+  campMain.querySelectorAll(".lore-form textarea").forEach(autoGrow);
+}
+async function loreTV(x) {
+  if (!npcUrlOk(x.imgUrl)) return;
+  if (!HOST.on) hostStart();
+  if (!HOST.on) return;
+  let blob; try { const r = await fetch(x.imgUrl, { mode: "cors" }); if (!r.ok) throw 0; blob = await r.blob(); }
+  catch { toast("That website doesn't let the Forge copy its picture. Download it and show it with 🖼 Show a picture on the Dungeon Map tab."); return; }
+  let cv; try { ({ cv } = await loadImageCanvas(blob)); } catch { toast("Couldn't open that picture."); return; }
+  handoutShow(cv);
+}
+campMain.addEventListener("click", async e => {
+  const b = e.target.closest("[data-lore],[data-lt]"); if (!b || !campMain.contains(b)) return;
+  const c = curCamp(); if (!c) return; c.lore = c.lore || [];
+  if (b.dataset.lt !== undefined) { LORE.type = b.dataset.lt; loreRender(); return; }
+  const a = b.dataset.lore, id = b.dataset.id, x = id && c.lore.find(y => y.id === id);
+  if (a === "open" && x) { LORE.open.has(id) ? LORE.open.delete(id) : LORE.open.add(id); loreRender(); }
+  else if (a === "add") { LORE.edit = "new"; LORE.draft = loreNew(); loreRender(); const n = campMain.querySelector('[data-lf="name"]'); if (n) n.focus(); }
+  else if (a === "edit" && x) { LORE.edit = id; LORE.draft = JSON.parse(JSON.stringify(x)); LORE.draft.sections = LORE.draft.sections || []; loreRender(); }
+  else if (a === "cancel") { LORE.edit = null; LORE.draft = null; loreRender(); }
+  else if (a === "secadd" && LORE.draft) { LORE.draft.sections.push({ t: "", x: "", dm: false }); loreRender(); }
+  else if (a === "secdel" && LORE.draft) { LORE.draft.sections.splice(+b.dataset.i, 1); loreRender(); }
+  else if (a === "save" && LORE.draft) {
+    const d = LORE.draft, url = String(d.imgUrl || "").trim();
+    if (url && !npcUrlOk(url)) { toast("Use a picture link that starts with https://"); return; }
+    const clean = { ...d, name: String(d.name || "").trim().slice(0, 120) || "Untitled", type: LORE_ONE[d.type] ? d.type : "other", tags: (Array.isArray(d.tags) ? d.tags : String(d.tags || "").split(",")).map(t => String(t).trim()).filter(Boolean).slice(0, 30),
+      imgUrl: url || undefined, desc: String(d.desc || ""), sections: (d.sections || []).filter(s => String(s.t || "").trim() || String(s.x || "").trim()).map(s => ({ t: String(s.t || "").trim(), x: String(s.x || ""), dm: !!s.dm })) };
+    const i = c.lore.findIndex(y => y.id === clean.id); if (i >= 0) c.lore[i] = clean; else c.lore.unshift(clean);
+    LORE.edit = null; LORE.draft = null; LORE.open.add(clean.id); Store.save(c); loreRender();
+  }
+  else if (a === "del" && x) { if (!(await confirmBox("Delete lore entry?", `Remove “${x.name || "Untitled"}”? This can't be undone.`))) return; c.lore = c.lore.filter(y => y.id !== id); Store.save(c); loreRender(); }
+  else if (a === "tv" && x) loreTV(x);
+});
+campMain.addEventListener("input", e => {
+  const t = e.target;
+  if (t.id === "loreQ") { LORE.q = t.value; clearTimeout(loreRender._t); loreRender._t = setTimeout(loreRender, 150); return; }
+  const d = LORE.draft; if (!d) return;
+  if (t.dataset.lf) d[t.dataset.lf] = t.dataset.lf === "tags" ? t.value.split(",") : t.value;
+  else if (t.dataset.ls && t.dataset.ls !== "dm") d.sections[+t.dataset.i][t.dataset.ls] = t.value;
+  if (t.tagName === "TEXTAREA") autoGrow(t);
+});
+campMain.addEventListener("change", e => {
+  const t = e.target, d = LORE.draft; if (!d) return;
+  if (t.dataset.lf === "type") d.type = t.value;
+  else if (t.dataset.ls === "dm") d.sections[+t.dataset.i].dm = t.checked;
+});
+
 /* ======================= Session recaps =======================
    recapMake(c) gathers what's happened since the last recap: finished fights (with XP), quests completed or failed,
    chapters done, loot handed out, and the calendar's log. mark() flags them so the next recap only has what's new. */
