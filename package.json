@@ -22,7 +22,8 @@
     "test:npcpic": "node test/e2e/npc-pictures.cjs",
     "test:hbspell": "node test/e2e/homebrew-spells.cjs",
     "test:hbpend": "node test/e2e/hb-pending.cjs",
-    "test:import": "node test/e2e/char-import.cjs"
+    "test:import": "node test/e2e/char-import.cjs",
+    "test:layout": "node test/e2e/layout.cjs"
   },
   "dependencies": {
     "@netlify/database": "^2.0.3",
