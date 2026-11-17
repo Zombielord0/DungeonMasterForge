@@ -53,7 +53,7 @@ The owner sets up shops before sessions and makes them during play. They want on
 
 `shopMake({type, size, level, seed, ed, rar, amount, mood})`:
 
-- `rar`: an array of rarity ranks (0 to 4), or missing for Automatic. With it, the magic pool is items whose `rk` is in the list, instead of `0..maxRk`.
+- `rar`: an array of rarity ranks (0 to 4), or missing for Automatic. With it, the magic pool is items whose `rk` is in the list, instead of `0..maxRk`, **and the shop has at least 2 magic items** (owner's choice, 2026-11-17), when its kind sells magic at all (`S.magic`) and the pool has them. A kind with no magic stock (General store) shows a short note that rarity doesn't apply there.
 - `amount`: `"small" | "normal" | "large"`, missing = normal. It scales the total count (`S.count`); the magic count is then capped by the new total, as today (builder's call).
 - `mood`: an index into `SHOP_MOODS`, missing = random.
 - **Edition:** the builder uses the Items tab's edition (`IT.ed`) as today, and a saved shop keeps the edition it was made with.
