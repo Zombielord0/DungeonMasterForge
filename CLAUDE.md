@@ -159,11 +159,12 @@ Everything in the sections from "Dungeon Map looks" to "Tokens" below was built 
 - the sheet checks and tokens
 - backup and restore
 
-Everything from "Character import" to "Lore tab and MythWeaver import" below was built in one chat on 2026-11-16 and 17, on branch `ccr-c51c8c32-xn2c0j`. It's open as **draft PR #9**, which is **not merged**: the owner is trying it on the preview at `deploy-preview-9--dungeonmasterforge.netlify.app`. It contains:
+Everything from "Character import" to "Campaign files carry custom content" below was built in one chat on 2026-11-16 and 17, on branch `ccr-c51c8c32-xn2c0j`. It's open as **draft PR #9**, which is **not merged**: the owner is trying it on the preview at `deploy-preview-9--dungeonmasterforge.netlify.app`. It contains:
 - character import (Companion App and PDF), homebrew spells, and pending homebrew with DM approval
 - NPC pictures
 - the phone and laptop layout work
 - the Lore tab and MythWeaver campaign import
+- imported campaigns adding their custom items and spells to Items and Homebrew
 
 PR #8 (the expired sign-in fix) was merged before that chat.
 
@@ -502,6 +503,21 @@ PR #8 (the expired sign-in fix) was merged before that chat.
 - **Real export (2026-11-16, not committed):** Undead Titan has 63 NPCs, 172 lore entries and 14 sessions, about 1.4 MB, and imports in under 2 s.
 - **Tests:** `npm run test:lore` (`test/e2e/lore.cjs`) and `npm run test:mythweaver` (`test/e2e/mythweaver.cjs` plus `mythweaver-ui.cjs`), with the made-up fixture `test/e2e/fixtures/mythweaver-sample.json`.
 
+## Campaign files carry custom content (2026-11-17)
+
+- **Export JSON** (`#exportCamp`) writes the campaign plus `extras: campExtras()` = `{items: IT.custom, homebrew: HB.list, monsters: MB.lib}`.
+- **Import JSON** (`#importFile`) strips `extras` off the campaign and passes it to `campExtrasAdopt(ex)`, which adds what this browser doesn't have (same id, or same name and text, counts as a match):
+  - custom items into `IT.custom` (Items → Custom, ready for Give/Buy), saved with `itPersist`;
+  - homebrew through `hbPut` (skipped for signed-in players, who can't add homebrew);
+  - custom monsters into `MB.lib`, then `bsCustomRefresh`.
+- The loot "Give to…" handler now looks up custom items as well as built-ins, so the inventory row links (`ref`) to the custom item.
+- **MythWeaver:** `mwExtras(R, camps)` turns the chosen campaigns' lore (plus `otherLore`) into `{items, homebrew}` for the same `campExtrasAdopt`:
+  - `type: "item"` lore (or tag-sorted as item) → a custom item built through `ciNew` + `ciRecord`, so Edit works. The category comes from the name, tags and first line (`MW_ITEM_CAT`); rarity and attunement from the text. It carries `mwId: "mw-<id>"`, and a re-import replaces it in place.
+  - `type: "spell"` or a "Spell" tag (`mwIsSpell`) → a homebrew spell, with level, school, casting time, range, components and duration read from the text, and classes from tags.
+  - Built-in items and spells (exact name) are skipped. DM-only sections are left off. Everything stays in Lore.
+  - The window shows a ticked `[data-mwextras]` box with the counts; the Go handler adopts after `mwCommit`.
+- **Tests:** `npm run test:campextras` (`test/e2e/camp-extras.cjs`), Forge files and MythWeaver.
+
 ## Where things stand (end of the 2026-11-17 chat)
 
 - **Draft PR #9** holds all the 2026-11-16/17 work and is waiting for the owner to test the preview. Merge it only when they ask.
@@ -522,16 +538,6 @@ PR #8 (the expired sign-in fix) was merged before that chat.
   - Deleting a whole campaign leaves its NPCs' uploaded pictures in IndexedDB.
   - The tag-based sorting of MythWeaver "generic" lore is a best guess.
 - **How builds are paid for:** one preview build per finished batch. Don't push design-only commits on their own; hold them until the work they describe is ready.
-
-## Campaign files carry custom content (2026-11-17)
-
-- **Export JSON** (`#exportCamp`) writes the campaign plus `extras: campExtras()` = `{items: IT.custom, homebrew: HB.list, monsters: MB.lib}`.
-- **Import JSON** (`#importFile`) strips `extras` off the campaign and passes it to `campExtrasAdopt(ex)`, which adds what this browser doesn't have (same id, or same name and text, counts as a match):
-  - custom items into `IT.custom` (Items → Custom, ready for Give/Buy), saved with `itPersist`;
-  - homebrew through `hbPut` (skipped for signed-in players, who can't add homebrew);
-  - custom monsters into `MB.lib`, then `bsCustomRefresh`.
-- The loot "Give to…" handler now looks up custom items as well as built-ins, so the inventory row links (`ref`) to the custom item.
-- **Tests:** `npm run test:campextras` (`test/e2e/camp-extras.cjs`).
 
 ## How a character is built (read this before changing sheet maths)
 

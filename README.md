@@ -87,17 +87,16 @@ On a campaign's **NPCs** tab, every NPC has a picture frame. Press **🖼 Add pi
 
 On a campaign's **Sessions** tab, press **Write a recap**. It collects what has happened since the last recap: fights finished, XP, quests completed or failed, chapters, loot handed out, and the calendar's log. It saves all of that as a new session you can edit.
 
-## Sharing a campaign file
+## Items and spells from imported campaigns
 
-In the **Campaign Tracker**, **Export JSON** saves a campaign to one file. The file also holds your custom items, homebrew and custom monsters.
-
-**Import JSON** loads that file, on this computer or another one. It brings the extras along too:
+When you bring in a campaign with **⬆ Import campaign** in the Campaign Tracker, its custom items and spells come along, so you can hand them out:
 
 - **Custom items** appear in **Items → Custom**. Choose a character in "Give items to" and press **Give** or **Buy**.
-- **Homebrew** appears in the **Homebrew** tab. If you're signed in, only the DM's import adds it.
-- **Custom monsters** appear in **Monster Manual → My monsters**.
+- **Spells** appear in **Homebrew** (only the DM can add homebrew when signed in), and then in the spell lists.
+- **From MythWeaver**, entries filed as items become custom items, and entries filed or tagged as spells become homebrew spells. They stay in Lore too. DM-only notes aren't copied onto them. Untick **Items and spells** in the import window to skip this.
+- **Forge campaign files**: **Export JSON** saves your custom items, homebrew and custom monsters with the campaign, and importing the file adds them back. Monsters go to **Monster Manual → My monsters**. Files exported before 17 November 2026 don't hold these, so export them again first.
 
-Anything you already have isn't added twice. Campaign files exported before 17 November 2026 don't hold these extras, so export them again first.
+Anything you already have isn't added twice, and importing the same MythWeaver campaign again updates its items.
 
 ## Keeping a backup
 

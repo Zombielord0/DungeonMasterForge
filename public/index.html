@@ -3631,6 +3631,8 @@ async function campExtrasAdopt(ex) {
   let ni = 0;
   (Array.isArray(ex.items) ? ex.items : []).forEach(x => {
     if (!x || !x.n) return;
+    const was = x.mwId ? IT.custom.findIndex(y => y.mwId === x.mwId) : -1;
+    if (was >= 0) { const { hay, hayD, ...rec } = x; rec.id = IT.custom[was].id; if (rec.draft) rec.draft.id = rec.id; if (JSON.stringify(rec) !== JSON.stringify((({ hay, hayD, ...y }) => y)(IT.custom[was]))) { IT.custom[was] = rec; ni++; } return; }
     if (IT.custom.some(y => y.id === x.id || (lc(y.n) === lc(x.n) && String(y.d || "") === String(x.d || "")))) return;
     const { hay, hayD, ...rec } = x;
     if (!rec.id || /^20(14|24)-/.test(rec.id)) rec.id = uid("ci");
@@ -11087,6 +11089,37 @@ function mwPlanCamp(R, i, existing) {
   camp.sessions.sort((a, b) => (+b.num || 0) - (+a.num || 0)); // newest first, as the Sessions tab keeps them
   return { camp, stats: { npcs: npcs.length, lore: lore.length + R.other.length, sessions: src.sessions.length, updated } };
 }
+/* MythWeaver items and spells -> custom items (Items → Custom) and homebrew spells, so they can be handed out.
+   Ones the Forge already has built in (same name) are left out; they're in Items or Spells already. They stay in Lore too. */
+const MW_ITEM_CAT = [[/\b(weapon|\w*sword|\w*axe|\w*bow|blade|dagger|mace|spear|\w*hammer|scimitar|rapier|halberd|glaive|trident|whip|flail|pike|sling|club|lance)s?\b/, "Weapon"], [/\bshield\b/, "Shield"], [/\b(armou?r|mail|plate)\b/, "Armor"], [/\b(ammunition|arrows?|bolts?)\b/, "Ammunition"], [/\bpotion\b/, "Potion"], [/\bscroll\b/, "Scroll"], [/\bring\b/, "Ring"], [/\bwand\b/, "Wand"], [/\bstaff\b/, "Staff"], [/\brod\b/, "Rod"]];
+const mwIsSpell = x => String(x.type || "").toLowerCase() === "spell" || (Array.isArray(x.tags) && x.tags.some(t => /^\s*spells?\s*$/i.test(t)));
+function mwExtras(R, camps) {
+  itLoad(); spLoad();
+  const all = [...camps.flatMap(i => R.campaigns[i].lore), ...R.other], seen = new Set(), items = [], homebrew = [];
+  const builtItem = n => Object.values(IT.data).flat().some(y => y.n.toLowerCase() === n.toLowerCase());
+  for (const x of all) {
+    const name = impCut(x.name, 60), key = String(x.id ?? name); if (!name || seen.has(key)) continue; seen.add(key);
+    const L = mwLore(x), body = [L.desc, ...L.sections.filter(t => !t.dm).map(t => (t.t ? `**${t.t}.** ` : "") + t.x)].filter(Boolean).join("\n\n");
+    const hay = (name + " " + L.tags.join(" ") + " " + body).toLowerCase();
+    if (mwIsSpell(x)) {
+      const m = spellMatch1("2014", name); if (m && !m.fuzzy && !m.s.hb) continue;
+      const f = re => { const r = body.match(re); return r ? impCut(mwPlain(r[1]), 120) : ""; };
+      const lv = /\bcantrip\b/.test(hay) ? 0 : +((hay.match(/\b([1-9])(?:st|nd|rd|th)[- ]level\b/) || hay.match(/\blevel\s*([1-9])\b/) || [])[1] || 1);
+      const comp = f(/components?\**:?\**\s*([^\n]+)/i), du = f(/duration\**:?\**\s*([^\n]+)/i);
+      homebrew.push({ id: uid("hb"), kind: "spell", src: MW_SRC, ed: "both", name, desc: impCut(body || "Imported from MythWeaver.", 4000), l: lv, s: SP_SCHOOLS.find(k => hay.includes(k.toLowerCase())) || "Evocation",
+        c: Object.keys(CLASS_DATA).filter(k => L.tags.some(t => impSame(t, k))), t: f(/casting time\**:?\**\s*([^\n]+)/i) || "1 action", r: f(/range\**:?\**\s*([^\n]+)/i) || "Self",
+        cp: comp ? ["V", "S", "M"].filter(k => new RegExp(`(^|[ ,])${k}([ ,(.]|$)`).test(comp)).join("") : "VS", m: impCut(((comp || "").match(/\(([^)]*)\)/) || [])[1] || "", 200), du: du || "Instantaneous", co: /concentration/i.test(du), ri: /\britual\b/.test(hay), h: "" });
+    } else if (L.type === "item") {
+      if (builtItem(name)) continue;
+      const d = ciNew(); d.n = name; const catHay = (name + " " + L.tags.join(" ") + " " + L.desc.split("\n")[0].slice(0, 120)).toLowerCase().replace(/armou?r class/g, ""); d.type = (MW_ITEM_CAT.find(([re]) => re.test(catHay)) || [0, "Wondrous Item"])[1];
+      const rar = ["very rare", "legendary", "uncommon", "rare", "common"].find(r => new RegExp(`\\b${r}\\b`).test(hay));
+      d.rarOverride = rar ? RARITY.findIndex(r => r.toLowerCase() === rar) : ""; d.att = /requires? attunement/.test(hay) ? "yes" : "no";
+      d.flavor = body || "Imported from MythWeaver.";
+      items.push({ ...ciRecord(d), mwId: "mw-" + key, src: MW_SRC });
+    }
+  }
+  return { items, homebrew };
+}
 // a MythWeaver character -> a Draft for importBuild (its scores are starting scores, before the species bonus)
 function mwChar(ch, ed) {
   ed = ed === "2024" ? "2024" : "2014";
@@ -11131,6 +11164,7 @@ function mwWindowHTML(R) {
       return `<label class="check"><input type="checkbox" data-mwcamp="${i}" checked><span><b>${esc(c.name)}</b><br><small class="muted">${npcs} NPC${npcs === 1 ? "" : "s"} · ${c.lore.length - npcs + R.other.length} lore · ${c.sessions.length} session${c.sessions.length === 1 ? "" : "s"}${h ? ` · Updates ${esc(h.name)} (imported ${new Date(h.mwAt || h.updated || Date.now()).toLocaleDateString()})` : ""}</small></span></label>`; }).join("")}
     ${R.characters.length ? `<h4>Characters (to My Characters)</h4>${R.characters.map((c, i) => `<label class="check"><input type="checkbox" data-mwchar="${i}" ${PCS.roster.some(x => x.mwId === c.mwId) ? "" : "checked"}><span><b>${esc(c.name)}</b><br><small class="muted">${esc(impTitle(c.cls || (c.sheet.selectionsBySlot || {}).class || ""))} ${c.level} · ${esc(c.ancestry)}${PCS.roster.some(x => x.mwId === c.mwId) ? " · already on My Characters" : ""}</small></span></label>`).join("")}
       <div class="field"><label>Rules for characters</label><div class="seg"><label class="opt"><input type="radio" name="impCampEd" value="2014" ${ed === "2014" ? "checked" : ""}><span>2014 rules</span></label><label class="opt"><input type="radio" name="impCampEd" value="2024" ${ed === "2024" ? "checked" : ""}><span>2024 rules</span></label></div></div>` : ""}
+    ${(() => { const X = mwExtras(R, R.campaigns.map((c, i) => i)), ni = X.items.length, ns = X.homebrew.length; return ni || ns ? `<h4>Items and spells</h4><label class="check"><input type="checkbox" data-mwextras checked><span>Add ${[ni ? `${ni} item${ni === 1 ? "" : "s"} to <b>Items → Custom</b>` : "", ns ? `${ns} spell${ns === 1 ? "" : "s"} to <b>Homebrew</b>` : ""].filter(Boolean).join(" and ")}, so you can hand them out<br><small class="muted">They stay in Lore too. Ones the Forge already has are left out, and importing again updates them.${ns && hbCloud() && !Portal.isDM() ? " Only the DM can add homebrew spells." : ""}</small></span></label>` : ""; })()}
     <p class="hint">About ${mwMB(size)} of text; this browser has room for about ${mwMB(free)} more.${size > free ? ` <b style="color:#f2b8ae">That may not fit: delete an old campaign or untick one first.</b>` : ""}${R.images ? ` ${R.images} MythWeaver picture${R.images === 1 ? "" : "s"} aren't imported; they stay in your MythWeaver account. Pictures attached to an NPC or lore entry come across as links.` : ""}</p>`;
 }
 function impCampOpen(R) {
@@ -11175,9 +11209,10 @@ document.getElementById("impCampGo").addEventListener("click", async () => {
   document.getElementById("impCampGo").disabled = true;
   const r = await mwCommit(R, { camps, chars, ed });
   if (!r.ok) { document.getElementById("impCampOut").textContent = r.error; document.getElementById("impCampGo").disabled = false; return; }
+  const xb = box.querySelector("[data-mwextras]"), got = xb && xb.checked ? await campExtrasAdopt(mwExtras(R, camps)) : [];
   impCampClose();
   const upd = r.plans.filter(P => P.stats.updated).length, made = r.plans.length - upd;
-  toast([made ? `${made} campaign${made === 1 ? "" : "s"} imported` : "", upd ? `${upd} updated` : "", chars.length ? "characters added to My Characters" : ""].filter(Boolean).join(", ") + (r.notes.length ? `. ${r.notes.join(" ")}` : ""));
+  toast([made ? `${made} campaign${made === 1 ? "" : "s"} imported` : "", upd ? `${upd} updated` : "", chars.length ? "characters added to My Characters" : "", ...got].filter(Boolean).join(", ") + (r.notes.length ? `. ${r.notes.join(" ")}` : ""));
 });
 
 /* ---- the Import character window ---- */
@@ -11238,10 +11273,11 @@ document.getElementById("impCharGo").addEventListener("click", async () => {
 });
 
 const NEWS = [
-  { id: "2026-11-17-camp-extras", date: "2026-11-17", title: "Campaign files bring your custom items along", go: "tracker", items: [
-    "Export JSON now packs in your custom items, homebrew and custom monsters with the campaign.",
-    "Import JSON adds them back: custom items appear in Items → Custom, ready to Give or Buy for a character; homebrew goes to the Homebrew tab and monsters to My monsters. Anything you already have isn't added twice.",
-    "Loot rows that name one of your custom items now hand over its weight and attunement when you use “Give to…”."] },
+  { id: "2026-11-17-camp-extras", date: "2026-11-17", title: "Imported campaigns bring their items and spells", go: "items", items: [
+    "⬆ Import campaign now adds custom items to Items → Custom, ready to Give or Buy for a character, and custom spells to Homebrew.",
+    "From MythWeaver: items become custom items (with rarity and attunement when the text says so) and spells become homebrew spells. They stay in Lore too, and DM-only notes aren't copied onto them. Untick “Items and spells” in the import window to skip this.",
+    "Forge campaign files: Export JSON now packs in your custom items, homebrew (including spells) and custom monsters, and importing the file adds them back.",
+    "Anything you already have isn't added twice. Loot rows that name a custom item now hand over its weight and attunement with “Give to…”."] },
   { id: "2026-11-17-mythweaver", date: "2026-11-17", title: "Import your MythWeaver campaign, and a Lore tab", go: "tracker", items: [
     "In the Campaign Tracker, ⬆ Import campaign now reads MythWeaver exports as well as Forge campaign files. Pick which campaigns and characters to bring in.",
     "Sessions and their recaps go to Sessions, NPCs (with their pictures) to NPCs, and everything else (places, items, monsters, encounters and notes) to a new Lore tab.",
