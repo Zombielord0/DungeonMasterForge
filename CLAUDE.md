@@ -16,6 +16,20 @@ These are project notes for the next chat (human or Claude). They cover what the
   - Merge to `main` (a production build) only when the owner has tried the preview and asks.
   - Previews may use their own copy of the campaign database, so test there with fresh accounts and campaigns.
 
+## Finishing a piece of work: reviews and tests (owner, 2026-11-17)
+
+When code is complete, before pushing it, the work goes through all three of these. **All of them must come back clean.**
+1. **The tests:** `npm test` and `npm run test:all` all pass. A check that passes on its automatic retry counts, but say which one.
+2. **The `code-reviewer` agent** (`.claude/agents/code-reviewer.md`) reviews the changes and also runs the tests. It must say `PASS`: no Critical or Important findings.
+3. **The `security-reviewer` agent** (`.claude/agents/security-reviewer.md`) reviews the same changes. It must say `PASS`: no finding with confidence 8 or more.
+
+Run the two agents side by side on the same changes (for example `origin/main...HEAD` plus anything uncommitted). If any of the three fails:
+- fix the mistakes, each with a test that fails before the fix;
+- run all three again;
+- repeat until all three are clean.
+
+Only then push, and tell the owner what the reviewers found and what was fixed. Minor findings can wait; list them for the owner. If an agent can't run (for example a usage limit), say so and don't call the work reviewed.
+
 ## What the app is
 
 The Forge is a D&D 5e toolkit with both the 2014 and 2024 rules. It has a character generator, My Characters sheets, spells, items, a Monster Manual, a Dungeon Map with a TV player screen, a campaign tracker, NPCs, a World tab, homebrew and feats. Players and the DM sign in and share one campaign.
@@ -46,6 +60,7 @@ Live site: https://dungeonmasterforge.netlify.app (Netlify; production branch `m
 | `tools/test-all.mjs` | `npm run test:all`. |
 | `.github/workflows/checks.yml` | GitHub runs `npm run build` and `npm run test:all` on every pull request (GitHub minutes, not Netlify credits; notes-only pushes skipped). It installs Playwright 1.63 for the run, because `package.json` doesn't list it. |
 | `tools/netlify-skip.mjs` | Netlify's `ignore` step: skips a build when a push only changes notes, tests or tools (exit 0 = skip). |
+| `.claude/agents/` | The `code-reviewer` and `security-reviewer` agents, run on every finished piece of work (see "Finishing a piece of work"). |
 | `docs/features/` | Notes on each feature: how it works and its function names (table below). |
 | `docs/superpowers/` | One design (`specs/`) and one plan (`plans/`) per piece of work, dated. Read the matching pair before changing a feature. |
 | `.superpowers/` | Scratch space for build sessions (gitignored). Nothing there is needed. |
