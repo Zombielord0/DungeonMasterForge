@@ -93,7 +93,7 @@ The **World** tab is where you build your setting: regions, cities, towns, villa
 
 - **+ Place** adds one. Give it a name, a type and a description, and choose what it's **Inside**, for example a tavern inside a district inside a city. The tree on the left shows how they nest; ▸ opens a place and ▾ closes it.
 - A place's page lists the **places inside** it and the **NPCs here**, including NPCs in the places inside it, grouped by where they are. **+ New NPC here** adds one, and **Move an NPC here** files an existing NPC there. Click an NPC to open it on the NPC tab.
-- **In campaigns:** tick a campaign to show the place in that campaign's **Lore** tab. Editing it there or on the World tab changes both. Places already in your campaigns' Lore, including ones imported from MythWeaver, are added to the World by themselves.
+- **In campaigns:** tick a campaign to show the place in that campaign's **Lore** tab. Editing it there or on the World tab changes both. Places already in your campaigns' Lore, including ones imported from MythWeaver, are added to the World by themselves. MythWeaver places are also put inside each other, worked out from their text: a tag naming another place, a Location section, or wording like "an inn in Riverford". A place only goes inside a bigger one, and anything you move yourself stays put.
 - Renaming a place renames it for every NPC and campaign. Deleting one moves the places and NPCs inside it up a level.
 - The World is saved in this browser and is in your 💾 Backup file. **Export JSON** on a campaign includes the places it uses, with their nesting.
 

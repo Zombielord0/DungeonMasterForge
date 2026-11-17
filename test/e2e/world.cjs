@@ -101,6 +101,33 @@ const server = http.createServer((req, res) => {
   check("deleting a place moves what's inside up and clears it from NPCs and Lore", st.places.join() === "The Gilded Goose<" && !st.mara && st.lore.join() === "0,0", JSON.stringify(st));
   check("World is in the backup keys", await p.evaluate(() => BACKUP_KEYS.includes("dmforge.world.v1")));
 
+  // MythWeaver places nest by their tags, Location sections and "in X" wording
+  const mw = { format: "mythweaver-account-export", campaigns: [{ id: 3, name: "Lune Valley", lore: [
+    { id: 31, name: "Sword Coast", type: "location", description: "The western coast.", tags: ["Region"] },
+    { id: 32, name: "Riverford", type: "location", description: "A river town.", tags: ["Location", "Sword Coast"] },
+    { id: 33, name: "The Copper Kettle", type: "location", description: "A cosy inn in Riverford. Ale is cheap.", tags: [] },
+    { id: 34, name: "Mill District", type: "location", description: "Mills and smoke.", tags: [], sections: [{ title: "Location", text: "The northern quarter of Riverford." }] },
+    { id: 35, name: "Cinder Gate", type: "location", description: "An old gate near Riverford.", tags: [] },
+    { id: 36, name: "Sunken Crypt", type: "location", description: "A crypt within the Sword Coast hills.", tags: [] },
+    { id: 37, name: "Hilda", type: "npc", description: "Smith.", tags: ["The Copper Kettle"] }], sessions: [] }], otherLore: [], characters: [], images: [] };
+  const mwFile = path.join(os.tmpdir(), "dmforge-world-mw.json"); fs.writeFileSync(mwFile, JSON.stringify(mw));
+  const r = await open();
+  await r.setInputFiles("#importFile", mwFile); await r.waitForTimeout(500); await r.click("#impCampGo"); await r.waitForTimeout(900);
+  await r.goto(URL + "#world"); await r.waitForTimeout(300);
+  const tree = await r.evaluate(() => Object.fromEntries(W.places.map(x => [x.name, (wp(x.parent) || {}).name || ""])));
+  check("a tag naming a place nests it (town in region)", tree["Riverford"] === "Sword Coast", JSON.stringify(tree));
+  check("'an inn in X' nests a tavern in the town", tree["The Copper Kettle"] === "Riverford", JSON.stringify(tree));
+  check("a Location section nests a district", tree["Mill District"] === "Riverford", JSON.stringify(tree));
+  check("'near X' doesn't nest", tree["Cinder Gate"] === "", JSON.stringify(tree));
+  check("'within the X hills' nests a dungeon in the region", tree["Sunken Crypt"] === "Sword Coast", JSON.stringify(tree));
+  check("the region stays at the top", tree["Sword Coast"] === "", JSON.stringify(tree));
+  check("the NPC is filed in the tavern and counted up the tree", await r.evaluate(() => { const k = W.places.find(x => x.name === "Sword Coast"); return npcGroups().find(g => g.n.name === "Hilda").n.place === "The Copper Kettle" && wpUnder(k.id).has(npcGroups().find(g => g.n.name === "Hilda").n.placeId); }));
+  // the DM's own choice sticks: move Riverford to the top, adopt again, it stays
+  const kept = await r.evaluate(() => { const x = W.places.find(p => p.name === "Riverford"); x.parent = null; worldSave(); worldAdopt(); return W.places.find(p => p.name === "Riverford").parent; });
+  check("a place the DM moved isn't nested again", kept === null, String(kept));
+  await r.setInputFiles("#importFile", mwFile); await r.waitForTimeout(500); await r.click("#impCampGo"); await r.waitForTimeout(900);
+  check("importing again doesn't move it back either", await r.evaluate(() => W.places.find(p => p.name === "Riverford").parent) === null);
+
   check("no page errors", !errs.length, errs.join(" | "));
   await browser.close(); server.close();
   console.log(fails ? `\n${fails} check(s) failed` : "\nAll World checks passed");

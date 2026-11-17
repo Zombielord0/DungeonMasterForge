@@ -563,6 +563,10 @@ PR #8 (the expired sign-in fix) was merged before that chat.
   - Buttons are `[data-w]` = sel, tog, new, child, npc, opennpc, del. Fields are `[data-wf]`, saved on input and synced out on change.
   - `wpDelete` moves the places inside up a level, moves its NPCs to the parent (or no place), and removes the linked Lore entries, so `worldAdopt` won't bring the place back.
   - `"world"` is in `route()`'s views and the portal's `ALL_VIEWS` (DM only).
+- **MythWeaver nesting:** the export has no parent field, so `wpNestGuess()` (run at the end of `worldAdopt`) guesses one for World places with `mwId`, no parent, and no `nestTried`. Each place is tried once and then gets `nestTried`, so a DM's move to the top level sticks.
+  - It looks in this order: a tag equal to another place's name; then a Location/Region/Part of section naming one; then "in/within/inside/of/beneath/under X" in the first two sentences of the description ("near" and "outside" don't count). A leading "The" is optional in names.
+  - Only a bigger place can hold a smaller one (`WP_SIZE`: region 0 … tavern/shop/temple 5; an "other" place can go inside any typed place). The most specific candidate wins, and `wpUnder` blocks cycles.
+  - In `worldAdopt`, a tag sets the type only when it's a single word ("Region", "Tavern"), so a tag like "Sword Coast" doesn't make a town Wilderness.
 - **Campaign files:** `campExtras(c)` adds `world`: the places the campaign uses, plus their ancestors. `campExtrasAdopt` merges them by id or name and remaps parents.
 - **Tests:** `npm run test:world` (`test/e2e/world.cjs`).
 

@@ -4684,6 +4684,29 @@ function npcPlaceTabs(list, cur) {
   return { cur, keep: n => inTab(n, cur || ""),
     html: attr => `<div class="npc-tabs" role="tablist" aria-label="Places">${tabs.map(([t, lab, title]) => `<button type="button" role="tab" class="chip${t === (cur || "") ? " on" : ""}" aria-selected="${t === (cur || "")}" data-${attr}="${esc(t)}"${title ? ` title="${esc(title)}"` : ""}>${esc(lab)} <span class="npc-tab-n">${count(t)}</span></button>`).join("")}</div>` };
 }
+/* MythWeaver doesn't say which place is inside which, so guess it from the text, once per place (nestTried):
+   a tag naming another place, a Location / Region / Part of section naming one, or "in / within / inside / of X" early in the
+   description. Only a bigger kind of place can hold a smaller one (WP_SIZE), and the most specific fit wins. A place the DM
+   has already put somewhere, or one tried before, is never moved. */
+const WP_SIZE = { region: 0, wilderness: 1, city: 2, town: 2, village: 2, dungeon: 3, district: 3, other: 3, landmark: 4, building: 4, tavern: 5, shop: 5, temple: 5 };
+function wpNestGuess() {
+  const todo = W.places.filter(p => p.mwId && !p.parent && !p.nestTried); if (!todo.length) return;
+  const esc2 = t => t.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"), core = n => String(n || "").trim().replace(/^the\s+/i, "");
+  const pool = W.places.filter(x => core(x.name).length >= 3);
+  for (const a of todo) {
+    a.nestTried = true; W.dirty = true;
+    const ra = WP_SIZE[a.type] ?? 3, fits = b => b.id !== a.id && !wpUnder(a.id).has(b.id) && ((WP_SIZE[b.type] ?? 3) < ra || (a.type === "other" && b.type !== "other"));
+    const named = (text, re) => pool.filter(b => fits(b) && new RegExp(re(esc2(core(b.name))), "i").test(text));
+    const tags = (a.tags || []).join(" | ");
+    const secs = (a.sections || []).filter(x => /location|region|located|part of|parent|within|where|area/i.test(x.t || "")).map(x => String(x.x || "").split("\n")[0]).join(" | ");
+    const lead = String(a.desc || "").replace(/[*_#]/g, "").split(/(?<=[.!?])\s+/).slice(0, 2).join(" ");
+    const found = named(tags, n => `(^|\\|)\\s*(the\\s+)?${n}\\s*(\\||$)`).concat([]);
+    const cands = found.length ? found : (c => c.length ? c : named(lead, n => `\\b(in|within|inside|of|beneath|under|located in|part of)\\s+(the\\s+)?${n}\\b`))(named(secs, n => `\\b${n}\\b`));
+    if (!cands.length) continue;
+    cands.sort((x, y) => (WP_SIZE[y.type] ?? 3) - (WP_SIZE[x.type] ?? 3));
+    a.parent = cands[0].id;
+  }
+}
 /* link Lore places to World places (making new ones), and NPC place names to placeId */
 function npcPlaceFix(n, c) {
   if (n.placeId && wp(n.placeId)) { const p = wp(n.placeId); if (n.place !== p.name) { n.place = p.name; return true; } return false; }
@@ -4701,13 +4724,14 @@ function worldAdopt() {
       if (l.type !== "place") { if (l.wpId) { delete l.wpId; ch = true; } continue; }
       let p = l.wpId && wp(l.wpId);
       if (!p) p = (l.mwId && W.places.find(x => x.mwId === l.mwId)) || W.places.find(x => x.name.toLowerCase() === String(l.name || "").trim().toLowerCase());
-      if (!p) p = wpNew({ ...(l.wpId ? { id: l.wpId } : {}), name: String(l.name || "Untitled").slice(0, 120), type: wpGuessType((l.tags || []).join(" "), l.name, String(l.desc || "").slice(0, 300)), desc: l.desc || "", sections: JSON.parse(JSON.stringify(l.sections || [])), tags: (l.tags || []).slice(), ...(l.imgUrl ? { imgUrl: l.imgUrl } : {}), ...(l.mwId ? { mwId: l.mwId } : {}) });
+      if (!p) p = wpNew({ ...(l.wpId ? { id: l.wpId } : {}), name: String(l.name || "Untitled").slice(0, 120), type: wpGuessType((l.tags || []).filter(t => !/\s/.test(String(t).trim())).join(" "), l.name, String(l.desc || "").slice(0, 300)), desc: l.desc || "", sections: JSON.parse(JSON.stringify(l.sections || [])), tags: (l.tags || []).slice(), ...(l.imgUrl ? { imgUrl: l.imgUrl } : {}), ...(l.mwId ? { mwId: l.mwId } : {}) });
       if (l.wpId !== p.id) { l.wpId = p.id; ch = true; }
     }
     for (const n of c.npcs || []) if (npcPlaceFix(n, c)) ch = true;
     if (ch) Store.save(c);
   }
   const L = npcLoose(); let lch = false; for (const n of L) if (npcPlaceFix(n)) lch = true; if (lch) npcLooseSave(L);
+  wpNestGuess();
   if (W.dirty) worldSave();
 }
 /* a World place's text -> its Lore copies, and its name -> NPCs filed there */
@@ -11776,6 +11800,10 @@ document.getElementById("impCharGo").addEventListener("click", async () => {
 });
 
 const NEWS = [
+  { id: "2026-11-17-world-nest", date: "2026-11-17", title: "MythWeaver places nest by themselves", go: "world", items: [
+    "Places imported from MythWeaver are now put inside each other on the World tab, worked out from their text: a tag naming another place, a Location section, or wording like “an inn in Riverford” or “a district of Riverford”.",
+    "A place only goes inside a bigger one (a tavern in a town, a town in a region), and “near” or “outside” doesn't count. Places you've already imported are sorted the next time you open the Forge.",
+    "Anything you move yourself stays where you put it, even if you import again."] },
   { id: "2026-11-17-world", date: "2026-11-17", title: "Build your world: places, and the NPCs who live there", go: "world", items: [
     "A new World tab holds your regions, cities, towns, districts, taverns, shops, temples and dungeons. Put places inside each other (a tavern in a district in a city) and open or close them in the tree.",
     "A place's page shows the places inside it and every NPC who lives there, including those in the places inside it. Add a new NPC there, or move one in.",
