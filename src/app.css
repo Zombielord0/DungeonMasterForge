@@ -129,6 +129,8 @@ ul.plain{margin:4px 0 0;padding-left:20px}
 .shop-tbl td{padding:4px 6px;border-bottom:1px solid rgba(0,0,0,.3)}
 .shop-tbl td:nth-child(2),.shop-tbl td:nth-child(3){white-space:nowrap}
 .shop-tbl tr.sold{opacity:.45}
+.shop-tbl input.shop-price{width:90px;padding:2px 6px;font-size:14px;text-transform:none}
+.shop-own{color:var(--gold,#c9a227);cursor:help}
 .cal-now{display:flex;gap:18px;align-items:flex-start;flex-wrap:wrap;margin-bottom:12px}
 .cal-day{font-family:Cinzel,serif;font-size:30px;font-weight:700;color:var(--gold);line-height:1.1}
 .cal-day span{display:block;font-family:'Crimson Pro',Georgia,serif;font-size:17px;font-weight:400;color:var(--muted)}

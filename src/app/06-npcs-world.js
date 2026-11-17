@@ -506,9 +506,9 @@ const WB = {
   },
   shop(r, o) {
     const sh = shopMake({ type: SHOPS[o.type] ? o.type : r.pick(Object.keys(SHOPS)), size: o.size || "town", level: +o.level || shopLevelGuess(), seed: r.int(1, 1e9).toString(36).toUpperCase(), ed: IT.ed || "2024" });
-    const name = String(o.name || "").trim() || sh.name;
-    const d = { name, type: sh.type === "temple" ? "temple" : "shop", desc: `${sh.label}, run by ${sh.keeper}, who is ${sh.mood}.`, shop: { type: sh.type, size: sh.size, level: sh.level, seed: sh.seed, ed: sh.ed },
-      sections: [{ t: "For sale", x: sh.stock.length ? sh.stock.slice(0, 24).map(x => `- ${x.n}: ${x.c}${x.kind === "magic" ? " (magic)" : ""}`).join("\n") + (sh.stock.length > 24 ? `\n- …and ${sh.stock.length - 24} more` : "") : "Nothing on the shelves today.", dm: false }], kids: [], npcs: [] };
+    const name = String(o.name || "").trim() || sh.name, full = { ...sh, markup: 0 }, sale = shopSaleText(full); full.sale = sale;
+    const d = { name, type: sh.type === "temple" ? "temple" : "shop", desc: `${sh.label}, run by ${sh.keeper}, who is ${sh.mood}.`, shop: { type: sh.type, size: sh.size, level: sh.level, seed: sh.seed, ed: sh.ed }, shopFull: full,
+      sections: [{ t: "For sale", x: sale, dm: false, auto: true }], kids: [], npcs: [] };
     if (o.npcs !== false) { const k = wbNpc(r, "Merchant", "shopkeeper"); k.name = sh.keeper; d.npcs.push(k); }
     return d;
   },
@@ -599,7 +599,7 @@ function worldGoNpc(lib, placeId) { NL.tab = placeId || ""; NL.camp = ""; NL.q =
     else if (a === "wbkind") { wbStart(b.dataset.k); renderWorld(); const nb = $(`#worldMain [data-w="wbkind"][data-k="${b.dataset.k}"]`); if (nb) nb.focus(); }
     else if (a === "wbroll") { W.build.seed = newSeed(); renderWorld(); }
     else if (a === "wbadd") { const top = wbCommit(); if (top) { W.mode = "place"; W.sel = top.id; W.openT.add(top.type); W.q = ""; const q = $("#worldQ"); if (q) q.value = ""; renderWorld(); toast(`${top.name} added to your World`); } }
-    else if (a === "openshop" && p && p.shop) { IT.shop = shopMake(p.shop); location.hash = "items"; setTimeout(() => { shopRender(); $("#itShop").scrollIntoView({ block: "start" }); }, 80); }
+    else if (a === "openshop" && p && p.shop) shopOpen(p);
     else if (a === "tog") { const id = b.dataset.id; W.open.has(id) ? W.open.delete(id) : W.open.add(id); renderWorld(true); const nb = $(`#worldTree [data-w="tog"][data-id="${CSS.escape(id)}"]`); if (nb) nb.focus(); }
     else if (a === "new" || (a === "child" && p)) {
       const n = wpNew(a === "child" ? { parent: p.id, type: WP_CHILD[p.type] || "other" } : {}); worldSave(); W.mode = "place";
