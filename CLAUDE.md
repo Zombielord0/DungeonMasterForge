@@ -27,7 +27,7 @@ Live site: https://dungeonmasterforge.netlify.app (Netlify; production branch `m
 
 | Path | What it is |
 | --- | --- |
-| `public/index.html` | The whole app on one page: vanilla JS with global functions (~10,300 lines). Most feature work happens here. |
+| `public/index.html` | The whole app on one page: vanilla JS with global functions (~11,350 lines). Most feature work happens here. |
 | `src/portal.js` | Sign-in, campaigns, shared characters, the Party tab, whispers, homebrew sync. esbuild bundles it into `public/portal.js`, which is gitignored and never edited by hand. |
 | `netlify/functions/api.mjs` → `netlify/lib/api.mjs` | Campaign API at `/api/*`. `handle(req, user, db)` holds all the routes. `netlify/lib/diff.mjs` writes the activity feed text. |
 | `netlify/database/migrations/` | Postgres tables, applied automatically on deploy: `campaigns`, `members`, `characters` (versioned jsonb), `activity`, `whispers`, `homebrew`. |
@@ -37,7 +37,11 @@ Live site: https://dungeonmasterforge.netlify.app (Netlify; production branch `m
 | `public/manifest.webmanifest`, `public/sw.js`, `public/icons/` | Install as an app (PWA). See item 27. |
 | `public/player.html` | The TV player screen. It shows only the pictures the DM's window sends. |
 | `test/e2e/*.cjs` | Self-contained Playwright checks for each feature (`npm run test:…`). Each starts its own static server and needs no database. |
-| `docs/superpowers/` | The design and plan for the Dungeon Map upgrade. |
+| `test/e2e/fixtures/` | Test files: `companion-zook.json` (a real 5e Companion App character, no personal details), `sheet-wizard.pdf` (made up) and `mythweaver-sample.json` (made up). Never commit players' own files or the owner's MythWeaver export: it holds their email. |
+| `public/vendor/pdfjs/` | pdf.js (`pdfjs-dist` 6.5.438 legacy build, Apache-2.0, unchanged), loaded only when someone imports a PDF. |
+| `tools/make-test-sheet.py` | Writes `test/e2e/fixtures/sheet-wizard.pdf` with the official sheet's field names and spell positions (needs pypdf). |
+| `docs/superpowers/` | One design (`specs/`) and one plan (`plans/`) per piece of work, dated. Read the matching pair before changing a feature. |
+| `.superpowers/` | Scratch space for build sessions (gitignored). Nothing there is needed. |
 
 ## Commands
 
@@ -84,6 +88,11 @@ Playwright and Chromium are pre-installed in cloud sessions. To test offline mod
   - Encounters: `kind` ("random" or "map"), `room` and `recapped`.
   - Quests: `recappedAs`. Loot and chapters: `recapped`.
   - Map entries: `style`, `fog`, `found` and `tokens`, plus `kind:"image"` records for imported maps.
+- **Fields added on 2026-11-16 and 17:**
+  - Campaigns: `lore` (the Lore tab), and `mwId`/`mwAt` on campaigns imported from MythWeaver. NPCs and lore entries can carry `mwId` too.
+  - Tracker NPCs: `img` (an uploaded picture, key `npc-<npc id>` in the `dmforge-maps` IndexedDB) or `imgUrl` (an https link).
+  - Characters: `hbPending` (homebrew waiting for the DM), `importedFrom: {app, at}` and `mwId`.
+  - Homebrew can be `kind: "spell"`.
 - **Signed in:** characters and homebrew live in Postgres, per campaign. Homebrew is polled every 30 seconds. Every character save bumps `version`, so if two people save the same sheet at once, the second one is asked which version to keep.
 
 ## Feature history (oldest first)
@@ -148,6 +157,14 @@ Everything in the sections from "Dungeon Map looks" to "Tokens" below was built 
 - the calendar and session recaps
 - the sheet checks and tokens
 - backup and restore
+
+Everything from "Character import" to "Lore tab and MythWeaver import" below was built in one chat on 2026-11-16 and 17, on branch `ccr-c51c8c32-xn2c0j`. It's open as **draft PR #9**, which is **not merged**: the owner is trying it on the preview at `deploy-preview-9--dungeonmasterforge.netlify.app`. It contains:
+- character import (Companion App and PDF), homebrew spells, and pending homebrew with DM approval
+- NPC pictures
+- the phone and laptop layout work
+- the Lore tab and MythWeaver campaign import
+
+PR #8 (the expired sign-in fix) was merged before that chat.
 
 15. **Collapsible toolbar and character sheet upgrade** (PR #5, branch `ccr-ee7865d5-1wx9vg`)
     - **Toolbar:** "▴ Hide tabs" collapses the header (`dmforge.hdrMini`, the `hdr-mini` class on `<html>`); the strip has a tab menu (`hdrSync`).
@@ -404,45 +421,6 @@ Everything in the sections from "Dungeon Map looks" to "Tokens" below was built 
 - **Downloads:** `saveFile` now falls back to a normal browser download (Blob and `<a download>`) when the Claude `downloads` helper isn't there. Before this, Download PNG and Export JSON did nothing on the website.
 - **Tests:** `npm run test:backup` (`test/e2e/backup.cjs`).
 
-## Lore tab and MythWeaver import (2026-11-17)
-
-- **Design and plan:** `docs/superpowers/specs/2026-11-17-mythweaver-import-design.md` and `docs/superpowers/plans/2026-11-17-mythweaver-import.md`.
-- **Lore:** `c.lore = [{id, mwId?, name, type, tags[], imgUrl?, desc, sections:[{t, x, dm}], src?}]`.
-  - Types are in `LORE_TYPES` (place, item, monster, encounter, other). `blankCampaign` and the Forge campaign import add `lore: []`, and `renderTracker` makes sure older campaigns have it.
-  - The tab is `subTab === "lore"` → `loreHTML(c)`, with UI state in `LORE` (q, type, open, edit, draft). `loreRender()` redraws just `#subBody` and keeps focus in `#loreQ`.
-  - Buttons are `data-lore` (open, add, edit, save, cancel, del, tv, secadd, secdel), with chips `data-lt` and fields `data-lf`/`data-ls`. The listeners sit right after `const campMain`.
-- **`mdHTML(text)`:** escapes everything first, then formats `**bold**`, `*italic*`, `#`–`###` headings, `-`/`1.` lists and paragraphs. Use it for any user or imported text you want formatted.
-- **MythWeaver** (`format: "mythweaver-account-export"`):
-  - `mwRead(json)` never reads `account`. It keeps campaigns, `otherLore`, characters and the image count.
-  - `mwText` turns HTML into markdown-ish text. `mwLore` and `mwNpc` map entries; `mwTagType` sorts "generic" entries by their tags.
-  - `mwPlanCamp(R, i, existing)` builds or updates a Tracker campaign (`c.mwId`, `c.mwAt`). It matches NPCs, lore and sessions by `mwId`, never deletes, keeps an NPC's attitude and uploaded picture, and puts `otherLore` in every campaign tagged "Account".
-  - `mwChar(ch, ed)` makes a character Draft with `D.base`: MythWeaver scores are starting scores, so `importBuild` builds once instead of solving.
-- **The window:** `#impCampModal` (`impCampOpen`, `mwWindowHTML`, `mwCommit`), opened by the Tracker's **⬆ Import campaign** (`#importFile`), which still imports Forge campaign files.
-  - `mwCommit` writes with `Store.lsWrite()` straight away and restores the old campaigns if the browser is full.
-- **Real export (2026-11-16, not committed):** Undead Titan has 63 NPCs, 172 lore entries and 14 sessions, about 1.4 MB, and imports in under 2 s.
-- **Tests:** `npm run test:lore` (`test/e2e/lore.cjs`) and `npm run test:mythweaver` (`test/e2e/mythweaver.cjs` plus `mythweaver-ui.cjs`), with the made-up fixture `test/e2e/fixtures/mythweaver-sample.json`.
-
-## Phone and laptop layout (2026-11-17)
-
-- **Design and plan:** `docs/superpowers/specs/2026-11-17-phone-and-laptop-layout-design.md` and `docs/superpowers/plans/2026-11-17-phone-and-laptop-layout.md`.
-- **Who uses what:** players use their sheets on phones mid-fight; the DM runs the map on a laptop. Laptop and mouse layouts must not change.
-- **Pop-up windows:**
-  - `#modal`, `#backupModal`, `#impCharModal`, `#lvModal`, `#featModal`, `#choiceModal` and `#actModal` cap their `.box` at `calc(100dvh - 24px - safe areas)` (with a `vh` line first) and scroll inside.
-  - The box's last child that holds buttons is `position:sticky; bottom` (one CSS rule using `:has(button)`), so new windows get this for free if their buttons are the last row.
-  - `newsOpen` sets the What's new panel's `max-height` from where it opens. Its `top` comes from the bell, measured from where the phone header ends up.
-- **Phone header (600 px and under):**
-  - The slim `hdr-mini` look is applied by media query unless `hdr-full` is set ("▾ Show tabs", this visit only; the stored `dmforge.hdrMini` is for computers).
-  - `hdrAuto()` toggles `hdr-away` on `<html>`. It hides after scrolling down past the header's height, shows after 24 px of scroll-up or within 80 px of the top, and hides while a form field outside the header has focus.
-  - It stays shown while What's new is open. `hdrHold` ignores scrolling for 500 ms after Show tabs, because the page shifts.
-- **Bottom of the page:**
-  - `main` has `96px` + safe-area bottom padding, so the 🎲 Rolls dock never covers the last control.
-  - The toast sits at `76px` + safe area and is hidden with opacity. `viewport-fit=cover` is on in `index.html` and `player.html`.
-- **Touch (`pointer:coarse`):** `.btn.sm`, `.icon-btn`, `.cond`, `.chip` and `.ctr-b` are at least 40 × 40, `label.check` rows are 40 px, and the sheet labels are 12.5 px.
-- **Jump bar:** `sheetJumpHTML(c)` makes `#sheetJump` (a div, not a `nav`, because the header's `nav a` styles would apply) at the top of the My Characters sheet. It's shown at 600 px and under and sticky under the header. Links are `[data-jump]` to `#sec-hp`, `#sec-attacks`, `#sec-spells`, `#sec-gear` and `#sec-notes`, with `scroll-margin-top`.
-- **Spells on phones:** the filters sit inside `#spFilters`, closed unless `#spForm.filters-open`. `#spFiltersBtn` shows "▾ Filters · N on" (`spFilterCount`, `spFiltersSync`).
-- **Grid columns** (`.layout>*`, `.tlayout>*`) have `min-width:0`, so wide content scrolls inside instead of widening the page.
-- **Tests:** `npm run test:layout` (`test/e2e/layout.cjs`) runs at 390 × 640 touch, 768 × 1024 touch, 1366 × 768 mouse and 844 × 390 touch. `MOUSE_H` holds the mouse heights of the small controls, which must not change.
-
 ## Character import (2026-11-16)
 
 - **Design and plan:** `docs/superpowers/specs/2026-11-16-companion-import-design.md` and `docs/superpowers/plans/2026-11-16-character-import.md`.
@@ -483,6 +461,66 @@ Everything in the sections from "Dungeon Map looks" to "Tokens" below was built 
 - Pictures aren't in backups (like map pictures). A link from a site without CORS can be shown in the frame but can't be sent to the TV; the toast says to upload it instead.
 - **Tests:** `npm run test:npcpic` (`test/e2e/npc-pictures.cjs`).
 - **Campaign saves are written 600 ms after a change** (`Store.save`). Tests that reload must wait for that first.
+
+## Phone and laptop layout (2026-11-17)
+
+- **Design and plan:** `docs/superpowers/specs/2026-11-17-phone-and-laptop-layout-design.md` and `docs/superpowers/plans/2026-11-17-phone-and-laptop-layout.md`.
+- **Who uses what:** players use their sheets on phones mid-fight; the DM runs the map on a laptop. Laptop and mouse layouts must not change.
+- **Pop-up windows:**
+  - `#modal`, `#backupModal`, `#impCharModal`, `#lvModal`, `#featModal`, `#choiceModal` and `#actModal` cap their `.box` at `calc(100dvh - 24px - safe areas)` (with a `vh` line first) and scroll inside.
+  - The box's last child that holds buttons is `position:sticky; bottom` (one CSS rule using `:has(button)`), so new windows get this for free if their buttons are the last row.
+  - `newsOpen` sets the What's new panel's `max-height` from where it opens. Its `top` comes from the bell, measured from where the phone header ends up.
+- **Phone header (600 px and under):**
+  - The slim `hdr-mini` look is applied by media query unless `hdr-full` is set ("▾ Show tabs", this visit only; the stored `dmforge.hdrMini` is for computers).
+  - `hdrAuto()` toggles `hdr-away` on `<html>`. It hides after scrolling down past the header's height, shows after 24 px of scroll-up or within 80 px of the top, and hides while a form field outside the header has focus.
+  - It stays shown while What's new is open. `hdrHold` ignores scrolling for 500 ms after Show tabs, because the page shifts.
+- **Bottom of the page:**
+  - `main` has `96px` + safe-area bottom padding, so the 🎲 Rolls dock never covers the last control.
+  - The toast sits at `76px` + safe area and is hidden with opacity. `viewport-fit=cover` is on in `index.html` and `player.html`.
+- **Touch (`pointer:coarse`):** `.btn.sm`, `.icon-btn`, `.cond`, `.chip` and `.ctr-b` are at least 40 × 40, `label.check` rows are 40 px, and the sheet labels are 12.5 px.
+- **Jump bar:** `sheetJumpHTML(c)` makes `#sheetJump` (a div, not a `nav`, because the header's `nav a` styles would apply) at the top of the My Characters sheet. It's shown at 600 px and under and sticky under the header. Links are `[data-jump]` to `#sec-hp`, `#sec-attacks`, `#sec-spells`, `#sec-gear` and `#sec-notes`, with `scroll-margin-top`.
+- **Spells on phones:** the filters sit inside `#spFilters`, closed unless `#spForm.filters-open`. `#spFiltersBtn` shows "▾ Filters · N on" (`spFilterCount`, `spFiltersSync`).
+- **Grid columns** (`.layout>*`, `.tlayout>*`) have `min-width:0`, so wide content scrolls inside instead of widening the page.
+- **Tests:** `npm run test:layout` (`test/e2e/layout.cjs`) runs at 390 × 640 touch, 768 × 1024 touch, 1366 × 768 mouse and 844 × 390 touch. `MOUSE_H` holds the mouse heights of the small controls, which must not change.
+
+## Lore tab and MythWeaver import (2026-11-17)
+
+- **Design and plan:** `docs/superpowers/specs/2026-11-17-mythweaver-import-design.md` and `docs/superpowers/plans/2026-11-17-mythweaver-import.md`.
+- **Lore:** `c.lore = [{id, mwId?, name, type, tags[], imgUrl?, desc, sections:[{t, x, dm}], src?}]`.
+  - Types are in `LORE_TYPES` (place, item, monster, encounter, other). `blankCampaign` and the Forge campaign import add `lore: []`, and `renderTracker` makes sure older campaigns have it.
+  - The tab is `subTab === "lore"` → `loreHTML(c)`, with UI state in `LORE` (q, type, open, edit, draft). `loreRender()` redraws just `#subBody` and keeps focus in `#loreQ`.
+  - Buttons are `data-lore` (open, add, edit, save, cancel, del, tv, secadd, secdel), with chips `data-lt` and fields `data-lf`/`data-ls`. The listeners sit right after `const campMain`.
+- **`mdHTML(text)`:** escapes everything first, then formats `**bold**`, `*italic*`, `#`–`###` headings, `-`/`1.` lists and paragraphs. Use it for any user or imported text you want formatted.
+- **MythWeaver** (`format: "mythweaver-account-export"`):
+  - `mwRead(json)` never reads `account`. It keeps campaigns, `otherLore`, characters and the image count.
+  - `mwText` turns HTML into markdown-ish text. `mwLore` and `mwNpc` map entries; `mwTagType` sorts "generic" entries by their tags.
+  - `mwPlanCamp(R, i, existing)` builds or updates a Tracker campaign (`c.mwId`, `c.mwAt`). It matches NPCs, lore and sessions by `mwId`, never deletes, keeps an NPC's attitude and uploaded picture, and puts `otherLore` in every campaign tagged "Account".
+  - `mwChar(ch, ed)` makes a character Draft with `D.base`: MythWeaver scores are starting scores, so `importBuild` builds once instead of solving.
+- **The window:** `#impCampModal` (`impCampOpen`, `mwWindowHTML`, `mwCommit`), opened by the Tracker's **⬆ Import campaign** (`#importFile`), which still imports Forge campaign files.
+  - `mwCommit` writes with `Store.lsWrite()` straight away and restores the old campaigns if the browser is full.
+- **Real export (2026-11-16, not committed):** Undead Titan has 63 NPCs, 172 lore entries and 14 sessions, about 1.4 MB, and imports in under 2 s.
+- **Tests:** `npm run test:lore` (`test/e2e/lore.cjs`) and `npm run test:mythweaver` (`test/e2e/mythweaver.cjs` plus `mythweaver-ui.cjs`), with the made-up fixture `test/e2e/fixtures/mythweaver-sample.json`.
+
+## Where things stand (end of the 2026-11-17 chat)
+
+- **Draft PR #9** holds all the 2026-11-16/17 work and is waiting for the owner to test the preview. Merge it only when they ask.
+- **The owner's order of import work:**
+  1. Companion App import: done.
+  2. Homebrew classes, for classes the Forge doesn't have, like Blood Hunter: **not started**. Imports with an unknown class are refused with a message for now.
+  3. PDF import: done.
+  4. MythWeaver: done.
+- **Optional campaign name on sign-up:**
+  - The owner said it was fixed on the live site "through Netlify".
+  - But `src/portal.js` on `main` still makes the name required, and no branch on GitHub has the fix.
+  - If the live site differs from `main`, the next deploy of `main` would undo it, so ask the owner where that fix lives.
+  - The shelved plan is `docs/superpowers/plans/2026-11-16-campaign-setup-optional.md`.
+- **Small things left alone (the owner knows):**
+  - Imported characters get a random gender.
+  - PDF expertise beyond what the class grants is dropped without a note.
+  - A PDF's portrait isn't imported.
+  - Deleting a whole campaign leaves its NPCs' uploaded pictures in IndexedDB.
+  - The tag-based sorting of MythWeaver "generic" lore is a best guess.
+- **How builds are paid for:** one preview build per finished batch. Don't push design-only commits on their own; hold them until the work they describe is ready.
 
 ## How a character is built (read this before changing sheet maths)
 
@@ -540,4 +578,10 @@ From PR #5:
   - `test:map` still fails about one run in four on TV picture timing. Rerun it before suspecting the app.
 - **Comments in one-line functions:** a `//` comment swallows the rest of the line, including closing braces. Use `/* … */` there. This once broke the whole page.
 - **The `.ds` class** is the death-save dot. Don't reuse it for anything else.
+- **The sheet markup exists twice.** `sheetHTML` (the Characters tab) and `renderRosterMain` (My Characters) build the same sections. Make sure an edit lands in the one you mean: a search-and-replace hits the Characters tab first.
+- **Don't use `<nav>` for new bars.** The header's `nav a` styles, including an icon `::before`, apply to every `nav`.
+- **Scores in imports differ by source.** The Companion App and PDFs give final scores (solved backwards in `importBuild`); MythWeaver gives starting scores (`D.base`). Imports must set `bonus: "fixed"`, or `pcLevelTo` moves the species bonus on the first level-up.
+- **pdf.js 6.5's `getFieldObjects()` returned nothing** for real sheets; read widgets with `page.getAnnotations()` instead.
+- **On phones the header can be away** (`hdr-away` on `<html>`). Anything placed relative to header elements must measure where the header ends up, not where it is mid-slide (see `newsOpen`).
+- **Grid columns need `min-width:0`** (already set for `.layout` and `.tlayout`). Without it, one wide child, like a scrolling row of buttons, widens the whole page on phones.
 - **A stale sign-in.** The browser's `getUser()` trusts any `nf_jwt` cookie, even one the server rejects (expired, or from a re-created Identity instance). `enter()` treats a 401 from `/api/me` by calling `dropSession()` (logout, clear the cookies and `gotrue.user`, put back the browser's own characters) and showing the sign-in form. Other `/api/me` errors offer Try again, another account, or offline use. Never leave the gate without a way out.
