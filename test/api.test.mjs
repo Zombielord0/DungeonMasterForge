@@ -226,6 +226,32 @@ test("the DM shares the Journal and turn order; players share their rolls", asyn
   assert.equal(feed[0].characterName, "Pia");
 });
 
+test("shared data is stored in its expected shape only, so no markup reaches players", async () => {
+  const dm = { id: "u-xs-dm", email: "xsdm@example.com" };
+  const cid = (await call(dm, "POST", "campaigns", { name: "XSS check", displayName: "DM" })).body.id;
+  const bad = "<img src=x onerror=alert(1)>";
+  const r = await call(dm, "PUT", `campaigns/${cid}/shared/turns`, { data: { name: "Fight", round: bad, evil: bad, rows: [{ name: "Goblin", foe: "yes", cur: 1, state: bad, hp: 7 }, "junk"] } });
+  assert.equal(r.status, 200);
+  const t = (await call(dm, "GET", `campaigns/${cid}/shared`)).body.turns.data;
+  assert.equal(t.round, 0, "a round that isn't a number is stored as 0");
+  assert.equal(t.evil, undefined, "unknown fields are dropped");
+  assert.deepEqual(t.rows, [{ name: "Goblin", foe: true, cur: true, state: "" }], "rows keep only name, foe, cur and a known state; never HP");
+  assert.equal((await call(dm, "PUT", `campaigns/${cid}/shared/turns`, { data: { name: "F", round: 3, rows: [] } })).status, 200);
+  assert.equal((await call(dm, "GET", `campaigns/${cid}/shared`)).body.turns.data.round, 3);
+  await call(dm, "PUT", `campaigns/${cid}/shared/journal`, { data: { name: "J", extra: bad, cal: { day: bad, season: "Spring", weather: "Rain" },
+    quests: [{ id: "q", title: "Find it", status: bad, giver: "Rue", notes: "secret" }], sessions: [{ id: "s", title: "One", num: 1, date: "2026-11-10", summary: "Hi" }],
+    lore: [{ id: "l", name: "Tower", type: bad, tags: ["a", 5], imgUrl: "javascript:alert(1)", desc: "Old", sections: [{ t: "H", x: "Y", dm: true }] }] } });
+  const j = (await call(dm, "GET", `campaigns/${cid}/shared`)).body.journal.data;
+  assert.equal(j.extra, undefined);
+  assert.equal(j.cal.day, 0);
+  assert.equal(j.quests[0].status, "Active", "an unknown quest status becomes Active");
+  assert.equal(j.quests[0].notes, undefined, "quest notes never go to players");
+  assert.equal(j.lore[0].type, "other");
+  assert.equal(j.lore[0].imgUrl, undefined, "only https picture links");
+  assert.deepEqual(j.lore[0].tags, ["a"]);
+  assert.deepEqual(j.lore[0].sections, [{ t: "H", x: "Y" }]);
+});
+
 test("a DM can create a campaign without naming it", async () => {
   const r = await call({ id: "u-new", email: "new@example.com" }, "POST", "campaigns", {});
   assert.equal(r.status, 201);

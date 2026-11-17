@@ -76,6 +76,30 @@ async function getChar(db, cid, id) {
   return rows[0] || null;
 }
 
+/* What the DM shares with players, rebuilt field by field: only the expected fields, as plain strings, numbers and booleans.
+   Players' browsers draw these, so nothing else (and never quest notes or DM-only sections) is passed on. */
+const str = (v, n) => typeof v === "string" ? v.slice(0, n) : typeof v === "number" ? String(v).slice(0, n) : "";
+const num = v => (typeof v === "number" && Number.isFinite(v) ? Math.max(0, Math.min(99999, Math.floor(v))) : 0);
+const arr = (v, n) => (Array.isArray(v) ? v.slice(0, n).filter(x => x && typeof x === "object" && !Array.isArray(x)) : []);
+function sharedClean(id, d) {
+  if (id === "turns") return {
+    name: str(d.name, 120), round: num(d.round),
+    rows: arr(d.rows, 80).map(r => ({ name: str(r.name, 80), foe: !!r.foe, cur: !!r.cur, state: ["Bloodied", "Down"].includes(r.state) ? r.state : "" })),
+  };
+  const cal = d.cal && typeof d.cal === "object" ? { day: num(d.cal.day), season: str(d.cal.season, 20), weather: str(d.cal.weather, 300) } : null;
+  return {
+    name: str(d.name, 120), cal,
+    quests: arr(d.quests, 300).map(q => ({ id: str(q.id, 64), title: str(q.title, 200), status: ["Active", "On hold", "Completed", "Failed"].includes(q.status) ? q.status : "Active", giver: str(q.giver, 120) })),
+    sessions: arr(d.sessions, 300).map(x => ({ id: str(x.id, 64), title: str(x.title, 200), num: str(x.num, 10), date: str(x.date, 20), summary: str(x.summary, 20000) })),
+    lore: arr(d.lore, 500).map(x => ({
+      id: str(x.id, 64), name: str(x.name, 120), type: ["place", "item", "monster", "encounter", "other"].includes(x.type) ? x.type : "other",
+      tags: (Array.isArray(x.tags) ? x.tags : []).filter(t => typeof t === "string").slice(0, 30).map(t => t.slice(0, 60)),
+      ...(typeof x.imgUrl === "string" && /^https:\/\/[^\s"'<>]+$/i.test(x.imgUrl) && x.imgUrl.length <= 500 ? { imgUrl: x.imgUrl } : {}),
+      desc: str(x.desc, 8000), sections: arr(x.sections, 40).map(z => ({ t: str(z.t, 120), x: str(z.x, 12000) })),
+    })),
+  };
+}
+
 function sheet(data) {
   if (!data || typeof data !== "object" || Array.isArray(data)) throw new HttpError(400, "Character data is missing");
   if (JSON.stringify(data).length > MAX_SHEET_BYTES) throw new HttpError(413, "This character sheet is too large to save");
@@ -333,8 +357,8 @@ export async function handle(req, user, db) {
       if (m === "DELETE") { await db.query("DELETE FROM campaign_shared WHERE campaign_id = $1 AND id = $2", [cid, id]); return json({ ok: true }); }
       const p = await body(req);
       if (!p.data || typeof p.data !== "object" || Array.isArray(p.data)) throw new HttpError(400, "Nothing to share");
-      const text = JSON.stringify(p.data);
-      if (text.length > MAX_SHARED_BYTES) throw new HttpError(413, "Too much to share with the players at once");
+      if (JSON.stringify(p.data).length > MAX_SHARED_BYTES) throw new HttpError(413, "Too much to share with the players at once");
+      const text = JSON.stringify(sharedClean(id, p.data));
       await db.query(
         `INSERT INTO campaign_shared (campaign_id, id, data) VALUES ($1, $2, $3::jsonb)
          ON CONFLICT (campaign_id, id) DO UPDATE SET data = EXCLUDED.data, updated_at = now()`, [cid, id, text]);

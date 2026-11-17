@@ -2,6 +2,8 @@
    When a change ships, add an entry to the top of NEWS with a new id, in plain words for players and DMs. */
 
 const NEWS = [
+  { id: "2026-11-17-safety", date: "2026-11-17", title: "A safety fix for shared campaigns", items: [
+    "The Journal and the turn order on players' phones now only ever carry plain names, numbers and text, checked by the server. Nothing in them can run as code in a player's browser."] },
   { id: "2026-11-17-world-maps", date: "2026-11-17", title: "World and region maps", go: "world", items: [
     "On the World tab, open a region and press “🗺️ Make a map”: the Forge paints its land, coast, rivers, forests and mountains, and names the biggest of them. Pick Coast, Inland or Island and how mountainous it is, and press 🎲 Roll again until you like it.",
     "Every town, village, dungeon, landmark and wild place inside the region gets a pin in a sensible spot: cities by water, dungeons in the hills. Drag a pin to move it. Places you add later are pinned too.",

@@ -738,7 +738,7 @@ function renderTurnBar() {
   const wasOpen = !!bar.querySelector("details[open]");
   bar.hidden = false;
   bar.className = you ? "yours" : "";
-  bar.innerHTML = `<details ${wasOpen ? "open" : ""}><summary>⚔ ${esc(T.name || "Fight")}${T.round ? ` · Round ${T.round}` : ""}${you ? ` · <b>Your turn!</b>` : cur ? ` · Now: <b>${esc(cur.name)}</b>${next && next !== cur ? ` · Next: ${esc(next.name)}` : ""}` : " · Rolling initiative…"}</summary>
+  bar.innerHTML = `<details ${wasOpen ? "open" : ""}><summary>⚔ ${esc(T.name || "Fight")}${+T.round > 0 ? ` · Round ${+T.round}` : ""}${you ? ` · <b>Your turn!</b>` : cur ? ` · Now: <b>${esc(cur.name)}</b>${next && next !== cur ? ` · Next: ${esc(next.name)}` : ""}` : " · Rolling initiative…"}</summary>
     <div class="tb-list">${T.rows.map(chip).join("")}</div></details>`;
 }
 /* a player's roll, shared with the DM's activity feed when they've ticked "Share my rolls with the DM" */

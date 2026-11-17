@@ -279,7 +279,7 @@ function featDesc(f, c) {
 /* The Features & Traits list, shared by both sheets (the Characters tab and My Characters): each feature with where it
    comes from (subclass, multiclass, species, level), then the species traits. My Characters passes edit (features can
    be opened to make choices) and leaves out "Feat: …" entries, which it lists in its own Feats section. */
-const featTagOf = (c, f) => f.sub ? `${esc(c.subclass)}, lv ${f.l}` : f.mcsub ? `${esc(f.mcsub)}, ${esc(f.mc)} lv ${f.l}` : f.mc ? `${esc(f.mc)} lv ${f.l}` : (f.race ? esc(raceLabel(c)) + ", " : "") + "lv " + f.l;
+const featTagOf = (c, f) => { const l = +f.l || 1; /* a number, never markup: sheets can come from another player */ return f.sub ? `${esc(c.subclass)}, lv ${l}` : f.mcsub ? `${esc(f.mcsub)}, ${esc(f.mc)} lv ${l}` : f.mc ? `${esc(f.mc)} lv ${l}` : (f.race ? esc(raceLabel(c)) + ", " : "") + "lv " + l; };
 function featuresListHTML(c, edit) {
   const feats = (c.feats || []).filter(f => !edit || !String(f.f).startsWith("Feat: "));
   return `<ul class="plain">${feats.map(f => featLi(f.f, featTagOf(c, f), c, edit || undefined)).join("")}${(c.traits || []).map(t => featLi(t, esc(raceLabel(c)), c)).join("")}</ul>`;
