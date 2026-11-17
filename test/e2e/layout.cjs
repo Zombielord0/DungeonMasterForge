@@ -69,6 +69,11 @@ const away = p => p.evaluate(() => document.documentElement.classList.contains("
     let w = await windowOk(p); check(`${size}: Import window buttons are on screen`, w.ok, w.why); await p.click("#impCharCancel").catch(() => { }); await p.waitForTimeout(200);
     await p.click("[data-lvup]").catch(() => { }); await p.waitForTimeout(500);
     w = await windowOk(p); check(`${size}: Level up window buttons are on screen`, w.ok, w.why); await p.evaluate(() => { try { lvClose(); } catch { } }); await p.waitForTimeout(200);
+    // a long level-up: choosing a subclass at Wizard 2
+    await p.evaluate(() => { const c = generateCharacter({ seed: "lay2", name: "Long Pick", cls: "Wizard", level: 1, ed: "2014" }); pcEnsure(c); PCS.roster.push(c); RC.id = c.id; renderRosterTab(); }); await p.waitForTimeout(300);
+    await p.click("[data-lvup]").catch(() => { }); await p.waitForTimeout(500);
+    w = await p.evaluate(() => { const y = document.querySelector("#lvModal [data-lvyes]"); if (!y) return { ok: false, why: "no Level up button" }; const r = y.getBoundingClientRect(); return { ok: r.top >= 0 && r.bottom <= innerHeight, why: `Level up button at ${Math.round(r.top)}-${Math.round(r.bottom)} of ${innerHeight}` }; });
+    check(`${size}: a long Level up window keeps its button on screen`, w.ok, w.why); await p.evaluate(() => { try { lvClose(); } catch { } PCS.roster = PCS.roster.filter(c => c.name !== "Long Pick"); RC.id = PCS.roster[0].id; renderRosterTab(); }); await p.waitForTimeout(200);
     await p.evaluate(() => backupOpen()); await p.waitForTimeout(200);
     w = await windowOk(p); check(`${size}: Backup window buttons are on screen`, w.ok, w.why); await p.evaluate(() => backupClose());
     await p.evaluate(() => { window.__cb = confirmBox("Delete entry?", "Remove “a very long name” from your campaign? This can't be undone.".repeat(6)); }); await p.waitForTimeout(200);

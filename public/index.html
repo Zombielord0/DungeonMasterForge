@@ -922,7 +922,8 @@ nav a[data-view=whispers]{--ic:url("data:image/svg+xml,%3Csvg xmlns='http://www.
 #modal,#backupModal,#impCharModal,#lvModal,#featModal,#choiceModal,#actModal{padding:max(12px,env(safe-area-inset-top)) max(12px,env(safe-area-inset-right)) max(12px,env(safe-area-inset-bottom)) max(12px,env(safe-area-inset-left))}
 #modal .box,#backupModal .box,#impCharModal .box,#lvModal .box,#choiceModal .box,#actModal .box{max-height:calc(100vh - 24px);max-height:calc(100dvh - 24px - env(safe-area-inset-top) - env(safe-area-inset-bottom));overflow:auto;overscroll-behavior:contain}
 #featModal .box{max-height:calc(100vh - 24px);max-height:calc(100dvh - 24px - env(safe-area-inset-top) - env(safe-area-inset-bottom))}
-:is(#modal,#backupModal,#impCharModal,#lvModal,#choiceModal,#actModal) .box>:last-child:has(button){position:sticky;bottom:-20px;z-index:2;margin:12px -20px -20px;padding:10px 20px calc(14px + env(safe-area-inset-bottom) * 0);background:linear-gradient(rgba(23,25,40,.92),#15172a 10px);border-top:1px solid rgba(255,170,80,.18)}
+:is(#modal,#backupModal,#impCharModal,#lvModal,#choiceModal,#actModal) .box>:last-child:has(button),#lvModal .box>.row:has([data-lvyes]){position:sticky;bottom:-20px;z-index:2;margin:12px -20px -20px;padding:10px 20px calc(14px + env(safe-area-inset-bottom) * 0);background:linear-gradient(rgba(23,25,40,.92),#15172a 10px);border-top:1px solid rgba(255,170,80,.18)}
+#lvModal .box>.row:has([data-lvyes]):not(:last-child){margin-bottom:0;padding-bottom:12px} /* the hint below it stays readable */
 .news-panel{max-height:min(75vh,640px);max-height:min(calc(100dvh - 76px - env(safe-area-inset-bottom)),640px)}
 /* the sheet's jump bar and the Spells filter button are phone-only */
 .sheet-jump,#spFiltersBtn{display:none}
@@ -9811,7 +9812,7 @@ function rosterHTML(c) {
 }
 /* Phones: a bar of shortcuts to the parts of the sheet you need mid-fight. It stays under the header (or at the very top
    while the header is away); the sections' scroll-margin keeps them clear of both. */
-const sheetJumpHTML = c => `<nav id="sheetJump" class="sheet-jump" aria-label="Jump to part of the sheet">${[["hp", "❤ HP"], ["attacks", "⚔ Attacks"], ...(c.spell ? [["spells", "✦ Spells"]] : []), ["gear", "🎒 Gear"], ["notes", "📝 Notes"]].map(([k, l]) => `<a role="button" tabindex="0" data-jump="${k}">${l}</a>`).join("")}</nav>`;
+const sheetJumpHTML = c => `<div id="sheetJump" class="sheet-jump" role="navigation" aria-label="Jump to part of the sheet">${[["hp", "❤ HP"], ["attacks", "⚔ Attacks"], ...(c.spell ? [["spells", "✦ Spells"]] : []), ["gear", "🎒 Gear"], ["notes", "📝 Notes"]].map(([k, l]) => `<a role="button" tabindex="0" data-jump="${k}">${l}</a>`).join("")}</div>`;
 function sheetJump(k) {
   const t = document.getElementById("sec-" + k); if (!t) return;
   t.scrollIntoView({ behavior: matchMedia("(prefers-reduced-motion:reduce)").matches ? "auto" : "smooth", block: "start" });
@@ -10892,6 +10893,12 @@ document.getElementById("impCharGo").addEventListener("click", async () => {
 });
 
 const NEWS = [
+  { id: "2026-11-17-layout", date: "2026-11-17", title: "Easier on phones", go: "roster", items: [
+    "Pop-up windows always fit your screen, with their buttons (Import, Level up, Cancel and so on) pinned at the bottom where you can see them.",
+    "On phones the header shrinks to one slim line and gets out of the way while you scroll or type, then comes back when you scroll up.",
+    "My Characters has a jump bar on phones: tap HP, Attacks, Spells, Gear or Notes to go straight there mid-fight.",
+    "Bigger buttons on touch screens, and nothing sits on top of the last thing on a page any more.",
+    "Spells shows the list first on phones, with the filters behind a Filters button."] },
   { id: "2026-11-16-charimport", date: "2026-11-16", title: "Import characters from the 5e Companion App or a PDF", go: "roster", items: [
     "My Characters has a new ⬆ Import character button. Choose a character file exported from the 5e Companion App, or a fillable PDF character sheet, and the Forge rebuilds it as a Forge character, with the same ability scores, skills, gear, coins, spells and story.",
     "PDF sheets need to be ones you can still type into (the official fillable 5e sheet). Hand-typed spell names are matched even with small spelling mistakes, and spells the Forge doesn't know are added as homebrew at the right level.",

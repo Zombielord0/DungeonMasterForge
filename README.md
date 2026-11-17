@@ -63,6 +63,10 @@ In **Campaign Tracker → Encounters**, pick where the party is and how hard the
 
 Each campaign in the **Campaign Tracker** has a **Calendar** tab. It shows the day, season, time and weather. Use the buttons for rests, the next morning or travelling several days, and new weather is rolled for each day. Pick the climate and starting season to suit your world. Rests, travel and your own notes are logged.
 
+## On phones
+
+The Forge works on phones as well as computers. On a phone the header is one slim line with a tab menu; it slides out of the way while you scroll or type and comes back when you scroll up (tap **▾ Show tabs** for the full header). On **My Characters** a jump bar takes you straight to HP, Attacks, Spells, Gear or Notes. On **Spells**, tap **Filters** to narrow the list. Buttons are bigger on touch screens, and pop-up windows always keep their buttons in view.
+
 ## Importing characters
 
 On **My Characters**, press **⬆ Import character** and choose a character file from the **5e Companion App** (in the app, open the character and use Export or Share) or a **fillable PDF character sheet** (one you can still type into, like the official 5e sheet). Pick the 2014 or 2024 rules. You'll see what matched, what becomes homebrew and anything that couldn't come across, then press **Import**. The Forge keeps the character's ability scores, skills, gear, coins, spells and story, and works out the rest itself, so levelling up, rests and dice all work.
