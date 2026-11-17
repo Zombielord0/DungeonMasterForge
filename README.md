@@ -17,6 +17,7 @@ Live at https://dungeonmasterforge.netlify.app
 - The DM sees every tool plus **Party**: every player's sheet (click to view or edit), an activity feed of changes, and whispers to one player.
 - The DM's **Homebrew** tab adds custom subclasses, backgrounds, feats and species. Everyone in the campaign sees them in the character creator, Level up window and feat list; only the DM can change them.
 - If the DM and a player save the same sheet at once, whoever saves second is asked which version to keep.
+- Signed in, the DM's Campaign Tracker, World, NPCs, custom items and homebrew monsters are saved privately to their account, so they're on every device they sign in on. Changes made without a connection upload when it comes back.
 - "Use without an account" keeps the old behaviour: DM tools, saved in this browser only.
 
 ## Dungeon maps

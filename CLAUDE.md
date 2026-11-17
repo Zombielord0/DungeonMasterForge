@@ -34,7 +34,7 @@ Live site: https://dungeonmasterforge.netlify.app (Netlify; production branch `m
 | `src/portal.js` | Sign-in, campaigns, shared characters, the Party tab, whispers, homebrew sync. esbuild bundles it into `public/portal.js`. |
 | `src/sw.js` | The offline helper (service worker); built into `public/sw.js` with the list of files to keep. |
 | `netlify/functions/api.mjs` → `netlify/lib/api.mjs` | Campaign API at `/api/*`. `handle(req, user, db)` holds all the routes. `netlify/lib/diff.mjs` writes the activity feed text. |
-| `netlify/database/migrations/` | Postgres tables, applied automatically on deploy: `campaigns`, `members`, `characters` (versioned jsonb), `activity`, `whispers`, `homebrew`. |
+| `netlify/database/migrations/` | Postgres tables, applied automatically on deploy: `campaigns`, `members`, `characters` (versioned jsonb), `activity`, `whispers`, `homebrew`, and `user_docs` (each account's own Tracker, World, NPCs, custom items and monsters). |
 | `public/player.html` | The TV player screen. It shows only the pictures the DM's window sends. |
 | `public/manifest.webmanifest`, `public/icons/` | Install as an app (PWA). |
 | `public/vendor/pdfjs/` | pdf.js (`pdfjs-dist` 6.5.438 legacy build, Apache-2.0, unchanged), loaded only when someone imports a PDF. |
@@ -44,6 +44,7 @@ Live site: https://dungeonmasterforge.netlify.app (Netlify; production branch `m
 | `tools/convert-srd-monsters.py` | Writes `data/monsters.json` from the Open5e SRD files. Its `FIXES` list corrects mistakes in the SRD source. |
 | `tools/make-test-sheet.py` | Writes `test/e2e/fixtures/sheet-wizard.pdf` (needs pypdf). |
 | `tools/test-all.mjs` | `npm run test:all`. |
+| `tools/netlify-skip.mjs` | Netlify's `ignore` step: skips a build when a push only changes notes, tests or tools (exit 0 = skip). |
 | `docs/features/` | Notes on each feature: how it works and its function names (table below). |
 | `docs/superpowers/` | One design (`specs/`) and one plan (`plans/`) per piece of work, dated. Read the matching pair before changing a feature. |
 | `.superpowers/` | Scratch space for build sessions (gitignored). Nothing there is needed. |
@@ -55,7 +56,7 @@ Live site: https://dungeonmasterforge.netlify.app (Netlify; production branch `m
 | `01-core.js` | `dmData` (the rules data loader), utilities (`$`, `esc`, `toast`), seeded random numbers (`makeRng`), encounter maths, content tables |
 | `02-adventure.js` | The Generate tab: adventures and chapter briefs |
 | `03-dungeon-map.js` | Dungeon generator, fog, drawing, map UI, imported maps and VTT files, the TV (`HOST`) and tokens |
-| `04-storage.js` | `saveFile`, Backup and restore, `Store` |
+| `04-storage.js` | `saveFile`, Backup and restore, `Store`, and `Cloud` (the DM's data saved to their account) |
 | `05-tracker.js` | Campaign Tracker: campaigns, NPC pictures, Lore, recaps, calendar, encounters, random encounters, campaign files |
 | `06-npcs-world.js` | NPC generator, Your NPCs, the World tab and World builder |
 | `07-character-generator.js` | `generateCharacter` and the class, species, background, feat and homebrew tables |
@@ -99,7 +100,7 @@ npm run build     # build the page and bundle the portal (what Netlify runs)
 npm run build:app # build the page only
 ```
 
-One check per feature (Playwright, any OS): `test:assets` (fingerprinted files, repeat visits, offline), `test:map`, `test:backup`, `test:tv`, `test:mapvis`, `test:mapio`, `test:shop`, `test:random`, `test:cards`, `test:mapenc`, `test:calendar`, `test:recap`, `test:sheet` (432 sheets vs the rules), `test:tokens`, `test:npcpic`, `test:hbspell`, `test:hbpend`, `test:import`, `test:layout`, `test:lore`, `test:mythweaver`, `test:campextras`, `test:npclib`, `test:world`, `test:setup` (builds the portal, port 8897).
+One check per feature (Playwright, any OS): `test:assets` (fingerprinted files, repeat visits, offline), `test:map`, `test:backup`, `test:tv`, `test:mapvis`, `test:mapio`, `test:shop`, `test:random`, `test:cards`, `test:mapenc`, `test:calendar`, `test:recap`, `test:sheet` (432 sheets vs the rules), `test:tokens`, `test:npcpic`, `test:hbspell`, `test:hbpend`, `test:import`, `test:layout`, `test:lore`, `test:mythweaver`, `test:campextras`, `test:npclib`, `test:world`, `test:setup` (builds the portal, port 8897), `test:sync` (the DM's data in their account, two devices, port 8896).
 
 Playwright and Chromium are pre-installed in cloud sessions. To test offline mode (no sign-in screen), run `localStorage.setItem('dmforge.offline','1')` in an init script.
 
@@ -114,7 +115,7 @@ Playwright and Chromium are pre-installed in cloud sessions. To test offline mod
 | `docs/features/import.md` | Character import (Companion App, PDF), pending homebrew, Lore and MythWeaver, campaign files with custom content. |
 | `docs/features/npcs-world.md` | NPC pictures, Your NPCs and imported monsters, the World tab. |
 | `docs/features/layout.md` | Phone and laptop layout. |
-| `docs/features/accounts.md` | The DM setup screen and renaming a campaign. |
+| `docs/features/accounts.md` | The DM setup screen, renaming a campaign, and **the DM's data saved to their account** (`Cloud`, `/api/me/docs`). |
 
 **Most important rules from those notes:**
 - Level changes go through `pcLevelTo(c, lv)`, which regenerates the character. It passes `pcKeep(c)` so a rebuild never re-rolls scores or skills; don't remove it. **A new derived character field must go in the `pcLevelTo` copy list.**
@@ -142,7 +143,8 @@ Playwright and Chromium are pre-installed in cloud sessions. To test offline mod
   - Tracker NPCs: `img` (key `npc-<npc id>` in the `dmforge-maps` IndexedDB) or `imgUrl` (an https link), `lib`, `placeId` and `place`.
   - Characters: `hbPending` (homebrew waiting for the DM), `importedFrom: {app, at}` and `mwId`.
   - Homebrew can be `kind: "spell"`.
-- **Signed in:** characters and homebrew live in Postgres, per campaign. Homebrew is polled every 30 seconds. Every character save bumps `version`, so if two people save the same sheet at once, the second one is asked which version to keep. Tracker campaigns stay in the browser even when signed in.
+- **Signed in:** characters and homebrew live in Postgres, per campaign. Homebrew is polled every 30 seconds. Every character save bumps `version`, so if two people save the same sheet at once, the second one is asked which version to keep.
+- **Signed in as a DM:** the Tracker campaigns, World, Your NPCs, custom items and My monsters are also saved privately to the account (`user_docs`, `Cloud`). The usual localStorage keys then hold that account's copy; the browser's own data waits in `dmforge.stash.v1` and comes back on signing out. `dmforge.sync.v1` tracks versions and unsent changes. See `docs/features/accounts.md`.
 - **Campaign saves are written 600 ms after a change** (`Store.save`). Tests that reload must wait for that first.
 
 ## Where things stand (2026-11-17)
@@ -154,6 +156,8 @@ Playwright and Chromium are pre-installed in cloud sessions. To test offline mod
   - One shared monster list.
   - `public/index.html` split into `src/index.html`, `src/app.css` and `src/app/*.js`, joined by `tools/build.mjs`.
   - These notes split into `docs/features/`.
+  - Netlify skips builds for notes-only pushes (`tools/netlify-skip.mjs`).
+  - **The DM's Tracker, World, NPCs, custom items and monsters saved to their account** (`Cloud`, `/api/me/docs`, `npm run test:sync`).
   - The page went from 829 KB to about 14 KB compressed on repeat visits when nothing changed. The code (about 360 KB compressed) and the data (about 440 KB) are downloaded again only when they change.
 - **The owner's order of import work:**
   1. Companion App import: done.
@@ -166,7 +170,7 @@ Playwright and Chromium are pre-installed in cloud sessions. To test offline mod
   - A PDF's portrait isn't imported.
   - Deleting a whole campaign leaves its NPCs' uploaded pictures in IndexedDB.
   - The tag-based sorting of MythWeaver "generic" lore is a best guess.
-- **Ideas not yet done:** the header torch animation draws every frame while the page is visible (it stops when hidden); slowing it or stopping it when the header is scrolled away could save phone battery, but measure first. The 512 px icons could be about a third of their size.
+- **Ideas not yet done:** a Campaign journal tab for players (quests, recaps, shared Lore); turn order on players' phones; sharing dice rolls with the DM; one shared sheet layout instead of two (`sheetHTML` and `renderRosterMain`); pictures in backups and account saves. Also: the header torch animation draws every frame while the page is visible (it stops when hidden); slowing it or stopping it when the header is scrolled away could save phone battery, but measure first. The 512 px icons could be about a third of their size.
 
 ## Gotchas found along the way
 

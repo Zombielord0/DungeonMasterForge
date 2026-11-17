@@ -7,6 +7,8 @@ const MAX_SHEET_BYTES = 300_000;
 const MAX_WHISPER = 2000;
 const MAX_HOMEBREW_BYTES = 50_000;
 const HOMEBREW_KINDS = ["subclass", "background", "feat", "species", "spell"];
+const MAX_DOC_BYTES = 4_000_000;     // one saved Tracker campaign or list (a big MythWeaver campaign is about 1.4 MB)
+const MAX_USER_BYTES = 40_000_000;   // everything one account keeps
 const MERGE_WINDOW = "60 seconds";
 const CODE_CHARS = "ABCDEFGHJKMNPQRSTUVWXYZ23456789"; // no 0/O, 1/I/L
 
@@ -95,7 +97,7 @@ export async function handle(req, user, db) {
     const [a, cid, b, id, c] = path;
 
     // ---- who am I, which campaigns ----
-    if (a === "me" && m === "GET") {
+    if (a === "me" && !cid && m === "GET") {
       const { rows } = await db.query(
         `SELECT k.id, k.name, k.code, m.role, m.display_name
            FROM members m JOIN campaigns k ON k.id = m.campaign_id
@@ -104,6 +106,55 @@ export async function handle(req, user, db) {
         user: { id: user.id, email: user.email, name: user.name },
         campaigns: rows.map(r => ({ id: r.id, name: r.name, role: r.role, displayName: r.display_name, code: r.role === "dm" ? r.code : undefined })),
       });
+    }
+
+    // ---- this account's own saved data (private: the Tracker, World, NPCs, custom items, My monsters) ----
+    if (a === "me" && cid === "docs") {
+      const docId = b;
+      if (!docId && m === "GET") {
+        const { rows } = await db.query(
+          "SELECT id, data, version, updated_at, deleted_at FROM user_docs WHERE user_id = $1 ORDER BY id", [user.id]);
+        return json({
+          docs: rows.filter(r => !r.deleted_at).map(r => ({ id: r.id, data: r.data, version: r.version, updatedAt: r.updated_at })),
+          deleted: rows.filter(r => r.deleted_at).map(r => r.id),
+        });
+      }
+      if (!docId || id) throw new HttpError(404, "Not found");
+      if (!/^[\w.-]{1,80}$/.test(docId)) throw new HttpError(400, "Bad id");
+      const { rows: [cur] } = await db.query(
+        "SELECT data, version, updated_at, deleted_at FROM user_docs WHERE user_id = $1 AND id = $2", [user.id, docId]);
+      const live = cur && !cur.deleted_at;
+      if (m === "DELETE") {
+        if (live) await db.query(
+          "UPDATE user_docs SET data = NULL, deleted_at = now(), updated_at = now(), version = version + 1 WHERE user_id = $1 AND id = $2",
+          [user.id, docId]);
+        return json({ ok: true });
+      }
+      if (m !== "PUT") throw new HttpError(404, "Not found");
+      const p = await body(req);
+      if (!p.data || typeof p.data !== "object") throw new HttpError(400, "Nothing to save");
+      const size = JSON.stringify(p.data).length;
+      if (size > MAX_DOC_BYTES) throw new HttpError(413, "This is too large to save to your account (over 4 MB). Trim long notes or split the campaign.");
+      const { rows: [{ total }] } = await db.query(
+        "SELECT COALESCE(SUM(octet_length(data::text)), 0)::bigint AS total FROM user_docs WHERE user_id = $1 AND id <> $2 AND deleted_at IS NULL",
+        [user.id, docId]);
+      if (Number(total) + size > MAX_USER_BYTES) throw new HttpError(413, "Your account's storage is full (40 MB). Delete an old campaign to make room.");
+      // Save only if nobody saved since this copy was loaded (or the caller chose to overwrite). The check is part of the
+      // same statement, so two devices saving at the same moment can't both pass it.
+      const text = JSON.stringify(p.data); // as text: pg would send a JS array as a Postgres array
+      const { rows } = cur
+        ? await db.query(
+          `UPDATE user_docs SET data = $3::jsonb, version = version + 1, updated_at = now(), deleted_at = NULL
+            WHERE user_id = $1 AND id = $2 AND ($4 OR deleted_at IS NOT NULL OR version = $5) RETURNING version`,
+          [user.id, docId, text, !!p.force, Number(p.baseVersion || 0)])
+        : await db.query(
+          `INSERT INTO user_docs (user_id, id, data) VALUES ($1, $2, $3::jsonb) ON CONFLICT (user_id, id) DO NOTHING RETURNING version`,
+          [user.id, docId, text]);
+      if (!rows.length) { // another device got there first: hand back its version
+        const { rows: [now] } = await db.query("SELECT data, version, updated_at FROM user_docs WHERE user_id = $1 AND id = $2", [user.id, docId]);
+        throw new HttpError(409, "Changed on another device", { current: { data: now.data, version: now.version, updatedAt: now.updated_at } });
+      }
+      return json({ version: rows[0].version });
     }
 
     if (a === "campaigns" && !cid && m === "POST") {

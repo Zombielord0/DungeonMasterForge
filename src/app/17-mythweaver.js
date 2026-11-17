@@ -255,6 +255,7 @@ async function mwCommit(R, ch) {
       Store.lsWrite();
       return { ok: false, error: "There isn't room in this browser for that. Delete an old campaign, or untick a campaign, and try again. Nothing was imported." };
     }
+    if (Store.mode === "cloud") plans.forEach(P => Cloud.touch(P.camp.id));
     setBadge();
   }
   const notes = [];

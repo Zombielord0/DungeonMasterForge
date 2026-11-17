@@ -2,6 +2,12 @@
    When a change ships, add an entry to the top of NEWS with a new id, in plain words for players and DMs. */
 
 const NEWS = [
+  { id: "2026-11-17-account-saves", date: "2026-11-17", title: "Your Campaign Tracker on every device", go: "tracker", items: [
+    "DMs: when you're signed in, your Campaign Tracker, World places, NPCs, custom items and homebrew monsters are now saved to your account, not just this browser. Sign in on your laptop, tablet or phone and they're all there.",
+    "It's private to you. Players never see it.",
+    "Lost signal at the table? Keep going. Changes are kept on your device and upload as soon as you're back online. The badge at the top says “✓ Saved to your account” when everything is up.",
+    "The first time you sign in on a browser that already has work in it, the Forge asks whether to add it to your account. Whatever you choose, it stays in that browser for when you're signed out.",
+    "Changed the same campaign on two devices? Nothing is lost: you're asked which version to keep, or both are kept."] },
   { id: "2026-11-17-faster", date: "2026-11-17", title: "Opens faster", items: [
     "The Forge now keeps its spells, monsters, items and its own code on your device after the first visit, so it opens much faster, especially on phones at the table. Each visit after that only fetches the small part that might have changed.",
     "When the Forge is updated, your device still picks up the new version straight away.",

@@ -175,3 +175,74 @@ test("a DM can create a campaign without naming it", async () => {
   assert.equal(r.body.name, "New Campaign");
   assert.equal(r.body.displayName, "DM");
 });
+
+test("each account keeps its own private saved data (Tracker, World, NPCs)", async t => {
+  const camp = { id: "c-velmor", name: "Ashes of Velmor", npcs: [{ id: "n1", name: "Sera" }] };
+  await t.test("starts empty", async () => {
+    const r = await call(DM, "GET", "me/docs");
+    assert.equal(r.status, 200);
+    assert.deepEqual(r.body, { docs: [], deleted: [] });
+  });
+  await t.test("saving a new doc gives version 1", async () => {
+    const r = await call(DM, "PUT", "me/docs/c-velmor", { data: camp, baseVersion: 0 });
+    assert.equal(r.status, 200);
+    assert.equal(r.body.version, 1);
+  });
+  await t.test("saving from an older copy is refused with the current one", async () => {
+    const ok = await call(DM, "PUT", "me/docs/c-velmor", { data: { ...camp, name: "Velmor" }, baseVersion: 1 });
+    assert.equal(ok.body.version, 2);
+    const clash = await call(DM, "PUT", "me/docs/c-velmor", { data: { ...camp, name: "Old copy" }, baseVersion: 1 });
+    assert.equal(clash.status, 409);
+    assert.equal(clash.body.current.version, 2);
+    assert.equal(clash.body.current.data.name, "Velmor");
+    const forced = await call(DM, "PUT", "me/docs/c-velmor", { data: { ...camp, name: "Old copy" }, baseVersion: 1, force: true });
+    assert.equal(forced.body.version, 3);
+  });
+  await t.test("a new doc with an id that's already saved is a clash", async () => {
+    const r = await call(DM, "PUT", "me/docs/c-velmor", { data: camp, baseVersion: 0 });
+    assert.equal(r.status, 409);
+  });
+  await t.test("nobody else can see it", async () => {
+    const r = await call(AVA, "GET", "me/docs");
+    assert.deepEqual(r.body.docs, []);
+    const w = await call(AVA, "PUT", "me/docs/c-velmor", { data: { name: "Ava's own" }, baseVersion: 0 });
+    assert.equal(w.status, 200, "the same id in another account is a separate doc");
+    const mine = await call(DM, "GET", "me/docs");
+    assert.equal(mine.body.docs.find(d => d.id === "c-velmor").data.name, "Old copy");
+  });
+  await t.test("deleting leaves a marker so other devices drop their copy", async () => {
+    await call(DM, "PUT", "me/docs/world", { data: { places: [{ id: "p1", name: "Velmor" }] }, baseVersion: 0 });
+    const d = await call(DM, "DELETE", "me/docs/c-velmor");
+    assert.equal(d.status, 200);
+    const r = await call(DM, "GET", "me/docs");
+    assert.deepEqual(r.body.docs.map(x => x.id), ["world"]);
+    assert.deepEqual(r.body.deleted, ["c-velmor"]);
+    const again = await call(DM, "PUT", "me/docs/c-velmor", { data: camp, baseVersion: 0 });
+    assert.equal(again.status, 200, "a deleted id can be saved again");
+    assert.deepEqual((await call(DM, "GET", "me/docs")).body.deleted, []);
+  });
+  await t.test("two devices saving from the same copy at once: one is told to merge", async () => {
+    const base = (await call(DM, "PUT", "me/docs/mymonsters", { data: [{ id: "m1" }], baseVersion: 0 })).body.version;
+    const [x, y] = await Promise.all([
+      call(DM, "PUT", "me/docs/mymonsters", { data: [{ id: "m1" }, { id: "m2" }], baseVersion: base }),
+      call(DM, "PUT", "me/docs/mymonsters", { data: [{ id: "m1" }, { id: "m3" }], baseVersion: base }),
+    ]);
+    assert.deepEqual([x.status, y.status].sort(), [200, 409]);
+  });
+  await t.test("a list (Your NPCs, My monsters) saves and comes back as a list", async () => {
+    const npcs = [{ id: "nl-1", name: "Old Tom" }, { id: "nl-2", name: "Sera" }];
+    const r = await call(DM, "PUT", "me/docs/npclib", { data: npcs, baseVersion: 0 });
+    assert.equal(r.status, 200);
+    assert.deepEqual((await call(DM, "GET", "me/docs")).body.docs.find(d => d.id === "npclib").data, npcs);
+  });
+  await t.test("bad ids, missing data and oversized docs are refused", async () => {
+    assert.equal((await call(DM, "PUT", "me/docs/../x", { data: {} })).status, 404);
+    assert.equal((await call(DM, "PUT", "me/docs/has%20space", { data: {} })).status, 400);
+    assert.equal((await call(DM, "PUT", "me/docs/c-x", {})).status, 400);
+    const big = { notes: "x".repeat(4_100_000) };
+    assert.equal((await call(DM, "PUT", "me/docs/c-big", { data: big, baseVersion: 0 })).status, 413);
+  });
+  await t.test("signed out: refused", async () => {
+    assert.equal((await call(null, "GET", "me/docs")).status, 401);
+  });
+});

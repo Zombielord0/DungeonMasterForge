@@ -186,9 +186,9 @@ function showSetup(note = "") {
     <p class="gate-err" role="alert" hidden></p>
     <div class="gate-links">${S.campaigns.length ? `<button class="linkish" type="button" data-g="back">Back to ${esc(S.camp ? S.camp.name : S.campaigns[0].name)}</button>` : ""}
       <button class="linkish" type="button" data-g="out">Sign out</button></div>
-    ${S.campaigns.length ? "" : `<div class="gate-foot"><button class="linkish" type="button" id="gLater">Not now: use the DM tools in this browser</button>
+    ${S.campaigns.length ? "" : `<div class="gate-foot"><button class="linkish" type="button" id="gLater">Not now: look around the DM tools first</button>
       <small class="muted">You can start or join a campaign later from the account button.</small></div>`}`);
-  const later = g.querySelector("#gLater"); if (later) later.onclick = setupLater;
+  const later = g.querySelector("#gLater"); if (later) later.onclick = async () => { setupLater(); await startDocs(); };
   g.querySelector("#joinForm").onsubmit = async e => {
     e.preventDefault(); gateError(g, ""); busy(e.target, true);
     const r = await api("join", { method: "POST", body: { code: $("#jCode").value, displayName: $("#jName").value } });
@@ -216,6 +216,7 @@ async function dropSession() {
   try { localStorage.removeItem("gotrue.user"); } catch { }
   S.user = null; S.camp = null; S.campaigns = [];
   Portal.cloud = false;
+  if (typeof Cloud !== "undefined") Cloud.release(false); // the browser's own Tracker comes back (unless changes are still waiting to upload)
   if (S.localRoster) { PCS.roster = S.localRoster; S.localRoster = null; RC.id = null; }
   applyMode(null); rerender(true); acctButton();
   if (typeof setBadge === "function") setBadge();
@@ -235,6 +236,7 @@ function goOffline() {
 
 async function signOut() {
   stopLoops();
+  if (typeof Cloud !== "undefined") await Cloud.stop(); // send the last Tracker changes, then put the browser's own data back
   try { await logout(); } catch { }
   localStorage.removeItem(CAMP_KEY);
   location.hash = ""; location.reload();
@@ -340,11 +342,22 @@ async function enter() {
   const want = localStorage.getItem(CAMP_KEY);
   S.camp = S.campaigns.find(c => c.id === want) || S.campaigns[0] || null;
   acctButton();
-  if (!S.camp) { if (localStorage.getItem(LATER_KEY + S.user.id)) setupLater(); else showSetup(); return; }
+  if (!S.camp) { if (localStorage.getItem(LATER_KEY + S.user.id)) { setupLater(); await startDocs(); } else showSetup(); return; }
   localStorage.setItem(CAMP_KEY, S.camp.id);
   try { localStorage.setItem(LAST_KEY + S.user.id, JSON.stringify(S.camp)); } catch { }
   closeGate(); unhide();
+  await startDocs();
   await startCloud();
+}
+
+/* ------------------------------------------------------------ the DM's own saved data
+   DMs (and anyone using the DM tools before starting a campaign) keep their Campaign Tracker, World, NPCs, custom items and
+   My monsters in their account, privately (Cloud in src/app/04-storage.js). Players only use their characters. */
+async function startDocs() {
+  if (typeof Cloud === "undefined" || !S.user) return;
+  const dmish = !S.campaigns.length || S.campaigns.some(c => c.role === "dm");
+  if (dmish) await Cloud.start(S.user.id, api);
+  else Cloud.release(false);
 }
 
 /* ------------------------------------------------------------ character sync */
@@ -746,6 +759,7 @@ async function renderWhispers() {
     await enter();
     return;
   }
+  if (typeof Cloud !== "undefined") Cloud.release(false); // not signed in: this browser's own Tracker, not an account's copy
   if (localStorage.getItem(OFFLINE_KEY) === "1") { unhide(); acctButton(); return; }
   showSignIn();
 })().catch(err => { console.error(err); unhide(); toast("Couldn't start sign-in. Using this browser only."); acctButton(); });

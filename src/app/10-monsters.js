@@ -699,7 +699,7 @@ function mbBlank() {
     traits: [], actions: [], bonus: [], reacts: [], legend: [], legN: 3 };
 }
 function mbLoadLib() { try { MB.lib = JSON.parse(localStorage.getItem(MB_KEY) || "[]"); } catch { MB.lib = []; } }
-function mbSaveLib() { try { localStorage.setItem(MB_KEY, JSON.stringify(MB.lib)); return true; } catch { toast("Couldn't save: this browser's storage is full"); return false; } }
+function mbSaveLib() { try { localStorage.setItem(MB_KEY, JSON.stringify(MB.lib)); Cloud.touch("mymonsters"); return true; } catch { toast("Couldn't save: this browser's storage is full"); return false; } }
 const mbNum = v => v === "" || v === null || v === undefined || isNaN(+v) ? null : +v;
 function mbCompile(f, id) {
   const cr = +f.cr || 0, pb = bsPB(cr), mods = f.scores.map(x => mod(+x || 10));

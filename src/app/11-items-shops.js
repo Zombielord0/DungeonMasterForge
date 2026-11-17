@@ -44,6 +44,7 @@ function itPersist() {
   IT.updated = Date.now();
   const blob = { list: IT.custom.map(({ hay, hayD, ...x }) => x), updated: IT.updated };
   try { localStorage.setItem(IT_KEY, JSON.stringify(blob)); } catch { }
+  Cloud.touch("items");
   clearTimeout(itTimer);
   itTimer = setTimeout(async () => { if (Store.mode === "db" && Store.col && !Store.readOnly) { try { await Store.col.doc("items").set(JSON.parse(JSON.stringify(blob))); } catch { } } }, 700);
 }

@@ -1,4 +1,5 @@
-/* 04-storage.js: Downloads (saveFile), Backup and restore, and Store (where campaigns are saved). */
+/* 04-storage.js: Downloads (saveFile), Backup and restore, Store (where Tracker campaigns are saved), and Cloud
+   (signed-in DMs: the Tracker, World, NPCs, custom items and My monsters saved to their account). */
 
 /* ======================= Downloads ======================= */
 let downloads = null;
@@ -111,17 +112,229 @@ const Store = {
   },
   async write(c) {
     if (this.mode === "db") await this.col.doc(c.id).set(JSON.parse(JSON.stringify(c)));
+    else if (this.mode === "cloud") { this.lsWrite(); Cloud.touch(c.id); } // this browser's copy first, then the account (a few seconds later)
     else if (!this.lsWrite()) throw { code: "local" };
   },
   async remove(id) {
     clearTimeout(this.timers[id]); this.cache.delete(id);
-    try { if (this.mode === "db") await this.col.doc(id).delete(); else this.lsWrite(); } catch { toast("Couldn't delete just now"); }
-  }
+    try { if (this.mode === "db") await this.col.doc(id).delete(); else { this.lsWrite(); if (this.mode === "cloud") Cloud.remove(id); } } catch { toast("Couldn't delete just now"); }
+  },
+  reload() { this.cache.clear(); this.lsRead().forEach(c => c && c.id && this.cache.set(c.id, c)); }
 };
 function setBadge(state) {
   const b = $("#storeBadge");
   if (state) { b.textContent = state; return; }
-  $("#backupBtn").hidden = Store.mode === "db"; // signed in: it's all on the server already
+  $("#backupBtn").hidden = Store.mode !== "local"; // signed in: it's all on the server already
   if (Store.mode === "db") { b.textContent = "✓ Saved to your account"; b.className = "badge ok"; b.title = "Campaigns are stored privately with your Claude account"; }
+  else if (Store.mode === "cloud") {
+    const n = Object.keys(Cloud.meta.dirty).length;
+    b.textContent = n ? (Cloud.offline ? "Saved on this device · will upload" : "Saving to your account…") : "✓ Saved to your account";
+    b.className = n ? "badge" : "badge ok";
+    b.title = n ? "Saved in this browser; it goes to your account as soon as it can be reached" : "Your Campaign Tracker, World, NPCs, custom items and monsters are saved privately to your account";
+  }
   else { b.textContent = "Saved in this browser only"; b.className = "badge"; b.title = "Use 💾 Backup to keep a copy somewhere safe"; }
 }
+
+/* ======================= Saved to your account (signed-in DMs) =======================
+   Signed in as a DM (or with no campaign yet), the Campaign Tracker, World places, Your NPCs, custom items and My monsters
+   are saved privately to the account (API: /api/me/docs), so they're on every device the DM signs in on. Players never see them.
+   - This browser keeps a copy in the usual localStorage keys and saves there first; the account gets each change about
+     2.5 seconds later (Cloud.touch), or as soon as it can be reached. Unsent changes are listed in SYNC_KEY, so a closed tab
+     or a dropped connection catches up next time.
+   - Docs: one per Tracker campaign (its id, "c-…"), plus "world", "npclib", "items" and "mymonsters" (CLOUD_LISTS).
+   - The browser's own data (made without an account) is set aside in STASH_KEY while signed in, offered once to be added to
+     the account, and put back on signing out, so it's never lost or mixed into someone else's account.
+   - Two devices: a campaign changed on both asks which to keep; a list keeps the entries from both. */
+const SYNC_KEY = "dmforge.sync.v1", STASH_KEY = "dmforge.stash.v1", STASH_OFFERED = "dmforge.stashOffered.";
+const CLOUD_LISTS = {
+  world: { key: "dmforge.world.v1", items: v => (v && Array.isArray(v.places) ? v.places : []), make: l => ({ places: l }), reload: () => worldLoad() },
+  npclib: { key: "dmforge.npclib.v1", items: v => (Array.isArray(v) ? v : []), make: l => l, reload: () => { } },
+  items: { key: "dmforge.items.v1", items: v => (v && Array.isArray(v.list) ? v.list : []), make: l => ({ list: l, updated: Date.now() }), reload: () => { IT.custom = []; IT.updated = 0; itRestore(); } },
+  mymonsters: { key: "dmforge.mymonsters.v1", items: v => (Array.isArray(v) ? v : []), make: l => l, reload: () => { mbLoadLib(); bsCustomRefresh(); } },
+};
+const CLOUD_KEYS = [LS_KEY, ...Object.values(CLOUD_LISTS).map(d => d.key)];
+const lsJSON = k => { try { return JSON.parse(localStorage.getItem(k) || "null"); } catch { return null; } };
+/* both lists' entries; for the same id, `win`'s copy */
+const listUnion = (win, other) => { const ids = new Set(win.map(x => x && x.id)); return [...win, ...other.filter(x => x && !ids.has(x.id))]; };
+
+const Cloud = {
+  on: false, uid: null, api: null, offline: false, timers: {}, busy: {}, again: {}, retry: null,
+  meta: { owner: null, v: {}, dirty: {}, gone: {} },
+  readMeta() { const m = lsJSON(SYNC_KEY) || {}; return { owner: m.owner || null, v: m.v || {}, dirty: m.dirty || {}, gone: m.gone || {} }; },
+  saveMeta() { try { localStorage.setItem(SYNC_KEY, JSON.stringify(this.meta)); } catch { } },
+  local(id) { return id.startsWith("c-") ? Store.cache.get(id) : (lsJSON(CLOUD_LISTS[id].key) || CLOUD_LISTS[id].make([])); },
+  setLocal(id, data) {
+    if (id.startsWith("c-")) { if (data) Store.cache.set(id, data); else Store.cache.delete(id); return; }
+    try { localStorage.setItem(CLOUD_LISTS[id].key, JSON.stringify(data)); } catch { toast("This browser's storage is full; your account still has everything"); }
+  },
+  /* after this browser's copy changed: redraw what's on screen */
+  reloadAll() {
+    Store.reload(); Object.values(CLOUD_LISTS).forEach(d => { try { d.reload(); } catch (e) { console.warn(e); } });
+    if (activeId && !Store.get(activeId)) activeId = null;
+    try { renderCampList(); route(); } catch (e) { console.warn(e); }
+    setBadge();
+  },
+
+  /* Signed in (portal): load the account's data and switch this browser over to it. api(path, {method, body}) -> {ok, status, data} */
+  async start(userId, api) {
+    if (this.on && this.uid === userId && !this.offline) return;
+    this.api = api;
+    let r; try { r = await api("me/docs"); } catch { r = { ok: false, status: 0, data: {} }; }
+    let meta = this.readMeta();
+    if (!r.ok) {
+      if (meta.owner === userId) { // this browser has this account's copy: keep working from it and upload later
+        Object.assign(this, { on: true, uid: userId, offline: true, meta }); Store.mode = "cloud"; setBadge();
+        clearTimeout(this.retry); this.retry = setTimeout(() => this.start(userId, api), 30000);
+        return;
+      }
+      if (r.status !== 401) toast("Couldn't reach your account, so the Tracker is saving in this browser for now");
+      return;
+    }
+    clearTimeout(this.retry);
+    if (meta.owner !== userId) {
+      // the browser's own data is set aside (put back on signing out); another account's leftover copy is dropped
+      if (!meta.owner) this.stashAdd();
+      CLOUD_KEYS.forEach(k => localStorage.removeItem(k));
+      meta = { owner: userId, v: {}, dirty: {}, gone: {} };
+    }
+    this.meta = meta; Object.assign(this, { on: true, uid: userId, offline: false });
+    Store.mode = "cloud"; Store.reload();
+
+    // merge the account with this browser's copy
+    const server = new Map(r.data.docs.map(d => [d.id, d])), deleted = new Set(r.data.deleted);
+    for (const id of Object.keys(meta.gone)) { if (server.has(id)) this.remove(id); else delete meta.gone[id]; server.delete(id); }
+    const ids = new Set([...server.keys(), ...Store.cache.keys(), ...Object.keys(CLOUD_LISTS)]);
+    let copies = 0;
+    for (const id of ids) {
+      if (!id.startsWith("c-") && !CLOUD_LISTS[id]) continue;
+      const S = server.get(id), L = id.startsWith("c-") ? Store.cache.get(id) : lsJSON(CLOUD_LISTS[id].key), dirty = !!meta.dirty[id];
+      if (deleted.has(id) && !S) { if (L) this.setLocal(id, null); delete meta.v[id]; delete meta.dirty[id]; continue; }
+      if (!S) { if (L && (id.startsWith("c-") || CLOUD_LISTS[id].items(L).length)) { meta.dirty[id] = true; delete meta.v[id]; } continue; }
+      if (!L || !dirty || meta.v[id] === S.version) {
+        if (!L || !dirty) { this.setLocal(id, S.data); delete meta.dirty[id]; }
+        meta.v[id] = S.version; continue;
+      }
+      // changed here and on another device since this browser last saved
+      meta.v[id] = S.version;
+      if (id.startsWith("c-")) {
+        const copy = { ...L, id: uid("c"), name: `${L.name || "Campaign"} (copy from this device)` };
+        this.setLocal(id, S.data); this.setLocal(copy.id, copy); meta.dirty[copy.id] = true; delete meta.dirty[id]; copies++;
+      } else { const D = CLOUD_LISTS[id]; this.setLocal(id, D.make(listUnion(D.items(L), D.items(S.data)))); }
+    }
+    Store.lsWrite(); this.saveMeta(); this.reloadAll();
+    if (copies) toast(`${copies} campaign${copies > 1 ? "s were" : " was"} changed on another device too; this device's version was kept as a copy`);
+    Object.keys(meta.dirty).forEach(id => this.push(id));
+    await this.offerStash();
+  },
+
+  /* signing out: send what's left, then put the browser's own data back. Anything that couldn't be sent stays here
+     (still this account's copy) and goes up next time this account signs in. */
+  async stop() {
+    if (!this.on && !this.readMeta().owner) return;
+    if (this.on && !this.offline) await this.flushAll(5000);
+    this.saveMeta();
+    if (Object.keys(this.readMeta().dirty).length) toast("Some changes couldn't reach your account yet. They're kept here and upload when you next sign in.");
+    this.release(false);
+  },
+  /* back to browser-only data. Without `force`, unsent changes keep this account's copy here until it signs in again. */
+  release(force) {
+    const meta = this.readMeta();
+    if (!meta.owner) return;
+    if (!force && Object.keys(meta.dirty).length) return;
+    Object.values(this.timers).forEach(clearTimeout); clearTimeout(this.retry);
+    CLOUD_KEYS.forEach(k => localStorage.removeItem(k));
+    const stash = lsJSON(STASH_KEY) || {};
+    for (const [k, raw] of Object.entries(stash)) { try { localStorage.setItem(k, raw); } catch { } }
+    localStorage.removeItem(STASH_KEY); localStorage.removeItem(SYNC_KEY);
+    Object.assign(this, { on: false, uid: null, offline: false, meta: { owner: null, v: {}, dirty: {}, gone: {} } });
+    Store.mode = "local"; this.reloadAll();
+  },
+  /* set the browser's own data aside (added to anything already set aside) */
+  stashAdd() {
+    const stash = lsJSON(STASH_KEY) || {};
+    for (const k of CLOUD_KEYS) {
+      const raw = localStorage.getItem(k); if (raw == null) continue;
+      if (stash[k] == null) { stash[k] = raw; continue; }
+      try {
+        const now = JSON.parse(raw), old = JSON.parse(stash[k]);
+        const D = k === LS_KEY ? { items: v => v || [], make: l => l } : Object.values(CLOUD_LISTS).find(d => d.key === k);
+        stash[k] = JSON.stringify(D.make(listUnion(D.items(old), D.items(now))));
+      } catch { }
+    }
+    try { localStorage.setItem(STASH_KEY, JSON.stringify(stash)); } catch { toast("This browser is full, so its own campaigns couldn't be set aside"); }
+  },
+  /* once per account: add the browser's own data to the account (it also stays set aside for signing out) */
+  async offerStash() {
+    const stash = lsJSON(STASH_KEY); if (!stash || localStorage.getItem(STASH_OFFERED + this.uid)) return;
+    const get = k => { try { return JSON.parse(stash[k] || "null"); } catch { return null; } };
+    const camps = (get(LS_KEY) || []).filter(c => c && c.id), lists = Object.entries(CLOUD_LISTS).map(([id, D]) => [id, D.items(get(D.key))]);
+    const count = { camps: camps.length, places: lists[0][1].length, npcs: lists[1][1].length, other: lists[2][1].length + lists[3][1].length };
+    if (!count.camps && !count.places && !count.npcs && !count.other) return;
+    localStorage.setItem(STASH_OFFERED + this.uid, "1");
+    const what = [count.camps && `${count.camps} Tracker campaign${count.camps > 1 ? "s" : ""}`, count.places && `${count.places} World place${count.places > 1 ? "s" : ""}`,
+      count.npcs && `${count.npcs} NPC${count.npcs > 1 ? "s" : ""}`, count.other && `${count.other} custom item${count.other > 1 ? "s" : ""} and monster${count.other > 1 ? "s" : ""}`].filter(Boolean).join(", ");
+    const yes = await confirmBox("Add this browser's work to your account?",
+      `This browser has ${what} saved without an account. Add them to your account, so they're on every device you sign in on? They also stay in this browser for when you're signed out.`, "Add them");
+    if (!yes) return;
+    for (const c of camps) if (!Store.get(c.id)) { Store.cache.set(c.id, c); this.meta.dirty[c.id] = true; }
+    for (const [id, items] of lists) { if (!items.length) continue; const D = CLOUD_LISTS[id]; this.setLocal(id, D.make(listUnion(D.items(this.local(id)), items))); this.meta.dirty[id] = true; }
+    Store.lsWrite(); this.saveMeta(); this.reloadAll();
+    Object.keys(this.meta.dirty).forEach(id => this.push(id));
+    toast(`Added ${what} to your account`);
+  },
+
+  /* this browser's copy changed: send it to the account shortly */
+  touch(id) {
+    if (!this.on) return;
+    this.meta.dirty[id] = true; this.saveMeta(); setBadge();
+    clearTimeout(this.timers[id]); this.timers[id] = setTimeout(() => this.push(id), 2500);
+  },
+  async push(id) {
+    clearTimeout(this.timers[id]);
+    if (!this.on || this.offline) return;
+    if (this.busy[id]) { this.again[id] = true; return; }
+    const data = this.local(id);
+    if (!data) { delete this.meta.dirty[id]; this.saveMeta(); return; }
+    this.busy[id] = true;
+    let r;
+    try { r = await this.api("me/docs/" + id, { method: "PUT", body: { data, baseVersion: this.meta.v[id] || 0 } }); }
+    catch { r = { ok: false, status: 0, data: {} }; }
+    this.busy[id] = false;
+    if (r.ok) {
+      this.meta.v[id] = r.data.version;
+      if (!this.again[id]) delete this.meta.dirty[id];
+    } else if (r.status === 409 && r.data.current) await this.clash(id, r.data.current);
+    else if (r.status === 413) toast(r.data.error || "Too large to save to your account");
+    else if (r.status === 401 || r.status === 403) { /* signed out elsewhere: kept here until the next sign-in */ }
+    else { this.timers[id] = setTimeout(() => this.push(id), 15000); } // offline or a server hiccup: try again
+    this.saveMeta(); setBadge();
+    if (this.again[id]) { this.again[id] = false; this.push(id); }
+  },
+  /* another device saved since this one loaded it */
+  async clash(id, current) {
+    this.meta.v[id] = current.version;
+    if (!id.startsWith("c-")) { // lists: keep both devices' entries
+      const D = CLOUD_LISTS[id]; this.setLocal(id, D.make(listUnion(D.items(this.local(id)), D.items(current.data))));
+      try { D.reload(); } catch { }
+      this.again[id] = true; return;
+    }
+    const mine = Store.get(id), name = (mine && mine.name) || (current.data && current.data.name) || "This campaign";
+    const keep = await confirmBox(`“${name}” was changed on another device`,
+      "Keep the version on this device and replace the other one? Cancel loads the other device's version here instead.", "Keep this device's");
+    if (keep) { this.again[id] = true; return; }
+    this.setLocal(id, current.data); Store.lsWrite(); delete this.meta.dirty[id];
+    if (activeId === id && location.hash === "#tracker") renderTracker(); else renderCampList();
+  },
+  remove(id) {
+    if (!this.on) return;
+    clearTimeout(this.timers[id]); delete this.meta.dirty[id]; delete this.meta.v[id]; this.meta.gone[id] = true; this.saveMeta();
+    if (this.offline) return;
+    Promise.resolve(this.api("me/docs/" + id, { method: "DELETE" })).then(r => { if (r && r.ok) { delete this.meta.gone[id]; this.saveMeta(); } }).catch(() => { });
+  },
+  async flushAll(ms) {
+    const ids = Object.keys(this.meta.dirty);
+    await Promise.race([Promise.all(ids.map(id => this.push(id))), new Promise(r => setTimeout(r, ms))]);
+  },
+};
+/* leaving the page or switching apps: send unsent changes now */
+document.addEventListener("visibilitychange", () => { if (document.hidden && Cloud.on) Object.keys(Cloud.meta.dirty).forEach(id => Cloud.push(id)); });
