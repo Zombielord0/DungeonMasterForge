@@ -185,6 +185,35 @@ const server = http.createServer((req, res) => {
   const g4 = await p.evaluate(async ids => ({ img: atlasOf(ids.r).img, stored: !!(await MAPIMG.get("atlas-" + ids.r)), roll: !!$('[data-at="roll"]') }), ids);
   check("import: Use generated terrain switches back and deletes the picture", !g4.img && !g4.stored && g4.roll, JSON.stringify(g4));
 
+  // ---------- Task 5: on the TV ----------
+  await p.evaluate(ids => { location.hash = "world"; worldLoad(); [ids.velmor, ids.crypt, ids.bell, ids.witch].forEach(k => { const x = wp(k); if (x) delete x.found; }); worldSave(); atlasOpen(ids.r); }, ids);
+  await p.waitForSelector('[data-at="tv"]');
+  const [tv] = await Promise.all([ctx.waitForEvent("page"), p.click('[data-at="tv"]')]);
+  tv.on("pageerror", e => errs.push("tv: " + e.message));
+  await tv.waitForSelector("#tv"); await tv.evaluate(() => { window.__msgs = []; new BroadcastChannel("dmforge.map").onmessage = e => window.__msgs.push(e.data); });
+  const waitFrame = async (n, ms = 8000) => tv.waitForFunction(n => (window.tvFrames || 0) > n, n, { timeout: ms }).then(() => true, () => false);
+  await p.bringToFront();
+  check("tv: Show on TV sends a frame", await waitFrame(0));
+  const L1 = await p.evaluate(() => atlasTvLabels());
+  check("tv: the picture shows found places and the land's names", L1.includes("Frostford") && L1.includes("Northmarch") && L1.some(x => /the |River|Lake|Mount/.test(x)), JSON.stringify(L1));
+  check("tv: …and never a hidden place's name", !["Velmor", "Sunken Crypt", "Bell Tower", "Witchwood"].some(x => L1.includes(x)), JSON.stringify(L1));
+  check("tv: the button now says Off TV", /Off TV/.test(await p.textContent('[data-at="tv"]')));
+  let n = await tv.evaluate(() => window.tvFrames || 0);
+  await p.evaluate(() => { $("#atlasCv").scrollIntoView({ block: "center" }); });
+  const vp = await pinAt(ids.velmor); await p.mouse.click(vp.x, vp.y); await p.waitForSelector('#atlasMenu:not([hidden]) [data-atp="reveal"]'); await p.click('#atlasMenu [data-atp="reveal"]');
+  check("tv: revealing a place re-sends the picture with its name", await waitFrame(n) && (await p.evaluate(() => atlasTvLabels())).includes("Velmor"));
+  const nPing = await tv.evaluate(() => window.__msgs.filter(m => m.t === "ping").length);
+  const box = await p.evaluate(() => { const r = $("#atlasCv").getBoundingClientRect(); return { x: r.left + 8, y: r.top + r.height - 8 }; });
+  await p.mouse.click(box.x, box.y); await p.waitForTimeout(300);
+  check("tv: a click on the DM's map while showing sends a ping", await tv.evaluate(nn => window.__msgs.filter(m => m.t === "ping").length > nn, nPing));
+  check("tv: the TV only gets pictures and pings", await tv.evaluate(() => window.__msgs.every(m => ["frame", "ping", "bye"].includes(m.t) && Object.keys(m).every(k => ["t", "blob", "x", "y"].includes(k)))));
+  n = await tv.evaluate(() => window.tvFrames || 0);
+  await p.setInputFiles("#atlasFile", tmp); await p.waitForFunction(() => ATLAS_VIEW.pic, null, { timeout: 10000 }).catch(() => {});
+  check("tv: an imported map goes to the TV", await waitFrame(n) && await p.evaluate(() => ATLAS_TV.pic));
+  n = await tv.evaluate(() => window.tvFrames || 0); await p.click('[data-at="tv"]');
+  check("tv: Off TV goes back to the dungeon map screen", await waitFrame(n) && await p.evaluate(() => HOST.show !== "atlas"));
+  await tv.close();
+
   check("no page errors", errs.length === 0, errs.join(" | "));
   await browser.close(); server.close();
   console.log(fails ? `\n${fails} check(s) failed` : "\nAll world map checks passed");

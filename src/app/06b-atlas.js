@@ -305,7 +305,27 @@ function atlasOpen(id) {
 function atlasFound(p, on) {
   if (on) { let x = p, k = 0; while (x && k++ < 30) { x.found = true; x = wp(x.parent); } }
   else delete p.found;
-  worldSave();
+  worldSave(); if (HOST.show === "atlas") hostSend();
+}
+
+/* ======================= On the TV =======================
+   HOST.show = "atlas" with HOST.atlas = { id }. The TV's picture is drawn from the found places only, so a hidden place's
+   name is never drawn on it. A click on the DM's map (not on a pin) pings the TV. */
+const ATLAS_TV = { labels: [], pic: false };
+function atlasTvLabels() { return ATLAS_TV.labels.slice(); }
+function atlasTvCanvas() {
+  const id = HOST.atlas && HOST.atlas.id, m = id && atlasOf(id); if (!m) return null;
+  const picture = m.img ? ATLAS_PICS.get(m.img) || atlasBlank(m) : null, cv = document.createElement("canvas");
+  const r = atlasDraw(cv, m, { player: true, picture, pins: atlasPins(id, true), names: m.img ? [] : (m.names || []).filter(f => f.name), title: atlasName(id) });
+  ATLAS_TV.labels = r.labels; ATLAS_TV.pic = !!m.img && ATLAS_PICS.has(m.img);
+  return cv;
+}
+const atlasOnTv = id => HOST.show === "atlas" && HOST.atlas && HOST.atlas.id === id;
+function atlasTvSync(id) { if (atlasOnTv(id) && HOST.on) hostSend(); }
+function atlasTv(id) {
+  if (atlasOnTv(id)) { HOST.show = "map"; HOST.atlas = null; toast("The map is off the TV"); }
+  else { HOST.atlas = { id }; HOST.show = "atlas"; if (!HOST.on) hostStart(); toast(`${atlasName(id)} is on the TV, showing only the places the players have found`); }
+  handoutUI(); hostSend(); renderWorld();
 }
 function atlasViewHTML() {
   const id = W.atlasId, m = atlasOf(id), name = atlasName(id), sel = (attr, opts, v) => `<select ${attr}>${Object.entries(opts).map(([k, l]) => `<option value="${k}" ${k === v ? "selected" : ""}>${l}</option>`).join("")}</select>`;
@@ -334,7 +354,7 @@ function atlasViewHTML() {
 function atlasRender() {
   const cv = $("#atlasCv"), id = W.atlasId, m = atlasOf(id); if (!cv || !m) return;
   ATLAS_VIEW.pic = false;
-  const draw = picture => { if (!cv.isConnected) return; const r = atlasDraw(cv, m, { picture, pins: atlasPins(id, false), names: m.img ? [] : (m.names || []).filter(f => f.name), title: atlasName(id) }); ATLAS_VIEW.labels = r.labels; ATLAS_VIEW.pic = !!picture; };
+  const draw = picture => { if (!cv.isConnected) return; const r = atlasDraw(cv, m, { picture, pins: atlasPins(id, false), names: m.img ? [] : (m.names || []).filter(f => f.name), title: atlasName(id) }); ATLAS_VIEW.labels = r.labels; ATLAS_VIEW.pic = !!picture && !!m.img; atlasTvSync(id); };
   if (!m.img) return draw(null);
   const have = ATLAS_PICS.get(m.img); if (have) return draw(have);
   atlasPicture(m).then(pic => {
@@ -411,6 +431,7 @@ function atlasHit(e) {
       atlasMake(target, { shape, land }); atlasPinsFill(target); worldSave(); atlasOpen(target);
     }
     else if (a === "roll") { atlasReroll(id, { shape: $("[data-at-shape]").value, land: $("[data-at-land]").value }); worldSave(); renderWorld(); }
+    else if (a === "tv") atlasTv(id);
     else if (a === "gen") { atlasUseGenerated(id).then(() => { renderWorld(); toast("Back to generated land"); }); }
     else if (a === "unhide") { const m = atlasOf(id); m.off = (m.off || []).filter(x => x !== b.dataset.id); atlasPinsFill(id); worldSave(); renderWorld(); }
   });
@@ -441,7 +462,7 @@ function atlasHit(e) {
   view.addEventListener("pointerup", e => {
     const d = ATLAS_VIEW.drag; ATLAS_VIEW.drag = null; if (!d || e.target.id !== "atlasCv") return;
     if (d.moved) { worldSave(); return; }
-    if (!d.pin) { atlasMenuHide(); return; }
+    if (!d.pin) { atlasMenuHide(); if (atlasOnTv(W.atlasId) && HOST.on) { const r = e.target.getBoundingClientRect(); hostPing((e.clientX - r.left) / r.width, (e.clientY - r.top) / r.height); } return; }
     if (d.pin.area && W.atlasId === "world") { atlasOpen(d.pin.id); return; }
     atlasMenuShow(d.pin);
   });

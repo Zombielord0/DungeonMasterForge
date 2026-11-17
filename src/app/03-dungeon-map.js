@@ -870,6 +870,10 @@ function hostSend() {
 function hostFrameCanvas() {
   if (HOST.show === "handout" && HOST.handout) return HOST.handout;
   let cv = null;
+  if (HOST.show === "atlas" && HOST.atlas) { // a World or region map (src/app/06b-atlas.js): found places only
+    cv = atlasTvCanvas();
+    if (cv) { const f = hostEnc(); if (f) tvDrawInitStrip(cv, tvInitRows(f.c, f.e), f.e.round); return cv; }
+  }
   if (currentMap) { cv = document.createElement("canvas"); drawDungeon(cv, currentMap, $("#mapGrid").checked, { player: true, fog: HOST.fog, found: HOST.found, numbers: HOST.numbers, scale: 2, tokens: tokenView() }); }
   const f = hostEnc();
   if (f) { const rows = tvInitRows(f.c, f.e); if (cv) tvDrawInitStrip(cv, rows, f.e.round); else cv = tvInitBoard(rows, f.e.round); }
@@ -944,7 +948,7 @@ function handoutWriting(title, text) {
   handoutShow(cv);
 }
 function handoutShow(cv) { HOST.handout = cv; HOST.show = "handout"; handoutUI(); hostSend(); }
-function handoutUI() { $("#handoutBack").hidden = HOST.show !== "handout"; hostStatus(); }
+function handoutUI() { $("#handoutBack").hidden = HOST.show !== "handout" && HOST.show !== "atlas"; hostStatus(); }
 /* ---- tokens ---- */
 function tokenView() { // tokens with the fight-on-TV state (Bloodied/Down) for monsters
   const f = hostEnc(), st = {}; if (f) f.e.enemies.forEach(m => { st[m.name] = m.hp <= 0 ? "Down" : m.hp <= m.max / 2 ? "Bloodied" : ""; }); // same words as the TV's turn order, never HP
