@@ -942,7 +942,10 @@ function rollMark(c, kind, ab, o) {
 /* the roller */
 const ROLL = { mode: "normal", open: false };
 const d20 = () => 1 + Math.floor(Math.random() * 20);
-function rollLog(c, e) { c.rollLog = [{ t: Date.now(), ...e }, ...(c.rollLog || [])].slice(0, 30); pcPersist(); const d = $("#rollDock"); if (d) d.outerHTML = rollDockHTML(c); }
+function rollLog(c, e) { c.rollLog = [{ t: Date.now(), ...e }, ...(c.rollLog || [])].slice(0, 30); pcPersist(); const d = $("#rollDock"); if (d) d.outerHTML = rollDockHTML(c); if (window.Portal && Portal.rolled) Portal.rolled(c, e); }
+/* signed in as a player: a tick in the roll dock shares rolls with the DM's activity feed (src/portal.js, Portal.rolled) */
+const SHARE_ROLLS_KEY = "dmforge.shareRolls";
+const rollShareHTML = () => window.Portal && Portal.cloud && !Portal.isDM() ? `<label class="check rd-share"><input type="checkbox" data-rdshare ${localStorage.getItem(SHARE_ROLLS_KEY) === "1" ? "checked" : ""}><span>Share my rolls with the DM</span></label>` : "";
 function rollD20(c, label, bonus, kind, ab, o = {}) {
   const S = rollState(c, kind, ab, o);
   if (ROLL.mode === "adv") S.adv.push("chosen"); if (ROLL.mode === "dis") S.dis.push("chosen");
@@ -971,7 +974,7 @@ function rollDockHTML(c) {
   return `<div class="roll-dock ${ROLL.open ? "open" : ""}" id="rollDock" aria-label="Dice rolls">
     <div class="rd-head"><button type="button" class="btn sm" data-rdtoggle aria-expanded="${ROLL.open}">🎲 Rolls${L.length ? ` · ${typeof L[0].total === "number" ? L[0].total : L[0].total}` : ""}</button>
       <div class="seg rd-mode" role="radiogroup" aria-label="Next roll">${[["normal", "Normal"], ["adv", "Adv."], ["dis", "Dis."]].map(([v, l]) => `<label class="opt"><input type="radio" name="rollMode" value="${v}" ${ROLL.mode === v ? "checked" : ""}><span>${l}</span></label>`).join("")}</div></div>
-    ${ROLL.open ? `<ol class="rd-list">${L.length ? L.map(e => `<li class="${e.crit || e.nat20 ? "crit" : ""} ${e.fumble ? "fumble" : ""}"><span class="rd-t">${new Date(e.t).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}</span> <b>${esc(e.label)}</b> <span class="rd-total">${esc(String(e.total))}</span>${e.d ? `<small>d20 ${e.d.join(" / ")}${e.bonus ? ` ${sgn(e.bonus)}` : ""}${e.mode && e.mode !== "normal" ? (e.mode === "adv" ? " · advantage" : " · disadvantage") : ""}</small>` : ""}${e.note ? `<small>${esc(e.note)}</small>` : ""}</li>`).join("") : `<li class="muted">Click a skill, save, ability, initiative or attack to roll.</li>`}</ol>${L.length ? `<button type="button" class="btn sm" data-rdclear style="margin-top:6px">Clear</button>` : ""}` : ""}</div>`;
+    ${ROLL.open ? rollShareHTML() : ""}${ROLL.open ? `<ol class="rd-list">${L.length ? L.map(e => `<li class="${e.crit || e.nat20 ? "crit" : ""} ${e.fumble ? "fumble" : ""}"><span class="rd-t">${new Date(e.t).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}</span> <b>${esc(e.label)}</b> <span class="rd-total">${esc(String(e.total))}</span>${e.d ? `<small>d20 ${e.d.join(" / ")}${e.bonus ? ` ${sgn(e.bonus)}` : ""}${e.mode && e.mode !== "normal" ? (e.mode === "adv" ? " · advantage" : " · disadvantage") : ""}</small>` : ""}${e.note ? `<small>${esc(e.note)}</small>` : ""}</li>`).join("") : `<li class="muted">Click a skill, save, ability, initiative or attack to roll.</li>`}</ol>${L.length ? `<button type="button" class="btn sm" data-rdclear style="margin-top:6px">Clear</button>` : ""}` : ""}</div>`;
 }
 /* hit points: damage at 0 counts as a death save failure; dropping to 0 knocks you out; damage asks for a concentration save */
 function pcDamaged(c, dmg, wasZero) {
@@ -1391,6 +1394,7 @@ spFiltersSync();
       return;
     }
     if (e.target.closest("[data-rdtoggle]")) { ROLL.open = !ROLL.open; $("#rollDock").outerHTML = rollDockHTML(c); const t = $("[data-rdtoggle]"); if (t) t.focus(); return; }
+    if (e.target.matches("[data-rdshare]")) { localStorage.setItem(SHARE_ROLLS_KEY, e.target.checked ? "1" : "0"); toast(e.target.checked ? "Your rolls now show in the DM's activity feed" : "Your rolls stay on your screen"); return; }
     if (e.target.closest("[data-rdclear]")) { c.rollLog = []; pcPersist(); $("#rollDock").outerHTML = rollDockHTML(c); return; }
     const cd = e.target.closest("[data-cond]");
     if (cd) { const k = cd.dataset.cond; c.conds = { ...(c.conds || {}) }; if (c.conds[k]) delete c.conds[k]; else c.conds[k] = true; if (k === "unconscious") delete c.condAuto; if (c.conds[k] && COND_INCAP.includes(k) && c.conc) { toast(`${cap1(k)}: concentration on ${c.conc.spell} ends.`); delete c.conc; delete c.concCheck; } pcRecompute(c); pcPersist(); renderRosterMain(); const f = $(`[data-cond="${k}"]`, main); if (f) f.focus(); return; }

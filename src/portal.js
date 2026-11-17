@@ -17,8 +17,8 @@ const OFFLINE_KEY = "dmforge.offline";
 const CAMP_KEY = "dmforge.campaign";
 const LAST_KEY = "dmforge.lastCampaign."; // + user id: the campaign and role from last visit
 const OFFERED_KEY = "dmforge.uploadOffered.";
-const ALL_VIEWS = ["generate", "npc", "world", "monsters", "character", "roster", "spells", "feats", "items", "map", "tracker", "homebrew"];
-const PLAYER_VIEWS = ["character", "roster", "spells", "feats", "items", "whispers"];
+const ALL_VIEWS = ["generate", "npc", "world", "monsters", "character", "roster", "spells", "feats", "items", "map", "tracker", "homebrew", "journal"];
+const PLAYER_VIEWS = ["character", "roster", "spells", "feats", "items", "journal", "whispers"];
 const POLL_DM = 4000, POLL_PLAYER = 10000, POLL_WHISPERS = 8000, POLL_HOMEBREW = 30000;
 
 const S = {
@@ -27,6 +27,9 @@ const S = {
   owners: new Map(),   // character id -> { id, name }
   since: null, saveTimer: null, busy: false, again: false, pollTimer: null, whisperTimer: null,
   members: [], activity: [], whispers: [], renderPending: false,
+  shared: {},          // what the DM shares: { journal: {data, updatedAt}, turns: {data, updatedAt} }
+  published: {},       // DM: the JSON last sent for each, so only changes are sent
+  sharedTimer: null,
 };
 
 const Portal = window.Portal = {
@@ -40,6 +43,8 @@ const Portal = window.Portal = {
   isDM: () => isDM(),
   campName: () => (S.camp && S.camp.name) || "your campaign",
   hbPut, hbDel,
+  renderJournal: () => renderJournal(),
+  rolled: (c, e) => shareRoll(c, e),
 };
 
 /* ------------------------------------------------------------ helpers */
@@ -307,7 +312,7 @@ function applyMode(camp) {
   document.body.classList.toggle("portal-dm", !!camp && !player);
   $$("nav a[data-view]").forEach(a => {
     const v = a.dataset.view;
-    a.hidden = Portal.views ? !Portal.views.includes(v) : (v === "party" || v === "whispers");
+    a.hidden = Portal.views ? !Portal.views.includes(v) : (v === "party" || v === "whispers" || v === "journal");
   });
   route();
 }
@@ -394,14 +399,14 @@ async function startCloud() {
     if (yes) { PCS.roster.push(...extra.map(c => JSON.parse(JSON.stringify(c)))); rerender(true); queueSave(); }
   }
 
-  const tick = async () => { await poll(); S.pollTimer = setTimeout(tick, isDM() ? POLL_DM : POLL_PLAYER); };
+  const tick = async () => { await poll(); if (isDM()) await publishShared(); S.pollTimer = setTimeout(tick, isDM() ? POLL_DM : POLL_PLAYER); };
   S.pollTimer = setTimeout(tick, isDM() ? POLL_DM : POLL_PLAYER);
   S.hbTimer = setInterval(() => { if (!document.hidden) loadHomebrew(); }, POLL_HOMEBREW);
-  if (!isDM()) { loadWhispers(); S.whisperTimer = setInterval(loadWhispers, POLL_WHISPERS); }
+  if (!isDM()) { loadWhispers(); S.whisperTimer = setInterval(loadWhispers, POLL_WHISPERS); loadShared(); }
   else { syncTracker(); loadParty(); }
 }
 
-function stopLoops() { clearTimeout(S.pollTimer); clearInterval(S.whisperTimer); clearInterval(S.hbTimer); clearTimeout(S.saveTimer); }
+function stopLoops() { clearTimeout(S.pollTimer); clearInterval(S.whisperTimer); clearInterval(S.hbTimer); clearTimeout(S.saveTimer); clearTimeout(S.sharedTimer); S.shared = {}; S.published = {}; renderTurnBar(); }
 
 function remember(ch) {
   S.synced.set(ch.id, { v: ch.version, json: JSON.stringify(ch.data) });
@@ -677,6 +682,73 @@ document.addEventListener("change", e => {
   syncTracker();
   toast(`Player characters now go to “${(Store.get(e.target.value) || {}).name}”`);
 });
+
+/* ------------------------------------------------------------ shared with players: the Journal, turn order, rolls
+   The DM's browser publishes journalFor(the party's Tracker campaign) and turnsNow() (src/app/05-tracker.js) on each
+   poll, only when they changed. Players read them every 30 seconds, or every 5 while a fight is on their phones. */
+async function publishShared() {
+  if (!isDM() || !Portal.cloud) return;
+  const tid = trackerId();
+  const want = { journal: tid ? journalFor(Store.get(tid)) : null, turns: turnsNow() };
+  for (const [id, data] of Object.entries(want)) {
+    const text = data ? JSON.stringify(data) : null;
+    if (S.published[id] === text) continue;
+    if (S.published[id] === undefined && !text) { S.published[id] = null; await api(campPath("shared/" + id), { method: "DELETE" }); continue; }
+    const r = text ? await api(campPath("shared/" + id), { method: "PUT", body: { data } }) : await api(campPath("shared/" + id), { method: "DELETE" });
+    if (r.ok) S.published[id] = text;
+  }
+}
+async function loadShared() {
+  clearTimeout(S.sharedTimer);
+  if (!Portal.cloud || isDM()) return;
+  if (!document.hidden) {
+    const r = await api(campPath("shared"));
+    if (r.ok) {
+      const before = JSON.stringify(S.shared); S.shared = r.data || {};
+      if (JSON.stringify(S.shared) !== before) { renderTurnBar(); if (location.hash === "#journal") renderJournal(); }
+    }
+  }
+  S.sharedTimer = setTimeout(loadShared, S.shared.turns ? 5000 : 30000);
+}
+const JTYPE = { place: "Place", item: "Item", monster: "Creature", encounter: "Encounter", other: "Other" };
+function renderJournal() {
+  const el = $("#journalMain"); if (!el) return;
+  const J = isDM() ? (trackerId() ? journalFor(Store.get(trackerId())) : null) : S.shared.journal && S.shared.journal.data;
+  const head = isDM() ? `<p class="muted">This is what your players see. It comes from <b>${esc((J && J.name) || "the party's Tracker campaign")}</b>: quests and sessions unless you set “Players see it” to No, and Lore entries you tick “Players see this”. Quest notes and DM-only sections stay with you.</p>` : "";
+  if (!J) { el.innerHTML = `<div class="sec-h"><h3>Journal</h3></div>${head}<p class="muted">${isDM() ? "Link a Tracker campaign on the Party tab first." : "Your DM hasn't shared anything yet. Quests, session recaps and lore they share will appear here."}</p>`; return; }
+  const q = J.quests || [], open = q.filter(x => x.status === "Active" || x.status === "On hold"), done = q.filter(x => x.status === "Completed" || x.status === "Failed");
+  const quest = x => `<li><b>${esc(x.title || "Quest")}</b>${x.status !== "Active" ? ` <span class="tag">${esc(x.status)}</span>` : ""}${x.giver ? `<span class="muted"> · from ${esc(x.giver)}</span>` : ""}</li>`;
+  el.innerHTML = `<div class="sec-h"><h3>Journal${J.name ? ": " + esc(J.name) : ""}</h3></div>${head}
+    ${J.cal ? `<p class="j-cal">📅 Day ${esc(J.cal.day)} · ${esc(J.cal.season)}${J.cal.weather ? ` · ${esc(J.cal.weather)}` : ""}</p>` : ""}
+    <h4 class="j-h">Quests</h4>${open.length ? `<ul class="j-list">${open.map(quest).join("")}</ul>` : `<p class="muted">No open quests.</p>`}
+    ${done.length ? `<details class="j-done"><summary>Finished (${done.length})</summary><ul class="j-list">${done.map(quest).join("")}</ul></details>` : ""}
+    <h4 class="j-h">Sessions</h4>${(J.sessions || []).length ? J.sessions.map(x => `<details class="lore-card j-sess"><summary class="lore-head"><span class="lore-name">${esc(x.title || (x.num ? "Session " + x.num : "Session"))}</span>${x.date ? `<small class="muted">${esc(x.date)}</small>` : ""}</summary><div class="lore-body">${mdHTML(x.summary || "")}</div></details>`).join("") : `<p class="muted">No sessions written up yet.</p>`}
+    ${(J.lore || []).length ? `<h4 class="j-h">Lore</h4>${J.lore.map(x => `<details class="lore-card"><summary class="lore-head">${x.imgUrl ? `<img class="lore-pic" src="${esc(x.imgUrl)}" alt="" referrerpolicy="no-referrer" loading="lazy">` : ""}<span class="lore-name">${esc(x.name || "Untitled")}</span><small class="muted">${JTYPE[x.type] || "Other"}${(x.tags || []).length ? " · " + esc(x.tags.join(", ")) : ""}</small></summary>
+      <div class="lore-body">${x.desc ? `<div class="lore-desc">${mdHTML(x.desc)}</div>` : ""}${(x.sections || []).map(z => `<div class="lore-sec"><h4>${esc(z.t)}</h4>${mdHTML(z.x)}</div>`).join("")}</div></details>`).join("")}` : ""}`;
+}
+/* players: the fight the DM put on their phones, as a bar under the header (names, whose turn, Bloodied/Down; no HP) */
+function renderTurnBar() {
+  const bar = $("#turnBar"); if (!bar) return;
+  const T = !isDM() && S.shared.turns && S.shared.turns.data;
+  if (!T || !(T.rows || []).length) { bar.hidden = true; bar.innerHTML = ""; return; }
+  const mine = new Set(PCS.roster.map(c => String(c.name || "").toLowerCase()));
+  const i = T.rows.findIndex(r => r.cur), cur = T.rows[i], next = i >= 0 ? T.rows[(i + 1) % T.rows.length] : null;
+  const you = cur && !cur.foe && mine.has(String(cur.name).toLowerCase());
+  const chip = r => `<span class="tb-chip ${r.foe ? "foe" : "pc"} ${r.cur ? "cur" : ""} ${r.state === "Down" ? "down" : ""}">${r.cur ? "▶ " : ""}${esc(r.name)}${r.state ? ` · ${esc(r.state)}` : ""}</span>`;
+  const wasOpen = !!bar.querySelector("details[open]");
+  bar.hidden = false;
+  bar.className = you ? "yours" : "";
+  bar.innerHTML = `<details ${wasOpen ? "open" : ""}><summary>⚔ ${esc(T.name || "Fight")}${T.round ? ` · Round ${T.round}` : ""}${you ? ` · <b>Your turn!</b>` : cur ? ` · Now: <b>${esc(cur.name)}</b>${next && next !== cur ? ` · Next: ${esc(next.name)}` : ""}` : " · Rolling initiative…"}</summary>
+    <div class="tb-list">${T.rows.map(chip).join("")}</div></details>`;
+}
+/* a player's roll, shared with the DM's activity feed when they've ticked "Share my rolls with the DM" */
+function shareRoll(c, e) {
+  if (!Portal.cloud || isDM() || localStorage.getItem("dmforge.shareRolls") !== "1" || !c || !S.synced.has(c.id) || !e) return;
+  const mode = e.mode === "adv" ? " (advantage)" : e.mode === "dis" ? " (disadvantage)" : "";
+  const extra = e.crit ? " · critical hit!" : e.fumble ? " · natural 1" : e.nat20 ? " · natural 20" : "";
+  const text = `${e.label}: ${e.total}${mode}${extra}`;
+  api(campPath("rolls"), { method: "POST", body: { characterId: c.id, text } }).catch(() => { });
+}
 
 /* ------------------------------------------------------------ player: whispers */
 async function loadWhispers() {

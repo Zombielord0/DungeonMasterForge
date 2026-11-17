@@ -13,7 +13,8 @@ Live at https://dungeonmasterforge.netlify.app
 ## How the portals work
 
 - The DM signs in, creates a campaign and shares its join code. The campaign name is optional (it's "New Campaign" until renamed), and the DM can rename it from the account button. **Not now** on the setup screen lets a new DM look around first.
-- Players create an account, enter the code once, and see: Characters, My Characters, Spells, Items, Whispers.
+- Players create an account, enter the code once, and see: Characters, My Characters, Spells, Items, Journal, Whispers.
+- The players' **Journal** shows the quests, session recaps and Lore the DM shares (quest notes and DM-only sections never). The DM's **📱 Show players** button on an encounter puts the turn order on players' phones (Bloodied or Down, never HP). Players can tick **Share my rolls with the DM** in the roll dock.
 - The DM sees every tool plus **Party**: every player's sheet (click to view or edit), an activity feed of changes, and whispers to one player.
 - The DM's **Homebrew** tab adds custom subclasses, backgrounds, feats and species. Everyone in the campaign sees them in the character creator, Level up window and feat list; only the DM can change them.
 - If the DM and a player save the same sheet at once, whoever saves second is asked which version to keep.

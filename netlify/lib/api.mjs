@@ -7,6 +7,9 @@ const MAX_SHEET_BYTES = 300_000;
 const MAX_WHISPER = 2000;
 const MAX_HOMEBREW_BYTES = 50_000;
 const HOMEBREW_KINDS = ["subclass", "background", "feat", "species", "spell"];
+const SHARED_IDS = ["journal", "turns"];
+const MAX_SHARED_BYTES = 1_000_000;
+const MAX_ROLL = 200;
 const MAX_DOC_BYTES = 4_000_000;     // one saved Tracker campaign or list (a big MythWeaver campaign is about 1.4 MB)
 const MAX_USER_BYTES = 40_000_000;   // everything one account keeps
 const MERGE_WINDOW = "60 seconds";
@@ -317,6 +320,39 @@ export async function handle(req, user, db) {
       dmOnly();
       await db.query("DELETE FROM homebrew WHERE campaign_id = $1 AND id = $2", [cid, id]);
       return json({ ok: true });
+    }
+
+    // ---- what the DM shows the campaign: the players' Journal and the live turn order ----
+    if (b === "shared" && !id && m === "GET") {
+      const { rows } = await db.query("SELECT id, data, updated_at FROM campaign_shared WHERE campaign_id = $1", [cid]);
+      return json(Object.fromEntries(rows.map(r => [r.id, { data: r.data, updatedAt: r.updated_at }])));
+    }
+    if (b === "shared" && id && !c && (m === "PUT" || m === "DELETE")) {
+      dmOnly();
+      if (!SHARED_IDS.includes(id)) throw new HttpError(404, "Not found");
+      if (m === "DELETE") { await db.query("DELETE FROM campaign_shared WHERE campaign_id = $1 AND id = $2", [cid, id]); return json({ ok: true }); }
+      const p = await body(req);
+      if (!p.data || typeof p.data !== "object" || Array.isArray(p.data)) throw new HttpError(400, "Nothing to share");
+      const text = JSON.stringify(p.data);
+      if (text.length > MAX_SHARED_BYTES) throw new HttpError(413, "Too much to share with the players at once");
+      await db.query(
+        `INSERT INTO campaign_shared (campaign_id, id, data) VALUES ($1, $2, $3::jsonb)
+         ON CONFLICT (campaign_id, id) DO UPDATE SET data = EXCLUDED.data, updated_at = now()`, [cid, id, text]);
+      return json({ ok: true });
+    }
+
+    // ---- a dice roll a player shares with the DM: a line in the activity feed ----
+    if (b === "rolls" && !id && m === "POST") {
+      const p = await body(req);
+      const text = clean(p.text, MAX_ROLL);
+      if (!text) throw new HttpError(400, "Nothing rolled");
+      const ch = await getChar(db, cid, clean(p.characterId, 64));
+      if (!ch || ch.deleted_at) throw new HttpError(404, "That character no longer exists");
+      if (ch.owner_id !== user.id && !isDM) throw new HttpError(403, "That character belongs to someone else");
+      await db.query(
+        "INSERT INTO activity (campaign_id, character_id, actor_id, summary) VALUES ($1, $2, $3, $4)",
+        [cid, ch.id, user.id, "🎲 " + text]);
+      return json({ ok: true }, 201);
     }
 
     // ---- activity feed (DM) ----

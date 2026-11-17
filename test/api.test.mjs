@@ -198,6 +198,34 @@ test("two saves of one sheet at the same moment: one wins, the other is asked", 
   assert.equal(feed.filter(x => /HP 10 →/.test(x)).length, 1, feed.join(" | "));
 });
 
+test("the DM shares the Journal and turn order; players share their rolls", async () => {
+  const dm = { id: "u-sh-dm", email: "shdm@example.com" }, pl = { id: "u-sh-pl", email: "shpl@example.com" }, out = { id: "u-sh-x" };
+  const made = await call(dm, "POST", "campaigns", { name: "Shared", displayName: "DM" });
+  const cid = made.body.id;
+  await call(pl, "POST", "join", { code: made.body.code, displayName: "Pia" });
+  assert.deepEqual((await call(pl, "GET", `campaigns/${cid}/shared`)).body, {}, "nothing shared yet");
+  const journal = { quests: [{ title: "Find the bell", status: "Active" }] };
+  assert.equal((await call(pl, "PUT", `campaigns/${cid}/shared/journal`, { data: journal })).status, 403, "players can't publish");
+  assert.equal((await call(dm, "PUT", `campaigns/${cid}/shared/secrets`, { data: {} })).status, 404, "only the known kinds");
+  assert.equal((await call(dm, "PUT", `campaigns/${cid}/shared/journal`, { data: journal })).status, 200);
+  await call(dm, "PUT", `campaigns/${cid}/shared/turns`, { data: { round: 2, rows: [{ name: "Goblin", foe: true, cur: true, state: "Bloodied" }] } });
+  const seen = (await call(pl, "GET", `campaigns/${cid}/shared`)).body;
+  assert.equal(seen.journal.data.quests[0].title, "Find the bell");
+  assert.equal(seen.turns.data.round, 2);
+  assert.equal((await call(out, "GET", `campaigns/${cid}/shared`)).status, 403, "outsiders see nothing");
+  await call(dm, "DELETE", `campaigns/${cid}/shared/turns`);
+  assert.equal((await call(pl, "GET", `campaigns/${cid}/shared`)).body.turns, undefined, "the fight ended");
+  // rolls
+  await call(pl, "POST", `campaigns/${cid}/characters`, { data: { id: "pc-pia", name: "Pia", hpCur: 9 } });
+  await call(dm, "POST", `campaigns/${cid}/characters`, { data: { id: "pc-npc", name: "Guard", hpCur: 9 } });
+  assert.equal((await call(pl, "POST", `campaigns/${cid}/rolls`, { characterId: "pc-pia", text: "Perception: 17" })).status, 201);
+  assert.equal((await call(pl, "POST", `campaigns/${cid}/rolls`, { characterId: "pc-npc", text: "Stealth: 20" })).status, 403, "only for your own character");
+  assert.equal((await call(pl, "POST", `campaigns/${cid}/rolls`, { characterId: "pc-pia", text: "  " })).status, 400);
+  const feed = (await call(dm, "GET", `campaigns/${cid}/activity`)).body;
+  assert.equal(feed[0].summary, "🎲 Perception: 17");
+  assert.equal(feed[0].characterName, "Pia");
+});
+
 test("a DM can create a campaign without naming it", async () => {
   const r = await call({ id: "u-new", email: "new@example.com" }, "POST", "campaigns", {});
   assert.equal(r.status, 201);

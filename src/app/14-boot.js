@@ -61,6 +61,7 @@ function route() {
   if (v === "feats") renderFeats();
   if (v === "party" && window.Portal) Portal.renderParty();
   if (v === "whispers" && window.Portal) Portal.renderWhispers();
+  if (v === "journal" && window.Portal) Portal.renderJournal();
   hdrSync();
 }
 window.addEventListener("hashchange", route);

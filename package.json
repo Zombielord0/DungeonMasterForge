@@ -33,7 +33,8 @@
     "test:world": "node tools/build.mjs --quiet && node test/e2e/world.cjs",
     "test:setup": "node tools/build.mjs --quiet && node test/e2e/setup-screen.cjs",
     "test:assets": "node tools/build.mjs --quiet && node test/e2e/assets.cjs",
-    "test:sync": "node tools/build.mjs --quiet && node test/e2e/account-sync.cjs"
+    "test:sync": "node tools/build.mjs --quiet && node test/e2e/account-sync.cjs",
+    "test:share": "node tools/build.mjs --quiet && node test/e2e/players-share.cjs"
   },
   "dependencies": {
     "@netlify/database": "^2.0.3",

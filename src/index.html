@@ -104,6 +104,7 @@ if (location.protocol !== "file:" && localStorage.getItem("dmforge.offline") !==
     <a href="#tracker" data-view="tracker">Campaign Tracker</a>
     <a href="#homebrew" data-view="homebrew">Homebrew</a>
     <a href="#party" data-view="party" hidden>Party</a>
+    <a href="#journal" data-view="journal" hidden>Journal</a>
     <a href="#whispers" data-view="whispers" hidden>Whispers<span id="whisperN" hidden></span></a>
   </nav>
   <span id="storeBadge" class="badge" title="Where your campaigns are saved">Connecting…</span>
@@ -121,6 +122,7 @@ if (location.protocol !== "file:" && localStorage.getItem("dmforge.offline") !==
 </div>
 
 <main>
+<div id="turnBar" hidden aria-live="polite"></div>
 <!-- ================= GENERATOR ================= -->
 <section class="view" id="view-generate">
   <div class="layout">
@@ -649,6 +651,10 @@ if (location.protocol !== "file:" && localStorage.getItem("dmforge.offline") !==
     <div class="card side" id="partySide"></div>
     <div id="partyMain"></div>
   </div>
+</section>
+<!-- ================= JOURNAL (signed-in campaigns: what the DM shares with players) ================= -->
+<section class="view" id="view-journal">
+  <div class="card" style="max-width:860px;margin:0 auto" id="journalMain"></div>
 </section>
 <!-- ================= WHISPERS (player portal) ================= -->
 <section class="view" id="view-whispers">

@@ -18,10 +18,10 @@ function saveGenAsCampaign(g) {
   Store.save(c); activeId = c.id; subTab = "overview"; location.hash = "tracker"; renderTracker(); toast("Campaign saved");
 }
 const LISTS = {
-  sessions: { label: "Sessions", add: "Log session", fields: [["title", "text", "Session title"], ["num", "number", "#"], ["date", "date", "Date"], ["summary", "textarea", "What happened? Key decisions, loot, cliffhanger…"]] },
+  sessions: { label: "Sessions", add: "Log session", fields: [["title", "text", "Session title"], ["num", "number", "#"], ["date", "date", "Date"], ["players", "select", "Players see it", ["Yes", "No"]], ["summary", "textarea", "What happened? Key decisions, loot, cliffhanger…"]] },
   party: { label: "Party", add: "Add character", fields: [["name", "text", "Character name"], ["cls", "text", "Race & class"], ["level", "number", "Level"], ["player", "text", "Player"], ["notes", "textarea", "Backstory hooks, goals, bonds…"]] },
   npcs: { label: "NPCs", add: "Add NPC", fields: [["name", "text", "NPC name"], ["role", "text", "Role"], ["attitude", "select", "Attitude", ["Friendly", "Neutral", "Unknown", "Hostile", "Dead"]], ["notes", "textarea", "Notes"]] },
-  quests: { label: "Quests", add: "Add quest", fields: [["title", "text", "Quest"], ["status", "select", "Status", ["Active", "On hold", "Completed", "Failed"]], ["giver", "text", "Given by"], ["notes", "textarea", "Details, clues, rewards…"]] },
+  quests: { label: "Quests", add: "Add quest", fields: [["title", "text", "Quest"], ["status", "select", "Status", ["Active", "On hold", "Completed", "Failed"]], ["giver", "text", "Given by"], ["players", "select", "Players see it", ["Yes", "No"]], ["notes", "textarea", "Details, clues, rewards… (only you see these)"]] },
   loot: { label: "Loot", add: "Add item", fields: [["item", "text", "Item"], ["holder", "text", "Carried by"], ["value", "text", "Value"], ["notes", "textarea", "Properties, attunement…"]] }
 };
 function renderCampList() {
@@ -300,6 +300,7 @@ function loreFormHTML(d) {
     <div class="field row"><div><label>Tags (comma separated)</label><input type="text" maxlength="300" data-lf="tags" value="${esc((d.tags || []).join(", "))}"></div>
       <div><label>Picture link (https, optional)</label><input type="url" maxlength="500" data-lf="imgUrl" value="${esc(d.imgUrl || "")}" placeholder="https://…"></div></div>
     <div class="field"><label>Description</label><textarea maxlength="8000" data-lf="desc">${esc(d.desc)}</textarea></div>
+    <label class="check"><input type="checkbox" data-lshare ${d.shared ? "checked" : ""}><span>Players see this in their Journal (the description and every section not marked DM only)</span></label>
     ${(d.sections || []).map((s, i) => `<div class="lore-sec-edit"><div class="row"><input type="text" maxlength="120" data-ls="t" data-i="${i}" value="${esc(s.t)}" placeholder="Section title" aria-label="Section title">
       <label class="check" style="flex:0 0 auto;margin:0"><input type="checkbox" data-ls="dm" data-i="${i}" ${s.dm ? "checked" : ""}><span>DM only</span></label>
       <button class="icon-btn" type="button" data-lore="secdel" data-i="${i}" title="Remove section" aria-label="Remove section">✕</button></div>
@@ -317,7 +318,7 @@ function loreHTML(c) {
     return `<div class="lore-card ${open || editing ? "open" : ""}" data-id="${esc(x.id)}">
       <div class="lore-head">${pic ? `<img class="lore-pic" src="${esc(pic)}" alt="" referrerpolicy="no-referrer" loading="lazy">` : ""}
         <button class="lore-open" type="button" data-lore="open" data-id="${esc(x.id)}" aria-expanded="${open}"><span class="lore-name">${esc(x.name || "Untitled")}</span>
-          <small class="muted">${LORE_ONE[x.type] || "Other"}${(x.tags || []).length ? " · " + esc(x.tags.join(", ")) : ""}</small></button>
+          <small class="muted">${LORE_ONE[x.type] || "Other"}${(x.tags || []).length ? " · " + esc(x.tags.join(", ")) : ""}${x.shared ? " · 👥 Players see this" : ""}</small></button>
         ${pic ? `<button class="btn sm" type="button" data-lore="tv" data-id="${esc(x.id)}" title="Show the picture on the TV">📺 TV</button>` : ""}
         <button class="btn sm" type="button" data-lore="edit" data-id="${esc(x.id)}">Edit</button>
         <button class="icon-btn" type="button" data-lore="del" data-id="${esc(x.id)}" title="Delete" aria-label="Delete ${esc(x.name || "entry")}">✕</button></div>
@@ -364,7 +365,7 @@ campMain.addEventListener("click", async e => {
     const d = LORE.draft, url = String(d.imgUrl || "").trim();
     if (url && !npcUrlOk(url)) { toast("Use a picture link that starts with https://"); return; }
     const clean = { ...d, name: String(d.name || "").trim().slice(0, 120) || "Untitled", type: LORE_ONE[d.type] ? d.type : "other", tags: (Array.isArray(d.tags) ? d.tags : String(d.tags || "").split(",")).map(t => String(t).trim()).filter(Boolean).slice(0, 30),
-      imgUrl: url || undefined, desc: String(d.desc || ""), sections: (d.sections || []).filter(s => String(s.t || "").trim() || String(s.x || "").trim()).map(s => ({ t: String(s.t || "").trim(), x: String(s.x || ""), dm: !!s.dm })) };
+      imgUrl: url || undefined, desc: String(d.desc || ""), shared: !!d.shared || undefined, sections: (d.sections || []).filter(s => String(s.t || "").trim() || String(s.x || "").trim()).map(s => ({ t: String(s.t || "").trim(), x: String(s.x || ""), dm: !!s.dm })) };
     const i = c.lore.findIndex(y => y.id === clean.id); if (i >= 0) c.lore[i] = clean; else c.lore.unshift(clean);
     LORE.edit = null; LORE.draft = null; LORE.open.add(clean.id); Store.save(c);
     if (clean.type === "place" || d.wpId) { worldAdopt(); const p = clean.type === "place" && wp(clean.wpId); if (p) { WP_LORE.forEach(k => { if (clean[k] === undefined) delete p[k]; else p[k] = JSON.parse(JSON.stringify(clean[k])); }); worldSave(); wpSyncOut(p); } }
@@ -385,6 +386,7 @@ campMain.addEventListener("change", e => {
   const t = e.target, d = LORE.draft; if (!d) return;
   if (t.dataset.lf === "type") d.type = t.value;
   else if (t.dataset.ls === "dm") d.sections[+t.dataset.i].dm = t.checked;
+  else if (t.dataset.lshare !== undefined) d.shared = t.checked;
 });
 
 /* ======================= Session recaps =======================
@@ -821,6 +823,7 @@ function encCard(c, e) {
       <button class="btn sm" data-ea="next" data-eid="${e.id}" ${order.length ? "" : "disabled"}>Next turn ▶</button>
       <button class="btn sm" data-ea="reset" data-eid="${e.id}">Reset</button>
       <button class="btn sm" data-ea="tv" data-eid="${e.id}" title="Show the turn order on the player screen (TV). Monsters show as Bloodied or Down, never their HP.">${HOST.enc && HOST.enc.eid === e.id ? "📺 Off TV" : "📺 Show on TV"}</button>
+      ${window.Portal && Portal.cloud && Portal.isDM() ? `<button class="btn sm" data-ea="players" data-eid="${e.id}" title="Show the turn order on your players' phones. Monsters show as Bloodied or Down, never their HP.">${playersFight(c.id, e.id) ? "📱 Off players' phones" : "📱 Show players"}</button>` : ""}
       <span class="muted" style="font-size:14px">${e.round ? `Round <b>${e.round}</b>` : "Not started"}</span>
     </div>
     ${order.length ? `<div class="init-strip">${order.map(o => `<span class="init-chip ${o.foe ? "foe" : "pc"} ${o.down ? "down" : ""} ${e.turn === o.key ? "cur" : ""}">${e.turn === o.key ? "▶ " : ""}${esc(o.name)} <b>${o.init}</b></span>`).join("")}</div>` : ""}
@@ -894,6 +897,11 @@ campMain.addEventListener("click", async ev => {
   const c = curCamp(); if (!c) return;
   if (b.dataset.goenc !== undefined) { subTab = "encounters"; renderTracker(); const t = document.getElementById("encch-" + b.dataset.goenc); if (t) t.scrollIntoView({ behavior: "smooth", block: "start" }); return; }
   const a = b.dataset.ea, e = findEnc(c, b.dataset.eid);
+  if (a === "players" && e) {
+    if (playersFight(c.id, e.id)) { playersFightSet(null); toast("Turn order taken off your players' phones"); }
+    else { playersFightSet({ cid: c.id, eid: e.id }); toast("Your players see the turn order on their phones"); }
+    renderTracker(); return;
+  }
   if (a === "tv" && e) {
     if (HOST.enc && HOST.enc.eid === e.id) { HOST.enc = null; toast("Turn order taken off the TV"); }
     else { HOST.enc = { cid: c.id, eid: e.id }; if (HOST.show === "handout") { HOST.show = "map"; handoutUI(); } if (!HOST.on) hostStart(); toast("Turn order is on the TV"); }
@@ -967,3 +975,32 @@ function onEncField(ev, commit) {
 campMain.addEventListener("input", ev => onEncField(ev, false));
 campMain.addEventListener("change", ev => onEncField(ev, true));
 campMain.addEventListener("toggle", ev => { const d = ev.target; if (d.dataset && d.dataset.guide) { d.open ? openGuides.add(d.dataset.guide) : openGuides.delete(d.dataset.guide); } }, true);
+
+/* ======================= Shared with players (signed-in campaigns) =======================
+   The DM's browser publishes two things the whole campaign can read (src/portal.js, publishShared):
+   - journalFor(c): the party's Tracker campaign as players may see it: quests and session recaps (unless "Players see it" is
+     No), the calendar day and weather, and Lore entries ticked "Players see this" without their DM-only sections.
+     Quest notes, NPCs, encounters and everything else stay with the DM.
+   - turnsNow(): the fight the DM put on players' phones ("📱 Show players"): its name, round and tvInitRows (names, whose
+     turn, "Bloodied" or "Down"). Never HP numbers. null when no fight is shown or it's finished. */
+const PLAYERS_FIGHT_KEY = "dmforge.playersFight";
+function playersFightGet() { try { return JSON.parse(localStorage.getItem(PLAYERS_FIGHT_KEY) || "null"); } catch { return null; } }
+function playersFightSet(v) { if (v) localStorage.setItem(PLAYERS_FIGHT_KEY, JSON.stringify(v)); else localStorage.removeItem(PLAYERS_FIGHT_KEY); }
+function playersFight(cid, eid) { const f = playersFightGet(); return !!f && f.cid === cid && f.eid === eid; }
+function journalFor(c) {
+  if (!c) return null;
+  const seen = x => x && x.players !== "No";
+  const cal = c.cal && c.cal.weather ? { day: c.cal.day, season: cap1(calSeason(c.cal)), weather: c.cal.weather.text || "" } : null;
+  return {
+    name: c.name || "", cal,
+    quests: (c.quests || []).filter(seen).map(q => ({ id: q.id, title: q.title || "", status: q.status || "Active", giver: q.giver || "" })),
+    sessions: (c.sessions || []).filter(seen).map(x => ({ id: x.id, title: x.title || "", num: x.num || "", date: x.date || "", summary: x.summary || "" })),
+    lore: (c.lore || []).filter(x => x.shared).map(x => ({ id: x.id, name: x.name || "", type: x.type || "other", tags: x.tags || [], imgUrl: npcUrlOk(x.imgUrl) ? x.imgUrl : undefined, desc: x.desc || "",
+      sections: (x.sections || []).filter(z => !z.dm).map(z => ({ t: z.t || "", x: z.x || "" })) })),
+  };
+}
+function turnsNow() {
+  const f = playersFightGet(), c = f && Store.get(f.cid), e = c && findEnc(c, f.eid);
+  if (!e || e.status === "Done") return null;
+  return { name: e.name || "Fight", round: e.round || 0, rows: tvInitRows(c, e) };
+}

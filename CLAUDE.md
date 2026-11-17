@@ -34,7 +34,7 @@ Live site: https://dungeonmasterforge.netlify.app (Netlify; production branch `m
 | `src/portal.js` | Sign-in, campaigns, shared characters, the Party tab, whispers, homebrew sync. esbuild bundles it into `public/portal.js`. |
 | `src/sw.js` | The offline helper (service worker); built into `public/sw.js` with the list of files to keep. |
 | `netlify/functions/api.mjs` → `netlify/lib/api.mjs` | Campaign API at `/api/*`. `handle(req, user, db)` holds all the routes. `netlify/lib/diff.mjs` writes the activity feed text. |
-| `netlify/database/migrations/` | Postgres tables, applied automatically on deploy: `campaigns`, `members`, `characters` (versioned jsonb), `activity`, `whispers`, `homebrew`, and `user_docs` (each account's own Tracker, World, NPCs, custom items and monsters). |
+| `netlify/database/migrations/` | Postgres tables, applied automatically on deploy: `campaigns`, `members`, `characters` (versioned jsonb), `activity`, `whispers`, `homebrew`, `campaign_shared` (the players' Journal and turn order) and `user_docs` (each account's own Tracker, World, NPCs, custom items and monsters). |
 | `public/player.html` | The TV player screen. It shows only the pictures the DM's window sends. |
 | `public/manifest.webmanifest`, `public/icons/` | Install as an app (PWA). |
 | `public/vendor/pdfjs/` | pdf.js (`pdfjs-dist` 6.5.438 legacy build, Apache-2.0, unchanged), loaded only when someone imports a PDF. |
@@ -101,7 +101,7 @@ npm run build     # build the page and bundle the portal (what Netlify runs)
 npm run build:app # build the page only
 ```
 
-One check per feature (Playwright, any OS): `test:assets` (fingerprinted files, repeat visits, offline), `test:map`, `test:backup`, `test:tv`, `test:mapvis`, `test:mapio`, `test:shop`, `test:random`, `test:cards`, `test:mapenc`, `test:calendar`, `test:recap`, `test:sheet` (432 sheets vs the rules), `test:tokens`, `test:npcpic`, `test:hbspell`, `test:hbpend`, `test:import`, `test:layout`, `test:lore`, `test:mythweaver`, `test:campextras`, `test:npclib`, `test:world`, `test:setup` (builds the portal, port 8897), `test:sync` (the DM's data in their account, two devices, port 8896).
+One check per feature (Playwright, any OS): `test:assets` (fingerprinted files, repeat visits, offline), `test:map`, `test:backup`, `test:tv`, `test:mapvis`, `test:mapio`, `test:shop`, `test:random`, `test:cards`, `test:mapenc`, `test:calendar`, `test:recap`, `test:sheet` (432 sheets vs the rules), `test:tokens`, `test:npcpic`, `test:hbspell`, `test:hbpend`, `test:import`, `test:layout`, `test:lore`, `test:mythweaver`, `test:campextras`, `test:npclib`, `test:world`, `test:setup` (builds the portal, port 8897), `test:sync` (the DM's data in their account, two devices, port 8896), `test:share` (the players' Journal, turn order on phones, shared rolls; port 8895).
 
 Playwright and Chromium are pre-installed in cloud sessions. To test offline mode (no sign-in screen), run `localStorage.setItem('dmforge.offline','1')` in an init script.
 
@@ -115,6 +115,7 @@ Playwright and Chromium are pre-installed in cloud sessions. To test offline mod
 | `docs/features/dm-tools.md` | Shops, random encounters, calendar and weather, session recaps, backup and restore. |
 | `docs/features/import.md` | Character import (Companion App, PDF), pending homebrew, Lore and MythWeaver, campaign files with custom content. |
 | `docs/features/npcs-world.md` | NPC pictures, Your NPCs and imported monsters, the World tab. |
+| `docs/features/players-share.md` | What the DM shares with signed-in players: the Journal tab, turn order on phones (`📱 Show players`), shared rolls. |
 | `docs/features/layout.md` | Phone and laptop layout. |
 | `docs/features/accounts.md` | The DM setup screen, renaming a campaign, and **the DM's data saved to their account** (`Cloud`, `/api/me/docs`). |
 
@@ -123,7 +124,7 @@ Playwright and Chromium are pre-installed in cloud sessions. To test offline mod
 - Loading an older save goes through `pcEnsure`; new data fields need a migration there.
 - **When you add a new kind of saved data, add its localStorage key to `BACKUP_KEYS`.**
 - Use `totalLv(c)` rather than `c.level` for anything that depends on character level.
-- **Never send the TV map data, room key text or HP numbers.** It only gets finished pictures, and monster state as "Bloodied" or "Down".
+- **Never send the TV map data, room key text or HP numbers.** It only gets finished pictures, and monster state as "Bloodied" or "Down". The same goes for the turn order on players' phones (`turnsNow`), and the players' Journal never carries quest notes or DM-only Lore sections.
 
 ## Saved data
 
@@ -170,7 +171,7 @@ Playwright and Chromium are pre-installed in cloud sessions. To test offline mod
   - A PDF's portrait isn't imported.
   - Deleting a whole campaign leaves its NPCs' uploaded pictures in IndexedDB.
   - The tag-based sorting of MythWeaver "generic" lore is a best guess.
-- **Ideas not yet done:** a Campaign journal tab for players (quests, recaps, shared Lore); turn order on players' phones; sharing dice rolls with the DM; one shared sheet layout instead of two (`sheetHTML` and `renderRosterMain`); pictures in account saves (they're in backups now).
+- **Ideas not yet done:** one shared sheet layout instead of two (`sheetHTML` and `renderRosterMain`); pictures in account saves (they're in backups now).
 
 ## Gotchas found along the way
 
