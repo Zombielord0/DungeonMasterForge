@@ -148,24 +148,33 @@ const SHOPS = {
 const SHOP_ADJ = ["Gilded", "Crooked", "Silver", "Rusty", "Laughing", "Copper", "Old", "Wandering", "Hidden", "Black", "Lucky", "Sleeping"];
 const SHOP_MOODS = [["haggles hard and loves every minute of it", 1.15], ["fair and friendly", 1], ["gruff but honest", 1.05], ["desperate to sell before the rent is due", .85], ["greedy, all smiles", 1.25], ["old and forgetful, so prices wander", 0]];
 function shopNiceGp(v) { return v >= 20 ? Math.round(v) : v >= 1 ? Math.round(v * 10) / 10 : Math.max(.01, Math.round(v * 100) / 100); }
-function shopMake({ type, size, level, seed, ed }) {
+const SHOP_AMOUNT = { small: .5, normal: 1, large: 1.5 };
+/* rar: rarity ranks to stock (missing = Automatic); amount: small|normal|large; moodIx: index into SHOP_MOODS (missing = random).
+   With none of them set, the random calls are exactly as before, so older saved shops keep their stock. */
+function shopMake({ type, size, level, seed, ed, rar, amount, moodIx }) {
   itLoad();
-  const S = SHOPS[type] || SHOPS.general, r = makeRng("shop", seed, type, size, level, ed), lv = clamp(level || 1, 1, 20), si = { village: 0, town: 1, city: 2 }[size] ?? 1;
+  const rarOn = Array.isArray(rar) && rar.length > 0, amtOn = !!SHOP_AMOUNT[amount] && amount !== "normal", moodOn = Number.isInteger(+moodIx) && moodIx !== "" && moodIx !== null && moodIx !== undefined && SHOP_MOODS[+moodIx];
+  const key = ["shop", seed, type, size, level, ed]; if (rarOn) key.push("r" + rar.join(".")); if (amtOn) key.push("a" + amount); if (moodOn) key.push("m" + (+moodIx));
+  const S = SHOPS[type] || SHOPS.general, r = makeRng(...key), lv = clamp(level || 1, 1, 20), si = { village: 0, town: 1, city: 2 }[size] ?? 1;
   const maxRk = si === 0 ? 1 : si === 1 ? (lv >= 5 ? 2 : 1) : (lv >= 11 ? 3 : 2);
   const all = IT.data[ed] || IT.data["2024"], priced = x => x.gp !== null && x.gp !== undefined && +x.gp > 0;
-  const total = S.count[si];
+  const total = amtOn ? Math.max(1, Math.round(S.count[si] * SHOP_AMOUNT[amount])) : S.count[si];
   let nMagic = !S.magic ? 0 : S.magicShare ? Math.round(total * S.magicShare) : [0, r.int(0, 1), r.int(1, 3)][si];
-  const magicPool = S.magic ? r.shuffle(all.filter(x => x.kind === "magic" && x.rk >= 0 && x.rk <= maxRk && priced(x) && S.magic(x))) : [];
+  if (rarOn && S.magic) nMagic = Math.max(nMagic, 2);
+  const rkOk = x => rarOn ? rar.includes(x.rk) : x.rk >= 0 && x.rk <= maxRk;
+  const magicPool = S.magic ? r.shuffle(all.filter(x => x.kind === "magic" && rkOk(x) && priced(x) && S.magic(x))) : [];
   const gearPool = r.shuffle(all.filter(x => x.kind === "gear" && priced(x) && S.gear(x)));
-  nMagic = Math.min(nMagic, magicPool.length);
+  nMagic = Math.min(nMagic, total, magicPool.length);
   const picks = [...gearPool.slice(0, total - nMagic), ...magicPool.slice(0, nMagic)];
-  const mood = r.pick(SHOP_MOODS);
+  const mi = moodOn ? +moodIx : null, mood = moodOn ? SHOP_MOODS[mi] : r.pick(SHOP_MOODS);
   const stock = picks.map(x => {
     const k = mood[1] || (0.8 + r.f() * 0.4), gp = shopNiceGp(+x.gp * k);
     const qty = x.kind === "magic" ? 1 : x.g === "Weapons" || x.g === "Armor" ? r.int(1, 3) : r.int(2, 10);
     return { id: x.id, n: x.n, cat: x.cat, g: x.g || "", kind: x.kind, rk: x.rk, r: x.r, att: !!x.att, w: x.w || 0, gp, c: fmtGp(gp), qty };
   }).sort((a, b) => (a.kind === b.kind ? 0 : a.kind === "gear" ? -1 : 1) || a.n.localeCompare(b.n));
-  return { seed, type, size, level: lv, ed, name: `The ${r.pick(SHOP_ADJ)} ${r.pick(S.nouns)}`, label: S.label, keeper: fullName(r, r.pick(["male", "female"])), mood: mood[0], stock };
+  const out = { seed, type, size, level: lv, ed, name: `The ${r.pick(SHOP_ADJ)} ${r.pick(S.nouns)}`, label: S.label, keeper: fullName(r, r.pick(["male", "female"])), mood: mood[0], stock };
+  out.moodIx = SHOP_MOODS.indexOf(mood); if (rarOn) out.rar = rar.slice(); if (amtOn) out.amount = amount;
+  return out;
 }
 function shopLevelGuess() { const lv = PCS.roster.map(c => totalLv(c)).filter(Boolean); return lv.length ? Math.max(...lv) : 3; }
 function shopNew(keep) {
