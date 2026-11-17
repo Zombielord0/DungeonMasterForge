@@ -5,6 +5,7 @@
   "scripts": {
     "build": "esbuild src/portal.js --bundle --format=esm --target=es2020 --minify --outfile=public/portal.js",
     "test": "node --test test/*.test.mjs",
+    "test:all": "node tools/test-all.mjs",
     "dev": "esbuild src/portal.js --bundle --format=esm --alias:@netlify/identity=./test/e2e/fake-identity.js --outfile=.dev/portal-test.js --log-level=warning && node test/e2e/server.mjs .dev/portal-test.js 8899",
     "test:map": "node test/e2e/map-fog.cjs",
     "test:backup": "node test/e2e/backup.cjs",
