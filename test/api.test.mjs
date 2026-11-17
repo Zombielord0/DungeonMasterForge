@@ -152,8 +152,26 @@ test("full campaign flow", async (t) => {
     await call(DM, "DELETE", `campaigns/${cid}/homebrew/hb-sp`);
   });
 
+  await t.test("only the DM can rename the campaign", async () => {
+    assert.equal((await call(AVA, "PUT", `campaigns/${cid}`, { name: "Mine now" })).status, 403);
+    assert.equal((await call(DM, "PUT", `campaigns/${cid}`, { name: "   " })).status, 400);
+    const r = await call(DM, "PUT", `campaigns/${cid}`, { name: "  Embers of Velmor  " });
+    assert.equal(r.status, 200);
+    assert.equal(r.body.name, "Embers of Velmor");
+    const me = await call(AVA, "GET", "me");
+    assert.equal(me.body.campaigns.find(c => c.id === cid).name, "Embers of Velmor");
+    await call(DM, "PUT", `campaigns/${cid}`, { name: "Ashes of Velmor" });
+  });
+
   await t.test("DM can remove a player", async () => {
     await call(DM, "DELETE", `campaigns/${cid}/members/${BEN.id}`);
     assert.equal((await call(BEN, "GET", `campaigns/${cid}/characters`)).status, 403);
   });
+});
+
+test("a DM can create a campaign without naming it", async () => {
+  const r = await call({ id: "u-new", email: "new@example.com" }, "POST", "campaigns", {});
+  assert.equal(r.status, 201);
+  assert.equal(r.body.name, "New Campaign");
+  assert.equal(r.body.displayName, "DM");
 });

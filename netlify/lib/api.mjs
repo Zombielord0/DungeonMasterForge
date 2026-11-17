@@ -147,6 +147,15 @@ export async function handle(req, user, db) {
     const isDM = role === "dm";
     const dmOnly = () => { if (!isDM) throw new HttpError(403, "Only the DM can do that"); };
 
+    // ---- the campaign itself: the DM can rename it ----
+    if (!b && m === "PUT") {
+      dmOnly();
+      const p = await body(req), name = clean(p.name, 80);
+      if (!name) throw new HttpError(400, "Give the campaign a name");
+      await db.query("UPDATE campaigns SET name = $2 WHERE id = $1", [cid, name]);
+      return json({ id: cid, name });
+    }
+
     // ---- members ----
     if (b === "members" && !id && m === "GET") {
       dmOnly();

@@ -47,7 +47,7 @@ Live site: https://dungeonmasterforge.netlify.app (Netlify; production branch `m
 
 ```
 npm install
-npm test        # API tests (12 should pass)
+npm test        # API tests (14 should pass)
 npm run build   # bundle src/portal.js -> public/portal.js
 npm run test:backup  # backup and restore checks (Playwright, any OS)
 npm run test:tv  # turn order + handouts on the TV (Playwright, any OS)
@@ -72,6 +72,7 @@ npm run test:map  # map fog + TV player screen checks (Playwright, any OS)
 npm run test:campextras  # campaign export/import carries custom items, homebrew, monsters (Playwright, any OS)
 npm run test:npclib  # Your NPCs on the NPC tab, campaign tick boxes, MythWeaver monsters (Playwright, any OS)
 npm run test:world  # World tab: nested places, Lore links, NPCs by place, Tracker place tabs (Playwright, any OS)
+npm run test:setup  # DM setup screen: optional campaign name, Not now, rename (builds the portal, local copy on port 8897)
 npm run dev     # full local copy at http://localhost:8899 (any OS); stand-in sign-in, data wiped on Ctrl+C
 ```
 
@@ -163,14 +164,15 @@ Everything in the sections from "Dungeon Map looks" to "Tokens" below was built 
 - the sheet checks and tokens
 - backup and restore
 
-Everything from "Character import" to "World tab" below was built in one chat on 2026-11-16 and 17, on branch `ccr-c51c8c32-xn2c0j`. It's open as **draft PR #9**, which is **not merged**: the owner is trying it on the preview at `deploy-preview-9--dungeonmasterforge.netlify.app`. It contains:
+Everything from "Character import" to "DM setup screen" below was built in one chat on 2026-11-16 and 17, on branch `ccr-c51c8c32-xn2c0j`. It went in as **PR #9**, which the owner asked to merge to `main` on 2026-11-17 after trying it on the preview. It contains:
 - character import (Companion App and PDF), homebrew spells, and pending homebrew with DM approval
 - NPC pictures
 - the phone and laptop layout work
 - the Lore tab and MythWeaver campaign import
 - imported campaigns adding their custom items and spells to Items and Homebrew
 - Your NPCs on the NPC tab (with places), MythWeaver monsters in My monsters, and MythWeaver encounters in Encounters
-- the World tab (nested places linked to Lore, NPCs filed by place)
+- the World tab (nested places linked to Lore, NPCs filed by place, maps, the World builder)
+- the DM setup screen: optional campaign name, Not now, rename
 
 PR #8 (the expired sign-in fix) was merged before that chat.
 
@@ -581,19 +583,24 @@ PR #8 (the expired sign-in fix) was merged before that chat.
 - **Campaign files:** `campExtras(c)` adds `world`: the places the campaign uses, plus their ancestors. `campExtrasAdopt` merges them by id or name and remaps parents.
 - **Tests:** `npm run test:world` (`test/e2e/world.cjs`).
 
+## DM setup screen (2026-11-17)
+
+- **The setup screen** (`showSetup` in `src/portal.js`): `#dCamp` and `#dName` aren't required, with the placeholders "New Campaign" and "DM". The server already fills those in for blanks in `POST campaigns`.
+  - A user with no campaigns gets "Not now" (`#gLater` → `setupLater()`). It sets localStorage `dmforge.setupLater.<user id>` and enters browser mode while signed in.
+  - `enter()` honours the key. Creating or joining a campaign removes it.
+- **Rename:** `PUT /api/campaigns/:cid {name}` is DM-only (403 otherwise; 400 "Give the campaign a name" for a blank). The Account window (`openAccount`) has `#aRename` / `#aCampName` for the DM.
+  - Before renaming, it pins the party's Tracker campaign (`TRACKER_KEY`), because `trackerId` matches by name. It renames that Tracker campaign too if its name matched the old one.
+- **Tests:** `npm run test:setup` (`test/e2e/setup-screen.cjs`). It builds the portal with esbuild's JS API and starts `test/e2e/server.mjs` on port 8897. The two rename/create API tests are in `npm test`.
+
 ## Where things stand (end of the 2026-11-17 chat)
 
-- **Draft PR #9** holds all the 2026-11-16/17 work and is waiting for the owner to test the preview. Merge it only when they ask.
+- **PR #9** (all the 2026-11-16/17 work) was merged to `main` at the owner's request on 2026-11-17, which starts a production deploy. New work goes on a new branch with a new draft PR.
 - **The owner's order of import work:**
   1. Companion App import: done.
   2. Homebrew classes, for classes the Forge doesn't have, like Blood Hunter: **not started**. Imports with an unknown class are refused with a message for now.
   3. PDF import: done.
   4. MythWeaver: done.
-- **Optional campaign name on sign-up:**
-  - The owner said it was fixed on the live site "through Netlify".
-  - But `src/portal.js` on `main` still makes the name required, and no branch on GitHub has the fix.
-  - If the live site differs from `main`, the next deploy of `main` would undo it, so ask the owner where that fix lives.
-  - The shelved plan is `docs/superpowers/plans/2026-11-16-campaign-setup-optional.md`.
+- **Optional campaign name on sign-up:** done in code on 2026-11-17, before merging PR #9, following `docs/superpowers/plans/2026-11-16-campaign-setup-optional.md`. The owner had said it was fixed "through Netlify", but no code had it. See "DM setup screen" below.
 - **Small things left alone (the owner knows):**
   - Imported characters get a random gender.
   - PDF expertise beyond what the class grants is dropped without a note.

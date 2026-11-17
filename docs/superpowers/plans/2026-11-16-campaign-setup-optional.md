@@ -1,6 +1,6 @@
 # Optional Campaign Setup Implementation Plan
 
-> **Superseded (2026-11-16):** the owner says this was fixed on the live site through Netlify, so this plan is not being carried out.
+> **Done (2026-11-17):** carried out before merging PR #9, because no code had the fix the owner made through Netlify. (It was first shelved on 2026-11-16.)
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
