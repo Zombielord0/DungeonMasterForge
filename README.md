@@ -11,7 +11,7 @@ Live at https://dungeonmasterforge.netlify.app
 
 ## How the portals work
 
-- The DM signs in, creates a campaign and shares its join code.
+- The DM signs in, creates a campaign and shares its join code. The campaign name is optional (it's "New Campaign" until renamed), and the DM can rename it from the account button. **Not now** on the setup screen lets a new DM look around first.
 - Players create an account, enter the code once, and see: Characters, My Characters, Spells, Items, Whispers.
 - The DM sees every tool plus **Party**: every player's sheet (click to view or edit), an activity feed of changes, and whispers to one player.
 - The DM's **Homebrew** tab adds custom subclasses, backgrounds, feats and species. Everyone in the campaign sees them in the character creator, Level up window and feat list; only the DM can change them.
@@ -63,9 +63,74 @@ In **Campaign Tracker → Encounters**, pick where the party is and how hard the
 
 Each campaign in the **Campaign Tracker** has a **Calendar** tab. It shows the day, season, time and weather. Use the buttons for rests, the next morning or travelling several days, and new weather is rolled for each day. Pick the climate and starting season to suit your world. Rests, travel and your own notes are logged.
 
+## On phones
+
+The Forge works on phones as well as computers. On a phone the header is one slim line with a tab menu; it slides out of the way while you scroll or type and comes back when you scroll up (tap **▾ Show tabs** for the full header). On **My Characters** a jump bar takes you straight to HP, Attacks, Spells, Gear or Notes. On **Spells**, tap **Filters** to narrow the list. Buttons are bigger on touch screens, and pop-up windows always keep their buttons in view.
+
+## Importing characters
+
+On **My Characters**, press **⬆ Import character** and choose a character file from the **5e Companion App** (in the app, open the character and use Export or Share) or a **fillable PDF character sheet** (one you can still type into, like the official 5e sheet). Pick the 2014 or 2024 rules. You'll see what matched, what becomes homebrew and anything that couldn't come across, then press **Import**. The Forge keeps the character's ability scores, skills, gear, coins, spells and story, and works out the rest itself, so levelling up, rests and dice all work.
+
+Subclasses, species, backgrounds, feats and spells the Forge doesn't have are added to **Homebrew** automatically, with their rules text from the file. A PDF has only names, so homebrew made from a PDF has no rules text: add it in the Homebrew tab. A scanned or "flattened" PDF can't be read. If a player imports while signed in, that new homebrew waits for the DM: it appears under **Waiting for approval** on the DM's Homebrew tab, and only that player's character uses it until the DM approves it. If the DM doesn't approve a subclass, feat or spell, it's taken off the character; a species or background stays, with a note to choose another with the DM.
+
+## Lore and MythWeaver
+
+Each campaign in the **Campaign Tracker** has a **Lore** tab for places, items, monsters, encounters and anything else worth remembering. Search it, filter by type, tap an entry to read it, and use **+ Add entry** or **Edit** to write your own (you can use **bold**, *italic*, # headings and - lists). Parts marked 🔒 DM only are just for you. An entry with a picture link can be shown on the TV.
+
+To bring in a campaign from **MythWeaver**, export your account data from MythWeaver, then press **⬆ Import campaign** in the Campaign Tracker and choose the file. Tick the campaigns and characters you want. Sessions go to Sessions, NPCs to NPCs, everything else to Lore, and characters to My Characters. Your MythWeaver account details aren't kept. Importing the same campaign again updates it and keeps anything you added in the Forge. Lore is stored in this browser with the campaign, so it's in your 💾 Backup file; a big campaign takes a good share of the browser's space, and the import window tells you how much.
+
+## NPC pictures
+
+On a campaign's **NPCs** tab, every NPC has a picture frame. Press **🖼 Add picture…** to pick one from your computer, or **🔗 Link** to use a picture link that starts with https://. Press **📺 TV** to show it on the players' screen. Only the picture is shown, never the NPC's notes, and it keeps its shape. Pictures you add are kept on this computer (not in backups); links work anywhere.
+
 ## Session recaps
 
 On a campaign's **Sessions** tab, press **Write a recap**. It collects what has happened since the last recap: fights finished, XP, quests completed or failed, chapters, loot handed out, and the calendar's log. It saves all of that as a new session you can edit.
+
+## World
+
+- **The list on the left** has two views. **By type** groups your places into Cities, Towns, Taverns & inns, Shops, Temples, Dungeons and so on: click a group to open it. **Map** shows what's inside what. The box above them shows one campaign's places only (a place counts if it, or a place it's inside, is in that campaign).
+- **🛠 World builder** makes places for you:
+  - **Settlement:** a village, town or city, with its population, ruler, defences, what it's known for, rumours and a DM-only secret. It can add its inns, shops and temple (in districts, for a city) and its NPCs.
+  - **Inn or tavern:** quality, rooms and prices, a menu, rumours overheard at the bar, the innkeeper, staff and a regular.
+  - **Shop:** a real shop with stock and prices, as on the Items tab. **🛒 Open the shop** on its page lets characters buy from it.
+  - **Temple:** its god, its services and their prices, a DM-only trouble, and the priests.
+  - **Dungeon:** its history, what lives there, reasons to go in, a DM-only truth and a generated map.
+  - Press **🎲 Roll again** until you like it, then **✓ Add to World**. Choose **Inside** to put it in an existing place, and **Add to campaign** to put it (and its NPCs) in a campaign.
+
+The **World** tab is where you build your setting: regions, cities, towns, villages, districts, taverns, shops, temples, dungeons, wilderness and landmarks.
+
+- **+ Place** adds one. Give it a name, a type and a description, and choose what it's **Inside**, for example a tavern inside a district inside a city. The tree on the left shows how they nest; ▸ opens a place and ▾ closes it.
+- A place's page lists the **places inside** it and the **NPCs here**, including NPCs in the places inside it, grouped by where they are. **+ New NPC here** adds one, and **Move an NPC here** files an existing NPC there. Click an NPC to open it on the NPC tab.
+- **Map:** each place can have a map. **🖼 Upload a map picture…** (a city, a region or a battle map), **🎲 Generate a dungeon map**, or use the map that's open on the Dungeon Map tab. Click the map or press **Open on Dungeon Map** to add room notes, show it on the TV and reveal it with fog. On the Dungeon Map tab, **Save to a World place** keeps your changes with the place. Map pictures are kept on this computer, like other imported maps.
+- **In campaigns:** tick a campaign to show the place in that campaign's **Lore** tab. Editing it there or on the World tab changes both. Places already in your campaigns' Lore, including ones imported from MythWeaver, are added to the World by themselves. MythWeaver places are also put inside each other, worked out from their text: a tag naming another place, a Location section, or wording like "an inn in Riverford". A place only goes inside a bigger one, and anything you move yourself stays put.
+- Renaming a place renames it for every NPC and campaign. Deleting one moves the places and NPCs inside it up a level.
+- The World is saved in this browser and is in your 💾 Backup file. **Export JSON** on a campaign includes the places it uses, with their nesting.
+
+## Your NPCs
+
+The **NPC** tab lists every NPC from all your campaigns under **Your NPCs**, with a tick box for each campaign:
+
+- Tick a campaign to put that NPC in it. An NPC can be in several campaigns at once.
+- Click an NPC's name to change its name, role, attitude or notes. A change made here, or in a campaign's NPCs tab in the Campaign Tracker, shows in every campaign that NPC is in. So does its picture.
+- **Places:** use **📍 Move to…** on an NPC to file it under a place from the **World** tab, or **＋ New place…** to make one. The tabs above the list show one place at a time (a city's tab includes the places inside it), or **No place** for NPCs not filed yet. The Campaign Tracker's NPCs tab has the same tabs and a place picker on each NPC.
+- Untick every campaign and the NPC stays in the list, marked "Not in a campaign". **+ New NPC** adds one there (or straight into the campaign you're viewing).
+- **✕** deletes an NPC from every campaign.
+- Search the list, or show one campaign's NPCs only.
+- NPCs you summon and **Save to campaign**, and NPCs from an imported campaign, appear here too. MythWeaver NPCs tagged with one of the campaign's places are filed under it.
+
+## Items and spells from imported campaigns
+
+When you bring in a campaign with **⬆ Import campaign** in the Campaign Tracker, its custom items and spells come along, so you can hand them out:
+
+- **Custom items** appear in **Items → Custom**. Choose a character in "Give items to" and press **Give** or **Buy**.
+- **Spells** appear in **Homebrew** (only the DM can add homebrew when signed in), and then in the spell lists.
+- **From MythWeaver**, entries filed as items become custom items, entries filed or tagged as spells become homebrew spells, and monsters go to **Monster Manual → My monsters**. A monster whose MythWeaver text has a stat block (AC, hit points and the six scores) gets its numbers, traits and actions; one without is marked **needs stats** for you to finish in **Build a monster**. They all stay in Lore too. DM-only notes aren't copied onto them. Untick **Items, spells and monsters** in the import window to skip this.
+- **Forge campaign files**: **Export JSON** saves your custom items, homebrew and custom monsters with the campaign, and importing the file adds them back. Monsters go to **Monster Manual → My monsters**. Files exported before 17 November 2026 don't hold these, so export them again first.
+
+- **MythWeaver encounters** also go to the campaign's **Encounters** tab, ready to run. Monsters the text names, like "three goblins and a bugbear", are added with their AC and HP from the Monster Manual or your own monsters. They're read from the text, so check them.
+
+Anything you already have isn't added twice, and importing the same MythWeaver campaign again updates its items.
 
 ## Keeping a backup
 

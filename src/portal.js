@@ -17,7 +17,7 @@ const OFFLINE_KEY = "dmforge.offline";
 const CAMP_KEY = "dmforge.campaign";
 const LAST_KEY = "dmforge.lastCampaign."; // + user id: the campaign and role from last visit
 const OFFERED_KEY = "dmforge.uploadOffered.";
-const ALL_VIEWS = ["generate", "npc", "monsters", "character", "roster", "spells", "feats", "items", "map", "tracker", "homebrew"];
+const ALL_VIEWS = ["generate", "npc", "world", "monsters", "character", "roster", "spells", "feats", "items", "map", "tracker", "homebrew"];
 const PLAYER_VIEWS = ["character", "roster", "spells", "feats", "items", "whispers"];
 const POLL_DM = 4000, POLL_PLAYER = 10000, POLL_WHISPERS = 8000, POLL_HOMEBREW = 30000;
 
@@ -178,24 +178,28 @@ function showSetup(note = "") {
     </form>
     <form id="dmForm" class="gate-sec">
       <h3>Run a campaign as DM</h3>
-      <div class="row"><div class="field"><label for="dCamp">Campaign name</label><input type="text" id="dCamp" maxlength="80" required></div>
-      <div class="field"><label for="dName">Your name</label><input type="text" id="dName" maxlength="40" value="${esc(name)}" required></div></div>
+      <div class="row"><div class="field"><label for="dCamp">Campaign name</label><input type="text" id="dCamp" maxlength="80" placeholder="New Campaign"></div>
+      <div class="field"><label for="dName">Your name</label><input type="text" id="dName" maxlength="40" value="${esc(name)}" placeholder="DM"></div></div>
+      <p class="muted" style="margin:4px 0 8px">Both are optional, and you can rename the campaign later from the account button.</p>
       <button class="btn wide" type="submit">Create campaign</button>
     </form>
     <p class="gate-err" role="alert" hidden></p>
     <div class="gate-links">${S.campaigns.length ? `<button class="linkish" type="button" data-g="back">Back to ${esc(S.camp ? S.camp.name : S.campaigns[0].name)}</button>` : ""}
-      <button class="linkish" type="button" data-g="out">Sign out</button></div>`);
+      <button class="linkish" type="button" data-g="out">Sign out</button></div>
+    ${S.campaigns.length ? "" : `<div class="gate-foot"><button class="linkish" type="button" id="gLater">Not now: use the DM tools in this browser</button>
+      <small class="muted">You can start or join a campaign later from the account button.</small></div>`}`);
+  const later = g.querySelector("#gLater"); if (later) later.onclick = setupLater;
   g.querySelector("#joinForm").onsubmit = async e => {
     e.preventDefault(); gateError(g, ""); busy(e.target, true);
     const r = await api("join", { method: "POST", body: { code: $("#jCode").value, displayName: $("#jName").value } });
     if (!r.ok) { gateError(g, r.data.error || "Couldn't join just now"); busy(e.target, false); return; }
-    localStorage.setItem(CAMP_KEY, r.data.id); await enter();
+    localStorage.removeItem(LATER_KEY + S.user.id); localStorage.setItem(CAMP_KEY, r.data.id); await enter();
   };
   g.querySelector("#dmForm").onsubmit = async e => {
     e.preventDefault(); gateError(g, ""); busy(e.target, true);
     const r = await api("campaigns", { method: "POST", body: { name: $("#dCamp").value, displayName: $("#dName").value } });
     if (!r.ok) { gateError(g, r.data.error || "Couldn't create the campaign"); busy(e.target, false); return; }
-    localStorage.setItem(CAMP_KEY, r.data.id); await enter();
+    localStorage.removeItem(LATER_KEY + S.user.id); localStorage.setItem(CAMP_KEY, r.data.id); await enter();
   };
   g.querySelector(".gate-links").onclick = async e => {
     const k = e.target.closest("[data-g]"); if (!k) return;
@@ -215,6 +219,13 @@ async function dropSession() {
   if (S.localRoster) { PCS.roster = S.localRoster; S.localRoster = null; RC.id = null; }
   applyMode(null); rerender(true); acctButton();
   if (typeof setBadge === "function") setBadge();
+}
+
+/* "Not now" on the setup screen: stay signed in but use the DM tools in this browser, until a campaign is made or joined */
+const LATER_KEY = "dmforge.setupLater.";
+function setupLater() {
+  if (S.user) localStorage.setItem(LATER_KEY + S.user.id, "1");
+  closeGate(); unhide(); applyMode(null); acctButton();
 }
 
 function goOffline() {
@@ -249,11 +260,32 @@ function openAccount() {
   const g = gate(`
     <p class="muted">Signed in as ${esc(S.user.email)}.</p>
     ${S.camp ? `<p>In <b>${esc(S.camp.name)}</b> as ${isDM() ? "the DM" : "a player"}.</p>` : ""}
+    ${S.camp && isDM() ? `<form id="aRename" class="gate-sec"><h3>Rename the campaign</h3>
+      <div class="row"><div class="field"><label for="aCampName">Campaign name</label><input type="text" id="aCampName" maxlength="80" value="${esc(S.camp.name)}"></div></div>
+      <button class="btn wide" type="submit">Rename</button></form>
+      <p class="gate-err" role="alert" hidden></p>` : ""}
     ${others.length ? `<div class="gate-sec"><h3>Switch campaign</h3>${others.map(c =>
       `<button class="camp-item" type="button" data-sw="${esc(c.id)}"><b>${esc(c.name)}</b><small>${c.role === "dm" ? "DM" : "Player"}</small></button>`).join("")}</div>` : ""}
     <div class="gate-links"><button class="linkish" type="button" data-g="setup">Join or start another campaign</button>
       <button class="linkish" type="button" data-g="out">Sign out</button>
       <button class="linkish" type="button" data-g="close">Close</button></div>`);
+  const rn = g.querySelector("#aRename");
+  if (rn) rn.onsubmit = async e => {
+    e.preventDefault(); gateError(g, "");
+    const name = $("#aCampName").value.replace(/\s+/g, " ").trim().slice(0, 80), old = S.camp.name;
+    if (!name) { gateError(g, "Give the campaign a name"); return; }
+    if (name === old) { closeGate(); return; }
+    const tid = trackerId(); if (tid) localStorage.setItem(TRACKER_KEY + S.camp.id, tid); /* keep the party's Tracker campaign linked */
+    busy(rn, true);
+    const r = await api("campaigns/" + S.camp.id, { method: "PUT", body: { name } });
+    busy(rn, false);
+    if (!r.ok) { gateError(g, r.data.error || "Couldn't rename the campaign"); return; }
+    S.camp.name = r.data.name; const c = S.campaigns.find(x => x.id === S.camp.id); if (c) c.name = r.data.name;
+    try { localStorage.setItem(LAST_KEY + S.user.id, JSON.stringify(S.camp)); } catch { }
+    const t = tid && Store.get(tid); if (t && String(t.name || "").trim() === old.trim()) { t.name = r.data.name; Store.save(t); if (typeof renderCampList === "function") renderCampList(); }
+    acctButton(); closeGate(); toast(`Renamed to “${r.data.name}”`);
+    if (location.hash === "#party") renderParty();
+  };
   g.querySelector(".gate-box").onclick = async e => {
     const sw = e.target.closest("[data-sw]");
     if (sw) { localStorage.setItem(CAMP_KEY, sw.dataset.sw); location.reload(); return; }
@@ -308,7 +340,7 @@ async function enter() {
   const want = localStorage.getItem(CAMP_KEY);
   S.camp = S.campaigns.find(c => c.id === want) || S.campaigns[0] || null;
   acctButton();
-  if (!S.camp) { showSetup(); return; }
+  if (!S.camp) { if (localStorage.getItem(LATER_KEY + S.user.id)) setupLater(); else showSetup(); return; }
   localStorage.setItem(CAMP_KEY, S.camp.id);
   try { localStorage.setItem(LAST_KEY + S.user.id, JSON.stringify(S.camp)); } catch { }
   closeGate(); unhide();
@@ -510,7 +542,7 @@ function partyCard(c) {
   const hp = c.hpCur ?? c.hp;
   const low = c.hp && hp / c.hp <= 0.35;
   return `<button class="party-card" type="button" data-open="${esc(c.id)}">
-    <b>${esc(c.name)}</b> <small class="muted">${esc(o.id === S.user.id ? "DM" : o.name || "")}</small>
+    <b>${esc(c.name)}</b> <small class="muted">${esc(o.id === S.user.id ? "DM" : o.name || "")}</small>${(c.hbPending || []).some(e => !e.rejected) ? ` <span class="tag gold">${(c.hbPending || []).filter(e => !e.rejected).length} homebrew to approve</span>` : ""}
     <span class="pc-line">Lv ${esc(c.level)} ${esc(c.race || "")} ${esc(c.cls || "")}</span>
     <span class="pc-stats"><span class="${low ? "hp-low" : ""}">HP ${esc(hp)}/${esc(c.hp)}</span><span>AC ${esc(c.ac)}</span></span>
     ${last ? `<small class="muted">● edited ${esc(ago(last.at))}</small>` : ""}

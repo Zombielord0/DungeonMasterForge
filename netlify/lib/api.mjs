@@ -6,7 +6,7 @@ import { describeChange } from "./diff.mjs";
 const MAX_SHEET_BYTES = 300_000;
 const MAX_WHISPER = 2000;
 const MAX_HOMEBREW_BYTES = 50_000;
-const HOMEBREW_KINDS = ["subclass", "background", "feat", "species"];
+const HOMEBREW_KINDS = ["subclass", "background", "feat", "species", "spell"];
 const MERGE_WINDOW = "60 seconds";
 const CODE_CHARS = "ABCDEFGHJKMNPQRSTUVWXYZ23456789"; // no 0/O, 1/I/L
 
@@ -146,6 +146,15 @@ export async function handle(req, user, db) {
     const role = await roleIn(db, cid, user.id);
     const isDM = role === "dm";
     const dmOnly = () => { if (!isDM) throw new HttpError(403, "Only the DM can do that"); };
+
+    // ---- the campaign itself: the DM can rename it ----
+    if (!b && m === "PUT") {
+      dmOnly();
+      const p = await body(req), name = clean(p.name, 80);
+      if (!name) throw new HttpError(400, "Give the campaign a name");
+      await db.query("UPDATE campaigns SET name = $2 WHERE id = $1", [cid, name]);
+      return json({ id: cid, name });
+    }
 
     // ---- members ----
     if (b === "members" && !id && m === "GET") {

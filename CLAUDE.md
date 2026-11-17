@@ -11,6 +11,11 @@ These are project notes for the next chat (human or Claude). They cover what the
 - Explain things plainly. The owner tests in the browser rather than reading code.
 - Don't open pull requests unless asked.
 - Pushing to a pull request's branch starts a Netlify **deploy preview**, which also uses build credits. Push when the work is ready or when asked, rather than after every small change. Cloud sessions have a stop hook that asks for unpushed commits to be pushed.
+- **Test on preview pages, not the live site (owner, 2026-11-16).**
+  - Work goes on a branch with a **draft** pull request into `main`, so Netlify builds a deploy preview the owner can try in the browser (`deploy-preview-<PR number>--dungeonmasterforge.netlify.app`).
+  - Run the automated checks locally first, and push in batches: one preview build per finished piece of work.
+  - Merge to `main` (a production build) only when the owner has tried the preview and asks.
+  - Previews may use their own copy of the campaign database, so test there with fresh accounts and campaigns.
 
 ## What the app is
 
@@ -22,7 +27,7 @@ Live site: https://dungeonmasterforge.netlify.app (Netlify; production branch `m
 
 | Path | What it is |
 | --- | --- |
-| `public/index.html` | The whole app on one page: vanilla JS with global functions (~10,300 lines). Most feature work happens here. |
+| `public/index.html` | The whole app on one page: vanilla JS with global functions (~11,350 lines). Most feature work happens here. |
 | `src/portal.js` | Sign-in, campaigns, shared characters, the Party tab, whispers, homebrew sync. esbuild bundles it into `public/portal.js`, which is gitignored and never edited by hand. |
 | `netlify/functions/api.mjs` → `netlify/lib/api.mjs` | Campaign API at `/api/*`. `handle(req, user, db)` holds all the routes. `netlify/lib/diff.mjs` writes the activity feed text. |
 | `netlify/database/migrations/` | Postgres tables, applied automatically on deploy: `campaigns`, `members`, `characters` (versioned jsonb), `activity`, `whispers`, `homebrew`. |
@@ -32,13 +37,17 @@ Live site: https://dungeonmasterforge.netlify.app (Netlify; production branch `m
 | `public/manifest.webmanifest`, `public/sw.js`, `public/icons/` | Install as an app (PWA). See item 27. |
 | `public/player.html` | The TV player screen. It shows only the pictures the DM's window sends. |
 | `test/e2e/*.cjs` | Self-contained Playwright checks for each feature (`npm run test:…`). Each starts its own static server and needs no database. |
-| `docs/superpowers/` | The design and plan for the Dungeon Map upgrade. |
+| `test/e2e/fixtures/` | Test files: `companion-zook.json` (a real 5e Companion App character, no personal details), `sheet-wizard.pdf` (made up) and `mythweaver-sample.json` (made up). Never commit players' own files or the owner's MythWeaver export: it holds their email. |
+| `public/vendor/pdfjs/` | pdf.js (`pdfjs-dist` 6.5.438 legacy build, Apache-2.0, unchanged), loaded only when someone imports a PDF. |
+| `tools/make-test-sheet.py` | Writes `test/e2e/fixtures/sheet-wizard.pdf` with the official sheet's field names and spell positions (needs pypdf). |
+| `docs/superpowers/` | One design (`specs/`) and one plan (`plans/`) per piece of work, dated. Read the matching pair before changing a feature. |
+| `.superpowers/` | Scratch space for build sessions (gitignored). Nothing there is needed. |
 
 ## Commands
 
 ```
 npm install
-npm test        # API tests (11 should pass)
+npm test        # API tests (14 should pass)
 npm run build   # bundle src/portal.js -> public/portal.js
 npm run test:backup  # backup and restore checks (Playwright, any OS)
 npm run test:tv  # turn order + handouts on the TV (Playwright, any OS)
@@ -52,7 +61,18 @@ npm run test:calendar  # calendar and weather (Playwright, any OS)
 npm run test:recap  # session recaps (Playwright, any OS)
 npm run test:sheet  # character sheet maths vs the rules, 432 sheets (Playwright, any OS)
 npm run test:tokens  # tokens on the TV map (Playwright, any OS)
+npm run test:layout  # phone, tablet and laptop layout: windows, header, tap sizes, jump bar (Playwright, any OS)
+npm run test:lore  # the Tracker's Lore tab (Playwright, any OS)
+npm run test:mythweaver  # MythWeaver campaign import and the Import campaign window (Playwright, any OS)
+npm run test:import  # character import: Companion App files and the Import window (Playwright, any OS)
+npm run test:hbspell  # homebrew spells (Playwright, any OS)
+npm run test:hbpend  # pending homebrew and the DM's approval queue (Playwright, any OS)
+npm run test:npcpic  # NPC pictures: upload, link, TV without distortion (Playwright, any OS)
 npm run test:map  # map fog + TV player screen checks (Playwright, any OS)
+npm run test:campextras  # campaign export/import carries custom items, homebrew, monsters (Playwright, any OS)
+npm run test:npclib  # Your NPCs on the NPC tab, campaign tick boxes, MythWeaver monsters (Playwright, any OS)
+npm run test:world  # World tab: nested places, Lore links, NPCs by place, Tracker place tabs (Playwright, any OS)
+npm run test:setup  # DM setup screen: optional campaign name, Not now, rename (builds the portal, local copy on port 8897)
 npm run dev     # full local copy at http://localhost:8899 (any OS); stand-in sign-in, data wiped on Ctrl+C
 ```
 
@@ -62,6 +82,8 @@ Playwright and Chromium are pre-installed in cloud sessions. To test offline mod
 
 - **In the browser** (also used by "Use without an account"):
   - `dmforge.pcs.v1` (characters), `dmforge.campaigns.v1`, `dmforge.homebrew.v1`, `dmforge.items.v1`, `dmforge.mymonsters.v1`, `dmforge.favspells` and `dmforge.offline`.
+  - `dmforge.npclib.v1`: NPCs that aren't in any campaign (Your NPCs on the NPC tab).
+  - `dmforge.world.v1`: World places (the World tab).
   - `dmforge.fog.v1`: map fog, found secret doors and tokens for the 40 most recent maps.
   - `dmforge.lastBackup`.
   - **Imported map pictures** are in IndexedDB (database `dmforge-maps`), not localStorage.
@@ -72,6 +94,11 @@ Playwright and Chromium are pre-installed in cloud sessions. To test offline mod
   - Encounters: `kind` ("random" or "map"), `room` and `recapped`.
   - Quests: `recappedAs`. Loot and chapters: `recapped`.
   - Map entries: `style`, `fog`, `found` and `tokens`, plus `kind:"image"` records for imported maps.
+- **Fields added on 2026-11-16 and 17:**
+  - Campaigns: `lore` (the Lore tab), and `mwId`/`mwAt` on campaigns imported from MythWeaver. NPCs and lore entries can carry `mwId` too.
+  - Tracker NPCs: `img` (an uploaded picture, key `npc-<npc id>` in the `dmforge-maps` IndexedDB) or `imgUrl` (an https link).
+  - Characters: `hbPending` (homebrew waiting for the DM), `importedFrom: {app, at}` and `mwId`.
+  - Homebrew can be `kind: "spell"`.
 - **Signed in:** characters and homebrew live in Postgres, per campaign. Homebrew is polled every 30 seconds. Every character save bumps `version`, so if two people save the same sheet at once, the second one is asked which version to keep.
 
 ## Feature history (oldest first)
@@ -136,6 +163,18 @@ Everything in the sections from "Dungeon Map looks" to "Tokens" below was built 
 - the calendar and session recaps
 - the sheet checks and tokens
 - backup and restore
+
+Everything from "Character import" to "DM setup screen" below was built in one chat on 2026-11-16 and 17, on branch `ccr-c51c8c32-xn2c0j`. It went in as **PR #9**, which the owner asked to merge to `main` on 2026-11-17 after trying it on the preview. It contains:
+- character import (Companion App and PDF), homebrew spells, and pending homebrew with DM approval
+- NPC pictures
+- the phone and laptop layout work
+- the Lore tab and MythWeaver campaign import
+- imported campaigns adding their custom items and spells to Items and Homebrew
+- Your NPCs on the NPC tab (with places), MythWeaver monsters in My monsters, and MythWeaver encounters in Encounters
+- the World tab (nested places linked to Lore, NPCs filed by place, maps, the World builder)
+- the DM setup screen: optional campaign name, Not now, rename
+
+PR #8 (the expired sign-in fix) was merged before that chat.
 
 15. **Collapsible toolbar and character sheet upgrade** (PR #5, branch `ccr-ee7865d5-1wx9vg`)
     - **Toolbar:** "▴ Hide tabs" collapses the header (`dmforge.hdrMini`, the `hdr-mini` class on `<html>`); the strip has a tab menu (`hdrSync`).
@@ -392,6 +431,184 @@ Everything in the sections from "Dungeon Map looks" to "Tokens" below was built 
 - **Downloads:** `saveFile` now falls back to a normal browser download (Blob and `<a download>`) when the Claude `downloads` helper isn't there. Before this, Download PNG and Export JSON did nothing on the website.
 - **Tests:** `npm run test:backup` (`test/e2e/backup.cjs`).
 
+## Character import (2026-11-16)
+
+- **Design and plan:** `docs/superpowers/specs/2026-11-16-companion-import-design.md` and `docs/superpowers/plans/2026-11-16-character-import.md`.
+- **Readers make a Draft:** `{src, opts, final, extras, homebrew, report:{matched, made, differ, dropped}, appSaves?}`.
+  - `compImport(json, ed)` reads the 5e Companion App's export (JSON, `jsonType:"character"`). Its `allRequiredClasses.jobs`, `requiredRace` and `requiredBackground` are JSON strings holding the full rules text.
+  - Unknown classes refuse the import. An unknown subclass, species, background, feat or spell becomes a homebrew entry (`src: "5e Companion App"`), unless a homebrew entry with that name already exists (`impHave`).
+  - Gear goes through `impGear` (counts like "20 Arrows", `eqGear` with extra tries). If the app marks nothing as equipped, weapons and armor start equipped.
+  - `opts` always has `bonus: "fixed"`, so a level-up keeps the species bonus (`pcLevelTo` defaults to "flex").
+- **`importBuild(draft)`** applies the draft's homebrew as pending for the build only, then solves the base scores so the final scores equal `final` (they can go below 3). It returns `{c, report}` without saving. Imported characters have `kitMoved`, `goldAdded` and `importedFrom: {app, at}`.
+- **`importCommit(draft, c)`:** a signed-in player (`impPlayer()`) gets `c.hbPending` and nothing goes to the campaign. Otherwise each entry goes through `hbPut`.
+- **The window** is `#impCharModal`, opened by `#impCharBtn` on My Characters: rules choice `impEd`, `#impCharFile`, summary `#impCharOut` (`impSummaryHTML`), and `#impCharGo`/`#impCharCancel`. `impCharRead` picks the reader by content: `%PDF-` goes to `pdfImport`.
+- **Homebrew spells:** `kind: "spell"` (also in the API's `HOMEBREW_KINDS`) with `l, s, c, t, r, cp, m, du, co, ri, h` and `desc`. `hbSpellsApply()` appends them to `SP.data` (`hb: true`) after the built-ins; `spPrep` is the shared per-spell setup. Homebrew text limits are 4000 characters.
+- **Pending homebrew:**
+  - It's stored on the character as `c.hbPending`. `hbPendSync()` (run from `renderRoster`) gathers it into `HB.pend`, each with `pend: true` and `from: [{id, name}]`.
+  - `hbAny(kind)` is used wherever a character is built. `hbOf(kind)` and every picker (`raceList`, `bgList`, `subclassList`, `featList` and the spell lists) leave pending out.
+  - `pendKey(x)` = `kind|cls|name`. The DM's queue is `hbPendHTML()` (`#hbPendBox`, rows `data-pendrow`, buttons `data-pendact`); `hbApprove` and `hbReject` act on it.
+  - Rejecting a subclass, feat or spell takes it off the character. A species or background stays, with `rejected: true`, and the sheet shows `hbRejectedHTML`.
+  - Party cards show "N homebrew to approve".
+- **PDF sheets:**
+  - `pdfFields(buf)` loads pdf.js on demand from `public/vendor/pdfjs/` (legacy build of `pdfjs-dist` 6.5.438, Apache-2.0, unchanged; `netlify.toml` serves its `.mjs` as JavaScript). It reads each page's widgets with `getAnnotations()`; `getFieldObjects()` came back empty in this version. It returns `{fields:{name: value}, pos:{name:{page, x, y, x2, y2}}}`, and checked boxes read "Yes".
+  - `pdfImport(F, ed)` maps the official sheet's field names, ignoring spaces and case (`Race `, `DEXmod `):
+    - Check Box 11/18–22 are the saves; 23–40 are the skills in alphabetical order.
+    - Expertise is inferred from a skill's number.
+    - A spell line's level comes from its position: the nearest `SlotsTotal 19…27` header above it in the same column (`pdfSpellLevel`).
+    - The subrace is guessed from the trait names in Features and Traits.
+    - Unknown names become name-only homebrew.
+    - `D.check` holds HP, AC, speed and spell DC, which `importBuild` compares after `pcRecompute`.
+  - `spellMatch` is lenient. It ignores text in brackets and compares letters only, then tries a prefix (6+ letters), then an edit distance of 2. It also tries again without a leading wizard's name ("Tensers Floating Disc" → Floating Disk).
+- **Tests:** `npm run test:import` (`test/e2e/char-import.cjs` plus `char-import-ui.cjs` and `char-import-pdf.cjs`), `npm run test:hbspell` and `npm run test:hbpend`.
+  - The fixtures are `test/e2e/fixtures/companion-zook.json` and `sheet-wizard.pdf`. The PDF is made by `python tools/make-test-sheet.py` (needs pypdf) with the official sheet's names and spell positions.
+  - Players' own PDFs aren't committed.
+
+## NPC pictures (2026-11-16)
+
+- **Data.** A Tracker NPC can have `img` (a key `npc-<npc id>` in the `MAPIMG` IndexedDB, the same store as imported map pictures) or `imgUrl` (https only, checked by `npcUrlOk`). Setting one removes the other. Uploads are shrunk to `NPC_PIC_MAX` (2048 px).
+- **Functions.** `npcPicHTML(it)` draws the frame inside the NPC list item (`.npc-row`, `.npc-body`); `npcPicFill()` loads stored pictures into object URLs, or says "Picture not on this device". The buttons are `data-npcpic="add|link|tv|clear"` and the hidden file input is `#npcPicFile`. `npcPicSet`, `npcPicLink`, `npcPicClear` and `npcPicTV` do the work. `MAPIMG.del` was added, and deleting an NPC deletes its stored picture.
+- **On the TV** it's a handout (`handoutShow`), started with `hostStart` if needed. Only the picture is sent. The player screen already letterboxes every picture (`Math.min` scale), so nothing is stretched; the frame uses `object-fit: contain`.
+- Pictures aren't in backups (like map pictures). A link from a site without CORS can be shown in the frame but can't be sent to the TV; the toast says to upload it instead.
+- **Tests:** `npm run test:npcpic` (`test/e2e/npc-pictures.cjs`).
+- **Campaign saves are written 600 ms after a change** (`Store.save`). Tests that reload must wait for that first.
+
+## Phone and laptop layout (2026-11-17)
+
+- **Design and plan:** `docs/superpowers/specs/2026-11-17-phone-and-laptop-layout-design.md` and `docs/superpowers/plans/2026-11-17-phone-and-laptop-layout.md`.
+- **Who uses what:** players use their sheets on phones mid-fight; the DM runs the map on a laptop. Laptop and mouse layouts must not change.
+- **Pop-up windows:**
+  - `#modal`, `#backupModal`, `#impCharModal`, `#lvModal`, `#featModal`, `#choiceModal` and `#actModal` cap their `.box` at `calc(100dvh - 24px - safe areas)` (with a `vh` line first) and scroll inside.
+  - The box's last child that holds buttons is `position:sticky; bottom` (one CSS rule using `:has(button)`), so new windows get this for free if their buttons are the last row.
+  - `newsOpen` sets the What's new panel's `max-height` from where it opens. Its `top` comes from the bell, measured from where the phone header ends up.
+- **Phone header (600 px and under):**
+  - The slim `hdr-mini` look is applied by media query unless `hdr-full` is set ("▾ Show tabs", this visit only; the stored `dmforge.hdrMini` is for computers).
+  - `hdrAuto()` toggles `hdr-away` on `<html>`. It hides after scrolling down past the header's height, shows after 24 px of scroll-up or within 80 px of the top, and hides while a form field outside the header has focus.
+  - It stays shown while What's new is open. `hdrHold` ignores scrolling for 500 ms after Show tabs, because the page shifts.
+- **Bottom of the page:**
+  - `main` has `96px` + safe-area bottom padding, so the 🎲 Rolls dock never covers the last control.
+  - The toast sits at `76px` + safe area and is hidden with opacity. `viewport-fit=cover` is on in `index.html` and `player.html`.
+- **Touch (`pointer:coarse`):** `.btn.sm`, `.icon-btn`, `.cond`, `.chip` and `.ctr-b` are at least 40 × 40, `label.check` rows are 40 px, and the sheet labels are 12.5 px.
+- **Jump bar:** `sheetJumpHTML(c)` makes `#sheetJump` (a div, not a `nav`, because the header's `nav a` styles would apply) at the top of the My Characters sheet. It's shown at 600 px and under and sticky under the header. Links are `[data-jump]` to `#sec-hp`, `#sec-attacks`, `#sec-spells`, `#sec-gear` and `#sec-notes`, with `scroll-margin-top`.
+- **Spells on phones:** the filters sit inside `#spFilters`, closed unless `#spForm.filters-open`. `#spFiltersBtn` shows "▾ Filters · N on" (`spFilterCount`, `spFiltersSync`).
+- **Grid columns** (`.layout>*`, `.tlayout>*`) have `min-width:0`, so wide content scrolls inside instead of widening the page.
+- **Tests:** `npm run test:layout` (`test/e2e/layout.cjs`) runs at 390 × 640 touch, 768 × 1024 touch, 1366 × 768 mouse and 844 × 390 touch. `MOUSE_H` holds the mouse heights of the small controls, which must not change.
+
+## Lore tab and MythWeaver import (2026-11-17)
+
+- **Design and plan:** `docs/superpowers/specs/2026-11-17-mythweaver-import-design.md` and `docs/superpowers/plans/2026-11-17-mythweaver-import.md`.
+- **Lore:** `c.lore = [{id, mwId?, name, type, tags[], imgUrl?, desc, sections:[{t, x, dm}], src?}]`.
+  - Types are in `LORE_TYPES` (place, item, monster, encounter, other). `blankCampaign` and the Forge campaign import add `lore: []`, and `renderTracker` makes sure older campaigns have it.
+  - The tab is `subTab === "lore"` → `loreHTML(c)`, with UI state in `LORE` (q, type, open, edit, draft). `loreRender()` redraws just `#subBody` and keeps focus in `#loreQ`.
+  - Buttons are `data-lore` (open, add, edit, save, cancel, del, tv, secadd, secdel), with chips `data-lt` and fields `data-lf`/`data-ls`. The listeners sit right after `const campMain`.
+- **`mdHTML(text)`:** escapes everything first, then formats `**bold**`, `*italic*`, `#`–`###` headings, `-`/`1.` lists and paragraphs. Use it for any user or imported text you want formatted.
+- **MythWeaver** (`format: "mythweaver-account-export"`):
+  - `mwRead(json)` never reads `account`. It keeps campaigns, `otherLore`, characters and the image count.
+  - `mwText` turns HTML into markdown-ish text. `mwLore` and `mwNpc` map entries; `mwTagType` sorts "generic" entries by their tags.
+  - `mwPlanCamp(R, i, existing)` builds or updates a Tracker campaign (`c.mwId`, `c.mwAt`). It matches NPCs, lore and sessions by `mwId`, never deletes, keeps an NPC's attitude and uploaded picture, and puts `otherLore` in every campaign tagged "Account".
+  - `mwChar(ch, ed)` makes a character Draft with `D.base`: MythWeaver scores are starting scores, so `importBuild` builds once instead of solving.
+- **The window:** `#impCampModal` (`impCampOpen`, `mwWindowHTML`, `mwCommit`), opened by the Tracker's **⬆ Import campaign** (`#importFile`), which still imports Forge campaign files.
+  - `mwCommit` writes with `Store.lsWrite()` straight away and restores the old campaigns if the browser is full.
+- **Real export (2026-11-16, not committed):** Undead Titan has 63 NPCs, 172 lore entries and 14 sessions, about 1.4 MB, and imports in under 2 s.
+- **Tests:** `npm run test:lore` (`test/e2e/lore.cjs`) and `npm run test:mythweaver` (`test/e2e/mythweaver.cjs` plus `mythweaver-ui.cjs`), with the made-up fixture `test/e2e/fixtures/mythweaver-sample.json`.
+
+## Campaign files carry custom content (2026-11-17)
+
+- **Export JSON** (`#exportCamp`) writes the campaign plus `extras: campExtras()` = `{items: IT.custom, homebrew: HB.list, monsters: MB.lib}`.
+- **Import JSON** (`#importFile`) strips `extras` off the campaign and passes it to `campExtrasAdopt(ex)`, which adds what this browser doesn't have (same id, or same name and text, counts as a match):
+  - custom items into `IT.custom` (Items → Custom, ready for Give/Buy), saved with `itPersist`;
+  - homebrew through `hbPut` (skipped for signed-in players, who can't add homebrew);
+  - custom monsters into `MB.lib`, then `bsCustomRefresh`.
+- The loot "Give to…" handler now looks up custom items as well as built-ins, so the inventory row links (`ref`) to the custom item.
+- **MythWeaver:** `mwExtras(R, camps)` turns the chosen campaigns' lore (plus `otherLore`) into `{items, homebrew}` for the same `campExtrasAdopt`:
+  - `type: "item"` lore (or tag-sorted as item) → a custom item built through `ciNew` + `ciRecord`, so Edit works. The category comes from the name, tags and first line (`MW_ITEM_CAT`); rarity and attunement from the text. It carries `mwId: "mw-<id>"`, and a re-import replaces it in place.
+  - `type: "spell"` or a "Spell" tag (`mwIsSpell`) → a homebrew spell, with level, school, casting time, range, components and duration read from the text, and classes from tags.
+  - Built-in items and spells (exact name) are skipped. DM-only sections are left off. Everything stays in Lore.
+  - The window shows a ticked `[data-mwextras]` box with the counts; the Go handler adopts after `mwCommit`.
+- **Tests:** `npm run test:campextras` (`test/e2e/camp-extras.cjs`), Forge files and MythWeaver.
+
+## Your NPCs and imported monsters (2026-11-17)
+
+- **NPC data stays in each campaign** (`c.npcs`), so the Tracker's NPCs tab is unchanged. Copies of one NPC in several campaigns share `lib` (`npcLibId(n)`: set lazily to `"mw-<mwId>"` or `"nl-<id>"`).
+  - NPCs in no campaign are kept in localStorage `dmforge.npclib.v1` (`npcLoose`/`npcLooseSave`, in `BACKUP_KEYS`). Tracker campaigns are browser-only even when signed in, so this matches.
+  - `npcGroups()` merges campaigns and loose NPCs into `{lib, n, camps, loose?}`.
+  - `npcSync(n)` copies `NPC_SHARED` (name, role, attitude, notes, img, imgUrl) to every other copy. It runs from the Tracker's `onEdit` (list `npcs`) and from `npcPicSet`/`npcPicLink`/`npcPicClear`.
+  - A picture key may be shared by copies: delete it from `MAPIMG` only when `npcImgUsed(key)` is false.
+- **The list** is `#npcLib` on the NPC tab (`renderNpcLib(listOnly)`, state `NL = {q, camp, open}`), drawn by `route()` for `#npc`.
+  - Campaign tick boxes are `[data-nlc=<campaign id>]` inside `.chip` labels → `npcLibToggle(lib, campId, on)`. Unticking the last campaign moves the NPC to the loose list.
+  - Fields `[data-nlf]` → `npcLibEdit`; buttons `[data-nl]` = new, open, del (`npcLibDelete`, everywhere).
+- **MythWeaver monsters:** `mwMonster(x)` returns a builder form (`mbBlank` shape) with `mwId` and `src`. It reads size/type, AC, HP and hit dice, the six scores (`STR 16` or a row of `16 (+3)`), speed, CR (nearest `CR_LIST`), senses, languages and defences. "Name. Text" lines become traits, or actions/bonus/reacts/legend under those headings.
+  - Without AC, HP and all six scores it sets `needsStats` (shown as "needs stats" in `mbRenderLib`; cleared when saved from the builder in `mbStore`).
+  - `mwExtras` now also returns `monsters`; `campExtrasAdopt` skips ones whose `mwId` or name is already in `MB.lib`.
+- **Places:** superseded by the World tab (below): an NPC's place is now a World place id (`placeId`), with `place` kept as its name.
+  - The list has tabs (`.npc-tabs`, `[data-nltab]` = a World place id, `NL.tab`: "" = all, "-" = no place) from `npcPlaceTabs`. Only places with NPCs get a tab.
+  - Each row has a `[data-nlmove]` select (`npcMoveHTML` → `wpOptionsHTML`, with `NL_NEW` for "＋ New place…").
+  - MythWeaver NPCs get a place name from `mwNpcPlace(x, places)`: a tag, or a Location/Lives/Home section, naming one of the campaign's Place lore entries. `worldAdopt` then links it to the World place. A place the DM already set isn't changed on re-import.
+- **MythWeaver encounters** → `c.encounters` too (`mwEncounter`, `kind: "import"`, `mwId`), alongside Lore.
+  - `mwFoes(text, idx)` finds monster names with counts ("3 goblins", "two bugbears", "Ogre x2", "a wolf"), longest names first, each stretch of text used once, the largest count per monster.
+  - `mwMonsterIndex(extra)` = My monsters, this import's monsters (`mwMonster`), then the Monster Manual (2014 first). Enemies take AC and HP from it.
+  - Re-import updates the name and notes only, and fills enemies only if the fight has none, so play progress is kept.
+- **Tests:** `npm run test:npclib` (`test/e2e/npc-lib.cjs`), including places and encounters.
+
+## World tab (2026-11-17)
+
+- **Data:** `W.places = [{id, name, type, parent, desc, sections?, tags?, imgUrl?, mwId?}]` in localStorage `dmforge.world.v1` (`worldLoad`/`worldSave`, in `BACKUP_KEYS`). It's shared by every campaign. Types and icons are in `WP_TYPES`; `wpGuessType(...texts)` guesses one (tags first, then name, then description).
+  - Helpers: `wp(id)`, `wpPath`/`wpPathText`, `wpKids(id)` (a place whose parent is missing counts as top level), `wpUnder(id)` (itself plus everything inside), `wpNew`.
+- **Lore link:** a campaign has a place when its Lore has `{type:"place", wpId}`.
+  - `worldAdopt()` links Lore places to World places (by `wpId`, then `mwId`, then name; otherwise it makes one), and turns NPC `place` names into `placeId` (`npcPlaceFix`). It runs after `Store.init`, on the NPC and World tabs, in the Tracker's NPCs tab, after Lore saves and after both kinds of campaign import.
+  - World → Lore: `wpSyncOut(p)` copies `WP_LORE` (name, desc, sections, tags, imgUrl) to every linked Lore entry, and the name to NPCs' `place`. Lore → World happens in the Lore save handler.
+  - Campaign tick boxes: `[data-wc]` → `wpSetCamp(p, c, on)` adds or removes the linked Lore entry.
+- **NPCs:** `placeId` (plus `place`, the name kept in step) is in `NPC_SHARED`. `npcLibSet(lib, obj)` sets several fields on every copy.
+  - `npcPlaceTabs(list, cur)` builds the tab strip for both lists: the NPC tab (`data-nltab`, `NL.tab`) and the Tracker (`data-tntab`, `TN.tab`). A place's tab includes `wpUnder`.
+  - Place pickers use `wpOptionsHTML(cur, noneLabel, skip)` (an indented tree, plus `NL_NEW`) and `wpPick(value, who)`, which asks for a new place's name.
+  - The Tracker's NPC rows have `[data-npcplace]`; `+ Add NPC` on a place tab files the new NPC there.
+- **The tab:** `#view-world` (`renderWorld(treeOnly)`, state `W.sel/open/q`). The tree is `worldTreeHTML(counts)`, with counts that include NPCs inside. The page is `worldPlaceHTML(p, groups)`: name, type, Inside, campaigns, description, read-only Lore sections, picture link, places inside, NPCs here (grouped by sub-place), "Move an NPC here" (`[data-w-move]`) and delete.
+  - Buttons are `[data-w]` = sel, tog, new, child, npc, opennpc, del. Fields are `[data-wf]`, saved on input and synced out on change.
+  - `wpDelete` moves the places inside up a level, moves its NPCs to the parent (or no place), and removes the linked Lore entries, so `worldAdopt` won't bring the place back.
+  - `"world"` is in `route()`'s views and the portal's `ALL_VIEWS` (DM only).
+- **MythWeaver nesting:** the export has no parent field, so `wpNestGuess()` (run at the end of `worldAdopt`) guesses one for World places with `mwId`, no parent, and no `nestTried`. Each place is tried once and then gets `nestTried`, so a DM's move to the top level sticks.
+  - It looks in this order: a tag equal to another place's name; then a Location/Region/Part of section naming one; then "in/within/inside/of/beneath/under X" in the first two sentences of the description ("near" and "outside" don't count). A leading "The" is optional in names.
+  - Only a bigger place can hold a smaller one (`WP_SIZE`: region 0 … tavern/shop/temple 5; an "other" place can go inside any typed place). The most specific candidate wins, and `wpUnder` blocks cycles.
+  - In `worldAdopt`, a tag sets the type only when it's a single word ("Region", "Tavern"), so a tag like "Sword Coast" doesn't make a town Wilderness.
+- **Place maps:** `p.map` is a saved map entry, the same shape as a campaign's `c.maps` item: generated settings, or `imgRecord` with the picture in `MAPIMG`, plus fog, found and tokens.
+  - `mapEntryNow()` builds it from the map on screen, taking fog from `HOST` if this map is hosted, otherwise from the fog store. `#mapSave` uses it too.
+  - On the place page, the "Map" section (`#wpMapView`, drawn by `wpMapThumb`) has buttons `[data-w]` = openmap (`wpMapOpen`: sets `MAPLINK.place`, then `mapOpenSaved`), rmmap, usemap and genmap (`setMapForm` with the place's name and `WP_MAP_THEME[type]`, then `renderMap`). The `#wpMapFile` upload runs `imageMapBuild` and saves `imgRecord`.
+  - On the Dungeon Map tab, `#mapPlace` + `#mapSavePlace` save `mapEntryNow()` to a place (`mapPlaceFill`, refreshed by `route` for `#map`). `MAPLINK.place` preselects the place the map was opened from.
+  - `mapImgTidy(imgId)` deletes a picture once no World place or campaign map uses it (on Replace, Remove and place delete).
+- **The side list:** `W.view` is "type" (groups from `WP_PLURAL`, open state in `W.openT`, buttons `[data-w="tgroup"]`) or "tree" (the nesting). `W.camp` (`#worldCamp`) filters to `wpCampSet(campId)`: places in that campaign's Lore plus everything inside them.
+- **World builder:** `W.mode = "build"` shows `wbHTML()` in `#worldMain`. `W.build = {kind, seed, o, parent, camp}`; `wbStart(kind)` resets it.
+  - `WB[kind](rng, o)` returns a draft tree `{name, type, desc, sections, kids, npcs, shop?, map?}`. The kinds are settlement (it calls tavern, shop and temple for its places, inside districts for a city), tavern, shop (`shopMake`, stored as `p.shop` params), temple and dungeon (`p.map` generated settings). Tables are the `WB_*` constants.
+  - Options are `[data-wb]` (name, the kind's selects, checkboxes; parent and camp live on `W.build`). Buttons: `[data-w]` = build, wbkind, wbroll, wbadd.
+  - `wbCommit()` makes the places with `wpNew`, and NPCs as `{lib, placeId, place, notes: npcText}` in the chosen campaign or the loose list. It puts the top place in the campaign's Lore with `wpSetCamp`.
+  - A place with `p.shop` shows "🛒 Open the shop" (`[data-w="openshop"]`: `IT.shop = shopMake(p.shop)`, then the Items tab).
+- **Campaign files:** `campExtras(c)` adds `world`: the places the campaign uses, plus their ancestors. `campExtrasAdopt` merges them by id or name and remaps parents.
+- **Tests:** `npm run test:world` (`test/e2e/world.cjs`).
+
+## DM setup screen (2026-11-17)
+
+- **The setup screen** (`showSetup` in `src/portal.js`): `#dCamp` and `#dName` aren't required, with the placeholders "New Campaign" and "DM". The server already fills those in for blanks in `POST campaigns`.
+  - A user with no campaigns gets "Not now" (`#gLater` → `setupLater()`). It sets localStorage `dmforge.setupLater.<user id>` and enters browser mode while signed in.
+  - `enter()` honours the key. Creating or joining a campaign removes it.
+- **Rename:** `PUT /api/campaigns/:cid {name}` is DM-only (403 otherwise; 400 "Give the campaign a name" for a blank). The Account window (`openAccount`) has `#aRename` / `#aCampName` for the DM.
+  - Before renaming, it pins the party's Tracker campaign (`TRACKER_KEY`), because `trackerId` matches by name. It renames that Tracker campaign too if its name matched the old one.
+- **Tests:** `npm run test:setup` (`test/e2e/setup-screen.cjs`). It builds the portal with esbuild's JS API and starts `test/e2e/server.mjs` on port 8897. The two rename/create API tests are in `npm test`.
+
+## Where things stand (end of the 2026-11-17 chat)
+
+- **PR #9** (all the 2026-11-16/17 work) was merged to `main` at the owner's request on 2026-11-17, which starts a production deploy. New work goes on a new branch with a new draft PR.
+- **The owner's order of import work:**
+  1. Companion App import: done.
+  2. Homebrew classes, for classes the Forge doesn't have, like Blood Hunter: **not started**. Imports with an unknown class are refused with a message for now.
+  3. PDF import: done.
+  4. MythWeaver: done.
+- **Optional campaign name on sign-up:** done in code on 2026-11-17, before merging PR #9, following `docs/superpowers/plans/2026-11-16-campaign-setup-optional.md`. The owner had said it was fixed "through Netlify", but no code had it. See "DM setup screen" below.
+- **Small things left alone (the owner knows):**
+  - Imported characters get a random gender.
+  - PDF expertise beyond what the class grants is dropped without a note.
+  - A PDF's portrait isn't imported.
+  - Deleting a whole campaign leaves its NPCs' uploaded pictures in IndexedDB.
+  - The tag-based sorting of MythWeaver "generic" lore is a best guess.
+- **How builds are paid for:** one preview build per finished batch. Don't push design-only commits on their own; hold them until the work they describe is ready.
+
 ## How a character is built (read this before changing sheet maths)
 
 - `generateCharacter(o)` builds the whole sheet from options with a seeded RNG (`makeRng`), so the same inputs give the same sheet.
@@ -448,4 +665,10 @@ From PR #5:
   - `test:map` still fails about one run in four on TV picture timing. Rerun it before suspecting the app.
 - **Comments in one-line functions:** a `//` comment swallows the rest of the line, including closing braces. Use `/* … */` there. This once broke the whole page.
 - **The `.ds` class** is the death-save dot. Don't reuse it for anything else.
+- **The sheet markup exists twice.** `sheetHTML` (the Characters tab) and `renderRosterMain` (My Characters) build the same sections. Make sure an edit lands in the one you mean: a search-and-replace hits the Characters tab first.
+- **Don't use `<nav>` for new bars.** The header's `nav a` styles, including an icon `::before`, apply to every `nav`.
+- **Scores in imports differ by source.** The Companion App and PDFs give final scores (solved backwards in `importBuild`); MythWeaver gives starting scores (`D.base`). Imports must set `bonus: "fixed"`, or `pcLevelTo` moves the species bonus on the first level-up.
+- **pdf.js 6.5's `getFieldObjects()` returned nothing** for real sheets; read widgets with `page.getAnnotations()` instead.
+- **On phones the header can be away** (`hdr-away` on `<html>`). Anything placed relative to header elements must measure where the header ends up, not where it is mid-slide (see `newsOpen`).
+- **Grid columns need `min-width:0`** (already set for `.layout` and `.tlayout`). Without it, one wide child, like a scrolling row of buttons, widens the whole page on phones.
 - **A stale sign-in.** The browser's `getUser()` trusts any `nf_jwt` cookie, even one the server rejects (expired, or from a re-created Identity instance). `enter()` treats a 401 from `/api/me` by calling `dropSession()` (logout, clear the cookies and `gotrue.user`, put back the browser's own characters) and showing the sign-in form. Other `/api/me` errors offer Try again, another account, or offline use. Never leave the gate without a way out.
