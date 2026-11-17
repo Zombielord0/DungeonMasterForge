@@ -1,6 +1,6 @@
 # Characters: how a sheet is built, its fields, the sheet checks, spell cards
 
-Code: `src/app/07-character-generator.js` (generateCharacter), `09-character-sheets.js`, `12-level-homebrew-feats.js` and `13-my-characters.js`. **Read this before changing sheet maths**, and run `npm run test:sheet` after.
+Code: `src/app/07e-generator.js` (generateCharacter; its tables are in `07a`–`07c`), `09-character-sheets.js`, `12-level-homebrew-feats.js` and `13a`–`13e` (My Characters). **Read this before changing sheet maths**, and run `npm run test:sheet` after.
 
 Moved here from `CLAUDE.md` on 2026-11-17, unchanged except that `public/index.html` now means the files in `src/app/` (see "How the page is built" in `CLAUDE.md`).
 

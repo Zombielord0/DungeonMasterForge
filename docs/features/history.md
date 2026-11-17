@@ -1,6 +1,6 @@
 # Feature history: PRs 1 to 9
 
-The numbered list of what was built, oldest first, with the function names involved. Most of items 4 to 28 are about characters; their code is in `src/app/07-character-generator.js`, `12-level-homebrew-feats.js` and `13-my-characters.js`.
+The numbered list of what was built, oldest first, with the function names involved. Most of items 4 to 28 are about characters; their code is in `src/app/07a-…07e-*.js`, `12-level-homebrew-feats.js` and `13a-…13e-*.js`.
 
 Moved here from `CLAUDE.md` on 2026-11-17, unchanged except that `public/index.html` now means the files in `src/app/` (see "How the page is built" in `CLAUDE.md`).
 

@@ -60,13 +60,21 @@ Live site: https://dungeonmasterforge.netlify.app (Netlify; production branch `m
 | `04-storage.js` | `saveFile`, Backup and restore, `Store`, and `Cloud` (the DM's data saved to their account) |
 | `05-tracker.js` | Campaign Tracker: campaigns, NPC pictures, Lore, recaps, calendar, encounters, random encounters, campaign files |
 | `06-npcs-world.js` | NPC generator, Your NPCs, the World tab and World builder |
-| `07-character-generator.js` | `generateCharacter` and the class, species, background, feat and homebrew tables |
+| `07a-classes.js` | `CLASS_DATA`, class feature text, subclasses (`subclassList`, `subclassLevel`), `classList`, homebrew classes (`hbClassData`) |
+| `07b-feats-homebrew.js` | Feats (`FEATS`, `featList`), homebrew (`HB`, `hbApply`, `HB_FX`, `hbEffects`), pending homebrew |
+| `07c-species.js` | Species (`PC_RACES`, `raceInfo`), their defences, species features by level |
+| `07d-builder.js` | The step-by-step custom builder (`CB`) |
+| `07e-generator.js` | `generateCharacter`, the Characters tab's `sheetHTML`, the quick forge |
 | `08-spells.js` | The spell browser |
 | `09-character-sheets.js` | Saving characters, prepared spells, sheet export, spell cards |
 | `10-monsters.js` | Villain generator, Monster Manual, monster builder, companions and Wild Shape |
 | `11-items-shops.js` | Items tab and shops |
 | `12-level-homebrew-feats.js` | Level up, the Homebrew tab, the Feats tab |
-| `13-my-characters.js` | The My Characters sheet: abilities, rolls, conditions, casting, multiclassing, inventory |
+| `13a-gear-ac-speed.js` | My Characters: inventory and attacks (`pcAttacks`), armor training, AC (`pcAC`), speed (`pcSpeed`) |
+| `13b-abilities-rests.js` | Resources (`pcResources`), the Abilities list, activations (`ACT`), their dialogs, rests, Wild Shape |
+| `13c-dice-conditions-casting.js` | Conditions, exhaustion, concentration, death saves, the dice roller and roll dock, casting from the sheet |
+| `13d-choices.js` | Choices inside features and feats (`CHOICES`), the equipped-items list |
+| `13e-sheet.js` | The roster and the editable sheet (`renderRosterMain`), its events, older-save upgrades |
 | `14-boot.js` | The toolbar, `route()` (switching tabs) and start-up |
 | `15-torch.js` | The torchlit backdrop and header torches: at most 30 frames a second (20 and normal resolution on phones), header torches skipped while the header is away |
 | `16-character-import.js` | Companion App and PDF import, the Import character window |

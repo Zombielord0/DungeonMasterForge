@@ -6,7 +6,7 @@ A DM can add a class the Forge doesn't have (Blood Hunter, Gunslinger…) in the
 A homebrew entry `kind: "class"` (also in the API's `HOMEBREW_KINDS`; a class may be 6× the usual 50 KB):
 `{ id, kind, name, ed, desc, src?, hd, pri: [a, a?], saves: [a, a], skills: {n, any, from: [skills]}, armor: ["light"|"medium"|"heavy"|"shield"], weapons, tools, kit (comma list), wpn: {n, d, ab}, cast: "none"|"full"|"half"|"pact", castAb?, spellsFrom?, subName, subLv, features: [{l, n, d, fx}] }`
 
-## How it plugs in (src/app/07-character-generator.js)
+## How it plugs in (src/app/07a-classes.js and 07b-feats-homebrew.js)
 - `hbApply()` merges each homebrew class (pending ones too, marked `pend`) into `CLASS_DATA` via `hbClassData(x)`, which gives the built-in shape: `hd, pri, saves, skills: [list, n], ac (10 + Dex), kit, wpn, f: {level: [names]}, sub: [subName, subLv], asi, cast?` plus `hb: true`, `hbx` (the entry), `spellsFrom`, `armorT`, `weapons`, `tools`. Removed again on the next `hbApply` (`HB.applied.classes`). It never replaces a built-in name. Feature text goes into `HB_DESC`.
 - `classList(ed)` = built-ins plus homebrew for that rule set, without pending ones. It's used by the builder, the quick forge's `#pcClass` (`fillClasses`, refreshed by `pcSelectsRefresh` and the edition radios) and the multiclass window. **Random picks use `builtInClasses()`**, so random characters stay the same.
 - `subclassLevel` uses the homebrew class's own level in both rule sets. Homebrew subclasses can name the class.

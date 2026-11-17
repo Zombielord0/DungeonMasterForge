@@ -1,6 +1,6 @@
 # Phone and laptop layout
 
-Styling is in `src/app.css`; the header behaviour (hdrAuto) and the jump bar are in `src/app/13-my-characters.js` and `14-boot.js`.
+Styling is in `src/app.css`; the header behaviour (hdrAuto) and the jump bar are in `src/app/13e-sheet.js` and `14-boot.js`.
 
 Moved here from `CLAUDE.md` on 2026-11-17, unchanged except that `public/index.html` now means the files in `src/app/` (see "How the page is built" in `CLAUDE.md`).
 
