@@ -101,6 +101,63 @@ const server = http.createServer((req, res) => {
   const cf = await p.evaluate(ids => { const c = blankCampaign("Vale campaign"); c.lore.push({ id: "lx", name: "The Ashen Vale", type: "place", wpId: ids.r, desc: "", sections: [] }); Store.save(c); const ex = campExtras(c); return { worldMap: !!(ex.worldMap && ex.worldMap.seed), region: !!(ex.world.find(x => x.id === ids.r) || {}).atlas }; }, ids);
   check("atlas: a campaign file carries its region's map and the world map", cf.worldMap && cf.region, JSON.stringify(cf));
 
+  // ---------- Task 3: the map view on the World tab ----------
+  const pinAt = id => p.evaluate(id => { const cv = $("#atlasCv"), m = atlasOf(W.atlasId), q = m.pins[id]; let r = cv.getBoundingClientRect(); window.scrollBy(0, r.top + q.y * r.height - innerHeight / 2); r = cv.getBoundingClientRect(); return { x: r.left + q.x * r.width, y: r.top + q.y * r.height }; }, id);
+  await p.evaluate(ids => { const r = wp(ids.r); delete r.atlas; worldSave(); W.sel = ids.r; W.mode = "place"; location.hash = "world"; renderWorld(); }, ids);
+  await p.waitForSelector('#worldMain [data-at="make"]');
+  check("atlas view: a region's page offers Make a map", true);
+  await p.click('#worldMain [data-at="make"]'); await p.waitForSelector("#atlasCv");
+  const v1 = await p.evaluate(ids => ({ id: W.atlasId, pins: Object.keys(atlasOf(ids.r).pins).length, mode: W.mode }), ids);
+  check("atlas view: the map opens with every place pinned", v1.id === ids.r && v1.mode === "atlas" && v1.pins === 6, JSON.stringify(v1));
+  // drag Velmor
+  await p.evaluate(() => $("#atlasCv").scrollIntoView({ block: "center" }));
+  const a0 = await pinAt(ids.velmor);
+  await p.mouse.move(a0.x, a0.y); await p.mouse.down(); await p.mouse.move(a0.x + 30, a0.y + 20, { steps: 5 }); await p.mouse.move(a0.x + 60, a0.y + 40, { steps: 5 }); await p.mouse.up();
+  const dragged = await p.evaluate(ids => atlasOf(ids.r).pins[ids.velmor], ids);
+  check("atlas view: dragging a pin moves it", dragged.m === 1 && Math.abs(dragged.x - .0) > 0, JSON.stringify(dragged));
+  await p.waitForTimeout(400); await p.reload(); await p.waitForFunction(() => typeof renderWorld === "function");
+  const kept3 = await p.evaluate(ids => { worldLoad(); return wp(ids.r).atlas.pins[ids.velmor]; }, ids);
+  check("atlas view: …and it stays after a reload", kept3 && kept3.x === dragged.x && kept3.y === dragged.y, JSON.stringify([kept3, dragged]));
+  await p.evaluate(ids => { location.hash = "world"; atlasOpen(ids.r); }, ids); await p.waitForSelector("#atlasCv");
+  await p.evaluate(() => $("#atlasCv").scrollIntoView({ block: "center" }));
+  const hid = await p.evaluate(ids => ({ labels: ATLAS_VIEW.labels, crypt: atlasPins(ids.r, false).find(x => x.id === ids.crypt) }), ids);
+  check("atlas view: places not found yet are shown to the DM, marked hidden", hid.labels.includes("Sunken Crypt") && hid.crypt.hidden, JSON.stringify(hid));
+  // the pin menu: reveal
+  const c0 = await pinAt(ids.crypt); await p.mouse.click(c0.x, c0.y);
+  await p.waitForSelector('#atlasMenu:not([hidden]) [data-atp="reveal"]');
+  await p.click('#atlasMenu [data-atp="reveal"]');
+  check("atlas view: the pin menu reveals a place", await p.evaluate(ids => !!wp(ids.crypt).found, ids));
+  const f0 = await pinAt(ids.frost); await p.mouse.click(f0.x, f0.y); await p.waitForSelector('#atlasMenu:not([hidden]) [data-atp="reveal"]'); await p.click('#atlasMenu [data-atp="reveal"]');
+  check("atlas view: revealing a place also reveals the regions above it", await p.evaluate(ids => !!(wp(ids.frost).found && wp(ids.north).found && wp(ids.r).found), ids));
+  const fits = await p.evaluate(ids => { const m = atlasOf(ids.r); m.pins[ids.bell] = { x: .5, y: .97, m: 1 }; atlasRender(); const pin = atlasPins(ids.r, false).find(x => x.id === ids.bell); atlasMenuShow(pin); const a = $("#atlasMenu").getBoundingClientRect(), w = $(".atlas-wrap").getBoundingClientRect(); atlasMenuHide(); return a.bottom <= w.bottom + 1 && a.top >= w.top - 1; }, ids);
+  check("atlas view: a pin near the bottom opens its menu above it, inside the map", fits);
+  // roll again with a new shape, rename a feature
+  const seed0 = await p.evaluate(ids => atlasOf(ids.r).seed, ids);
+  await p.selectOption("[data-at-shape]", "island"); await p.click('[data-at="roll"]');
+  const rolled = await p.evaluate(ids => { const m = atlasOf(ids.r); return { shape: m.shape, seed: m.seed }; }, ids);
+  check("atlas view: Roll again with a new shape changes the map", rolled.shape === "island" && rolled.seed !== seed0, JSON.stringify(rolled));
+  const first = await p.evaluate(ids => atlasOf(ids.r).names[0].id, ids);
+  await p.fill(`[data-atname="${first}"]`, "Renamed Peaks"); await p.press(`[data-atname="${first}"]`, "Tab");
+  check("atlas view: a feature can be renamed", await p.evaluate(ids => atlasOf(ids.r).names[0].name === "Renamed Peaks" && ATLAS_VIEW.labels.includes("Renamed Peaks"), ids));
+  // the place page tick
+  await p.evaluate(ids => { W.sel = ids.crypt; W.mode = "place"; renderWorld(); }, ids);
+  check("atlas view: the place page's Found tick shows it", await p.isChecked("[data-wfound]"));
+  await p.uncheck("[data-wfound]");
+  check("atlas view: …and unticking hides it again", await p.evaluate(ids => !wp(ids.crypt).found, ids));
+  // the world map
+  await p.click('[data-at="world"]'); await p.waitForSelector("#atlasCv");
+  const wv = await p.evaluate(() => ({ id: W.atlasId, labels: ATLAS_VIEW.labels }));
+  check("atlas view: the World map button shows the regions", wv.id === "world" && wv.labels.includes("The Ashen Vale") && wv.labels.includes("Far Isles"), JSON.stringify(wv));
+  await p.evaluate(() => $("#atlasCv").scrollIntoView({ block: "center" }));
+  const rv = await pinAt(ids.r); await p.mouse.click(rv.x, rv.y); await p.waitForTimeout(300);
+  const openR = await p.$('#atlasMenu:not([hidden]) [data-atp="map"]'); if (openR) await openR.click();
+  check("atlas view: clicking a region opens its map", await p.evaluate(ids => W.atlasId === ids.r && !!$("#atlasCv"), ids));
+  // phone width
+  await p.setViewportSize({ width: 390, height: 760 }); await p.waitForTimeout(300);
+  const fit = await p.evaluate(() => ({ cv: $("#atlasCv").getBoundingClientRect().width, page: document.documentElement.scrollWidth }));
+  check("atlas view: at 390 px wide the map fits the screen", fit.cv <= 390 && fit.page <= 390, JSON.stringify(fit));
+  await p.setViewportSize({ width: 1300, height: 900 });
+
   check("no page errors", errs.length === 0, errs.join(" | "));
   await browser.close(); server.close();
   console.log(fails ? `\n${fails} check(s) failed` : "\nAll world map checks passed");

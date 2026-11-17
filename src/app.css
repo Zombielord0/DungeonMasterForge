@@ -768,7 +768,7 @@ nav a[data-view=homebrew]{--ic:url("data:image/svg+xml,%3Csvg xmlns='http://www.
 .hb-row{display:grid;grid-template-columns:70px 1fr 2fr auto;gap:8px;align-items:start}
 .hb-row.nolv{grid-template-columns:1fr 2fr auto}
 .hb-row textarea{min-height:38px}
-.hb-row input,.hb-row textarea,.hb-asi input{font-family:"Crimson Pro",Georgia,serif;letter-spacing:0;text-transform:none;font-size:16px}
+.hb-row input,.hb-row textarea,.hb-asi input,.atlas-names input{font-family:"Crimson Pro",Georgia,serif;letter-spacing:0;text-transform:none;font-size:16px}
 @media (max-width:700px){.hb-row,.hb-row.nolv{grid-template-columns:1fr}}
 .hb-fx{grid-column:1/-1;display:flex;flex-direction:column;gap:6px;align-items:flex-start;padding:0 0 4px 12px;border-left:2px solid #3b2a17}
 .hb-fx .fx-lbl{font-family:Cinzel,serif;font-size:11.5px;letter-spacing:.08em;text-transform:uppercase;color:#b8ad9a}
@@ -1016,3 +1016,11 @@ nav a[data-view=journal]{--ic:url("data:image/svg+xml,%3Csvg xmlns='http://www.w
 .tb-chip{font-size:14px;padding:3px 8px;border-radius:3px;border:1px solid #0d0c0b;background:rgba(0,0,0,.35)}
 .tb-chip.foe{color:#f2b8ae}.tb-chip.pc{color:#bcd8a8}.tb-chip.cur{border-color:var(--gold);color:#fff}.tb-chip.down{text-decoration:line-through;opacity:.55}
 .rd-share{margin:4px 0 6px;font-size:14px}
+/* World and region maps (src/app/06b-atlas.js) */
+.atlas-wrap{position:relative}
+#atlasCv{width:100%;height:auto;display:block;border-radius:6px;border:1px solid #1f3550;cursor:pointer;touch-action:none}
+.atlas-thumb{display:block;padding:0;border:1px solid #1f3550;border-radius:6px;background:none;cursor:pointer;width:100%;max-width:520px;margin-bottom:4px}
+.atlas-thumb canvas{width:100%;height:auto;display:block;border-radius:6px}
+.atlas-menu{position:absolute;z-index:5;width:220px;display:flex;flex-direction:column;gap:6px;padding:10px;background:var(--noise),linear-gradient(rgba(22,24,40,.97),rgba(12,13,24,.97));border:1px solid #3a3226;border-radius:8px;box-shadow:0 6px 18px rgba(0,0,0,.6)}
+.atlas-menu .muted{font-size:13px}
+.atlas-names{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:8px}

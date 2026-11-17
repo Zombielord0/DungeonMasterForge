@@ -24,7 +24,7 @@ function atlasTerrain(m) {
   const h = new Float32Array(N), wet = new Float32Array(N), shape = ATLAS_SHAPES[m.shape] ? m.shape : "coast", land = ATLAS_LANDS[m.land] ? m.land : "balanced";
   const sides = r.shuffle(["n", "s", "e", "w"]).slice(0, r.chance(.5) ? 1 : 2);
   for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) {
-    const i = y * W + x; let v = (n(x, y, 5, 1 / 70) - .5) * 1.9 + .28;
+    const i = y * W + x; let v = (n(x, y, 5, 1 / 70) - .5) * 1.9 + .25;
     if (shape === "island") { const dx = (x - W / 2) / (W / 2), dy = (y - H / 2) / (H / 2); v -= .95 * (dx * dx + dy * dy) - .05; }
     if (shape === "coast") for (const s of sides) { const d = { n: y / H, s: 1 - y / H, w: x / W, e: 1 - x / W }[s]; if (d < .45) v -= Math.pow((.45 - d) / .45, 1.6) * 1.05; }
     if (shape === "inland") v = .04 + Math.max(0, v + .06) * .72;
@@ -65,10 +65,13 @@ function atlasFeats(T) {
     const done = new Uint8Array(gw * gh); let best = null;
     for (let i = 0; i < gw * gh; i++) {
       if (done[i] || !test((i % gw) * S, Math.floor(i / gw) * S)) continue;
-      const st = [i]; done[i] = 1; let n = 0, sx = 0, sy = 0;
-      while (st.length) { const c = st.pop(), cx = c % gw, cy = Math.floor(c / gw); n++; sx += cx; sy += cy;
+      const st = [i], cells = []; done[i] = 1; let n = 0, sx = 0, sy = 0;
+      while (st.length) { const c = st.pop(), cx = c % gw, cy = Math.floor(c / gw); n++; sx += cx; sy += cy; cells.push(c);
         for (const [ax, ay] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) { const nx = cx + ax, ny = cy + ay, j = ny * gw + nx; if (nx < 0 || ny < 0 || nx >= gw || ny >= gh || done[j] || !test(nx * S, ny * S)) continue; done[j] = 1; st.push(j); } }
-      if (!best || n > best.n) best = { n, x: sx / n * S, y: sy / n * S };
+      if (!best || n > best.n) { // label it on its own cell nearest the middle (the middle of a curved sea can be land)
+        const mx = sx / n, my = sy / n; let bc = cells[0], bd = Infinity; for (const c of cells) { const d = (c % gw - mx) ** 2 + (Math.floor(c / gw) - my) ** 2; if (d < bd) { bd = d; bc = c; } }
+        best = { n, x: (bc % gw) * S, y: Math.floor(bc / gw) * S };
+      }
     }
     return best;
   };
@@ -127,7 +130,7 @@ function atlasTerrainCanvas(m) {
   const marks = [];
   for (let y = 2; y < H - 2; y += 3) for (let x = 2; x < W - 2; x += 3) {
     const jx = x + (r.f() - .5) * 2.4, jy = y + (r.f() - .5) * 2.4, i = Math.round(jy) * W + Math.round(jx), v = h[i];
-    if (v > .36 && x % 6 === 2 && y % 6 === 2 && r.chance(.8)) marks.push([jy, "m", jx, v]); else if (v > .03 && v < .3 && wet[i] > .55 && r.chance(.7)) marks.push([jy, "f", jx, v]);
+    if (v > .4 && x % 6 === 2 && y % 6 === 2 && r.chance(.7)) marks.push([jy, "m", jx, v]); else if (v > .03 && v < .3 && wet[i] > .55 && r.chance(.7)) marks.push([jy, "f", jx, v]);
   }
   marks.sort((a, b) => a[0] - b[0]).forEach(([y, k, x, v]) => {
     const px = (x + .5) * sx, py = (y + .5) * sy;
@@ -155,22 +158,34 @@ function atlasDraw(cv, m, o = {}) {
   cv.width = Math.round(w * k); cv.height = Math.round(hh * k);
   const g = cv.getContext("2d"), labels = []; g.setTransform(k, 0, 0, k, 0, 0); g.drawImage(base, 0, 0, w, hh);
   g.textAlign = "center"; g.textBaseline = "middle";
-  // feature names
+  // lay out the names so they don't sit on pins or on each other: pins first, then feature names in the free space
+  const pins = (o.pins || []).filter(p => !(o.player && p.hidden)), boxes = [], hit = b => boxes.some(c => b.x1 > c.x0 && b.x0 < c.x1 && b.y1 > c.y0 && b.y0 < c.y1);
+  const width = (t, font, sp = 0) => { g.font = font; return g.measureText(t).width + sp * t.length; };
+  const spots = pins.filter(q => !q.area).map(q => {
+    const big = q.big, font = `${big ? "bold 30px" : "bold 24px"} Georgia, serif`, tw = width(q.name, font), x = q.x * w, y = q.y * hh, r = big ? 26 : 22;
+    const left = x + r + 6 + tw > w - 8; // no room on the right: name on the left
+    boxes.push({ x0: x - r, x1: x + r, y0: y - r, y1: y + r }, left ? { x0: x - r - 6 - tw, x1: x - r, y0: y - 18, y1: y + 18 } : { x0: x + r, x1: x + r + 6 + tw, y0: y - 18, y1: y + 18 });
+    return { q, font, left, x, y, r };
+  });
+  const areas = pins.filter(q => q.area).map(q => { const tw = width(q.name.toUpperCase(), "bold 34px Georgia, serif", 6), b = { x0: q.x * w - tw / 2, x1: q.x * w + tw / 2, y0: q.y * hh - 22, y1: q.y * hh + 22 }; boxes.push(b); return q; });
+  const TRY = [[0, 0], [0, -.045], [0, .045], [-.07, 0], [.07, 0], [0, -.09], [0, .09], [-.1, -.05], [.1, .05], [-.1, .05], [.1, -.05], [0, -.14], [0, .14]];
   (o.names || []).forEach(f => {
-    const big = f.kind === "sea", it = f.kind === "river" || f.kind === "lake" || f.kind === "sea";
-    atlasLabel(g, f.name, f.x * w, f.y * hh, `${it ? "italic " : ""}${big ? 34 : 26}px Georgia, serif`, big ? "#d8ecff" : "#fff", "rgba(0,0,0,.6)", big ? 4 : 1);
+    const big = f.kind === "sea", it = f.kind === "river" || f.kind === "lake" || f.kind === "sea", font = `${it ? "italic " : ""}${big ? 34 : 26}px Georgia, serif`, sp = big ? 4 : 1, tw = width(f.name, font, sp);
+    let at = null;
+    for (const [dx, dy] of TRY) { const cx = (f.x + dx) * w, cy = (f.y + dy) * hh, b = { x0: cx - tw / 2 - 4, x1: cx + tw / 2 + 4, y0: cy - 18, y1: cy + 18 }; if (b.x0 < 6 || b.x1 > w - 6 || b.y0 < 60 || b.y1 > hh - 6) continue; if (!hit(b)) { at = [cx, cy, b]; break; } }
+    if (!at) { const cx = Math.min(w - tw / 2 - 8, Math.max(tw / 2 + 8, f.x * w)), cy = f.y * hh; at = [cx, cy, { x0: cx - tw / 2, x1: cx + tw / 2, y0: cy - 18, y1: cy + 18 }]; }
+    boxes.push(at[2]);
+    atlasLabel(g, f.name, at[0], at[1], font, big ? "#d8ecff" : "#fff", "rgba(0,0,0,.6)", sp);
     labels.push(f.name);
   });
   // regions inside, as large spaced names; then pins
-  const pins = (o.pins || []).filter(p => !(o.player && p.hidden));
-  pins.filter(p => p.area).forEach(p => { g.globalAlpha = p.hidden ? .45 : .92; atlasLabel(g, p.name.toUpperCase(), p.x * w, p.y * hh, "bold 34px Georgia, serif", "#fff8e6", "rgba(40,25,10,.55)", 6); g.globalAlpha = 1; labels.push(p.name); });
-  pins.filter(p => !p.area).forEach(p => {
-    const x = p.x * w, y = p.y * hh, big = p.big;
+  areas.forEach(p => { g.globalAlpha = p.hidden ? .45 : .92; atlasLabel(g, p.name.toUpperCase(), p.x * w, p.y * hh, "bold 34px Georgia, serif", "#fff8e6", "rgba(40,25,10,.55)", 6); g.globalAlpha = 1; labels.push(p.name); });
+  spots.forEach(({ q: p, font, left, x, y, r }) => {
     g.globalAlpha = p.hidden ? .55 : 1;
-    if (p.hidden) { g.setLineDash([6, 5]); g.strokeStyle = "#d0d0d0"; g.lineWidth = 2.5; g.beginPath(); g.arc(x, y, big ? 26 : 22, 0, 7); g.stroke(); g.setLineDash([]); }
-    else { g.fillStyle = "rgba(0,0,0,.35)"; g.beginPath(); g.arc(x, y + 2, big ? 21 : 17, 0, 7); g.fill(); }
-    g.font = `${big ? 38 : 30}px serif`; g.fillStyle = "#000"; g.fillText(p.icon || "📍", x, y + 1);
-    g.textAlign = "left"; atlasLabel(g, p.name, x + (big ? 28 : 24), y, `${big ? "bold 30px" : "bold 24px"} Georgia, serif`, p.hidden ? "#cfcfcf" : "#fff"); g.textAlign = "center";
+    if (p.hidden) { g.setLineDash([6, 5]); g.strokeStyle = "#d0d0d0"; g.lineWidth = 2.5; g.beginPath(); g.arc(x, y, r, 0, 7); g.stroke(); g.setLineDash([]); }
+    else { g.fillStyle = "rgba(0,0,0,.35)"; g.beginPath(); g.arc(x, y + 2, r - 5, 0, 7); g.fill(); }
+    g.font = `${p.big ? 38 : 30}px serif`; g.fillStyle = "#000"; g.fillText(p.icon || "📍", x, y + 1);
+    g.textAlign = left ? "right" : "left"; atlasLabel(g, p.name, left ? x - r - 2 : x + r + 2, y, font, p.hidden ? "#cfcfcf" : "#fff"); g.textAlign = "center";
     g.globalAlpha = 1; labels.push(p.name);
   });
   if (o.title) { g.textAlign = "left"; atlasLabel(g, o.title, 34, 44, "italic bold 40px Georgia, serif", "#fff"); labels.push(o.title); }
@@ -249,10 +264,11 @@ function atlasPinsFill(id) {
       const q = { x: .05 + r.f() * .9, y: .06 + r.f() * .88 };
       let s = r.f() * .5;
       if (T) { const i = atlasCell(T, q); if (T.h[i] < .01) continue; s += atlasLikes(p.type, T, i); }
-      for (const o of taken()) { const d = Math.hypot(o.x - q.x, (o.y - q.y) * ATLAS_H / ATLAS_W); if (d < .07) s -= (.07 - d) * 400; }
+      const room = p.type === "region" ? .16 : .1; // a region's name is wide: keep it clear of pins
+      for (const o of taken()) { const d = Math.hypot(o.x - q.x, (o.y - q.y) * ATLAS_H / ATLAS_W); if (d < room) s -= (room - d) * 400; }
       if (s > bs) { bs = s; best = q; }
     }
-    if (best) m.pins[p.id] = { x: +best.x.toFixed(4), y: +best.y.toFixed(4) };
+    if (best) m.pins[p.id] = T ? { x: +((Math.floor(best.x * T.W) + .5) / T.W).toFixed(5), y: +((Math.floor(best.y * T.H) + .5) / T.H).toFixed(5) } : { x: +best.x.toFixed(4), y: +best.y.toFixed(4) }; // the middle of the chosen cell, so rounding can't tip it into the sea
   }
   return m;
 }
@@ -271,3 +287,116 @@ function atlasPins(id, player) {
   return atlasPlaces(id).filter(({ p }) => m.pins[p.id] && (!player || p.found)).map(({ p, area }) => ({
     id: p.id, name: p.name || "Unnamed", icon: (WP_TYPES[p.type] || WP_TYPES.other)[0], x: m.pins[p.id].x, y: m.pins[p.id].y, hidden: !p.found, area, big: p.type === "city" }));
 }
+
+/* ======================= The map view on the World tab =======================
+   W.mode = "atlas" with W.atlasId (a region id or "world") shows atlasViewHTML() in #worldMain. On the canvas: press a pin
+   and drag to move it; click a pin for its menu (#atlasMenu); click a region's name to open its map. */
+const ATLAS_VIEW = { labels: [], drag: null, menu: null };
+function atlasName(id) { return id === "world" ? "The World" : (wp(id) || {}).name || "Region"; }
+function atlasOpen(id) {
+  if (!W.loaded) worldLoad();
+  W.mode = "atlas"; W.atlasId = id; ATLAS_VIEW.menu = null;
+  if (atlasOf(id)) { const before = JSON.stringify(atlasOf(id).pins); atlasPinsFill(id); if (JSON.stringify(atlasOf(id).pins) !== before) worldSave(); }
+  renderWorld();
+}
+/* found by the players; revealing a place also reveals the regions it's in */
+function atlasFound(p, on) {
+  if (on) { let x = p, k = 0; while (x && k++ < 30) { x.found = true; x = wp(x.parent); } }
+  else delete p.found;
+  worldSave();
+}
+function atlasViewHTML() {
+  const id = W.atlasId, m = atlasOf(id), name = atlasName(id), sel = (attr, opts, v) => `<select ${attr}>${Object.entries(opts).map(([k, l]) => `<option value="${k}" ${k === v ? "selected" : ""}>${l}</option>`).join("")}</select>`;
+  const back = id === "world" ? "" : `<button class="btn sm" type="button" data-at="back" style="flex:0 0 auto">← ${esc(name)}</button>`;
+  if (!m) return `<div class="card atlas-card"><div class="row" style="gap:8px;flex-wrap:wrap;align-items:center"><h2 style="margin:0;flex:1">🗺️ ${esc(name)}</h2>${back}</div>
+    <p class="muted">No map yet. Choose the kind of land and make one; you can roll again until you like it.</p>
+    <div class="row" style="gap:8px;flex-wrap:wrap;align-items:flex-end"><div class="field" style="flex:0 1 160px"><label>Shape</label>${sel("data-at-shape", ATLAS_SHAPES, "coast")}</div>
+      <div class="field" style="flex:0 1 160px"><label>Land</label>${sel("data-at-land", ATLAS_LANDS, "balanced")}</div><button class="btn primary" type="button" data-at="make" style="flex:0 0 auto">🗺️ Make a map</button></div></div>`;
+  const off = atlasPlaces(id).filter(x => !m.pins[x.p.id]);
+  return `<div class="card atlas-card">
+    <div class="row" style="gap:8px;flex-wrap:wrap;align-items:center"><h2 style="margin:0;flex:1 1 200px">🗺️ ${esc(name)}</h2>${back}</div>
+    <div class="row atlas-tools" style="gap:8px;flex-wrap:wrap;align-items:flex-end;margin:8px 0">
+      ${m.img ? "" : `<div class="field" style="flex:0 1 140px"><label>Shape</label>${sel("data-at-shape", ATLAS_SHAPES, m.shape)}</div><div class="field" style="flex:0 1 140px"><label>Land</label>${sel("data-at-land", ATLAS_LANDS, m.land)}</div>
+      <button class="btn sm" type="button" data-at="roll" style="flex:0 0 auto">🎲 Roll again</button>`}
+      <button class="btn sm primary" type="button" data-at="tv" style="flex:0 0 auto">${HOST.show === "atlas" && HOST.atlas && HOST.atlas.id === id ? "📺 Off TV" : "📺 Show on TV"}</button></div>
+    <div class="atlas-wrap"><canvas id="atlasCv" aria-label="Map of ${esc(name)}"></canvas><div id="atlasMenu" class="atlas-menu" hidden></div></div>
+    <p class="hint" style="margin:6px 0 0">Dashed pins are places the players haven't found; the TV leaves them out. Click a pin to reveal it or open it, drag it to move it${id === "world" ? ", and click a region's name to open its map" : ""}.</p>
+    ${off.length ? `<p class="hint">Not on the map: ${off.map(x => `<button class="chip" type="button" data-at="unhide" data-id="${esc(x.p.id)}">${esc(x.p.name)} ＋</button>`).join(" ")}</p>` : ""}
+    ${!m.img && (m.names || []).length ? `<div class="field" style="margin-top:10px"><label>Names on the map</label><div class="atlas-names">${m.names.map(f => `<label class="lbl" style="margin:0">${{ mountains: "⛰ Mountains", forest: "🌲 Forest", river: "〰 River", sea: "🌊 Sea", lake: "💧 Lake" }[f.kind] || f.kind}<input type="text" maxlength="60" data-atname="${esc(f.id)}" value="${esc(f.name)}" placeholder="(no name)"></label>`).join("")}</div></div>` : ""}
+  </div>`;
+}
+function atlasRender() {
+  const cv = $("#atlasCv"), id = W.atlasId, m = atlasOf(id); if (!cv || !m) return;
+  const r = atlasDraw(cv, m, { pins: atlasPins(id, false), names: (m.names || []).filter(f => f.name), title: atlasName(id) });
+  ATLAS_VIEW.labels = r.labels;
+}
+function atlasMenuShow(pin) {
+  const menu = $("#atlasMenu"), cv = $("#atlasCv"); if (!menu || !cv) return;
+  const p = wp(pin.id); if (!p) return; ATLAS_VIEW.menu = pin.id;
+  const r = cv.getBoundingClientRect(), wr = menu.parentElement.getBoundingClientRect();
+  menu.innerHTML = `<b>${esc(p.name)}</b><span class="muted">${(WP_TYPES[p.type] || WP_TYPES.other)[1]} · ${p.found ? "found by the players" : "not found yet"}</span>
+    ${p.found ? `<button class="btn sm" type="button" data-atp="hide">🙈 Hide from the players</button>` : `<button class="btn sm primary" type="button" data-atp="reveal">👁 Reveal to the players</button>`}
+    ${p.type === "region" ? `<button class="btn sm" type="button" data-atp="map">🗺️ Open its map</button>` : ""}
+    <button class="btn sm" type="button" data-atp="open">Open the place</button><button class="btn sm" type="button" data-atp="remove">Take off the map</button>`;
+  menu.hidden = false;
+  const x = r.left - wr.left + pin.x * r.width, y = r.top - wr.top + pin.y * r.height;
+  const mh = menu.offsetHeight, below = y + 14 + mh <= wr.height - 4; // open above the pin when there's no room below it
+  menu.style.left = Math.max(4, Math.min(wr.width - 230, x + 14)) + "px"; menu.style.top = Math.max(4, below ? y + 14 : y - 14 - mh) + "px";
+}
+function atlasMenuHide() { const m = $("#atlasMenu"); if (m) m.hidden = true; ATLAS_VIEW.menu = null; }
+function atlasHit(e) {
+  const cv = $("#atlasCv"), r = cv.getBoundingClientRect(), fx = (e.clientX - r.left) / r.width, fy = (e.clientY - r.top) / r.height;
+  let best = null, bd = 26; // css px
+  atlasPins(W.atlasId, false).forEach(q => { const d = Math.hypot((q.x - fx) * r.width, (q.y - fy) * r.height) - (q.area ? 10 : 0); if (d < bd) { bd = d; best = q; } });
+  return { pin: best, fx, fy };
+}
+(function initAtlas() {
+  const view = $("#view-world"); if (!view) return;
+  view.addEventListener("click", e => {
+    const b = e.target.closest("[data-at],[data-atp]"); if (!b) return;
+    const id = W.atlasId;
+    if (b.dataset.atp) {
+      const p = wp(ATLAS_VIEW.menu), k = b.dataset.atp; if (!p) return;
+      if (k === "reveal" || k === "hide") { atlasFound(p, k === "reveal"); atlasMenuHide(); atlasRender(); toast(k === "reveal" ? `${p.name} is revealed to the players` : `${p.name} is hidden from the players`); }
+      else if (k === "open") { W.sel = p.id; W.mode = "place"; renderWorld(); }
+      else if (k === "map") atlasOpen(p.id);
+      else if (k === "remove") { const m = atlasOf(id); delete m.pins[p.id]; m.off = [...new Set([...(m.off || []), p.id])]; worldSave(); renderWorld(); }
+      return;
+    }
+    const a = b.dataset.at;
+    if (a === "world") atlasOpen("world");
+    else if (a === "open") atlasOpen(b.dataset.id || W.sel);
+    else if (a === "back") { W.mode = "place"; W.sel = id; renderWorld(); }
+    else if (a === "make") {
+      const target = W.mode === "atlas" ? id : W.sel, shape = ($("[data-at-shape]") || {}).value, land = ($("[data-at-land]") || {}).value;
+      atlasMake(target, { shape, land }); atlasPinsFill(target); worldSave(); atlasOpen(target);
+    }
+    else if (a === "roll") { atlasReroll(id, { shape: $("[data-at-shape]").value, land: $("[data-at-land]").value }); worldSave(); renderWorld(); }
+    else if (a === "unhide") { const m = atlasOf(id); m.off = (m.off || []).filter(x => x !== b.dataset.id); atlasPinsFill(id); worldSave(); renderWorld(); }
+  });
+  view.addEventListener("change", e => {
+    const t = e.target;
+    if (t.dataset.atname) { const m = atlasOf(W.atlasId), f = m && m.names.find(x => x.id === t.dataset.atname); if (f) { f.name = t.value.trim().slice(0, 60); worldSave(); atlasRender(); } }
+    else if (t.hasAttribute("data-wfound")) { const p = wp(W.sel); if (p) { atlasFound(p, t.checked); toast(t.checked ? `${p.name} is revealed to the players` : `${p.name} is hidden from the players`); } }
+  });
+  view.addEventListener("pointerdown", e => {
+    if (e.target.id !== "atlasCv") return;
+    const h = atlasHit(e); ATLAS_VIEW.drag = { pin: h.pin, x: e.clientX, y: e.clientY, moved: false };
+    if (h.pin && !h.pin.area) e.target.setPointerCapture(e.pointerId);
+  });
+  view.addEventListener("pointermove", e => {
+    const d = ATLAS_VIEW.drag; if (!d || !d.pin || d.pin.area || e.target.id !== "atlasCv") return;
+    if (!d.moved && Math.hypot(e.clientX - d.x, e.clientY - d.y) < 4) return;
+    d.moved = true; atlasMenuHide();
+    const r = e.target.getBoundingClientRect(), m = atlasOf(W.atlasId);
+    m.pins[d.pin.id] = { x: +Math.min(.99, Math.max(.01, (e.clientX - r.left) / r.width)).toFixed(4), y: +Math.min(.99, Math.max(.01, (e.clientY - r.top) / r.height)).toFixed(4), m: 1 };
+    atlasRender();
+  });
+  view.addEventListener("pointerup", e => {
+    const d = ATLAS_VIEW.drag; ATLAS_VIEW.drag = null; if (!d || e.target.id !== "atlasCv") return;
+    if (d.moved) { worldSave(); return; }
+    if (!d.pin) { atlasMenuHide(); return; }
+    if (d.pin.area && W.atlasId === "world") { atlasOpen(d.pin.id); return; }
+    atlasMenuShow(d.pin);
+  });
+})();

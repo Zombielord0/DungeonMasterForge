@@ -377,13 +377,17 @@ function worldPlaceHTML(p, groups) {
     <div class="row" style="gap:10px;flex-wrap:wrap">
       <div class="field" style="flex:1 1 180px"><label for="wpType">Type</label><select id="wpType" data-wf="type">${Object.entries(WP_TYPES).map(([k, [ic, l]]) => `<option value="${k}" ${k === p.type ? "selected" : ""}>${ic} ${l}</option>`).join("")}</select></div>
       <div class="field" style="flex:2 1 220px"><label for="wpParent">Inside</label><select id="wpParent" data-wf="parent">${wpOptionsHTML(p.parent, "(top level)", under)}</select></div></div>
+    ${ATLAS_PIN.has(p.type) || p.type === "region" ? `<label class="check"><input type="checkbox" data-wfound ${p.found ? "checked" : ""}><span>Found by the players: shown on the TV's maps</span></label>` : ""}
     <div class="field"><label>In campaigns</label><div class="npc-camps">${camps.length ? camps.map(c => { const on = inC.has(c.id); return `<label class="chip${on ? " on" : ""}"><input type="checkbox" data-wc="${esc(c.id)}" ${on ? "checked" : ""}>${on ? "✓ " : ""}${esc(c.name)}</label>`; }).join("") : `<span class="muted" style="font-size:14px">Make a campaign in the Campaign Tracker to use this place in it.</span>`}</div>
       <p class="hint" style="margin:4px 0 0">A ticked campaign shows this place in its Lore tab. Changes made there or here show in both.</p></div>
     <div class="field"><label for="wpDesc">Description</label><textarea id="wpDesc" data-wf="desc" placeholder="What it's like, who runs it, what's going on…">${esc(p.desc || "")}</textarea></div>
     ${(p.sections || []).length ? `<div class="wsecs">${p.sections.map(x => `<div class="lore-sec"><h4>${esc(x.t || "")}${x.dm ? ` <span class="tag lore-dm" title="Only for you">🔒 DM only</span>` : ""}</h4>${mdHTML(x.x)}</div>`).join("")}<p class="hint">Edit these sections in a campaign's Lore tab.</p></div>` : ""}
     <div class="field"><label for="wpPic">Picture link</label><input type="text" id="wpPic" data-wf="imgUrl" value="${esc(p.imgUrl || "")}" placeholder="https://…">${pic ? `<img class="wpic" src="${esc(pic)}" alt="" referrerpolicy="no-referrer" loading="lazy">` : ""}</div>
     ${p.shop ? `<div class="row" style="gap:8px;margin:6px 0 10px;align-items:center"><button class="btn sm primary" type="button" data-w="openshop" style="flex:0 0 auto">🛒 Open the shop</button><span class="muted" style="font-size:14px">Opens it on the Items tab, where characters can buy from it.</span></div>` : ""}
-    <div class="sec-h"><h3>Map</h3></div>
+    ${p.type === "region" ? `<div class="sec-h"><h3>Region map</h3></div>${p.atlas ? `<button type="button" class="atlas-thumb" data-at="open" data-id="${esc(p.id)}" aria-label="Open the map of ${esc(p.name)}"><canvas id="atlasThumb"></canvas></button>
+      <div class="row" style="gap:6px;margin:6px 0 12px;flex-wrap:wrap"><button class="btn sm primary" type="button" data-at="open" data-id="${esc(p.id)}" style="flex:0 0 auto">🗺️ Open the region map</button></div>`
+      : `<p class="muted" style="margin:0 0 6px">A painted map of the region, with its towns, dungeons and landmarks pinned on it.</p><div class="row" style="gap:6px;margin-bottom:12px"><button class="btn sm primary" type="button" data-at="make" style="flex:0 0 auto">🗺️ Make a map</button></div>`}` : ""}
+    <div class="sec-h"><h3>${p.type === "region" ? "Other map" : "Map"}</h3></div>
     ${p.map ? `<div class="wmap"><button type="button" class="wmap-view" id="wpMapView" data-w="openmap" title="Open on the Dungeon Map tab" aria-label="Open the map of ${esc(p.name)} on the Dungeon Map tab"><span class="muted">Loading map…</span></button>
       <div class="row" style="flex-wrap:wrap;gap:6px;margin-top:6px"><button class="btn sm primary" type="button" data-w="openmap" style="flex:0 0 auto">🗺 Open on Dungeon Map</button><label class="btn sm" style="flex:0 0 auto">🖼 Replace with a picture…<input type="file" id="wpMapFile" accept="image/*" hidden></label><button class="btn sm" type="button" data-w="rmmap" style="flex:0 0 auto">✕ Remove map</button></div>
       <p class="hint" style="margin:6px 0 0">${p.map.kind === "image" ? "A map picture" : `A generated ${esc(p.map.theme || "dungeon")} map`}${p.map.fog ? ", with its fog" : ""}. Open it to add room notes, show it on the TV and reveal it as the players explore, then press <b>Save to a World place</b> there to keep the changes.</p></div>`
@@ -406,7 +410,8 @@ function renderWorld(treeOnly) {
   const groups = npcGroups(), counts = {};
   groups.forEach(g => { let x = wp(g.n.placeId), k = 0; while (x && k++ < 30) { counts[x.id] = (counts[x.id] || 0) + 1; x = wp(x.parent); } });
   if (!$("#worldTree")) side.innerHTML = `<div class="sec-h"><h3>World</h3><span class="sp"></span><button class="btn sm" type="button" data-w="new">+ Place</button></div>
-    <button class="btn primary wide" type="button" data-w="build" style="margin-bottom:10px">🛠 World builder</button>
+    <button class="btn primary wide" type="button" data-w="build" style="margin-bottom:6px">🛠 World builder</button>
+    <button class="btn wide" type="button" data-at="world" style="margin-bottom:10px">🌍 World map</button>
     <select id="worldCamp" aria-label="Show places from" style="margin-bottom:8px"></select>
     <div class="seg wview" role="radiogroup" aria-label="Show places"><label class="opt"><input type="radio" name="wview" value="type"><span>By type</span></label><label class="opt"><input type="radio" name="wview" value="tree"><span>Map</span></label></div>
     <input type="text" id="worldQ" placeholder="Search places…" aria-label="Search places" style="margin:8px 0"><div id="worldTree" class="wtree"></div>
@@ -416,10 +421,12 @@ function renderWorld(treeOnly) {
   $("#worldTree").innerHTML = worldTreeHTML(counts);
   if (treeOnly) return;
   if (W.mode === "build") { main.innerHTML = wbHTML(); return; }
+  if (W.mode === "atlas") { main.innerHTML = atlasViewHTML(); atlasRender(); return; }
   const p = wp(W.sel);
   main.innerHTML = p ? worldPlaceHTML(p, groups) : `<div class="card empty"><h2>${W.places.length ? "Pick a place" : "Build your world"}</h2><p>${W.places.length ? "Choose a place on the left to see what's inside it and who lives there." : "Add regions, cities, towns, taverns and dungeons, put them inside each other, and file your NPCs under them. Places in your campaigns' Lore are added for you."}</p><div class="row" style="justify-content:center;gap:8px;flex-wrap:wrap"><button class="btn primary" type="button" data-w="build" style="flex:0 0 auto">🛠 World builder</button>${W.places.length ? "" : `<button class="btn" type="button" data-w="new" style="flex:0 0 auto">+ Add a place yourself</button>`}</div></div>`;
   main.querySelectorAll("textarea").forEach(autoGrow);
   if (p && p.map) wpMapThumb(p);
+  if (p && p.atlas && $("#atlasThumb")) { const m = p.atlas; atlasPinsFill(p.id); atlasDraw($("#atlasThumb"), m, { pins: atlasPins(p.id, false), names: (m.names || []).filter(f => f.name), scale: .4 }); }
 }
 /* the map's picture on the place page: a generated map is drawn from its settings, an imported one comes from this computer */
 let wpMapUrl = null;
