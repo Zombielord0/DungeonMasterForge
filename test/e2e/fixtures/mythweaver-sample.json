@@ -1,0 +1,45 @@
+{
+  "format": "mythweaver-account-export",
+  "version": 1,
+  "exportedAt": "2026-11-16T20:00:00Z",
+  "account": { "id": 1, "email": "nobody@example.invalid", "username": "fakeuser", "name": "Fake Person", "plan": "FREE", "createdAt": "2024-01-01T00:00:00Z" },
+  "campaigns": [
+    {
+      "id": "c-ashen",
+      "name": "Ashen Vale",
+      "description": "A valley of ash where a dragon sleeps.",
+      "gameSystem": "Dungeons & Dragons",
+      "status": "active",
+      "createdAt": "2025-01-01T00:00:00Z",
+      "lore": [
+        { "id": 101, "name": "Hilda Ironhand", "type": "npc", "description": "The village smith, gruff but fair.", "imageUrl": "https://assets.example.invalid/hilda.png", "tags": ["NPC", "Smith"],
+          "sections": [ { "title": "Role", "text": "Blacksmith\nAlso the reeve's sister." }, { "title": "Personality", "text": "Short-tempered, **loyal**." } ] },
+        { "id": 102, "name": "Brother Oswin", "type": "npc", "description": "A monk who knows too much.", "tags": [],
+          "sections": [ { "text": "<p>Keeps the <strong>old records</strong>.</p><ul><li>Fears fire</li></ul>" }, { "title": "Secret", "text": "He serves the dragon.", "dmOnly": true } ] },
+        { "id": 103, "name": "The Cinder Gate", "type": "location", "description": "The only pass into the vale.", "tags": ["Location"], "sections": [ { "title": "Overview", "text": "## Approach\n- Narrow\n- Watched" } ] },
+        { "id": 104, "name": "Emberstone", "type": "item", "description": "A stone warm to the touch.", "tags": ["Magic Item"], "sections": [] },
+        { "id": 105, "name": "Ash Wraith", "type": "monster", "description": "Stat ideas for the wraiths.", "tags": [], "sections": [ { "title": "Actions", "text": "Ashen Touch: 2d6 necrotic." } ] },
+        { "id": 106, "name": "Ambush at the Gate", "type": "encounter", "description": "Bandits strike at dusk.", "tags": ["Encounter"], "sections": [] },
+        { "id": 107, "name": "The Missing Lambs", "type": "generic", "description": "A plot thread.", "tags": ["Plot"], "sections": [ { "title": "Clues", "text": "Wool on the thorns." } ] },
+        { "id": 108, "type": "generic" }
+      ],
+      "sessions": [
+        { "id": "s1", "number": 1, "name": "Into the Ash", "playedOn": "2025-02-01T00:00:00Z", "summary": "Short version.", "shortRecap": "Shortest.", "detailedRecap": "## The Gate\n\nThe party met **Hilda**.", "createdAt": "2025-02-02T00:00:00Z" },
+        { "id": "s2", "number": 2, "name": "Smoke Signals", "playedOn": "2025-02-08T00:00:00Z", "summary": "They found the lambs.", "createdAt": "2025-02-09T00:00:00Z" }
+      ]
+    },
+    { "id": "c-empty", "name": "Empty Road", "description": "", "gameSystem": "Dungeons & Dragons", "status": "planning", "createdAt": "2025-03-01T00:00:00Z", "lore": [], "sessions": [] }
+  ],
+  "otherLore": [ { "id": 201, "name": "Potion of Greater Healing", "type": "item", "sections": [] } ],
+  "characters": [
+    { "id": "ch-brin", "name": "Brin Ashford", "ancestry": "Human", "class": "Fighter", "level": 1, "gameSystem": "dnd.5e.1", "campaignIds": ["c-ashen"],
+      "sheet": { "name": "Brin Ashford", "level": 1, "abilityScores": { "str": 15, "dex": 13, "con": 14, "int": 8, "wis": 12, "cha": 10 },
+        "selectionsBySlot": { "class": "fighter", "species": "human", "background": "soldier", "class_skills": ["skill-athletics", "skill-perception"], "ability_method": "standard_array" } },
+      "createdAt": "2025-01-05T00:00:00Z" }
+  ],
+  "images": [
+    { "id": 1, "url": "https://assets.example.invalid/1.png", "prompt": "a valley", "campaignId": "c-ashen", "createdAt": "2025-01-01T00:00:00Z" },
+    { "id": 2, "url": "https://assets.example.invalid/2.png", "prompt": "a gate", "campaignId": "c-ashen", "createdAt": "2025-01-01T00:00:00Z" },
+    { "id": 3, "url": "https://assets.example.invalid/3.png", "prompt": "a wraith", "campaignId": "c-ashen", "createdAt": "2025-01-01T00:00:00Z" }
+  ]
+}

@@ -10805,17 +10805,18 @@ function importBuild(D) {
   const fresh = D.homebrew.filter(x => !hbAny(x.kind).some(y => pendKey(y) === pendKey(x)));
   HB.pend = [...HB.pend, ...fresh.map(x => ({ ...x, pend: true, from: [] }))]; HB.pendSig = ""; hbApply();
   try {
-    const base = { ...D.final }; let n = null;
-    for (let i = 0; i < 6; i++) {
+    const base = { ...(D.base || D.final) }; let n = null;
+    for (let i = 0; i < (D.base ? 1 : 6); i++) {
+      if (D.base) { n = generateCharacter({ ...D.opts, base: { ...base } }); break; }
       n = generateCharacter({ ...D.opts, base: { ...base } });
       const off = AB.filter(a => n.scores[a] !== D.final[a]); if (!off.length) break;
       off.forEach(a => base[a] = Math.max(1, base[a] + D.final[a] - n.scores[a]));
     }
     const c = n, report = JSON.parse(JSON.stringify(D.report));
-    AB.filter(a => c.scores[a] !== D.final[a]).forEach(a => report.differ.push(`${AB_NAME[a]} is ${c.scores[a]} in the Forge (the file says ${D.final[a]})`));
+    if (!D.base) AB.filter(a => c.scores[a] !== D.final[a]).forEach(a => report.differ.push(`${AB_NAME[a]} is ${c.scores[a]} in the Forge (the file says ${D.final[a]})`));
     if (D.appSaves) { const extra = D.appSaves.filter(a => !c.saves.includes(a)), less = c.saves.filter(a => !D.appSaves.includes(a)); if (extra.length || less.length) report.differ.push(`Saving throws: the Forge gives ${c.saves.map(a => AB_NAME[a]).join(", ")}${D.appSaves.length ? ` (the file marks ${D.appSaves.map(a => AB_NAME[a]).join(", ")})` : ""}`); }
     const X = D.extras;
-    Object.assign(c, { id: uid("pc"), kit: [], kitMoved: true, goldAdded: true, inv: X.inv || [], coins: X.coins || { cp: 0, sp: 0, ep: 0, gp: 0, pp: 0 }, prepared: X.prepared || [], importedFrom: { app: D.src, at: Date.now() } });
+    Object.assign(c, { id: uid("pc"), kit: [], kitMoved: true, goldAdded: true, inv: X.inv || [], coins: X.coins || { cp: 0, sp: 0, ep: 0, gp: 0, pp: 0 }, prepared: X.prepared || [], importedFrom: { app: D.src, at: Date.now() }, ...(D.mwId ? { mwId: D.mwId } : {}) });
     ["align", "xp", "player", "trait", "ideal", "bond", "flaw", "notes", "langs", "toolsChosen", "look"].forEach(k => { if (X[k] !== undefined && X[k] !== "") c[k] = X[k]; });
     if (X.fightStyles && X.fightStyles.length) c.fightStyles = X.fightStyles;
     if (X.conds && X.conds.length) c.conds = X.conds;
@@ -10968,6 +10969,92 @@ function pdfImport(F, ed) {
     trait: impCut(get("PersonalityTraits"), 1000), ideal: impCut(get("Ideals"), 1000), bond: impCut(get("Bonds"), 1000), flaw: impCut(get("Flaws"), 1000), look, notes: notes.join("\n\n"), langs: langs.join(", "), toolsChosen: tools.join(", ") };
   D.check = { hp: num("HPMax"), ac: num("AC"), speed: num("Speed"), dc: num("SpellSaveDC 2") };
   if (!main.subclass && main.lv >= subclassLevel(ed, main.cls)) D.report.differ.push(`No ${main.cls} subclass on the sheet: choose a ${main.cls} subclass on the sheet after importing`);
+  return D;
+}
+
+/* ======================= MythWeaver import =======================
+   MythWeaver exports a whole account as JSON ({format: "mythweaver-account-export", campaigns, otherLore, characters, images}).
+   mwRead keeps only what the Forge uses: the account block (email, name) is never read. mwPlanCamp maps one campaign onto
+   a Tracker campaign, updating one imported before (matched by mwId) without deleting anything. Nothing here saves. */
+const MW_SRC = "MythWeaver";
+const MW_TYPE = { location: "place", place: "place", item: "item", monster: "monster", creature: "monster", encounter: "encounter" };
+function mwText(s) {
+  let t = String(s ?? "");
+  if (!/<[a-z!/]/i.test(t)) return t.replace(/\r/g, "").trim();
+  t = t.replace(/\r/g, "").replace(/<\s*br\s*\/?>/gi, "\n")
+    .replace(/<\s*h([1-6])[^>]*>/gi, (m, n) => "\n\n" + "#".repeat(Math.min(3, +n)) + " ").replace(/<\/\s*h[1-6]\s*>/gi, "\n\n")
+    .replace(/<\s*li[^>]*>/gi, "\n- ").replace(/<\/\s*li\s*>/gi, "")
+    .replace(/<\/?\s*(ul|ol)[^>]*>/gi, "\n\n")
+    .replace(/<\s*p[^>]*>/gi, "\n\n").replace(/<\/\s*p\s*>/gi, "\n\n")
+    .replace(/<\/?\s*(strong|b)\s*>/gi, "**").replace(/<\/?\s*(em|i)\s*>/gi, "*")
+    .replace(/<[^>]*>/g, "")
+    .replace(/&nbsp;/g, " ").replace(/&lt;/g, "<").replace(/&gt;/g, ">").replace(/&quot;/g, '"').replace(/&#39;|&apos;/g, "'").replace(/&#(\d+);/g, (m, n) => String.fromCharCode(+n)).replace(/&amp;/g, "&");
+  return t.split("\n").map(l => l.replace(/[ \t]+$/g, "").replace(/^[ \t]+(?=\S)/, "")).join("\n").replace(/\n{3,}/g, "\n\n").trim();
+}
+function mwRead(j) {
+  if (!j || typeof j !== "object" || j.format !== "mythweaver-account-export") return { error: "This file isn't a MythWeaver export. In MythWeaver, export your account data and choose the .json file it gives you." };
+  return {
+    campaigns: (Array.isArray(j.campaigns) ? j.campaigns : []).map(c => ({ mwId: String(c.id ?? uid("mw")), name: String(c.name || "Untitled campaign").slice(0, 120), desc: mwText(c.description), gameSystem: String(c.gameSystem || ""), lore: Array.isArray(c.lore) ? c.lore : [], sessions: Array.isArray(c.sessions) ? c.sessions : [] })),
+    other: Array.isArray(j.otherLore) ? j.otherLore : [],
+    characters: (Array.isArray(j.characters) ? j.characters : []).map(ch => ({ mwId: String(ch.id ?? uid("mw")), name: String(ch.name || (ch.sheet && ch.sheet.name) || "Unnamed").slice(0, 80), cls: ch.class || "", ancestry: ch.ancestry || "", level: +ch.level || 1, gameSystem: String(ch.gameSystem || ""), campaignIds: (ch.campaignIds || []).map(String), sheet: ch.sheet || {} })),
+    images: Array.isArray(j.images) ? j.images.length : 0
+  };
+}
+const mwPlain = s => String(s || "").replace(/\*\*|__/g, "").replace(/^[-*#\s]+/, "").trim();
+function mwLore(x, extraTag) {
+  const tags = (Array.isArray(x.tags) ? x.tags : []).map(String).filter(Boolean);
+  if (extraTag && !tags.includes(extraTag)) tags.push(extraTag);
+  return { mwId: (extraTag ? "acct-" : "") + String(x.id ?? uid("mw")), name: String(x.name || "Untitled").slice(0, 120), type: MW_TYPE[String(x.type || "").toLowerCase()] || "other", tags,
+    ...(npcUrlOk(x.imageUrl) ? { imgUrl: x.imageUrl } : {}), desc: mwText(x.description), sections: (Array.isArray(x.sections) ? x.sections : []).map(s => ({ t: String(s.title || "").slice(0, 120), x: mwText(s.text), dm: !!s.dmOnly })).filter(s => s.t || s.x), src: MW_SRC };
+}
+function mwNpc(x) {
+  const secs = Array.isArray(x.sections) ? x.sections : [], rs = secs.find(s => /role|occupation/i.test(s.title || ""));
+  const role = rs ? mwPlain(mwText(rs.text).split("\n")[0]) : mwPlain((mwText(x.description).split(/[,.;—–]/)[0] || ""));
+  const notes = [mwText(x.description), ...secs.map(s => `${s.title || "Notes"}${s.dmOnly ? " (DM only)" : ""}: ${mwText(s.text)}`), (x.tags || []).length ? `Tags: ${x.tags.join(", ")}` : ""].filter(Boolean).join("\n\n");
+  return { mwId: String(x.id ?? uid("mw")), name: String(x.name || "Unnamed").slice(0, 120), role: role.slice(0, 60), notes, ...(npcUrlOk(x.imageUrl) ? { imgUrl: x.imageUrl } : {}) };
+}
+function mwPlanCamp(R, i, existing) {
+  const src = R.campaigns[i], updated = !!existing;
+  const camp = existing ? JSON.parse(JSON.stringify(existing)) : blankCampaign(src.name);
+  ["chapters", "encounters", "sessions", "party", "npcs", "lore", "quests", "loot", "maps"].forEach(k => { if (!Array.isArray(camp[k])) camp[k] = []; });
+  camp.mwId = src.mwId; camp.mwAt = Date.now();
+  if (!updated || !String(camp.notes || "").trim()) camp.notes = src.desc;
+  const upsert = (list, item, fresh) => { const j = list.findIndex(x => x.mwId && x.mwId === item.mwId); if (j >= 0) { list[j] = { ...list[j], ...item, id: list[j].id }; return list[j]; } const it = { id: uid(fresh), ...fresh === "n" ? { attitude: "Unknown" } : {}, ...item }; list.push(it); return it; };
+  const lore = src.lore.filter(x => String(x.type || "").toLowerCase() !== "npc"), npcs = src.lore.filter(x => String(x.type || "").toLowerCase() === "npc");
+  npcs.forEach(x => { const n = mwNpc(x), had = camp.npcs.find(y => y.mwId === n.mwId); if (had && had.img) delete n.imgUrl; upsert(camp.npcs, n, "n"); });
+  [...lore.map(x => mwLore(x)), ...R.other.map(x => mwLore(x, "Account"))].forEach(x => upsert(camp.lore, x, "lo"));
+  src.sessions.forEach(s => upsert(camp.sessions, { mwId: String(s.id ?? uid("mw")), title: String(s.name || `Session ${s.number || ""}`).trim(), num: +s.number || 0, date: String(s.playedOn || "").slice(0, 10), summary: mwText(s.detailedRecap || s.summary || s.shortRecap || "") }, "s"));
+  camp.sessions.sort((a, b) => (+b.num || 0) - (+a.num || 0)); // newest first, as the Sessions tab keeps them
+  return { camp, stats: { npcs: npcs.length, lore: lore.length + R.other.length, sessions: src.sessions.length, updated } };
+}
+// a MythWeaver character -> a Draft for importBuild (its scores are starting scores, before the species bonus)
+function mwChar(ch, ed) {
+  ed = ed === "2024" ? "2024" : "2014";
+  const sh = ch.sheet || {}, sel = sh.selectionsBySlot || {}, A = sh.abilityScores || {};
+  const D = { src: MW_SRC, mwId: ch.mwId, opts: {}, extras: {}, homebrew: [], report: { matched: [], made: [], differ: [], dropped: [] }, base: {} };
+  const cName = impTitle(String(sel.class || ch.cls || "").replace(/-/g, " ")), cls = Object.keys(CLASS_DATA).find(k => impSame(k, cName));
+  if (!cls) return { error: `The Forge doesn't support the ${cName || "unknown"} class yet, so ${ch.name} can't be imported.` };
+  for (const a of AB) { const v = +A[a] || +A[{ int: "intelligence" }[a]]; if (!(v > 0)) return { error: `${ch.name} has no ability scores in the file.` }; D.base[a] = v; }
+  const lv = clamp(+sh.level || ch.level || 1, 1, 20);
+  // species: a species, or a subrace's name; a species with subraces the file doesn't name gets the first one
+  const sName = impTitle(String(sel.species || ch.ancestry || "").replace(/-/g, " ")), R = PC_RACES[ed];
+  let race = Object.keys(R).find(k => !R[k].pend && impSame(k, sName)) || null, sub = "none";
+  if (!race) for (const k of Object.keys(R)) { const S = R[k].subs || {}; const sk = Object.keys(S).find(s => impSame(s, sName) || impSame(S[s].label, sName)); if (sk) { race = k; sub = sk; break; } }
+  if (race && sub === "none" && R[race].subs) { sub = Object.keys(R[race].subs)[0]; D.report.differ.push(`MythWeaver doesn't say which kind of ${race}: the Forge chose ${sub}. Change it on the sheet if needed`); }
+  if (race) D.report.matched.push(`Species: ${sub !== "none" ? sub : race}`);
+  else if (sName) { const have = impHave("species", sName); race = have ? have.name : impCut(sName, 60); if (!have) { D.homebrew.push({ id: uid("hb"), kind: "species", src: MW_SRC, ed, name: race, desc: "Imported from MythWeaver; add its traits here.", asi: {}, speed: 30, skills: [], term: "", traits: [], subs: [] }); D.report.made.push(`${race} (species, name only)`); } }
+  else return { error: `${ch.name} has no species in the file.` };
+  const bName = impTitle(String(sel.background || "").replace(/-/g, " "));
+  let bg = bName ? bgList(ed).find(k => impSame(k, bName)) || (impHave("background", bName) || {}).name || null : null;
+  if (bg) D.report.matched.push(`Background: ${bg}`);
+  else if (bName) { bg = impCut(bName, 60); D.homebrew.push({ id: uid("hb"), kind: "background", src: MW_SRC, ed, name: bg, desc: "Imported from MythWeaver; add its feature here.", skills: [], feat: "", gear: "", fx: [] }); D.report.made.push(`${bg} (background, name only)`); }
+  const keepSkills = (sel.class_skills || []).map(s => ALL_SKILLS.find(k => impSame(k, String(s).replace(/^skill-/, "").replace(/-/g, " ")))).filter(Boolean);
+  const gearIds = Object.entries(sel).filter(([k]) => /equipment/i.test(k)).flatMap(([, v]) => Array.isArray(v) ? v : [v]).filter(v => typeof v === "string");
+  const inv = gearIds.map(id => { const { g, n, qty } = impGear(ed, impTitle(id.replace(/-/g, " "))); return { id: uid("i"), ref: g ? g.id : undefined, n, qty, w: g ? g.w || 0 : 0, att: false, attuned: false, value: g ? g.c : undefined, note: "", eq: eqIsWeapon(g) || eqIsArmor(g) }; });
+  D.report.matched.unshift(`${cls} ${lv}`);
+  D.opts = { seed: "mw|" + ch.mwId, name: ch.name, ed, bonus: "fixed", method: "array", cls, level: lv, subclass: "none", race, sub, bg: bg || undefined, keepSkills };
+  D.extras = { inv, coins: { cp: 0, sp: 0, ep: 0, gp: 0, pp: 0 }, prepared: [], langs: (sel.background_language_choices || []).map(x => impTitle(String(x).replace(/-/g, " "))).join(", ") };
+  if (lv >= subclassLevel(ed, cls)) D.report.differ.push(`No ${cls} subclass in the file: choose one on the sheet`);
   return D;
 }
 
