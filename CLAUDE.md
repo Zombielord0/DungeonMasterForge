@@ -572,6 +572,12 @@ PR #8 (the expired sign-in fix) was merged before that chat.
   - On the place page, the "Map" section (`#wpMapView`, drawn by `wpMapThumb`) has buttons `[data-w]` = openmap (`wpMapOpen`: sets `MAPLINK.place`, then `mapOpenSaved`), rmmap, usemap and genmap (`setMapForm` with the place's name and `WP_MAP_THEME[type]`, then `renderMap`). The `#wpMapFile` upload runs `imageMapBuild` and saves `imgRecord`.
   - On the Dungeon Map tab, `#mapPlace` + `#mapSavePlace` save `mapEntryNow()` to a place (`mapPlaceFill`, refreshed by `route` for `#map`). `MAPLINK.place` preselects the place the map was opened from.
   - `mapImgTidy(imgId)` deletes a picture once no World place or campaign map uses it (on Replace, Remove and place delete).
+- **The side list:** `W.view` is "type" (groups from `WP_PLURAL`, open state in `W.openT`, buttons `[data-w="tgroup"]`) or "tree" (the nesting). `W.camp` (`#worldCamp`) filters to `wpCampSet(campId)`: places in that campaign's Lore plus everything inside them.
+- **World builder:** `W.mode = "build"` shows `wbHTML()` in `#worldMain`. `W.build = {kind, seed, o, parent, camp}`; `wbStart(kind)` resets it.
+  - `WB[kind](rng, o)` returns a draft tree `{name, type, desc, sections, kids, npcs, shop?, map?}`. The kinds are settlement (it calls tavern, shop and temple for its places, inside districts for a city), tavern, shop (`shopMake`, stored as `p.shop` params), temple and dungeon (`p.map` generated settings). Tables are the `WB_*` constants.
+  - Options are `[data-wb]` (name, the kind's selects, checkboxes; parent and camp live on `W.build`). Buttons: `[data-w]` = build, wbkind, wbroll, wbadd.
+  - `wbCommit()` makes the places with `wpNew`, and NPCs as `{lib, placeId, place, notes: npcText}` in the chosen campaign or the loose list. It puts the top place in the campaign's Lore with `wpSetCamp`.
+  - A place with `p.shop` shows "🛒 Open the shop" (`[data-w="openshop"]`: `IT.shop = shopMake(p.shop)`, then the Items tab).
 - **Campaign files:** `campExtras(c)` adds `world`: the places the campaign uses, plus their ancestors. `campExtrasAdopt` merges them by id or name and remaps parents.
 - **Tests:** `npm run test:world` (`test/e2e/world.cjs`).
 

@@ -232,6 +232,16 @@ ul.plain{margin:4px 0 0;padding-left:20px}
 .wsub{margin:12px 0 2px;font-size:14px;color:var(--muted,#9a8f80)}
 .wpic{display:block;max-width:100%;max-height:260px;margin-top:8px;border-radius:4px;border:1px solid #3a332b;object-fit:contain}
 .wsecs{margin-bottom:8px}
+.wgroup{margin-bottom:2px}
+.wgroup-h{display:flex;align-items:center;gap:6px;width:100%;background:none;border:1px solid transparent;border-radius:4px;color:inherit;font:inherit;font-family:Cinzel,serif;font-size:15px;padding:6px 4px;cursor:pointer;text-align:left}
+.wgroup-h:hover,.wgroup-h:focus-visible{border-color:#3a332b}.wgroup-h .wtog{flex:0 0 18px;width:18px;height:auto}
+.wgroup-b{padding-left:14px;border-left:1px solid #2e2924;margin-left:12px;margin-bottom:6px}
+.wview{margin-bottom:0}
+.wb-kinds{display:flex;flex-wrap:wrap;gap:6px}.wb-kinds .chip{font-family:inherit;color:inherit;font-size:14.5px}
+.wb-checks{display:flex;flex-wrap:wrap;gap:4px 18px;margin:4px 0 8px}
+.wb-out{border-top:1px solid rgba(255,255,255,.08);margin-top:6px;padding-top:10px}
+.wb-out .gen-title{margin:0;font-size:24px}
+.wb-list{margin:4px 0 8px;padding-left:20px}.wb-list ul{padding-left:18px}.wb-list li{margin:2px 0}
 .wmap-view{display:flex;align-items:center;justify-content:center;width:100%;min-height:120px;max-height:420px;overflow:hidden;background:#0d0c0b;border:1px solid #3a332b;border-radius:4px;padding:0;cursor:zoom-in;color:inherit;font:inherit}
 .wmap-view img,.wmap-view canvas{display:block;max-width:100%;max-height:420px;width:auto;height:auto;object-fit:contain}
 .wmap-view:hover,.wmap-view:focus-visible{border-color:#8a5a2a}
@@ -4675,7 +4685,8 @@ function renderNpcLib(listOnly) {
 const WORLD_KEY = "dmforge.world.v1";
 const WP_TYPES = { region: ["🗺️", "Region"], city: ["🏰", "City"], town: ["🏘️", "Town"], village: ["🛖", "Village"], district: ["🏙️", "District"], building: ["🏛️", "Building"], tavern: ["🍺", "Tavern or inn"], shop: ["🛒", "Shop"], temple: ["⛪", "Temple"], dungeon: ["💀", "Dungeon"], wilderness: ["🌲", "Wilderness"], landmark: ["🗿", "Landmark"], other: ["📍", "Place"] };
 const WP_LORE = ["name", "desc", "sections", "tags", "imgUrl"];
-const W = { places: [], sel: null, open: new Set(), q: "", loaded: false, dirty: false };
+const W = { places: [], sel: null, open: new Set(), q: "", loaded: false, dirty: false, view: "type", camp: "", openT: new Set(), mode: "place", build: null };
+const WP_PLURAL = { region: "Regions", city: "Cities", town: "Towns", village: "Villages", district: "Districts", building: "Buildings", tavern: "Taverns & inns", shop: "Shops", temple: "Temples", dungeon: "Dungeons", wilderness: "Wilderness", landmark: "Landmarks", other: "Other places" };
 function worldLoad() { try { const d = JSON.parse(localStorage.getItem(WORLD_KEY) || "null"); W.places = d && Array.isArray(d.places) ? d.places.filter(p => p && p.id && p.name) : []; } catch { W.places = []; } W.loaded = true; }
 function worldSave() { W.dirty = false; try { localStorage.setItem(WORLD_KEY, JSON.stringify({ places: W.places })); return true; } catch { toast("Couldn't save: this browser's storage is full"); return false; } }
 const wp = id => (W.loaded || worldLoad(), id ? W.places.find(p => p.id === id) || null : null);
@@ -4793,15 +4804,33 @@ async function wpDelete(p) {
   const L = npcLoose(); let lch = false; L.forEach(n => { if (move(n)) lch = true; }); if (lch) npcLooseSave(L);
   worldSave(); W.sel = up ? up.id : null; renderWorld(); toast(`${p.name} deleted`);
 }
+/* the places a campaign has: ones in its Lore, and everything inside them */
+function wpCampSet(campId) {
+  const c = Store.get(campId); if (!c) return null;
+  const out = new Set(); (c.lore || []).forEach(l => { if (l.wpId && wp(l.wpId)) wpUnder(l.wpId).forEach(id => out.add(id)); });
+  return out;
+}
 function worldTreeHTML(counts) {
-  if (!W.places.length) return `<p class="muted" style="font-size:15px">No places yet.</p>`;
+  if (!W.places.length) return `<p class="muted" style="font-size:15px">No places yet. Press 🛠 World builder to make a city, inn, shop, temple or dungeon.</p>`;
   const q = W.q.trim().toLowerCase(), cnt = id => counts[id] ? ` <span class="wcount" title="NPCs here and inside">${counts[id]}</span>` : "";
-  const btn = p => `<button type="button" class="wname${p.id === W.sel ? " on" : ""}" data-w="sel" data-id="${esc(p.id)}"${p.id === W.sel ? ' aria-current="true"' : ""}><span class="wic" aria-hidden="true">${wpIcon(p)}</span>${esc(p.name)}${cnt(p.id)}</button>`;
-  if (q) { const L = W.places.filter(p => [p.name, (WP_TYPES[p.type] || WP_TYPES.other)[1], (p.tags || []).join(" ")].join(" ").toLowerCase().includes(q)).sort((a, b) => wpPathText(a).localeCompare(wpPathText(b)));
-    return L.length ? L.map(p => `<div class="wnode">${btn(p)}${p.parent ? `<small class="muted wpath">${esc(wpPath(p).slice(0, -1).map(x => x.name).join(" › "))}</small>` : ""}</div>`).join("") : `<p class="muted">No places match.</p>`; }
-  const walk = (id, d) => wpKids(id).map(p => { const kids = wpKids(p.id).length, open = W.open.has(p.id);
+  const inC = W.camp ? wpCampSet(W.camp) : null, keep = p => !inC || inC.has(p.id);
+  const btn = p => `<button type="button" class="wname${p.id === W.sel && W.mode === "place" ? " on" : ""}" data-w="sel" data-id="${esc(p.id)}"${p.id === W.sel ? ' aria-current="true"' : ""}><span class="wic" aria-hidden="true">${wpIcon(p)}</span>${esc(p.name)}${cnt(p.id)}</button>`;
+  const path = p => p.parent && wp(p.parent) ? `<small class="muted wpath">${esc(wpPath(p).slice(0, -1).map(x => x.name).join(" › "))}</small>` : "";
+  const none = `<p class="muted" style="font-size:15px">${W.camp ? "No places in this campaign yet. Tick it on a place's page, or build one with the campaign chosen." : "No places match."}</p>`;
+  if (q) { const L = W.places.filter(p => keep(p) && [p.name, (WP_TYPES[p.type] || WP_TYPES.other)[1], (p.tags || []).join(" ")].join(" ").toLowerCase().includes(q)).sort((a, b) => wpPathText(a).localeCompare(wpPathText(b)));
+    return L.length ? L.map(p => `<div class="wnode">${btn(p)}${path(p)}</div>`).join("") : none; }
+  if (W.view === "type") {
+    const groups = Object.keys(WP_TYPES).map(t => [t, W.places.filter(p => (WP_TYPES[p.type] ? p.type : "other") === t && keep(p)).sort((a, b) => a.name.localeCompare(b.name))]).filter(([, L]) => L.length);
+    if (!groups.length) return none;
+    return groups.map(([t, L]) => { const open = W.openT.has(t) || !!q;
+      return `<div class="wgroup"><button type="button" class="wgroup-h" data-w="tgroup" data-t="${t}" aria-expanded="${open}"><span class="wtog" aria-hidden="true">${open ? "▾" : "▸"}</span><span class="wic" aria-hidden="true">${WP_TYPES[t][0]}</span>${WP_PLURAL[t]}<span class="wcount">${L.length}</span></button>
+        ${open ? `<div class="wgroup-b">${L.map(p => `<div class="wnode">${btn(p)}${path(p)}</div>`).join("")}</div>` : ""}</div>`; }).join("");
+  }
+  const vis = inC ? new Set([...W.places.filter(keep)].flatMap(p => wpPath(p).map(x => x.id))) : null;
+  const walk = (id, d) => wpKids(id).filter(p => !vis || vis.has(p.id)).map(p => { const kids = wpKids(p.id).filter(k => !vis || vis.has(k.id)).length, open = W.open.has(p.id);
     return `<div class="wnode" style="--d:${d}">${kids ? `<button type="button" class="wtog" data-w="tog" data-id="${esc(p.id)}" aria-expanded="${open}" aria-label="${open ? "Close" : "Open"} ${esc(p.name)}">${open ? "▾" : "▸"}</button>` : `<span class="wtog" aria-hidden="true"></span>`}${btn(p)}</div>${kids && open ? walk(p.id, d + 1) : ""}`; }).join("");
-  return `<div role="tree" aria-label="Places">${walk(null, 0)}</div>`;
+  const html = walk(null, 0);
+  return html ? `<div role="tree" aria-label="Places">${html}</div>` : none;
 }
 function worldPlaceHTML(p, groups) {
   const t = WP_TYPES[p.type] || WP_TYPES.other, under = wpUnder(p.id), camps = Store.list(), inC = new Set(wpCamps(p.id).map(c => c.id));
@@ -4822,6 +4851,7 @@ function worldPlaceHTML(p, groups) {
     <div class="field"><label for="wpDesc">Description</label><textarea id="wpDesc" data-wf="desc" placeholder="What it's like, who runs it, what's going on…">${esc(p.desc || "")}</textarea></div>
     ${(p.sections || []).length ? `<div class="wsecs">${p.sections.map(x => `<div class="lore-sec"><h4>${esc(x.t || "")}${x.dm ? ` <span class="tag lore-dm" title="Only for you">🔒 DM only</span>` : ""}</h4>${mdHTML(x.x)}</div>`).join("")}<p class="hint">Edit these sections in a campaign's Lore tab.</p></div>` : ""}
     <div class="field"><label for="wpPic">Picture link</label><input type="text" id="wpPic" data-wf="imgUrl" value="${esc(p.imgUrl || "")}" placeholder="https://…">${pic ? `<img class="wpic" src="${esc(pic)}" alt="" referrerpolicy="no-referrer" loading="lazy">` : ""}</div>
+    ${p.shop ? `<div class="row" style="gap:8px;margin:6px 0 10px;align-items:center"><button class="btn sm primary" type="button" data-w="openshop" style="flex:0 0 auto">🛒 Open the shop</button><span class="muted" style="font-size:14px">Opens it on the Items tab, where characters can buy from it.</span></div>` : ""}
     <div class="sec-h"><h3>Map</h3></div>
     ${p.map ? `<div class="wmap"><button type="button" class="wmap-view" id="wpMapView" data-w="openmap" title="Open on the Dungeon Map tab" aria-label="Open the map of ${esc(p.name)} on the Dungeon Map tab"><span class="muted">Loading map…</span></button>
       <div class="row" style="flex-wrap:wrap;gap:6px;margin-top:6px"><button class="btn sm primary" type="button" data-w="openmap" style="flex:0 0 auto">🗺 Open on Dungeon Map</button><label class="btn sm" style="flex:0 0 auto">🖼 Replace with a picture…<input type="file" id="wpMapFile" accept="image/*" hidden></label><button class="btn sm" type="button" data-w="rmmap" style="flex:0 0 auto">✕ Remove map</button></div>
@@ -4840,16 +4870,23 @@ function renderWorld(treeOnly) {
   const side = $("#worldSide"), main = $("#worldMain"); if (!side || !main) return;
   worldAdopt();
   if (W.sel && !wp(W.sel)) W.sel = null;
-  if (W.sel) wpPath(wp(W.sel)).slice(0, -1).forEach(x => W.open.add(x.id));
+  if (W.camp && !Store.get(W.camp)) W.camp = "";
+  if (W.sel) { wpPath(wp(W.sel)).slice(0, -1).forEach(x => W.open.add(x.id)); W.openT.add(WP_TYPES[wp(W.sel).type] ? wp(W.sel).type : "other"); }
   const groups = npcGroups(), counts = {};
   groups.forEach(g => { let x = wp(g.n.placeId), k = 0; while (x && k++ < 30) { counts[x.id] = (counts[x.id] || 0) + 1; x = wp(x.parent); } });
-  if (!$("#worldTree")) side.innerHTML = `<div class="sec-h"><h3>World</h3><span class="sp"></span><button class="btn sm primary" type="button" data-w="new">+ Place</button></div>
-    <input type="text" id="worldQ" placeholder="Search places…" aria-label="Search places" style="margin-bottom:8px"><div id="worldTree" class="wtree"></div>
-    <p class="hint" style="margin-top:10px">Places in your campaigns' Lore appear here by themselves. Put places inside others, like a tavern in a district in a city.</p>`;
+  if (!$("#worldTree")) side.innerHTML = `<div class="sec-h"><h3>World</h3><span class="sp"></span><button class="btn sm" type="button" data-w="new">+ Place</button></div>
+    <button class="btn primary wide" type="button" data-w="build" style="margin-bottom:10px">🛠 World builder</button>
+    <select id="worldCamp" aria-label="Show places from" style="margin-bottom:8px"></select>
+    <div class="seg wview" role="radiogroup" aria-label="Show places"><label class="opt"><input type="radio" name="wview" value="type"><span>By type</span></label><label class="opt"><input type="radio" name="wview" value="tree"><span>Map</span></label></div>
+    <input type="text" id="worldQ" placeholder="Search places…" aria-label="Search places" style="margin:8px 0"><div id="worldTree" class="wtree"></div>
+    <p class="hint" style="margin-top:10px"><b>By type</b> groups your cities, towns, inns and so on; click a group to open it. <b>Map</b> shows what's inside what. Places in your campaigns' Lore appear here by themselves.</p>`;
+  $("#worldCamp").innerHTML = `<option value="">All campaigns</option>${Store.list().map(c => `<option value="${esc(c.id)}" ${c.id === W.camp ? "selected" : ""}>${esc(c.name)}</option>`).join("")}`;
+  side.querySelectorAll('input[name="wview"]').forEach(r => { r.checked = r.value === W.view; });
   $("#worldTree").innerHTML = worldTreeHTML(counts);
   if (treeOnly) return;
+  if (W.mode === "build") { main.innerHTML = wbHTML(); return; }
   const p = wp(W.sel);
-  main.innerHTML = p ? worldPlaceHTML(p, groups) : `<div class="card empty"><h2>${W.places.length ? "Pick a place" : "Build your world"}</h2><p>${W.places.length ? "Choose a place on the left to see what's inside it and who lives there." : "Add regions, cities, towns, taverns and dungeons, put them inside each other, and file your NPCs under them. Places in your campaigns' Lore are added for you."}</p>${W.places.length ? "" : `<button class="btn primary" type="button" data-w="new">+ Add your first place</button>`}</div>`;
+  main.innerHTML = p ? worldPlaceHTML(p, groups) : `<div class="card empty"><h2>${W.places.length ? "Pick a place" : "Build your world"}</h2><p>${W.places.length ? "Choose a place on the left to see what's inside it and who lives there." : "Add regions, cities, towns, taverns and dungeons, put them inside each other, and file your NPCs under them. Places in your campaigns' Lore are added for you."}</p><div class="row" style="justify-content:center;gap:8px;flex-wrap:wrap"><button class="btn primary" type="button" data-w="build" style="flex:0 0 auto">🛠 World builder</button>${W.places.length ? "" : `<button class="btn" type="button" data-w="new" style="flex:0 0 auto">+ Add a place yourself</button>`}</div></div>`;
   main.querySelectorAll("textarea").forEach(autoGrow);
   if (p && p.map) wpMapThumb(p);
 }
@@ -4872,6 +4909,135 @@ async function wpMapThumb(p) {
 }
 const WP_MAP_THEME = { dungeon: "crypt", temple: "temple", wilderness: "cavern", landmark: "crypt", building: "keep", tavern: "keep", shop: "keep", city: "keep", town: "keep", village: "keep", district: "sewer", region: "cavern", other: "crypt" };
 function wpMapOpen(p) { MAPLINK.place = p.id; mapOpenSaved(p.map); setTimeout(mapPlaceFill, 50); toast(`${p.name}'s map is open. Press Save to a World place to keep changes.`); }
+/* ======================= World builder =======================
+   W.build = {kind, seed, o (options)}. Each builder in WB turns (rng, o) into a draft {name, type, desc, sections, kids, npcs, shop?, map?};
+   the preview shows it, Roll again changes the seed, and wbCommit makes the World places (and their NPCs) from it. */
+const WB_KINDS = { settlement: ["🏰", "Settlement"], tavern: ["🍺", "Inn or tavern"], shop: ["🛒", "Shop"], temple: ["⛪", "Temple"], dungeon: ["💀", "Dungeon"] };
+const WB_TERRAIN = { river: "on both banks of a slow river", coast: "around a sheltered harbour", mountains: "high in the mountains, where the passes meet", forest: "in a clearing of old forest", plains: "at a crossroads on the open plains", hills: "on a hill above the farmland", marsh: "on stilts and causeways over the marsh", desert: "around an oasis in the dry country" };
+const WB_A = ["Ash", "Bright", "Cold", "Deep", "Elm", "Fair", "Gold", "Green", "Grey", "High", "Iron", "King's", "Lake", "Long", "Mill", "Oak", "Raven", "Red", "Salt", "Silver", "Stone", "Storm", "Thorn", "White", "Wolf", "Wind", "Black", "Copper", "Frost", "Amber"];
+const WB_B = ["ford", "haven", "bridge", "wick", "stead", "fall", "holm", "moor", "port", "gate", "hollow", "mere", "vale", "watch", "crest", "barrow", "field", "march", "reach", "burg", "ton", "dale", "wood", "cliff"];
+const WB_GOV = [["a hereditary lord", "Noble", "lord of the town"], ["an elected council of guildmasters", "Merchant", "council speaker"], ["a temple that rules in its god's name", "Clergy", "high priest"], ["a merchant prince", "Merchant", "merchant prince"], ["a military governor", "Military", "governor"], ["a council of elders", "Commoner", "eldest of the council"], ["a mayor everyone agrees is useless", "Commoner", "mayor"], ["a regent ruling for a child heir", "Noble", "regent"], ["a mage who rarely leaves the tower", "Scholar", "wizard-lord"]];
+const WB_KNOWN = ["its wool and weaving", "the best ale for a hundred miles", "a famous summer fair", "its silver mines", "shipbuilding", "a holy relic in the temple", "horse breeding", "a ruined wizard's tower on the hill", "its fishing fleet", "trade with the dwarves", "a college of bards", "a giant's skull over the gate", "smuggling, quietly", "its orchards and cider", "a bridge older than anyone knows", "its fighting pits"];
+const WB_DEF = [["a wooden palisade", "a watchtower with a bell", "a few hunters with bows"], ["stone walls and a small watch", "an earth rampart and an old keep", "a militia that drills on feast days"], ["high walls with towered gates", "a standing garrison and a city watch", "a citadel above the old town"]];
+const WB_RUMOURS = ["Livestock has been going missing at night.", "The well water has tasted of iron since the earthquake.", "A noble's heir vanished on the road last month.", "Strangers in grey cloaks are buying up every map in town.", "The temple bells rang by themselves last week.", "A merchant swears a ghost haunts the old mill.", "Bandits are charging a toll on the trade road.", "Someone is poisoning the guild's horses.", "A travelling circus came to town and never left.", "The mayor has been seen talking to his own shadow.", "Children keep dreaming of the same red door.", "Gold coins from a kingdom nobody has heard of are turning up.", "A ship came in with no crew aboard.", "Wolves were heard howling inside the walls."];
+const WB_DISTRICTS = [["Old Town", "Narrow streets and leaning houses around the oldest market."], ["Market Ward", "Stalls, shouting and the smell of spice and fish."], ["Temple Quarter", "Quiet squares, bells and pilgrims."], ["Docks", "Warehouses, sailors and things that fall off ships.", "water"], ["Noble Hill", "Walled gardens and guards who ask your business."], ["The Warrens", "Crowded tenements where the watch doesn't go after dark."], ["Guild Row", "Workshops and guildhalls, each with its own banner."], ["Castle Ward", "Barracks, the courts and the lord's keep."], ["Craftsmen's Quarter", "Smithies, tanners and the ring of hammers."]];
+const WB_TAV_A = ["Prancing", "Drunken", "Golden", "Sleeping", "Rusty", "Laughing", "Wandering", "Crooked", "Jolly", "Silver", "Salty", "Thirsty", "Howling", "Blind", "Merry", "Red", "Gilded", "Lucky"];
+const WB_TAV_N = ["Pony", "Goose", "Dragon", "Griffon", "Barrel", "Tankard", "Stag", "Boar", "Lantern", "Anchor", "Mermaid", "Wyvern", "Fiddler", "Crown", "Owl", "Badger", "Kettle", "Hound"];
+const WB_TAV_Q = { poor: ["Poor", "1 sp", "6 cp", "A common room with straw pallets and a draughty loft."], modest: ["Modest", "5 sp", "3 sp", "Small rooms with real beds and a lock on the door."], comfortable: ["Comfortable", "8 sp", "5 sp", "Clean rooms, a warm fire and a bath for a copper."], wealthy: ["Wealthy", "2 gp", "8 sp", "Fine rooms with feather beds, and a servant to fetch whatever you need."] };
+const WB_TAV_ATM = ["smoky and loud", "quiet, with a crackling fire", "packed with dockworkers and sailors", "clean and suspiciously cheerful", "dim, with private booths", "full of bards competing for coin", "rowdy, with a fight most nights", "cosy, with a fat cat who owns the best chair"];
+const WB_TAV_SP = ["a dartboard where the bets run high", "an arm-wrestling champion who has never lost", "a notice board full of jobs", "a cellar nobody is allowed into", "a stew that has been simmering for years", "a stage for travelling performers", "a mounted owlbear head over the bar", "a back room the thieves' guild uses", "a bathhouse out back", "a regular in the corner who never speaks"];
+const WB_FOOD = ["mutton stew and dark bread", "river trout with onions", "roast boar", "barley soup", "honeyed ham", "mushroom pie", "spiced sausages", "cheese, pickles and apples", "eel pie", "rabbit with herbs"];
+const WB_DRINK = [["house ale", "4 cp a mug"], ["dark stout", "5 cp a mug"], ["cider", "3 cp a mug"], ["mead", "1 sp a cup"], ["elven wine", "2 gp a bottle"], ["dwarven firebrandy", "5 sp a glass"], ["spiced wine", "2 sp a jug"]];
+const WB_GODS = { Life: "the Dawnmother", Light: "the Sunlord", War: "the Iron Father", Knowledge: "the Keeper of Pages", Nature: "the Green Lady", Tempest: "the Storm King", Trickery: "the Laughing Fox", Death: "the Pale Ferryman", Forge: "the Smith Below", Grave: "the Quiet Warden", Order: "the Lawgiver", Peace: "the Open Hand", Twilight: "the Lantern of Dusk" };
+const WB_TEMPLE_F = ["a reliquary holding a saint's finger bone", "a garden of night-blooming flowers", "a bell that rings by itself before storms", "catacombs beneath the altar", "a scriptorium copying old texts", "a famous stained-glass window", "a sacred spring", "an eternal flame that has never gone out"];
+const WB_TEMPLE_T = ["The high priest is secretly losing their faith.", "A relic was stolen last month, and the theft is being hushed up.", "Pilgrims report visions of a dark figure in the crypt.", "The temple is deep in debt to a moneylender.", "An acolyte is dabbling in necromancy.", "A rival faith wants the building."];
+const WB_DUN_A = ["Sunken", "Forgotten", "Howling", "Burning", "Silent", "Shattered", "Drowned", "Cursed", "Hollow", "Black", "Whispering", "Bleeding"];
+const WB_DUN_N = { crypt: ["Crypt", "Tomb", "Barrow"], cavern: ["Caves", "Grotto", "Deeps"], keep: ["Keep", "Fortress", "Tower"], sewer: ["Sewers", "Undercity", "Cisterns"], temple: ["Temple", "Sanctum", "Shrine"], mine: ["Mine", "Delve", "Shafts"] };
+const WB_DUN_PAST = ["built by a forgotten king to hide his treasure", "once a monastery, abandoned after a plague", "dug by dwarves who broke into something below", "a wizard's prison whose wards are failing", "the last stand of an army that never surrendered", "a cult's holy place, sealed by the church a century ago"];
+const WB_DUN_NOW = ["goblins who think it's a palace", "the restless dead", "a band of outlaws", "a young dragon's brood", "cultists trying to finish an old ritual", "something that came up from below"];
+const WB_DUN_WHY = ["A villager's child was taken there.", "A map to the treasure was found in an old book.", "The thing inside is waking, and the town feels it.", "A patron pays well for a relic said to lie at the bottom.", "The local lord wants it cleared before winter.", "Someone the party knows went in and didn't come out."];
+function wbNpc(r, role, occ, att) { const n = generateNPC(r, { role, ...(att ? { att } : {}) }); if (occ) n.occupation = occ; return n; }
+const WB = {
+  settlement(r, o) {
+    const size = o.size || "town", si = { village: 0, town: 1, city: 2 }[size], gov = r.pick(WB_GOV), terr = WB_TERRAIN[o.terrain] ? o.terrain : r.pick(Object.keys(WB_TERRAIN));
+    const name = String(o.name || "").trim() || r.pick(WB_A) + r.pick(WB_B), pop = [r.int(5, 40) * 10, r.int(10, 60) * 100, r.int(10, 60) * 1000][si];
+    const known = r.pickN(WB_KNOWN, 2), def = r.pick(WB_DEF[si]), rum = r.pickN(WB_RUMOURS, 3);
+    const d = { name, type: size, desc: `A ${size} of about ${pop.toLocaleString()} people ${WB_TERRAIN[terr]}. It's ruled by ${gov[0]}, defended by ${def}, and known for ${known[0]} and ${known[1]}.`,
+      sections: [{ t: "Rumours", x: rum.map(x => "- " + x).join("\n"), dm: false }, { t: "What's really going on", x: r.pick(WB_TEMPLE_T.concat(["A cult has members on the town council.", "The founding charter is a forgery, and someone has proof.", "A dragon is owed a tribute nobody has paid in years."])), dm: true }], kids: [], npcs: [] };
+    if (o.npcs !== false) { d.npcs.push(wbNpc(r, gov[1], gov[2]), wbNpc(r, "Military", si ? "captain of the watch" : "head of the militia")); if (si) d.npcs.push(wbNpc(r, r.pick(["Criminal", "Scholar", "Merchant"]))); }
+    if (o.places !== false) {
+      const sub = [WB.tavern(r, { quality: r.pick(["poor", "modest", "comfortable"]), npcs: o.npcs, size }), WB.shop(r, { type: "general", size, npcs: o.npcs, level: o.level })];
+      if (si >= 1) sub.push(WB.shop(r, { type: r.pick(["smith", "alchemist", "bowyer"]), size, npcs: o.npcs, level: o.level }), WB.temple(r, { npcs: o.npcs, size }));
+      if (si === 2) sub.push(WB.tavern(r, { quality: "wealthy", npcs: o.npcs, size }), WB.shop(r, { type: "magic", size, npcs: o.npcs, level: o.level }));
+      if (si === 2) {
+        const pool = WB_DISTRICTS.filter(x => !x[2] || terr === "coast" || terr === "river"), ds = r.pickN(pool, r.int(3, 4)).map(([n, t]) => ({ name: n, type: "district", desc: t, sections: [], kids: [], npcs: [] }));
+        sub.forEach((x, i) => ds[i % ds.length].kids.push(x)); d.kids = ds;
+      } else d.kids = sub;
+    }
+    return d;
+  },
+  tavern(r, o) {
+    const q = WB_TAV_Q[o.quality] || WB_TAV_Q[r.pick(Object.keys(WB_TAV_Q))], name = String(o.name || "").trim() || `The ${r.pick(WB_TAV_A)} ${r.pick(WB_TAV_N)}`;
+    const food = r.pickN(WB_FOOD, 3), drinks = r.pickN(WB_DRINK, 3), keeper = o.npcs !== false ? wbNpc(r, "Merchant", "innkeeper", "Friendly") : null;
+    const d = { name, type: "tavern", desc: `A ${q[0].toLowerCase()} inn, ${r.pick(WB_TAV_ATM)}.${keeper ? ` ${keeper.name} keeps the place.` : ""} Its claim to fame is ${r.pick(WB_TAV_SP)}.`,
+      sections: [{ t: "Rooms", x: `${q[3]}\n\n**A night's stay:** ${q[1]} each`, dm: false }, { t: "On the menu", x: `- **Meal** (${q[2]}): ${food.join("; ")}\n${drinks.map(([n, c]) => `- **${cap1(n)}**: ${c}`).join("\n")}`, dm: false }, { t: "Overheard at the bar", x: r.pickN(WB_RUMOURS, 2).map(x => "- " + x).join("\n"), dm: false }], kids: [], npcs: [] };
+    if (keeper) d.npcs.push(keeper, wbNpc(r, "Commoner", r.pick(["cook", "server", "stablehand", "bouncer"])), wbNpc(r, r.pick(["Adventurer", "Criminal", "Merchant", "Military"])));
+    return d;
+  },
+  shop(r, o) {
+    const sh = shopMake({ type: SHOPS[o.type] ? o.type : r.pick(Object.keys(SHOPS)), size: o.size || "town", level: +o.level || shopLevelGuess(), seed: r.int(1, 1e9).toString(36).toUpperCase(), ed: IT.ed || "2024" });
+    const name = String(o.name || "").trim() || sh.name;
+    const d = { name, type: sh.type === "temple" ? "temple" : "shop", desc: `${sh.label}, run by ${sh.keeper}, who is ${sh.mood}.`, shop: { type: sh.type, size: sh.size, level: sh.level, seed: sh.seed, ed: sh.ed },
+      sections: [{ t: "For sale", x: sh.stock.length ? sh.stock.slice(0, 24).map(x => `- ${x.n}: ${x.c}${x.kind === "magic" ? " (magic)" : ""}`).join("\n") + (sh.stock.length > 24 ? `\n- …and ${sh.stock.length - 24} more` : "") : "Nothing on the shelves today.", dm: false }], kids: [], npcs: [] };
+    if (o.npcs !== false) { const k = wbNpc(r, "Merchant", "shopkeeper"); k.name = sh.keeper; d.npcs.push(k); }
+    return d;
+  },
+  temple(r, o) {
+    const dom = WB_GODS[o.domain] ? o.domain : r.pick(Object.keys(WB_GODS)), god = WB_GODS[dom], kind = { village: "shrine", town: "temple", city: "great temple" }[o.size || "town"] || "temple";
+    const name = String(o.name || "").trim() || r.pick([`The ${kind === "shrine" ? "Shrine" : "Temple"} of ${god.replace(/^the /, "")}`, `${r.pick(["Saint", "Blessed"])} ${r.pick(["Aldric", "Mirena", "Tobias", "Ysolde", "Corwin", "Hesta"])}'s ${kind === "shrine" ? "Shrine" : "Chapel"}`, `The House of ${r.pick(["Dawn", "Mercy", "Iron", "Pages", "Storms", "Lanterns", "Silence"])}`]);
+    const d = { name, type: "temple", desc: `A ${kind} to ${god}, god of ${dom.toLowerCase()}. It's known for ${r.pick(WB_TEMPLE_F)}.`,
+      sections: [{ t: "Services", x: `- **Cure Wounds**: 10 gp\n- **Lesser Restoration**: 40 gp\n- **Remove Curse**: 90 gp\n- **Raise Dead**: 1,250 gp, and only for the faithful\n- A night's shelter and a meal: free, for those who pray`, dm: false }, { t: "Trouble", x: r.pick(WB_TEMPLE_T), dm: true }], kids: [], npcs: [] };
+    if (o.npcs !== false) d.npcs.push(wbNpc(r, "Clergy", kind === "shrine" ? "shrine keeper" : "high priest"), wbNpc(r, "Clergy", "acolyte"));
+    return d;
+  },
+  dungeon(r, o) {
+    const theme = WB_DUN_N[o.theme] ? o.theme : r.pick(Object.keys(WB_DUN_N)), name = String(o.name || "").trim() || `The ${r.pick(WB_DUN_A)} ${r.pick(WB_DUN_N[theme])}`, level = +o.level || shopLevelGuess();
+    const d = { name, type: "dungeon", desc: `A place ${r.pick(WB_DUN_PAST)}. These days it's home to ${r.pick(WB_DUN_NOW)}.`,
+      sections: [{ t: "Why go in", x: r.pickN(WB_DUN_WHY, 2).map(x => "- " + x).join("\n"), dm: false }, { t: "The truth", x: r.pick(["The treasure was taken long ago; what's left is a trap.", "The monsters are guarding something worse, not hiding from it.", "Someone in town knows exactly what's down there.", "The way out closes behind whoever reaches the bottom."]), dm: true }], kids: [], npcs: [] };
+    if (o.map !== false) d.map = { name: name.slice(0, 60), theme, size: "medium", rooms: 8, level, party: 4, seed: r.int(1, 1e9).toString(36).toUpperCase().slice(0, 6), style: "parchment" };
+    return d;
+  }
+};
+const WB_DEFAULTS = { settlement: { size: "town", terrain: "", npcs: true, places: true }, tavern: { quality: "", npcs: true }, shop: { type: "", size: "town", level: "", npcs: true }, temple: { domain: "", size: "town", npcs: true }, dungeon: { theme: "", level: "", map: true } };
+function wbStart(kind) { const prev = W.build; W.build = { kind, seed: newSeed(), o: { ...WB_DEFAULTS[kind], name: "" }, parent: prev ? prev.parent : (W.sel && wp(W.sel) ? W.sel : null), camp: prev ? prev.camp : W.camp }; }
+const wbDraft = () => WB[W.build.kind](makeRng("wb", W.build.kind, W.build.seed), W.build.o);
+function wbCount(d) { let p = 0, n = 0; const walk = x => { p++; n += x.npcs.length; x.kids.forEach(walk); }; walk(d); return { p, n }; }
+function wbHTML() {
+  const B = W.build, o = B.o, d = wbDraft(), cnt = wbCount(d), sel = (k, opts, any = "Any") => `<select data-wb="${k}" aria-label="${k}">${any ? `<option value="">${any}</option>` : ""}${opts.map(([v, l]) => `<option value="${esc(v)}" ${String(o[k]) === String(v) ? "selected" : ""}>${esc(l)}</option>`).join("")}</select>`;
+  const chk = (k, l) => `<label class="check"><input type="checkbox" data-wb="${k}" ${o[k] !== false ? "checked" : ""}> ${l}</label>`;
+  const f = (l, h) => `<div class="field" style="flex:1 1 160px"><label>${l}</label>${h}</div>`;
+  const opts = {
+    settlement: f("Size", sel("size", [["village", "Village"], ["town", "Town"], ["city", "City"]], "")) + f("Where", sel("terrain", Object.keys(WB_TERRAIN).map(k => [k, cap1(k)]))),
+    tavern: f("Quality", sel("quality", Object.entries(WB_TAV_Q).map(([k, v]) => [k, v[0]]))),
+    shop: f("Kind of shop", sel("type", Object.entries(SHOPS).map(([k, v]) => [k, v.label]))) + f("Settlement", sel("size", [["village", "Village"], ["town", "Town"], ["city", "City"]], "")) + f("Party level", `<input type="number" data-wb="level" min="1" max="20" value="${esc(o.level)}" placeholder="${shopLevelGuess()}" aria-label="Party level">`),
+    temple: f("God of", sel("domain", Object.keys(WB_GODS).map(k => [k, `${k} (${WB_GODS[k]})`]))) + f("Settlement", sel("size", [["village", "Village (a shrine)"], ["town", "Town"], ["city", "City (a great temple)"]], "")),
+    dungeon: f("Kind", sel("theme", Object.keys(WB_DUN_N).map(k => [k, cap1(k)]))) + f("Party level", `<input type="number" data-wb="level" min="1" max="20" value="${esc(o.level)}" placeholder="${shopLevelGuess()}" aria-label="Party level">`)
+  }[B.kind];
+  const checks = { settlement: chk("places", "Add inns, shops and a temple" + (o.size === "city" ? ", in districts" : "")) + chk("npcs", "Add NPCs who live there"), tavern: chk("npcs", "Add the innkeeper, staff and a regular"), shop: chk("npcs", "Add the shopkeeper as an NPC"), temple: chk("npcs", "Add the priest and an acolyte"), dungeon: chk("map", "Generate a map for it") }[B.kind];
+  const tree = x => `<li>${wpIcon({ type: x.type })} <b>${esc(x.name)}</b> <span class="muted">${esc((WP_TYPES[x.type] || WP_TYPES.other)[1])}${x.npcs.length ? ` · ${x.npcs.length} NPC${x.npcs.length === 1 ? "" : "s"}` : ""}</span>${x.kids.length ? `<ul>${x.kids.map(tree).join("")}</ul>` : ""}</li>`;
+  return `<div class="card wbuild">
+    <div class="sec-h"><h3>🛠 World builder</h3></div>
+    <div class="wb-kinds" role="tablist" aria-label="What to build">${Object.entries(WB_KINDS).map(([k, [ic, l]]) => `<button type="button" role="tab" class="chip${k === B.kind ? " on" : ""}" aria-selected="${k === B.kind}" data-w="wbkind" data-k="${k}">${ic} ${l}</button>`).join("")}</div>
+    <div class="row" style="gap:10px;flex-wrap:wrap;margin-top:10px">${f("Name", `<input type="text" data-wb="name" value="${esc(o.name)}" placeholder="Leave empty for a random name" maxlength="80">`)}${opts}</div>
+    <div class="row" style="gap:10px;flex-wrap:wrap">${f("Inside", `<select data-wb="parent">${wpOptionsHTML(B.parent, "(top level)", null).replace(/<option value="\u0001new">[^<]*<\/option>/, "")}</select>`)}${f("Add to campaign", `<select data-wb="camp"><option value="">None (just the World)</option>${Store.list().map(c => `<option value="${esc(c.id)}" ${c.id === B.camp ? "selected" : ""}>${esc(c.name)}</option>`).join("")}</select>`)}</div>
+    <div class="wb-checks">${checks}</div>
+    <div class="wb-out">
+      <h2 class="gen-title">${wpIcon({ type: d.type })} ${esc(d.name)}</h2>
+      <div class="muted" style="margin-bottom:6px">${esc((WP_TYPES[d.type] || WP_TYPES.other)[1])}${B.parent && wp(B.parent) ? ` in ${esc(wp(B.parent).name)}` : ""}</div>
+      ${mdHTML(d.desc)}
+      ${d.sections.map(x => `<div class="lore-sec"><h4>${esc(x.t)}${x.dm ? ` <span class="tag lore-dm" title="Only for you">🔒 DM only</span>` : ""}</h4>${mdHTML(x.x)}</div>`).join("")}
+      ${d.map ? `<p class="muted">🗺 Comes with a generated ${esc(d.map.theme)} map (${d.map.rooms} rooms, party level ${d.map.level}).</p>` : ""}
+      ${d.npcs.length ? `<h4>Who's here</h4><ul class="wb-list">${d.npcs.map(n => `<li><b>${esc(n.name)}</b> <span class="muted">· ${esc(n.race)} ${esc(n.occupation)} (${esc(n.attitude)})</span></li>`).join("")}</ul>` : ""}
+      ${d.kids.length ? `<h4>Places inside</h4><ul class="wb-list">${d.kids.map(tree).join("")}</ul>` : ""}
+    </div>
+    <div class="row" style="justify-content:flex-end;gap:8px;flex-wrap:wrap;margin-top:12px"><span class="muted" style="font-size:14px;align-self:center;flex:1 1 200px">Adds ${cnt.p} place${cnt.p === 1 ? "" : "s"}${cnt.n ? ` and ${cnt.n} NPC${cnt.n === 1 ? "" : "s"}` : ""}.</span><button class="btn" type="button" data-w="wbroll" style="flex:0 0 auto">🎲 Roll again</button><button class="btn primary" type="button" data-w="wbadd" style="flex:0 0 auto">✓ Add to World</button></div>
+  </div>`;
+}
+function wbCommit() {
+  const B = W.build; if (!B) return null; const d = wbDraft(), camp = B.camp && Store.get(B.camp), looseL = npcLoose();
+  const make = (x, parent) => {
+    const p = wpNew({ name: x.name.slice(0, 120), type: x.type, parent: parent || null, desc: x.desc, sections: x.sections.map(s2 => ({ ...s2 })), ...(x.shop ? { shop: x.shop } : {}), ...(x.map ? { map: { ...x.map, id: uid("m"), saved: Date.now() } } : {}) });
+    x.npcs.forEach(n => { const id = uid("n"), rec = { id, lib: "nl-" + id, name: n.name, role: `${n.race} ${n.occupation}`, attitude: { Wary: "Neutral" }[n.attitude] || n.attitude, notes: npcText(n).split("\n").slice(1).join("\n"), placeId: p.id, place: p.name };
+      if (camp) { camp.npcs = camp.npcs || []; camp.npcs.push(rec); } else looseL.push(rec); });
+    x.kids.forEach(k => make(k, p.id));
+    return p;
+  };
+  const top = make(d, B.parent && wp(B.parent) ? B.parent : null);
+  worldSave(); npcLooseSave(looseL);
+  if (camp) wpSetCamp(top, camp, true);
+  B.seed = newSeed(); B.o.name = "";
+  return top;
+}
 function worldGoNpc(lib, placeId) { NL.tab = placeId || ""; NL.camp = ""; NL.q = ""; if (lib) NL.open.add(lib); location.hash = "npc";
   setTimeout(() => { const r = lib && document.querySelector(`#npcLib [data-lib="${CSS.escape(lib)}"]`); if (r) { r.scrollIntoView({ block: "center" }); const i = r.querySelector('[data-nlf="name"]'); if (i) i.focus({ preventScroll: true }); } }, 60); }
 (function initWorld() {
@@ -4887,10 +5053,16 @@ function worldGoNpc(lib, placeId) { NL.tab = placeId || ""; NL.camp = ""; NL.q =
   view.addEventListener("click", async e => {
     const b = e.target.closest("[data-w]"); if (!b) return;
     const a = b.dataset.w, p = wp(W.sel);
-    if (a === "sel") { W.sel = b.dataset.id; W.open.add(W.sel); renderWorld(); const h = $("#worldMain .title-input"); if (h && window.innerWidth <= 900) $("#worldMain").scrollIntoView({ block: "start" }); }
+    if (a === "sel") { W.sel = b.dataset.id; W.mode = "place"; W.open.add(W.sel); renderWorld(); const h = $("#worldMain .title-input"); if (h && window.innerWidth <= 900) $("#worldMain").scrollIntoView({ block: "start" }); }
+    else if (a === "tgroup") { const t = b.dataset.t; W.openT.has(t) ? W.openT.delete(t) : W.openT.add(t); renderWorld(true); const nb = $(`#worldTree [data-w="tgroup"][data-t="${t}"]`); if (nb) nb.focus(); }
+    else if (a === "build") { W.mode = "build"; if (!W.build) wbStart("settlement"); renderWorld(); const h = $("#worldMain h2"); if (h) $("#worldMain").scrollIntoView({ block: "nearest" }); }
+    else if (a === "wbkind") { wbStart(b.dataset.k); renderWorld(); const nb = $(`#worldMain [data-w="wbkind"][data-k="${b.dataset.k}"]`); if (nb) nb.focus(); }
+    else if (a === "wbroll") { W.build.seed = newSeed(); renderWorld(); }
+    else if (a === "wbadd") { const top = wbCommit(); if (top) { W.mode = "place"; W.sel = top.id; W.openT.add(top.type); W.q = ""; const q = $("#worldQ"); if (q) q.value = ""; renderWorld(); toast(`${top.name} added to your World`); } }
+    else if (a === "openshop" && p && p.shop) { IT.shop = shopMake(p.shop); location.hash = "items"; setTimeout(() => { shopRender(); $("#itShop").scrollIntoView({ block: "start" }); }, 80); }
     else if (a === "tog") { const id = b.dataset.id; W.open.has(id) ? W.open.delete(id) : W.open.add(id); renderWorld(true); const nb = $(`#worldTree [data-w="tog"][data-id="${CSS.escape(id)}"]`); if (nb) nb.focus(); }
     else if (a === "new" || (a === "child" && p)) {
-      const n = wpNew(a === "child" ? { parent: p.id, type: WP_CHILD[p.type] || "other" } : {}); worldSave();
+      const n = wpNew(a === "child" ? { parent: p.id, type: WP_CHILD[p.type] || "other" } : {}); worldSave(); W.mode = "place";
       if (a === "child") W.open.add(p.id); W.sel = n.id; W.q = ""; const q = $("#worldQ"); if (q) q.value = "";
       renderWorld(); const i = $("#worldMain .title-input"); if (i) { i.focus(); i.select(); }
     }
@@ -4914,13 +5086,19 @@ function worldGoNpc(lib, placeId) { NL.tab = placeId || ""; NL.camp = ""; NL.q =
   view.addEventListener("input", e => {
     const t = e.target;
     if (t.id === "worldQ") { W.q = t.value; renderWorld(true); return; }
+    if (t.dataset.wb === "name") { W.build.o.name = t.value; return; }
     const p = wp(W.sel); if (!p || !t.dataset.wf || t.tagName === "SELECT") return;
     const k = t.dataset.wf; p[k] = k === "name" ? t.value.slice(0, 120) : t.value; if (k === "imgUrl" && !p.imgUrl) delete p.imgUrl;
     if (t.tagName === "TEXTAREA") autoGrow(t);
     clearTimeout(W.t); W.t = setTimeout(worldSave, 300);
   });
   view.addEventListener("change", e => {
-    const t = e.target, p = wp(W.sel); if (!p) return;
+    const t = e.target;
+    if (t.id === "worldCamp") { W.camp = t.value; renderWorld(true); return; }
+    if (t.name === "wview") { W.view = t.value; renderWorld(true); return; }
+    if (t.dataset.wb === "parent" || t.dataset.wb === "camp") { W.build[t.dataset.wb] = t.value || (t.dataset.wb === "parent" ? null : ""); renderWorld(); const f = $(`#worldMain [data-wb="${t.dataset.wb}"]`); if (f) f.focus(); return; }
+    if (t.dataset.wb) { const o = W.build.o, k = t.dataset.wb; o[k] = t.type === "checkbox" ? t.checked : t.value; if (k === "name") return; renderWorld(); const f = $(`#worldMain [data-wb="${k}"]`); if (f) f.focus(); return; }
+    const p = wp(W.sel); if (!p) return;
     if (t.dataset.wc) { const c = Store.get(t.dataset.wc); if (c) { wpSetCamp(p, c, t.checked); toast(t.checked ? `${p.name} added to “${c.name}” Lore` : `${p.name} taken out of “${c.name}”`); } renderWorld(); const cb = $(`#worldMain [data-wc="${CSS.escape(t.dataset.wc)}"]`); if (cb) cb.focus(); return; }
     if (t.hasAttribute("data-w-move")) { if (t.value) { npcLibSet(t.value, { placeId: p.id, place: p.name }); toast(`Moved to ${p.name}`); renderWorld(); } return; }
     const k = t.dataset.wf; if (!k) return;
@@ -11873,6 +12051,12 @@ document.getElementById("impCharGo").addEventListener("click", async () => {
 });
 
 const NEWS = [
+  { id: "2026-11-17-world-builder", date: "2026-11-17", title: "World builder, and places grouped by type", go: "world", items: [
+    "The World tab now groups your places by type: Cities, Towns, Taverns & inns, Shops, Temples, Dungeons and so on. Click a group to open it. Pick a campaign at the top to see only its places, or switch to Map to see what's inside what.",
+    "New 🛠 World builder: make a whole settlement (village, town or city), an inn, a shop, a temple or a dungeon in one go. Pick a few options, press 🎲 Roll again until you like it, then ✓ Add to World.",
+    "A city comes with districts, inns, shops and a temple inside it, plus its ruler, the captain of the watch and the people who run each place. Inns have rooms, a menu with prices and rumours; temples have services; dungeons come with a map.",
+    "Shops are real shops: press 🛒 Open the shop on a shop's page to see its stock on the Items tab, where characters can buy from it.",
+    "Choose a campaign in the builder and the new place goes into its Lore, with its NPCs in its NPC list."] },
   { id: "2026-11-17-world-maps", date: "2026-11-17", title: "A map for every World place", go: "world", items: [
     "Each place on the World tab has a Map section. Upload a map picture (a city, a region or a battle map), generate a dungeon map for it, or use the map that's open on the Dungeon Map tab.",
     "The map shows on the place's page. Click it, or press Open on Dungeon Map, to add room notes, show it on the TV and reveal it with fog as the players explore.",

@@ -89,6 +89,15 @@ On a campaign's **Sessions** tab, press **Write a recap**. It collects what has 
 
 ## World
 
+- **The list on the left** has two views. **By type** groups your places into Cities, Towns, Taverns & inns, Shops, Temples, Dungeons and so on: click a group to open it. **Map** shows what's inside what. The box above them shows one campaign's places only (a place counts if it, or a place it's inside, is in that campaign).
+- **🛠 World builder** makes places for you:
+  - **Settlement:** a village, town or city, with its population, ruler, defences, what it's known for, rumours and a DM-only secret. It can add its inns, shops and temple (in districts, for a city) and its NPCs.
+  - **Inn or tavern:** quality, rooms and prices, a menu, rumours overheard at the bar, the innkeeper, staff and a regular.
+  - **Shop:** a real shop with stock and prices, as on the Items tab. **🛒 Open the shop** on its page lets characters buy from it.
+  - **Temple:** its god, its services and their prices, a DM-only trouble, and the priests.
+  - **Dungeon:** its history, what lives there, reasons to go in, a DM-only truth and a generated map.
+  - Press **🎲 Roll again** until you like it, then **✓ Add to World**. Choose **Inside** to put it in an existing place, and **Add to campaign** to put it (and its NPCs) in a campaign.
+
 The **World** tab is where you build your setting: regions, cities, towns, villages, districts, taverns, shops, temples, dungeons, wilderness and landmarks.
 
 - **+ Place** adds one. Give it a name, a type and a description, and choose what it's **Inside**, for example a tavern inside a district inside a city. The tree on the left shows how they nest; ▸ opens a place and ▾ closes it.

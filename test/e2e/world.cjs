@@ -33,6 +33,7 @@ const server = http.createServer((req, res) => {
   let st = await p.evaluate(ids => { const w = W.places.find(x => x.name === "Ashford"), a = Store.get(ids.a); return { n: W.places.length, type: w && w.type, desc: w && w.desc, secs: w && (w.sections || []).length, link: a.lore[0].wpId === (w && w.id), npc: a.npcs.filter(n => n.placeId === (w && w.id)).length }; }, ids);
   check("a Lore place becomes a World place, typed from its text", st.n === 1 && st.type === "town" && st.desc === "A river town." && st.secs === 1 && st.link, JSON.stringify(st));
   check("NPCs whose place names it are linked to it", st.npc === 2, JSON.stringify(st));
+  await p.click('#worldSide label.opt:has(input[value="tree"])'); await p.waitForTimeout(100); /* the nested view */
   const ash = await p.evaluate(() => W.places[0].id);
   await p.click(`#worldTree [data-w="sel"][data-id="${ash}"]`); await p.waitForTimeout(150);
   check("its page lists its NPCs", (await p.locator("#worldMain .wnpc").allTextContents()).join("|").includes("Garrick"));
@@ -158,6 +159,53 @@ const server = http.createServer((req, res) => {
   await r.click('#worldMain [data-w="rmmap"]'); await r.click("#modalYes"); await r.waitForTimeout(300);
   st = await r.evaluate(async ([k, id]) => ({ map: !!wp(k).map, gen: !!document.querySelector('#worldMain [data-w="genmap"]') }), [kid, imgId]);
   check("Remove map takes it off the place", !st.map && st.gen, JSON.stringify(st));
+
+  // the World builder and the By type view
+  const z = await open(); await z.goto(URL + "#world"); await z.waitForTimeout(300);
+  const zc = await z.evaluate(() => { const c = blankCampaign("Zed"); Store.save(c); return c.id; });
+  await z.goto(URL + "#tracker"); await z.waitForTimeout(100); await z.goto(URL + "#world"); await z.waitForTimeout(300);
+  await z.click('#worldSide [data-w="build"]'); await z.waitForTimeout(200);
+  check("the World builder opens with the Settlement builder", await z.locator('#worldMain [data-w="wbkind"][data-k="settlement"].on').count() === 1 && await z.locator("#worldMain .wb-out h2").count() === 1);
+  await z.selectOption('#worldMain [data-wb="size"]', "city"); await z.waitForTimeout(150);
+  await z.selectOption('#worldMain [data-wb="terrain"]', "coast"); await z.waitForTimeout(150);
+  await z.selectOption('#worldMain [data-wb="camp"]', zc); await z.waitForTimeout(150);
+  await z.locator('#worldMain [data-wb="name"]').fill("Saltmere"); await z.waitForTimeout(50);
+  const before = await z.locator("#worldMain .wb-out").textContent();
+  await z.click('#worldMain [data-w="wbroll"]'); await z.waitForTimeout(150);
+  check("Roll again changes the preview", (await z.locator("#worldMain .wb-out").textContent()) !== before);
+  check("the preview shows the city's districts, places and NPCs", /Places inside/.test(await z.locator("#worldMain .wb-out").textContent()) && /District/.test(await z.locator("#worldMain .wb-out").textContent()) && /Who's here/.test(await z.locator("#worldMain .wb-out").textContent()));
+  await z.click('#worldMain [data-w="wbadd"]'); await z.waitForTimeout(300);
+  st = await z.evaluate(zc => { const top = W.places.find(p => p.name === "Saltmere"); const under = wpUnder(top.id); const kids = W.places.filter(p => under.has(p.id) && p.id !== top.id);
+    return { type: top.type, sel: W.sel === top.id, districts: kids.filter(k => k.type === "district" && k.parent === top.id).length, taverns: kids.filter(k => k.type === "tavern").length, shops: kids.filter(k => k.shop).length, temples: kids.filter(k => k.type === "temple").length,
+      npcs: Store.get(zc).npcs.filter(n => under.has(n.placeId)).length, lore: Store.get(zc).lore.some(l => l.wpId === top.id), terrain: /harbour/.test(top.desc) }; }, zc);
+  check("Add to World makes the city, its districts and places, and selects it", st.type === "city" && st.sel && st.districts >= 3 && st.taverns === 2 && st.shops >= 3 && st.temples === 1 && st.terrain, JSON.stringify(st));
+  check("its NPCs go into the chosen campaign, filed under their places", st.npcs >= 10 && st.lore, JSON.stringify(st));
+  // By type view: groups open and close; the campaign filter
+  check("By type shows a Cities group", await z.locator('#worldTree [data-w="tgroup"][data-t="city"]').count() === 1);
+  const tav = '#worldTree [data-w="tgroup"][data-t="tavern"]';
+  check("groups start closed unless they hold the chosen place", await z.locator(tav).getAttribute("aria-expanded") === "false" && await z.locator('#worldTree [data-w="tgroup"][data-t="city"]').getAttribute("aria-expanded") === "true");
+  await z.click(tav); await z.waitForTimeout(100);
+  check("clicking a group opens it and lists its places", await z.locator(tav).getAttribute("aria-expanded") === "true" && await z.locator('#worldTree .wgroup:has([data-t="tavern"]) .wname').count() === 2);
+  await z.evaluate(() => { wpNew({ name: "Lonely Tower", type: "building" }); worldSave(); renderWorld(); });
+  await z.selectOption("#worldCamp", zc); await z.waitForTimeout(100);
+  check("the campaign filter shows only that campaign's places", await z.locator('#worldTree [data-t="building"]').count() === 0 && await z.locator('#worldTree [data-t="city"]').count() === 1);
+  await z.click('#worldSide label.opt:has(input[value="tree"])'); await z.waitForTimeout(100);
+  check("Map view shows the nesting", await z.locator('#worldTree [role="tree"] [data-w="tog"]').count() >= 1);
+  // a shop from the builder opens on the Items tab
+  const shopId = await z.evaluate(() => W.places.find(p => p.shop && p.type === "shop").id);
+  await z.click('#worldSide label.opt:has(input[value="type"])'); await z.evaluate(id => { W.sel = id; W.mode = "place"; renderWorld(); }, shopId); await z.waitForTimeout(100);
+  await z.click('#worldMain [data-w="openshop"]'); await z.waitForTimeout(400);
+  check("Open the shop shows its stock on the Items tab", await z.evaluate(id => location.hash === "#items" && IT.shop && IT.shop.seed === wp(id).shop.seed && !$("#itShop").hidden, shopId));
+  // the other builders
+  await z.goto(URL + "#world"); await z.waitForTimeout(200);
+  for (const k of ["tavern", "shop", "temple", "dungeon"]) {
+    await z.click('#worldSide [data-w="build"]'); await z.waitForTimeout(100);
+    await z.click(`#worldMain [data-w="wbkind"][data-k="${k}"]`); await z.waitForTimeout(150);
+    await z.click('#worldMain [data-w="wbadd"]'); await z.waitForTimeout(250);
+    const got = await z.evaluate(() => { const p = wp(W.sel); return p && { type: p.type, secs: (p.sections || []).length, map: !!p.map, shop: !!p.shop }; });
+    check(`the ${k} builder adds a place`, got && got.secs >= 1 && (k !== "dungeon" || got.map) && (k !== "shop" || got.shop) && (k === "shop" ? ["shop", "temple"].includes(got.type) : got.type === k), JSON.stringify(got));
+  }
+  check("a built dungeon's map draws on its page", await z.locator("#wpMapView canvas").count() === 1);
 
   check("no page errors", !errs.length, errs.join(" | "));
   await browser.close(); server.close();
