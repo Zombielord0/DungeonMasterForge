@@ -34,7 +34,7 @@ const go = async (p, URL, tab) => { await p.goto(URL + "#" + tab); await p.waitF
 const windowOk = p => p.evaluate(() => {
   const o = [...document.querySelectorAll("#modal, #backupModal, #impCharModal, #lvModal, #featModal, #choiceModal, #actModal, #newsPanel")].find(e => getComputedStyle(e).display !== "none" && (e.classList.contains("open") || e.id === "newsPanel" && !e.hidden));
   if (!o) return { ok: false, why: "no window open" };
-  if (o.id === "newsPanel") { const r = o.getBoundingClientRect(); return { ok: r.top >= 0 && r.bottom <= innerHeight, why: `newsPanel at ${Math.round(r.top)}-${Math.round(r.bottom)} of ${innerHeight}` }; }
+  if (o.id === "newsPanel") { const r = o.getBoundingClientRect(); return { ok: r.top >= 0 && r.bottom <= innerHeight, why: `newsPanel at ${Math.round(r.top)}-${Math.round(r.bottom)} of ${innerHeight}, scrollY ${Math.round(scrollY)}, vv ${visualViewport ? Math.round(visualViewport.offsetTop) + "/" + visualViewport.scale : "-"}, html "${document.documentElement.className}", header ${Math.round(document.querySelector("header").getBoundingClientRect().top)}` }; }
   const btns = [...o.querySelectorAll("button")].filter(b => b.offsetParent && b.getBoundingClientRect().height > 0);
   const last = btns[btns.length - 1]; if (!last) return { ok: false, why: "no buttons" };
   const r = last.getBoundingClientRect();
@@ -83,7 +83,7 @@ const away = p => p.evaluate(() => document.documentElement.classList.contains("
     // tap sizes
     await go(p, URL, "roster");
     const sizes = async () => p.evaluate(sels => Object.fromEntries(sels.map(s => [s, [...document.querySelectorAll(s)].filter(e => e.offsetParent).map(e => { const r = e.getBoundingClientRect(); return [Math.round(r.width), Math.round(r.height)]; })])), TOUCH_SEL);
-    const sz = await sizes(); await go(p, URL, "spells"); Object.assign(sz, { "#spLevels .chip": (await sizes())["#spLevels .chip"] });
+    const sz = await sizes(); await go(p, URL, "spells"); await p.evaluate(() => { const f = document.getElementById("spForm"); if (f) f.classList.add("filters-open"); }); Object.assign(sz, { "#spLevels .chip": (await sizes())["#spLevels .chip"] }); await p.evaluate(() => document.getElementById("spForm").classList.remove("filters-open"));
     for (const s of TOUCH_SEL) {
       const L = sz[s] || []; if (!L.length) { check(`${size}: ${s} found`, false, "none visible"); continue; }
       if (SIZES[size].touch) { const small = L.filter(([w, h]) => w < 40 || h < 40); check(`touch ${size}: ${s} is at least 40px`, !small.length, `${small.length}/${L.length} smaller, e.g. ${JSON.stringify(small[0])}`); }
@@ -121,9 +121,9 @@ const away = p => p.evaluate(() => document.documentElement.classList.contains("
       check("phone: My Characters has a jump bar", await p.$("#sheetJump") !== null);
       for (const j of ["hp", "attacks", "spells", "gear", "notes"]) {
         const a = await p.$(`#sheetJump a[data-jump="${j}"]`); if (!a) { check(`phone: jump bar goes to ${j}`, false, "no link"); continue; }
-        await a.click(); await p.waitForTimeout(700);
-        const r = await p.evaluate(j => { const bar = document.getElementById("sheetJump").getBoundingClientRect(), t = document.getElementById("sec-" + j); if (!t) return null; const tr = t.getBoundingClientRect(); return { gap: Math.round(tr.top - bar.bottom) }; }, j);
-        check(`phone: jump bar goes to ${j}`, r && r.gap >= -2 && r.gap <= 120, JSON.stringify(r));
+        await a.click(); await p.waitForTimeout(1500);
+        const r = await p.evaluate(j => { const bar = document.getElementById("sheetJump").getBoundingClientRect(), t = document.getElementById("sec-" + j); if (!t) return null; const tr = t.getBoundingClientRect(), end = scrollY + innerHeight >= document.documentElement.scrollHeight - 2; return { gap: Math.round(tr.top - bar.bottom), end, onScreen: tr.top < innerHeight - 100 }; }, j);
+        check(`phone: jump bar goes to ${j}`, r && r.gap >= -2 && (r.gap <= 120 || r.end && r.onScreen), JSON.stringify(r)); /* the last section can only scroll as far as the page ends */
       }
       // spells list first
       await go(p, URL, "spells");
