@@ -69,7 +69,7 @@ section.view.active{display:block;animation:rise .25s ease-out}
 .layout{display:grid;grid-template-columns:330px 1fr;gap:20px;align-items:start}
 @media (max-width:900px){.layout{grid-template-columns:1fr}}
 /* stone slabs */
-.card,.sec,#modal .box,#backupModal .box,#impCharModal .box,#lvModal .box,#featModal .box,#choiceModal .box,#actModal .box{position:relative;background:var(--slab);border:1px solid #0f0e0d;border-radius:var(--radius);padding:16px;
+.card,.sec,#modal .box,#backupModal .box,#impCharModal .box,#impCampModal .box,#lvModal .box,#featModal .box,#choiceModal .box,#actModal .box{position:relative;background:var(--slab);border:1px solid #0f0e0d;border-radius:var(--radius);padding:16px;
   box-shadow:inset 1px 1px 0 rgba(255,255,255,.09),inset -2px -3px 0 rgba(0,0,0,.35),0 8px 22px rgba(0,0,0,.65)}
 .card::after,.sec::after{content:"";position:absolute;inset:0;border-radius:inherit;pointer-events:none;background:var(--grit);opacity:.35;mix-blend-mode:multiply}
 .card>*,.sec>*{position:relative;z-index:1}
@@ -332,9 +332,12 @@ textarea[data-list=party]{min-height:150px}
 .sp-table th{font-family:Cinzel,serif;font-size:12px;color:var(--gold2);background:rgba(0,0,0,.3)}
 @media (max-width:700px){.sp-head{grid-template-columns:24px 1fr auto auto}.hide-sm{display:none}}
 /* modal + toast */
-#modal,#backupModal,#impCharModal{position:fixed;inset:0;background:rgba(0,0,0,.7);display:none;align-items:center;justify-content:center;z-index:50;padding:20px}
-#modal.open,#backupModal.open,#impCharModal.open{display:flex}
-#modal .box,#backupModal .box,#impCharModal .box{border-color:#7a4415;max-width:440px;width:100%;padding:20px}
+#modal,#backupModal,#impCharModal,#impCampModal{position:fixed;inset:0;background:rgba(0,0,0,.7);display:none;align-items:center;justify-content:center;z-index:50;padding:20px}
+#modal.open,#backupModal.open,#impCharModal.open,#impCampModal.open{display:flex}
+#modal .box,#backupModal .box,#impCharModal .box,#impCampModal .box{border-color:#7a4415;max-width:440px;width:100%;padding:20px}
+#impCampModal .box{max-width:620px}
+#impCampModal h4{margin:12px 0 6px}
+#impCampOut:empty{display:none}
 #impCharModal .box{max-width:620px;max-height:92vh;overflow:auto}
 #impCharModal .box p{margin:10px 0 18px}
 .imp-out{margin-top:12px}
@@ -938,10 +941,10 @@ nav a[data-view=whispers]{--ic:url("data:image/svg+xml,%3Csvg xmlns='http://www.
 #actModal .box{border-color:#7a4415;max-width:520px;width:100%;max-height:90vh;overflow:auto;padding:20px}
 /* Pop-up windows fit the part of the screen you can see (dvh leaves out the phone browser's bars), scroll inside,
    and keep their last row of buttons pinned to the bottom so Import, Cancel, Level up and Close are always in view. */
-#modal,#backupModal,#impCharModal,#lvModal,#featModal,#choiceModal,#actModal{padding:max(12px,env(safe-area-inset-top)) max(12px,env(safe-area-inset-right)) max(12px,env(safe-area-inset-bottom)) max(12px,env(safe-area-inset-left))}
-#modal .box,#backupModal .box,#impCharModal .box,#lvModal .box,#choiceModal .box,#actModal .box{max-height:calc(100vh - 24px);max-height:calc(100dvh - 24px - env(safe-area-inset-top) - env(safe-area-inset-bottom));overflow:auto;overscroll-behavior:contain}
+#modal,#backupModal,#impCharModal,#impCampModal,#lvModal,#featModal,#choiceModal,#actModal{padding:max(12px,env(safe-area-inset-top)) max(12px,env(safe-area-inset-right)) max(12px,env(safe-area-inset-bottom)) max(12px,env(safe-area-inset-left))}
+#modal .box,#backupModal .box,#impCharModal .box,#impCampModal .box,#lvModal .box,#choiceModal .box,#actModal .box{max-height:calc(100vh - 24px);max-height:calc(100dvh - 24px - env(safe-area-inset-top) - env(safe-area-inset-bottom));overflow:auto;overscroll-behavior:contain}
 #featModal .box{max-height:calc(100vh - 24px);max-height:calc(100dvh - 24px - env(safe-area-inset-top) - env(safe-area-inset-bottom))}
-:is(#modal,#backupModal,#impCharModal,#lvModal,#choiceModal,#actModal) .box>:last-child:has(button),#lvModal .box>.row:has([data-lvyes]){position:sticky;bottom:-20px;z-index:2;margin:12px -20px -20px;padding:10px 20px calc(14px + env(safe-area-inset-bottom) * 0);background:linear-gradient(rgba(23,25,40,.92),#15172a 10px);border-top:1px solid rgba(255,170,80,.18)}
+:is(#modal,#backupModal,#impCharModal,#impCampModal,#lvModal,#choiceModal,#actModal) .box>:last-child:has(button),#lvModal .box>.row:has([data-lvyes]){position:sticky;bottom:-20px;z-index:2;margin:12px -20px -20px;padding:10px 20px calc(14px + env(safe-area-inset-bottom) * 0);background:linear-gradient(rgba(23,25,40,.92),#15172a 10px);border-top:1px solid rgba(255,170,80,.18)}
 #lvModal .box>.row:has([data-lvyes]):not(:last-child){margin-bottom:0;padding-bottom:12px} /* the hint below it stays readable */
 .news-panel{max-height:min(75vh,640px);max-height:min(calc(100dvh - 76px - env(safe-area-inset-bottom)),640px)}
 /* the sheet's jump bar and the Spells filter button are phone-only */
@@ -1228,7 +1231,7 @@ nav a[data-view=whispers]{--ic:url("data:image/svg+xml,%3Csvg xmlns='http://www.
       <div class="sec-h"><h3>Campaigns</h3></div>
       <div id="campList"></div>
       <button class="btn wide" id="newCamp" style="margin-top:6px">+ New blank campaign</button>
-      <label class="btn wide" style="display:block;text-align:center;margin-top:6px">Import JSON<input type="file" id="importFile" accept=".json,application/json" hidden></label>
+      <label class="btn wide" style="display:block;text-align:center;margin-top:6px" title="A Forge campaign file, or a MythWeaver account export">⬆ Import campaign<input type="file" id="importFile" accept=".json,application/json" hidden></label>
       <input type="file" id="npcPicFile" accept="image/*" hidden>
     </div>
     <div id="campMain"></div>
@@ -1610,6 +1613,12 @@ nav a[data-view=whispers]{--ic:url("data:image/svg+xml,%3Csvg xmlns='http://www.
   <label class="btn" style="display:block;text-align:center" tabindex="0">Choose a file…<input type="file" id="impCharFile" hidden></label>
   <div id="impCharOut" class="imp-out" aria-live="polite"></div>
   <div class="row" style="justify-content:flex-end;margin-top:14px;gap:8px"><button class="btn" type="button" id="impCharCancel" style="flex:0 0 auto">Cancel</button><button class="btn primary" type="button" id="impCharGo" style="flex:0 0 auto" disabled>Import</button></div>
+</div></div>
+<div id="impCampModal" role="dialog" aria-modal="true" aria-labelledby="impCampTitle"><div class="box">
+  <h3 id="impCampTitle">Import from MythWeaver</h3>
+  <div id="impCampBody"></div>
+  <p id="impCampOut" class="imp-err" aria-live="polite"></p>
+  <div class="row" style="justify-content:flex-end;gap:8px"><button class="btn" type="button" id="impCampCancel" style="flex:0 0 auto">Cancel</button><button class="btn primary" type="button" id="impCampGo" style="flex:0 0 auto">Import</button></div>
 </div></div>
 <div id="modal" role="dialog" aria-modal="true"><div class="box"><h3 id="modalTitle">Are you sure?</h3><p id="modalMsg"></p><div class="row" style="justify-content:flex-end"><button class="btn" id="modalNo" style="flex:0">Cancel</button><button class="btn danger" id="modalYes" style="flex:0">Confirm</button></div></div></div>
 <div id="toast"></div>
@@ -3596,8 +3605,10 @@ $("#campList").addEventListener("click", e => { const b = e.target.closest("[dat
 $("#newCamp").addEventListener("click", () => { const c = blankCampaign(); Store.save(c); activeId = c.id; subTab = "overview"; renderTracker(); });
 $("#importFile").addEventListener("change", async e => {
   const f = e.target.files[0]; e.target.value = ""; if (!f) return;
+  let j = null; try { j = JSON.parse(await f.text()); } catch { }
+  if (j && j.format === "mythweaver-account-export") { const R = mwRead(j); if (R.error) toast(R.error); else impCampOpen(R); return; }
   try {
-    const c = JSON.parse(await f.text());
+    const c = j;
     if (!c || typeof c !== "object" || !c.name) throw 0;
     const base = blankCampaign(); const merged = { ...base, ...c, id: uid("c") };
     ["chapters", "encounters", "sessions", "party", "npcs", "lore", "quests", "loot", "maps"].forEach(k => { if (!Array.isArray(merged[k])) merged[k] = []; });
@@ -11000,11 +11011,20 @@ function mwRead(j) {
     images: Array.isArray(j.images) ? j.images.length : 0
   };
 }
+// MythWeaver files many things as "generic"; its tags usually say what they are
+function mwTagType(tags) {
+  const t = tags.join(" | ").toLowerCase();
+  if (/\b(magic item|item|weapon|armou?r|potion|artifact|consumable|treasure|scroll)\b/.test(t)) return "item";
+  if (/\b(location|place|city|town|village|dungeon|region|building|tavern|inn|temple|district)\b/.test(t)) return "place";
+  if (/\b(monster|creature|beast|undead|stat block)\b/.test(t)) return "monster";
+  if (/\bencounter\b/.test(t)) return "encounter";
+  return "other";
+}
 const mwPlain = s => String(s || "").replace(/\*\*|__/g, "").replace(/^[-*#\s]+/, "").trim();
 function mwLore(x, extraTag) {
   const tags = (Array.isArray(x.tags) ? x.tags : []).map(String).filter(Boolean);
   if (extraTag && !tags.includes(extraTag)) tags.push(extraTag);
-  return { mwId: (extraTag ? "acct-" : "") + String(x.id ?? uid("mw")), name: String(x.name || "Untitled").slice(0, 120), type: MW_TYPE[String(x.type || "").toLowerCase()] || "other", tags,
+  return { mwId: (extraTag ? "acct-" : "") + String(x.id ?? uid("mw")), name: String(x.name || "Untitled").slice(0, 120), type: MW_TYPE[String(x.type || "").toLowerCase()] || mwTagType(tags), tags,
     ...(npcUrlOk(x.imageUrl) ? { imgUrl: x.imageUrl } : {}), desc: mwText(x.description), sections: (Array.isArray(x.sections) ? x.sections : []).map(s => ({ t: String(s.title || "").slice(0, 120), x: mwText(s.text), dm: !!s.dmOnly })).filter(s => s.t || s.x), src: MW_SRC };
 }
 function mwNpc(x) {
@@ -11057,6 +11077,68 @@ function mwChar(ch, ed) {
   if (lv >= subclassLevel(ed, cls)) D.report.differ.push(`No ${cls} subclass in the file: choose one on the sheet`);
   return D;
 }
+
+/* ---- the Import campaign window (MythWeaver exports) ---- */
+const MWI = { read: null };
+const mwMB = n => (n / 1e6).toFixed(n < 1e5 ? 2 : 1) + " MB";
+const lsUsed = () => { let n = 0; try { for (let i = 0; i < localStorage.length; i++) { const k = localStorage.key(i); n += k.length + (localStorage.getItem(k) || "").length; } } catch { } return n; };
+function mwWindowHTML(R) {
+  const have = i => Store.list().find(c => c.mwId && c.mwId === R.campaigns[i].mwId);
+  const size = R.campaigns.reduce((t, c, i) => t + JSON.stringify(mwPlanCamp(R, i, null).camp).length, 0), free = Math.max(0, 5e6 - lsUsed());
+  const ed = /5e\.2|2024/.test((R.characters[0] || {}).gameSystem || "") ? "2024" : "2014";
+  return `<p>Choose what to bring into the Campaign Tracker. NPCs go to each campaign's NPCs tab, sessions to Sessions, and everything else to its <b>Lore</b> tab.</p>
+    <h4>Campaigns</h4>${R.campaigns.map((c, i) => { const h = have(i), npcs = c.lore.filter(x => String(x.type).toLowerCase() === "npc").length;
+      return `<label class="check"><input type="checkbox" data-mwcamp="${i}" checked><span><b>${esc(c.name)}</b><br><small class="muted">${npcs} NPC${npcs === 1 ? "" : "s"} · ${c.lore.length - npcs + R.other.length} lore · ${c.sessions.length} session${c.sessions.length === 1 ? "" : "s"}${h ? ` · Updates ${esc(h.name)} (imported ${new Date(h.mwAt || h.updated || Date.now()).toLocaleDateString()})` : ""}</small></span></label>`; }).join("")}
+    ${R.characters.length ? `<h4>Characters (to My Characters)</h4>${R.characters.map((c, i) => `<label class="check"><input type="checkbox" data-mwchar="${i}" ${PCS.roster.some(x => x.mwId === c.mwId) ? "" : "checked"}><span><b>${esc(c.name)}</b><br><small class="muted">${esc(impTitle(c.cls || (c.sheet.selectionsBySlot || {}).class || ""))} ${c.level} · ${esc(c.ancestry)}${PCS.roster.some(x => x.mwId === c.mwId) ? " · already on My Characters" : ""}</small></span></label>`).join("")}
+      <div class="field"><label>Rules for characters</label><div class="seg"><label class="opt"><input type="radio" name="impCampEd" value="2014" ${ed === "2014" ? "checked" : ""}><span>2014 rules</span></label><label class="opt"><input type="radio" name="impCampEd" value="2024" ${ed === "2024" ? "checked" : ""}><span>2024 rules</span></label></div></div>` : ""}
+    <p class="hint">About ${mwMB(size)} of text; this browser has room for about ${mwMB(free)} more.${size > free ? ` <b style="color:#f2b8ae">That may not fit: delete an old campaign or untick one first.</b>` : ""}${R.images ? ` ${R.images} MythWeaver picture${R.images === 1 ? "" : "s"} aren't imported; they stay in your MythWeaver account. Pictures attached to an NPC or lore entry come across as links.` : ""}</p>`;
+}
+function impCampOpen(R) {
+  MWI.read = R;
+  document.getElementById("impCampBody").innerHTML = mwWindowHTML(R);
+  document.getElementById("impCampOut").textContent = ""; document.getElementById("impCampGo").disabled = false;
+  document.getElementById("impCampModal").classList.add("open"); document.getElementById("impCampGo").focus();
+}
+function impCampClose() { document.getElementById("impCampModal").classList.remove("open"); MWI.read = null; }
+// Save the chosen campaigns all at once; if the browser is full, put everything back as it was.
+async function mwCommit(R, ch) {
+  const plans = ch.camps.map(i => mwPlanCamp(R, i, Store.list().find(c => c.mwId && c.mwId === R.campaigns[i].mwId) || null));
+  if (Store.mode === "db") plans.forEach(P => Store.save(P.camp));
+  else {
+    const old = plans.map(P => [P.camp.id, Store.cache.get(P.camp.id)]);
+    plans.forEach(P => { P.camp.updated = Date.now(); Store.cache.set(P.camp.id, P.camp); });
+    if (!Store.lsWrite()) {
+      old.forEach(([id, c]) => { if (c) Store.cache.set(id, c); else Store.cache.delete(id); });
+      Store.lsWrite();
+      return { ok: false, error: "There isn't room in this browser for that. Delete an old campaign, or untick a campaign, and try again. Nothing was imported." };
+    }
+    setBadge();
+  }
+  const notes = [];
+  for (const i of ch.chars) {
+    const C = R.characters[i]; if (PCS.roster.some(x => x.mwId === C.mwId)) continue;
+    const D = mwChar(C, ch.ed); if (D.error) { notes.push(D.error); continue; }
+    try { const B = importBuild(D); if (!(await importCommit(D, B.c))) notes.push(`${C.name} wasn't imported.`); } catch (e) { notes.push(`${C.name} couldn't be built.`); }
+  }
+  if (plans.length) { activeId = plans[0].camp.id; subTab = "overview"; }
+  renderTracker();
+  return { ok: true, plans, notes };
+}
+document.getElementById("impCampCancel").addEventListener("click", impCampClose);
+document.getElementById("impCampModal").addEventListener("keydown", e => { if (e.key === "Escape") impCampClose(); });
+document.getElementById("impCampGo").addEventListener("click", async () => {
+  const R = MWI.read; if (!R) return;
+  const box = document.getElementById("impCampModal"), pick = a => [...box.querySelectorAll(`[${a}]`)].filter(b => b.checked).map(b => +b.getAttribute(a));
+  const ed = (box.querySelector('input[name="impCampEd"]:checked') || {}).value || "2014";
+  const camps = pick("data-mwcamp"), chars = pick("data-mwchar");
+  if (!camps.length && !chars.length) { document.getElementById("impCampOut").textContent = "Tick something to import."; return; }
+  document.getElementById("impCampGo").disabled = true;
+  const r = await mwCommit(R, { camps, chars, ed });
+  if (!r.ok) { document.getElementById("impCampOut").textContent = r.error; document.getElementById("impCampGo").disabled = false; return; }
+  impCampClose();
+  const upd = r.plans.filter(P => P.stats.updated).length, made = r.plans.length - upd;
+  toast([made ? `${made} campaign${made === 1 ? "" : "s"} imported` : "", upd ? `${upd} updated` : "", chars.length ? "characters added to My Characters" : ""].filter(Boolean).join(", ") + (r.notes.length ? `. ${r.notes.join(" ")}` : ""));
+});
 
 /* ---- the Import character window ---- */
 const IMPC = { file: null, draft: null, built: null };

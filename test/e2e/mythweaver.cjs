@@ -45,6 +45,7 @@ const SAMPLE = fs.readFileSync(path.join(FIX, "mythweaver-sample.json"), "utf8")
   check("a session's text is its detailed recap, else its summary", /The party met \*\*Hilda\*\*/.test(s1.summary) && s2.summary === "They found the lambs.");
   check("the stats count what's imported", P.stats.lore === 7 && P.stats.sessions === 2 && !P.stats.updated, JSON.stringify(P.stats));
   check("an empty campaign imports empty", await p.evaluate(txt => { const R = mwRead(JSON.parse(txt)); const { camp } = mwPlanCamp(R, 1, null); return camp.name === "Empty Road" && camp.npcs.length === 0 && camp.sessions.length === 0 && camp.lore.length === 1; }, SAMPLE));
+  check("generic entries are sorted by their tags", await p.evaluate(() => mwLore({ id: 9, name: "Aegis", type: "generic", tags: ["Magic Item", "Uncommon"] }).type === "item" && mwLore({ id: 8, name: "Eddensburg", type: "generic", tags: ["City"] }).type === "place" && mwLore({ id: 7, name: "Lambs", type: "generic", tags: ["Plot"] }).type === "other"));
   check("HTML becomes plain text with markdown", await p.evaluate(() => mwText("<p>Hi <strong>there</strong></p><ul><li>a</li></ul>")) === "Hi **there**\n\n- a");
   // the character
   const ch = await p.evaluate(txt => { const R = mwRead(JSON.parse(txt)); const D = mwChar(R.characters[0], "2014"); if (D.error) return D; const { c } = importBuild(D); return { cls: c.cls, level: c.level, race: c.race, bg: c.bg, ed: c.ed, str: c.scores.str, base: c.base.str, skills: c.skills.filter(s => s.p).map(s => s.s), mw: c.mwId }; }, SAMPLE);
