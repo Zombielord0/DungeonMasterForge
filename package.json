@@ -25,7 +25,8 @@
     "test:import": "node test/e2e/char-import.cjs",
     "test:layout": "node test/e2e/layout.cjs",
     "test:lore": "node test/e2e/lore.cjs",
-    "test:mythweaver": "node test/e2e/mythweaver.cjs"
+    "test:mythweaver": "node test/e2e/mythweaver.cjs",
+    "test:campextras": "node test/e2e/camp-extras.cjs"
   },
   "dependencies": {
     "@netlify/database": "^2.0.3",

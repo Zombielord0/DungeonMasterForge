@@ -3521,7 +3521,7 @@ document.addEventListener("change", e => {
   const t = e.target; if (!t.dataset || !t.dataset.lootgive || !t.value) return;
   const camp = Store.get(activeId), it = camp && (camp.loot || []).find(x => x.id === t.dataset.lootgive), p = PCS.roster.find(x => x.id === t.value);
   if (!it || !p) return;
-  itLoad(); const ref = Object.values(IT.data).flat().find(x => x.n.toLowerCase() === String(it.item || "").toLowerCase());
+  itLoad(); const ref = [...itCustomList(), ...Object.values(IT.data).flat()].find(x => x.n.toLowerCase() === String(it.item || "").toLowerCase());
   p.inv = p.inv || [];
   const ex = p.inv.find(i => i.n.toLowerCase() === String(it.item || "").toLowerCase());
   if (ex) ex.qty = (+ex.qty || 1) + 1;
@@ -3610,11 +3610,51 @@ $("#importFile").addEventListener("change", async e => {
   try {
     const c = j;
     if (!c || typeof c !== "object" || !c.name) throw 0;
-    const base = blankCampaign(); const merged = { ...base, ...c, id: uid("c") };
+    const { extras, ...camp } = c;
+    const base = blankCampaign(); const merged = { ...base, ...camp, id: uid("c") };
     ["chapters", "encounters", "sessions", "party", "npcs", "lore", "quests", "loot", "maps"].forEach(k => { if (!Array.isArray(merged[k])) merged[k] = []; });
-    Store.save(merged); activeId = merged.id; renderTracker(); toast("Campaign imported");
+    Store.save(merged); activeId = merged.id; renderTracker();
+    const got = await campExtrasAdopt(extras);
+    toast(got.length ? `Campaign imported, with ${got.join(", ")}` : "Campaign imported");
   } catch { toast("That file isn't a Forge campaign export"); }
 });
+/* Custom things a campaign file carries along (extras): custom items, homebrew and custom monsters.
+   Export adds them; import adds the ones this browser doesn't have yet (same id, or same name and text, counts as having it). */
+function campExtras() {
+  return { items: IT.custom.map(({ hay, hayD, ...x }) => x), homebrew: HB.list.slice(), monsters: MB.lib.slice() };
+}
+async function campExtrasAdopt(ex) {
+  const out = [], plural = (n, w) => `${n} ${w}${n === 1 ? "" : "s"}`;
+  if (!ex || typeof ex !== "object") return out;
+  const lc = v => String(v || "").trim().toLowerCase();
+  // custom items -> Items tab (custom), ready to Give or Buy
+  let ni = 0;
+  (Array.isArray(ex.items) ? ex.items : []).forEach(x => {
+    if (!x || !x.n) return;
+    if (IT.custom.some(y => y.id === x.id || (lc(y.n) === lc(x.n) && String(y.d || "") === String(x.d || "")))) return;
+    const { hay, hayD, ...rec } = x;
+    if (!rec.id || /^20(14|24)-/.test(rec.id)) rec.id = uid("ci");
+    rec.kind = "custom"; if (rec.draft) rec.draft.id = rec.id;
+    IT.custom.push(rec); ni++;
+  });
+  if (ni) { itPersist(); if (location.hash === "#items") renderItems(); out.push(plural(ni, "custom item")); }
+  // homebrew -> Homebrew tab (only the DM can add it when signed in)
+  const hbList = (Array.isArray(ex.homebrew) ? ex.homebrew : []).filter(x => x && HB_KINDS[x.kind] && x.name
+    && !HB.list.some(y => y.id === x.id || (y.kind === x.kind && lc(y.name) === lc(x.name) && (x.kind !== "subclass" || y.cls === x.cls))));
+  if (hbList.length && !(hbCloud() && !Portal.isDM())) {
+    let nh = 0;
+    for (const x of hbList) { if (await hbPut({ ...x })) nh++; }
+    if (nh) out.push(plural(nh, "homebrew entry").replace("entrys", "entries"));
+  }
+  // custom monsters -> Monster Manual, My monsters
+  let nm = 0;
+  (Array.isArray(ex.monsters) ? ex.monsters : []).forEach(f => {
+    if (!f || !f.name || MB.lib.some(y => y.id === f.id || lc(y.name) === lc(f.name))) return;
+    MB.lib.push({ ...f, id: f.id || uid("mm") }); nm++;
+  });
+  if (nm && mbSaveLib()) { bsCustomRefresh(); if (MB.f) mbRenderLib(); out.push(plural(nm, "custom monster")); }
+  return out;
+}
 const campMain = $("#campMain");
 
 /* ======================= Lore (a Campaign Tracker tab) =======================
@@ -3873,7 +3913,7 @@ campMain.addEventListener("click", async e => {
     if (!(await confirmBox("Delete campaign?", `Permanently delete “${c.name}” and all of its notes?`))) return;
     await Store.remove(c.id); activeId = null; renderTracker(); toast("Campaign deleted"); return;
   }
-  if (t.id === "exportCamp") saveFile(c.name.replace(/[^\w\- ]+/g, "").trim().replace(/\s+/g, "-") + ".json", JSON.stringify(c, null, 2));
+  if (t.id === "exportCamp") saveFile(c.name.replace(/[^\w\- ]+/g, "").trim().replace(/\s+/g, "-") + ".json", JSON.stringify({ ...c, extras: campExtras() }, null, 2));
 });
 function onEdit(e) {
   const c = curCamp(); if (!c) return; const t = e.target;
@@ -11198,6 +11238,10 @@ document.getElementById("impCharGo").addEventListener("click", async () => {
 });
 
 const NEWS = [
+  { id: "2026-11-17-camp-extras", date: "2026-11-17", title: "Campaign files bring your custom items along", go: "tracker", items: [
+    "Export JSON now packs in your custom items, homebrew and custom monsters with the campaign.",
+    "Import JSON adds them back: custom items appear in Items → Custom, ready to Give or Buy for a character; homebrew goes to the Homebrew tab and monsters to My monsters. Anything you already have isn't added twice.",
+    "Loot rows that name one of your custom items now hand over its weight and attunement when you use “Give to…”."] },
   { id: "2026-11-17-mythweaver", date: "2026-11-17", title: "Import your MythWeaver campaign, and a Lore tab", go: "tracker", items: [
     "In the Campaign Tracker, ⬆ Import campaign now reads MythWeaver exports as well as Forge campaign files. Pick which campaigns and characters to bring in.",
     "Sessions and their recaps go to Sessions, NPCs (with their pictures) to NPCs, and everything else (places, items, monsters, encounters and notes) to a new Lore tab.",

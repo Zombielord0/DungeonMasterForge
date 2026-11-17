@@ -69,6 +69,7 @@ npm run test:hbspell  # homebrew spells (Playwright, any OS)
 npm run test:hbpend  # pending homebrew and the DM's approval queue (Playwright, any OS)
 npm run test:npcpic  # NPC pictures: upload, link, TV without distortion (Playwright, any OS)
 npm run test:map  # map fog + TV player screen checks (Playwright, any OS)
+npm run test:campextras  # campaign export/import carries custom items, homebrew, monsters (Playwright, any OS)
 npm run dev     # full local copy at http://localhost:8899 (any OS); stand-in sign-in, data wiped on Ctrl+C
 ```
 
@@ -521,6 +522,16 @@ PR #8 (the expired sign-in fix) was merged before that chat.
   - Deleting a whole campaign leaves its NPCs' uploaded pictures in IndexedDB.
   - The tag-based sorting of MythWeaver "generic" lore is a best guess.
 - **How builds are paid for:** one preview build per finished batch. Don't push design-only commits on their own; hold them until the work they describe is ready.
+
+## Campaign files carry custom content (2026-11-17)
+
+- **Export JSON** (`#exportCamp`) writes the campaign plus `extras: campExtras()` = `{items: IT.custom, homebrew: HB.list, monsters: MB.lib}`.
+- **Import JSON** (`#importFile`) strips `extras` off the campaign and passes it to `campExtrasAdopt(ex)`, which adds what this browser doesn't have (same id, or same name and text, counts as a match):
+  - custom items into `IT.custom` (Items → Custom, ready for Give/Buy), saved with `itPersist`;
+  - homebrew through `hbPut` (skipped for signed-in players, who can't add homebrew);
+  - custom monsters into `MB.lib`, then `bsCustomRefresh`.
+- The loot "Give to…" handler now looks up custom items as well as built-ins, so the inventory row links (`ref`) to the custom item.
+- **Tests:** `npm run test:campextras` (`test/e2e/camp-extras.cjs`).
 
 ## How a character is built (read this before changing sheet maths)
 
