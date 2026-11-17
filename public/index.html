@@ -62,7 +62,7 @@ nav a:hover{color:#fff;border-color:#6d5634}
 nav a.active{color:var(--ink);background:var(--noise),radial-gradient(ellipse at 50% 30%,#f8c26c,#c46d22);border-color:#7a4415;box-shadow:0 0 16px rgba(240,150,60,.55),inset 0 1px 0 rgba(255,255,255,.35);text-shadow:0 1px 0 rgba(255,255,255,.3)}
 .badge{font-size:13px;color:var(--muted);background:var(--well);border:1px solid #0e0d0c;box-shadow:inset 0 2px 4px rgba(0,0,0,.6);border-radius:4px;padding:3px 10px;white-space:nowrap}
 .badge.ok{color:#b9d6a4}
-main{max-width:1320px;margin:0 auto;padding:22px 20px 40px;position:relative}
+main{max-width:1320px;margin:0 auto;padding:22px 20px calc(96px + env(safe-area-inset-bottom));position:relative}
 section.view{display:none}
 section.view.active{display:block;animation:rise .25s ease-out}
 @keyframes rise{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
@@ -352,8 +352,8 @@ nav a[data-view=feats]{--ic:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.
 .feat-chosen{flex:1 1 100%;cursor:default}
 .lv-gains{margin:6px 0 12px;padding-left:18px}
 .lv-gains li{margin:3px 0}
-#toast{position:fixed;bottom:20px;left:50%;transform:translateX(-50%) translateY(90px);background:var(--slab);border:1px solid #7a4415;padding:10px 18px;border-radius:4px;transition:transform .25s;z-index:60;max-width:90vw;box-shadow:0 0 18px rgba(240,140,50,.35),0 8px 20px rgba(0,0,0,.7)}
-#toast.show{transform:translateX(-50%) translateY(0)}
+#toast{position:fixed;bottom:calc(76px + env(safe-area-inset-bottom));left:50%;transform:translateX(-50%) translateY(calc(100% + 120px));opacity:0;pointer-events:none;transition:transform .25s,opacity .25s;background:var(--slab);border:1px solid #7a4415;padding:10px 18px;border-radius:4px;transition:transform .25s;z-index:60;max-width:90vw;box-shadow:0 0 18px rgba(240,140,50,.35),0 8px 20px rgba(0,0,0,.7)}
+#toast.show{transform:translateX(-50%) translateY(0);opacity:1}
 .hint{font-size:14px;color:var(--muted);margin-top:4px}
 
 /* ---- detailed art ---- */
@@ -755,6 +755,16 @@ nav a[data-view=whispers]{--ic:url("data:image/svg+xml,%3Csvg xmlns='http://www.
 .hdr-mini .hdr-mini-label{display:block}
 .hdr-mini .side,.hdr-mini .mb-side{top:58px;max-height:calc(100vh - 74px)}
 @media (max-width:600px){.hdr-mini .hdr-mini-label{display:none}}
+/* Phones: the slim one-line header (tab menu, bell, Show tabs) unless "Show tabs" asked for the full one this visit.
+   It slides out of the way while scrolling down or typing (hdr-away, set by hdrAuto) and comes back on scroll-up. */
+@media (max-width:600px){
+  html:not(.hdr-full) header{padding-top:6px;padding-bottom:6px}
+  html:not(.hdr-full) header>:not(.hdr-toggle):not(.hdr-mini-label):not(.hdr-tabsel):not(.news-btn){display:none}
+  html:not(.hdr-full) .hdr-tabsel{display:block;flex:1 1 auto;max-width:none}
+  header{transition:transform .22s ease;padding-top:max(6px,env(safe-area-inset-top))}
+  .hdr-away header{transform:translateY(-110%)}
+}
+@media (max-width:600px) and (prefers-reduced-motion:reduce){header{transition:none}}
 #pcBgHint:empty{display:none}
 .ed-hide{display:none!important}
 .bg-detail{margin-top:14px;padding:12px 14px;border:1px solid #7a4415;border-radius:5px;background:rgba(240,150,60,.07)}
@@ -807,7 +817,7 @@ nav a[data-view=whispers]{--ic:url("data:image/svg+xml,%3Csvg xmlns='http://www.
   nav::-webkit-scrollbar{display:none}
   nav a{flex:0 0 auto;font-size:12.5px;padding:6px 10px;scroll-snap-align:start}
   nav a.active::after{display:none}
-  .roll-dock{right:8px;bottom:8px;padding:5px;max-width:calc(100vw - 16px)}
+  .roll-dock{right:max(8px,env(safe-area-inset-right));bottom:calc(8px + env(safe-area-inset-bottom));padding:5px;max-width:calc(100vw - 16px)}
   .roll-dock:not(.open) .rd-mode{display:none}
   .pg-table td{font-size:13.5px}
   .card{padding-left:12px;padding-right:12px}
@@ -874,7 +884,7 @@ nav a[data-view=whispers]{--ic:url("data:image/svg+xml,%3Csvg xmlns='http://www.
 .ds{width:13px;height:13px;border-radius:50%;border:1px solid #777;display:inline-block}
 .ds.s.on{background:#6fb150;border-color:#6fb150}
 .ds.f.on{background:#c0392b;border-color:#c0392b}
-.roll-dock{position:fixed;right:14px;bottom:14px;z-index:30;max-width:min(380px,calc(100vw - 28px));background:var(--slab);border:1px solid #7a4415;border-radius:6px;padding:8px;box-shadow:0 8px 22px rgba(0,0,0,.65)}
+.roll-dock{position:fixed;right:max(14px,env(safe-area-inset-right));bottom:calc(14px + env(safe-area-inset-bottom));z-index:30;max-width:min(380px,calc(100vw - 28px));background:var(--slab);border:1px solid #7a4415;border-radius:6px;padding:8px;box-shadow:0 8px 22px rgba(0,0,0,.65)}
 .rd-head{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
 .rd-mode{flex:0 0 auto}
 .rd-mode .opt span{padding:3px 8px;font-size:12px}
@@ -9906,8 +9916,10 @@ function rosterHTML(c) {
 })();
 
 /* ======================= Minimizable toolbar ======================= */
+const hdrPhone = matchMedia("(max-width:600px)");
+let hdrHold = 0; // until then, scrolling doesn't move the header (the page shifts when the full header opens)
 function hdrSync() {
-  const mini = document.documentElement.classList.contains("hdr-mini"), btn = document.getElementById("hdrToggle");
+  const H = document.documentElement, mini = hdrPhone.matches ? !H.classList.contains("hdr-full") : H.classList.contains("hdr-mini"), btn = document.getElementById("hdrToggle");
   btn.textContent = mini ? "▾ Show tabs" : "▴ Hide tabs";
   btn.setAttribute("aria-expanded", String(!mini));
   btn.title = mini ? "Show the toolbar and tabs" : "Hide the toolbar to give this tab more room";
@@ -9917,10 +9929,32 @@ function hdrSync() {
 document.getElementById("hdrTabSel").addEventListener("change", e => { location.hash = e.target.value; });
 document.getElementById("hdrTabSel").addEventListener("focus", hdrSync); // pick up tabs revealed after sign-in
 document.getElementById("hdrToggle").addEventListener("click", () => {
-  const mini = document.documentElement.classList.toggle("hdr-mini");
+  const H = document.documentElement;
+  if (hdrPhone.matches) { hdrHold = performance.now() + 500; H.classList.toggle("hdr-full"); H.classList.remove("hdr-away"); hdrSync(); return; } // phones: just for this visit
+  const mini = H.classList.toggle("hdr-mini");
   try { localStorage.setItem("dmforge.hdrMini", mini ? "1" : "0"); } catch (e) {}
   hdrSync();
 });
+hdrPhone.addEventListener("change", () => { document.documentElement.classList.remove("hdr-away", "hdr-full"); hdrSync(); });
+/* Phones: the header slides away when scrolling down past its height or while typing in a box, and comes back after
+   scrolling up 24px or more, or near the top of the page. */
+(function hdrAuto() {
+  const H = document.documentElement, head = document.querySelector("header");
+  let lastY = scrollY, up = 0, typing = false;
+  const set = v => H.classList.toggle("hdr-away", v);
+  const field = e => e && e.matches && e.matches("input:not([type=checkbox]):not([type=radio]):not([type=file]), textarea, select") && !e.closest("header");
+  addEventListener("scroll", () => {
+    const y = scrollY, d = y - lastY; lastY = y;
+    if (!hdrPhone.matches) { set(false); return; }
+    if (performance.now() < hdrHold) return;
+    if (typing) { set(true); return; }
+    if (y < 80) { up = 0; set(false); return; }
+    if (d > 0) { up = 0; if (y > head.offsetHeight) set(true); }
+    else if (d < 0) { up -= d; if (up >= 24) set(false); }
+  }, { passive: true });
+  document.addEventListener("focusin", e => { if (field(e.target)) { typing = true; if (hdrPhone.matches) set(true); } });
+  document.addEventListener("focusout", e => { if (field(e.target)) typing = false; });
+})();
 
 /* ======================= Routing ======================= */
 function route() {
