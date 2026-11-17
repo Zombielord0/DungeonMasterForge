@@ -2,6 +2,8 @@
   command = "npm run build"
   publish = "public"
   functions = "netlify/functions"
+  # Skip the build (and its credits) when a push only changes notes, tests or tools (tools/netlify-skip.mjs).
+  ignore = "node tools/netlify-skip.mjs"
 
 [functions]
   node_bundler = "esbuild"
