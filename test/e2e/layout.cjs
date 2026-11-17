@@ -156,7 +156,26 @@ const away = p => p.evaluate(() => document.documentElement.classList.contains("
     const w = await windowOk(p); check("landscape phone: Import window buttons are on screen", w.ok, w.why);
     await ctx.close();
   }
-  await browser.close(); server.close();
+  await browser.close();
+  // the side panel mustn't flip between one and two rows of buttons when hovered (owner's bug, 2026-11-17):
+  // with real scrollbars, the panel's width changed when its scrollbar came and went, and "1–20" wrapped on and off.
+  {
+    const b2 = await chromium.launch({ ignoreDefaultArgs: ["--hide-scrollbars"] });
+    let flips = 0;
+    for (const h of [880, 900, 920]) {
+      const ctx = await b2.newContext({ viewport: { width: 1536, height: h }, serviceWorkers: "block" });
+      await ctx.addInitScript(() => localStorage.setItem("dmforge.offline", "1"));
+      const p = await ctx.newPage(); await p.goto(URL + "#generate"); await p.waitForTimeout(500);
+      await p.evaluate(() => { window.HS = []; const ch = document.querySelector("#genForm .chips"); const f = () => { HS.push(ch.offsetHeight); requestAnimationFrame(f); }; requestAnimationFrame(f); });
+      const bx = await p.locator("#lvlMin").boundingBox();
+      for (let i = 0; i < 4; i++) { await p.mouse.move(bx.x + bx.width / 2, bx.y + bx.height / 2); await p.waitForTimeout(120); await p.mouse.move(bx.x + bx.width / 2 + 1, bx.y + bx.height / 2); await p.waitForTimeout(120); }
+      const hs = await p.evaluate(() => HS); for (let i = 1; i < hs.length; i++) if (hs[i] !== hs[i - 1]) flips++;
+      await ctx.close();
+    }
+    check("the Generate side panel stays still when you hover its level boxes", flips === 0, `${flips} jumps`);
+    await b2.close();
+  }
+  server.close();
   console.log(fails ? `\n${fails} check(s) failed` : "\nAll layout checks passed");
   process.exit(fails ? 1 : 0);
 })().catch(e => { console.error(e); process.exit(1); });

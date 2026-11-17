@@ -2,6 +2,8 @@
    When a change ships, add an entry to the top of NEWS with a new id, in plain words for players and DMs. */
 
 const NEWS = [
+  { id: "2026-11-17-side-jump", date: "2026-11-17", title: "No more jumping side panel", items: [
+    "On some screen sizes, hovering a box in the left-hand panel (like the party level boxes on the Generate tab) made its buttons jump between one row and two. The panel now keeps room for its scroll bar, so it stays still."] },
   { id: "2026-11-17-shops", date: "2026-11-17", title: "Better shops", go: "world", items: [
     "“🏪 Generate a shop” on the Items tab now opens the World builder on Shop, so every shop you make belongs to a place in your World.",
     "Choose the shop's name, kind, where it is (the settlement size fills itself in), the party level, which magic item rarities it sells, how much stock it carries and the shopkeeper's manner. Tick a rarity and the shop will have some magic items of it.",
