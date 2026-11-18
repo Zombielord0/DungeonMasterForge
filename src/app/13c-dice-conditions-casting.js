@@ -194,24 +194,58 @@ function spellCaster(c, sp) {
   const own = [...(c.spell ? [{ cls: c.spell.cls || c.cls, ab: c.spell.ab, dc: c.spell.dc, atk: c.spell.atk }, ...(c.spell.others || [])] : [])];
   return own.find(x => (sp.c || []).includes(x.cls)) || mi || own[0] || miCaster(c) || { cls: "", ab: "int", dc: 8 + c.prof, atk: c.prof };
 }
-function castDialog(c, ed, name) {
+/* The spell window: the full rules, then (on My Characters) "Cast at level" buttons and Cast. `o.view`: rules only (the
+   Characters tab, where slots aren't tracked). The picked choice is kept in the hidden #castSlot that castGo reads. */
+function castOpts(c, sp) {
+  const R = pcResources(c), opts = [];
+  if (sp.l === 0) { opts.push(["free", "Cantrip", "no slot needed"]); return opts; }
+  R.filter(r => /^slot\d$/.test(r.key) && +r.key.slice(4) >= sp.l).forEach(r => { const L = +r.key.slice(4), left = resLeft(c, r); opts.push([r.key, ordinal(L), `${left} left`, !left]); });
+  const pact = R.find(r => r.key === "pact"); if (pact) { const L = +(pact.name.match(/level (\d)/) || [])[1]; if (L >= sp.l) opts.push(["pact", `Pact slot (${ordinal(L)})`, `${resLeft(c, pact)} left`, !resLeft(c, pact)]); }
+  if (sp.ri) opts.push(["ritual", "As a ritual", "no slot, 10 min longer"]);
+  opts.push(["free", "Without a slot", "a feature or item"]);
+  return opts;
+}
+function castSlotLevel(c, sp, how) {
+  if (/^slot\d$/.test(how)) return +how.slice(4);
+  if (how === "pact") { const r = pcResources(c).find(x => x.key === "pact"); return r ? +(r.name.match(/level (\d)/) || [])[1] || sp.l : sp.l; }
+  return sp.l;
+}
+function castPreview(c, sp, how) {
+  const P = spellTweak(c, sp, spellPlan(sp)), K = spellCaster(c, sp), slot = castSlotLevel(c, sp, how), up = Math.max(0, slot - sp.l);
+  const count = P.count + (P.countPer ? up : 0), parts = [];
+  if (P.attack) parts.push(`Spell attack ${sgn(K.atk)}`); else if (P.save) parts.push(`${P.save.toUpperCase()} save against DC ${K.dc}`);
+  if (P.dice) parts.push(`${P.heal ? "heals" : "deals"} ${spellDice(c, sp, P, slot)}${P.type && !P.heal ? " " + P.type.toLowerCase() : ""}${count > 1 ? ` × ${count}` : ""}`);
+  if (sp.l && up && (P.per || P.countPer)) parts.push(`upcast +${up} level${up === 1 ? "" : "s"}`);
+  if (sp.co) parts.push(`needs concentration${c.conc ? ` (ends ${c.conc.spell})` : ""}`);
+  return (sp.l ? `At ${ordinal(slot)}: ` : "") + (parts.join(" · ") || "No dice to roll.");
+}
+function castPick(how) {
+  const c = ACTX.c, sp = ACTX.cast && spellOf(ACTX.cast.ed, ACTX.cast.name); if (!c || !sp) return;
+  const f = $("#castSlot"); if (f) f.value = how;
+  $$("#actModal [data-castlv]").forEach(b => b.setAttribute("aria-pressed", String(b.dataset.castlv === how)));
+  const fx = $("#castFx"); if (fx) fx.textContent = castPreview(c, sp, how);
+  const go = $("#actModal [data-castgo]"); if (go) go.disabled = false;
+}
+function castDialog(c, ed, name, o = {}) {
   const sp = spellOf(ed, name); if (!sp) { toast("That spell isn't in the spell list"); return; }
   ACTX.c = c; ACTX.cast = { ed, name };
-  const R = pcResources(c), opts = [];
-  if (sp.l === 0) opts.push(["free", "Cantrip (no slot)"]);
+  const stats = [["Casting time", sp.t], ["Range", sp.r], ["Components", [sp.cp, sp.m ? `(${sp.m})` : ""].filter(Boolean).join(" ")], ["Duration", `${sp.co ? "Concentration, " : ""}${sp.du || ""}`]].filter(([, v]) => v);
+  const rules = `<div class="spell-rules"><p class="muted" style="margin:2px 0 8px">${sp.l ? ordinal(sp.l) : "Cantrip"} · ${esc(String(sp.s || "").toLowerCase())}${sp.ri ? " · ritual" : ""}</p>
+    <div class="sp-stats">${stats.map(([k, v]) => `<div><span>${esc(k)}</span>${esc(v)}</div>`).join("")}</div>
+    <div class="spell-desc">${spFormat(sp.d || "")}${sp.h ? `<p><b>At higher levels.</b> ${esc(sp.h)}</p>` : ""}</div></div>`;
+  let cast = "";
+  if (o.view) cast = `<p class="hint" style="margin:10px 0 0">Save to My characters to cast this and track spell slots.</p><div class="row" style="justify-content:flex-end;margin-top:12px"><button class="btn" type="button" data-actclose style="flex:0 0 auto">Close</button></div>`;
   else {
-    R.filter(r => /^slot\d$/.test(r.key) && +r.key.slice(4) >= sp.l).forEach(r => { const L = +r.key.slice(4), left = resLeft(c, r); opts.push([r.key, `Level ${L} slot (${left} left)`, !left]); });
-    const pact = R.find(r => r.key === "pact"); if (pact) { const L = +(pact.name.match(/level (\d)/) || [])[1]; if (L >= sp.l) opts.push(["pact", `Pact slot, level ${L} (${resLeft(c, pact)} left)`, !resLeft(c, pact)]); }
-    if (sp.ri) opts.push(["ritual", "As a ritual (no slot, 10 minutes longer)"]);
-    opts.push(["free", "Without a slot (a free casting from a feature or item)"]);
+    /* start on a real slot (or the cantrip); with none left, nothing is picked, so a free casting is always a choice */
+    const opts = castOpts(c, sp), first = opts.find(x => !x[3] && (sp.l === 0 || /^slot\d$|^pact$/.test(x[0])));
+    cast = `<div class="cast-box"><div class="cast-h">${sp.l ? "Cast at level" : "Cast"}</div>
+      ${sp.l ? `<div class="cast-lvs" role="group" aria-label="Cast at level">${opts.map(([v, l, sub, dis]) => `<button type="button" class="cast-lv" data-castlv="${v}" aria-pressed="${!!(first && first[0] === v)}" ${dis ? "disabled" : ""}><b>${esc(l)}</b><span>${esc(sub)}</span></button>`).join("")}</div>` : ""}
+      <input type="hidden" id="castSlot" value="${first ? first[0] : ""}">
+      <p id="castFx" class="cast-fx">${esc(first ? castPreview(c, sp, first[0]) : "No slots left for this spell. Take a rest, or cast it without a slot.")}</p></div>
+      <div class="row" style="justify-content:flex-end;margin-top:12px"><button class="btn" type="button" data-actclose style="flex:0 0 auto">Close</button><button class="btn primary" type="button" data-castgo style="flex:0 0 auto" ${first ? "" : "disabled"}>✦ Cast</button></div>`;
   }
-  const first = opts.find(o => !o[2]);
-  const P = spellTweak(c, sp, spellPlan(sp)), K = spellCaster(c, sp);
-  actDialog(`<h3 id="actTitle">Cast ${esc(sp.n)}</h3><p class="muted" style="margin:4px 0 10px">${sp.l ? ordinal(sp.l) + "-level" : "Cantrip"} ${esc(String(sp.s || "").toLowerCase())} · ${esc(sp.t)} · ${esc(sp.r)} · ${esc(sp.du)}${sp.co ? " · concentration" : ""}</p>
-    <div class="field" style="margin:0"><label for="castSlot">Cast with</label><select id="castSlot">${opts.map(([v, l, dis]) => `<option value="${v}" ${dis ? "disabled" : ""} ${first && first[0] === v ? "selected" : ""}>${esc(l)}</option>`).join("")}</select></div>
-    <p class="hint" style="margin:8px 0 0">${(c.spell && (c.spell.others || []).length) || !c.spell ? `${esc(K.cls)} spell · ` : ""}${P.attack ? `Spell attack ${sgn(K.atk)}` : P.save ? `${P.save.toUpperCase()} save against DC ${K.dc}` : ""}${P.dice ? `${P.attack || P.save ? " · " : ""}${P.heal ? "heals" : "deals"} ${spellDice(c, sp, P, sp.l)}${P.per ? ` (+${P.per} per slot level above ${sp.l})` : ""}${P.count > 1 ? ` × ${P.count}${P.countPer ? ` (+1 per slot level above ${sp.l})` : ""}` : ""}` : ""}${sp.co ? `${P.dice || P.attack || P.save ? " · " : ""}Needs concentration${c.conc ? ` (ends ${esc(c.conc.spell)})` : ""}` : ""}</p>
-    <details style="margin-top:8px"><summary class="muted" style="cursor:pointer">Spell description</summary><p style="font-size:14px;white-space:pre-line">${esc(sp.d)}${sp.h ? `\n\nAt higher levels: ${esc(sp.h)}` : ""}</p></details>
-    <div class="row" style="justify-content:flex-end;margin-top:14px"><button class="btn" type="button" data-actclose style="flex:0 0 auto">Cancel</button><button class="btn primary" type="button" data-castgo style="flex:0 0 auto" autofocus ${first ? "" : "disabled"}>✦ Cast</button></div>`);
+  actDialog(`<h3 id="actTitle">${esc(sp.n)}</h3>${rules}${cast}`);
+  const m = $("#actBox"); if (m) m.classList.add("spell-box");
 }
 function castGo() {
   const c = ACTX.c, { ed, name } = ACTX.cast, sp = spellOf(ed, name), how = $("#castSlot").value, P = spellTweak(c, sp, spellPlan(sp)), R = pcResources(c), K = spellCaster(c, sp);
