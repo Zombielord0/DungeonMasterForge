@@ -337,6 +337,50 @@ function loreHTML(c) {
     ${LORE.edit === "new" ? `<div class="lore-newbox">${loreFormHTML(LORE.draft)}</div>` : ""}
     <div class="lore-list">${shown.length ? shown.map(card).join("") : `<p class="muted">${L.length ? "Nothing matches." : "No lore yet. Add places, items, monsters and notes, or import a MythWeaver campaign."}</p>`}</div>`;
 }
+/* Saving a Lore Item, Monster or Encounter also puts it where it's used (Places go to the World, above):
+   items -> Items → Custom, monsters -> Monster Manual → My monsters, encounters -> this campaign's Encounters tab.
+   The made record carries loreId, so editing the entry again updates it. Saving an item in the Items tab's builder marks it
+   loreOff, so from then on the Lore leaves it alone; a monster keeps its numbers once it has stats (only its name and text
+   follow the Lore); an encounter's monsters are only filled in while it has none. Something with the same name that the
+   Lore didn't make (or a built-in item) is left alone. Returns lines for a toast. */
+function loreLink(c, l) {
+  const lc = v => String(v || "").trim().toLowerCase(), out = [];
+  try {
+    if (l.type === "item") {
+      itLoad();
+      const i = IT.custom.findIndex(y => y.loreId === l.id), d = loreItemDraft(l, "A treasure from the campaign's Lore.");
+      if (i >= 0 && IT.custom[i].loreOff) { /* changed in the Items builder since: leave it */ }
+      else if (i >= 0) {
+        const old = IT.custom[i], { hay, hayD, ...rest } = old, rec = { ...rest, ...ciRecord({ ...d, id: old.id }), loreId: l.id };
+        if (JSON.stringify(rec) !== JSON.stringify(rest)) { IT.custom[i] = rec; itPersist(); out.push(`Updated “${rec.n}” in Items`); }
+      } else if (!IT.custom.some(y => lc(y.n) === lc(d.n)) && !Object.values(IT.data).flat().some(y => lc(y.n) === lc(d.n))) {
+        const rec = { ...ciRecord(d), loreId: l.id }; IT.custom.push(rec); itPersist(); out.push(`Added “${rec.n}” to Items → Custom`);
+      }
+      if (out.length && location.hash === "#items") renderItems();
+    } else if (l.type === "monster") {
+      const f = loreMonster(l), had = MB.lib.find(y => y.loreId === l.id);
+      if (had) {
+        const nf = had.needsStats ? { ...f, id: had.id } : { ...had, name: f.name, desc: f.desc };
+        nf.loreId = l.id;
+        if (JSON.stringify(nf) !== JSON.stringify(had)) { Object.keys(had).forEach(k => delete had[k]); Object.assign(had, nf); if (mbSaveLib()) { bsCustomRefresh(); if (MB.f) mbRenderLib(); out.push(`Updated “${f.name}” in My monsters`); } }
+      } else if (!MB.lib.some(y => lc(y.name) === lc(f.name))) {
+        f.loreId = l.id; MB.lib.push(f);
+        if (mbSaveLib()) { bsCustomRefresh(); if (MB.f) mbRenderLib(); out.push(`Added “${f.name}” to My monsters${f.needsStats ? " (it needs stats)" : ""}`); }
+      }
+    } else if (l.type === "encounter") {
+      c.encounters = c.encounters || [];
+      const e = mwEncounter(l, c, mwMonsterIndex(), "Made from the Lore entry"), had = c.encounters.find(y => y.loreId === l.id);
+      if (had) {
+        const before = JSON.stringify(had); had.name = e.name; had.notes = e.notes; if (!(had.enemies || []).length) had.enemies = e.enemies;
+        if (JSON.stringify(had) !== before) { Store.save(c); out.push(`Updated “${e.name}” on the Encounters tab`); }
+      } else if (!c.encounters.some(y => lc(y.name) === lc(e.name))) {
+        e.loreId = l.id; c.encounters.push(e); Store.save(c); out.push(`Added “${e.name}” to the Encounters tab`);
+        const n = campMain.querySelector('[data-sub="encounters"] .n'); if (n) n.textContent = c.encounters.length;
+      }
+    }
+  } catch (err) { console.error(err); out.push("Saved, but it couldn't be added to its tab"); }
+  return out;
+}
 function loreRender() {
   const box = document.getElementById("subBody"), q = document.getElementById("loreQ"), had = q && document.activeElement === q, pos = had ? q.selectionStart : 0;
   const c = curCamp(); if (!box || !c) return;
@@ -373,6 +417,7 @@ campMain.addEventListener("click", async e => {
     const i = c.lore.findIndex(y => y.id === clean.id); if (i >= 0) c.lore[i] = clean; else c.lore.unshift(clean);
     LORE.edit = null; LORE.draft = null; LORE.open.add(clean.id); Store.save(c);
     if (clean.type === "place" || d.wpId) { worldAdopt(); const p = clean.type === "place" && wp(clean.wpId); if (p) { WP_LORE.forEach(k => { if (clean[k] === undefined) delete p[k]; else p[k] = JSON.parse(JSON.stringify(clean[k])); }); worldSave(); wpSyncOut(p); } }
+    const made = loreLink(c, clean); if (made.length) toast(made.join(" · "));
     loreRender();
   }
   else if (a === "del" && x) { if (!(await confirmBox("Delete lore entry?", `Remove “${x.name || "Untitled"}”? This can't be undone.`))) return; c.lore = c.lore.filter(y => y.id !== id); Store.save(c); loreRender(); }

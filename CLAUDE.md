@@ -109,6 +109,7 @@ Live site: https://dungeonmasterforge.netlify.app (Netlify; production branch `m
 | `16-character-import.js` | Companion App, PDF and Fifth Edition Character Sheet (XML) import, the Import character window |
 | `17-mythweaver.js` | MythWeaver import and the Import campaign window |
 | `18-news.js` | What's new (`NEWS`) and Install app |
+| `19-fold.js` | Folding list groups and sheet sections (▾ on a `.sec-h`, Fold all), remembered in `dmforge.fold.v1` |
 
 To find a function, search `src/app/` (for example `grep -n "function pcLevelTo" src/app/*.js`).
 
@@ -138,7 +139,7 @@ npm run build     # build the page and bundle the portal (what Netlify runs)
 npm run build:app # build the page only
 ```
 
-One check per feature (Playwright, any OS): `test:assets` (fingerprinted files, repeat visits, offline), `test:map`, `test:backup`, `test:tv`, `test:mapvis`, `test:mapio`, `test:shop`, `test:random`, `test:cards`, `test:mapenc`, `test:calendar`, `test:recap`, `test:sheet` (432 sheets vs the rules), `test:tokens`, `test:npcpic`, `test:hbspell`, `test:hbpend`, `test:import`, `test:layout`, `test:lore`, `test:mythweaver`, `test:campextras`, `test:npclib`, `test:world`, `test:setup` (builds the portal, port 8897), `test:sync` (the DM's data in their account, two devices, port 8896), `test:share` (the players' Journal, turn order on phones, shared rolls; port 8895), `test:hbclass` (homebrew classes), `test:atlas` (World and region maps), `test:polish` (the Adventure, Characters and Items tabs after the 2026-11-18 UI review), `test:cast` (spell bubbles and the spell window), `test:backdrop` (the background pictures and their live torches).
+One check per feature (Playwright, any OS): `test:assets` (fingerprinted files, repeat visits, offline), `test:map`, `test:backup`, `test:tv`, `test:mapvis`, `test:mapio`, `test:shop`, `test:random`, `test:cards`, `test:mapenc`, `test:calendar`, `test:recap`, `test:sheet` (432 sheets vs the rules), `test:tokens`, `test:npcpic`, `test:hbspell`, `test:hbpend`, `test:import`, `test:layout`, `test:lore`, `test:mythweaver`, `test:campextras`, `test:npclib`, `test:world`, `test:setup` (builds the portal, port 8897), `test:sync` (the DM's data in their account, two devices, port 8896), `test:share` (the players' Journal, turn order on phones, shared rolls; port 8895), `test:hbclass` (homebrew classes), `test:atlas` (World and region maps), `test:polish` (the Adventure, Characters and Items tabs after the 2026-11-18 UI review), `test:cast` (spell bubbles and the spell window), `test:backdrop` (the background pictures and their live torches), `test:lorelink` (Lore items, monsters and encounters filling their tabs; folding lists).
 
 Playwright and Chromium are pre-installed in cloud sessions. To test offline mode (no sign-in screen), run `localStorage.setItem('dmforge.offline','1')` in an init script.
 
@@ -214,6 +215,7 @@ Playwright and Chromium are pre-installed in cloud sessions. To test offline mod
     - **one Spells box** on both sheets (DC, slot counters and prepared spells together; Attacks is just attacks);
     - **multiclass casters prepare their caster class's spells** (`pcCastClasses`). Notes: `docs/features/history.md`, item 20.
   - **PR 13:** a photo-real corridor background with live flames on its torches, and a tall picture for phones (`npm run test:backdrop`).
+- **Branch `claude/brave-dirac-2mvyiu` (2026-11-18):** saving a Lore Item, Monster or Encounter adds it to Items → Custom, My monsters or the Encounters tab (`loreLink`; `docs/features/import.md`), and long lists and sheet sections fold (`19-fold.js`; `docs/features/layout.md`).
 - **Next, as the owner said:** make the main screen look more realistic (panels, buttons).
 - **Work branch:** cloud chats use their own `claude/…` branch. After a merge, start the next piece from the latest `main`.
 - **The owner's order of import work:**

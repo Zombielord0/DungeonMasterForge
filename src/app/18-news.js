@@ -2,6 +2,11 @@
    When a change ships, add an entry to the top of NEWS with a new id, in plain words for players and DMs. */
 
 const NEWS = [
+  { id: "2026-11-18-fold-lore-links", date: "2026-11-18", title: "Fold long lists, and Lore fills your tabs", items: [
+    "Long lists fold away: press ▾ at the right of a group's title bar (or click the bar) on Items, Spells, the Monster Manual and character sheets. Lists with several groups also have Fold all and Unfold all. Your choice is remembered on this device.",
+    "Campaign Tracker → Lore: saving an entry as an Item adds it to Items → Your custom items, a Monster adds it to My monsters (with its numbers if the text has a stat block), and an Encounter adds it to the campaign's Encounters tab with the monsters its text names. Places already went to the World tab.",
+    "Editing the Lore entry again updates the same item, monster or encounter. An item you've changed in the Items builder is left alone, and nothing is added if something with that name is already there.",
+    "Sections marked DM only stay out of an item's text, so it's safe to hand to a player."] },
   { id: "2026-11-18-realistic-backdrop", date: "2026-11-18", title: "A real dungeon behind the Forge", items: [
     "The background is now a photo-real stone corridor, and its two torches burn live. Phones held upright get their own tall version.",
     "If your device is set to reduce motion, the picture stays still."] },

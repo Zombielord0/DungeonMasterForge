@@ -95,7 +95,7 @@ function rosterHTML(c) {
    while the header is away); the sections' scroll-margin keeps them clear of both. */
 const sheetJumpHTML = c => `<div id="sheetJump" class="sheet-jump" role="navigation" aria-label="Jump to part of the sheet">${[["hp", "❤ HP"], ["attacks", "⚔ Attacks"], ...(c.spell ? [["spells", "✦ Spells"]] : []), ["gear", "🎒 Gear"], ["notes", "📝 Notes"]].map(([k, l]) => `<a role="button" tabindex="0" data-jump="${k}">${l}</a>`).join("")}</div>`;
 function sheetJump(k) {
-  const t = document.getElementById("sec-" + k); if (!t) return;
+  const t = document.getElementById("sec-" + k); if (!t) return; foldOpen(t);
   t.scrollIntoView({ behavior: matchMedia("(prefers-reduced-motion:reduce)").matches ? "auto" : "smooth", block: "start" });
 }
 document.addEventListener("click", e => { const a = e.target.closest("[data-jump]"); if (a) { e.preventDefault(); sheetJump(a.dataset.jump); } });

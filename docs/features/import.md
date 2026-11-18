@@ -59,6 +59,19 @@ Moved here from `CLAUDE.md` on 2026-11-17, unchanged except that `public/index.h
 - **Real export (2026-11-16, not committed):** Undead Titan has 63 NPCs, 172 lore entries and 14 sessions, about 1.4 MB, and imports in under 2 s.
 - **Tests:** `npm run test:lore` (`test/e2e/lore.cjs`) and `npm run test:mythweaver` (`test/e2e/mythweaver.cjs` plus `mythweaver-ui.cjs`), with the made-up fixture `test/e2e/fixtures/mythweaver-sample.json`.
 
+
+### Lore entries fill their tabs (2026-11-18)
+
+- Saving a Lore entry (`data-lore="save"`) calls `loreLink(c, entry)` in `05-tracker.js`. Places already went to the World (`worldAdopt`).
+  - **Item** → `IT.custom`, built by `loreItemDraft(L)` (shared with MythWeaver's `mwExtras`): type from the name and tags, rarity and attunement from the text, DM-only sections left out.
+  - **Monster** → `MB.lib`, built by `loreMonster(L)` (MythWeaver's `mwMonster` now calls it): a stat block in the text gives the numbers, otherwise `needsStats`.
+  - **Encounter** → `c.encounters`, built by `mwEncounter(l, c, idx, "Made from the Lore entry")` with the monsters its text names.
+- The made record carries `loreId` (the Lore entry's id). Saving the entry again updates that record: an item is rebuilt, a monster gets its name and text (and its numbers only while it still `needsStats`), an encounter gets its name and notes (and monsters only while it has none).
+- `ciSave` (the Items builder) marks a Lore-made item `loreOff`; Lore saves leave it alone from then on.
+- Nothing is made when a custom item, built-in item, My monster or encounter of the same name already exists (and isn't the linked one).
+- Deleting the Lore entry leaves what it made. Deleting the made record and saving the Lore entry again makes a new one.
+- Check: `npm run test:lorelink`.
+
 ## Campaign files carry custom content (2026-11-17)
 
 - **Export JSON** (`#exportCamp`) writes the campaign plus `extras: campExtras()` = `{items: IT.custom, homebrew: HB.list, monsters: MB.lib}`.
