@@ -44,3 +44,12 @@ From a review of the Adventure, Characters and Items tabs. Checks: `npm run test
 - **`#bgScene`** shows the picture as a `50% 50% / cover` CSS background (dark `#06070e` until it arrives). The canvas on top is see-through and only draws live flames and a flickering glow on the picture's torches (`src/app/15-torch.js`). With reduced motion it draws nothing; the picture's own painted flames stay.
 - **Torch positions** are fractions of each picture's width and height, in `BACKDROPS` in `15-torch.js`, and the same numbers in `PICS` in `test/e2e/backdrop.cjs`. Torches that `cover` crops off-screen get no flame.
 - **To swap a picture:** run `python tools/make-backdrop.py <source> src/backdrop/corridor-wide.webp` (or `… corridor-tall.webp 1080` for the tall one), measure where the flame bases are, update `BACKDROPS` and `PICS`, then run `npm run test:backdrop` and look at it.
+
+## Folding lists and sheet sections (2026-11-18)
+
+- `src/app/19-fold.js`. Every `.sec` whose first child is a `.sec-h` with an `<h3>` inside `#spList`, `#itList`, `#bsList`, `#pcOut` or `#rosterMain` gets a ▾ `.fold-btn` at the right of its header. Clicking the button or the bar (not other buttons, links or fields in it) toggles `.folded`, and CSS hides everything in the section except the header.
+- The key is `<list>|<first text of the h3>` (`it|Your custom items`, `sp|3rd spells`, `sheet|Skills`), kept in `localStorage["dmforge.fold.v1"]`. It's a display choice, so it isn't in `BACKUP_KEYS`.
+- A `MutationObserver` on each list re-runs `foldify` after a redraw; it's idempotent (`data-foldk` marks done sections). No render function needs to know about folding.
+- Lists with 2 or more top-level groups get one `.fold-all` switch (`foldAllSync`) in the first group's title bar: Fold all, or Unfold all once every group is folded. It sits in the bar (and the buttons are 24px with negative margins) so the list doesn't move down: `test:polish` checks the phone item list starts on the first screen. The whole bar is the touch target. The sheets don't get the switch.
+- `sheetJump` calls `foldOpen` so jumping to a folded section opens it.
+- Check: `npm run test:lorelink` (the folding part).

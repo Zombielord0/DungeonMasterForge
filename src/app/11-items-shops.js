@@ -566,6 +566,7 @@ function ciSave(card) {
   if (!d.n.trim()) { toast("Give the item a name first"); const i = $('[data-ci="n"]'); if (i) i.focus(); return; }
   const rec = ciRecord(d); d.id = rec.id; rec.draft.id = rec.id;
   const i = IT.custom.findIndex(x => x.id === rec.id);
+  if (i >= 0 && IT.custom[i].loreId) { rec.loreId = IT.custom[i].loreId; rec.loreOff = true; } /* made from Lore, now changed here: Lore saves leave it alone */
   if (i >= 0) IT.custom[i] = rec; else IT.custom.unshift(rec);
   itPersist(); ciClose(); IT.open.add(rec.id); renderItems(); toast(`${rec.n} saved to your custom items`);
   if (card) itOpenCard(rec);

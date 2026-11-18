@@ -1080,3 +1080,15 @@ nav a[data-view=journal]{--ic:url("data:image/svg+xml,%3Csvg xmlns='http://www.w
 /* the Spells box: spellcasting line and slots on top, then the prepared spells (2026-11-18) */
 .spell-top{padding-bottom:10px;margin-bottom:6px;border-bottom:1px solid rgba(255,255,255,.07)}
 .prep-h{font-family:Cinzel,serif;font-size:12px;color:var(--gold2);letter-spacing:.08em;text-transform:uppercase;margin:8px 0 2px}
+/* folding list groups and sheet sections (19-fold.js) */
+.sec.foldable>.sec-h{cursor:pointer;user-select:none}
+.fold-btn{flex:0 0 auto;width:28px;height:24px;margin:-2px 0 -2px 4px;display:inline-grid;place-items:center;font-size:16px;line-height:1;color:var(--gold2);background:rgba(0,0,0,.3);border:1px solid rgba(227,154,59,.35);border-radius:5px;cursor:pointer;transition:transform .15s}
+.fold-btn:hover,.fold-btn:focus-visible{background:rgba(0,0,0,.5);border-color:var(--gold);outline:none}
+.sec.folded>.fold-btn,.sec.folded>.sec-h>.fold-btn{transform:rotate(-90deg)}
+.sec.folded>:not(.sec-h){display:none!important}
+.sec.folded>.sec-h{margin-bottom:0;border-bottom-color:transparent}
+.fold-all{flex:0 0 auto;height:24px;margin:-2px 0 -2px 6px;padding:0 9px;font:600 12px/1 Cinzel,serif;letter-spacing:.04em;color:var(--gold2);background:rgba(0,0,0,.3);border:1px solid rgba(227,154,59,.35);border-radius:5px;cursor:pointer}
+.sec.foldable>.sec-h h3{min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+@media (max-width:600px){.fold-all-w{display:none}.fold-all{padding:0 7px}}
+.fold-all:hover,.fold-all:focus-visible{background:rgba(0,0,0,.5);border-color:var(--gold);outline:none}
+@media (prefers-reduced-motion:reduce){.fold-btn{transition:none}}

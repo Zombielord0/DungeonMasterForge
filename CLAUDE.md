@@ -5,15 +5,15 @@ These are project notes for the next chat (human or Claude). They cover what the
 ## Ground rules from the owner
 
 - **When a change ships, add an entry to the top of `NEWS` in `src/app/18-news.js`** with a new `id`, in plain words for players and DMs. That's what lights up the bell for everyone.
-- **Don't merge or push to `main` unless the owner asks in that chat.** A push to `main` starts a Netlify production deploy, and Netlify credits have run out before ("only testing"). Work on a branch, and test locally with `npm run dev`.
+- **Never merge or push to `main` without asking the owner first, in that chat, and getting a yes (owner, 2026-11-18).** A merge or push to `main` starts a Netlify production deploy to the live site, and Netlify credits have run out before ("only testing"). Ask every time, even if an earlier merge was approved. Work on a branch, and test locally with `npm run dev`.
 - The owner is on **Windows** and can't run bash scripts. Anything they run themselves has to work in PowerShell or Command Prompt, so prefer `npm run ...` scripts.
 - Explain things plainly. The owner tests in the browser rather than reading code.
-- Don't open pull requests unless asked.
+- **Pull requests are allowed without asking (owner, 2026-11-18).** When a piece of work is finished, tested, reviewed and pushed, open a **draft** pull request into `main` (or push to the existing one) so the owner gets a preview page. Tell the owner the preview link.
 - Pushing to a pull request's branch starts a Netlify **deploy preview**, which also uses build credits. Push when the work is ready or when asked, rather than after every small change. Cloud sessions have a stop hook that asks for unpushed commits to be pushed.
 - **Test on preview pages, not the live site (owner, 2026-11-16).**
   - Work goes on a branch with a **draft** pull request into `main`, so Netlify builds a deploy preview the owner can try in the browser (`deploy-preview-<PR number>--dungeonmasterforge.netlify.app`).
   - Run the automated checks locally first (`npm run test:all`), and push in batches: one preview build per finished piece of work. Don't push design-only commits on their own.
-  - Merge to `main` (a production build) only when the owner has tried the preview and asks.
+  - Merge to `main` (a production build) only after asking the owner and getting a yes, usually once they've tried the preview.
   - Previews may use their own copy of the campaign database, so test there with fresh accounts and campaigns.
 
 ## Finishing a piece of work: reviews and tests (owner, 2026-11-17)
@@ -109,6 +109,7 @@ Live site: https://dungeonmasterforge.netlify.app (Netlify; production branch `m
 | `16-character-import.js` | Companion App, PDF and Fifth Edition Character Sheet (XML) import, the Import character window |
 | `17-mythweaver.js` | MythWeaver import and the Import campaign window |
 | `18-news.js` | What's new (`NEWS`) and Install app |
+| `19-fold.js` | Folding list groups and sheet sections (▾ on a `.sec-h`, Fold all), remembered in `dmforge.fold.v1` |
 
 To find a function, search `src/app/` (for example `grep -n "function pcLevelTo" src/app/*.js`).
 
@@ -138,7 +139,7 @@ npm run build     # build the page and bundle the portal (what Netlify runs)
 npm run build:app # build the page only
 ```
 
-One check per feature (Playwright, any OS): `test:assets` (fingerprinted files, repeat visits, offline), `test:map`, `test:backup`, `test:tv`, `test:mapvis`, `test:mapio`, `test:shop`, `test:random`, `test:cards`, `test:mapenc`, `test:calendar`, `test:recap`, `test:sheet` (432 sheets vs the rules), `test:tokens`, `test:npcpic`, `test:hbspell`, `test:hbpend`, `test:import`, `test:layout`, `test:lore`, `test:mythweaver`, `test:campextras`, `test:npclib`, `test:world`, `test:setup` (builds the portal, port 8897), `test:sync` (the DM's data in their account, two devices, port 8896), `test:share` (the players' Journal, turn order on phones, shared rolls; port 8895), `test:hbclass` (homebrew classes), `test:atlas` (World and region maps), `test:polish` (the Adventure, Characters and Items tabs after the 2026-11-18 UI review), `test:cast` (spell bubbles and the spell window), `test:backdrop` (the background pictures and their live torches).
+One check per feature (Playwright, any OS): `test:assets` (fingerprinted files, repeat visits, offline), `test:map`, `test:backup`, `test:tv`, `test:mapvis`, `test:mapio`, `test:shop`, `test:random`, `test:cards`, `test:mapenc`, `test:calendar`, `test:recap`, `test:sheet` (432 sheets vs the rules), `test:tokens`, `test:npcpic`, `test:hbspell`, `test:hbpend`, `test:import`, `test:layout`, `test:lore`, `test:mythweaver`, `test:campextras`, `test:npclib`, `test:world`, `test:setup` (builds the portal, port 8897), `test:sync` (the DM's data in their account, two devices, port 8896), `test:share` (the players' Journal, turn order on phones, shared rolls; port 8895), `test:hbclass` (homebrew classes), `test:atlas` (World and region maps), `test:polish` (the Adventure, Characters and Items tabs after the 2026-11-18 UI review), `test:cast` (spell bubbles and the spell window), `test:backdrop` (the background pictures and their live torches), `test:lorelink` (Lore items, monsters and encounters filling their tabs; folding lists).
 
 Playwright and Chromium are pre-installed in cloud sessions. To test offline mode (no sign-in screen), run `localStorage.setItem('dmforge.offline','1')` in an init script.
 
@@ -214,6 +215,7 @@ Playwright and Chromium are pre-installed in cloud sessions. To test offline mod
     - **one Spells box** on both sheets (DC, slot counters and prepared spells together; Attacks is just attacks);
     - **multiclass casters prepare their caster class's spells** (`pcCastClasses`). Notes: `docs/features/history.md`, item 20.
   - **PR 13:** a photo-real corridor background with live flames on its torches, and a tall picture for phones (`npm run test:backdrop`).
+- **PR 14** (branch `claude/brave-dirac-2mvyiu`), merged to `main` at the owner's request on 2026-11-18: saving a Lore Item, Monster or Encounter adds it to Items → Custom, My monsters or the Encounters tab (`loreLink`; `docs/features/import.md`), and long lists and sheet sections fold (`19-fold.js`; `docs/features/layout.md`).
 - **Next, as the owner said:** make the main screen look more realistic (panels, buttons).
 - **Work branch:** cloud chats use their own `claude/…` branch. After a merge, start the next piece from the latest `main`.
 - **The owner's order of import work:**
@@ -227,6 +229,7 @@ Playwright and Chromium are pre-installed in cloud sessions. To test offline mod
   - A PDF's portrait isn't imported.
   - Deleting a whole campaign leaves its NPCs' uploaded pictures in IndexedDB.
   - The tag-based sorting of MythWeaver "generic" lore is a best guess.
+  - **Lore links:** once a Lore-made monster has stats, saving its Lore entry still replaces its description (items have a `loreOff` guard; monsters don't). Deleting a made item, monster or encounter and saving the Lore entry again makes it again.
   - **Shops:**
     - an item bought at a marked-up price shows the list price as its inventory value;
     - a markup change made within ⅓ second of closing the shop isn't saved;

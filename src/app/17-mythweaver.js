@@ -99,22 +99,33 @@ function mwExtras(R, camps) {
       monsters.push(mwMonster(x));
     } else if (L.type === "item") {
       if (builtItem(name)) continue;
-      const d = ciNew(); d.n = name; const catHay = (name + " " + L.tags.join(" ") + " " + L.desc.split("\n")[0].slice(0, 120)).toLowerCase().replace(/armou?r class/g, ""); d.type = (MW_ITEM_CAT.find(([re]) => re.test(catHay)) || [0, "Wondrous Item"])[1];
-      const rar = ["very rare", "legendary", "uncommon", "rare", "common"].find(r => new RegExp(`\\b${r}\\b`).test(hay));
-      d.rarOverride = rar ? RARITY.findIndex(r => r.toLowerCase() === rar) : ""; d.att = /requires? attunement/.test(hay) ? "yes" : "no";
-      d.flavor = body || "Imported from MythWeaver.";
-      items.push({ ...ciRecord(d), mwId: "mw-" + key, src: MW_SRC });
+      items.push({ ...ciRecord(loreItemDraft({ ...L, name }, "Imported from MythWeaver.")), mwId: "mw-" + key, src: MW_SRC });
     }
   }
   return { items, homebrew, monsters };
 }
+/* A Lore entry ({name, tags, desc, sections}) -> a custom item draft (Items → Custom): its type and rarity are read from the text.
+   DM-only sections stay out of the item's text, since items can be handed to players. */
+function loreItemDraft(L, fallback) {
+  const name = impCut(L.name, 60), body = [L.desc, ...(L.sections || []).filter(t => !t.dm).map(t => (t.t ? `**${t.t}.** ` : "") + t.x)].filter(Boolean).join("\n\n");
+  const tags = L.tags || [], hay = (name + " " + tags.join(" ") + " " + body).toLowerCase();
+  const d = ciNew(); d.n = name; const catHay = (name + " " + tags.join(" ") + " " + String(L.desc || "").split("\n")[0].slice(0, 120)).toLowerCase().replace(/armou?r class/g, ""); d.type = (MW_ITEM_CAT.find(([re]) => re.test(catHay)) || [0, "Wondrous Item"])[1];
+  const rar = ["very rare", "legendary", "uncommon", "rare", "common"].find(r => new RegExp(`\\b${r}\\b`).test(hay));
+  d.rarOverride = rar ? RARITY.findIndex(r => r.toLowerCase() === rar) : ""; d.att = /requires? attunement/.test(hay) ? "yes" : "no";
+  d.flavor = body || fallback;
+  return d;
+}
 /* A MythWeaver monster entry -> a My monsters entry (the builder's form). If its text has a stat block (AC, HP and the six
    scores) the numbers come from it, with traits and actions; otherwise it keeps the name and text and is marked needsStats. */
 function mwMonster(x) {
-  const L = mwLore(x), f = mbBlank();
-  const text = [L.desc, ...L.sections.map(t => (t.t ? `## ${t.t}\n` : "") + t.x)].filter(Boolean).join("\n\n"), plain = text.replace(/\*\*|__|\*/g, "");
+  const f = loreMonster(mwLore(x)); f.mwId = "mw-" + String(x.id ?? f.name); f.src = MW_SRC; return f;
+}
+/* A Lore entry -> a My monsters entry, the same way (Lore saves use it too) */
+function loreMonster(L) {
+  const f = mbBlank();
+  const text = [L.desc, ...(L.sections || []).map(t => (t.t ? `## ${t.t}\n` : "") + t.x)].filter(Boolean).join("\n\n"), plain = text.replace(/\*\*|__|\*/g, "");
   const num = re => { const m = plain.match(re); return m ? m : null; };
-  f.id = uid("mm"); f.name = impCut(L.name, 80); f.mwId = "mw-" + String(x.id ?? f.name); f.src = MW_SRC; f.desc = impCut(text, 4000);
+  f.id = uid("mm"); f.name = impCut(L.name, 80); f.desc = impCut(text, 4000);
   const st = num(/\b(tiny|small|medium|large|huge|gargantuan)\s+(aberration|beast|celestial|construct|dragon|elemental|fey|fiend|giant|humanoid|monstrosity|ooze|plant|undead)s?\b(?:\s*\(([^)]*)\))?(?:,\s*([^\n]+))?/i);
   if (st) { f.size = st[1].toLowerCase(); f.type = st[2].toLowerCase(); f.sub = impCut(st[3] || "", 60); f.al = impCut(st[4] || "", 40); }
   const ac = num(/(?:armou?r class|\bAC)\s*:?\s*(\d+)(?:\s*\(([^)]*)\))?/i), hp = num(/(?:hit points|\bHP)\s*:?\s*(\d+)(?:\s*\((\d+)d(\d+)[^)]*\))?/i);
@@ -180,11 +191,11 @@ function mwFoes(text, idx) {
   }
   return out;
 }
-function mwEncounter(l, camp, idx) {
+function mwEncounter(l, camp, idx, from = "Imported from MythWeaver") {
   const text = [l.desc, ...l.sections.map(t => (t.t ? `${t.t}${t.dm ? " (DM only)" : ""}: ` : "") + t.x)].filter(Boolean).join("\n\n");
   const foes = mwFoes([l.name, text].join("\n"), idx);
   const e = newEncounter(null, l.name, camp.currentLevel || 1, foes.map(f => ({ name: f.n, stat: f.n, cr: f.cr, count: f.count, boss: false })),
-    { kind: "import", mwId: l.mwId, notes: impCut(text, 4000) + `\n\n(Imported from MythWeaver.${foes.length ? " Monsters were read from the text: check them." : " No monsters were found in its text: add them here."})` });
+    { kind: "import", ...(l.mwId ? { mwId: l.mwId } : {}), notes: impCut(text, 4000) + `\n\n(${from}.${foes.length ? " Monsters were read from the text: check them." : " No monsters were found in its text: add them here."})` });
   e.enemies.forEach(m => { const f = foes.find(x => x.n === m.stat); if (f) { m.ac = f.ac; m.hp = m.max = f.hp; } });
   return e;
 }
