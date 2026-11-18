@@ -1075,3 +1075,7 @@ nav a[data-view=journal]{--ic:url("data:image/svg+xml,%3Csvg xmlns='http://www.w
 .cast-lv[aria-pressed=true]{border-color:var(--gold2);background:linear-gradient(rgba(240,150,60,.3),rgba(240,150,60,.12));color:#fff}
 .cast-lv:disabled{opacity:.4;cursor:not-allowed}
 .cast-fx{margin:10px 0 0;font-size:15px;color:var(--gold2)}
+
+/* the Spells box: spellcasting line and slots on top, then the prepared spells (2026-11-18) */
+.spell-top{padding-bottom:10px;margin-bottom:6px;border-bottom:1px solid rgba(255,255,255,.07)}
+.prep-h{font-family:Cinzel,serif;font-size:12px;color:var(--gold2);letter-spacing:.08em;text-transform:uppercase;margin:8px 0 2px}

@@ -6,6 +6,7 @@ const NEWS = [
     "Prepared spells on a character sheet are now bubbles. Tap one to see the whole spell: casting time, range, components, duration, what it does and what it does at higher levels.",
     "On My Characters, choose the level to cast at: each button shows how many slots you have left, and the line underneath shows the damage or healing at that level, so casting higher is easy. ✦ Cast uses up the slot and rolls.",
     "Each spell level shows how many slots you have left, and spells that need concentration or can be rituals are marked C and R.",
+    "Everything about spells is now in one Spells box on the sheet: your spell save DC, the spell slot counters, and your prepared spells. The Attacks box keeps just your attacks.",
     "Fixed: a character who multiclasses into a spellcaster (say a Fighter who takes Wizard levels) can now prepare that class's spells. Each class offers spells up to its own level."] },
   { id: "2026-11-18-fecs-import", date: "2026-11-18", title: "Import from the Fifth Edition Character Sheet app", go: "roster", items: [
     "📥 Import character on My Characters now also reads characters from the Fifth Edition Character Sheet app. In the app, export the character (or upload it to Google Drive) and choose its .xml file.",

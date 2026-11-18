@@ -252,15 +252,16 @@ function sheetHTML(c) {
   <div class="grid2" style="margin-top:0">
     <div class="sec"><div class="sec-h"><h3>Skills</h3><span class="sp"></span><span class="muted" style="font-size:13px">● proficient ★ expertise</span></div>
       <div class="skills">${c.skills.map(s => `<div class="${s.p ? "p" : ""} ${s.x ? "x" : ""}"><span>${s.p ? "● " : ""}${esc(s.s)} <span class="muted" style="font-size:12px">${AB_NAME[s.ab]}</span></span><b>${sgn(s.v)}</b></div>`).join("")}</div></div>
-    <div class="sec"><div class="sec-h"><h3>Attacks${c.spell ? " & Spellcasting" : ""}</h3></div>
+    <div class="sec"><div class="sec-h"><h3>Attacks</h3></div>
       ${c.attacks.map(a => `<div class="enc" style="border-color:var(--gold)"><b>${esc(a.name)}</b>: ${sgn(a.hit)} to hit, ${esc(a.dmg)} damage</div>`).join("")}
-      ${c.spell ? `<p style="margin:10px 0 4px"><b>Spell save DC ${c.spell.dc}</b> · spell attack ${sgn(c.spell.atk)} · ability ${AB_NAME[c.spell.ab]}</p>
-        ${c.spell.note ? `<div>${esc(c.spell.note)}</div>` : c.spell.slots.length ? `<div class="chips">${c.spell.slots.map((n, i) => `<span class="tag">Lv ${i + 1}: ${n} slot${n > 1 ? "s" : ""}</span>`).join("")}</div>` : `<div class="muted">No spell slots until level 2.</div>`}` : ""}
-      ${c.spell ? `<button class="btn sm" style="margin-top:10px" data-spells="${esc(c.spell.cls || c.cls)}|${c.spell.max}|${c.spell.cantrips ? 1 : 0}">✦ Browse ${esc(c.spell.cls || c.cls)} spells up to level ${c.spell.max}</button>` : ""}
       ${c.extras.length ? `<ul class="plain" style="margin-top:10px">${c.extras.map(x => `<li>${esc(x)}</li>`).join("")}</ul>` : ""}
     </div>
   </div>
-  ${c.spell ? `<div class="sec" id="pcPrepSec"><div class="sec-h"><h3>${spellLimits(c).word === "known" ? "Spells Known" : "Prepared Spells"}</h3><span class="sp"></span><button class="btn sm" type="button" id="pcPrepBtn">✦ Prepare spells</button></div>
+  ${c.spell ? `<div class="sec" id="pcPrepSec"><div class="sec-h"><h3>Spells</h3><span class="sp"></span><button class="btn sm" type="button" id="pcPrepBtn">✦ Prepare spells</button></div>
+    <div class="spell-top"><p style="margin:0 0 4px"><b>Spell save DC ${c.spell.dc}</b> · spell attack ${sgn(c.spell.atk)} · ability ${AB_NAME[c.spell.ab]}</p>
+        ${c.spell.note ? `<div>${esc(c.spell.note)}</div>` : c.spell.slots.length ? `<div class="chips">${c.spell.slots.map((n, i) => `<span class="tag">Lv ${i + 1}: ${n} slot${n > 1 ? "s" : ""}</span>`).join("")}</div>` : `<div class="muted">No spell slots until level 2.</div>`}
+      <button class="btn sm" style="margin-top:10px" data-spells="${esc(c.spell.cls || c.cls)}|${c.spell.max}|${c.spell.cantrips ? 1 : 0}">✦ Browse ${esc(c.spell.cls || c.cls)} spells up to level ${c.spell.max}</button></div>
+    <div class="prep-h">${spellLimits(c).word === "known" ? "Spells known" : "Prepared spells"}</div>
     <div id="pcPrepared">${preparedHTML(c)}</div>${prepPanelHTML(c)}</div>` : ""}
   <div class="grid2" style="margin-top:0">
     <div class="sec"><div class="sec-h"><h3>Features & Traits</h3></div>${featuresListHTML(c)}</div>

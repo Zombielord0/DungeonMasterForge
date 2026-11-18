@@ -36,11 +36,13 @@ const server = http.createServer((req, res) => {
     check("spells show as bubbles, without the old ✦ button", await p.locator(bubble("Cure Wounds")).count() === 1 && await p.locator("#rcPrepared [data-cast]").count() === 0);
     check("bubbles look like bubbles (rounded, bordered, readable text)", await p.evaluate(s => { const cs = getComputedStyle(document.querySelector(s)); return parseFloat(cs.borderRadius) >= 12 && parseFloat(cs.borderTopWidth) >= 1 && parseFloat(cs.fontSize) >= 14; }, bubble("Cure Wounds")));
     check("a concentration spell's bubble is marked C", await p.locator(bubble("Bless") + " .prep-mk").textContent() === "C");
+    const sec = await p.evaluate(() => { const s = document.querySelector("#sec-spells"), a = document.querySelector("#sec-attacks"); return { slots: !!(s && s.querySelector(".slots [data-use]")), dc: !!(s && /Spell save DC/.test(s.textContent)), browse: !!(s && s.querySelector("[data-spells]")), atkSlots: !!(a && a.querySelector(".slots")), atkTitle: a && a.querySelector("h3").textContent }; });
+    check("the slot tracker, spell DC and Browse are in the Spells box", sec.slots && sec.dc && sec.browse, JSON.stringify(sec));
+    check("the Attacks box keeps just attacks", !sec.atkSlots && sec.atkTitle === "Attacks", JSON.stringify(sec));
     check("each level shows its slots left", await p.evaluate(() => /4 of 4 slots left/.test(document.querySelector("#rcPrepared").textContent) && /3 of 3 slots left/.test(document.querySelector("#rcPrepared").textContent)));
     await p.click(bubble("Cure Wounds")); await p.waitForTimeout(200);
     const w = await p.evaluate(() => { const m = document.querySelector("#actModal.open"); if (!m) return null; const r = m.querySelector(".spell-rules"); const b = s => m.querySelector(`[data-castlv="${s}"]`); return { rules: r && r.offsetParent && /touch/i.test(r.textContent), l1: b("slot1") && b("slot1").getAttribute("aria-pressed"), l2: b("slot2") && b("slot2").textContent.trim(), l3dis: b("slot3") && b("slot3").disabled, fx: (m.querySelector("#castFx") || {}).textContent || "" }; });
-    check("tapping a bubble opens the full rules", w && w.rules, JSON.stringify(w));
-    check("the window's wording doesn't repeat 'level'", await p.evaluate(() => !/level[- ]level/i.test(document.querySelector("#actModal").textContent)));
+    check("tapping a bubble opens the full rules", w && w.rules, JSON.stringify(w));    check("the window's wording doesn't repeat 'level'", await p.evaluate(() => !/level[- ]level/i.test(document.querySelector("#actModal").textContent)));
     check("the lowest level with a slot is picked first", w && w.l1 === "true");
     check("a level button shows its slots left", w && /2nd/.test(w.l2) && /3 left/.test(w.l2), w && w.l2);
     check("a used-up level is greyed out", w && w.l3dis === true);
@@ -72,6 +74,9 @@ const server = http.createServer((req, res) => {
     await p.goto(URL + "#character"); await p.waitForTimeout(300);
     await p.evaluate(() => { currentPC = pcEnsure(generateCharacter({ seed: "CAST2", name: "Brother Tam", cls: "Cleric", level: 3, ed: "2014" })); currentPC.prepared = [{ n: "Cure Wounds", l: 1, ed: "2014" }]; renderPC(); });
     await p.waitForTimeout(200);
+    await p.click('#pcPrepared .prep-b[data-spell="2014|Cure Wounds"]'); await p.waitForTimeout(200);
+    check("Characters tab: spell slots and DC are in the prepared spells box, not Attacks", await p.evaluate(() => { const s = document.querySelector("#pcPrepSec"); return !!s && /Spell save DC/.test(s.textContent) && /slot/i.test(s.textContent) && ![...document.querySelectorAll("#pcOut h3")].some(h => /Spellcasting/.test(h.textContent)); }));
+    await p.evaluate(() => actClose());
     await p.click('#pcPrepared .prep-b[data-spell="2014|Cure Wounds"]'); await p.waitForTimeout(200);
     check("on the Characters tab the window shows the rules without Cast", await p.evaluate(() => { const m = document.querySelector("#actModal.open"); return !!m && !!m.querySelector(".spell-rules") && !m.querySelector("[data-castgo]") && /Save to My characters/i.test(m.textContent); }));
     await ctx.close();
