@@ -163,7 +163,7 @@ if (location.protocol !== "file:" && localStorage.getItem("dmforge.offline") !==
         <select id="setting"><option value="">Surprise me</option></select>
       </div>
       <input type="hidden" id="seed">
-      <button class="btn primary wide" type="submit">⚔ Forge Adventure</button>
+      <button class="btn primary wide ico ico-swords" type="submit">Forge Adventure</button>
     </form>
 
     <div id="genOut">
@@ -509,15 +509,11 @@ if (location.protocol !== "file:" && localStorage.getItem("dmforge.offline") !==
       <div class="field rnd-only" id="pcBonusWrap"><label>Racial bonuses</label>
         <div class="seg"><label class="opt"><input type="radio" name="pcBonus" value="flex" checked><span>Flexible +2/+1</span></label><label class="opt"><input type="radio" name="pcBonus" value="fixed"><span>Classic racial</span></label></div>
       </div>
-      <button class="btn primary wide" type="submit" id="pcForgeBtn">⚒ Forge Character</button>
+      <button class="btn primary wide ico ico-hammer" type="submit" id="pcForgeBtn">Forge Character</button>
       <div class="field" style="margin-top:14px"><label>My characters</label>
         <p class="hint" style="margin:0 0 6px">Your current character stays put when you switch tabs. Press “Save to My characters” on its sheet to move it to the My Characters tab, where you can keep editing it.</p>
         <a class="btn wide" href="#roster" style="display:block;text-align:center;text-decoration:none">Open My Characters <span id="pcRosterN"></span></a>
       </div>
-      <div class="field"><label>Add to campaign party</label>
-        <div class="row"><select id="pcCampaign" class="campSelect"></select><button class="btn" type="button" id="pcSave" style="flex:0 0 auto">+ Add</button></div>
-      </div>
-      <button class="btn wide" type="button" id="pcCopy">Copy sheet as text</button>
     </form>
     <div id="pcOut"><div class="card empty"><h2>A hero steps from the dark</h2><p>Leave anything on Random, or lock in a race, class and level. You get a full 5e sheet: scores, HP, AC, saves, skills, attacks, spell slots, features, gear and a backstory hook.</p></div></div>
   </div>
@@ -593,11 +589,13 @@ if (location.protocol !== "file:" && localStorage.getItem("dmforge.offline") !==
       <div class="field"><label>Rules edition</label>
         <div class="seg"><label class="opt"><input type="radio" name="itEd" value="2024" checked><span>2024 (5.5e)</span></label><label class="opt"><input type="radio" name="itEd" value="2014"><span>2014 (5e)</span></label></div>
       </div>
+      <div class="field"><label>Search</label><input type="text" id="itQ" placeholder="Item name, e.g. longsword">
+        <label class="check" style="margin:6px 0 0"><input type="checkbox" id="itInDesc"><span>Also search descriptions</span></label></div>
+      <button class="btn wide" type="button" id="itFiltersBtn" aria-expanded="false" aria-controls="itFilters">▾ Filters</button>
+      <div id="itFilters">
       <div class="field"><label>Show</label>
         <div class="seg"><label class="opt"><input type="radio" name="itMode" value="all" checked><span>All</span></label><label class="opt"><input type="radio" name="itMode" value="gear"><span>Standard</span></label><label class="opt"><input type="radio" name="itMode" value="magic"><span>Magic</span></label><label class="opt"><input type="radio" name="itMode" value="custom"><span>Mine</span></label></div>
       </div>
-      <div class="field"><label>Search</label><input type="text" id="itQ" placeholder="Item name, e.g. longsword">
-        <label class="check" style="margin:6px 0 0"><input type="checkbox" id="itInDesc"><span>Also search descriptions</span></label></div>
       <div class="field" id="itGearF"><label>Gear type</label><select id="itGroup"><option value="">Any</option></select></div>
       <div id="itMagicF">
         <div class="field"><label>Rarity</label>
@@ -609,12 +607,15 @@ if (location.protocol !== "file:" && localStorage.getItem("dmforge.offline") !==
       </div>
       <div class="field row">
         <div><label>Max price (gp)</label><input type="number" id="itMax" min="0" placeholder="Any"></div>
-        <div><label>Sort by</label><select id="itSort"><option value="name">Type, then name</option><option value="price">Price, low to high</option><option value="price-d">Price, high to low</option><option value="rarity">Rarity</option></select></div>
+        <div><label>Sort by</label><select id="itSort"><option value="name">Type &amp; name</option><option value="price">Price, low to high</option><option value="price-d">Price, high to low</option><option value="rarity">Rarity</option></select></div>
       </div>
       <button class="btn wide" type="button" id="itReset">Clear filters</button>
-      <button class="btn primary wide" type="button" id="itNew" style="margin-top:8px">✚ Create custom item</button>
-      <button class="btn wide" type="button" id="itShopBtn" style="margin-top:8px" title="Make a shop for your town: its stock, prices and shopkeeper">🏪 Generate a shop</button>
-      <button class="btn wide" type="button" id="itRandom" style="margin-top:8px">🎲 Random magic item</button>
+      </div>
+      <div class="it-acts">
+      <button class="btn primary wide ico ico-plus" type="button" id="itNew">Create custom item</button>
+      <button class="btn wide ico ico-shop" type="button" id="itShopBtn" title="Make a shop for your town: its stock, prices and shopkeeper">Generate a shop</button>
+      <button class="btn wide ico ico-dice" type="button" id="itRandom">Random magic item</button>
+      </div>
     </form>
     <div>
       <div id="itBuilder" class="hidden" style="margin-bottom:14px"></div>

@@ -2,9 +2,9 @@
 
 /* ======================= Minimizable toolbar ======================= */
 const hdrPhone = matchMedia("(max-width:600px)");
-let hdrHold = 0; // until then, scrolling doesn't move the header (the page shifts when the full header opens)
+let hdrHold = 0, hdrPinned = false; // hdrPinned: "Show tabs" pressed while the laptop header was shrunk by scrolling; stays full until back at the top // until then, scrolling doesn't move the header (the page shifts when the full header opens)
 function hdrSync() {
-  const H = document.documentElement, mini = hdrPhone.matches ? !H.classList.contains("hdr-full") : H.classList.contains("hdr-mini"), btn = document.getElementById("hdrToggle");
+  const H = document.documentElement, mini = hdrPhone.matches ? !H.classList.contains("hdr-full") : H.classList.contains("hdr-mini") || H.classList.contains("hdr-auto"), btn = document.getElementById("hdrToggle");
   btn.textContent = mini ? "▾ Show tabs" : "▴ Hide tabs";
   btn.setAttribute("aria-expanded", String(!mini));
   btn.title = mini ? "Show the toolbar and tabs" : "Hide the toolbar to give this tab more room";
@@ -16,6 +16,7 @@ document.getElementById("hdrTabSel").addEventListener("focus", hdrSync); // pick
 document.getElementById("hdrToggle").addEventListener("click", () => {
   const H = document.documentElement;
   if (hdrPhone.matches) { hdrHold = performance.now() + 500; H.classList.toggle("hdr-full"); H.classList.remove("hdr-away"); hdrSync(); return; } // phones: just for this visit
+  if (H.classList.contains("hdr-auto")) { hdrPinned = true; H.classList.remove("hdr-auto"); document.querySelector("header").style.marginBottom = ""; hdrSync(); return; } // laptops: open the header shrunk by scrolling
   const mini = H.classList.toggle("hdr-mini");
   try { localStorage.setItem("dmforge.hdrMini", mini ? "1" : "0"); } catch (e) {}
   hdrSync();
@@ -23,6 +24,21 @@ document.getElementById("hdrToggle").addEventListener("click", () => {
 hdrPhone.addEventListener("change", () => { document.documentElement.classList.remove("hdr-away", "hdr-full"); hdrSync(); });
 /* Phones: the header slides away when scrolling down past its height or while typing in a box, and comes back after
    scrolling up 24px or more, or near the top of the page. */
+/* Laptops and tablets: the header shrinks to one slim bar (the "Hide tabs" look) after scrolling down, and comes back near the top.
+   The gap between 40 and 260 px stops it flicking back and forth as the page shifts. */
+function hdrShrink(y) {
+  const H = document.documentElement, was = H.classList.contains("hdr-auto");
+  if (y < 40) hdrPinned = false;
+  const now = !hdrPinned && !H.classList.contains("hdr-mini") && (y > 260 || (was && y >= 40));
+  if (now === was) return;
+  /* keep the header's full space while it's slim (that space has scrolled off the top), so nothing below it moves */
+  const head = document.querySelector("header"), full = head.getBoundingClientRect().height;
+  H.classList.toggle("hdr-auto", now);
+  head.style.marginBottom = now ? Math.max(0, full - head.getBoundingClientRect().height) + "px" : "";
+  hdrSync();
+}
+/* --hdr-live: the header's height right now, so sticky side panels sit just under it and fit the screen */
+(function hdrMeasure() { const h = document.querySelector("header"); if (!h || !window.ResizeObserver) return; const set = () => document.documentElement.style.setProperty("--hdr-live", Math.round(h.getBoundingClientRect().height) + "px"); new ResizeObserver(set).observe(h); set(); })();
 (function hdrAuto() {
   const H = document.documentElement, head = document.querySelector("header");
   let lastY = scrollY, up = 0, typing = false;
@@ -30,7 +46,7 @@ hdrPhone.addEventListener("change", () => { document.documentElement.classList.r
   const field = e => e && e.matches && e.matches("input:not([type=checkbox]):not([type=radio]):not([type=file]), textarea, select") && !e.closest("header");
   addEventListener("scroll", () => {
     const y = scrollY, d = y - lastY; lastY = y;
-    if (!hdrPhone.matches) { set(false); return; }
+    if (!hdrPhone.matches) { set(false); hdrShrink(y); return; }
     if (performance.now() < hdrHold) return;
     if (!document.getElementById("newsPanel").hidden) { set(false); return; } // What's new opens from the header
     if (typing) { set(true); return; }

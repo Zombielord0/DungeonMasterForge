@@ -131,7 +131,7 @@ function itText(x) {
 function renderItTargets() {
   const row = $("#itTargetRow"), chars = PCS.roster;
   if (IT.target === undefined || !chars.some(c => c.id === IT.target)) IT.target = chars[0] ? chars[0].id : "";
-  row.innerHTML = `<span>Give items to</span><select id="itTarget" aria-label="Character">${chars.length ? chars.map(c => `<option value="${esc(c.id)}">${esc(c.name)}</option>`).join("") : `<option value="">No saved characters yet</option>`}</select><span>Loot for</span><select id="itCamp" class="campSelect" aria-label="Campaign"></select>`;
+  row.innerHTML = `${chars.length ? "" : `<span class="hint" style="flex-basis:100%;margin:0">No characters to give items to yet. <a href="#character">Make one on the Characters tab</a> and save it to My characters.</span>`}<span>Give items to</span><select id="itTarget" aria-label="Character">${chars.length ? chars.map(c => `<option value="${esc(c.id)}">${esc(c.name)}</option>`).join("") : `<option value="">No saved characters yet</option>`}</select><span>Loot for</span><select id="itCamp" class="campSelect" aria-label="Campaign"></select>`;
   $("#itTarget").value = IT.target || "";
   renderCampList();
 }
@@ -246,8 +246,11 @@ $("#itShop").addEventListener("click", async e => {
   const before = c ? JSON.stringify(c.coins || {}) : ""; itBuy({ ...x, gp: shopPrice(s, x) });
   if (c && JSON.stringify(c.coins || {}) !== before) { x.qty--; shopSave(); shopRender(); }
 });
+/* Phones fold the Items filters behind a Filters button, as the Spells tab does. */
+function itFiltersSync() { const b = document.getElementById("itFiltersBtn"); if (!b) return; const n = ["itGroup", "itMType", "itAtt", "itMax"].filter(id => (document.getElementById(id) || {}).value).length + document.querySelectorAll("#itRar .chip.on").length, open = $("#itForm").classList.contains("filters-open"); b.textContent = `${open ? "▴" : "▾"} Filters${n ? ` · ${n} on` : ""}`; b.setAttribute("aria-expanded", String(open)); }
+$("#itFiltersBtn").addEventListener("click", () => { $("#itForm").classList.toggle("filters-open"); itFiltersSync(); });
 function renderItems() {
-  itLoad(); renderItTargets();
+  itLoad(); renderItTargets(); itFiltersSync();
   $("#itShopBtn").hidden = !!(window.Portal && Portal.views && !Portal.views.includes("world"));
   $("#itGearF").classList.toggle("hidden", IT.mode === "magic" || IT.mode === "custom");
   $("#itMagicF").classList.toggle("hidden", IT.mode === "gear");

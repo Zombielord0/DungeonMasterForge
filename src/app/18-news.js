@@ -2,6 +2,12 @@
    When a change ships, add an entry to the top of NEWS with a new id, in plain words for players and DMs. */
 
 const NEWS = [
+  { id: "2026-11-18-polish", date: "2026-11-18", title: "Tidier Adventure, Characters and Items tabs", items: [
+    "On phones, pressing Forge now takes you straight to your new adventure or character, instead of leaving it below the form.",
+    "On laptops, the Forge button stays in view at the bottom of the left-hand panel, and the header shrinks to a slim bar as you scroll down (it comes back at the top).",
+    "The character sheet has one main button, ☆ Save to My characters, with the other actions beside it and Discard at the end. “Copy sheet as text” moved onto the sheet.",
+    "On phones, the Items filters fold behind a Filters button, so the item list starts near the top. Buttons on phones are a little bigger for fingers.",
+    "Smaller touches: an easier-to-read heading on the Adventure tab, sheet sections that use the full width, level tags that don't break across lines, and new icons on the main buttons."] },
   { id: "2026-11-18-region-builder", date: "2026-11-18", title: "Make regions with their maps", go: "world", items: [
     "On the World tab, press 🛠 World builder and choose 🗺️ Region. Give it your own name (or leave it empty for a made-up one), pick Coast, Inland or Island and the kind of land, and see the map as you go. Press 🎲 Roll again until you like it.",
     "Rename the mountains, forests, rivers, seas and lakes in the boxes under the map before you save it.",

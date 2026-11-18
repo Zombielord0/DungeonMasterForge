@@ -269,7 +269,7 @@ function readGenSettings() {
 function runGenerate() {
   const s = readGenSettings();
   currentGen = generateAdventure(s);
-  drawGen();
+  drawGen(); showResult("#genOut");
 }
 function drawGen() { $("#genOut").innerHTML = renderAdventure(currentGen, { rerolls: true, saveBtn: true }); }
 function onGenClick(e) {

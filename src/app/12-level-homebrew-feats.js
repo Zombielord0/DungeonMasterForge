@@ -1,10 +1,11 @@
 /* 12-level-homebrew-feats.js: Level up and subclass choice, the Homebrew tab, and the Feats tab. */
 
 /* ======================= Level up & subclass choice ======================= */
-function lvBarHTML(c) {
+/* plain: no orange button (the Characters tab's sheet keeps one main action, Save to My characters) */
+function lvBarHTML(c, plain) {
   const id = esc(c.id), max = c.level >= 20, sl = subclassLevel(edOf(c), c.cls);
   return `<div class="lv-bar">
-    <button class="btn primary sm" type="button" data-lvup="${id}" ${max || totalLv(c) >= 20 ? "disabled" : ""}>${max || totalLv(c) >= 20 ? "Level 20 (max)" : (c.multi || []).length ? `⬆ ${esc(c.cls)} ${c.level + 1}` : `⬆ Level up to ${c.level + 1}`}</button>
+    <button class="btn ${plain ? "" : "primary "}sm" type="button" data-lvup="${id}" ${max || totalLv(c) >= 20 ? "disabled" : ""}>${max || totalLv(c) >= 20 ? "Level 20 (max)" : (c.multi || []).length ? `⬆ ${esc(c.cls)} ${c.level + 1}` : `⬆ Level up to ${c.level + 1}`}</button>
     ${totalLv(c) < 20 ? `<button class="btn sm" type="button" data-mcup="${id}" title="Take a level in another class (multiclassing)">＋ Another class</button>` : ""}
     ${(() => { const nx = xpNext(c), xp = +c.xp || 0; return nx === null ? "" : xp >= nx ? `<span class="tag gold lv-ready">✨ Enough XP for level ${totalLv(c) + 1}</span>` : xp ? `<span class="muted" style="font-size:13px">XP ${xp.toLocaleString()} / ${nx.toLocaleString()}</span>` : ""; })()}
     ${(c.multi || []).filter(x => +x.lv > 0).map(x => `<span class="tag">${esc(x.cls)} ${x.lv}${x.subclass ? ` · ${esc(x.subclass)}` : ""}<button type="button" class="icon-btn" data-mcdown="${id}|${esc(x.cls)}" title="Remove a ${esc(x.cls)} level" aria-label="Remove a ${esc(x.cls)} level">−</button></span>`).join("")}
