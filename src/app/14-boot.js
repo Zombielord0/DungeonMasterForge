@@ -21,7 +21,7 @@ document.getElementById("hdrToggle").addEventListener("click", () => {
   try { localStorage.setItem("dmforge.hdrMini", mini ? "1" : "0"); } catch (e) {}
   hdrSync();
 });
-hdrPhone.addEventListener("change", () => { document.documentElement.classList.remove("hdr-away", "hdr-full"); hdrSync(); });
+hdrPhone.addEventListener("change", () => { document.documentElement.classList.remove("hdr-away", "hdr-full", "hdr-auto"); document.querySelector("header").style.marginBottom = ""; hdrPinned = false; hdrSync(); }); /* hdr-auto is the laptop's slim header: never on phones */
 /* Phones: the header slides away when scrolling down past its height or while typing in a box, and comes back after
    scrolling up 24px or more, or near the top of the page. */
 /* Laptops and tablets: the header shrinks to one slim bar (the "Hide tabs" look) after scrolling down, and comes back near the top.

@@ -57,6 +57,18 @@ const EMOJI = /\p{Extended_Pictographic}/u;
     await ctx.close();
   }
 
+  // ---- a laptop window narrowed to phone width while the header is slim
+  {
+    const { ctx, p } = await open(1440, 900);
+    await p.goto(URL + "#generate"); await p.waitForTimeout(400);
+    await p.click("#genForm button[type=submit]"); await p.waitForTimeout(500);
+    await p.evaluate(() => scrollTo(0, 700)); await p.waitForTimeout(300);
+    await p.setViewportSize({ width: 375, height: 812 }); await p.waitForTimeout(300);
+    const st = await p.evaluate(() => ({ auto: document.documentElement.classList.contains("hdr-auto"), margin: document.querySelector("header").style.marginBottom }));
+    check("narrowing to phone width while the header is slim leaves no gap", !st.auto && !st.margin, JSON.stringify(st));
+    await ctx.close();
+  }
+
   // ---- phone, 375 x 812
   {
     const { ctx, p } = await open(375, 812, true);
@@ -81,6 +93,10 @@ const EMOJI = /\p{Extended_Pictographic}/u;
     await p.click("#itFiltersBtn"); await p.waitForTimeout(150);
     check("phone: the Filters button opens them", await p.evaluate(() => !!document.querySelector("#itGroup").offsetParent && document.querySelector("#itFiltersBtn").getAttribute("aria-expanded") === "true"));
     check("phone: search stays visible", await p.evaluate(() => !!document.querySelector("#itQ, #itForm input[type=search], #itForm input[type=text]").offsetParent));
+    await p.click('#itForm label.opt:has(input[name=itMode][value=custom])'); await p.waitForTimeout(150);
+    check("phone: Show: Mine counts as a filter that's on", await p.evaluate(() => /1 on/.test(document.querySelector("#itFiltersBtn").textContent)), await p.evaluate(() => document.querySelector("#itFiltersBtn").textContent));
+    await p.click("#itReset"); await p.waitForTimeout(150);
+    check("phone: Clear filters goes back to Show: All", await p.evaluate(() => IT.mode === "all" && document.querySelector("input[name=itMode][value=all]").checked && !/on/.test(document.querySelector("#itFiltersBtn").textContent)));
     await p.click("#itList .sp-head"); await p.waitForTimeout(250);
     const small2 = await p.evaluate(() => [...document.querySelectorAll("#itList .sp-detail button")].filter(b => b.offsetParent).map(b => ({ t: b.textContent.trim().slice(0, 20), h: Math.round(b.getBoundingClientRect().height) })).filter(b => b.h < 44));
     check("phone: item card buttons are at least 44px tall", !small2.length, JSON.stringify(small2));

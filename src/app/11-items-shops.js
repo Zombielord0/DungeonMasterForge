@@ -247,7 +247,7 @@ $("#itShop").addEventListener("click", async e => {
   if (c && JSON.stringify(c.coins || {}) !== before) { x.qty--; shopSave(); shopRender(); }
 });
 /* Phones fold the Items filters behind a Filters button, as the Spells tab does. */
-function itFiltersSync() { const b = document.getElementById("itFiltersBtn"); if (!b) return; const n = ["itGroup", "itMType", "itAtt", "itMax"].filter(id => (document.getElementById(id) || {}).value).length + document.querySelectorAll("#itRar .chip.on").length, open = $("#itForm").classList.contains("filters-open"); b.textContent = `${open ? "▴" : "▾"} Filters${n ? ` · ${n} on` : ""}`; b.setAttribute("aria-expanded", String(open)); }
+function itFiltersSync() { const b = document.getElementById("itFiltersBtn"); if (!b) return; const n = ["itGroup", "itMType", "itAtt", "itMax"].filter(id => (document.getElementById(id) || {}).value).length + document.querySelectorAll("#itRar .chip.on").length + (IT.mode && IT.mode !== "all" ? 1 : 0), open = $("#itForm").classList.contains("filters-open"); b.textContent = `${open ? "▴" : "▾"} Filters${n ? ` · ${n} on` : ""}`; b.setAttribute("aria-expanded", String(open)); }
 $("#itFiltersBtn").addEventListener("click", () => { $("#itForm").classList.toggle("filters-open"); itFiltersSync(); });
 function renderItems() {
   itLoad(); renderItTargets(); itFiltersSync();
@@ -582,7 +582,8 @@ function ciSave(card) {
   $("#itRar").addEventListener("click", e => { const c = e.target.closest(".chip"); if (!c) return; const r = +c.dataset.r; IT.rar.has(r) ? IT.rar.delete(r) : IT.rar.add(r); c.classList.toggle("on"); renderItems(); });
   $("#itReset").addEventListener("click", () => {
     ["#itQ", "#itGroup", "#itMType", "#itAtt", "#itMax"].forEach(id => $(id).value = ""); $("#itInDesc").checked = false; $("#itSort").value = "name";
-    IT.rar.clear(); $$("#itRar .chip").forEach(c => c.classList.remove("on")); renderItems();
+    IT.rar.clear(); $$("#itRar .chip").forEach(c => c.classList.remove("on"));
+    IT.mode = "all"; const all = $("input[name=itMode][value=all]"); if (all) all.checked = true; renderItems();
   });
   $("#itNew").addEventListener("click", () => ciOpen(ciNew()));
   $("#itRandom").addEventListener("click", () => ciOpen(ciRandom(IT.randRar ?? "")));
