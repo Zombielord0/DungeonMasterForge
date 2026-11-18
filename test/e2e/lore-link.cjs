@@ -129,10 +129,36 @@ const server = http.createServer((req, res) => {
   await p.evaluate(() => { currentPC = pcEnsure(generateCharacter({ seed: "FOLD1", name: "Folda", ed: "2024", level: 3 })); keepPC(); });
   await p.goto(URL + "#roster"); await p.waitForFunction(() => document.querySelector("#rosterMain .sec.foldable"));
   check("character sheet sections fold, and start open", await p.locator('#rosterMain .sec.foldable[data-foldk="sheet|Skills"]').count() === 1 && await p.evaluate(() => ![...document.querySelectorAll("#rosterMain .sec.foldable")].some(s => s.classList.contains("folded"))));
+  const firstSec = await p.evaluate(() => document.querySelector("#rosterMain .sec.foldable").dataset.foldk);
+  check("the sheet has a Fold all switch in its first section", await p.locator("#rosterMain .fold-all").count() === 1 && await p.evaluate(() => document.querySelector("#rosterMain .fold-all").closest(".sec") === document.querySelector("#rosterMain .sec.foldable")), firstSec);
+  await p.click('#rosterMain .fold-all[data-foldall="1"]');
+  check("Fold all folds every section of the sheet", await p.evaluate(() => [...document.querySelectorAll("#rosterMain .sec.foldable")].every(s => s.classList.contains("folded"))));
+  check("the sheet switch then says Unfold all", (await p.getAttribute("#rosterMain .fold-all", "aria-label")) === "Unfold all");
+  await p.click('#rosterMain .fold-all[data-foldall="0"]');
+  check("Unfold all opens every section again", await p.evaluate(() => [...document.querySelectorAll("#rosterMain .sec.foldable")].every(s => !s.classList.contains("folded"))));
+  await p.goto(URL + "#character"); await p.waitForTimeout(300);
+  await p.evaluate(() => { currentPC = pcEnsure(generateCharacter({ seed: "FOLD2", name: "Foldo", ed: "2024", level: 3 })); $("#pcOut").innerHTML = sheetHTML(currentPC); });
+  await p.waitForTimeout(100);
+  check("the Characters tab sheet has the switch too", await p.locator("#pcOut .fold-all").count() === 1);
+  await p.goto(URL + "#roster"); await p.waitForFunction(() => document.querySelector("#rosterMain .sec.foldable"));
   await p.click("#sec-gear > .sec-h > .fold-btn");
   check("the Inventory section folds", await p.evaluate(() => document.getElementById("sec-gear").classList.contains("folded")));
   await p.evaluate(() => sheetJump("gear")); await p.waitForTimeout(200);
   check("jumping to a folded section opens it", await p.evaluate(() => !document.getElementById("sec-gear").classList.contains("folded")));
+  // phones: title bars don't overflow, and sheet titles aren't cut short ("S…" for Skills)
+  {
+    const pc = await browser.newContext({ viewport: { width: 360, height: 800 }, isMobile: true, hasTouch: true, serviceWorkers: "block" });
+    await pc.addInitScript(() => localStorage.setItem("dmforge.offline", "1"));
+    const q = await pc.newPage(); q.on("pageerror", e => errs.push(e.message));
+    const bad = sel => q.evaluate(s => [...document.querySelectorAll(s + " .sec-h")].filter(e => e.offsetHeight).map(e => { const h = e.querySelector("h3"); return { t: e.textContent.trim().slice(0, 25), over: e.scrollWidth > e.clientWidth + 1, cut: !!h && h.scrollWidth > h.clientWidth + 1 }; }).filter(x => x.over || (x.cut && s === "#rosterMain")), sel);
+    await q.goto(URL + "#items"); await q.waitForFunction(() => document.querySelector("#itList .sec.foldable"));
+    let b = await bad("#itList"); check("phone: item title bars fit", !b.length, JSON.stringify(b));
+    await q.goto(URL + "#character"); await q.waitForFunction(() => typeof generateCharacter === "function" && $("#storeBadge").textContent !== "Connecting…", null, { timeout: 15000 });
+    await q.evaluate(() => { currentPC = pcEnsure(generateCharacter({ seed: "FOLD3", name: "Fitz", ed: "2024", level: 3, cls: "Wizard" })); keepPC(); });
+    await q.goto(URL + "#roster"); await q.waitForFunction(() => document.querySelector("#rosterMain .sec.foldable"));
+    b = await bad("#rosterMain"); check("phone: sheet titles show in full and their bars fit", !b.length, JSON.stringify(b));
+    await pc.close();
+  }
   check("no page errors", !errs.length, errs.join(" | "));
   await browser.close(); server.close();
   console.log(fails ? `\n${fails} check(s) failed` : "\nAll checks passed");

@@ -5,7 +5,8 @@ const NEWS = [
   { id: "2026-11-18-start-folded", date: "2026-11-18", title: "Long lists start folded", items: [
     "Items, Spells and the Monster Manual now open with their groups folded, so you see a short list of group names instead of hundreds of rows. Press ▾ on a group to open it.",
     "Anything you open or fold is remembered on this device. Typing in a list's search box opens the groups so you can see what matches.",
-    "Character sheets still open fully, and you can fold their sections yourself."] },
+    "Character sheets still open fully. Their first section's title bar now has Fold all (and then Unfold all), so you can fold the whole sheet down to its section names in one press.",
+    "On phones, section titles on character sheets show in full again instead of being cut short."] },
   { id: "2026-11-18-fold-lore-links", date: "2026-11-18", title: "Fold long lists, and Lore fills your tabs", items: [
     "Long lists fold away: press ▾ at the right of a group's title bar (or click the bar) on Items, Spells, the Monster Manual and character sheets. Lists with several groups also have Fold all and Unfold all. Your choice is remembered on this device.",
     "Campaign Tracker → Lore: saving an entry as an Item adds it to Items → Your custom items, a Monster adds it to My monsters (with its numbers if the text has a stat block), and an Encounter adds it to the campaign's Encounters tab with the monsters its text names. Places already went to the World tab.",

@@ -1088,7 +1088,9 @@ nav a[data-view=journal]{--ic:url("data:image/svg+xml,%3Csvg xmlns='http://www.w
 .sec.folded>:not(.sec-h){display:none!important}
 .sec.folded>.sec-h{margin-bottom:0;border-bottom-color:transparent}
 .fold-all{flex:0 0 auto;height:24px;margin:-2px 0 -2px 6px;padding:0 9px;font:600 12px/1 Cinzel,serif;letter-spacing:.04em;color:var(--gold2);background:rgba(0,0,0,.3);border:1px solid rgba(227,154,59,.35);border-radius:5px;cursor:pointer}
-.sec.foldable>.sec-h h3{min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.sec.foldable>.sec-h>*{min-width:0}
+.sec.foldable>.sec-h h3{flex:0 0 auto;max-width:calc(100% - 40px)} /* sheets: the title keeps its width and the hints in the bar give way; only a title too long for the bar wraps */
+:is(#itList,#spList,#bsList) .sec.foldable>.sec-h h3{flex:0 0 auto;max-width:calc(100% - 104px);white-space:nowrap;overflow:hidden;text-overflow:ellipsis} /* lists: one line, leaving room for the count and Fold all */
 @media (max-width:600px){.fold-all-w{display:none}.fold-all{padding:0 7px}}
 .fold-all:hover,.fold-all:focus-visible{background:rgba(0,0,0,.5);border-color:var(--gold);outline:none}
 @media (prefers-reduced-motion:reduce){.fold-btn{transition:none}}
