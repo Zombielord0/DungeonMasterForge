@@ -66,6 +66,10 @@ const bg = p => p.evaluate(() => { const b = window.__forgeBg; return { scene: b
       check("turning the phone sideways switches to the wide picture and its torches", b.scene === "wide" && img.includes("/assets/backdrop-wide.") && near(b.torches, expected(PICS.wide, 844, 390)), JSON.stringify({ scene: b.scene, got: b.torches })); }
     await size(p, 1366, 850);
 
+    // on phones 100vh (toolbar hidden) is taller than innerHeight (toolbar showing): the picture's box must be the size the
+    // torch maths uses, set in pixels, or the flames drift off the painted torches as the toolbar comes and goes
+    const box = await p.evaluate(() => { const c = document.getElementById("bgScene"), r = c.getBoundingClientRect(); return { style: [c.style.width, c.style.height], rect: [r.width, r.height], W: __forgeBg.W, H: __forgeBg.H }; });
+    check("the picture's box is exactly the size the flames are placed in", box.style[0] === box.W + "px" && box.style[1] === box.H + "px" && box.rect[0] === box.W && box.rect[1] === box.H, JSON.stringify(box));
     const b = await bg(p);
     check("the old drawn corridor is gone", !["drips", "dripSources", "cobwebs", "floorStones"].some(k => b.keys.includes(k)), b.keys.join(","));
     const alpha = await p.evaluate(() => { const c = document.getElementById("bgScene"), d = c.width / innerWidth; return c.getContext("2d").getImageData(Math.round(innerWidth / 2 * d), Math.round(innerHeight * .6 * d), 1, 1).data[3]; });

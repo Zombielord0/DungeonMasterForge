@@ -90,6 +90,9 @@
   function resize() {
     W = innerWidth; H = innerHeight; DPR = COARSE ? 1 : Math.min(1.5, window.devicePixelRatio || 1); /* phones draw at normal resolution */
     cv.width = W * DPR; cv.height = H * DPR;
+    /* the box (and so the CSS picture) is exactly W x H: on phones 100vh is taller than innerHeight while the toolbar
+       shows, which would put the flames beside the painted torches */
+    cv.style.width = W + "px"; cv.style.height = H + "px";
     scene = sceneName();
     const pic = BACKDROPS[scene], { s, ox, oy } = coverBox(pic, W, H);
     torches = pic.torches.map(t => ({ x: ox + t.x * pic.w * s, y: oy + t.y * pic.h * s, size: .034 * pic.h * s }))
