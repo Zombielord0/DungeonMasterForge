@@ -215,7 +215,7 @@ Playwright and Chromium are pre-installed in cloud sessions. To test offline mod
     - **one Spells box** on both sheets (DC, slot counters and prepared spells together; Attacks is just attacks);
     - **multiclass casters prepare their caster class's spells** (`pcCastClasses`). Notes: `docs/features/history.md`, item 20.
   - **PR 13:** a photo-real corridor background with live flames on its torches, and a tall picture for phones (`npm run test:backdrop`).
-- **Branch `claude/brave-dirac-2mvyiu` (2026-11-18):** saving a Lore Item, Monster or Encounter adds it to Items → Custom, My monsters or the Encounters tab (`loreLink`; `docs/features/import.md`), and long lists and sheet sections fold (`19-fold.js`; `docs/features/layout.md`).
+- **PR 14** (branch `claude/brave-dirac-2mvyiu`), merged to `main` at the owner's request on 2026-11-18: saving a Lore Item, Monster or Encounter adds it to Items → Custom, My monsters or the Encounters tab (`loreLink`; `docs/features/import.md`), and long lists and sheet sections fold (`19-fold.js`; `docs/features/layout.md`).
 - **Next, as the owner said:** make the main screen look more realistic (panels, buttons).
 - **Work branch:** cloud chats use their own `claude/…` branch. After a merge, start the next piece from the latest `main`.
 - **The owner's order of import work:**
@@ -229,6 +229,7 @@ Playwright and Chromium are pre-installed in cloud sessions. To test offline mod
   - A PDF's portrait isn't imported.
   - Deleting a whole campaign leaves its NPCs' uploaded pictures in IndexedDB.
   - The tag-based sorting of MythWeaver "generic" lore is a best guess.
+  - **Lore links:** once a Lore-made monster has stats, saving its Lore entry still replaces its description (items have a `loreOff` guard; monsters don't). Deleting a made item, monster or encounter and saving the Lore entry again makes it again.
   - **Shops:**
     - an item bought at a marked-up price shows the list price as its inventory value;
     - a markup change made within ⅓ second of closing the shop isn't saved;
