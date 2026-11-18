@@ -19,6 +19,6 @@ http.createServer(async (req, res) => {
     res.writeHead(r.status, { "content-type": "application/json" }); res.end(await r.text()); return;
   }
   const file = url.pathname === "/portal.js" ? bundle : "public" + (url.pathname === "/" ? "/index.html" : url.pathname);
-  try { const b = await readFile(file); const ext = file.slice(file.lastIndexOf(".") + 1), types = { js: "text/javascript", png: "image/png", svg: "image/svg+xml", webmanifest: "application/manifest+json", json: "application/json", css: "text/css", mjs: "text/javascript", pdf: "application/pdf" }; res.writeHead(200, { "content-type": types[ext] || "text/html", ...(url.pathname === "/sw.js" ? { "cache-control": "no-cache" } : {}) }); res.end(b); }
+  try { const b = await readFile(file); const ext = file.slice(file.lastIndexOf(".") + 1), types = { js: "text/javascript", png: "image/png", webp: "image/webp", svg: "image/svg+xml", webmanifest: "application/manifest+json", json: "application/json", css: "text/css", mjs: "text/javascript", pdf: "application/pdf" }; res.writeHead(200, { "content-type": types[ext] || "text/html", ...(url.pathname === "/sw.js" ? { "cache-control": "no-cache" } : {}) }); res.end(b); }
   catch { res.writeHead(404); res.end(); }
 }).listen(+port, () => console.log(`Forge test copy running: open http://localhost:${port} (stop with Ctrl+C)`));
