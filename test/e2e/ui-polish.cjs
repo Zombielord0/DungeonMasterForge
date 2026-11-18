@@ -87,7 +87,7 @@ const EMOJI = /\p{Extended_Pictographic}/u;
     const over = await p.evaluate(() => { const card = document.querySelector("#pcOut .pc-actions").closest(".card").getBoundingClientRect(); return [...document.querySelectorAll("#pcOut .pc-actions > *, #pcOut .pc-actions .pc-camp > *")].filter(x => x.getBoundingClientRect().right > card.right + 1).map(x => x.textContent.trim().slice(0, 20) || x.tagName); });
     check("phone: the sheet's actions stay inside the card", !over.length, JSON.stringify(over));
     await p.goto(URL + "#items"); await p.waitForTimeout(400);
-    const first = await p.evaluate(() => document.querySelector("#itList .sp-head").getBoundingClientRect().top + scrollY);
+    const first = await p.evaluate(() => [...document.querySelectorAll("#itList .sec-h, #itList .sp-head")].find(e => e.offsetHeight).getBoundingClientRect().top + scrollY); /* groups start folded (2026-11-18): the first visible bar or row */
     check("phone: the item list starts within the first screen", first < 812, `${Math.round(first)}px`);
     check("phone: filters are folded away", await p.evaluate(() => !document.querySelector("#itGroup").offsetParent));
     await p.click("#itFiltersBtn"); await p.waitForTimeout(150);
@@ -97,6 +97,7 @@ const EMOJI = /\p{Extended_Pictographic}/u;
     check("phone: Show: Mine counts as a filter that's on", await p.evaluate(() => /1 on/.test(document.querySelector("#itFiltersBtn").textContent)), await p.evaluate(() => document.querySelector("#itFiltersBtn").textContent));
     await p.click("#itReset"); await p.waitForTimeout(150);
     check("phone: Clear filters goes back to Show: All", await p.evaluate(() => IT.mode === "all" && document.querySelector("input[name=itMode][value=all]").checked && !/on/.test(document.querySelector("#itFiltersBtn").textContent)));
+    await p.click("#itList .fold-btn"); await p.waitForTimeout(100); /* groups start folded: open the first */
     await p.click("#itList .sp-head"); await p.waitForTimeout(250);
     const small2 = await p.evaluate(() => [...document.querySelectorAll("#itList .sp-detail button")].filter(b => b.offsetParent).map(b => ({ t: b.textContent.trim().slice(0, 20), h: Math.round(b.getBoundingClientRect().height) })).filter(b => b.h < 44));
     check("phone: item card buttons are at least 44px tall", !small2.length, JSON.stringify(small2));

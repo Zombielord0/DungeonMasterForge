@@ -109,7 +109,7 @@ Live site: https://dungeonmasterforge.netlify.app (Netlify; production branch `m
 | `16-character-import.js` | Companion App, PDF and Fifth Edition Character Sheet (XML) import, the Import character window |
 | `17-mythweaver.js` | MythWeaver import and the Import campaign window |
 | `18-news.js` | What's new (`NEWS`) and Install app |
-| `19-fold.js` | Folding list groups and sheet sections (▾ on a `.sec-h`, Fold all), remembered in `dmforge.fold.v1` |
+| `19-fold.js` | Folding list groups and sheet sections (▾ on a `.sec-h`, Fold all), remembered in `dmforge.fold.v2`. Lists start folded; sheets start open |
 
 To find a function, search `src/app/` (for example `grep -n "function pcLevelTo" src/app/*.js`).
 
@@ -216,6 +216,7 @@ Playwright and Chromium are pre-installed in cloud sessions. To test offline mod
     - **multiclass casters prepare their caster class's spells** (`pcCastClasses`). Notes: `docs/features/history.md`, item 20.
   - **PR 13:** a photo-real corridor background with live flames on its torches, and a tall picture for phones (`npm run test:backdrop`).
 - **PR 14** (branch `claude/brave-dirac-2mvyiu`), merged to `main` at the owner's request on 2026-11-18: saving a Lore Item, Monster or Encounter adds it to Items → Custom, My monsters or the Encounters tab (`loreLink`; `docs/features/import.md`), and long lists and sheet sections fold (`19-fold.js`; `docs/features/layout.md`).
+- **Branch `claude/brave-dirac-2mvyiu`, after PR 14:** Items, Spells and Monster Manual groups start folded (owner's choice: lists only, not sheets); searching opens them. Tests that click rows in those lists open a group first.
 - **Next, as the owner said:** make the main screen look more realistic (panels, buttons).
 - **Work branch:** cloud chats use their own `claude/…` branch. After a merge, start the next piece from the latest `main`.
 - **The owner's order of import work:**

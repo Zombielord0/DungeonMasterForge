@@ -91,6 +91,11 @@ const server = http.createServer((req, res) => {
   const grp = '#itList .sec.foldable[data-foldk="it|Your custom items"]';
   check("item groups get a fold button", await p.locator(grp + " > .sec-h > .fold-btn").count() === 1);
   check("lists with several groups get Fold all", await p.locator("#itList > .sec.foldable:first-child > .sec-h > .fold-all").count() === 1);
+  check("list groups start folded", await p.evaluate(() => [...document.querySelectorAll("#itList > .sec.foldable")].every(s => s.classList.contains("folded"))));
+  await p.click(grp + " > .sec-h > .fold-btn");
+  check("the fold button opens a group", await p.evaluate(g => !document.querySelector(g).classList.contains("folded") && document.querySelector(g).children[1].offsetHeight > 0, grp));
+  await p.reload(); await p.waitForFunction(() => document.querySelector("#itList .sec.foldable"));
+  check("an opened group stays open after a reload", await p.evaluate(g => !document.querySelector(g).classList.contains("folded"), grp));
   await p.click(grp + " > .sec-h > .fold-btn");
   check("the fold button hides the group's rows", await p.evaluate(g => { const s = document.querySelector(g); return s.classList.contains("folded") && [...s.children].slice(1).every(e => !e.offsetHeight); }, grp));
   check("the fold button says it's folded", await p.getAttribute(grp + " > .sec-h > .fold-btn", "aria-expanded") === "false");
@@ -106,14 +111,18 @@ const server = http.createServer((req, res) => {
   await p.click('#itList .fold-all[data-foldall="0"]');
   check("Unfold all opens them again", await p.evaluate(() => [...document.querySelectorAll("#itList > .sec.foldable")].every(s => !s.classList.contains("folded"))));
   await p.goto(URL + "#spells"); await p.waitForFunction(() => document.querySelector("#spList .sec.foldable"));
-  check("spell levels fold too", await p.locator("#spList .sec.foldable .fold-btn").count() >= 9);
+  check("spell levels fold too, and start folded", await p.locator("#spList .sec.foldable .fold-btn").count() >= 9 && await p.evaluate(() => [...document.querySelectorAll("#spList > .sec.foldable")].every(s => s.classList.contains("folded"))));
+  await p.fill("#spQ", "fireball"); await p.waitForTimeout(400);
+  check("searching shows the matching groups open", await p.evaluate(() => { const g = [...document.querySelectorAll("#spList > .sec.foldable")]; return g.length > 0 && g.every(s => !s.classList.contains("folded")) && !!document.querySelector('#spList .sp-row'); }));
+  await p.fill("#spQ", ""); await p.waitForTimeout(400);
+  check("clearing the search folds them again", await p.evaluate(() => [...document.querySelectorAll("#spList > .sec.foldable")].every(s => s.classList.contains("folded"))));
   await p.goto(URL + "#monsters"); await p.waitForTimeout(300); await p.evaluate(() => { const r = document.querySelector('input[name="monMode"][value="manual"]') || document.querySelector('input[name="monMode"]:not([value="build"])'); if (r) { r.checked = true; r.dispatchEvent(new Event("change", { bubbles: true })); } if (typeof renderBestiary === "function") renderBestiary(); }); await p.waitForTimeout(300);
   check("Monster Manual challenge groups fold too", await p.locator("#bsList .sec.foldable .fold-btn").count() > 5);
   // My Characters: a header button keeps its job, and the jump bar opens a folded section
   await p.goto(URL + "#character"); await p.waitForFunction(() => typeof generateCharacter === "function" && $("#storeBadge").textContent !== "Connecting…", null, { timeout: 15000 });
   await p.evaluate(() => { currentPC = pcEnsure(generateCharacter({ seed: "FOLD1", name: "Folda", ed: "2024", level: 3 })); keepPC(); });
   await p.goto(URL + "#roster"); await p.waitForFunction(() => document.querySelector("#rosterMain .sec.foldable"));
-  check("character sheet sections fold", await p.locator('#rosterMain .sec.foldable[data-foldk="sheet|Skills"]').count() === 1);
+  check("character sheet sections fold, and start open", await p.locator('#rosterMain .sec.foldable[data-foldk="sheet|Skills"]').count() === 1 && await p.evaluate(() => ![...document.querySelectorAll("#rosterMain .sec.foldable")].some(s => s.classList.contains("folded"))));
   await p.click("#sec-gear > .sec-h > .fold-btn");
   check("the Inventory section folds", await p.evaluate(() => document.getElementById("sec-gear").classList.contains("folded")));
   await p.evaluate(() => sheetJump("gear")); await p.waitForTimeout(200);
