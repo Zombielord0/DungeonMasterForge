@@ -4,6 +4,9 @@
 //   src/app.css        the styling                              -> public/assets/app.<fingerprint>.css
 //   src/app/*.js       the app's code, joined in file order     -> public/assets/app.<fingerprint>.js
 //   data/*.json        built-in spells, monsters and items      -> public/assets/<name>.<fingerprint>.js
+//   src/backdrop/corridor-<name>.webp  the background pictures  -> public/assets/backdrop-<name>.<fingerprint>.webp,
+//                      named in the styling as /assets/backdrop-<name>.webp (left out of the offline install list, so a
+//                      phone only downloads the picture it shows; the service worker keeps it once it's been seen)
 //   src/sw.js          the offline helper (service worker)      -> public/sw.js, with the list of files above
 //
 // Why: the page is always fetched fresh so updates show at once, but the code and the rules data are large and change far
@@ -43,7 +46,7 @@ try { new vm.Script(code, { filename: "app.js" }); } catch (e) {
 
 // 2. the files with fingerprints
 const out = {}; // source name in src/index.html -> built name
-function emit(name, ext, text) {
+function emit(name, ext, text) { // text: a string, or a Buffer for pictures
   const file = `${name}.${fp(text)}.${ext}`;
   out[`/assets/${name}.${ext}`] = `/assets/${file}`;
   for (const f of readdirSync(at("public/assets/"))) if (f.startsWith(name + ".") && f.endsWith("." + ext) && f !== file) unlinkSync(at(`public/assets/${f}`));
@@ -57,12 +60,24 @@ for (const [name, key] of [["spells", "spellData"], ["monsters", "monsterData"],
   const lit = JSON.stringify(text).split(String.fromCharCode(0x2028)).join("\\u2028").split(String.fromCharCode(0x2029)).join("\\u2029");
   emit(name, "js", `/* Built from data/${name}.json by tools/build.mjs. */\n(window.DMDATA = window.DMDATA || {}).${key} = ${lit};\n`);
 }
-emit("app", "css", read("src/app.css"));
+// the background pictures first, so the styling can name them
+const pics = {};
+for (const f of readdirSync(at("src/backdrop/")).filter(f => /^corridor-[\w-]+\.webp$/.test(f)).sort()) {
+  const name = "backdrop-" + f.slice("corridor-".length, -".webp".length);
+  emit(name, "webp", readFileSync(at(`src/backdrop/${f}`)));
+  pics[`/assets/${name}.webp`] = out[`/assets/${name}.webp`];
+}
+let css = read("src/app.css");
+for (const [src, built] of Object.entries(pics)) css = css.split(src).join(built);
+const unknown = css.match(/\/assets\/backdrop-[\w-]+\.webp/);
+if (unknown) throw new Error(`src/app.css names ${unknown[0]}, but there's no src/backdrop/${unknown[0].slice(8).replace("backdrop-", "corridor-")}`);
+emit("app", "css", css);
 emit("app", "js", code);
 
 // 3. the page and the service worker point at them
 let html = read("src/index.html");
 for (const [src, built] of Object.entries(out)) {
+  if (src in pics) continue; // named in the styling, not the page
   if (!html.includes(`"${src}"`)) throw new Error(`src/index.html doesn't load ${src}`);
   html = html.split(`"${src}"`).join(`"${built}"`);
 }
@@ -70,7 +85,7 @@ for (const [src, built] of Object.entries(out)) {
 html = html.replace(/^(<!DOCTYPE html>\n?)/i, "$1<!-- Built by tools/build.mjs from src/index.html. Edit the files in src/, then run npm run build:app. -->\n");
 if (!/^<!DOCTYPE html>/i.test(html)) throw new Error("src/index.html must start with <!DOCTYPE html>");
 writeFileSync(at("public/index.html"), html);
-const files = Object.values(out);
+const files = Object.values(out).filter(f => !f.endsWith(".webp"));
 const sw = read("src/sw.js").replace(/^const ASSETS = .*$/m, `const ASSETS = ${JSON.stringify(files)};`)
   .replace(/^const CACHE = "([\w-]+?)";/m, (_, name) => `const CACHE = "${name}-${fp(files.join())}";`);
 writeFileSync(at("public/sw.js"), "/* Built by tools/build.mjs from src/sw.js. */\n" + sw);

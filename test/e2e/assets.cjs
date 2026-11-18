@@ -5,7 +5,7 @@
 const http = require("http"), fs = require("fs"), path = require("path"), crypto = require("crypto");
 const { chromium } = require("playwright");
 const ROOT = path.join(__dirname, "..", "..", "public"), DATA = path.join(__dirname, "..", "..", "data");
-const TYPES = { ".html": "text/html", ".js": "text/javascript", ".json": "application/json", ".css": "text/css", ".png": "image/png", ".webmanifest": "application/manifest+json" };
+const TYPES = { ".html": "text/html", ".js": "text/javascript", ".json": "application/json", ".css": "text/css", ".png": "image/png", ".webp": "image/webp", ".webmanifest": "application/manifest+json" };
 let fails = 0;
 const check = (name, ok, extra = "") => { console.log((ok ? "PASS " : "FAIL ") + name + (ok || !extra ? "" : "  -> " + extra)); if (!ok) fails++; };
 const hits = {};
@@ -42,7 +42,21 @@ const server = http.createServer((req, res) => {
   let pos = 0, inOrder = true;
   for (const f of srcFiles) { const i = js.indexOf(fs.readFileSync(path.join(SRC, "app", f), "utf8"), pos); if (i < 0) inOrder = false; else pos = i; }
   check(`app code: has every src/app file, in order (${srcFiles.length} files)`, !!js && inOrder);
-  check("app styling: matches src/app.css", !!css && css === fs.readFileSync(path.join(SRC, "app.css"), "utf8"));
+  // background pictures: src/backdrop/corridor-<name>.webp -> /assets/backdrop-<name>.<fingerprint>.webp, named in the styling
+  const pics = fs.readdirSync(path.join(SRC, "backdrop")).filter(f => f.endsWith(".webp"));
+  const built = fs.readdirSync(path.join(ROOT, "assets")).filter(f => /^backdrop-[\w-]+\.\w+\.webp$/.test(f));
+  check("there is a wide background picture", pics.includes("corridor-wide.webp"), pics.join(", "));
+  let srcCss = fs.readFileSync(path.join(SRC, "app.css"), "utf8");
+  for (const f of pics) {
+    const name = "backdrop-" + f.replace(/^corridor-/, "").replace(/\.webp$/, ""), b = built.find(x => x.startsWith(name + "."));
+    const bytes = fs.readFileSync(path.join(SRC, "backdrop", f)), out = b ? fs.readFileSync(path.join(ROOT, "assets", b)) : Buffer.alloc(0);
+    check(`${name}: built from src/backdrop/${f}, fingerprint matches its bytes`, !!b && out.equals(bytes) && b.includes("." + crypto.createHash("sha256").update(bytes).digest("hex").slice(0, 10) + "."), b || "missing");
+    if (b) srcCss = srcCss.split(`/assets/${name}.webp`).join(`/assets/${b}`);
+  }
+  check("app styling: matches src/app.css, with the pictures' built names", !!css && css === srcCss);
+  check("app styling: every picture it names is fingerprinted", !!css && !/\/assets\/backdrop-[\w-]+\.webp/.test(css));
+  check("the pictures aren't in the install list (phones only fetch the one they show)", !/\.webp/.test(sw));
+  const picUrl = built.find(x => x.startsWith("backdrop-wide.")) ? "/assets/" + built.find(x => x.startsWith("backdrop-wide.")) : "";
   for (const f of [appJs, appCss]) {
     const t = f ? fs.readFileSync(path.join(ROOT, f), "utf8") : "";
     check(`${f}: fingerprint matches its contents and the service worker keeps it`, !!f && f.includes("." + crypto.createHash("sha256").update(t).digest("hex").slice(0, 10) + ".") && sw.includes(`"${f}"`));
@@ -84,11 +98,15 @@ const server = http.createServer((req, res) => {
   check("a second visit doesn't download the code, styling or data", files.every(f => !hits[f]), JSON.stringify(hits));
   check("…but does fetch the page fresh, so updates show", hits["/"] >= 1, JSON.stringify(hits));
 
+  if (picUrl) await p.evaluate(u => fetch(u).then(r => r.blob()), picUrl);
+  await p.waitForTimeout(300);
   // with no connection the app still has its data
   await ctx.setOffline(true);
   await p.goto(URL + "#spells").catch(() => {});
   const off = await p.waitForFunction(() => typeof spLoad === "function", null, { timeout: 10000 }).then(() => p.evaluate(() => { spLoad(); bsLoad(); itLoad(); return SP.data["2024"].length > 100 && BS.data["2024"].length > 100 && IT.data["2024"].length > 100; })).catch(e => String(e));
   check("offline: spells, monsters and items still load", off === true, String(off));
+  const pic = picUrl ? await p.evaluate(u => fetch(u).then(r => r.ok && r.headers.get("content-type") === "image/webp").catch(e => String(e)), picUrl) : "no picture";
+  check("offline: the background picture comes from the saved copy", pic === true, String(pic));
   await ctx.setOffline(false);
 
   check("no page errors", errs.length === 0, errs.join(" | "));

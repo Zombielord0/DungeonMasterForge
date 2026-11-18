@@ -57,6 +57,8 @@ Live site: https://dungeonmasterforge.netlify.app (Netlify; production branch `m
 | `data/spells.json`, `monsters.json`, `items.json` | The built-in rules data (SRD 5.1 and 5.2). |
 | `tools/build.mjs` | Builds the page into `public/` (see "How the page is built"). |
 | `src/portal.js` | Sign-in, campaigns, shared characters, the Party tab, whispers, homebrew sync. esbuild bundles it into `public/portal.js`. |
+| `src/backdrop/` | The background pictures (`corridor-wide.webp`, `corridor-tall.webp`), fingerprinted by the build. See `docs/features/layout.md`. |
+| `tools/make-backdrop.py` | Shrinks a source picture into `src/backdrop/` (needs Pillow). |
 | `src/sw.js` | The offline helper (service worker); built into `public/sw.js` with the list of files to keep. |
 | `netlify/functions/api.mjs` → `netlify/lib/api.mjs` | Campaign API at `/api/*`. `handle(req, user, db)` holds all the routes. `netlify/lib/diff.mjs` writes the activity feed text. |
 | `netlify/database/migrations/` | Postgres tables, applied automatically on deploy: `campaigns`, `members`, `characters` (versioned jsonb), `activity`, `whispers`, `homebrew`, `campaign_shared` (the players' Journal and turn order) and `user_docs` (each account's own Tracker, World, NPCs, custom items and monsters). |
@@ -103,7 +105,7 @@ Live site: https://dungeonmasterforge.netlify.app (Netlify; production branch `m
 | `13d-choices.js` | Choices inside features and feats (`CHOICES`), the equipped-items list |
 | `13e-sheet.js` | The roster and the editable sheet (`renderRosterMain`), its events, older-save upgrades |
 | `14-boot.js` | The toolbar, `route()` (switching tabs) and start-up |
-| `15-torch.js` | The torchlit backdrop and header torches: at most 30 frames a second (20 and normal resolution on phones), header torches skipped while the header is away |
+| `15-torch.js` | Live flames on the background picture's torches (`BACKDROPS`), and the header torches: at most 30 frames a second (20 and normal resolution on phones), header torches skipped while the header is away |
 | `16-character-import.js` | Companion App and PDF import, the Import character window |
 | `17-mythweaver.js` | MythWeaver import and the Import campaign window |
 | `18-news.js` | What's new (`NEWS`) and Install app |
@@ -136,7 +138,7 @@ npm run build     # build the page and bundle the portal (what Netlify runs)
 npm run build:app # build the page only
 ```
 
-One check per feature (Playwright, any OS): `test:assets` (fingerprinted files, repeat visits, offline), `test:map`, `test:backup`, `test:tv`, `test:mapvis`, `test:mapio`, `test:shop`, `test:random`, `test:cards`, `test:mapenc`, `test:calendar`, `test:recap`, `test:sheet` (432 sheets vs the rules), `test:tokens`, `test:npcpic`, `test:hbspell`, `test:hbpend`, `test:import`, `test:layout`, `test:lore`, `test:mythweaver`, `test:campextras`, `test:npclib`, `test:world`, `test:setup` (builds the portal, port 8897), `test:sync` (the DM's data in their account, two devices, port 8896), `test:share` (the players' Journal, turn order on phones, shared rolls; port 8895), `test:hbclass` (homebrew classes), `test:atlas` (World and region maps), `test:polish` (the Adventure, Characters and Items tabs after the 2026-11-18 UI review), `test:cast` (spell bubbles and the spell window).
+One check per feature (Playwright, any OS): `test:assets` (fingerprinted files, repeat visits, offline), `test:map`, `test:backup`, `test:tv`, `test:mapvis`, `test:mapio`, `test:shop`, `test:random`, `test:cards`, `test:mapenc`, `test:calendar`, `test:recap`, `test:sheet` (432 sheets vs the rules), `test:tokens`, `test:npcpic`, `test:hbspell`, `test:hbpend`, `test:import`, `test:layout`, `test:lore`, `test:mythweaver`, `test:campextras`, `test:npclib`, `test:world`, `test:setup` (builds the portal, port 8897), `test:sync` (the DM's data in their account, two devices, port 8896), `test:share` (the players' Journal, turn order on phones, shared rolls; port 8895), `test:hbclass` (homebrew classes), `test:atlas` (World and region maps), `test:polish` (the Adventure, Characters and Items tabs after the 2026-11-18 UI review), `test:cast` (spell bubbles and the spell window), `test:backdrop` (the background pictures and their live torches).
 
 Playwright and Chromium are pre-installed in cloud sessions. To test offline mode (no sign-in screen), run `localStorage.setItem('dmforge.offline','1')` in an init script.
 
@@ -153,7 +155,7 @@ Playwright and Chromium are pre-installed in cloud sessions. To test offline mod
 | `docs/features/players-share.md` | What the DM shares with signed-in players: the Journal tab, turn order on phones (`📱 Show players`), shared rolls. |
 | `docs/features/homebrew-classes.md` | Homebrew classes: how they join `CLASS_DATA`, `classList(ed)`, the editor, and import of unknown classes. |
 | `docs/features/world-maps.md` | World and region maps: data (`place.atlas`, `W.atlas`, `place.found`), pins, the map view, import, the TV. |
-| `docs/features/layout.md` | Phone and laptop layout. |
+| `docs/features/layout.md` | Phone and laptop layout, and the background picture. |
 | `docs/features/accounts.md` | The DM setup screen, renaming a campaign, and **the DM's data saved to their account** (`Cloud`, `/api/me/docs`). |
 
 **Most important rules from those notes:**
@@ -187,7 +189,7 @@ Playwright and Chromium are pre-installed in cloud sessions. To test offline mod
 - **Signed in as a DM:** the Tracker campaigns, World, Your NPCs, custom items and My monsters are also saved privately to the account (`user_docs`, `Cloud`). The usual localStorage keys then hold that account's copy; the browser's own data waits in `dmforge.stash.v1` and comes back on signing out. `dmforge.sync.v1` tracks versions and unsent changes. See `docs/features/accounts.md`.
 - **Campaign saves are written 600 ms after a change** (`Store.save`). Tests that reload must wait for that first.
 
-## Where things stand (2026-11-17)
+## Where things stand (2026-11-18)
 
 - **PR #9** (all the 2026-11-16/17 work) was merged to `main` at the owner's request on 2026-11-17.
 - **Branch `ccr-b5259a07-6lu9sb`** (after PR #9): organization and speed work.
@@ -200,6 +202,8 @@ Playwright and Chromium are pre-installed in cloud sessions. To test offline mod
   - **The DM's Tracker, World, NPCs, custom items and monsters saved to their account** (`Cloud`, `/api/me/docs`, `npm run test:sync`).
   - Later the same day, in the same PR: the players' Journal, turn order on phones and shared rolls; homebrew classes; **World and region maps** (`06b-atlas.js`, `npm run test:atlas`).
   - The page went from 829 KB to about 14 KB compressed on repeat visits when nothing changed. The code (about 360 KB compressed) and the data (about 440 KB) are downloaded again only when they change.
+- **PRs 10 and 11** were merged to `main` (PR 11: shops in the World builder, the Region builder, UI polish, Fifth Edition Character Sheet import).
+- **Branch `claude/realistic-backdrop`** (PR 12): a photo-real corridor picture replaces the drawn background, with live flames on its torches; a tall picture for phones. The owner wants the main screen to look more realistic next (panels, buttons).
 - **The owner's order of import work:**
   1. Companion App import: done.
   2. Homebrew classes, for classes the Forge doesn't have, like Blood Hunter: **done** (2026-11-17). Imports with an unknown class make a homebrew class.

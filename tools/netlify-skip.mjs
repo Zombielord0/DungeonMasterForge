@@ -13,7 +13,7 @@ const SAFE = [
   /^\.claude\//,
   /\.md$/i,
   /^\.gitignore$/,
-  /^tools\/(test-all\.mjs|netlify-skip\.mjs|make-test-sheet\.py|convert-srd-monsters\.py)$/,
+  /^tools\/(test-all\.mjs|netlify-skip\.mjs|make-test-sheet\.py|make-backdrop\.py|convert-srd-monsters\.py)$/,
 ];
 
 const [from, to] = process.argv.length > 3 ? process.argv.slice(2, 4) : [process.env.CACHED_COMMIT_REF, process.env.COMMIT_REF];

@@ -36,3 +36,11 @@ From a review of the Adventure, Characters and Items tabs. Checks: `npm run test
 - `.grid2` uses `auto-fit`, so two sections share the full width. `.lvl` doesn't wrap. On touch screens, small buttons and chips are at least 44px.
 - The parchment rules for `#genOut>.card:first-child` skip `.empty`, so the empty Adventure card keeps light text.
 - Button icons: `.btn.ico` with `.ico-swords`, `.ico-hammer`, `.ico-plus`, `.ico-shop`, `.ico-dice` (CSS masks in the tabs' line style).
+
+## The background picture (2026-11-18)
+
+- **Design and plan:** `docs/superpowers/specs/2026-11-18-realistic-backdrop-design.md` and `docs/superpowers/plans/2026-11-18-realistic-backdrop.md`.
+- **The pictures** are in `src/backdrop/`: `corridor-wide.webp` (2560 × 1429, laptops, TVs and phones on their side) and `corridor-tall.webp` (1080 × 1935, phones held upright, `max-aspect-ratio: 3/4`). Both were made with the ManyMotions image connector. The build fingerprints them as `/assets/backdrop-wide|tall.<fingerprint>.webp` and rewrites their names in the styling. They aren't in the offline install list; the service worker keeps each one once it's been shown, so a phone never downloads the wide picture.
+- **`#bgScene`** shows the picture as a `50% 50% / cover` CSS background (dark `#06070e` until it arrives). The canvas on top is see-through and only draws live flames and a flickering glow on the picture's torches (`src/app/15-torch.js`). With reduced motion it draws nothing; the picture's own painted flames stay.
+- **Torch positions** are fractions of each picture's width and height, in `BACKDROPS` in `15-torch.js`, and the same numbers in `PICS` in `test/e2e/backdrop.cjs`. Torches that `cover` crops off-screen get no flame.
+- **To swap a picture:** run `python tools/make-backdrop.py <source> src/backdrop/corridor-wide.webp` (or `… corridor-tall.webp 1080` for the tall one), measure where the flame bases are, update `BACKDROPS` and `PICS`, then run `npm run test:backdrop` and look at it.
