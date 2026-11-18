@@ -105,6 +105,41 @@ const ZOOK = fs.readFileSync(path.join(FIX, "companion-zook.json"), "utf8");
   const junk = await p.evaluate(() => compImport({ foo: 1 }, "2014"));
   check("a file that isn't a character is refused", /isn't a 5e Companion App character/.test(junk.error || ""), JSON.stringify(junk.error));
 
+  // the Fifth Edition Character Sheet app's XML (2026-11-18); the fixture is an invented character
+  const FECS = fs.readFileSync(path.join(FIX, "fecs-sample.xml"), "utf8");
+  const fe = await p.evaluate(txt => {
+    if (typeof fecsImport !== "function") return { error: "no fecsImport" };
+    const d = fecsImport(txt, "2014"); if (d.error) return { error: d.error };
+    const { c } = importBuild(d), inv = d.extras.inv || [], q = n => (inv.find(i => new RegExp(n, "i").test(i.n)) || {}).qty;
+    return { name: c.name, cls: c.cls, lv: c.level, sub: c.subclass, multi: (c.multi || []).map(m => m.cls + " " + m.lv).join(), race: c.race, bg: c.bg || "", custom: JSON.stringify(d.report).includes("Custom"),
+      scores: AB.map(a => c.scores[a]).join(), skills: c.skills.filter(s => s.p).map(s => s.s), expert: d.opts.keepExpert, prep: d.extras.prepared.map(x => x.n), notes: d.extras.notes, dropped: d.report.dropped.join(" | "),
+      hbSpells: d.homebrew.filter(x => x.kind === "spell").length, gp: d.extras.coins.gp, water: q("holy water"), kegs: q("keg"), styles: d.extras.fightStyles, align: d.extras.align, src: d.src, hbBg: d.homebrew.some(x => x.kind === "background") };
+  }, FECS);
+  check("5e Character Sheet: reads the name, classes and levels", fe.name === "Wren Ashdown" && fe.cls === "Paladin" && fe.lv === 5 && fe.multi === "Bard 2", JSON.stringify(fe));
+  check("5e Character Sheet: matches the subclass and species", /Devotion/.test(fe.sub || "") && fe.race === "Tiefling", `${fe.sub} / ${fe.race}`);
+  check("5e Character Sheet: a Custom background stays a plain name (no rolled background, no homebrew), and says so", fe.bg === "Custom" && fe.custom && !fe.hbBg, fe.bg);
+  check("5e Character Sheet: keeps the file's scores", fe.scores === "16,10,14,8,12,16", fe.scores);
+  check("5e Character Sheet: skills, and expertise read from the file", ["Athletics", "Performance", "Persuasion"].every(s => (fe.skills || []).includes(s)) && (fe.expert || []).includes("Athletics"), JSON.stringify([fe.skills, fe.expert]));
+  check("5e Character Sheet: a misspelled spell is matched", (fe.prep || []).includes("Cure Wounds") && (fe.prep || []).includes("Bless") && !(fe.prep || []).includes("Thunderwave"), JSON.stringify(fe.prep));
+  check("5e Character Sheet: a non-spell goes to notes and the report, not homebrew", /Plus 1 To Smiting/.test(fe.notes || "") && /Plus 1 To Smiting/.test(fe.dropped || "") && fe.hbSpells === 0, JSON.stringify([fe.dropped, fe.hbSpells]));
+  check("5e Character Sheet: coins and counted gear (x5, 3x)", fe.gp === 120 && fe.water === 5 && fe.kegs === 3, JSON.stringify([fe.gp, fe.water, fe.kegs]));
+  check("5e Character Sheet: fighting style and alignment", (fe.styles || []).includes("Defense") && fe.align === "Chaotic Good", JSON.stringify([fe.styles, fe.align]));
+  const fe2 = await p.evaluate(txt => {
+    const bare = txt.replace(/<spellList>[\s\S]*?<\/spellList>/, "<spellList></spellList>").replace(/(<noteList>)([\s\S]*?)(<\/noteList>)/, (m, a, b, z) => { const P = b.split("⊠"); P[5] = ""; for (let i = 17; i < 22; i++) P[i] = ""; return a + P.join("⊠") + z; });
+    const d = fecsImport(bare, "2014"); if (d.error) return { error: d.error };
+    const bold = fecsImport(txt.replace("Wren Ashdown", "<b>Bold</b>".replace(/</g, "&lt;").replace(/>/g, "&gt;")), "2014"), built = importBuild(bold);
+    return { ok: !!importBuild(d).c, html: impSummaryHTML(bold, built) };
+  }, FECS);
+  check("5e Character Sheet: a file without spells, gear or coins still imports", fe2.ok, JSON.stringify(fe2.error));
+  check("5e Character Sheet: text from the file is shown as text", /&lt;b&gt;/.test(fe2.html || "") && !/<b>Bold/.test(fe2.html || ""));
+  const fe3 = await p.evaluate(async () => {
+    const read = async t => impCharRead(new File([t], "x.xml"), "2014");
+    const a = await read('<?xml version="1.0"?><notes/>'), b = await read("<character><classData>Paladin");
+    return [a.error || "", b.error || ""];
+  });
+  check("5e Character Sheet: an XML file that isn't a character is refused kindly", /Fifth Edition Character Sheet/.test(fe3[0]) && /Fifth Edition Character Sheet/.test(fe3[1]), JSON.stringify(fe3));
+  check("5e Character Sheet: the report names the app", fe.src === "Fifth Edition Character Sheet");
+
   const UI = path.join(__dirname, "char-import-ui.cjs"); // the dialog checks (added with the dialog)
   if (fs.existsSync(UI)) await require(UI)(p, { URL, check, FIX, errs, ctx });
   await require("./char-import-pdf.cjs")(p, { URL, check, FIX, errs, ctx });

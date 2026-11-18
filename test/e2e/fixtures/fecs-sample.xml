@@ -1,0 +1,21 @@
+<?xml version='1.0' encoding='UTF-8' standalone='yes' ?>
+<character>
+<version>1</version>
+<currentHealth>40</currentHealth>
+<maxHealth>52</maxHealth>
+<baseSpeed>30</baseSpeed>
+<speedMiscMod>0</speedMiscMod>
+<classData>Paladin⊡Oath of Devotion⊡5⊡1⊡0⊠Bard⊡⊡2⊡0⊡0⊟⊠Divine Smite⊟Resource⊡Res⊡0⊡0⊡0⊡2⊡0⊡0⊡-1⊡0⊟⊠⊟fighting style⊡Defense⊟⊟⊟Tiefling⊟Tiefling⊟Custom⊟0</classData>
+<weaponList>1⊠Longsword⊠5 feet⊠1101⊠0⊠0⊠0⊠0⊠0⊠true⊠true⊠1⊠1⊠8</weaponList>
+<abilityScores>16⊠10⊠14⊠8⊠12⊠16⊠false⊠false⊠false⊠false⊠true⊠true⊠0⊠0⊠0⊠0⊠0⊠0⊠6</abilityScores>
+<skillInfo>true⊠false⊠false⊠false⊠false⊠false⊠false⊠false⊠false⊠false⊠false⊠false⊠false⊠false⊠false⊠false⊠true⊠true⊠false⊠0⊠0⊠0⊠0⊠0⊠0⊠0⊠0⊠0⊠0⊠0⊠0⊠0⊠0⊠0⊠0⊠0⊠0⊠false⊠true⊠false⊠false⊠false⊠false⊠false⊠false⊠false⊠false⊠false⊠false⊠false⊠false⊠false⊠false⊠false⊠false⊠false⊠false⊠false⊠false⊠false⊠false⊠false⊠false⊠false⊠false⊠false⊠false⊠false⊠false⊠false⊠false⊠false⊠false⊠false⊠false⊠false⊠false⊠false⊠false⊠false⊠false⊠false⊠false⊠false⊠false⊠false⊠false⊠false⊠false⊠false⊠false⊠false⊠false⊠false⊠false</skillInfo>
+<spellList>v1.1⊠0⊡4⊡2⊡0⊡0⊡0⊡0⊡0⊡0⊡0⊡⊠x⊠x⊠x⊠0⊠5⊠false⊠0⊟Vicious Mockery⊟⊟⊟⊟⊟⊟true⊟0⊡1⊟Cure Wouds⊟⊟⊟⊟⊟⊟true⊟0⊡1⊟Bless⊟⊟⊟⊟⊟⊟true⊟0⊡1⊟Plus 1 To Smiting⊟⊟⊟⊟⊟⊟true⊟0⊡1⊟Thunderwave⊟⊟⊟⊟⊟⊟false⊟0</spellList>
+<noteList>Lay on Hands: a pool of healing.⊠Light Armor, Medium Armor, Heavy Armor, Shields⊠Simple Weapons, Martial Weapons⊠Lute⊠Common
+Infernal⊠chain mail
+longsword
+shield
+holy water x5
+3x kegs
+explorer's pack⊠Owes a favour to a river spirit.⊠Paladin 5, Bard 2⊠Tiefling⊠Custom⊠chaotic good⊠Hums while sharpening her blade.⊠Mercy⊠Her sister in Greywater⊠Too trusting⊠Wren Ashdown⊠Paladin 5, Bard 2⊠0⊠4⊠0⊠120⊠1⊠6500</noteList>
+<hitDiceList>2⊠10⊠5⊠5⊠8⊠2⊠2</hitDiceList>
+</character>

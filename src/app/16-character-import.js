@@ -240,6 +240,106 @@ function compImport(j, ed) {
   if (!main.subclass && main.lv >= subclassLevel(ed, main.cls)) D.report.differ.push(`No ${main.cls} subclass in the file: choose one on the sheet`);
   return D;
 }
+/* ======================= Fifth Edition Character Sheet (Walter Kammerer's app) =======================
+   Its export is XML; most fields are lists joined by ⊠ (then ⊡ and ⊟). Positions follow the open-source import5eChar
+   reader. Unknown spells aren't made into homebrew (the file has no spell text): they go to notes (owner, 2026-11-18). */
+const FECS_SRC = "Fifth Edition Character Sheet";
+const FECS_SKILLS = ["Athletics", "Acrobatics", "Sleight of Hand", "Stealth", "Arcana", "History", "Investigation", "Nature", "Religion", "Animal Handling", "Insight", "Medicine", "Perception", "Survival", "Deception", "Intimidation", "Performance", "Persuasion"];
+const FECS_X = /⊠|â\u008a /, FECS_D = /⊡|â\u008a¡/, FECS_M = /⊟|â\u008a\u009f/;
+/* "holy water x5", "3x kegs", "pogs 100x" -> "5 holy water", "3 kegs", "100 pogs" (the count form impGear reads) */
+function fecsQty(line) {
+  const s = String(line || "").trim(); let m;
+  if ((m = s.match(/^(.*?)\s*[x×]\s*(\d+)$/i)) && m[1]) return `${m[2]} ${m[1]}`;
+  if ((m = s.match(/^(\d+)\s*[x×]\s+(.+)$/i))) return `${m[1]} ${m[2]}`;
+  if ((m = s.match(/^(.*?)\s+(\d+)\s*[x×]$/i))) return `${m[2]} ${m[1]}`;
+  return s;
+}
+function fecsImport(text, ed) {
+  const bad = { error: "This file isn't a Fifth Edition Character Sheet character. In the app, export the character (or upload it to Google Drive) and choose its .xml file." };
+  let doc; try { doc = new DOMParser().parseFromString(String(text || ""), "application/xml"); } catch { return bad; }
+  if (!doc || doc.querySelector("parsererror") || !doc.documentElement || doc.documentElement.nodeName !== "character") return bad;
+  const tag = n => { const e = doc.documentElement.querySelector(":scope > " + n); return e ? e.textContent : ""; };
+  if (!tag("classData") || !tag("abilityScores")) return bad;
+  ed = ed === "2024" ? "2024" : "2014";
+  const D = { src: FECS_SRC, opts: {}, final: {}, extras: {}, homebrew: [], report: { matched: [], made: [], differ: [], dropped: [] }, check: {} }, notes = [];
+  const hb = x => { x.src = FECS_SRC; D.homebrew.push(x); };
+  const N = tag("noteList").split(FECS_X), note = i => String(N[i] || "").trim();
+  // classes: the first ⊟ piece of classData, ⊠ per class, ⊡ = class, subclass, level
+  const CD = tag("classData").split(FECS_M), classes = [];
+  for (const part of String(CD[0] || "").split(FECS_X)) {
+    const [nm, arch, lvS] = part.split(FECS_D).map(x => String(x || "").trim()); if (!nm) continue;
+    const cls = classList(ed).find(k => impSame(k, nm)) || impClass(ed, nm, null, D, FECS_SRC);
+    if (!cls) return { error: "This character's class has no name in the file, so it can't be imported." };
+    const lv = clamp(+lvS || 1, 1, 20);
+    let subclass = null;
+    if (arch) { const n0 = D.homebrew.length; subclass = impSubclass(ed, cls, arch, null, D); D.homebrew.slice(n0).forEach(x => x.src = FECS_SRC); }
+    classes.push({ cls, lv, subclass });
+  }
+  if (!classes.length) return bad;
+  D.homebrew.forEach(x => x.src = FECS_SRC);
+  const [main, ...more] = classes;
+  D.report.matched.push(classes.map(x => `${x.cls} ${x.lv}`).join(" / "));
+  // species and background (noteList 9 and 10)
+  const rName = note(8);
+  let race = null, sub = "none";
+  const R = PC_RACES[ed];
+  race = Object.keys(R).find(k => !R[k].pend && impSame(k, rName)) || null;
+  if (!race) for (const k of Object.keys(R)) { const subs = R[k].subs || {}; const sk = Object.keys(subs).find(s => impSame(s, rName) || impSame(subs[s].label, rName)); if (sk) { race = k; sub = sk; break; } }
+  if (race) D.report.matched.push(`Species: ${sub !== "none" ? sub : race}`);
+  else if (rName && !/^custom$/i.test(rName)) {
+    const have = impHave("species", rName);
+    if (have) { race = have.name; D.report.matched.push(`Species: ${have.name} (homebrew)`); }
+    else { race = impCut(rName, 60); hb({ id: uid("hb"), kind: "species", ed, name: race, desc: "", asi: {}, speed: clamp(+tag("baseSpeed") || 30, 0, 120), skills: [], term: "", traits: [], subs: [] }); D.report.made.push(`${race} (species)`); }
+  } else { race = Object.keys(R).find(k => /human/i.test(k)) || Object.keys(R)[0]; D.report.differ.push(`The file's species is "${rName || "none"}": the Forge used ${race}. Change it on the sheet if needed`); }
+  const bName = note(9);
+  let bg = null;
+  if (bName && !/^custom$/i.test(bName)) {
+    bg = bgList(ed).find(k => impSame(k, bName)) || (impHave("background", bName) || {}).name || null;
+    if (bg) D.report.matched.push(`Background: ${bg}`);
+    else { bg = impCut(bName, 60); hb({ id: uid("hb"), kind: "background", ed, name: bg, desc: "", skills: [], feat: "", gear: "", fx: [] }); D.report.made.push(`${bg} (background)`); }
+  } else { bg = bName ? impCut(bName, 60) : "Custom"; D.report.dropped.push(`Background: ${bg} (kept as a name only, with no background features; the skills are kept)`); }
+  // scores and saves: abilityScores 1-6, then 6 save flags
+  const A = tag("abilityScores").split(FECS_X).map(x => String(x).trim());
+  for (let i = 0; i < 6; i++) { const v = +A[i]; if (!v) return { error: "This Fifth Edition Character Sheet file has no ability scores." }; D.final[AB[i]] = clamp(v, 1, 30); }
+  D.appSaves = AB.filter((a, i) => /^(true|1)$/i.test(A[6 + i]));
+  // skills: 1-18 proficient, 39-56 expertise
+  const S = tag("skillInfo").split(FECS_X).map(x => String(x).trim()), on = v => /^(true|1)$/i.test(v || "");
+  const keepSkills = FECS_SKILLS.filter((k, i) => on(S[i])), keepExpert = FECS_SKILLS.filter((k, i) => on(S[38 + i]) && on(S[i]));
+  // spells: spellList position 9, ⊡ per spell, ⊟ = level, name, …, prepared (8)
+  const prepared = [], notSpells = [];
+  String(tag("spellList").split(FECS_X)[8] || "").split(FECS_D).forEach(rec => {
+    const f = rec.split(FECS_M), nm = String(f[1] || "").trim(); if (!nm) return;
+    if (f[7] !== undefined && /^false$/i.test(String(f[7]).trim())) return;
+    const m = spellMatch(ed, nm);
+    if (m) { if (!prepared.some(x => x.n === m.s.n)) prepared.push({ n: m.s.n, l: m.s.l, ed: m.ed }); if (m.fuzzy) D.report.matched.push(`Spell: ${impCut(nm, 60)} → ${m.s.n}`); return; }
+    notSpells.push(impCut(nm, 80)); D.report.dropped.push(`${impCut(nm, 60)} (not a known spell; saved in notes)`);
+  });
+  if (notSpells.length) notes.push("From the spell list (not spells in the Forge):\n" + notSpells.map(x => "- " + x).join("\n"));
+  // gear: noteList 6, one item per line
+  const inv = [];
+  note(5).split(/\r?\n/).map(x => x.trim()).filter(Boolean).forEach(line => {
+    const { g, n, qty } = impGear(ed, fecsQty(line));
+    const ex = inv.find(i => i.n.toLowerCase() === n.toLowerCase()); if (ex) { ex.qty += qty; return; }
+    inv.push({ id: uid("i"), ref: g ? g.id : undefined, n, qty, w: g ? g.w || 0 : 0, att: false, attuned: false, value: g ? g.c : undefined, note: "", eq: eqIsWeapon(g) || eqIsArmor(g) });
+  });
+  // fighting style: a "fighting style⊡Name" piece in classData
+  const fightStyles = [], fsm = tag("classData").match(/fighting style\s*[⊡]\s*([^⊟⊠⊡]+)/i);
+  if (fsm) { const k = Object.keys(FIGHT_STYLES).find(s => impSame(s, fsm[1].trim())); if (k) { fightStyles.push(k); D.report.matched.push(`Fighting style: ${k}`); } else { D.report.dropped.push(`Fighting style: ${impCut(fsm[1].trim(), 60)} (saved in notes)`); notes.push(`Fighting style: ${fsm[1].trim()}`); } }
+  if (note(0)) notes.unshift(note(0));
+  if (note(6)) notes.push(note(6));
+  D.opts = { seed: uid("imp"), name: impCut(note(15), 80) || "Imported character", ed, bonus: "fixed", method: "array", cls: main.cls, level: main.lv, subclass: main.subclass || "none", race, sub, bg: bg || undefined,
+    multi: more.length ? more.map(x => ({ cls: x.cls, lv: x.lv, subclass: x.subclass })) : undefined, keepSkills, keepExpert };
+  impGenderSet(D, impGender({}, [note(0), note(6), note(11), note(12), note(13), note(14)]));
+  const coin = i => Math.max(0, Math.floor(+note(i) || 0));
+  const hpCur = tag("currentHealth");
+  D.extras = { inv, coins: { cp: coin(17), sp: coin(18), ep: coin(19), gp: coin(20), pp: coin(21) }, prepared, fightStyles,
+    align: impTitle(note(10).toLowerCase()), xp: Math.max(0, Math.floor(+note(22) || 0)), hpCur: hpCur === "" ? undefined : +hpCur,
+    trait: impCut(note(11), 1000), ideal: impCut(note(12), 1000), bond: impCut(note(13), 1000), flaw: impCut(note(14), 1000),
+    notes: notes.join("\n\n"), langs: note(4).split(/\r?\n|,\s*/).map(x => x.trim()).filter(Boolean).join(", "), toolsChosen: note(3).split(/\r?\n|,\s*/).map(x => x.trim()).filter(Boolean).join(", "), conds: [] };
+  D.check = { hp: +tag("maxHealth") || 0, speed: (+tag("baseSpeed") || 0) + (+tag("speedMiscMod") || 0) };
+  if (!main.subclass && main.lv >= subclassLevel(ed, main.cls)) D.report.differ.push(`No ${main.cls} subclass in the file: choose one on the sheet`);
+  return D;
+}
 // Build the character a Draft describes. Its homebrew is applied for the build only; the base scores are solved so the
 // final scores equal the file's.
 function importBuild(D) {
@@ -426,7 +526,9 @@ async function impCharRead(file, ed) {
     if (typeof pdfImport !== "function") return { error: "PDF import is coming soon." };
     try { return pdfImport(await pdfFields(buf.buffer), ed); } catch (e) { return { error: "Couldn't read that PDF." }; }
   }
-  let j = null; try { j = JSON.parse(new TextDecoder().decode(buf)); } catch { }
+  const txt = new TextDecoder().decode(buf);
+  if (/^﻿?\s*</.test(txt)) return fecsImport(txt, ed); /* XML: the Fifth Edition Character Sheet app */
+  let j = null; try { j = JSON.parse(txt); } catch { }
   if (j && j.app === "dmforge-backup") return { error: "That's a Forge backup file. Restore it with 💾 Backup instead." };
   if (j && j.cls && j.scores && j.skills) return { error: "That's a Forge character. Restore it with 💾 Backup, or forge it again." };
   return compImport(j, ed);
