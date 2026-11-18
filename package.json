@@ -27,6 +27,7 @@
     "test:import": "node tools/build.mjs --quiet && node test/e2e/char-import.cjs",
     "test:layout": "node tools/build.mjs --quiet && node test/e2e/layout.cjs",
     "test:polish": "node tools/build.mjs --quiet && node test/e2e/ui-polish.cjs",
+    "test:cast": "node tools/build.mjs --quiet && node test/e2e/spell-cast.cjs",
     "test:lore": "node tools/build.mjs --quiet && node test/e2e/lore.cjs",
     "test:mythweaver": "node tools/build.mjs --quiet && node test/e2e/mythweaver.cjs",
     "test:campextras": "node tools/build.mjs --quiet && node test/e2e/camp-extras.cjs",

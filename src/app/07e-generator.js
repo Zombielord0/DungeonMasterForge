@@ -361,6 +361,8 @@ async function discardPC() {
   $("#pcForm").addEventListener("submit", e => { e.preventDefault(); if (($("input[name=pcMode]:checked") || {}).value === "custom") { CB.ed = curEd(); cbStart(); } else { CB.on = false; run(); } });
   $("#pcOut").addEventListener("click", e => {
     const t = e.target;
+    const spb = t.closest("#pcPrepared [data-spell]");
+    if (spb && currentPC) { const [ed, ...n] = spb.dataset.spell.split("|"); castDialog(currentPC, ed, n.join("|"), { view: true }); return; }
     if (t.id === "pcReroll") { run(); return; }
     const sb = t.closest("[data-spells]"); if (sb) { const [cl, mx, ca] = sb.dataset.spells.split("|"); SP.target = currentPC && currentPC.id; openSpellsFor(cl, +mx, ca === "1"); return; }
     const a = t.closest("[data-pc]");

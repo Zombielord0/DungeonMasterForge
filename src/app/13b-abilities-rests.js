@@ -386,6 +386,7 @@ function actDialogClick(e) {
   }
   const rc = e.target.closest("[data-recover]"); if (rc) { recoveryConfirm(); return; }
   if (e.target.closest("[data-castgo]")) { castGo(); return; }
+  const lvb = e.target.closest("[data-castlv]"); if (lvb && !lvb.disabled) { castPick(lvb.dataset.castlv); return; }
   if (e.target.closest("[data-mcgo]")) { mcGo(); return; }
   if (e.target.closest("[data-aoeroll]")) { aoeRoll(); return; }
   if (e.target.closest("[data-aoeapply]")) { aoeApply(); return; }

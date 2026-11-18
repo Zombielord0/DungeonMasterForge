@@ -119,8 +119,8 @@ spFiltersSync();
     if (cr) { const [k, ...id] = cr.dataset.choicerm.split("|"); c.choices = { ...(c.choices || {}) }; c.choices[k] = choiceOf(c, k).filter(x => x !== id.join("|")); pcRecompute(c); pcPersist(); renderRosterMain(); return; }
     const mr = e.target.closest("[data-mirm]");
     if (mr) { const k = "Feat: Magic Initiate"; c.choices = { ...(c.choices || {}) }; c.choices[k] = choiceOf(c, k).filter(x => x !== mr.dataset.mirm); miSync(c); pcPersist(); renderRosterMain(); return; }
-    const cb = e.target.closest("[data-cast]");
-    if (cb) { const [ed, ...n] = cb.dataset.cast.split("|"); castDialog(c, ed, n.join("|")); return; }
+    const cb = e.target.closest("[data-spell]");
+    if (cb && cb.closest("#rcPrepared")) { const [ed, ...n] = cb.dataset.spell.split("|"); castDialog(c, ed, n.join("|")); return; }
     const rb = e.target.closest("[data-roll]");
     if (rb) {
       const [k, v] = rb.dataset.roll.split(":"), xb = itemSaveBonus(c);
