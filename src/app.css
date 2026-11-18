@@ -527,7 +527,7 @@ b.over{color:#f2b8ae}
 }
 html{background:#05060c}
 body{background:none!important}
-#bgScene{position:fixed;inset:0;width:100vw;height:100vh;z-index:-1;display:block;pointer-events:none;background:#06070e}
+#bgScene{position:fixed;inset:0;width:100vw;height:100vh;z-index:-1;display:block;pointer-events:none;background:#06070e url("/assets/backdrop-wide.webp") 50% 50%/cover no-repeat}
 body::before{background:radial-gradient(ellipse 70% 55% at 50% 38%,transparent 40%,rgba(2,3,8,.55) 100%),linear-gradient(rgba(4,5,12,.15),rgba(4,5,12,.45))!important;animation:none!important;z-index:-1!important}
 header{background:var(--noise),linear-gradient(rgba(22,24,40,.9),rgba(10,11,22,.86))!important;backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px);border-bottom:1px solid rgba(255,170,80,.18)!important;box-shadow:0 6px 24px rgba(0,0,0,.75),inset 0 -1px 0 rgba(120,140,220,.08),inset 0 1px 0 rgba(255,255,255,.06)!important}
 .card,.sec,#modal .box,#backupModal .box,#impCharModal .box,#lvModal .box,#featModal .box,#choiceModal .box{backdrop-filter:blur(3px);-webkit-backdrop-filter:blur(3px);border-color:#090a12!important;

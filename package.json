@@ -37,7 +37,8 @@
     "test:sync": "node tools/build.mjs --quiet && node test/e2e/account-sync.cjs",
     "test:share": "node tools/build.mjs --quiet && node test/e2e/players-share.cjs",
     "test:hbclass": "node tools/build.mjs --quiet && node test/e2e/homebrew-class.cjs",
-    "test:atlas": "node tools/build.mjs --quiet && node test/e2e/atlas.cjs"
+    "test:atlas": "node tools/build.mjs --quiet && node test/e2e/atlas.cjs",
+    "test:backdrop": "node tools/build.mjs --quiet && node test/e2e/backdrop.cjs"
   },
   "dependencies": {
     "@netlify/database": "^2.0.3",
