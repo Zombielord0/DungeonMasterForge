@@ -38,6 +38,9 @@ function makeRng(...parts) {
   };
   return R;
 }
+/* On narrow screens the result is below the form: bring it into view after forging (laptops show it beside the form). */
+function showResult(sel) { if (!matchMedia("(max-width:900px)").matches) return; const el = document.querySelector(sel); if (!el) return; const phone = matchMedia("(max-width:600px)").matches; /* phones: the header slides away when scrolling down; tablets: it shrinks to a slim bar */
+  scrollTo({ top: el.getBoundingClientRect().top + scrollY - (phone ? 8 : 80), behavior: matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth" }); }
 const newSeed = () => Math.random().toString(36).slice(2, 8).toUpperCase();
 const fill = (s, ctx) => s.replace(/\{(\w+)\}/g, (_, k) => ctx[k] ?? k);
 

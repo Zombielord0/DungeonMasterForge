@@ -422,7 +422,7 @@ function renderWorld(treeOnly) {
   side.querySelectorAll('input[name="wview"]').forEach(r => { r.checked = r.value === W.view; });
   $("#worldTree").innerHTML = worldTreeHTML(counts);
   if (treeOnly) return;
-  if (W.mode === "build") { main.innerHTML = wbHTML(); return; }
+  if (W.mode === "build") { main.innerHTML = wbHTML(); wbMapDraw(); return; }
   if (W.mode === "atlas") { main.innerHTML = atlasViewHTML(); atlasRender(); return; }
   const p = wp(W.sel);
   main.innerHTML = p ? worldPlaceHTML(p, groups) : `<div class="card empty"><h2>${W.places.length ? "Pick a place" : "Build your world"}</h2><p>${W.places.length ? "Choose a place on the left to see what's inside it and who lives there." : "Add regions, cities, towns, taverns and dungeons, put them inside each other, and file your NPCs under them. Places in your campaigns' Lore are added for you."}</p><div class="row" style="justify-content:center;gap:8px;flex-wrap:wrap"><button class="btn primary" type="button" data-w="build" style="flex:0 0 auto">🛠 World builder</button>${W.places.length ? "" : `<button class="btn" type="button" data-w="new" style="flex:0 0 auto">+ Add a place yourself</button>`}</div></div>`;
@@ -452,7 +452,7 @@ function wpMapOpen(p) { MAPLINK.place = p.id; mapOpenSaved(p.map); setTimeout(ma
 /* ======================= World builder =======================
    W.build = {kind, seed, o (options)}. Each builder in WB turns (rng, o) into a draft {name, type, desc, sections, kids, npcs, shop?, map?};
    the preview shows it, Roll again changes the seed, and wbCommit makes the World places (and their NPCs) from it. */
-const WB_KINDS = { settlement: ["🏰", "Settlement"], tavern: ["🍺", "Inn or tavern"], shop: ["🛒", "Shop"], temple: ["⛪", "Temple"], dungeon: ["💀", "Dungeon"] };
+const WB_KINDS = { settlement: ["🏰", "Settlement"], tavern: ["🍺", "Inn or tavern"], shop: ["🛒", "Shop"], temple: ["⛪", "Temple"], dungeon: ["💀", "Dungeon"], region: ["🗺️", "Region"] };
 const WB_TERRAIN = { river: "on both banks of a slow river", coast: "around a sheltered harbour", mountains: "high in the mountains, where the passes meet", forest: "in a clearing of old forest", plains: "at a crossroads on the open plains", hills: "on a hill above the farmland", marsh: "on stilts and causeways over the marsh", desert: "around an oasis in the dry country" };
 const WB_A = ["Ash", "Bright", "Cold", "Deep", "Elm", "Fair", "Gold", "Green", "Grey", "High", "Iron", "King's", "Lake", "Long", "Mill", "Oak", "Raven", "Red", "Salt", "Silver", "Stone", "Storm", "Thorn", "White", "Wolf", "Wind", "Black", "Copper", "Frost", "Amber"];
 const WB_B = ["ford", "haven", "bridge", "wick", "stead", "fall", "holm", "moor", "port", "gate", "hollow", "mere", "vale", "watch", "crest", "barrow", "field", "march", "reach", "burg", "ton", "dale", "wood", "cliff"];
@@ -505,10 +505,11 @@ const WB = {
     return d;
   },
   shop(r, o) {
-    const sh = shopMake({ type: SHOPS[o.type] ? o.type : r.pick(Object.keys(SHOPS)), size: o.size || "town", level: +o.level || shopLevelGuess(), seed: r.int(1, 1e9).toString(36).toUpperCase(), ed: IT.ed || "2024" });
-    const name = String(o.name || "").trim() || sh.name;
-    const d = { name, type: sh.type === "temple" ? "temple" : "shop", desc: `${sh.label}, run by ${sh.keeper}, who is ${sh.mood}.`, shop: { type: sh.type, size: sh.size, level: sh.level, seed: sh.seed, ed: sh.ed },
-      sections: [{ t: "For sale", x: sh.stock.length ? sh.stock.slice(0, 24).map(x => `- ${x.n}: ${x.c}${x.kind === "magic" ? " (magic)" : ""}`).join("\n") + (sh.stock.length > 24 ? `\n- …and ${sh.stock.length - 24} more` : "") : "Nothing on the shelves today.", dm: false }], kids: [], npcs: [] };
+    const sh = shopMake({ type: SHOPS[o.type] ? o.type : r.pick(Object.keys(SHOPS)), size: o.size || "town", level: +o.level || shopLevelGuess(), seed: r.int(1, 1e9).toString(36).toUpperCase(), ed: IT.ed || "2024",
+      ...(Array.isArray(o.rar) && o.rar.length ? { rar: o.rar } : {}), ...(o.amount && o.amount !== "normal" ? { amount: o.amount } : {}), ...(o.moodIx !== undefined && o.moodIx !== "" ? { moodIx: +o.moodIx } : {}) });
+    const name = String(o.name || "").trim() || sh.name, full = { ...sh, markup: 0 }, sale = shopSaleText(full); full.sale = sale;
+    const d = { name, type: sh.type === "temple" ? "temple" : "shop", desc: `${sh.label}, run by ${sh.keeper}, who is ${sh.mood}.`, shop: { type: sh.type, size: sh.size, level: sh.level, seed: sh.seed, ed: sh.ed }, shopFull: full,
+      sections: [{ t: "For sale", x: sale, dm: false, auto: true }], kids: [], npcs: [] };
     if (o.npcs !== false) { const k = wbNpc(r, "Merchant", "shopkeeper"); k.name = sh.keeper; d.npcs.push(k); }
     return d;
   },
@@ -526,10 +527,22 @@ const WB = {
       sections: [{ t: "Why go in", x: r.pickN(WB_DUN_WHY, 2).map(x => "- " + x).join("\n"), dm: false }, { t: "The truth", x: r.pick(["The treasure was taken long ago; what's left is a trap.", "The monsters are guarding something worse, not hiding from it.", "Someone in town knows exactly what's down there.", "The way out closes behind whoever reaches the bottom."]), dm: true }], kids: [], npcs: [] };
     if (o.map !== false) d.map = { name: name.slice(0, 60), theme, size: "medium", rooms: 8, level, party: 4, seed: r.int(1, 1e9).toString(36).toUpperCase().slice(0, 6), style: "parchment" };
     return d;
+  },
+  /* a region with its own generated map (2026-11-18). The map's seed comes from the build seed, so typing doesn't change it; o.names are the DM's own feature names. */
+  region(r, o) {
+    const shape = ATLAS_SHAPES[o.shape] ? o.shape : "coast", land = ATLAS_LANDS[o.land] ? o.land : "balanced";
+    const name = String(o.name || "").trim() || (shape === "island" ? r.pick([`The ${r.pick(ATLAS_NA)} Isle`, `The ${r.pick(ATLAS_NB)} Isles`]) : r.pick([`The ${r.pick(ATLAS_NA)} Reach`, `The ${r.pick(ATLAS_NB)} Marches`, `The Kingdom of ${r.pick(ATLAS_NB)}`, `The ${r.pick(ATLAS_NA)} Vale`]));
+    const atlas = { v: 1, seed: "at-" + W.build.seed, shape, land, pins: {}, names: [] }, own = o.names || {};
+    atlas.names = atlasNames(atlas).map(f => own[f.id] ? { ...f, name: own[f.id] } : f);
+    const desc = `${shape === "island" ? "An" : "A"} ${{ coast: "coastal land", inland: "land far from the sea", island: "island" }[shape]}${land === "balanced" ? "" : " of " + { mountains: "mountains", forest: "forests", plains: "open plains" }[land]}.`;
+    return { name, type: "region", desc, sections: [], kids: [], npcs: [], atlas };
   }
 };
-const WB_DEFAULTS = { settlement: { size: "town", terrain: "", npcs: true, places: true }, tavern: { quality: "", npcs: true }, shop: { type: "", size: "town", level: "", npcs: true }, temple: { domain: "", size: "town", npcs: true }, dungeon: { theme: "", level: "", map: true } };
+const WB_DEFAULTS = { settlement: { size: "town", terrain: "", npcs: true, places: true }, tavern: { quality: "", npcs: true }, shop: { type: "", size: "town", level: "", npcs: true, rar: [], amount: "normal", moodIx: "" }, temple: { domain: "", size: "town", npcs: true }, dungeon: { theme: "", level: "", map: true }, region: { shape: "coast", land: "balanced", names: {} } };
+/* The settlement size of the nearest village, town or city a place is in (or the place itself), or null. */
+function wpSettleSize(id) { const p = id && wp(id); if (!p) return null; const hit = wpPath(p).reverse().find(x => ["village", "town", "city"].includes(x.type)); return hit ? hit.type : null; }
 function wbStart(kind) { const prev = W.build; W.build = { kind, seed: newSeed(), o: { ...WB_DEFAULTS[kind], name: "" }, parent: prev ? prev.parent : (W.sel && wp(W.sel) ? W.sel : null), camp: prev ? prev.camp : W.camp }; }
+function wbMapDraw() { const cv = $("#wbMapCv"); if (!cv || !W.build) return; const d = wbDraft(); if (!d.atlas) return; atlasDraw(cv, d.atlas, { picture: null, pins: [], names: d.atlas.names.filter(f => f.name), title: d.name }); }
 const wbDraft = () => WB[W.build.kind](makeRng("wb", W.build.kind, W.build.seed), W.build.o);
 function wbCount(d) { let p = 0, n = 0; const walk = x => { p++; n += x.npcs.length; x.kids.forEach(walk); }; walk(d); return { p, n }; }
 function wbHTML() {
@@ -539,11 +552,14 @@ function wbHTML() {
   const opts = {
     settlement: f("Size", sel("size", [["village", "Village"], ["town", "Town"], ["city", "City"]], "")) + f("Where", sel("terrain", Object.keys(WB_TERRAIN).map(k => [k, cap1(k)]))),
     tavern: f("Quality", sel("quality", Object.entries(WB_TAV_Q).map(([k, v]) => [k, v[0]]))),
-    shop: f("Kind of shop", sel("type", Object.entries(SHOPS).map(([k, v]) => [k, v.label]))) + f("Settlement", sel("size", [["village", "Village"], ["town", "Town"], ["city", "City"]], "")) + f("Party level", `<input type="number" data-wb="level" min="1" max="20" value="${esc(o.level)}" placeholder="${shopLevelGuess()}" aria-label="Party level">`),
+    shop: f("Kind of shop", sel("type", Object.entries(SHOPS).map(([k, v]) => [k, v.label]))) + f("Settlement", sel("size", [["village", "Village"], ["town", "Town"], ["city", "City"]], "")) + f("Party level", `<input type="number" data-wb="level" min="1" max="20" value="${esc(o.level)}" placeholder="${shopLevelGuess()}" aria-label="Party level">`)
+      + f("How much stock", sel("amount", [["small", "Small"], ["normal", "Normal"], ["large", "Large"]], "")) + f("Shopkeeper's manner", sel("moodIx", SHOP_MOODS.map((m, i) => [i, cap1(m[0])]), "Random"))
+      + `<div class="field" style="flex:1 1 100%"><label>Magic item rarities</label><div class="wb-rar">${[["auto", "Automatic"], ...RARITY.slice(0, 5).map((n, i) => [i, n])].map(([v, l]) => `<label class="check"><input type="checkbox" data-wbrar="${v}" ${v === "auto" ? (!(o.rar || []).length ? "checked" : "") : (o.rar || []).includes(v) ? "checked" : ""}> ${esc(l)}</label>`).join("")}</div>${o.type && SHOPS[o.type] && !SHOPS[o.type].magic ? `<p class="hint wb-note">A ${esc(SHOPS[o.type].label.toLowerCase())} doesn't sell magic items, so rarity doesn't apply.</p>` : ""}</div>`,
     temple: f("God of", sel("domain", Object.keys(WB_GODS).map(k => [k, `${k} (${WB_GODS[k]})`]))) + f("Settlement", sel("size", [["village", "Village (a shrine)"], ["town", "Town"], ["city", "City (a great temple)"]], "")),
+    region: f("Shape", sel("shape", Object.entries(ATLAS_SHAPES), "")) + f("Land", sel("land", Object.entries(ATLAS_LANDS), "")),
     dungeon: f("Kind", sel("theme", Object.keys(WB_DUN_N).map(k => [k, cap1(k)]))) + f("Party level", `<input type="number" data-wb="level" min="1" max="20" value="${esc(o.level)}" placeholder="${shopLevelGuess()}" aria-label="Party level">`)
   }[B.kind];
-  const checks = { settlement: chk("places", "Add inns, shops and a temple" + (o.size === "city" ? ", in districts" : "")) + chk("npcs", "Add NPCs who live there"), tavern: chk("npcs", "Add the innkeeper, staff and a regular"), shop: chk("npcs", "Add the shopkeeper as an NPC"), temple: chk("npcs", "Add the priest and an acolyte"), dungeon: chk("map", "Generate a map for it") }[B.kind];
+  const checks = { settlement: chk("places", "Add inns, shops and a temple" + (o.size === "city" ? ", in districts" : "")) + chk("npcs", "Add NPCs who live there"), tavern: chk("npcs", "Add the innkeeper, staff and a regular"), shop: chk("npcs", "Add the shopkeeper as an NPC"), temple: chk("npcs", "Add the priest and an acolyte"), region: "", dungeon: chk("map", "Generate a map for it") }[B.kind];
   const tree = x => `<li>${wpIcon({ type: x.type })} <b>${esc(x.name)}</b> <span class="muted">${esc((WP_TYPES[x.type] || WP_TYPES.other)[1])}${x.npcs.length ? ` · ${x.npcs.length} NPC${x.npcs.length === 1 ? "" : "s"}` : ""}</span>${x.kids.length ? `<ul>${x.kids.map(tree).join("")}</ul>` : ""}</li>`;
   return `<div class="card wbuild">
     <div class="sec-h"><h3>🛠 World builder</h3></div>
@@ -556,6 +572,7 @@ function wbHTML() {
       <div class="muted" style="margin-bottom:6px">${esc((WP_TYPES[d.type] || WP_TYPES.other)[1])}${B.parent && wp(B.parent) ? ` in ${esc(wp(B.parent).name)}` : ""}</div>
       ${mdHTML(d.desc)}
       ${d.sections.map(x => `<div class="lore-sec"><h4>${esc(x.t)}${x.dm ? ` <span class="tag lore-dm" title="Only for you">🔒 DM only</span>` : ""}</h4>${mdHTML(x.x)}</div>`).join("")}
+      ${d.atlas ? `<div class="wb-map"><canvas id="wbMapCv" aria-label="Map of ${esc(d.name)}"></canvas></div>${d.atlas.names.length ? `<div class="field" style="margin-top:10px"><label>Names on the map</label><div class="atlas-names">${d.atlas.names.map(f => `<label class="lbl" style="margin:0">${{ mountains: "⛰ Mountains", forest: "🌲 Forest", river: "〰 River", sea: "🌊 Sea", lake: "💧 Lake" }[f.kind] || esc(f.kind)}<input type="text" data-wbname="${esc(f.id)}" value="${esc((o.names || {})[f.id] || "")}" placeholder="${esc(atlasNames(d.atlas).find(g => g.id === f.id).name)}" maxlength="60"></label>`).join("")}</div></div>` : ""}` : ""}
       ${d.map ? `<p class="muted">🗺 Comes with a generated ${esc(d.map.theme)} map (${d.map.rooms} rooms, party level ${d.map.level}).</p>` : ""}
       ${d.npcs.length ? `<h4>Who's here</h4><ul class="wb-list">${d.npcs.map(n => `<li><b>${esc(n.name)}</b> <span class="muted">· ${esc(n.race)} ${esc(n.occupation)} (${esc(n.attitude)})</span></li>`).join("")}</ul>` : ""}
       ${d.kids.length ? `<h4>Places inside</h4><ul class="wb-list">${d.kids.map(tree).join("")}</ul>` : ""}
@@ -566,7 +583,7 @@ function wbHTML() {
 function wbCommit() {
   const B = W.build; if (!B) return null; const d = wbDraft(), camp = B.camp && Store.get(B.camp), looseL = npcLoose();
   const make = (x, parent) => {
-    const p = wpNew({ name: x.name.slice(0, 120), type: x.type, parent: parent || null, desc: x.desc, sections: x.sections.map(s2 => ({ ...s2 })), ...(x.shop ? { shop: x.shop } : {}), ...(x.map ? { map: { ...x.map, id: uid("m"), saved: Date.now() } } : {}) });
+    const p = wpNew({ name: x.name.slice(0, 120), type: x.type, parent: parent || null, desc: x.desc, sections: x.sections.map(s2 => ({ ...s2 })), ...(x.shop ? { shop: x.shopFull || x.shop } : {}), ...(x.atlas ? { atlas: JSON.parse(JSON.stringify(x.atlas)) } : {}), ...(x.map ? { map: { ...x.map, id: uid("m"), saved: Date.now() } } : {}) });
     x.npcs.forEach(n => { const id = uid("n"), rec = { id, lib: "nl-" + id, name: n.name, role: `${n.race} ${n.occupation}`, attitude: { Wary: "Neutral" }[n.attitude] || n.attitude, notes: npcText(n).split("\n").slice(1).join("\n"), placeId: p.id, place: p.name };
       if (camp) { camp.npcs = camp.npcs || []; camp.npcs.push(rec); } else looseL.push(rec); });
     x.kids.forEach(k => make(k, p.id));
@@ -575,7 +592,7 @@ function wbCommit() {
   const top = make(d, B.parent && wp(B.parent) ? B.parent : null);
   worldSave(); npcLooseSave(looseL);
   if (camp) wpSetCamp(top, camp, true);
-  B.seed = newSeed(); B.o.name = "";
+  B.seed = newSeed(); B.o.name = ""; if (B.o.names) B.o.names = {};
   return top;
 }
 function worldGoNpc(lib, placeId) { NL.tab = placeId || ""; NL.camp = ""; NL.q = ""; if (lib) NL.open.add(lib); location.hash = "npc";
@@ -597,9 +614,9 @@ function worldGoNpc(lib, placeId) { NL.tab = placeId || ""; NL.camp = ""; NL.q =
     else if (a === "tgroup") { const t = b.dataset.t; W.openT.has(t) ? W.openT.delete(t) : W.openT.add(t); renderWorld(true); const nb = $(`#worldTree [data-w="tgroup"][data-t="${t}"]`); if (nb) nb.focus(); }
     else if (a === "build") { W.mode = "build"; if (!W.build) wbStart("settlement"); renderWorld(); const h = $("#worldMain h2"); if (h) $("#worldMain").scrollIntoView({ block: "nearest" }); }
     else if (a === "wbkind") { wbStart(b.dataset.k); renderWorld(); const nb = $(`#worldMain [data-w="wbkind"][data-k="${b.dataset.k}"]`); if (nb) nb.focus(); }
-    else if (a === "wbroll") { W.build.seed = newSeed(); renderWorld(); }
+    else if (a === "wbroll") { W.build.seed = newSeed(); W.build.o.names = {}; renderWorld(); }
     else if (a === "wbadd") { const top = wbCommit(); if (top) { W.mode = "place"; W.sel = top.id; W.openT.add(top.type); W.q = ""; const q = $("#worldQ"); if (q) q.value = ""; renderWorld(); toast(`${top.name} added to your World`); } }
-    else if (a === "openshop" && p && p.shop) { IT.shop = shopMake(p.shop); location.hash = "items"; setTimeout(() => { shopRender(); $("#itShop").scrollIntoView({ block: "start" }); }, 80); }
+    else if (a === "openshop" && p && p.shop) shopOpen(p);
     else if (a === "tog") { const id = b.dataset.id; W.open.has(id) ? W.open.delete(id) : W.open.add(id); renderWorld(true); const nb = $(`#worldTree [data-w="tog"][data-id="${CSS.escape(id)}"]`); if (nb) nb.focus(); }
     else if (a === "new" || (a === "child" && p)) {
       const n = wpNew(a === "child" ? { parent: p.id, type: WP_CHILD[p.type] || "other" } : {}); worldSave(); W.mode = "place";
@@ -626,6 +643,7 @@ function worldGoNpc(lib, placeId) { NL.tab = placeId || ""; NL.camp = ""; NL.q =
   view.addEventListener("input", e => {
     const t = e.target;
     if (t.id === "worldQ") { W.q = t.value; renderWorld(true); return; }
+    if (t.dataset.wbname && W.build) { const v = t.value.trim().slice(0, 60), n = { ...(W.build.o.names || {}) }; if (v) n[t.dataset.wbname] = v; else delete n[t.dataset.wbname]; W.build.o.names = n; wbMapDraw(); return; }
     if (t.dataset.wb === "name") { W.build.o.name = t.value; return; }
     const p = wp(W.sel); if (!p || !t.dataset.wf || t.tagName === "SELECT") return;
     const k = t.dataset.wf; p[k] = k === "name" ? t.value.slice(0, 120) : t.value; if (k === "imgUrl" && !p.imgUrl) delete p.imgUrl;
@@ -636,6 +654,8 @@ function worldGoNpc(lib, placeId) { NL.tab = placeId || ""; NL.camp = ""; NL.q =
     const t = e.target;
     if (t.id === "worldCamp") { W.camp = t.value; renderWorld(true); return; }
     if (t.name === "wview") { W.view = t.value; renderWorld(true); return; }
+    if (t.dataset.wbrar) { const o = W.build.o; if (t.dataset.wbrar === "auto") o.rar = []; else { const v = +t.dataset.wbrar, set = new Set(o.rar || []); t.checked ? set.add(v) : set.delete(v); o.rar = [...set].sort((a, b) => a - b); } renderWorld(); const f = $(`#worldMain [data-wbrar="${t.dataset.wbrar}"]`); if (f) f.focus(); return; }
+    if (t.dataset.wb === "parent" && (W.build.kind === "shop" || W.build.kind === "temple")) { const sz = wpSettleSize(t.value); if (sz) W.build.o.size = sz; }
     if (t.dataset.wb === "parent" || t.dataset.wb === "camp") { W.build[t.dataset.wb] = t.value || (t.dataset.wb === "parent" ? null : ""); renderWorld(); const f = $(`#worldMain [data-wb="${t.dataset.wb}"]`); if (f) f.focus(); return; }
     if (t.dataset.wb) { const o = W.build.o, k = t.dataset.wb; o[k] = t.type === "checkbox" ? t.checked : t.value; if (k === "name") return; renderWorld(); const f = $(`#worldMain [data-wb="${k}"]`); if (f) f.focus(); return; }
     const p = wp(W.sel); if (!p) return;

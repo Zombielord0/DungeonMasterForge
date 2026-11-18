@@ -63,9 +63,11 @@ Moved here from `CLAUDE.md` on 2026-11-17, unchanged except that `public/index.h
   - `mapImgTidy(imgId)` deletes a picture once no World place or campaign map uses it (on Replace, Remove and place delete).
 - **The side list:** `W.view` is "type" (groups from `WP_PLURAL`, open state in `W.openT`, buttons `[data-w="tgroup"]`) or "tree" (the nesting). `W.camp` (`#worldCamp`) filters to `wpCampSet(campId)`: places in that campaign's Lore plus everything inside them.
 - **World builder:** `W.mode = "build"` shows `wbHTML()` in `#worldMain`. `W.build = {kind, seed, o, parent, camp}`; `wbStart(kind)` resets it.
-  - `WB[kind](rng, o)` returns a draft tree `{name, type, desc, sections, kids, npcs, shop?, map?}`. The kinds are settlement (it calls tavern, shop and temple for its places, inside districts for a city), tavern, shop (`shopMake`, stored as `p.shop` params), temple and dungeon (`p.map` generated settings). Tables are the `WB_*` constants.
+  - `WB[kind](rng, o)` returns a draft tree `{name, type, desc, sections, kids, npcs, shop?, map?}`. The kinds are settlement (it calls tavern, shop and temple for its places, inside districts for a city), tavern, shop (`shopMake`; the whole shop is stored as `p.shop`), temple, dungeon (`p.map` generated settings) and region (`p.atlas`, a generated region map; see `world-maps.md`). Tables are the `WB_*` constants.
   - Options are `[data-wb]` (name, the kind's selects, checkboxes; parent and camp live on `W.build`). Buttons: `[data-w]` = build, wbkind, wbroll, wbadd.
   - `wbCommit()` makes the places with `wpNew`, and NPCs as `{lib, placeId, place, notes: npcText}` in the chosen campaign or the loose list. It puts the top place in the campaign's Lore with `wpSetCamp`.
-  - A place with `p.shop` shows "🛒 Open the shop" (`[data-w="openshop"]`: `IT.shop = shopMake(p.shop)`, then the Items tab).
+  - **Shop options (2026-11-17):** `WB_DEFAULTS.shop` adds `rar` (`[]` = Automatic; check boxes `[data-wbrar="auto"|0..4]`), `amount` and `moodIx` (selects). `.wb-note` says rarity doesn't apply to a kind without magic. Changing Inside sets the Shop and Temple builders' size from `wpSettleSize(id)` (the nearest village, town or city up the path).
+  - `WB.shop`'s draft carries `shopFull` (the whole shop, `markup: 0`), and `wbCommit` saves it as `p.shop`, so the stock you saw is the stock you get. Its "For sale" section has `auto: true`.
+  - A place with `p.shop` shows "🛒 Open the shop" (`[data-w="openshop"]` → `shopOpen(p)`; see Shops in `dm-tools.md`).
 - **Campaign files:** `campExtras(c)` adds `world`: the places the campaign uses, plus their ancestors. `campExtrasAdopt` merges them by id or name and remaps parents.
 - **Tests:** `npm run test:world` (`test/e2e/world.cjs`).

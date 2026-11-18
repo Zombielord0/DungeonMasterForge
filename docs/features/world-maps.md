@@ -40,6 +40,7 @@ A painted-atlas map per World region, plus one for the whole world, with the Wor
 
 ## On the World tab
 - **A region's page** has a "Region map" section, with a preview (`#atlasThumb`) and "Open the region map", or "Make a map". The side list has "🌍 World map". Places have a "Found by the players" tick (`[data-wfound]`).
+- **Region builder (2026-11-18):** the World builder's `region` kind (`WB.region`) makes a region with its map in one go. The draft's `atlas` uses seed `"at-" + W.build.seed`, so the preview only changes on 🎲 Roll again. Options: Name, `shape`, `land`, Inside, Add to campaign. `o.names` holds the DM's own feature names by feature id: boxes `[data-wbname]` are updated on input, redrawing only `#wbMapCv` (`wbMapDraw`). They're cleared on Roll again and Add. `wbCommit` copies `atlas` onto the new place; pins fill in when the map is first opened.
 - **The map view** is `W.mode = "atlas"` with `W.atlasId`, rendered by `atlasViewHTML()` and `atlasRender()`.
 - **Its controls:**
   - Shape and Land selects (`[data-at-shape]`, `[data-at-land]`) and 🎲 Roll again;

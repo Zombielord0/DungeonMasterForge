@@ -239,14 +239,14 @@ function sheetHTML(c) {
     </div>
     ${defHTML(c)}
     <p class="hint">AC from ${esc(c.acSrc)}. HP uses the fixed average per level after 1st.</p>
-    ${lvBarHTML(c)}
+    ${lvBarHTML(c, true)}
     <div class="pc-actions">
-      <select class="campSelect" id="pcCampSheet" aria-label="Campaign"></select>
-      <button class="btn primary sm" type="button" data-pc="camp">+ Add to campaign</button>
+      <button class="btn primary sm" type="button" data-pc="keep" title="Move this character to the My Characters tab for editing">☆ Save to My characters</button>
+      <span class="pc-camp"><select class="campSelect" id="pcCampSheet" aria-label="Campaign"></select><button class="btn sm" type="button" data-pc="camp">+ Add to campaign</button></span>
       <button class="btn sm" type="button" data-pc="sheet">⎙ Export character sheet</button>
+      <button class="btn sm" type="button" data-pc="copy">Copy sheet as text</button>
       <button class="btn sm" type="button" data-pc="edit" title="Move to My Characters, where every stat, skill and detail is editable">✎ Edit stats & skills</button>
-      <button class="btn sm" type="button" data-pc="keep" title="Move this character to the My Characters tab for editing">☆ Save to My characters</button>
-      <button class="btn sm danger" type="button" data-pc="discard" title="Close and delete this character">✕ Discard</button>
+      <button class="btn sm danger pc-discard" type="button" data-pc="discard" title="Close and delete this character">✕ Discard</button>
     </div>
   </div>
   <div class="grid2" style="margin-top:0">
@@ -350,13 +350,13 @@ async function discardPC() {
   $$("input[name=pcMode]").forEach(rd => rd.addEventListener("change", () => {
     const cust = ($("input[name=pcMode]:checked") || {}).value === "custom";
     $$("#pcForm .rnd-only").forEach(d => d.classList.toggle("hidden", cust));
-    $("#pcForgeBtn").textContent = cust ? "🛠 Build step by step" : "⚒ Forge Character";
+    $("#pcForgeBtn").textContent = cust ? "Build step by step" : "Forge Character";
     if (!cust) syncRace();
   }));
   const run = () => {
     const lv = clamp(parseInt($("#pcLevel").value) || 1, 1, 20); $("#pcLevel").value = lv;
     currentPC = pcEnsure(generateCharacter({ seed: newSeed(), name: $("#pcName").value.trim().slice(0, 60), gender: $("#pcGender").value || undefined, bgGold50: curEd() === "2024" && $("#pcGold50").checked, race: $("#pcRace").value, ed: curEd(), sub: $("#pcAncWrap").classList.contains("hidden") ? undefined : ($("#pcAnc").value || undefined), cls: $("#pcClass").value, bg: $("#pcBg").value, level: lv, method: $("input[name=pcMethod]:checked").value, bonus: $("input[name=pcBonus]:checked").value }));
-    renderPC(); pcPersist();
+    renderPC(); pcPersist(); showResult("#pcOut");
   };
   $("#pcForm").addEventListener("submit", e => { e.preventDefault(); if (($("input[name=pcMode]:checked") || {}).value === "custom") { CB.ed = curEd(); cbStart(); } else { CB.on = false; run(); } });
   $("#pcOut").addEventListener("click", e => {
@@ -364,7 +364,7 @@ async function discardPC() {
     if (t.id === "pcReroll") { run(); return; }
     const sb = t.closest("[data-spells]"); if (sb) { const [cl, mx, ca] = sb.dataset.spells.split("|"); SP.target = currentPC && currentPC.id; openSpellsFor(cl, +mx, ca === "1"); return; }
     const a = t.closest("[data-pc]");
-    if (a) { const k = a.dataset.pc; if (k === "camp") addPCToCampaign($("#pcCampSheet").value); else if (k === "sheet") openSheet(currentPC); else if (k === "keep" || k === "edit") keepPC(); else if (k === "discard") discardPC(); return; }
+    if (a) { const k = a.dataset.pc; if (k === "camp") addPCToCampaign($("#pcCampSheet").value); else if (k === "sheet") openSheet(currentPC); else if (k === "keep" || k === "edit") keepPC(); else if (k === "discard") discardPC(); else if (k === "copy") pcCopyText(); return; }
     if (t.id === "pcPrepBtn") {
       const p = $("#pcPrepPanel"); p.classList.toggle("hidden"); const open = !p.classList.contains("hidden");
       t.textContent = open ? "Close search" : "✦ Prepare spells";
@@ -377,6 +377,5 @@ async function discardPC() {
     if (ub && currentPC) { const [ed, ...rest] = ub.dataset.unprep.split("|"), n = rest.join("|"); currentPC.prepared = currentPC.prepared.filter(x => !(x.ed === ed && x.n === n)); pcChanged(currentPC); renderPrepList(); }
   });
   $("#pcOut").addEventListener("input", e => { if (["pcPrepQ", "pcPrepLv", "pcPrepEd"].includes(e.target.id)) renderPrepList(); });
-  $("#pcCopy").addEventListener("click", async () => { if (!currentPC) { toast("Forge a character first"); return; } try { await navigator.clipboard.writeText(sheetText(currentPC)); toast("Character sheet copied"); } catch { toast("Couldn't copy here"); } });
-  $("#pcSave").addEventListener("click", () => addPCToCampaign($("#pcCampaign").value));
+  async function pcCopyText() { if (!currentPC) { toast("Forge a character first"); return; } try { await navigator.clipboard.writeText(sheetText(currentPC)); toast("Character sheet copied"); } catch { toast("Couldn't copy here"); } }
 })();

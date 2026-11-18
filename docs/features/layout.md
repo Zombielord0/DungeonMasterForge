@@ -24,3 +24,15 @@ Moved here from `CLAUDE.md` on 2026-11-17, unchanged except that `public/index.h
 - **Spells on phones:** the filters sit inside `#spFilters`, closed unless `#spForm.filters-open`. `#spFiltersBtn` shows "▾ Filters · N on" (`spFilterCount`, `spFiltersSync`).
 - **Grid columns** (`.layout>*`, `.tlayout>*`) have `min-width:0`, so wide content scrolls inside instead of widening the page.
 - **Tests:** `npm run test:layout` (`test/e2e/layout.cjs`) runs at 390 × 640 touch, 768 × 1024 touch, 1366 × 768 mouse and 844 × 390 touch. `MOUSE_H` holds the mouse heights of the small controls, which must not change.
+
+## UI polish (2026-11-18)
+
+From a review of the Adventure, Characters and Items tabs. Checks: `npm run test:polish` (`test/e2e/ui-polish.cjs`).
+- `showResult(sel)` (`01-core.js`): on screens up to 900px wide, Forge scrolls to the result (`#genOut`, `#pcOut`), 8px below the top on phones (the header slides away) or 80px on tablets.
+- Laptops and tablets: `hdrShrink(y)` (`14-boot.js`) adds `hdr-auto` after scrolling past 260px and removes it below 40px (the gap stops flicking). `hdr-auto` uses the same slim look as `hdr-mini`. "Show tabs" while shrunk sets `hdrPinned` until the page is back at the top. While slim, the header keeps its full space as `margin-bottom` (that space is above the screen by then), so nothing below it moves. Without that, the page shifted about 180px a moment after scrolling, and map drags in `test:tokens` and `test:atlas` landed in the wrong place.
+- `--hdr-live` is the header's real height (`hdrMeasure`, a ResizeObserver). `.side` and `.mb-side` sit under it and fit the screen. On laptops the side panel's Forge button (`.side>.btn.primary.wide[type=submit]`) is sticky at the bottom.
+- Items: `#itFiltersBtn` folds `#itFilters` on phones (`#itForm.filters-open`, `itFiltersSync`), like the Spells tab. Show moved into the filters, and the three actions are in `.it-acts` (one row on phones). With no saved characters, `renderItTargets` links to the Characters tab.
+- The Characters sheet's `.pc-actions`: Save to My characters is the only orange button. `lvBarHTML(c, true)` makes Level up plain there. Copy sheet as text is `data-pc="copy"` (`pcCopyText`). The side panel's copies (`#pcCampaign`, `#pcSave`, `#pcCopy`) are gone.
+- `.grid2` uses `auto-fit`, so two sections share the full width. `.lvl` doesn't wrap. On touch screens, small buttons and chips are at least 44px.
+- The parchment rules for `#genOut>.card:first-child` skip `.empty`, so the empty Adventure card keeps light text.
+- Button icons: `.btn.ico` with `.ico-swords`, `.ico-hammer`, `.ico-plus`, `.ico-shop`, `.ico-dice` (CSS masks in the tabs' line style).

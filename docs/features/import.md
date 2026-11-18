@@ -8,6 +8,11 @@ Moved here from `CLAUDE.md` on 2026-11-17, unchanged except that `public/index.h
 
 - **Design and plan:** `docs/superpowers/specs/2026-11-16-companion-import-design.md` and `docs/superpowers/plans/2026-11-16-character-import.md`.
 - **Readers make a Draft:** `{src, opts, final, extras, homebrew, report:{matched, made, differ, dropped}, appSaves?}`.
+  - `fecsImport(xml, ed)` (2026-11-18) reads Walter Kammerer's Fifth Edition Character Sheet app (XML; lists joined by ⊠, ⊡, ⊟, positions from the open-source import5eChar reader). `impCharRead` sends any text starting with `<` to it. Design: `docs/superpowers/specs/2026-11-18-fecs-import-design.md`.
+    - `classData` (first ⊟ piece; ⊠ per class; ⊡ class, subclass, level), `abilityScores` (1-6 scores, 7-12 saves), `skillInfo` (1-18 proficient, 39-56 expertise, order in `FECS_SKILLS`), `spellList` (piece 9: ⊡ per spell, ⊟ level, name, …, prepared at 8), `noteList` (`note(i)` 0-based: 0 features, 3 tools, 4 languages, 5 equipment, 6 notes, 8 species, 9 background, 10 alignment, 11-14 personality, 15 name, 17-21 coins, 22 XP).
+    - Unknown spells are not made into homebrew (the file has no spell text): they go to notes and `report.dropped` (owner, 2026-11-18). Non-SRD spells like Silvery Barbs land there too.
+    - A "Custom" (or empty) background is kept as a plain name with no features, so the generator doesn't roll one. `fecsQty` turns "x5", "3x", "100x" counts into `impGear`'s "5 …" form. HP and speed are compared through `D.check`.
+    - Test file: `test/e2e/fixtures/fecs-sample.xml` (an invented character). Never commit a player's own export.
   - `compImport(json, ed)` reads the 5e Companion App's export (JSON, `jsonType:"character"`). Its `allRequiredClasses.jobs`, `requiredRace` and `requiredBackground` are JSON strings holding the full rules text.
   - Unknown classes refuse the import. An unknown subclass, species, background, feat or spell becomes a homebrew entry (`src: "5e Companion App"`), unless a homebrew entry with that name already exists (`impHave`).
   - Gear goes through `impGear` (counts like "20 Arrows", `eqGear` with extra tries). If the app marks nothing as equipped, weapons and armor start equipped.

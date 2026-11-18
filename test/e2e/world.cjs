@@ -206,6 +206,25 @@ const server = http.createServer((req, res) => {
     check(`the ${k} builder adds a place`, got && got.secs >= 1 && (k !== "dungeon" || got.map) && (k !== "shop" || got.shop) && (k === "shop" ? ["shop", "temple"].includes(got.type) : got.type === k), JSON.stringify(got));
   }
   check("a built dungeon's map draws on its page", await z.locator("#wpMapView canvas").count() === 1);
+  // shop options in the builder (2026-11-17)
+  const town = await z.evaluate(() => { const t = wpNew({ name: "Brindle", type: "town" }), d = wpNew({ name: "Lowmarket", type: "district", parent: t.id }); worldSave(); W.mode = "build"; wbStart("shop"); W.build.parent = null; W.build.o.size = "city"; renderWorld(); return d.id; });
+  await z.selectOption('#worldMain [data-wb="parent"]', town); await z.waitForTimeout(150);
+  check("the shop's settlement size follows where it is", await z.evaluate(() => W.build.o.size === "town"));
+  await z.selectOption('#worldMain [data-wb="type"]', "magic"); await z.waitForTimeout(150);
+  await z.check('#worldMain [data-wbrar="2"]'); await z.waitForTimeout(150);
+  const rr = await z.evaluate(() => ({ rar: JSON.stringify(W.build.o.rar), auto: $('#worldMain [data-wbrar="auto"]').checked, magic: /\(magic\)/.test($("#worldMain .wb-out").textContent) }));
+  check("ticking a rarity picks it and unticks Automatic", rr.rar === "[2]" && !rr.auto, JSON.stringify(rr));
+  check("the preview has magic items", rr.magic);
+  await z.selectOption('#worldMain [data-wb="amount"]', "large"); await z.waitForTimeout(150);
+  await z.selectOption('#worldMain [data-wb="moodIx"]', "1"); await z.waitForTimeout(150);
+  const prevIds = await z.evaluate(() => wbDraft().shopFull.stock.map(x => x.id).join());
+  await z.click('#worldMain [data-w="wbadd"]'); await z.waitForTimeout(250);
+  const sv = await z.evaluate(() => { const s = wp(W.sel).shop; return { n: s.stock.length, amount: s.amount, moodIx: s.moodIx, markup: s.markup, ids: s.stock.map(x => x.id).join(), rk: s.stock.filter(x => x.kind === "magic").every(x => x.rk === 2) }; });
+  check("Add to World saves the stock you saw, with your choices", sv.n > 0 && sv.amount === "large" && sv.moodIx === 1 && sv.markup === 0 && sv.ids === prevIds && sv.rk, JSON.stringify(sv));
+  await z.click('#worldSide [data-w="build"]'); await z.waitForTimeout(100);
+  await z.click('#worldMain [data-w="wbkind"][data-k="shop"]'); await z.waitForTimeout(150);
+  await z.selectOption('#worldMain [data-wb="type"]', "general"); await z.waitForTimeout(150);
+  check("a general store says rarity doesn't apply", await z.locator("#worldMain .wb-note").isVisible());
 
   check("no page errors", !errs.length, errs.join(" | "));
   await browser.close(); server.close();

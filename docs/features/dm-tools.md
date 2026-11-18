@@ -6,12 +6,19 @@ Moved here from `CLAUDE.md` on 2026-11-17, unchanged except that `public/index.h
 
 ## Shops (2026-11-15)
 
-- **Making a shop.** `shopMake({type, size, level, seed, ed})` builds a shop from `IT.data`, and the same seed always gives the same shop. It returns `{name, label, keeper, mood, stock}`, with each stock item as `{id, n, cat, g, kind, rk, gp, c, qty}`.
+- **Making a shop.** `shopMake({type, size, level, seed, ed, rar?, amount?, moodIx?})` builds a shop from `IT.data`, and the same seed always gives the same shop. It returns `{seed, type, size, level, ed, name, label, keeper, mood, moodIx, stock, rar?, amount?}`, with each stock item as `{id, n, cat, g, kind, rk, r, att, w, gp, c, qty}` (`gp` is after the shopkeeper's manner).
   - **Shop kinds** are in `SHOPS` (`general`, `smith`, `bowyer`, `alchemist`, `magic`, `temple`). Each has a `gear` filter, a `magic` filter, and stock counts for village, town and city.
-  - **Magic rarity** is capped by settlement and level: villages sell up to uncommon; towns up to rare from level 5; cities up to very rare from level 11.
+  - **Magic rarity (Automatic)** is capped by settlement and level: villages sell up to uncommon; towns up to rare from level 5; cities up to very rare from level 11.
+  - **Options (2026-11-17):** `rar` (rarity ranks 0 to 4) stocks only those rarities and at least 2 magic items, for kinds with a `magic` filter. `amount` (`SHOP_AMOUNT`: small ×0.5, normal, large ×1.5). `moodIx` picks a `SHOP_MOODS` entry.
+  - **Old shops stay the same:** with none of the options set, the random calls and the `makeRng` key are as before. The options join the key only when set. Don't change that order.
   - **Prices:** the shopkeeper's manner (`SHOP_MOODS`) scales them, and `shopNiceGp` rounds them.
-- **On the page.** `#itShopBtn` opens it in `#itShop` on the Items tab, through `shopNew` and `shopRender`. The shop is held in `IT.shop` and isn't saved.
-  - Buy calls the existing `itBuy` with the shop's price, and lowers `qty` only if the coins actually changed.
+- **Made in the World builder (2026-11-17).** `#itShopBtn` opens the World tab's builder on Shop (`wbStart("shop")`). It's hidden when `Portal.views` has no `world` (signed-in players). See `npcs-world.md` for the builder.
+- **Saved shops.** A World place keeps the whole shop in `p.shop`: the `shopMake` result plus `markup` (percent, −90 to 500), `sale` (the last "For sale" text written) and, per stock item, `own` (the DM's own price).
+  - `shopEnsure(p)` fills an older `p.shop` (params only) from `shopMake` on first open. The same seed gives the stock it always had. It marks the matching "For sale" section `auto`.
+  - `shopPrice(s, x)` = `own`, else `shopNiceGp(gp × (1 + markup/100))`. `shopSaleText(s)` is the "For sale" list (in stock only, first 24).
+  - `shopOpen(p)` sets `IT.shop = p.shop` (the same object) and `IT.shopPlace`, then shows the Items tab. `shopSave()` rewrites the `auto` "For sale" section only while it still equals `sale` (hand edits are kept), then `worldSave()` and `wpSyncOut(p)`. It does nothing if the place is gone.
+  - The panel (`shopRender`): `#shopMarkup` (updates prices in place on input, saved 300 ms later), price inputs `[data-shopown=i]` (saved on change; ≤ 0 or empty clears `own`; `.shop-own` ✎ marks one), `#shopRestock` (`shopRestock`: new stock and seed, keeping name, keeper, manner, markup and `own` prices by id), `#shopWorld`, Buy `[data-shopbuy=i]`.
+  - Buy calls `itBuy` with the shown price, and lowers `qty` only if the coins actually changed.
 - **Tests:** `npm run test:shop` (`test/e2e/shop.cjs`).
 
 ## Random encounters (2026-11-15)

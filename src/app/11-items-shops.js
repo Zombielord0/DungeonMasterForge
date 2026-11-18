@@ -131,7 +131,7 @@ function itText(x) {
 function renderItTargets() {
   const row = $("#itTargetRow"), chars = PCS.roster;
   if (IT.target === undefined || !chars.some(c => c.id === IT.target)) IT.target = chars[0] ? chars[0].id : "";
-  row.innerHTML = `<span>Give items to</span><select id="itTarget" aria-label="Character">${chars.length ? chars.map(c => `<option value="${esc(c.id)}">${esc(c.name)}</option>`).join("") : `<option value="">No saved characters yet</option>`}</select><span>Loot for</span><select id="itCamp" class="campSelect" aria-label="Campaign"></select>`;
+  row.innerHTML = `${chars.length ? "" : `<span class="hint" style="flex-basis:100%;margin:0">No characters to give items to yet. <a href="#character">Make one on the Characters tab</a> and save it to My characters.</span>`}<span>Give items to</span><select id="itTarget" aria-label="Character">${chars.length ? chars.map(c => `<option value="${esc(c.id)}">${esc(c.name)}</option>`).join("") : `<option value="">No saved characters yet</option>`}</select><span>Loot for</span><select id="itCamp" class="campSelect" aria-label="Campaign"></select>`;
   $("#itTarget").value = IT.target || "";
   renderCampList();
 }
@@ -148,56 +148,110 @@ const SHOPS = {
 const SHOP_ADJ = ["Gilded", "Crooked", "Silver", "Rusty", "Laughing", "Copper", "Old", "Wandering", "Hidden", "Black", "Lucky", "Sleeping"];
 const SHOP_MOODS = [["haggles hard and loves every minute of it", 1.15], ["fair and friendly", 1], ["gruff but honest", 1.05], ["desperate to sell before the rent is due", .85], ["greedy, all smiles", 1.25], ["old and forgetful, so prices wander", 0]];
 function shopNiceGp(v) { return v >= 20 ? Math.round(v) : v >= 1 ? Math.round(v * 10) / 10 : Math.max(.01, Math.round(v * 100) / 100); }
-function shopMake({ type, size, level, seed, ed }) {
+const SHOP_AMOUNT = { small: .5, normal: 1, large: 1.5 };
+/* rar: rarity ranks to stock (missing = Automatic); amount: small|normal|large; moodIx: index into SHOP_MOODS (missing = random).
+   With none of them set, the random calls are exactly as before, so older saved shops keep their stock. */
+function shopMake({ type, size, level, seed, ed, rar, amount, moodIx }) {
   itLoad();
-  const S = SHOPS[type] || SHOPS.general, r = makeRng("shop", seed, type, size, level, ed), lv = clamp(level || 1, 1, 20), si = { village: 0, town: 1, city: 2 }[size] ?? 1;
+  const rarOn = Array.isArray(rar) && rar.length > 0, amtOn = !!SHOP_AMOUNT[amount] && amount !== "normal", moodOn = Number.isInteger(+moodIx) && moodIx !== "" && moodIx !== null && moodIx !== undefined && SHOP_MOODS[+moodIx];
+  const key = ["shop", seed, type, size, level, ed]; if (rarOn) key.push("r" + rar.join(".")); if (amtOn) key.push("a" + amount); if (moodOn) key.push("m" + (+moodIx));
+  const S = SHOPS[type] || SHOPS.general, r = makeRng(...key), lv = clamp(level || 1, 1, 20), si = { village: 0, town: 1, city: 2 }[size] ?? 1;
   const maxRk = si === 0 ? 1 : si === 1 ? (lv >= 5 ? 2 : 1) : (lv >= 11 ? 3 : 2);
   const all = IT.data[ed] || IT.data["2024"], priced = x => x.gp !== null && x.gp !== undefined && +x.gp > 0;
-  const total = S.count[si];
+  const total = amtOn ? Math.max(1, Math.round(S.count[si] * SHOP_AMOUNT[amount])) : S.count[si];
   let nMagic = !S.magic ? 0 : S.magicShare ? Math.round(total * S.magicShare) : [0, r.int(0, 1), r.int(1, 3)][si];
-  const magicPool = S.magic ? r.shuffle(all.filter(x => x.kind === "magic" && x.rk >= 0 && x.rk <= maxRk && priced(x) && S.magic(x))) : [];
+  if (rarOn && S.magic) nMagic = Math.max(nMagic, 2);
+  const rkOk = x => rarOn ? rar.includes(x.rk) : x.rk >= 0 && x.rk <= maxRk;
+  const magicPool = S.magic ? r.shuffle(all.filter(x => x.kind === "magic" && rkOk(x) && priced(x) && S.magic(x))) : [];
   const gearPool = r.shuffle(all.filter(x => x.kind === "gear" && priced(x) && S.gear(x)));
-  nMagic = Math.min(nMagic, magicPool.length);
+  nMagic = Math.min(nMagic, total, magicPool.length);
   const picks = [...gearPool.slice(0, total - nMagic), ...magicPool.slice(0, nMagic)];
-  const mood = r.pick(SHOP_MOODS);
+  const mi = moodOn ? +moodIx : null, mood = moodOn ? SHOP_MOODS[mi] : r.pick(SHOP_MOODS);
   const stock = picks.map(x => {
     const k = mood[1] || (0.8 + r.f() * 0.4), gp = shopNiceGp(+x.gp * k);
     const qty = x.kind === "magic" ? 1 : x.g === "Weapons" || x.g === "Armor" ? r.int(1, 3) : r.int(2, 10);
     return { id: x.id, n: x.n, cat: x.cat, g: x.g || "", kind: x.kind, rk: x.rk, r: x.r, att: !!x.att, w: x.w || 0, gp, c: fmtGp(gp), qty };
   }).sort((a, b) => (a.kind === b.kind ? 0 : a.kind === "gear" ? -1 : 1) || a.n.localeCompare(b.n));
-  return { seed, type, size, level: lv, ed, name: `The ${r.pick(SHOP_ADJ)} ${r.pick(S.nouns)}`, label: S.label, keeper: fullName(r, r.pick(["male", "female"])), mood: mood[0], stock };
+  const out = { seed, type, size, level: lv, ed, name: `The ${r.pick(SHOP_ADJ)} ${r.pick(S.nouns)}`, label: S.label, keeper: fullName(r, r.pick(["male", "female"])), mood: mood[0], stock };
+  out.moodIx = SHOP_MOODS.indexOf(mood); if (rarOn) out.rar = rar.slice(); if (amtOn) out.amount = amount;
+  return out;
 }
 function shopLevelGuess() { const lv = PCS.roster.map(c => totalLv(c)).filter(Boolean); return lv.length ? Math.max(...lv) : 3; }
-function shopNew(keep) {
-  const prev = IT.shop || {}, o = keep ? { type: $("#shopType").value, size: $("#shopSize").value, level: +$("#shopLevel").value || 1 } : { type: prev.type || "general", size: prev.size || "town", level: prev.level || shopLevelGuess() };
-  IT.shop = shopMake({ ...o, seed: newSeed(), ed: IT.ed }); shopRender();
+/* Saved shops (2026-11-17): a World place keeps the whole shop in p.shop, with stock, markup and the DM's own prices.
+   IT.shop is that same object while it's open; IT.shopPlace is the place's id. */
+function shopPrice(s, x) { return x.own > 0 ? x.own : shopNiceGp(x.gp * (1 + (+s.markup || 0) / 100)); }
+function shopSaleText(s) {
+  const st = (s.stock || []).filter(x => x.qty > 0);
+  return st.length ? st.slice(0, 24).map(x => `- ${x.n}: ${fmtGp(shopPrice(s, x))}${x.kind === "magic" ? " (magic)" : ""}`).join("\n") + (st.length > 24 ? `\n- …and ${st.length - 24} more` : "") : "Nothing on the shelves today.";
 }
+function shopEnsure(p) {
+  const s = p.shop;
+  if (!Array.isArray(s.stock)) {
+    Object.assign(s, shopMake(s), { markup: 0 });
+    const sec = (p.sections || []).find(x => x.t === "For sale"), txt = shopSaleText(s);
+    if (sec && sec.x === txt) { sec.auto = true; s.sale = txt; }
+  }
+  return s;
+}
+function shopSave() {
+  const p = wp(IT.shopPlace); if (!p || p.shop !== IT.shop) return;
+  const sec = (p.sections || []).find(x => x.auto && x.t === "For sale");
+  if (sec && sec.x === p.shop.sale) { sec.x = p.shop.sale = shopSaleText(p.shop); }
+  worldSave(); wpSyncOut(p);
+}
+function shopOpen(p) {
+  IT.shop = shopEnsure(p); IT.shopPlace = p.id; worldSave();
+  location.hash = "items"; setTimeout(() => { shopRender(); $("#itShop").scrollIntoView({ block: "start" }); }, 80);
+}
+function shopRestock(s) {
+  const n = shopMake({ type: s.type, size: s.size, level: s.level, ed: s.ed, rar: s.rar, amount: s.amount, moodIx: s.moodIx, seed: newSeed() });
+  const own = new Map(s.stock.filter(x => x.own > 0).map(x => [x.id, x.own]));
+  s.stock = n.stock.map(x => own.has(x.id) ? { ...x, own: own.get(x.id) } : x); s.seed = n.seed;
+}
+function shopRowPrice(s, x, i) { return `<input type="number" class="shop-price" min="0" step="any" data-shopown="${i}" value="${shopPrice(s, x)}" aria-label="Price of ${esc(x.n)} in gp" title="Type your own price; empty it to use the markup price"> gp${x.own > 0 ? ` <span class="shop-own" title="Your own price">✎</span>` : ""}`; }
 function shopRender() {
   const s = IT.shop, el = $("#itShop"); if (!s) { el.hidden = true; return; } el.hidden = false;
   el.innerHTML = `<div class="sec-h"><h3>🏪 ${esc(s.name)}</h3><span class="muted" style="font-size:14px;margin-left:8px">${esc(s.label)}</span><span class="sp"></span><button class="icon-btn" type="button" id="shopClose" title="Close the shop">✕</button></div>
-    <div class="field row" style="align-items:end">
-      <div><label>Kind of shop</label><select id="shopType">${Object.entries(SHOPS).map(([k, v]) => `<option value="${k}" ${k === s.type ? "selected" : ""}>${v.label}</option>`).join("")}</select></div>
-      <div><label>Settlement</label><select id="shopSize">${["village", "town", "city"].map(k => `<option value="${k}" ${k === s.size ? "selected" : ""}>${k[0].toUpperCase() + k.slice(1)}</option>`).join("")}</select></div>
-      <div style="max-width:110px"><label>Party level</label><input type="number" id="shopLevel" min="1" max="20" value="${s.level}"></div>
-      <div style="flex:0 0 auto"><button class="btn sm primary" type="button" id="shopReroll">🎲 Roll again</button></div>
-    </div>
     <p style="margin:4px 0 10px"><b>${esc(s.keeper)}</b> runs the place: ${esc(s.mood)}.</p>
-    ${s.stock.length ? `<table class="shop-tbl"><thead><tr><th>Item</th><th>Price</th><th>In stock</th><th></th></tr></thead><tbody>${s.stock.map((x, i) => `<tr class="${x.qty ? "" : "sold"}"><td>${esc(x.n)}${x.kind === "magic" ? ` <span class="tag">${esc(rarName(x))}</span>` : ""}</td><td>${esc(x.c)}</td><td>${x.qty}</td><td><button class="btn sm" type="button" data-shopbuy="${i}" ${x.qty ? "" : "disabled"}>Buy</button></td></tr>`).join("")}</tbody></table>`
-      : `<p class="muted">Nothing on the shelves today. Try another kind of shop or a bigger settlement.</p>`}
-    <p class="hint" style="margin:8px 0 0">Buy pays from the coins of the character chosen in “Give items to” below, and puts the item in their inventory.</p>`;
+    <div class="field row" style="align-items:end">
+      <div style="max-width:140px"><label for="shopMarkup">Markup %</label><input type="number" id="shopMarkup" min="-90" max="500" step="1" value="${+s.markup || 0}" title="Raise or lower every price, for example 20 or -10"></div>
+      <div style="flex:0 0 auto"><button class="btn sm" type="button" id="shopRestock" title="Sold-out items come back and the stock is rolled again">🔄 Restock</button></div>
+      <div style="flex:0 0 auto"><button class="btn sm" type="button" id="shopWorld">Edit in the World</button></div>
+    </div>
+    ${s.stock.length ? `<table class="shop-tbl"><thead><tr><th>Item</th><th>Price</th><th>In stock</th><th></th></tr></thead><tbody>${s.stock.map((x, i) => `<tr class="${x.qty ? "" : "sold"}"><td>${esc(x.n)}${x.kind === "magic" ? ` <span class="tag">${esc(rarName(x))}</span>` : ""}</td><td>${shopRowPrice(s, x, i)}</td><td>${x.qty}</td><td><button class="btn sm" type="button" data-shopbuy="${i}" ${x.qty ? "" : "disabled"}>Buy</button></td></tr>`).join("")}</tbody></table>`
+      : `<p class="muted">Nothing on the shelves today. Press Restock, or make a shop with more stock in the World builder.</p>`}
+    <p class="hint" style="margin:8px 0 0">Buy pays from the coins of the character chosen in “Give items to” below, and puts the item in their inventory. Type in a price to set your own; empty it to go back to the markup price.</p>`;
 }
-$("#itShopBtn").addEventListener("click", () => { shopNew(false); $("#itShop").scrollIntoView({ behavior: "smooth", block: "start" }); });
-$("#itShop").addEventListener("change", e => { if (["shopType", "shopSize", "shopLevel"].includes(e.target.id)) shopNew(true); });
-$("#itShop").addEventListener("click", e => {
-  if (e.target.id === "shopClose") { IT.shop = null; shopRender(); return; }
-  if (e.target.id === "shopReroll") { shopNew(true); return; }
-  const b = e.target.closest("[data-shopbuy]"); if (!b) return;
-  const x = IT.shop.stock[+b.dataset.shopbuy], c = PCS.roster.find(r => r.id === ($("#itTarget") || {}).value); if (!x || !x.qty) return;
-  const before = c ? JSON.stringify(c.coins || {}) : ""; itBuy(x);
-  if (c && JSON.stringify(c.coins || {}) !== before) { x.qty--; shopRender(); }
+$("#itShopBtn").addEventListener("click", () => { wbStart("shop"); W.mode = "build"; location.hash = "world"; });
+$("#itShop").addEventListener("input", e => {
+  const s = IT.shop; if (!s || e.target.id !== "shopMarkup") return;
+  const v = parseFloat(e.target.value); s.markup = isNaN(v) ? 0 : clamp(Math.round(v), -90, 500);
+  s.stock.forEach((x, i) => { const f = $(`#itShop [data-shopown="${i}"]`); if (f && !(x.own > 0)) f.value = shopPrice(s, x); });
+  clearTimeout(IT.shopT); IT.shopT = setTimeout(shopSave, 300);
 });
+$("#itShop").addEventListener("change", e => {
+  const s = IT.shop; if (!s) return;
+  if (e.target.id === "shopMarkup") { e.target.value = +s.markup || 0; clearTimeout(IT.shopT); shopSave(); return; }
+  const f = e.target.closest("[data-shopown]"); if (!f) return;
+  const x = s.stock[+f.dataset.shopown]; if (!x) return; const v = parseFloat(f.value);
+  if (v > 0) x.own = Math.round(v * 100) / 100; else delete x.own;
+  f.parentElement.innerHTML = shopRowPrice(s, x, +f.dataset.shopown); shopSave();
+});
+$("#itShop").addEventListener("click", async e => {
+  if (e.target.id === "shopClose") { IT.shop = null; IT.shopPlace = null; shopRender(); return; }
+  if (e.target.id === "shopWorld") { W.sel = IT.shopPlace; W.mode = "place"; location.hash = "world"; return; }
+  if (e.target.id === "shopRestock") { if (!(await confirmBox("Restock?", "Sold-out items come back and the stock is rolled again.", "Restock"))) return; shopRestock(IT.shop); shopSave(); shopRender(); return; }
+  const b = e.target.closest("[data-shopbuy]"); if (!b) return;
+  const s = IT.shop, x = s.stock[+b.dataset.shopbuy], c = PCS.roster.find(r => r.id === ($("#itTarget") || {}).value); if (!x || !x.qty) return;
+  const before = c ? JSON.stringify(c.coins || {}) : ""; itBuy({ ...x, gp: shopPrice(s, x) });
+  if (c && JSON.stringify(c.coins || {}) !== before) { x.qty--; shopSave(); shopRender(); }
+});
+/* Phones fold the Items filters behind a Filters button, as the Spells tab does. */
+function itFiltersSync() { const b = document.getElementById("itFiltersBtn"); if (!b) return; const n = ["itGroup", "itMType", "itAtt", "itMax"].filter(id => (document.getElementById(id) || {}).value).length + document.querySelectorAll("#itRar .chip.on").length + (IT.mode && IT.mode !== "all" ? 1 : 0), open = $("#itForm").classList.contains("filters-open"); b.textContent = `${open ? "▴" : "▾"} Filters${n ? ` · ${n} on` : ""}`; b.setAttribute("aria-expanded", String(open)); }
+$("#itFiltersBtn").addEventListener("click", () => { $("#itForm").classList.toggle("filters-open"); itFiltersSync(); });
 function renderItems() {
-  itLoad(); renderItTargets();
+  itLoad(); renderItTargets(); itFiltersSync();
+  $("#itShopBtn").hidden = !!(window.Portal && Portal.views && !Portal.views.includes("world"));
   $("#itGearF").classList.toggle("hidden", IT.mode === "magic" || IT.mode === "custom");
   $("#itMagicF").classList.toggle("hidden", IT.mode === "gear");
   const list = itFiltered();
@@ -528,7 +582,8 @@ function ciSave(card) {
   $("#itRar").addEventListener("click", e => { const c = e.target.closest(".chip"); if (!c) return; const r = +c.dataset.r; IT.rar.has(r) ? IT.rar.delete(r) : IT.rar.add(r); c.classList.toggle("on"); renderItems(); });
   $("#itReset").addEventListener("click", () => {
     ["#itQ", "#itGroup", "#itMType", "#itAtt", "#itMax"].forEach(id => $(id).value = ""); $("#itInDesc").checked = false; $("#itSort").value = "name";
-    IT.rar.clear(); $$("#itRar .chip").forEach(c => c.classList.remove("on")); renderItems();
+    IT.rar.clear(); $$("#itRar .chip").forEach(c => c.classList.remove("on"));
+    IT.mode = "all"; const all = $("input[name=itMode][value=all]"); if (all) all.checked = true; renderItems();
   });
   $("#itNew").addEventListener("click", () => ciOpen(ciNew()));
   $("#itRandom").addEventListener("click", () => ciOpen(ciRandom(IT.randRar ?? "")));
