@@ -189,7 +189,7 @@ function spPrepBtn(s) {
 }
 function spPrepToggle(s) {
   const t = spTargetPC(); if (!t) { toast("Pick a character to prepare spells for"); return; }
-  if (!isPrep(t, s.n, SP.ed) && !s.c.includes(t.cls) && !s.c.includes(clsSpellList(t.cls))) toast(`${s.n} isn't on the ${t.cls} list, added anyway`);
+  if (!isPrep(t, s.n, SP.ed) && !pcCastClasses(t).some(k => s.c.includes(k.cls) || s.c.includes(clsSpellList(k.cls)))) toast(`${s.n} isn't on the ${pcCastNames(t)} list, added anyway`);
   togglePrep(t, s, SP.ed); pcChanged(t);
 }
 $("#spTargetRow").addEventListener("change", e => { if (e.target.id === "spTarget") { SP.target = e.target.value; renderSpells(); } });

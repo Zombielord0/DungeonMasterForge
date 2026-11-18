@@ -103,6 +103,10 @@ const server = http.createServer((req, res) => {
     check("a Fighter/Wizard can prepare Wizard spells and cantrips", mc.fwMM && mc.fwFire && !mc.fwBall, JSON.stringify(mc));
     check("a Cleric 3 / Wizard 1 gets both lists, each up to its own level", mc.cwSW && mc.cwMM && !mc.cwMisty, JSON.stringify(mc));
     check("the spell search names the casting class, not Fighter", /Wizard/.test(mc.ph) && !/Fighter/.test(mc.ph), mc.ph);
+    const br = await p.evaluate(() => { const b = document.querySelector("#view-roster [data-spells]"); return b ? { d: b.dataset.spells, t: b.textContent } : null; });
+    check("My Characters: Browse opens the Wizard list for a Fighter/Wizard", br && /^Wizard\|/.test(br.d) && /Wizard/.test(br.t) && !/Fighter/.test(br.t), JSON.stringify(br));
+    const warn = await p.evaluate(() => { spLoad(); const fw = PCS.roster.find(x => x.id === RC.id); let said = ""; const old = toast; toast = m => { said += m + " | "; }; SP.target = fw.id; SP.ed = "2014"; try { spPrepToggle(SP.data["2014"].find(s => s.n === "Magic Missile")); } finally { toast = old; } return said; });
+    check("Spells tab: preparing a Wizard spell for a Fighter/Wizard gives no wrong-list warning", !/isn't on the/.test(warn), warn);
     await ctx.close();
   }
   check("no page errors", !errs.length, errs.join(" | "));
