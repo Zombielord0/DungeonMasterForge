@@ -2,6 +2,10 @@
    When a change ships, add an entry to the top of NEWS with a new id, in plain words for players and DMs. */
 
 const NEWS = [
+  { id: "2026-11-18-fecs-import", date: "2026-11-18", title: "Import from the Fifth Edition Character Sheet app", go: "roster", items: [
+    "📥 Import character on My Characters now also reads characters from the Fifth Edition Character Sheet app. In the app, export the character (or upload it to Google Drive) and choose its .xml file.",
+    "Name, species, classes and levels (multiclass too), subclass, scores, saves, skills, prepared spells, fighting style, coins, XP, equipment, languages and notes all come across. Counts like “holy water x5” are kept.",
+    "Misspelled spells are matched to the real spell. Anything in the spell list that isn't a spell the Forge knows goes into the character's notes, and the summary lists it. A “Custom” background stays as a name, without background features."] },
   { id: "2026-11-18-polish", date: "2026-11-18", title: "Tidier Adventure, Characters and Items tabs", items: [
     "On phones, pressing Forge now takes you straight to your new adventure or character, instead of leaving it below the form.",
     "On laptops, the Forge button stays in view at the bottom of the left-hand panel, and the header shrinks to a slim bar as you scroll down (it comes back at the top).",
