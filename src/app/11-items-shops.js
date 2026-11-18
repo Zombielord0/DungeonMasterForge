@@ -568,7 +568,7 @@ function ciSave(card) {
   const i = IT.custom.findIndex(x => x.id === rec.id);
   if (i >= 0 && IT.custom[i].loreId) { rec.loreId = IT.custom[i].loreId; rec.loreOff = true; } /* made from Lore, now changed here: Lore saves leave it alone */
   if (i >= 0) IT.custom[i] = rec; else IT.custom.unshift(rec);
-  itPersist(); ciClose(); IT.open.add(rec.id); renderItems(); toast(`${rec.n} saved to your custom items`);
+  itPersist(); ciClose(); IT.open.add(rec.id); renderItems(); foldReveal($(`#itList .it-row[data-id="${CSS.escape(rec.id)}"]`)); toast(`${rec.n} saved to your custom items`);
   if (card) itOpenCard(rec);
 }
 (function initItems() {

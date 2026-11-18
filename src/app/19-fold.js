@@ -59,6 +59,12 @@ function foldAllSync(box) {
   b.dataset.foldall = fold ? "1" : "0"; b.setAttribute("aria-label", label); b.title = fold ? "Fold every group in this list" : "Open every group in this list";
 }
 function foldToggle(sec) { foldChoose(sec, !sec.classList.contains("folded")); foldSave(); const box = sec.closest("[id]"); if (box && FOLD_LISTS[box.id]) foldAllSync(box); }
+/* show the folded group holding el (e.g. an item just saved) without remembering it; runs foldify first, since the
+   observer that folds a fresh redraw only runs after the current script */
+function foldReveal(el) {
+  const box = el && Object.keys(FOLD_LISTS).map(id => document.getElementById(id)).find(b => b && b.contains(el)); if (!box) return;
+  foldify(box); const s = el.closest(".sec.foldable"); if (s && s.classList.contains("folded")) { foldSet(s, false); foldAllSync(box); }
+}
 // open a folded section (used when jumping to it from the sheet's jump bar)
 function foldOpen(el) { const s = el && el.closest(".sec.foldable"); if (s && s.classList.contains("folded")) { foldChoose(s, false); foldSave(); } }
 document.addEventListener("click", e => {

@@ -110,6 +110,12 @@ const server = http.createServer((req, res) => {
   check("Fold all folds every group", await p.evaluate(() => [...document.querySelectorAll("#itList > .sec.foldable")].every(s => s.classList.contains("folded"))));
   await p.click('#itList .fold-all[data-foldall="0"]');
   check("Unfold all opens them again", await p.evaluate(() => [...document.querySelectorAll("#itList > .sec.foldable")].every(s => !s.classList.contains("folded"))));
+  // saving a custom item shows its group even though groups start folded (without remembering that)
+  await p.click('#itList .fold-all[data-foldall="1"]');
+  await p.evaluate(() => { IT.draft = { ...ciNew(), n: "Freshly Saved Thing" }; ciSave(); });
+  await p.waitForTimeout(150);
+  check("a newly saved custom item is shown, not folded away", await p.evaluate(() => { const r = [...document.querySelectorAll("#itList .it-row")].find(e => /Freshly Saved Thing/.test(e.textContent)); return !!r && r.offsetHeight > 0; }));
+  check("showing it doesn't change what's remembered", await p.evaluate(() => FOLD.get("it|Your custom items") === true));
   await p.goto(URL + "#spells"); await p.waitForFunction(() => document.querySelector("#spList .sec.foldable"));
   check("spell levels fold too, and start folded", await p.locator("#spList .sec.foldable .fold-btn").count() >= 9 && await p.evaluate(() => [...document.querySelectorAll("#spList > .sec.foldable")].every(s => s.classList.contains("folded"))));
   await p.fill("#spQ", "fireball"); await p.waitForTimeout(400);
