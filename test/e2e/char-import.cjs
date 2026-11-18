@@ -139,6 +139,26 @@ const ZOOK = fs.readFileSync(path.join(FIX, "companion-zook.json"), "utf8");
   });
   check("5e Character Sheet: an XML file that isn't a character is refused kindly", /Fifth Edition Character Sheet/.test(fe3[0]) && /Fifth Edition Character Sheet/.test(fe3[1]), JSON.stringify(fe3));
   check("5e Character Sheet: the report names the app", fe.src === "Fifth Edition Character Sheet");
+  // reviewer fixes (2026-11-18)
+  const fx = await p.evaluate(txt => {
+    const X = "\u22a0", D = "\u22a1", M = "\u229f";
+    const qty = ["Wax 2", "Sphinx 1", "holy water x5", "3x kegs", "pogs 100x", "Box"].map(fecsQty);
+    /* two classes, each with a fighting style; the second written with the mojibake form of the separator */
+    const moj = "\u00e2\u008a\u00a1";
+    const two = txt.replace(`fighting style${D}Defense`, `fighting style${D}Defense${M}fighting style${moj}Dueling`);
+    const d2 = fecsImport(two, "2014");
+    /* a monk-like file: the app's speed is lower than the Forge's -> no "Speed" line; higher -> a line */
+    const slow = importBuild(fecsImport(txt.replace("<baseSpeed>30</baseSpeed>", "<baseSpeed>25</baseSpeed>"), "2014")).report.differ.join(" | ");
+    const fast = importBuild(fecsImport(txt.replace("<speedMiscMod>0</speedMiscMod>", "<speedMiscMod>10</speedMiscMod>"), "2014")).report.differ.join(" | ");
+    /* the summary's homebrew hint for a file whose subclass is new */
+    const hbF = fecsImport(txt.replace("Oath of Devotion", "Oath of the Quiet Tide"), "2014"), hint = impSummaryHTML(hbF, importBuild(hbF));
+    return { qty, styles: d2.extras.fightStyles, slow, fast, hint };
+  }, FECS);
+  check("5e Character Sheet: counts don't eat a name ending in x", JSON.stringify(fx.qty) === JSON.stringify(["Wax 2", "Sphinx 1", "5 holy water", "3 kegs", "100 pogs", "Box"]), JSON.stringify(fx.qty));
+  check("5e Character Sheet: every fighting style is read, with either form of the separator", JSON.stringify(fx.styles) === '["Defense","Dueling"]', JSON.stringify(fx.styles));
+  check("5e Character Sheet: a lower speed in the app isn't flagged (class speed bonuses)", !/Speed is/.test(fx.slow), fx.slow);
+  check("5e Character Sheet: a higher speed in the app is flagged (feats and items)", /Speed is 30 in the Forge \(the sheet says 40\)/.test(fx.fast), fx.fast);
+  check("5e Character Sheet: the homebrew hint fits this app's files", /names only/.test(fx.hint) && !/A PDF/.test(fx.hint), fx.hint.slice(0, 200));
 
   const UI = path.join(__dirname, "char-import-ui.cjs"); // the dialog checks (added with the dialog)
   if (fs.existsSync(UI)) await require(UI)(p, { URL, check, FIX, errs, ctx });

@@ -249,7 +249,7 @@ const FECS_X = /⊠|â\u008a /, FECS_D = /⊡|â\u008a¡/, FECS_M = /⊟|â\u00
 /* "holy water x5", "3x kegs", "pogs 100x" -> "5 holy water", "3 kegs", "100 pogs" (the count form impGear reads) */
 function fecsQty(line) {
   const s = String(line || "").trim(); let m;
-  if ((m = s.match(/^(.*?)\s*[x×]\s*(\d+)$/i)) && m[1]) return `${m[2]} ${m[1]}`;
+  if ((m = s.match(/^(.*?)\s+[x×]\s*(\d+)$/i)) && m[1]) return `${m[2]} ${m[1]}`; /* the x needs a space before it: "Wax 2" stays */
   if ((m = s.match(/^(\d+)\s*[x×]\s+(.+)$/i))) return `${m[1]} ${m[2]}`;
   if ((m = s.match(/^(.*?)\s+(\d+)\s*[x×]$/i))) return `${m[2]} ${m[1]}`;
   return s;
@@ -323,8 +323,14 @@ function fecsImport(text, ed) {
     inv.push({ id: uid("i"), ref: g ? g.id : undefined, n, qty, w: g ? g.w || 0 : 0, att: false, attuned: false, value: g ? g.c : undefined, note: "", eq: eqIsWeapon(g) || eqIsArmor(g) });
   });
   // fighting style: a "fighting style⊡Name" piece in classData
-  const fightStyles = [], fsm = tag("classData").match(/fighting style\s*[⊡]\s*([^⊟⊠⊡]+)/i);
-  if (fsm) { const k = Object.keys(FIGHT_STYLES).find(s => impSame(s, fsm[1].trim())); if (k) { fightStyles.push(k); D.report.matched.push(`Fighting style: ${k}`); } else { D.report.dropped.push(`Fighting style: ${impCut(fsm[1].trim(), 60)} (saved in notes)`); notes.push(`Fighting style: ${fsm[1].trim()}`); } }
+  /* every "fighting style⊡Name" piece (one per class that has one), with either form of the separators */
+  const fightStyles = [], fsRe = new RegExp(`fighting style\\s*(?:${FECS_D.source})\\s*(.+?)\\s*(?=${FECS_M.source}|${FECS_X.source}|${FECS_D.source}|$)`, "gi");
+  for (const fsm of tag("classData").matchAll(fsRe)) {
+    const nm = fsm[1].trim(); if (!nm) continue;
+    const k = Object.keys(FIGHT_STYLES).find(s => impSame(s, nm));
+    if (k) { if (!fightStyles.includes(k)) { fightStyles.push(k); D.report.matched.push(`Fighting style: ${k}`); } }
+    else { D.report.dropped.push(`Fighting style: ${impCut(nm, 60)} (saved in notes)`); notes.push(`Fighting style: ${nm}`); }
+  }
   if (note(0)) notes.unshift(note(0));
   if (note(6)) notes.push(note(6));
   D.opts = { seed: uid("imp"), name: impCut(note(15), 80) || "Imported character", ed, bonus: "fixed", method: "array", cls: main.cls, level: main.lv, subclass: main.subclass || "none", race, sub, bg: bg || undefined,
@@ -336,7 +342,8 @@ function fecsImport(text, ed) {
     align: impTitle(note(10).toLowerCase()), xp: Math.max(0, Math.floor(+note(22) || 0)), hpCur: hpCur === "" ? undefined : +hpCur,
     trait: impCut(note(11), 1000), ideal: impCut(note(12), 1000), bond: impCut(note(13), 1000), flaw: impCut(note(14), 1000),
     notes: notes.join("\n\n"), langs: note(4).split(/\r?\n|,\s*/).map(x => x.trim()).filter(Boolean).join(", "), toolsChosen: note(3).split(/\r?\n|,\s*/).map(x => x.trim()).filter(Boolean).join(", "), conds: [] };
-  D.check = { hp: +tag("maxHealth") || 0, speed: (+tag("baseSpeed") || 0) + (+tag("speedMiscMod") || 0) };
+  /* speed: only flagged when the app's is higher (a feat or item the Forge doesn't know); the app may not count class bonuses like a Monk's */
+  D.check = { hp: +tag("maxHealth") || 0, speed: (+tag("baseSpeed") || 0) + (+tag("speedMiscMod") || 0), speedUp: true };
   if (!main.subclass && main.lv >= subclassLevel(ed, main.cls)) D.report.differ.push(`No ${main.cls} subclass in the file: choose one on the sheet`);
   return D;
 }
@@ -367,7 +374,7 @@ function importBuild(D) {
     try { pcRecompute(c); } catch { }
     c.hpCur = X.hpCur === undefined || isNaN(X.hpCur) ? c.hp : clamp(X.hpCur, 0, c.hp);
     const K = D.check || {}, say = (what, ours, theirs) => { if (theirs > 0 && ours !== theirs) report.differ.push(`${what} is ${ours} in the Forge (the sheet says ${theirs})`); };
-    say("Max HP", c.hp, K.hp); say("Armor class", c.ac, K.ac); say("Speed", (() => { try { return pcSpeed(c).speed; } catch { return c.speed; } })(), K.speed);
+    say("Max HP", c.hp, K.hp); say("Armor class", c.ac, K.ac); { const sp = (() => { try { return pcSpeed(c).speed; } catch { return c.speed; } })(); if (!K.speedUp || K.speed > sp) say("Speed", sp, K.speed); }
     if (c.spell && K.dc > 0) say("Spell save DC", c.spell.dc, K.dc);
     return { c, report };
   } finally { HB.pend = keep.pend; HB.pendSig = keep.sig; hbApply(); }
@@ -538,7 +545,7 @@ function impSummaryHTML(D, built) {
   const R = built.report, c = built.c, li = L => `<ul>${L.map(t => `<li>${esc(t)}</li>`).join("")}</ul>`;
   return `<p style="margin:0"><b>${esc(c.name)}</b> · ${esc(classLine(c))} · ${esc(c.race)} · ${esc(c.bg || "")}</p>
     ${R.matched.length ? `<h4>Matched</h4>${li(R.matched)}` : ""}
-    ${R.made.length ? `<h4>New homebrew${impPlayer() ? " (your DM will be asked to approve)" : ""}</h4>${li(R.made)}<p class="hint" style="margin:4px 0 0">${D.src === IMP_SRC ? "Their rules text comes from the file." : "A PDF has names only: add their rules text in the Homebrew tab."} Sheet effects (bonuses to numbers) aren't added; set them in the Homebrew tab if you need them.</p>` : ""}
+    ${R.made.length ? `<h4>New homebrew${impPlayer() ? " (your DM will be asked to approve)" : ""}</h4>${li(R.made)}<p class="hint" style="margin:4px 0 0">${D.src === IMP_SRC ? "Their rules text comes from the file." : `${D.src === FECS_SRC ? "This app's file" : "A PDF"} has names only: add their rules text in the Homebrew tab.`} Sheet effects (bonuses to numbers) aren't added; set them in the Homebrew tab if you need them.</p>` : ""}
     ${R.differ.length ? `<h4>Different from the file</h4>${li(R.differ)}` : ""}
     ${R.dropped.length ? `<h4>Not brought across</h4>${li(R.dropped)}` : ""}`;
 }
