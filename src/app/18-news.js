@@ -2,6 +2,10 @@
    When a change ships, add an entry to the top of NEWS with a new id, in plain words for players and DMs. */
 
 const NEWS = [
+  { id: "2026-11-18-region-builder", date: "2026-11-18", title: "Make regions with their maps", go: "world", items: [
+    "On the World tab, press 🛠 World builder and choose 🗺️ Region. Give it your own name (or leave it empty for a made-up one), pick Coast, Inland or Island and the kind of land, and see the map as you go. Press 🎲 Roll again until you like it.",
+    "Rename the mountains, forests, rivers, seas and lakes in the boxes under the map before you save it.",
+    "Press ✓ Add to World to keep it as a region in the campaign you chose. The builder is then ready for the next one, so making Region One and then an island for Region Two takes a minute. Your regions show up on the 🌍 World map."] },
   { id: "2026-11-17-side-jump", date: "2026-11-17", title: "No more jumping side panel", items: [
     "On some screen sizes, hovering a box in the left-hand panel (like the party level boxes on the Generate tab) made its buttons jump between one row and two. The panel now keeps room for its scroll bar, so it stays still."] },
   { id: "2026-11-17-shops", date: "2026-11-17", title: "Better shops", go: "world", items: [
