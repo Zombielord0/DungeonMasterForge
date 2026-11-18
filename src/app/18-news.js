@@ -2,6 +2,9 @@
    When a change ships, add an entry to the top of NEWS with a new id, in plain words for players and DMs. */
 
 const NEWS = [
+  { id: "2026-11-18-realistic-backdrop", date: "2026-11-18", title: "A real dungeon behind the Forge", items: [
+    "The background is now a photo-real stone corridor, and its two torches burn live. Phones held upright get their own tall version.",
+    "If your device is set to reduce motion, the picture stays still."] },
   { id: "2026-11-18-fecs-import", date: "2026-11-18", title: "Import from the Fifth Edition Character Sheet app", go: "roster", items: [
     "📥 Import character on My Characters now also reads characters from the Fifth Edition Character Sheet app. In the app, export the character (or upload it to Google Drive) and choose its .xml file.",
     "Name, species, classes and levels (multiclass too), subclass, scores, saves, skills, prepared spells, fighting style, coins, XP, equipment, languages and notes all come across. Counts like “holy water x5” are kept.",

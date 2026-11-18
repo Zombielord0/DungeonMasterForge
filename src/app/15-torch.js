@@ -73,7 +73,10 @@
      on top of it and otherwise see-through, draws live flames and a flickering glow on the picture's torches.
      Torch positions are fractions of the picture's width and height, measured from the picture: change them here
      when a picture is swapped (see tools/make-backdrop.py). */
-  const BACKDROPS = { wide: { w: 2560, h: 1429, torches: [{ x: .284, y: .322 }, { x: .716, y: .322 }] } };
+  const BACKDROPS = {
+    wide: { w: 2560, h: 1429, torches: [{ x: .284, y: .322 }, { x: .716, y: .322 }] },   /* laptops, TVs, phones on their side */
+    tall: { w: 1080, h: 1935, torches: [{ x: .179, y: .392 }, { x: .824, y: .392 }] },   /* phones held upright */
+  };
   const TALL_MQ = "(max-aspect-ratio: 3/4)"; /* the same query as the tall picture's CSS */
   const sceneName = () => BACKDROPS.tall && matchMedia(TALL_MQ).matches ? "tall" : "wide";
   function coverBox(pic, W, H) {
