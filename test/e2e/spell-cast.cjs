@@ -24,7 +24,7 @@ const server = http.createServer((req, res) => {
   };
   const setup = p => p.evaluate(() => {
     const c = pcEnsure(generateCharacter({ seed: "CAST1", name: "Sister Ana", cls: "Cleric", level: 5, ed: "2014" }));
-    c.prepared = [{ n: "Cure Wounds", l: 1, ed: "2014" }, { n: "Sacred Flame", l: 0, ed: "2014" }, { n: "Spiritual Weapon", l: 2, ed: "2014" }, { n: "Bless", l: 1, ed: "2014" }];
+    c.prepared = [{ n: "Cure Wounds", l: 1, ed: "2014" }, { n: "Sacred Flame", l: 0, ed: "2014" }, { n: "Spiritual Weapon", l: 2, ed: "2014" }, { n: "Bless", l: 1, ed: "2014" }, { n: "Spirit Guardians", l: 3, ed: "2014" }];
     c.used = { slot3: 2 }; PCS.roster.push(c); pcPersist(); RC.id = c.id; return c.id;
   });
   const bubble = n => `#rcPrepared .prep-b[data-spell="2014|${n}"]`;
@@ -49,12 +49,25 @@ const server = http.createServer((req, res) => {
     check("picking a higher level changes the dice", /2d8/.test(await p.locator("#castFx").textContent()), await p.locator("#castFx").textContent());
     await p.click("#actModal [data-castgo]"); await p.waitForTimeout(300);
     check("Cast spends the picked level's slot", await p.evaluate(id => { const c = PCS.roster.find(x => x.id === id); return (+c.used.slot2 || 0) === 1 && !(+c.used.slot1 || 0); }, id));
+    await p.evaluate(() => actClose());
+    // every slot that fits is used up: nothing is picked, and Cast waits for a choice
+    await p.evaluate(id => { const c = PCS.roster.find(x => x.id === id); c.used = { slot3: 2 }; renderRosterTab(); }, id); await p.waitForTimeout(200);
+    await p.click(bubble("Spirit Guardians")).catch(() => {});
+    const none = await p.evaluate(() => { const m = document.querySelector("#actModal.open"); if (!m) return null; return { picked: [...m.querySelectorAll('[data-castlv][aria-pressed="true"]')].map(b => b.dataset.castlv), cast: m.querySelector("[data-castgo]").disabled, fx: m.querySelector("#castFx").textContent }; });
+    check("with no slots left, nothing is picked and Cast waits for a choice", none && !none.picked.length && none.cast && /No slots left/.test(none.fx), JSON.stringify(none));
+    await p.click('#actModal [data-castlv="free"]'); await p.waitForTimeout(100);
+    check("…choosing Without a slot then allows Cast", await p.evaluate(() => !document.querySelector("#actModal [data-castgo]").disabled));
+    check("the spell window is wider than other pop-ups", await p.evaluate(() => document.querySelector("#actModal .box").getBoundingClientRect().width > 560));
+    await p.evaluate(() => { actClose(); actDialog('<h3 id="actTitle">x</h3>'); });
+    check("…and other pop-ups don't keep its width", await p.evaluate(() => !document.querySelector("#actBox").classList.contains("spell-box")));
     await p.evaluate(() => actClose()); await p.evaluate(() => renderRosterTab()); await p.waitForTimeout(200);
     await p.click(bubble("Sacred Flame")); await p.waitForTimeout(200);
     check("a cantrip has no slot buttons, and can be cast", await p.evaluate(() => !document.querySelector('#actModal [data-castlv^="slot"]') && !!document.querySelector("#actModal [data-castgo]")));
     await p.evaluate(() => actClose());
     await p.click('#rcPrepared [data-unprep="2014|Bless"]'); await p.waitForTimeout(200);
     check("the ✕ still removes a spell", await p.evaluate(id => !PCS.roster.find(x => x.id === id).prepared.some(s => s.n === "Bless"), id));
+    // a non-caster's feat spells: no ✕ (the feat would bring them back)
+    check("a non-caster's feat spells have no ✕", await p.evaluate(() => { const c = pcEnsure(generateCharacter({ seed: "MI1", cls: "Fighter", level: 2, ed: "2014" })); c.prepared = [{ n: "Fire Bolt", l: 0, ed: "2014", src: "Magic Initiate" }]; const h = preparedHTML(c, true); return /data-spell=/.test(h) && !/data-unprep=/.test(h); }));
     // the Characters tab: rules only
     await p.goto(URL + "#character"); await p.waitForTimeout(300);
     await p.evaluate(() => { currentPC = pcEnsure(generateCharacter({ seed: "CAST2", name: "Brother Tam", cls: "Cleric", level: 3, ed: "2014" })); currentPC.prepared = [{ n: "Cure Wounds", l: 1, ed: "2014" }]; renderPC(); });

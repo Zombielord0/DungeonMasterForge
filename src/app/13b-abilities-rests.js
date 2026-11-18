@@ -335,7 +335,7 @@ function actDialog(html) {
     document.addEventListener("keydown", e => { if (e.key === "Escape" && m.classList.contains("open")) actClose(); });
   }
   ACTX.back = document.activeElement;
-  $("#actBox").innerHTML = html; m.classList.add("open");
+  const box = $("#actBox"); box.className = "box"; box.innerHTML = html; m.classList.add("open"); /* a dialog may add its own class (spell-box) after this */
   const f = $("#actBox [autofocus]") || $("#actBox select, #actBox input, #actBox button"); if (f) f.focus();
 }
 function actClose() { const m = $("#actModal"); if (m) m.classList.remove("open"); const c = ACTX.c; if (c && location.hash === "#roster") { renderRosterMain(); } if (ACTX.back && document.contains(ACTX.back)) ACTX.back.focus(); }

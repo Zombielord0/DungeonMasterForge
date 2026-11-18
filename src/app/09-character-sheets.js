@@ -118,10 +118,10 @@ function pcSpellPool(c, ed) {
   return SP.data[ed].filter(s => !s.pend && (s.c.includes(c.cls) || s.c.includes(list)) && s.l <= c.spell.max && (s.l > 0 || c.spell.cantrips));
 }
 /* Prepared spells as bubbles: tap one for the spell window (castDialog). `cast` (My Characters) adds slots left per level. */
-function prepBubble(p) {
+function prepBubble(p, canRemove = true) {
   const sp = spellOf(p.ed, p.n) || {};
   const marks = `${sp.co ? `<span class="prep-mk" title="Concentration">C</span>` : ""}${sp.ri ? `<span class="prep-mk" title="Ritual">R</span>` : ""}`;
-  return `<span class="prep-chip"><button type="button" class="prep-b" data-spell="${esc(p.ed + "|" + p.n)}" title="Open ${esc(p.n)}">${esc(p.n)}${marks}${p.ed === "2014" ? ` <span class="muted" style="font-size:11px">2014</span>` : ""}</button>${p.src ? `<span class="muted" style="font-size:11px" title="From ${esc(p.src)}; doesn't count against your limit">${p.src === "Magic Initiate" ? "MI" : esc(p.src)}</span>` : ""}<button type="button" class="prep-x" data-unprep="${esc(p.ed + "|" + p.n)}" title="Remove ${esc(p.n)}" aria-label="Remove ${esc(p.n)}">✕</button></span>`;
+  return `<span class="prep-chip"><button type="button" class="prep-b" data-spell="${esc(p.ed + "|" + p.n)}" title="Open ${esc(p.n)}">${esc(p.n)}${marks}${p.ed === "2014" ? ` <span class="muted" style="font-size:11px">2014</span>` : ""}</button>${p.src ? `<span class="muted" style="font-size:11px" title="From ${esc(p.src)}; doesn't count against your limit">${p.src === "Magic Initiate" ? "MI" : esc(p.src)}</span>` : ""}${canRemove ? `<button type="button" class="prep-x" data-unprep="${esc(p.ed + "|" + p.n)}" title="Remove ${esc(p.n)}" aria-label="Remove ${esc(p.n)}">✕</button>` : ""}</span>`;
 }
 function prepSlotsText(c, l) {
   let R; try { R = pcResources(c); } catch { return ""; }
@@ -133,9 +133,9 @@ function preparedHTML(c, cast) {
   const can = PC.filter(p => p.l === 0).length, lev = PC.length - can;
   const byL = {}; P.forEach(p => (byL[p.l] = byL[p.l] || []).push(p));
   const lvls = Object.keys(byL).map(Number).sort((a, b) => a - b);
-  if (!L) return P.length ? `<div class="prep-row">${P.map(prepBubble).join("")}</div>` : "";
+  if (!L) return P.length ? `<div class="prep-row">${P.map(p => prepBubble(p, false)).join("")}</div>` : ""; /* a non-caster's spells come from feats: the feat would bring them back */
   const counts = `<div class="prep-count">${L.cantrips ? `<span>Cantrips <b class="${can > L.cantrips ? "over" : ""}">${can} / ${L.cantrips}</b></span>` : ""}<span>Spells ${L.word} <b class="${lev > L.n ? "over" : ""}">${lev} / ${L.n}</b></span>${c.cls === "Wizard" ? `<span class="muted">Wizards prepare from their spellbook.</span>` : ""}</div>`;
-  const list = P.length ? lvls.map(l => `<div class="prep-lv">${l === 0 ? "Cantrips" : ordinal(l)}${cast && l ? prepSlotsText(c, l) : ""}</div><div class="prep-row">${byL[l].slice().sort((a, b) => a.n.localeCompare(b.n)).map(prepBubble).join("")}</div>`).join("")
+  const list = P.length ? lvls.map(l => `<div class="prep-lv">${l === 0 ? "Cantrips" : ordinal(l)}${cast && l ? prepSlotsText(c, l) : ""}</div><div class="prep-row">${byL[l].slice().sort((a, b) => a.n.localeCompare(b.n)).map(p => prepBubble(p)).join("")}</div>`).join("")
     : `<p class="muted" style="margin:8px 0 0">No spells ${L.word} yet. Use Prepare spells to search the ${esc(c.cls)} list, or pick spells from the Spells tab.</p>`;
   return counts + list;
 }
