@@ -112,10 +112,22 @@ function pcChanged(c) {
   const rp = $("#rcPrepared"); if (rp && RC.id === c.id) rp.innerHTML = preparedHTML(c, true);
   pcPersist();
 }
+/* Every spellcasting class the character has (main and multiclass), each with the highest spell level its OWN class level
+   reaches and whether it has cantrips. A Fighter/Wizard prepares from the Wizard list (owner's bug, 2026-11-18). */
+function pcCastClasses(c) {
+  if (!c || !c.spell) return [];
+  const ed = edOf(c), list = [{ cls: c.cls, lv: c.level }, ...(c.multi || []).filter(x => +x.lv > 0)].filter(x => CLASS_DATA[x.cls] && CLASS_DATA[x.cls].cast);
+  return list.map(({ cls, lv }) => {
+    const k = CLASS_DATA[cls].cast[0];
+    const max = k === "pact" ? Math.min(5, Math.ceil(lv / 2)) : k === "full" ? (FULL_SLOTS[lv] || []).length : (lv >= 2 || ed === "2024" ? (FULL_SLOTS[Math.ceil(lv / 2)] || []).length : 0);
+    return { cls, lv, max: Math.max(k === "half" && !max ? 0 : 1, max), cantrips: k !== "half" };
+  });
+}
+const pcCastNames = c => { const L = pcCastClasses(c).map(x => x.cls); return L.length ? L.join(" and ") : c.cls; };
 function pcSpellPool(c, ed) {
   spLoad();
-  const list = clsSpellList(c.cls);
-  return SP.data[ed].filter(s => !s.pend && (s.c.includes(c.cls) || s.c.includes(list)) && s.l <= c.spell.max && (s.l > 0 || c.spell.cantrips));
+  const K = pcCastClasses(c); if (!K.length) return [];
+  return SP.data[ed].filter(s => !s.pend && K.some(k => (s.c.includes(k.cls) || s.c.includes(clsSpellList(k.cls))) && (s.l === 0 ? k.cantrips : s.l <= k.max)));
 }
 /* Prepared spells as bubbles: tap one for the spell window (castDialog). `cast` (My Characters) adds slots left per level. */
 function prepBubble(p, canRemove = true) {
@@ -136,13 +148,13 @@ function preparedHTML(c, cast) {
   if (!L) return P.length ? `<div class="prep-row">${P.map(p => prepBubble(p, false)).join("")}</div>` : ""; /* a non-caster's spells come from feats: the feat would bring them back */
   const counts = `<div class="prep-count">${L.cantrips ? `<span>Cantrips <b class="${can > L.cantrips ? "over" : ""}">${can} / ${L.cantrips}</b></span>` : ""}<span>Spells ${L.word} <b class="${lev > L.n ? "over" : ""}">${lev} / ${L.n}</b></span>${c.cls === "Wizard" ? `<span class="muted">Wizards prepare from their spellbook.</span>` : ""}</div>`;
   const list = P.length ? lvls.map(l => `<div class="prep-lv">${l === 0 ? "Cantrips" : ordinal(l)}${cast && l ? prepSlotsText(c, l) : ""}</div><div class="prep-row">${byL[l].slice().sort((a, b) => a.n.localeCompare(b.n)).map(p => prepBubble(p)).join("")}</div>`).join("")
-    : `<p class="muted" style="margin:8px 0 0">No spells ${L.word} yet. Use Prepare spells to search the ${esc(c.cls)} list, or pick spells from the Spells tab.</p>`;
+    : `<p class="muted" style="margin:8px 0 0">No spells ${L.word} yet. Use Prepare spells to search the ${esc(pcCastNames(c))} list, or pick spells from the Spells tab.</p>`;
   return counts + list;
 }
 function prepPanelHTML(c, pre = "pc") {
   const lvOpts = (c.spell.cantrips ? `<option value="0">Cantrips</option>` : "") + Array.from({ length: c.spell.max }, (_, i) => `<option value="${i + 1}">Level ${i + 1}</option>`).join("");
   return `<div class="prep-panel hidden" id="${pre}PrepPanel">
-    <div class="row" style="flex-wrap:wrap"><input type="text" id="${pre}PrepQ" placeholder="Search ${esc(c.cls)} spells, e.g. cure" style="flex:2 1 200px" aria-label="Search spells">
+    <div class="row" style="flex-wrap:wrap"><input type="text" id="${pre}PrepQ" placeholder="Search ${esc(pcCastNames(c))} spells, e.g. cure" style="flex:2 1 200px" aria-label="Search spells">
       <select id="${pre}PrepLv" style="flex:1 1 110px" aria-label="Spell level"><option value="">All levels</option>${lvOpts}</select>
       <select id="${pre}PrepEd" style="flex:1 1 110px" aria-label="Rules edition"><option value="2024">2024 rules</option><option value="2014">2014 rules</option></select></div>
     <div class="prep-res" id="${pre}PrepList"></div></div>`;
@@ -157,7 +169,7 @@ function renderPrepList(c = currentPC, pre = "pc") {
       <div class="sp-desc"><div class="muted" style="font-size:13.5px">${esc(s.t)} · ${esc(s.r)} · ${esc(s.du)}</div>${spFormat(s.d)}</div></details>
       <button type="button" class="btn sm ${on ? "" : "primary"}" data-prep="${s.id}" style="flex:0 0 auto">${on ? "✓ Prepared" : "+ Prepare"}</button></div>`;
   }).join("") + (list.length > 150 ? `<p class="hint">Showing 150 of ${list.length}. Narrow the search to see more.</p>` : "")
-    : `<p class="muted" style="margin:8px 0">No ${esc(c.cls)} spells match up to level ${c.spell.max}.</p>`;
+    : `<p class="muted" style="margin:8px 0">No ${esc(pcCastNames(c))} spells match.</p>`;
 }
 
 /* ---- prepare from the Spells tab ---- */

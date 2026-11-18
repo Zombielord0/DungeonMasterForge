@@ -256,7 +256,7 @@ function sheetHTML(c) {
       ${c.attacks.map(a => `<div class="enc" style="border-color:var(--gold)"><b>${esc(a.name)}</b>: ${sgn(a.hit)} to hit, ${esc(a.dmg)} damage</div>`).join("")}
       ${c.spell ? `<p style="margin:10px 0 4px"><b>Spell save DC ${c.spell.dc}</b> · spell attack ${sgn(c.spell.atk)} · ability ${AB_NAME[c.spell.ab]}</p>
         ${c.spell.note ? `<div>${esc(c.spell.note)}</div>` : c.spell.slots.length ? `<div class="chips">${c.spell.slots.map((n, i) => `<span class="tag">Lv ${i + 1}: ${n} slot${n > 1 ? "s" : ""}</span>`).join("")}</div>` : `<div class="muted">No spell slots until level 2.</div>`}` : ""}
-      ${c.spell ? `<button class="btn sm" style="margin-top:10px" data-spells="${esc(c.cls)}|${c.spell.max}|${c.spell.cantrips ? 1 : 0}">✦ Browse ${esc(c.cls)} spells up to level ${c.spell.max}</button>` : ""}
+      ${c.spell ? `<button class="btn sm" style="margin-top:10px" data-spells="${esc(c.spell.cls || c.cls)}|${c.spell.max}|${c.spell.cantrips ? 1 : 0}">✦ Browse ${esc(c.spell.cls || c.cls)} spells up to level ${c.spell.max}</button>` : ""}
       ${c.extras.length ? `<ul class="plain" style="margin-top:10px">${c.extras.map(x => `<li>${esc(x)}</li>`).join("")}</ul>` : ""}
     </div>
   </div>

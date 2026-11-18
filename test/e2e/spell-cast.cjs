@@ -86,6 +86,25 @@ const server = http.createServer((req, res) => {
     check("phone: the spell window fits the screen width", await p.evaluate(() => { const b = document.querySelector("#actModal.open .box"); return !!b && b.getBoundingClientRect().right <= innerWidth + 1 && document.documentElement.scrollWidth <= innerWidth; }));
     await ctx.close();
   }
+  // multiclass into a caster (owner's bug, 2026-11-18): a Fighter/Wizard prepares Wizard spells
+  {
+    const { ctx, p } = await open(1300, 900);
+    await p.goto(URL + "#roster"); await p.waitForTimeout(400);
+    const mc = await p.evaluate(() => {
+      const fw = pcEnsure(generateCharacter({ seed: "MCF", name: "Gruff", cls: "Fighter", level: 3, ed: "2014", multi: [{ cls: "Wizard", lv: 2 }] }));
+      const pool = pcSpellPool(fw, "2014").map(s => s.n);
+      const cw = pcEnsure(generateCharacter({ seed: "MCC", cls: "Cleric", level: 3, ed: "2014", multi: [{ cls: "Wizard", lv: 1 }] }));
+      const pool2 = pcSpellPool(cw, "2014").map(s => s.n);
+      PCS.roster.push(fw); RC.id = fw.id; renderRosterTab();
+      return { fwMM: pool.includes("Magic Missile"), fwFire: pool.includes("Fire Bolt"), fwBall: pool.includes("Fireball"), fwN: pool.length,
+        cwSW: pool2.includes("Spiritual Weapon"), cwMM: pool2.includes("Magic Missile"), cwMisty: pool2.includes("Misty Step"),
+        ph: (document.querySelector("#rcPrepQ") || {}).placeholder || "" };
+    });
+    check("a Fighter/Wizard can prepare Wizard spells and cantrips", mc.fwMM && mc.fwFire && !mc.fwBall, JSON.stringify(mc));
+    check("a Cleric 3 / Wizard 1 gets both lists, each up to its own level", mc.cwSW && mc.cwMM && !mc.cwMisty, JSON.stringify(mc));
+    check("the spell search names the casting class, not Fighter", /Wizard/.test(mc.ph) && !/Fighter/.test(mc.ph), mc.ph);
+    await ctx.close();
+  }
   check("no page errors", !errs.length, errs.join(" | "));
   await browser.close(); server.close();
   console.log(fails ? `\n${fails} check(s) failed` : "\nAll spell window checks passed");
