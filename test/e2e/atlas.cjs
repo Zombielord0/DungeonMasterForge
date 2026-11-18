@@ -199,7 +199,9 @@ const server = http.createServer((req, res) => {
   await p.bringToFront();
   check("tv: Show on TV sends a frame", await waitFrame(0));
   const L1 = await p.evaluate(() => atlasTvLabels());
-  check("tv: the picture shows found places and the land's names", L1.includes("Frostford") && L1.includes("Northmarch") && L1.some(x => /the |River|Lake|Mount/.test(x)), JSON.stringify(L1));
+  /* the map is random each run, so compare with its own feature names rather than a word list */
+  const feat1 = await p.evaluate(() => (atlasOf(HOST.atlas.id).names || []).map(f => f.name).filter(Boolean));
+  check("tv: the picture shows found places and the land's names", L1.includes("Frostford") && L1.includes("Northmarch") && L1.some(x => feat1.includes(x)), JSON.stringify({ L1, feat1 }));
   check("tv: …and never a hidden place's name", !["Velmor", "Sunken Crypt", "Bell Tower", "Witchwood"].some(x => L1.includes(x)), JSON.stringify(L1));
   check("tv: the button now says Off TV", /Off TV/.test(await p.textContent('[data-at="tv"]')));
   let n = await tv.evaluate(() => window.tvFrames || 0);
