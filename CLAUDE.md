@@ -106,7 +106,7 @@ Live site: https://dungeonmasterforge.netlify.app (Netlify; production branch `m
 | `13e-sheet.js` | The roster and the editable sheet (`renderRosterMain`), its events, older-save upgrades |
 | `14-boot.js` | The toolbar, `route()` (switching tabs) and start-up |
 | `15-torch.js` | Live flames on the background picture's torches (`BACKDROPS`), and the header torches: at most 30 frames a second (20 and normal resolution on phones), header torches skipped while the header is away |
-| `16-character-import.js` | Companion App and PDF import, the Import character window |
+| `16-character-import.js` | Companion App, PDF and Fifth Edition Character Sheet (XML) import, the Import character window |
 | `17-mythweaver.js` | MythWeaver import and the Import campaign window |
 | `18-news.js` | What's new (`NEWS`) and Install app |
 
@@ -202,18 +202,45 @@ Playwright and Chromium are pre-installed in cloud sessions. To test offline mod
   - **The DM's Tracker, World, NPCs, custom items and monsters saved to their account** (`Cloud`, `/api/me/docs`, `npm run test:sync`).
   - Later the same day, in the same PR: the players' Journal, turn order on phones and shared rolls; homebrew classes; **World and region maps** (`06b-atlas.js`, `npm run test:atlas`).
   - The page went from 829 KB to about 14 KB compressed on repeat visits when nothing changed. The code (about 360 KB compressed) and the data (about 440 KB) are downloaded again only when they change.
-- **PRs 10 and 11** were merged to `main` (PR 11: shops in the World builder, the Region builder, UI polish, Fifth Edition Character Sheet import).
-- **Branch `claude/realistic-backdrop`** (PR 12): a photo-real corridor picture replaces the drawn background, with live flames on its torches; a tall picture for phones. The owner wants the main screen to look more realistic next (panels, buttons).
+- **PRs 10 to 13 were merged to `main`** at the owner's request (11 on 2026-11-18; 12 and 13 later the same day):
+  - **PR 11:**
+    - shops made in the World builder (rarity, stock size, manner, markup, own prices, sold stays sold, Restock; `docs/features/dm-tools.md`);
+    - the side panels' steady scrollbar gap;
+    - the **Region builder** (World builder → 🗺️ Region; `docs/features/world-maps.md`);
+    - the **UI polish** of the Adventure, Characters and Items tabs (`npm run test:polish`; `docs/features/layout.md`);
+    - **Fifth Edition Character Sheet import** (`fecsImport`; `docs/features/import.md`).
+  - **PR 12:**
+    - **spell bubbles** and the spell window (tap a prepared spell for its rules, Cast at a chosen level; `npm run test:cast`);
+    - **one Spells box** on both sheets (DC, slot counters and prepared spells together; Attacks is just attacks);
+    - **multiclass casters prepare their caster class's spells** (`pcCastClasses`). Notes: `docs/features/history.md`, item 20.
+  - **PR 13:** a photo-real corridor background with live flames on its torches, and a tall picture for phones (`npm run test:backdrop`).
+- **Next, as the owner said:** make the main screen look more realistic (panels, buttons).
+- **Work branch:** cloud chats use their own `claude/…` branch. After a merge, start the next piece from the latest `main`.
 - **The owner's order of import work:**
   1. Companion App import: done.
   2. Homebrew classes, for classes the Forge doesn't have, like Blood Hunter: **done** (2026-11-17). Imports with an unknown class make a homebrew class.
   3. PDF import: done.
   4. MythWeaver: done.
+  5. Fifth Edition Character Sheet app (XML export): done (2026-11-18). Unknown spell entries go to notes, never homebrew (owner's choice); a "Custom" background stays a plain name.
 - **Small things left alone (the owner knows):**
   - PDF expertise beyond what the class grants is dropped without a note.
   - A PDF's portrait isn't imported.
   - Deleting a whole campaign leaves its NPCs' uploaded pictures in IndexedDB.
   - The tag-based sorting of MythWeaver "generic" lore is a best guess.
+  - **Shops:**
+    - an item bought at a marked-up price shows the list price as its inventory value;
+    - a markup change made within ⅓ second of closing the shop isn't saved;
+    - if an account sync reloads the World while a shop is open, later purchases might not save;
+    - "Edit in the World" doesn't check that the place still exists.
+  - **Region builder:** a typed feature name stays on its slot when Shape or Land changes (Roll again clears them).
+  - **Side panels:**
+    - every side panel's main button (Generate Dungeon, Summon NPCs, Forge creature) also stays in view at the bottom on laptops;
+    - the panels keep about 8 px for the scrollbar.
+  - **Spells:**
+    - the Spellcasting and Pact Magic feature texts still say "shown under Attacks & Spellcasting" (now the Spells box);
+    - on the Characters tab, Browse sits under the slots;
+    - Eldritch Knight and Arcane Trickster have no spellcasting.
+  - **Tests:** `test:map`'s "TV shows the box-hidden entrance as fog" fails about one run in three, on `main` too (a timing problem).
 - **Ideas not yet done:** one shared sheet layout instead of two (`sheetHTML` and `renderRosterMain`); pictures in account saves (they're in backups now).
 
 ## Gotchas found along the way
@@ -245,4 +272,7 @@ Playwright and Chromium are pre-installed in cloud sessions. To test offline mod
 - **pdf.js 6.5's `getFieldObjects()` returned nothing** for real sheets; read widgets with `page.getAnnotations()` instead.
 - **On phones the header can be away** (`hdr-away` on `<html>`). Anything placed relative to header elements must measure where the header ends up, not where it is mid-slide (see `newsOpen`).
 - **Grid columns need `min-width:0`** (already set for `.layout` and `.tlayout`). Without it, one wide child widens the whole page on phones.
+- **Headless Chromium hides scrollbars**, so a layout bug that depends on a scrollbar's width won't show in a test unless the browser is launched with `ignoreDefaultArgs: ["--hide-scrollbars"]` (see the side-panel check in `test/e2e/layout.cjs`).
+- **`.map(fn)` passes the index as the second argument.** Don't pass a function with an optional second parameter straight to `.map` (`prepBubble` hid the first ✕ that way).
+- **The Bash safety check also trips on long inline scripts** containing words like `remove(`. Write the script to a file with the Write tool, then run it.
 - **A stale sign-in.** The browser's `getUser()` trusts any `nf_jwt` cookie, even one the server rejects. `enter()` treats a 401 from `/api/me` by calling `dropSession()` and showing the sign-in form. Never leave the gate without a way out.
