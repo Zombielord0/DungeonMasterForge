@@ -5,15 +5,15 @@ These are project notes for the next chat (human or Claude). They cover what the
 ## Ground rules from the owner
 
 - **When a change ships, add an entry to the top of `NEWS` in `src/app/18-news.js`** with a new `id`, in plain words for players and DMs. That's what lights up the bell for everyone.
-- **Don't merge or push to `main` unless the owner asks in that chat.** A push to `main` starts a Netlify production deploy, and Netlify credits have run out before ("only testing"). Work on a branch, and test locally with `npm run dev`.
+- **Never merge or push to `main` without asking the owner first, in that chat, and getting a yes (owner, 2026-11-18).** A merge or push to `main` starts a Netlify production deploy to the live site, and Netlify credits have run out before ("only testing"). Ask every time, even if an earlier merge was approved. Work on a branch, and test locally with `npm run dev`.
 - The owner is on **Windows** and can't run bash scripts. Anything they run themselves has to work in PowerShell or Command Prompt, so prefer `npm run ...` scripts.
 - Explain things plainly. The owner tests in the browser rather than reading code.
-- Don't open pull requests unless asked.
+- **Pull requests are allowed without asking (owner, 2026-11-18).** When a piece of work is finished, tested, reviewed and pushed, open a **draft** pull request into `main` (or push to the existing one) so the owner gets a preview page. Tell the owner the preview link.
 - Pushing to a pull request's branch starts a Netlify **deploy preview**, which also uses build credits. Push when the work is ready or when asked, rather than after every small change. Cloud sessions have a stop hook that asks for unpushed commits to be pushed.
 - **Test on preview pages, not the live site (owner, 2026-11-16).**
   - Work goes on a branch with a **draft** pull request into `main`, so Netlify builds a deploy preview the owner can try in the browser (`deploy-preview-<PR number>--dungeonmasterforge.netlify.app`).
   - Run the automated checks locally first (`npm run test:all`), and push in batches: one preview build per finished piece of work. Don't push design-only commits on their own.
-  - Merge to `main` (a production build) only when the owner has tried the preview and asks.
+  - Merge to `main` (a production build) only after asking the owner and getting a yes, usually once they've tried the preview.
   - Previews may use their own copy of the campaign database, so test there with fresh accounts and campaigns.
 
 ## Finishing a piece of work: reviews and tests (owner, 2026-11-17)
