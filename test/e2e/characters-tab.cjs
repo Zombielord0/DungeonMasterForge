@@ -112,7 +112,9 @@ const server = http.createServer((req, res) => {
       '<style onload="hits.push(7)"></style>', '<svg><image href=x onerror="hits.push(8)"></image></svg>', '<audio src=x onerror="hits.push(9)"></audio>', '<a href="javascript:hits.push(10)" id="jsl">x</a>'];
     const box = document.querySelector("#rosterMain");
     P.forEach(h => { box.insertAdjacentHTML("beforeend", h); const d = document.createElement("div"); box.append(d); d.innerHTML = h; });
+    box.insertAdjacentHTML("beforeend", '<svg width="40" height="40"><a id="svga"><animate attributeName="href" values="javascript:hits.push(11)"></animate><set attributeName="href" to="javascript:hits.push(12)"></set><rect width="40" height="40"></rect></a></svg>');
     await Promise.resolve(); /* a person can't click in the same instant the link is added; the guard runs first */
+    await new Promise(r => setTimeout(r, 300)); document.querySelectorAll("#svga").forEach(a => a.dispatchEvent(new MouseEvent("click", { bubbles: true })));
     document.querySelectorAll("#jsl").forEach(a => a.click());
     await new Promise(r => setTimeout(r, 1200));
     return window.hits;

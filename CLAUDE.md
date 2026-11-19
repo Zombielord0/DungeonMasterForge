@@ -82,7 +82,7 @@ Live site: https://dungeonmasterforge.netlify.app (Netlify; production branch `m
 
 | File | What's in it |
 | --- | --- |
-| `00-guard.js` | **The page guard**: strips event-handler attributes, `javascript:` links, frames and objects from anything the app adds to the page, so code hidden in shared text (characters, homebrew, campaign text) can't run. Keep using `esc()`; this is the safety net |
+| `00-guard.js` | **The page guard**: strips event-handler attributes, `javascript:` links, frames and objects from anything the app adds to the page, a safety net for code hidden in shared text (characters, homebrew, campaign text). **Not complete** (synchronous `.focus()`/`.click()` after an insertion beats it), so `esc()` in every template is the real protection |
 | `01-core.js` | `dmData` (the rules data loader), utilities (`$`, `esc`, `toast`), seeded random numbers (`makeRng`), encounter maths, content tables |
 | `02-adventure.js` | The Generate tab: adventures and chapter briefs |
 | `03-dungeon-map.js` | Dungeon generator, fog, drawing, map UI, imported maps and VTT files, the TV (`HOST`) and tokens |
