@@ -82,6 +82,7 @@ Live site: https://dungeonmasterforge.netlify.app (Netlify; production branch `m
 
 | File | What's in it |
 | --- | --- |
+| `00-guard.js` | **The page guard**: strips event-handler attributes, `javascript:` links, frames and objects from anything the app adds to the page, so code hidden in shared text (characters, homebrew, campaign text) can't run. Keep using `esc()`; this is the safety net |
 | `01-core.js` | `dmData` (the rules data loader), utilities (`$`, `esc`, `toast`), seeded random numbers (`makeRng`), encounter maths, content tables |
 | `02-adventure.js` | The Generate tab: adventures and chapter briefs |
 | `03-dungeon-map.js` | Dungeon generator, fog, drawing, map UI, imported maps and VTT files, the TV (`HOST`) and tokens |
@@ -252,8 +253,9 @@ Playwright and Chromium are pre-installed in cloud sessions. To test offline mod
 ## Gotchas found along the way
 
 - **Edit `src/`, not `public/index.html`.** `public/index.html`, `public/sw.js` and `public/assets/` are rebuilt from `src/` and `data/` and aren't in git.
+- **Never add event-handler attributes (`onclick="…"`), `javascript:` links or iframes from JavaScript.** The page guard (`00-guard.js`) strips them from anything added to the page. Use `addEventListener` and delegated `data-` attributes, as the rest of the app does.
 - **Comments in one-line functions:** a `//` comment swallows the rest of the line, including closing braces. Use `/* … */` there. (The build now catches the syntax errors this causes.)
-- **One character sheet (since 2026-11-19).** Characters and My Characters are one tab (`#roster`; `#character` is an alias that opens the forge form). A freshly forged character is a **draft**: `currentPC`, not in `PCS.roster`, shown on the same editable sheet (`rosterHTML`) with `draftBarHTML` on top (Save / Reroll / Discard). `rosterCur()` returns the draft when `RC.id` is its id; `pcIsDraft(c)` tells them apart. Drafts are never sent to a campaign (only `PCS.roster` is synced). `route()` rewrites `#character` to `#roster`, because refreshes check the address. `pcEnsure` runs `pcNums`, so a character's number fields are numbers. **Other members' characters are made harmless as they arrive** (`incoming` in `portal.js` → `pcSafeText`: `<`, `>` and `"` become ‹ › ” in every string): many sheet templates write character text unescaped, so keep using `esc()` in new code, but this is the safety net. `sheetHTML` is gone. `#pcOut` now only holds the step-by-step builder (`pcShow("build" | "sheet")`).
+- **One character sheet (since 2026-11-19).** Characters and My Characters are one tab (`#roster`; `#character` is an alias that opens the forge form). A freshly forged character is a **draft**: `currentPC`, not in `PCS.roster`, shown on the same editable sheet (`rosterHTML`) with `draftBarHTML` on top (Save / Reroll / Discard). `rosterCur()` returns the draft when `RC.id` is its id; `pcIsDraft(c)` tells them apart. Drafts are never sent to a campaign (only `PCS.roster` is synced). `route()` rewrites `#character` to `#roster`, because refreshes check the address. `pcEnsure` runs `pcNums`, so a character's number fields are numbers. **Every character from the campaign** goes through `incoming` in `portal.js` (`pcIncoming`: numbers and rules edition only; text stays as typed). `sheetHTML` is gone. `#pcOut` now only holds the step-by-step builder (`pcShow("build" | "sheet")`).
 - Segmented radio inputs are hidden. In Playwright, click `label.opt:has(input[...])`.
 - Once `portal.js` is built, the sign-in gate covers the page. Set `dmforge.offline` to `1` for offline tests.
 - Resilient is **not** repeatable.

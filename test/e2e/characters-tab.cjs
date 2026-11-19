@@ -104,6 +104,22 @@ const server = http.createServer((req, res) => {
   check("a shared sheet's spell numbers can't carry page code either", await p.evaluate(() => !window.__pwned && !document.querySelector("img.pwn") && !!document.querySelector("#sec-spells")));
   check("and the spell numbers still work as numbers", await p.evaluate(() => { const c = PCS.roster.find(x => x.id === "evil2"); return typeof c.spell.dc === "number" && c.spell.slots.every(n => typeof n === "number") && typeof c.spell.max === "number"; }));
 
+  // the page-wide guard (00-guard.js): the usual ways of hiding code in HTML never run, however the HTML is added
+  const fired = await p.evaluate(async () => {
+    window.hits = [];
+    const P = ['<img src=x onerror="hits.push(1)">', '<details open ontoggle="hits.push(2)"><summary>x</summary></details>', '<input autofocus onfocus="hits.push(3)">',
+      '<iframe srcdoc="<script>parent.hits.push(4)</script>"></iframe>', '<iframe src="javascript:parent.hits.push(5)"></iframe>', '<video><source onerror="hits.push(6)"></video>',
+      '<style onload="hits.push(7)"></style>', '<svg><image href=x onerror="hits.push(8)"></image></svg>', '<audio src=x onerror="hits.push(9)"></audio>', '<a href="javascript:hits.push(10)" id="jsl">x</a>'];
+    const box = document.querySelector("#rosterMain");
+    P.forEach(h => { box.insertAdjacentHTML("beforeend", h); const d = document.createElement("div"); box.append(d); d.innerHTML = h; });
+    await Promise.resolve(); /* a person can't click in the same instant the link is added; the guard runs first */
+    document.querySelectorAll("#jsl").forEach(a => a.click());
+    await new Promise(r => setTimeout(r, 1200));
+    return window.hits;
+  });
+  check("the page guard stops hidden code in added HTML", !fired.length, JSON.stringify(fired));
+  await p.evaluate(() => renderRosterTab());
+
   // other tabs point at the Characters tab
   await p.evaluate(() => { PCS.roster = []; currentPC = null; pcPersist(); });
   await p.goto(URL + "#items"); await p.waitForTimeout(400);

@@ -408,10 +408,11 @@ async function startCloud() {
 
 function stopLoops() { clearTimeout(S.pollTimer); clearInterval(S.whisperTimer); clearInterval(S.hbTimer); clearTimeout(S.saveTimer); clearTimeout(S.sharedTimer); S.shared = {}; S.published = {}; renderTurnBar(); }
 
-/* Another member's character from the database: make its text harmless before anything reads or remembers it
-   (pcSafeText, in the app). Your own characters are kept exactly as typed. */
+/* Every character from the database, yours too (a DM can edit your sheet): fix its numbers and rules edition before
+   anything reads or remembers it (pcIncoming, in the app; lossless). Text stays as typed; the page guard and esc() keep
+   any page code in it from running. */
 function incoming(ch) {
-  if (ch && ch.data && typeof ch.data === "object" && !(S.user && ch.ownerId === S.user.id)) ch.data = pcSafeText(ch.data);
+  if (ch && ch.data && typeof ch.data === "object") ch.data = pcIncoming(ch.data);
   return ch;
 }
 function remember(ch) {

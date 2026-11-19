@@ -39,23 +39,14 @@ function pcNums(c) {
     if (Array.isArray(S.others)) S.others.forEach(o => num(o, ["dc", "atk", "max", "bonus"]));
   }
 }
-/* Another campaign member's character, as it arrives from the database (portal.js calls this before anything reads it):
-   the sheet writes many of its texts into the page as they are, so <, > and " in any of its strings become look-alikes
-   (‹ › ”) that can't start a tag or leave an attribute, and its rules edition is one of the two known ones.
-   Your own characters are left exactly as typed; they can only ever show in your own browser. */
-const PC_SAFE = { "<": "‹", ">": "›", '"': "”" };
-function pcSafeText(v, depth = 0) {
-  if (typeof v === "string") return /[<>"]/.test(v) ? v.replace(/[<>"]/g, ch => PC_SAFE[ch]) : v;
-  if (!v || typeof v !== "object" || depth > 12) return v;
-  if (Array.isArray(v)) { for (let i = 0; i < v.length; i++) v[i] = pcSafeText(v[i], depth + 1); return v; }
-  for (const k of Object.keys(v)) {
-    const nk = /[<>"]/.test(k) ? k.replace(/[<>"]/g, ch => PC_SAFE[ch]) : k;
-    const val = pcSafeText(v[k], depth + 1);
-    if (nk !== k) delete v[k];
-    v[nk] = val;
-  }
-  if (depth === 0) { if (v.ed !== undefined && v.ed !== "2014" && v.ed !== "2024") v.ed = "2014"; pcNums(v); }
-  return v;
+/* A character as it arrives from the campaign database (portal.js calls this before anything reads it). Lossless:
+   only a rules edition that isn't 2014/2024 and number fields that aren't numbers are fixed; text is kept exactly as typed.
+   Page code hidden in text is stopped by the page-wide guard (00-guard.js) and by esc() in the templates. */
+function pcIncoming(d) {
+  if (!d || typeof d !== "object" || Array.isArray(d)) return d;
+  if (d.ed !== undefined && d.ed !== "2014" && d.ed !== "2024") d.ed = "2014";
+  pcNums(d);
+  return d;
 }
 function pcEnsure(c) { if (c) { pcNums(c); if (c.bgV === undefined && c.cls) { c.bgV = 1; if (c.ed === "2024") c.bgAsiLegacy = true; } if (!c.id) c.id = uid("pc"); if (c.subclass === undefined) { const f = (c.feats || []).find(x => String(x.f).startsWith("Subclass: ") && x.f !== "Subclass: not chosen yet"); c.subclass = f ? f.f.slice(10) : null; } if (!Array.isArray(c.prepared)) c.prepared = []; if (c.race === "Dragonborn" && !c.ancestry) c.ancestry = makeRng("anc", c.seed || c.id).pick(Object.keys(DRAGON_ANCESTRY)); if (c.race === "Dragonborn" && !c.sub) c.sub = c.ancestry; withTraitRes(c); raceLvUpgrade(c); hookUpgrade(c); } return c; }
 function pcPersist() {
