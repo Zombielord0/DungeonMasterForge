@@ -380,7 +380,7 @@ async function startCloud() {
   const r = await api(campPath("characters"));
   if (!r.ok) { setBadgeText("Couldn't load characters"); toast(r.data.error || "Couldn't load characters"); return; }
   S.since = r.data.now;
-  PCS.roster = r.data.characters.map(ch => { remember(ch); return ch.data; });
+  PCS.roster = r.data.characters.map(ch => { incoming(ch); remember(ch); return ch.data; });
   PCS.roster.forEach(pcEnsure);
   RC.id = null; currentPC = null;
   rerender(true);
@@ -408,6 +408,12 @@ async function startCloud() {
 
 function stopLoops() { clearTimeout(S.pollTimer); clearInterval(S.whisperTimer); clearInterval(S.hbTimer); clearTimeout(S.saveTimer); clearTimeout(S.sharedTimer); S.shared = {}; S.published = {}; renderTurnBar(); }
 
+/* Another member's character from the database: make its text harmless before anything reads or remembers it
+   (pcSafeText, in the app). Your own characters are kept exactly as typed. */
+function incoming(ch) {
+  if (ch && ch.data && typeof ch.data === "object" && !(S.user && ch.ownerId === S.user.id)) ch.data = pcSafeText(ch.data);
+  return ch;
+}
 function remember(ch) {
   S.synced.set(ch.id, { v: ch.version, json: JSON.stringify(ch.data) });
   if (ch.ownerId) S.owners.set(ch.id, { id: ch.ownerId, name: ch.ownerName });
@@ -475,7 +481,7 @@ async function resolveClash(c, mine, current) {
     if (r.ok) S.synced.set(c.id, { v: r.data.version, json: mine });
     else toast(r.data.error || "Couldn't save");
   } else {
-    remember(current);
+    incoming(current); remember(current);
     replaceLocal(current.data);
     rerender(true);
   }
@@ -505,7 +511,7 @@ async function poll() {
     if (s && ch.version <= s.v) continue;
     // Only take the newer copy if there's nothing unsaved here; otherwise the
     // next save hits the clash warning and the person chooses.
-    if (!local || !s || JSON.stringify(local) === s.json) { remember(ch); replaceLocal(ch.data); changed = true; }
+    if (!local || !s || JSON.stringify(local) === s.json) { incoming(ch); remember(ch); replaceLocal(ch.data); changed = true; }
   }
   for (const id of r.data.deleted) {
     if (!S.synced.has(id)) continue;

@@ -169,6 +169,21 @@ test("full campaign flow", async (t) => {
   });
 });
 
+test("Keep mine in the clash dialog (force, no baseVersion) saves instead of crashing", async () => {
+  const kit = { id: "u-kit2", email: "kit2@example.com" }, rue = { id: "u-rue2", email: "rue2@example.com" };
+  const made = await call(kit, "POST", "campaigns", { name: "Keep Test", displayName: "Kit" });
+  const cid = made.body.id;
+  await call(rue, "POST", "join", { code: made.body.code, displayName: "Rue" });
+  const pc = { id: "pc-keep", name: "Pip", hpCur: 10 };
+  await call(rue, "POST", `campaigns/${cid}/characters`, { data: pc });
+  await call(rue, "PUT", `campaigns/${cid}/characters/pc-keep`, { data: { ...pc, hpCur: 4 }, baseVersion: 1 });
+  const keepMine = await call(kit, "PUT", `campaigns/${cid}/characters/pc-keep`, { data: { ...pc, hpCur: 15 }, force: true });
+  assert.equal(keepMine.status, 200);
+  assert.deepEqual(keepMine.body, { version: 3 });
+  const now = (await call(kit, "GET", `campaigns/${cid}/characters`)).body.characters[0];
+  assert.equal(now.data.hpCur, 15);
+});
+
 test("two saves of one sheet at the same moment: one wins, the other is asked", async () => {
   const kit = { id: "u-kit", email: "kit@example.com" }, rue = { id: "u-rue", email: "rue@example.com" };
   const made = await call(kit, "POST", "campaigns", { name: "Race Test", displayName: "Kit" });

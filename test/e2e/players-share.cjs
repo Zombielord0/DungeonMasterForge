@@ -93,6 +93,21 @@ const check = (name, ok, extra = "") => { console.log((ok ? "PASS " : "FAIL ") +
     const feed = await activity(dm);
     check("a shared roll shows in the DM's activity feed", feed.some(s => /^🎲 .+: \d+/.test(s)), feed.join(" | "));
     check("the DM's own sheets have no share box", !(await dm.evaluate(() => rollShareHTML())));
+    // 4. another member's sheet can't run page code in the DM's browser, whatever its fields hold
+    check("a forced save (Keep mine) is accepted by the server", (await pl.evaluate(async () => {
+      const me = await (await fetch("/api/me")).json(), camp = me.campaigns[0].id, c = JSON.parse(JSON.stringify(PCS.roster[0]));
+      const X = '<img src=x class="pwn" onerror="window.__pwned=1">';
+      Object.assign(c, { name: "Pia " + X, ed: X, race: X, bg: X, notes: 'She said "hi" ' + X, formHp: '1">' + X, active: { "Wild Shape": "x" } });
+      const r = await fetch(`/api/campaigns/${camp}/characters/${encodeURIComponent(c.id)}`, { method: "PUT", headers: { "content-type": "application/json" }, body: JSON.stringify({ data: c, force: true }) });
+      return r.status;
+    })) === 200);
+    await dm.reload(); await dm.waitForFunction(() => Portal.cloud && PCS.roster.length > 0, null, { timeout: 15000 });
+    await dm.evaluate(() => { location.hash = "#roster"; }); await dm.waitForTimeout(300);
+    await dm.evaluate(() => { RC.id = PCS.roster.find(c => /^Pia/.test(c.name)).id; renderRosterTab(); }); await dm.waitForTimeout(400);
+    check("a player's booby-trapped sheet runs no code in the DM's browser", await dm.evaluate(() => !window.__pwned && !document.querySelector("img.pwn")));
+    check("…and still opens, with its text shown harmlessly", await dm.evaluate(() => { const c = PCS.roster.find(c => /^Pia/.test(c.name)); return /‹img/.test(c.name) && /She said ”hi”/.test(c.notes) && !!document.querySelector('#rosterMain [data-rf="name"]'); }));
+    await pl.reload(); await pl.waitForFunction(() => Portal.cloud && PCS.roster.length > 0, null, { timeout: 15000 });
+    check("the player's own copy keeps their text exactly", await pl.evaluate(() => /She said "hi"/.test(PCS.roster[0].notes || "")), await pl.evaluate(() => PCS.roster[0].notes));
   } finally {
     check("no page errors", errs.length === 0, errs.join(" | "));
     await browser.close(); srv.kill();

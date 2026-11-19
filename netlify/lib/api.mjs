@@ -173,7 +173,7 @@ export async function handle(req, user, db) {
         ? await db.query(
           `UPDATE user_docs SET data = $3::jsonb, version = version + 1, updated_at = now(), deleted_at = NULL
             WHERE user_id = $1 AND id = $2 AND ($4 OR deleted_at IS NOT NULL OR version = $5) RETURNING version`,
-          [user.id, docId, text, !!p.force, Number(p.baseVersion || 0)])
+          [user.id, docId, text, !!p.force, Number.isInteger(Number(p.baseVersion)) ? Number(p.baseVersion) : 0])
         : await db.query(
           `INSERT INTO user_docs (user_id, id, data) VALUES ($1, $2, $3::jsonb) ON CONFLICT (user_id, id) DO NOTHING RETURNING version`,
           [user.id, docId, text]);
@@ -309,7 +309,9 @@ export async function handle(req, user, db) {
       const data = sheet(p.data);
       // Someone else saved since this copy was loaded: hand back their version
       // unless the caller has already seen the warning and chosen to overwrite.
-      if (!p.force && Number(p.baseVersion) !== cur.version) {
+      // "Keep mine" in the clash dialog sends force without a baseVersion; NaN must never reach the integer column
+      const base = Number.isInteger(Number(p.baseVersion)) ? Number(p.baseVersion) : -1;
+      if (!p.force && base !== cur.version) {
         throw new HttpError(409, "Someone else changed this sheet", { current: charRow(cur) });
       }
       // The version check is repeated inside the UPDATE, so two saves at the same moment can't both pass it:
@@ -317,7 +319,7 @@ export async function handle(req, user, db) {
       const { rows } = await db.query(
         `UPDATE characters SET data = $3, version = version + 1, updated_at = now(), updated_by = $4
           WHERE campaign_id = $1 AND id = $2 AND deleted_at IS NULL AND ($5 OR version = $6) RETURNING version`,
-        [cid, id, data, user.id, !!p.force, Number(p.baseVersion)]);
+        [cid, id, data, user.id, !!p.force, base]);
       if (!rows.length) {
         const now = await getChar(db, cid, id);
         if (!now || now.deleted_at) throw new HttpError(404, "That character no longer exists");

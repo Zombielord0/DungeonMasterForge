@@ -245,6 +245,7 @@ Playwright and Chromium are pre-installed in cloud sessions. To test offline mod
     - the Spellcasting and Pact Magic feature texts still say "shown under Attacks & Spellcasting" (now the Spells box);
     - on the Characters tab, Browse sits under the slots;
     - Eldritch Knight and Arcane Trickster have no spellcasting.
+  - **Fixed 2026-11-19:** the clash dialog's Keep mine always failed (the API crashed on a missing `baseVersion`).
   - **Tests:** `test:map`'s "TV shows the box-hidden entrance as fog" fails about one run in three, on `main` too (a timing problem).
 - **Ideas not yet done:** pictures in account saves (they're in backups now).
 
@@ -252,7 +253,7 @@ Playwright and Chromium are pre-installed in cloud sessions. To test offline mod
 
 - **Edit `src/`, not `public/index.html`.** `public/index.html`, `public/sw.js` and `public/assets/` are rebuilt from `src/` and `data/` and aren't in git.
 - **Comments in one-line functions:** a `//` comment swallows the rest of the line, including closing braces. Use `/* … */` there. (The build now catches the syntax errors this causes.)
-- **One character sheet (since 2026-11-19).** Characters and My Characters are one tab (`#roster`; `#character` is an alias that opens the forge form). A freshly forged character is a **draft**: `currentPC`, not in `PCS.roster`, shown on the same editable sheet (`rosterHTML`) with `draftBarHTML` on top (Save / Reroll / Discard). `rosterCur()` returns the draft when `RC.id` is its id; `pcIsDraft(c)` tells them apart. Drafts are never sent to a campaign (only `PCS.roster` is synced). `route()` rewrites `#character` to `#roster`, because refreshes check the address. `pcEnsure` runs `pcNums`, so a character's number fields are numbers even when another member's sheet arrives as odd JSON. `sheetHTML` is gone. `#pcOut` now only holds the step-by-step builder (`pcShow("build" | "sheet")`).
+- **One character sheet (since 2026-11-19).** Characters and My Characters are one tab (`#roster`; `#character` is an alias that opens the forge form). A freshly forged character is a **draft**: `currentPC`, not in `PCS.roster`, shown on the same editable sheet (`rosterHTML`) with `draftBarHTML` on top (Save / Reroll / Discard). `rosterCur()` returns the draft when `RC.id` is its id; `pcIsDraft(c)` tells them apart. Drafts are never sent to a campaign (only `PCS.roster` is synced). `route()` rewrites `#character` to `#roster`, because refreshes check the address. `pcEnsure` runs `pcNums`, so a character's number fields are numbers. **Other members' characters are made harmless as they arrive** (`incoming` in `portal.js` → `pcSafeText`: `<`, `>` and `"` become ‹ › ” in every string): many sheet templates write character text unescaped, so keep using `esc()` in new code, but this is the safety net. `sheetHTML` is gone. `#pcOut` now only holds the step-by-step builder (`pcShow("build" | "sheet")`).
 - Segmented radio inputs are hidden. In Playwright, click `label.opt:has(input[...])`.
 - Once `portal.js` is built, the sign-in gate covers the page. Set `dmforge.offline` to `1` for offline tests.
 - Resilient is **not** repeatable.

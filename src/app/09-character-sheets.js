@@ -22,7 +22,7 @@ const pcKeep = c => ({ multi: c.multi && c.multi.length ? c.multi : undefined, k
 /* Numbers on a sheet are numbers (including the spell block and hit dice). Other members' characters arrive from the campaign database as any JSON, and many
    of these fields are written into the page as they are, so a string here could carry page code. "" stays "" where the
    sheet lets a box be emptied. */
-const PC_NUMS = ["hp", "hpCur", "hpTemp", "ac", "acAuto", "speed", "prof", "hd", "init", "passive", "xp", "startGold", "initBonus", "atkBonus"];
+const PC_NUMS = ["hp", "hpCur", "hpTemp", "ac", "acAuto", "speed", "prof", "hd", "init", "passive", "xp", "startGold", "initBonus", "atkBonus", "formHp"];
 function pcNums(c) {
   const n = v => { const x = parseFloat(v); return Number.isFinite(x) ? x : 0; };
   if (c.level !== undefined) c.level = clamp(Math.round(n(c.level)) || 1, 1, 20);
@@ -38,6 +38,24 @@ function pcNums(c) {
     num(S.pact, ["n", "lvl"]);
     if (Array.isArray(S.others)) S.others.forEach(o => num(o, ["dc", "atk", "max", "bonus"]));
   }
+}
+/* Another campaign member's character, as it arrives from the database (portal.js calls this before anything reads it):
+   the sheet writes many of its texts into the page as they are, so <, > and " in any of its strings become look-alikes
+   (‹ › ”) that can't start a tag or leave an attribute, and its rules edition is one of the two known ones.
+   Your own characters are left exactly as typed; they can only ever show in your own browser. */
+const PC_SAFE = { "<": "‹", ">": "›", '"': "”" };
+function pcSafeText(v, depth = 0) {
+  if (typeof v === "string") return /[<>"]/.test(v) ? v.replace(/[<>"]/g, ch => PC_SAFE[ch]) : v;
+  if (!v || typeof v !== "object" || depth > 12) return v;
+  if (Array.isArray(v)) { for (let i = 0; i < v.length; i++) v[i] = pcSafeText(v[i], depth + 1); return v; }
+  for (const k of Object.keys(v)) {
+    const nk = /[<>"]/.test(k) ? k.replace(/[<>"]/g, ch => PC_SAFE[ch]) : k;
+    const val = pcSafeText(v[k], depth + 1);
+    if (nk !== k) delete v[k];
+    v[nk] = val;
+  }
+  if (depth === 0) { if (v.ed !== undefined && v.ed !== "2014" && v.ed !== "2024") v.ed = "2014"; pcNums(v); }
+  return v;
 }
 function pcEnsure(c) { if (c) { pcNums(c); if (c.bgV === undefined && c.cls) { c.bgV = 1; if (c.ed === "2024") c.bgAsiLegacy = true; } if (!c.id) c.id = uid("pc"); if (c.subclass === undefined) { const f = (c.feats || []).find(x => String(x.f).startsWith("Subclass: ") && x.f !== "Subclass: not chosen yet"); c.subclass = f ? f.f.slice(10) : null; } if (!Array.isArray(c.prepared)) c.prepared = []; if (c.race === "Dragonborn" && !c.ancestry) c.ancestry = makeRng("anc", c.seed || c.id).pick(Object.keys(DRAGON_ANCESTRY)); if (c.race === "Dragonborn" && !c.sub) c.sub = c.ancestry; withTraitRes(c); raceLvUpgrade(c); hookUpgrade(c); } return c; }
 function pcPersist() {
