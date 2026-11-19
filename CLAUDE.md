@@ -195,7 +195,7 @@ Playwright and Chromium are pre-installed in cloud sessions. To test offline mod
 - **Signed in as a DM:** the Tracker campaigns, World, Your NPCs, custom items and My monsters are also saved privately to the account (`user_docs`, `Cloud`). The usual localStorage keys then hold that account's copy; the browser's own data waits in `dmforge.stash.v1` and comes back on signing out. `dmforge.sync.v1` tracks versions and unsent changes. See `docs/features/accounts.md`.
 - **Campaign saves are written 600 ms after a change** (`Store.save`). Tests that reload must wait for that first.
 
-## Where things stand (2026-11-18)
+## Where things stand (2026-11-19)
 
 - **PR #9** (all the 2026-11-16/17 work) was merged to `main` at the owner's request on 2026-11-17.
 - **Branch `ccr-b5259a07-6lu9sb`** (after PR #9): organization and speed work.
@@ -221,6 +221,7 @@ Playwright and Chromium are pre-installed in cloud sessions. To test offline mod
     - **multiclass casters prepare their caster class's spells** (`pcCastClasses`). Notes: `docs/features/history.md`, item 20.
   - **PR 13:** a photo-real corridor background with live flames on its torches, and a tall picture for phones (`npm run test:backdrop`).
 - **PR 14** (branch `claude/brave-dirac-2mvyiu`), merged to `main` at the owner's request on 2026-11-18: saving a Lore Item, Monster or Encounter adds it to Items → Custom, My monsters or the Encounters tab (`loreLink`; `docs/features/import.md`), and long lists and sheet sections fold (`19-fold.js`; `docs/features/layout.md`).
+- **PR 15** (branch `claude/brave-dirac-2mvyiu`), merged to `main` at the owner's request on 2026-11-19. It holds everything below up to the Requests tab: folding lists, one Characters tab, the page guard and character safety fixes, Keep mine, treasure hoards (with encounters), Eldritch Knight and Arcane Trickster spellcasting, and the Requests tab.
 - **Branch `claude/brave-dirac-2mvyiu`, after PR 14:** Items, Spells and Monster Manual groups start folded (owner's choice: lists only, not sheets); searching opens them. Character sheets have a Fold all switch too, and sheet titles on phones are no longer cut short (that bug went out with PR 14). Tests that click rows in those lists open a group first.
 - **Same branch, 2026-11-19 (owner's order):** 1. Characters and My Characters merged into one tab (owner's choice: one tab, not just one sheet layout). Then 2. the iron-and-oak look (tried and **rejected by the owner**: "I don't like the wood look at all"; skipped for now), 3. a treasure hoard generator (done, `11b-hoard.js`), 4. Eldritch Knight and Arcane Trickster spellcasting (done: `castOf(cls, subclass)`), all to PR 15.
 - **Requests tab (2026-11-19):** feature requests stored in the database (`feature_requests`); the owner is whoever's email is in the Netlify setting `FORGE_OWNER_EMAILS` (the owner has to add it). When the owner asks to build a request, they paste its brief from **📋 Copy as a brief**.
