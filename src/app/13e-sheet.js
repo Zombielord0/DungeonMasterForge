@@ -15,6 +15,8 @@ function renderRosterMain() {
   RC.id = c.id; pcEnsure(c);
   c.inv = c.inv || []; c.coins = c.coins || { cp: 0, sp: 0, ep: 0, gp: 0, pp: 0 }; if (c.hpCur === undefined) c.hpCur = c.hp;
   if (c.bgV === 1 && CLASS_DATA[c.cls]) { const cur = c.hpCur; pcLevelTo(c, c.level); c.bgV = 2; if (cur !== undefined && cur !== "") c.hpCur = Math.min(+cur, c.hp); pcPersist(); }
+  /* saved before 2026-11-19, when Eldritch Knights and Arcane Tricksters had no spellcasting: rebuild to add it, keeping current HP */
+  if (!c.spell && CLASS_DATA[c.cls] && [{ cls: c.cls, lv: c.level, subclass: c.subclass }, ...(c.multi || [])].some(x => x && subCaster(x.cls, x.subclass) && +x.lv >= 3)) { const cur = c.hpCur; pcLevelTo(c, c.level); if (cur !== undefined && cur !== "") c.hpCur = Math.min(+cur, c.hp); pcPersist(); }
   const moved = pcInvUpgrade(c), synced = pcSubSync(c), nums = pcSubNumbers(c); pcRecompute(c); c.attacks = pcAttacks(c); if (moved || synced || nums) pcPersist();
   main.innerHTML = (pcIsDraft(c) ? draftBarHTML(c) : "") + rosterHTML(c); renderCampList(); $$("textarea", main).forEach(autoGrow);
 }

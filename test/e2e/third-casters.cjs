@@ -56,6 +56,18 @@ const server = http.createServer((req, res) => {
   await p.waitForTimeout(300);
   check("the sheet shows the Spells box with spell save DC and slots", await p.evaluate(() => { const s = document.querySelector("#sec-spells"); return !!s && /Spell save DC/.test(s.textContent) && !!document.querySelector('#rosterMain [data-use="slot1"]'); }));
   check("its Browse button opens the wizard list", await p.evaluate(() => /^Wizard\|/.test((document.querySelector("#rosterMain [data-spells]") || {}).dataset?.spells || "")));
+  // characters saved before this change (no spell block) get it when their sheet opens, keeping current HP
+  for (const lv of [5, 20]) {
+    const up = await p.evaluate(lv => {
+      const c = pcEnsure(generateCharacter({ seed: "OLD" + lv, name: "Old Knight " + lv, cls: "Fighter", level: lv, ed: "2014", subclass: "Eldritch Knight" }));
+      c.spell = null; c.hpCur = 7; c.id = "old" + lv; PCS.roster.push(c); pcPersist(); RC.id = c.id; renderRosterTab();
+      const k = PCS.roster.find(x => x.id === "old" + lv); return { slots: k.spell && k.spell.slots, hpCur: k.hpCur, box: !!document.querySelector("#sec-spells") };
+    }, lv);
+    check(`an Eldritch Knight ${lv} saved before spellcasting gets it when the sheet opens`, up.slots && up.slots.length > 0 && up.box && up.hpCur === 7, JSON.stringify(up));
+  }
+  // the level-up window at 3 says what spellcasting the subclass brings
+  const gains = await p.evaluate(() => { const c = pcEnsure(generateCharacter({ seed: "G3", cls: "Fighter", level: 2, ed: "2024" })); LV.c = c; LV.pick = "Eldritch Knight"; const g = lvGains(c, 3).join(" | "); LV.c = null; LV.pick = ""; return g; });
+  check("levelling to 3 as an Eldritch Knight lists the new spellcasting", /Spellcasting/.test(gains) && /slot/i.test(gains) && /3 spells/.test(gains), gains);
   check("no page errors", !errs.length, errs.join(" | "));
   await browser.close(); server.close();
   console.log(fails ? `\n${fails} check(s) failed` : "\nAll checks passed");

@@ -85,4 +85,6 @@ The owner chose one tab over two (Characters and My Characters).
 - Spells: `THIRD_KNOWN` (3 at level 3 up to 13 at 20), "known" in 2014 and "prepared" in 2024. Cantrips: Eldritch Knight 2, Arcane Trickster 3 (Mage Hand included), +1 at level 10.
 - The spell block carries `list: "Wizard"` (also on `spell.others` entries), used by the Browse button, `pcSpellPool`, the "not on your list" warning and `spellCaster` (which DC a spell uses).
 - The 2014 rule that most of their spells must be from two schools (abjuration/evocation, enchantment/illusion) isn't enforced; any wizard spell can be picked.
+- **Older saves:** a character saved before this (no `c.spell`) whose class or a multiclass is an Eldritch Knight / Arcane Trickster at level 3+ is rebuilt with `pcLevelTo(c, c.level)` when its sheet opens (`renderRosterMain`), keeping current HP.
+- **Level-up window:** `lvGains` builds the preview with the subclass being picked (`LV.pick`) and lists "Spellcasting (…): spell slots …, N spells known/prepared and N cantrips" when spellcasting starts.
 - Check: `npm run test:third`.

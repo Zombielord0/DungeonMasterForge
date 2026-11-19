@@ -49,7 +49,8 @@ function lvAsiPick() {
 }
 function lvPicks(c, to, pick) { const P = {}; Object.entries(c.asiPicks || {}).forEach(([k, v]) => { if (+k < to) P[k] = v; }); if (pick) P[to] = pick; return P; }
 function lvGains(c, to) {
-  const n = lvBuild(c, to, lvPicks(c, to, lvAsiPick() || (lvHasAsi(c, to) ? { feat: "-" } : null)));
+  const sub = !c.subclass && LV.c === c && LV.pick ? LV.pick : null; /* the subclass being chosen in this window */
+  const n = lvBuild(sub ? { ...c, subclass: sub } : c, to, lvPicks(c, to, lvAsiPick() || (lvHasAsi(c, to) ? { feat: "-" } : null)));
   const g = [`Hit points ${c.hp} → <b>${n.hp}</b> (+${n.hp - c.hp})`];
   if (n.prof !== c.prof) g.push(`Proficiency bonus ${sgn(c.prof)} → <b>${sgn(n.prof)}</b>`);
   const C = CLASS_DATA[c.cls];
@@ -58,6 +59,10 @@ function lvGains(c, to) {
     if (n.spell.note && n.spell.note !== c.spell.note) g.push(esc(cap1(n.spell.note)));
     else if (!n.spell.note && n.spell.slots.join() !== c.spell.slots.join()) g.push(`Spell slots: ${n.spell.slots.map((x, i) => `L${i + 1}×${x}`).join(" ") || "none"}`);
     if (n.spell.max > c.spell.max) g.push(`You can now cast level ${n.spell.max} spells`);
+  }
+  if (n.spell && !c.spell) { /* spellcasting starts now (e.g. Eldritch Knight, Arcane Trickster) */
+    const b = spellLimits({ ...c, level: to, subclass: sub || c.subclass, spell: n.spell, mods: n.mods });
+    g.push(`<b>Spellcasting</b> (${AB_NAME[n.spell.ab] || "INT"}): ${n.spell.note ? esc(n.spell.note) : `spell slots ${n.spell.slots.map((x, i) => `L${i + 1}×${x}`).join(" ")}`}${b ? `, ${b.n} spells ${b.word}${b.cantrips ? ` and ${b.cantrips} cantrips` : ""}` : ""}`);
   }
   if (c.spell && castOf(c.cls, c.subclass)) { const a = spellLimits(c), b = spellLimits({ ...c, level: to, spell: n.spell, mods: n.mods }); if (b && a && (b.n > a.n || b.cantrips > a.cantrips)) g.push(`Spells ${b.word}: ${a.n} → <b>${b.n}</b>${b.cantrips > a.cantrips ? `, cantrips ${a.cantrips} → <b>${b.cantrips}</b>` : ""}`); }
   return g;
