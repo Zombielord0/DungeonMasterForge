@@ -59,7 +59,7 @@ function lvGains(c, to) {
     else if (!n.spell.note && n.spell.slots.join() !== c.spell.slots.join()) g.push(`Spell slots: ${n.spell.slots.map((x, i) => `L${i + 1}×${x}`).join(" ") || "none"}`);
     if (n.spell.max > c.spell.max) g.push(`You can now cast level ${n.spell.max} spells`);
   }
-  if (c.spell && C.cast) { const a = spellLimits(c), b = spellLimits({ ...c, level: to, spell: n.spell, mods: n.mods }); if (b && a && (b.n > a.n || b.cantrips > a.cantrips)) g.push(`Spells ${b.word}: ${a.n} → <b>${b.n}</b>${b.cantrips > a.cantrips ? `, cantrips ${a.cantrips} → <b>${b.cantrips}</b>` : ""}`); }
+  if (c.spell && castOf(c.cls, c.subclass)) { const a = spellLimits(c), b = spellLimits({ ...c, level: to, spell: n.spell, mods: n.mods }); if (b && a && (b.n > a.n || b.cantrips > a.cantrips)) g.push(`Spells ${b.word}: ${a.n} → <b>${b.n}</b>${b.cantrips > a.cantrips ? `, cantrips ${a.cantrips} → <b>${b.cantrips}</b>` : ""}`); }
   return g;
 }
 function lvAsiHTML(c, to) {

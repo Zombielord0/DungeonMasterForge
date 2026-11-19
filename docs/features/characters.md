@@ -77,3 +77,12 @@ The owner chose one tab over two (Characters and My Characters).
 - **Builder:** `renderCB` calls `pcShow("build")`; quitting, finishing, or picking a character in the list calls `pcShow("sheet")`.
 - `sheetHTML` and the old `#pcOut` sheet handlers are gone. The spell window's `o.view` (rules only) is no longer used by any caller.
 - Check: `npm run test:chartab`.
+
+## Eldritch Knight and Arcane Trickster spellcasting (2026-11-19)
+
+- Spellcasting can come from a subclass. `castOf(cls, subclass)` (07a) returns the class's own `cast` or, for `SUB_CASTERS` (Fighter|Eldritch Knight, Rogue|Arcane Trickster), `["third", "int"]`. `castListOf` gives the spell list ("Wizard"). Use these instead of `CLASS_DATA[cls].cast` anywhere casting is decided.
+- Slots: `thirdSlots(lv)` = `FULL_SLOTS[ceil(lv / 3)]` from level 3 (2 at 3, up to 4/3/3/1 at 19). Multiclass caster level counts `floor(lv / 3)` (`casterLv(ed, cls, lv, subclass)`).
+- Spells: `THIRD_KNOWN` (3 at level 3 up to 13 at 20), "known" in 2014 and "prepared" in 2024. Cantrips: Eldritch Knight 2, Arcane Trickster 3 (Mage Hand included), +1 at level 10.
+- The spell block carries `list: "Wizard"` (also on `spell.others` entries), used by the Browse button, `pcSpellPool`, the "not on your list" warning and `spellCaster` (which DC a spell uses).
+- The 2014 rule that most of their spells must be from two schools (abjuration/evocation, enchantment/illusion) isn't enforced; any wizard spell can be picked.
+- Check: `npm run test:third`.

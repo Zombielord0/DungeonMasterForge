@@ -141,7 +141,7 @@ npm run build     # build the page and bundle the portal (what Netlify runs)
 npm run build:app # build the page only
 ```
 
-One check per feature (Playwright, any OS): `test:assets` (fingerprinted files, repeat visits, offline), `test:map`, `test:backup`, `test:tv`, `test:mapvis`, `test:mapio`, `test:shop`, `test:random`, `test:cards`, `test:mapenc`, `test:calendar`, `test:recap`, `test:sheet` (432 sheets vs the rules), `test:tokens`, `test:npcpic`, `test:hbspell`, `test:hbpend`, `test:import`, `test:layout`, `test:lore`, `test:mythweaver`, `test:campextras`, `test:npclib`, `test:world`, `test:setup` (builds the portal, port 8897), `test:sync` (the DM's data in their account, two devices, port 8896), `test:share` (the players' Journal, turn order on phones, shared rolls; port 8895), `test:hbclass` (homebrew classes), `test:atlas` (World and region maps), `test:polish` (the Adventure, Characters and Items tabs after the 2026-11-18 UI review), `test:cast` (spell bubbles and the spell window), `test:backdrop` (the background pictures and their live torches), `test:lorelink` (Lore items, monsters and encounters filling their tabs; folding lists), `test:chartab` (one Characters tab: forge, drafts, save, reroll, discard, the builder), `test:hoard` (treasure hoards).
+One check per feature (Playwright, any OS): `test:assets` (fingerprinted files, repeat visits, offline), `test:map`, `test:backup`, `test:tv`, `test:mapvis`, `test:mapio`, `test:shop`, `test:random`, `test:cards`, `test:mapenc`, `test:calendar`, `test:recap`, `test:sheet` (432 sheets vs the rules), `test:tokens`, `test:npcpic`, `test:hbspell`, `test:hbpend`, `test:import`, `test:layout`, `test:lore`, `test:mythweaver`, `test:campextras`, `test:npclib`, `test:world`, `test:setup` (builds the portal, port 8897), `test:sync` (the DM's data in their account, two devices, port 8896), `test:share` (the players' Journal, turn order on phones, shared rolls; port 8895), `test:hbclass` (homebrew classes), `test:atlas` (World and region maps), `test:polish` (the Adventure, Characters and Items tabs after the 2026-11-18 UI review), `test:cast` (spell bubbles and the spell window), `test:backdrop` (the background pictures and their live torches), `test:lorelink` (Lore items, monsters and encounters filling their tabs; folding lists), `test:chartab` (one Characters tab: forge, drafts, save, reroll, discard, the builder), `test:hoard` (treasure hoards), `test:third` (Eldritch Knight and Arcane Trickster spellcasting).
 
 Playwright and Chromium are pre-installed in cloud sessions. To test offline mode (no sign-in screen), run `localStorage.setItem('dmforge.offline','1')` in an init script.
 
@@ -166,6 +166,7 @@ Playwright and Chromium are pre-installed in cloud sessions. To test offline mod
 - Loading an older save goes through `pcEnsure`; new data fields need a migration there.
 - **When you add a new kind of saved data, add its localStorage key to `BACKUP_KEYS`.**
 - Use `totalLv(c)` rather than `c.level` for anything that depends on character level.
+- **Spellcasting can come from a subclass:** use `castOf(cls, subclass)` (not `CLASS_DATA[cls].cast`) and `castListOf` for the spell list. Eldritch Knight and Arcane Trickster are third casters (`SUB_CASTERS`, `thirdSlots`, `THIRD_KNOWN`).
 - **Class pickers use `classList(ed)`; random picks use `builtInClasses()`** (homebrew classes live in `CLASS_DATA` with `hb: true`).
 - **Never send the TV map data, room key text or HP numbers.** It only gets finished pictures, and monster state as "Bloodied" or "Down". The same goes for the turn order on players' phones (`turnsNow`), and the players' Journal never carries quest notes or DM-only Lore sections.
 
@@ -219,7 +220,7 @@ Playwright and Chromium are pre-installed in cloud sessions. To test offline mod
   - **PR 13:** a photo-real corridor background with live flames on its torches, and a tall picture for phones (`npm run test:backdrop`).
 - **PR 14** (branch `claude/brave-dirac-2mvyiu`), merged to `main` at the owner's request on 2026-11-18: saving a Lore Item, Monster or Encounter adds it to Items → Custom, My monsters or the Encounters tab (`loreLink`; `docs/features/import.md`), and long lists and sheet sections fold (`19-fold.js`; `docs/features/layout.md`).
 - **Branch `claude/brave-dirac-2mvyiu`, after PR 14:** Items, Spells and Monster Manual groups start folded (owner's choice: lists only, not sheets); searching opens them. Character sheets have a Fold all switch too, and sheet titles on phones are no longer cut short (that bug went out with PR 14). Tests that click rows in those lists open a group first.
-- **Same branch, 2026-11-19 (owner's order):** 1. Characters and My Characters merged into one tab (owner's choice: one tab, not just one sheet layout). Then 2. the iron-and-oak look (tried and **rejected by the owner**: "I don't like the wood look at all"; skipped for now), 3. a treasure hoard generator (done, `11b-hoard.js`), 4. Eldritch Knight and Arcane Trickster spellcasting, all to PR 15.
+- **Same branch, 2026-11-19 (owner's order):** 1. Characters and My Characters merged into one tab (owner's choice: one tab, not just one sheet layout). Then 2. the iron-and-oak look (tried and **rejected by the owner**: "I don't like the wood look at all"; skipped for now), 3. a treasure hoard generator (done, `11b-hoard.js`), 4. Eldritch Knight and Arcane Trickster spellcasting (done: `castOf(cls, subclass)`), 4. Eldritch Knight and Arcane Trickster spellcasting, all to PR 15.
 - **Main screen look:** a wood-and-iron restyle was tried on 2026-11-19 and the owner rejected it; they chose to skip the look for now. Don't bring back wood.
 - **Work branch:** cloud chats use their own `claude/…` branch. After a merge, start the next piece from the latest `main`.
 - **The owner's order of import work:**
@@ -246,9 +247,9 @@ Playwright and Chromium are pre-installed in cloud sessions. To test offline mod
   - **Spells:**
     - the Spellcasting and Pact Magic feature texts still say "shown under Attacks & Spellcasting" (now the Spells box);
     - on the Characters tab, Browse sits under the slots;
-    - Eldritch Knight and Arcane Trickster have no spellcasting.
   - **Fixed 2026-11-19:** the clash dialog's Keep mine always failed (the API crashed on a missing `baseVersion`).
   - **Tests:** `test:map`'s "TV shows the box-hidden entrance as fog" fails about one run in three, on `main` too (a timing problem).
+  - **Tests:** `test:atlas` also fails now and then when the machine is busy and passes on `test:all`'s retry (seen several times on 2026-11-19, before and after the page guard).
 - **Ideas not yet done:** pictures in account saves (they're in backups now).
 
 ## Gotchas found along the way

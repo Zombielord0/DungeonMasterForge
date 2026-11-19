@@ -191,8 +191,8 @@ function miCaster(c) {
 }
 function spellCaster(c, sp) {
   const mi = (c.prepared || []).some(p => p.src === "Magic Initiate" && p.n === sp.n) ? miCaster(c) : null;
-  const own = [...(c.spell ? [{ cls: c.spell.cls || c.cls, ab: c.spell.ab, dc: c.spell.dc, atk: c.spell.atk }, ...(c.spell.others || [])] : [])];
-  return own.find(x => (sp.c || []).includes(x.cls)) || mi || own[0] || miCaster(c) || { cls: "", ab: "int", dc: 8 + c.prof, atk: c.prof };
+  const own = [...(c.spell ? [{ cls: c.spell.cls || c.cls, list: c.spell.list, ab: c.spell.ab, dc: c.spell.dc, atk: c.spell.atk }, ...(c.spell.others || [])] : [])];
+  return own.find(x => (sp.c || []).includes(x.cls) || (x.list && (sp.c || []).includes(x.list))) || mi || own[0] || miCaster(c) || { cls: "", ab: "int", dc: 8 + c.prof, atk: c.prof };
 }
 /* The spell window: the full rules, then (on My Characters) "Cast at level" buttons and Cast. `o.view`: rules only (the
    Characters tab, where slots aren't tracked). The picked choice is kept in the hidden #castSlot that castGo reads. */

@@ -2,6 +2,10 @@
    When a change ships, add an entry to the top of NEWS with a new id, in plain words for players and DMs. */
 
 const NEWS = [
+  { id: "2026-11-19-third-casters", date: "2026-11-19", title: "Eldritch Knights and Arcane Tricksters cast spells", go: "roster", items: [
+    "Fighters who choose the Eldritch Knight and Rogues who choose the Arcane Trickster now get spellcasting from level 3: spell slots, a spell save DC and attack with Intelligence, and wizard spells to pick.",
+    "Their slots grow as they level (2 first-level slots at level 3, up to level 4 spells at 19), and they count a third of their level toward spell slots when multiclassing.",
+    "Existing characters get it automatically next time their sheet opens or they level up."] },
   { id: "2026-11-19-treasure-hoard", date: "2026-11-19", title: "Treasure hoards", go: "items", items: [
     "Items → 🎲 Treasure hoard rolls a monster's lair treasure: coins, gems, art objects and magic items, bigger and rarer for tougher challenges (0–4, 5–10, 11–16, 17+).",
     "Roll again until you like it, then + Add to campaign Loot. The coins, each gem or art piece and each magic item go on the campaign's Loot list, ready to give to characters.",

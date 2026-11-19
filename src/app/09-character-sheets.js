@@ -15,7 +15,7 @@ const mcMeets = (c, k) => mcPrereq(k).every(g => g.some(a => (+c.scores[a] || 0)
 const MC_ARMOR = { Barbarian: "shield", Bard: "light", Cleric: "light medium shield", Druid: "light medium shield", Fighter: "light medium shield", Paladin: "light medium shield", Ranger: "light medium shield", Rogue: "light", Warlock: "light", Monk: "", Sorcerer: "", Wizard: "" };
 const MC_MARTIAL = ["Barbarian", "Fighter", "Paladin", "Ranger"];
 // a class's own caster level for multiclass slots
-function casterLv(ed, k, l) { const C2 = CLASS_DATA[k]; if (!C2 || !C2.cast) return 0; const kind = C2.cast[0]; return kind === "full" ? l : kind === "half" ? (ed === "2024" ? Math.ceil(l / 2) : Math.floor(l / 2)) : 0; }
+function casterLv(ed, k, l, sub) { const cast = castOf(k, sub); if (!cast) return 0; const kind = cast[0]; return kind === "full" ? l : kind === "half" ? (ed === "2024" ? Math.ceil(l / 2) : Math.floor(l / 2)) : kind === "third" ? Math.floor(l / 3) : 0; }
 const pactSlots = l => ({ n: l >= 17 ? 4 : l >= 11 ? 3 : l >= 2 ? 2 : 1, lvl: Math.min(5, Math.ceil(l / 2)) });
 // what a rebuild keeps from the character as it is: rolled or assigned base scores, skill picks, expertise
 const pcKeep = c => ({ multi: c.multi && c.multi.length ? c.multi : undefined, keepMcSkills: c.mcSkills, base: c.customData ? undefined : c.base, rolls: c.rolls || undefined, keepSkills: (c.skills || []).filter(s => s.p).map(s => s.s), keepExpert: c.expertOrder || (c.skills || []).filter(s => s.x).map(s => s.s), keepSkilled: c.skilled });
@@ -107,9 +107,11 @@ const CANTRIP_BASE = { Bard: 2, Cleric: 3, Druid: 2, Sorcerer: 4, Warlock: 2, Wi
 function spellLimits(c) {
   if (!c || !c.spell) return null;
   // every spellcasting class counts, each at its own level
-  const m = c.mods, list = [...(CLASS_DATA[c.cls] && CLASS_DATA[c.cls].cast ? [{ cls: c.cls, lv: c.level }] : []), ...(c.multi || []).filter(x => CLASS_DATA[x.cls] && CLASS_DATA[x.cls].cast && +x.lv > 0)];
+  const m = c.mods, list = [...(castOf(c.cls, c.subclass) ? [{ cls: c.cls, lv: c.level, subclass: c.subclass }] : []), ...(c.multi || []).filter(x => castOf(x.cls, x.subclass) && +x.lv > 0)];
   let n = 0, cant = 0, word = "prepared";
-  list.forEach(({ cls, lv }) => {
+  list.forEach(({ cls, lv, subclass }) => {
+    const sc = subCaster(cls, subclass);
+    if (sc) { n += THIRD_KNOWN[lv - 1] || 0; if (list.length === 1 && edOf(c) === "2014") word = "known"; cant += sc.cantrips + (lv >= 10 ? 1 : 0); return; } /* Eldritch Knight, Arcane Trickster */
     const ab = CLASS_DATA[cls].cast[1];
     if (KNOWN_SPELLS[cls]) { n += KNOWN_SPELLS[cls][lv - 1] || 0; if (list.length === 1) word = "known"; }
     else if (cls === "Paladin") n += lv >= 2 ? Math.max(1, m.cha + Math.floor(lv / 2)) : 0;
@@ -143,9 +145,10 @@ function pcChanged(c) {
    reaches and whether it has cantrips. A Fighter/Wizard prepares from the Wizard list (owner's bug, 2026-11-18). */
 function pcCastClasses(c) {
   if (!c || !c.spell) return [];
-  const ed = edOf(c), list = [{ cls: c.cls, lv: c.level }, ...(c.multi || []).filter(x => +x.lv > 0)].filter(x => CLASS_DATA[x.cls] && CLASS_DATA[x.cls].cast);
-  return list.map(({ cls, lv }) => {
-    const k = CLASS_DATA[cls].cast[0];
+  const ed = edOf(c), list = [{ cls: c.cls, lv: c.level, subclass: c.subclass }, ...(c.multi || []).filter(x => +x.lv > 0)].filter(x => castOf(x.cls, x.subclass));
+  return list.map(({ cls, lv, subclass }) => {
+    const k = castOf(cls, subclass)[0];
+    if (k === "third") return { cls, lv, list: castListOf(cls, subclass), max: thirdSlots(lv).length, cantrips: true };
     const max = k === "pact" ? Math.min(5, Math.ceil(lv / 2)) : k === "full" ? (FULL_SLOTS[lv] || []).length : (lv >= 2 || ed === "2024" ? (FULL_SLOTS[Math.ceil(lv / 2)] || []).length : 0);
     return { cls, lv, max: Math.max(k === "half" && !max ? 0 : 1, max), cantrips: k !== "half" };
   });
@@ -154,7 +157,7 @@ const pcCastNames = c => { const L = pcCastClasses(c).map(x => x.cls); return L.
 function pcSpellPool(c, ed) {
   spLoad();
   const K = pcCastClasses(c); if (!K.length) return [];
-  return SP.data[ed].filter(s => !s.pend && K.some(k => (s.c.includes(k.cls) || s.c.includes(clsSpellList(k.cls))) && (s.l === 0 ? k.cantrips : s.l <= k.max)));
+  return SP.data[ed].filter(s => !s.pend && K.some(k => (s.c.includes(k.cls) || s.c.includes(k.list || clsSpellList(k.cls))) && (s.l === 0 ? k.cantrips : s.l <= k.max)));
 }
 /* Prepared spells as bubbles: tap one for the spell window (castDialog). `cast` (My Characters) adds slots left per level. */
 function prepBubble(p, canRemove = true) {
@@ -216,7 +219,7 @@ function spPrepBtn(s) {
 }
 function spPrepToggle(s) {
   const t = spTargetPC(); if (!t) { toast("Pick a character to prepare spells for"); return; }
-  if (!isPrep(t, s.n, SP.ed) && !pcCastClasses(t).some(k => s.c.includes(k.cls) || s.c.includes(clsSpellList(k.cls)))) toast(`${s.n} isn't on the ${pcCastNames(t)} list, added anyway`);
+  if (!isPrep(t, s.n, SP.ed) && !pcCastClasses(t).some(k => s.c.includes(k.cls) || s.c.includes(k.list || clsSpellList(k.cls)))) toast(`${s.n} isn't on the ${pcCastNames(t)} list, added anyway`);
   togglePrep(t, s, SP.ed); pcChanged(t);
 }
 $("#spTargetRow").addEventListener("change", e => { if (e.target.id === "spTarget") { SP.target = e.target.value; renderSpells(); } });

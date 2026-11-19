@@ -42,7 +42,8 @@
     "test:backdrop": "node tools/build.mjs --quiet && node test/e2e/backdrop.cjs",
     "test:lorelink": "node tools/build.mjs --quiet && node test/e2e/lore-link.cjs",
     "test:chartab": "node tools/build.mjs --quiet && node test/e2e/characters-tab.cjs",
-    "test:hoard": "node tools/build.mjs --quiet && node test/e2e/hoard.cjs"
+    "test:hoard": "node tools/build.mjs --quiet && node test/e2e/hoard.cjs",
+    "test:third": "node tools/build.mjs --quiet && node test/e2e/third-casters.cjs"
   },
   "dependencies": {
     "@netlify/database": "^2.0.3",
