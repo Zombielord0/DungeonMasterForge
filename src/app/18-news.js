@@ -2,6 +2,10 @@
    When a change ships, add an entry to the top of NEWS with a new id, in plain words for players and DMs. */
 
 const NEWS = [
+  { id: "2026-11-19-treasure-hoard", date: "2026-11-19", title: "Treasure hoards", go: "items", items: [
+    "Items → 🎲 Treasure hoard rolls a monster's lair treasure: coins, gems, art objects and magic items, bigger and rarer for tougher challenges (0–4, 5–10, 11–16, 17+).",
+    "Roll again until you like it, then + Add to campaign Loot. The coins, each gem or art piece and each magic item go on the campaign's Loot list, ready to give to characters.",
+    "In the Campaign Tracker, the Loot tab has 💰 Roll a hoard too, matched to the campaign's level."] },
   { id: "2026-11-19-one-characters-tab", date: "2026-11-19", title: "Characters and My Characters are now one tab", go: "roster", items: [
     "The Characters tab now holds everything: your characters on the left, ⚒ Forge a new character underneath, and one full sheet.",
     "A newly forged character opens on the same sheet as your saved ones, so you can roll, change scores, pick spells and gear straight away. A bar on top says it isn't saved yet: ☆ Save character keeps it, ↻ Reroll forges again, ✕ Discard throws it away.",

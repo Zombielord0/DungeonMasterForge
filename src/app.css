@@ -1105,3 +1105,9 @@ nav a[data-view=journal]{--ic:url("data:image/svg+xml,%3Csvg xmlns='http://www.w
 .draft-bar>div:first-child{flex:1 1 260px;min-width:0}
 .draft-acts{display:flex;gap:6px;flex-wrap:wrap}
 @media (max-width:600px){#rosterMain .rc-grid :is(input,select){min-height:44px}} /* phone touch targets on the sheet's top fields */
+/* treasure hoard (11b-hoard.js) */
+.hoard-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:4px 18px;margin-bottom:6px}
+.hoard-list{margin:0}
+.hoard-list li{margin:3px 0}
+.hoard .tag{font-size:11px;padding:1px 6px}
+.hoard .btn{white-space:nowrap}

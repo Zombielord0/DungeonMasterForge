@@ -575,11 +575,13 @@ if (location.protocol !== "file:" && localStorage.getItem("dmforge.offline") !==
       <button class="btn primary wide ico ico-plus" type="button" id="itNew">Create custom item</button>
       <button class="btn wide ico ico-shop" type="button" id="itShopBtn" title="Make a shop for your town: its stock, prices and shopkeeper">Generate a shop</button>
       <button class="btn wide ico ico-dice" type="button" id="itRandom">Random magic item</button>
+      <button class="btn wide ico ico-dice" type="button" id="itHoardBtn" title="Coins, gems, art and magic items for a monster's lair">Treasure hoard</button>
       </div>
     </form>
     <div>
       <div id="itBuilder" class="hidden" style="margin-bottom:14px"></div>
       <div class="card" id="itShop" hidden style="margin-bottom:14px"></div>
+      <div class="card hoard" id="itHoard" hidden style="margin-bottom:14px"></div>
       <div class="card" style="padding:12px 16px"><div class="row" style="flex-wrap:wrap"><span id="itCount" style="flex:1"></span></div><div class="sp-target" id="itTargetRow"></div></div>
       <div id="itList"></div>
       <p class="hint" style="margin-top:16px">Item rules text includes material from the System Reference Document 5.1 (“SRD 5.1”) and System Reference Document 5.2 (“SRD 5.2”) by Wizards of the Coast LLC, available at <a href="https://dnd.wizards.com/resources/systems-reference-document">dnd.wizards.com/resources/systems-reference-document</a> and <a href="https://www.dndbeyond.com/srd">dndbeyond.com/srd</a>, licensed under the <a href="https://creativecommons.org/licenses/by/4.0/legalcode">Creative Commons Attribution 4.0 International License</a>. Item data compiled by the open-source <a href="https://github.com/5e-bits/5e-database">5e-database</a> project. Standard items use their listed cost. Magic item prices are suggestions based on rarity (2024 Dungeon Master's Guide values: common 100 gp, uncommon 400 gp, rare 4,000 gp, very rare 40,000 gp, legendary 200,000 gp; consumables half), since the SRD doesn't price magic items. The SRDs hold only part of each edition's items.</p>

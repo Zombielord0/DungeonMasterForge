@@ -99,6 +99,7 @@ Live site: https://dungeonmasterforge.netlify.app (Netlify; production branch `m
 | `09-character-sheets.js` | Saving characters, prepared spells, sheet export, spell cards |
 | `10-monsters.js` | Villain generator, Monster Manual, monster builder, companions and Wild Shape |
 | `11-items-shops.js` | Items tab and shops |
+| `11b-hoard.js` | The treasure hoard generator (`hoardRoll`, `hoardToLoot`): Items tab and the Tracker's Loot tab |
 | `12-level-homebrew-feats.js` | Level up, the Homebrew tab, the Feats tab |
 | `13a-gear-ac-speed.js` | My Characters: inventory and attacks (`pcAttacks`), armor training, AC (`pcAC`), speed (`pcSpeed`) |
 | `13b-abilities-rests.js` | Resources (`pcResources`), the Abilities list, activations (`ACT`), their dialogs, rests, Wild Shape |
@@ -140,7 +141,7 @@ npm run build     # build the page and bundle the portal (what Netlify runs)
 npm run build:app # build the page only
 ```
 
-One check per feature (Playwright, any OS): `test:assets` (fingerprinted files, repeat visits, offline), `test:map`, `test:backup`, `test:tv`, `test:mapvis`, `test:mapio`, `test:shop`, `test:random`, `test:cards`, `test:mapenc`, `test:calendar`, `test:recap`, `test:sheet` (432 sheets vs the rules), `test:tokens`, `test:npcpic`, `test:hbspell`, `test:hbpend`, `test:import`, `test:layout`, `test:lore`, `test:mythweaver`, `test:campextras`, `test:npclib`, `test:world`, `test:setup` (builds the portal, port 8897), `test:sync` (the DM's data in their account, two devices, port 8896), `test:share` (the players' Journal, turn order on phones, shared rolls; port 8895), `test:hbclass` (homebrew classes), `test:atlas` (World and region maps), `test:polish` (the Adventure, Characters and Items tabs after the 2026-11-18 UI review), `test:cast` (spell bubbles and the spell window), `test:backdrop` (the background pictures and their live torches), `test:lorelink` (Lore items, monsters and encounters filling their tabs; folding lists), `test:chartab` (one Characters tab: forge, drafts, save, reroll, discard, the builder).
+One check per feature (Playwright, any OS): `test:assets` (fingerprinted files, repeat visits, offline), `test:map`, `test:backup`, `test:tv`, `test:mapvis`, `test:mapio`, `test:shop`, `test:random`, `test:cards`, `test:mapenc`, `test:calendar`, `test:recap`, `test:sheet` (432 sheets vs the rules), `test:tokens`, `test:npcpic`, `test:hbspell`, `test:hbpend`, `test:import`, `test:layout`, `test:lore`, `test:mythweaver`, `test:campextras`, `test:npclib`, `test:world`, `test:setup` (builds the portal, port 8897), `test:sync` (the DM's data in their account, two devices, port 8896), `test:share` (the players' Journal, turn order on phones, shared rolls; port 8895), `test:hbclass` (homebrew classes), `test:atlas` (World and region maps), `test:polish` (the Adventure, Characters and Items tabs after the 2026-11-18 UI review), `test:cast` (spell bubbles and the spell window), `test:backdrop` (the background pictures and their live torches), `test:lorelink` (Lore items, monsters and encounters filling their tabs; folding lists), `test:chartab` (one Characters tab: forge, drafts, save, reroll, discard, the builder), `test:hoard` (treasure hoards).
 
 Playwright and Chromium are pre-installed in cloud sessions. To test offline mode (no sign-in screen), run `localStorage.setItem('dmforge.offline','1')` in an init script.
 
@@ -218,8 +219,8 @@ Playwright and Chromium are pre-installed in cloud sessions. To test offline mod
   - **PR 13:** a photo-real corridor background with live flames on its torches, and a tall picture for phones (`npm run test:backdrop`).
 - **PR 14** (branch `claude/brave-dirac-2mvyiu`), merged to `main` at the owner's request on 2026-11-18: saving a Lore Item, Monster or Encounter adds it to Items → Custom, My monsters or the Encounters tab (`loreLink`; `docs/features/import.md`), and long lists and sheet sections fold (`19-fold.js`; `docs/features/layout.md`).
 - **Branch `claude/brave-dirac-2mvyiu`, after PR 14:** Items, Spells and Monster Manual groups start folded (owner's choice: lists only, not sheets); searching opens them. Character sheets have a Fold all switch too, and sheet titles on phones are no longer cut short (that bug went out with PR 14). Tests that click rows in those lists open a group first.
-- **Same branch, 2026-11-19 (owner's order):** 1. Characters and My Characters merged into one tab (owner's choice: one tab, not just one sheet layout). Then 2. the iron-and-oak look for panels and buttons, 3. a treasure hoard generator, 4. Eldritch Knight and Arcane Trickster spellcasting, all to PR 15.
-- **Next, as the owner said:** make the main screen look more realistic (panels, buttons).
+- **Same branch, 2026-11-19 (owner's order):** 1. Characters and My Characters merged into one tab (owner's choice: one tab, not just one sheet layout). Then 2. the iron-and-oak look (tried and **rejected by the owner**: "I don't like the wood look at all"; skipped for now), 3. a treasure hoard generator (done, `11b-hoard.js`), 4. Eldritch Knight and Arcane Trickster spellcasting, all to PR 15.
+- **Main screen look:** a wood-and-iron restyle was tried on 2026-11-19 and the owner rejected it; they chose to skip the look for now. Don't bring back wood.
 - **Work branch:** cloud chats use their own `claude/…` branch. After a merge, start the next piece from the latest `main`.
 - **The owner's order of import work:**
   1. Companion App import: done.
