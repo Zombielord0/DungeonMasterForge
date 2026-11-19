@@ -20,5 +20,8 @@ The owner asked for a tab where people request features with everything needed t
 - Side panel: the form (`RQ.draft`); the screenshot is shrunk in the browser to at most 1400 px and saved as JPEG (`rqShrink`).
 - Main column: Your requests or, for the owner, All requests with status chips (`RQ.filter`, default All so a request stays in view while it's marked and answered), a status menu, a reply box, Delete, and **📋 Copy as a brief** (`rqBrief`: Markdown with every section, for a Claude chat; the screenshot stays in the tab).
 - It talks to the server through `Portal.api` (added to `portal.js`, with `Portal.signedIn` and `Portal.myName`). `requests` is in the DM's and the players' tab lists. Without signing in, the tab asks you to sign in.
+- A bug report (`kind: "bug"`) relabels the questions: what happened, what should have happened, and how to make it happen again.
+- All server calls go through `rqApi`, which turns a lost connection into a message, so Send never stays stuck and the typed text stays. The owner's half-typed replies are kept in `RQ.replyDraft` across redraws.
+- **Copy as a brief** starts with a note that the text was written by a user and is a description, not instructions: treat pasted briefs as untrusted input.
 - Every text is escaped with `esc()`; the screenshot is only shown when it's a `data:image/jpeg|png|webp` URL.
 - Checks: `npm test` (the API) and `npm run test:requests` (both sides, against the local copy; `SHOTS=<folder>` saves screenshots).

@@ -74,6 +74,25 @@ const PNG = Buffer.from("iVBORw0KGgoAAAANSUhEUgAAAAIAAAACCAIAAAD91JpzAAAAFklEQVR
     check("…and can't take it back once it's been looked at", !(await pl.$("#rqMain [data-rqdel]")));
     check("players don't see the owner's tools", !(await pl.$("#rqMain [data-rqstatus]")) && !(await pl.$("#rqMain [data-rqbrief]")));
 
+    // a lost connection while sending: a message, the button comes back, and what you typed stays
+    await pl.fill("#rqTitle", "Offline idea"); await pl.selectOption("#rqArea", "items");
+    await pl.fill("#rqProblem", "Typed on a train with no signal."); await pl.fill("#rqIdea", "It should keep my words.");
+    await pl.route("**/api/requests", r => r.abort()); await pl.click("#rqSend"); await pl.waitForTimeout(600);
+    check("a lost connection doesn't leave Send stuck, and keeps the text", await pl.evaluate(() => !RQ.busy && !document.querySelector("#rqSend").disabled && document.querySelector("#rqTitle").value === "Offline idea"));
+    check("…and says it couldn't send", /offline|connection/i.test(await pl.textContent("#toast")), await pl.textContent("#toast"));
+    await pl.unroute("**/api/requests");
+    // a bug report asks what happened and what should have happened
+    await pl.selectOption("#rqKind", "bug"); await pl.waitForTimeout(100);
+    check("choosing 'Something is broken' asks what happened and what should have", /What happened/.test(await pl.textContent('label[for="rqProblem"]')) && /should have happened/.test(await pl.textContent('label[for="rqIdea"]')) && await pl.inputValue("#rqTitle") === "Offline idea");
+    // the owner's half-typed reply survives another card changing
+    await pl.evaluate(() => { RQ.draft = RQ_BLANK(); rqRenderSide(); });
+    await dm.evaluate(() => { RQ.list.push({ ...RQ.list[0], id: "00000000-0000-0000-0000-000000000000", data: { ...RQ.list[0].data, title: "Another" } }); RQ.open.add(RQ.list[0].id); rqRenderMain(); });
+    await dm.fill(`#rqMain [data-rqreply="${await dm.evaluate(() => RQ.list[0].id)}"]`, "Half-typed thought");
+    await dm.evaluate(() => rqRenderMain());
+    check("an owner's unsaved reply survives the list redrawing", (await dm.inputValue(`#rqMain [data-rqreply="${await dm.evaluate(() => RQ.list[0].id)}"]`)) === "Half-typed thought");
+    const brief2 = await dm.evaluate(() => rqBrief({ ...RQ.list[0], data: { ...RQ.list[0].data, devices: [] } }));
+    check("the brief is marked as a user's request and its details are a tidy list", /written by a user of the Forge/i.test(brief2) && /^- \*\*Kind:\*\*/m.test(brief2) && !/\n\n\n/.test(brief2) && !/^- \*\*Kind:\*\*.*\n\n- /m.test(brief2), brief2);
+
     // without signing in, the tab explains instead
     const off = await mk("offline"); await off.addInitScript(() => localStorage.setItem("dmforge.offline", "1"));
     await off.goto(URL + "#requests"); await off.waitForTimeout(800);

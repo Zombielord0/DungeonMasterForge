@@ -391,5 +391,9 @@ test("feature requests: anyone signed in sends them and sees their own; the owne
   // at most 20 a day each
   for (let i = 0; i < 20; i++) await call(sam, "POST", "requests", { ...good, title: "n" + i });
   assert.equal((await call(sam, "POST", "requests", good)).status, 429);
+  // odd bodies get a 400, not a server error
+  const any = (await call(owner, "GET", "requests")).body.requests[0];
+  const req = new Request("https://forge.test/api/requests/" + any.id, { method: "PATCH", headers: { "content-type": "application/json" }, body: "null" });
+  assert.equal((await handle(req, owner, pool)).status, 400);
   delete process.env.FORGE_OWNER_EMAILS;
 });

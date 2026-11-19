@@ -192,6 +192,7 @@ export async function handle(req, user, db) {
       if (rid && m === "PATCH") {
         if (!owner) throw new HttpError(403, "Only the app's owner can change a request's status");
         const p = await body(req);
+        if (!p || typeof p !== "object") throw new HttpError(400, "Expected a change");
         if (p.status !== undefined && !REQ_STATUS.includes(p.status)) throw new HttpError(400, "Unknown status");
         const { rows } = await db.query(
           `UPDATE feature_requests SET status = COALESCE($2, status), reply = COALESCE($3, reply), updated_at = now() WHERE id = $1 RETURNING *`,
