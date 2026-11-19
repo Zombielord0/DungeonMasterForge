@@ -15,7 +15,7 @@ const FOLD = (() => {
   if (!out.size) try { const v = JSON.parse(localStorage.getItem("dmforge.fold.v1") || "[]"); if (Array.isArray(v)) v.slice(0, 500).forEach(k => out.set(String(k), true)); } catch { }
   return out;
 })();
-const FOLD_LISTS = { spList: "sp", itList: "it", bsList: "mm", pcOut: "sheet", rosterMain: "sheet" };
+const FOLD_LISTS = { spList: "sp", itList: "it", bsList: "mm", rosterMain: "sheet" };
 const FOLD_SEARCH = { spList: "spQ", itList: "itQ", bsList: "bsQ" };
 const FOLD_ALL_MIN = 2; // a list with at least this many groups starts folded and gets Fold all / Unfold all
 function foldSave() { try { localStorage.setItem(FOLD_KEY, JSON.stringify(Object.fromEntries(FOLD))); } catch { } }

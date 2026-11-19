@@ -2,6 +2,10 @@
    When a change ships, add an entry to the top of NEWS with a new id, in plain words for players and DMs. */
 
 const NEWS = [
+  { id: "2026-11-19-one-characters-tab", date: "2026-11-19", title: "Characters and My Characters are now one tab", go: "roster", items: [
+    "The Characters tab now holds everything: your characters on the left, ⚒ Forge a new character underneath, and one full sheet.",
+    "A newly forged character opens on the same sheet as your saved ones, so you can roll, change scores, pick spells and gear straight away. A bar on top says it isn't saved yet: ☆ Save character keeps it, ↻ Reroll forges again, ✕ Discard throws it away.",
+    "Unsaved characters stay in this browser. Only saved characters are shared with your campaign."] },
   { id: "2026-11-18-start-folded", date: "2026-11-18", title: "Long lists start folded", items: [
     "Items, Spells and the Monster Manual now open with their groups folded, so you see a short list of group names instead of hundreds of rows. Press ▾ on a group to open it.",
     "Anything you open or fold is remembered on this device. Typing in a list's search box opens the groups so you can see what matches.",

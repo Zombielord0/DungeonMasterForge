@@ -48,15 +48,13 @@ function pcAdoptRemote() {
 }
 function renderPC() {
   if (!currentPC) return;
-  $("#pcOut").innerHTML = sheetHTML(currentPC);
-  renderCampList();
+  RC.id = currentPC.id; pcShow("sheet"); renderRosterTab();
 }
 function keepPC() {
   const c = currentPC; if (!c) return;
   if (!PCS.roster.some(x => x.id === c.id)) PCS.roster.unshift(c);
-  currentPC = null; RC.id = c.id; pcPersist(); renderRoster();
-  $("#pcOut").innerHTML = PC_EMPTY;
-  toast(`${c.name} moved to My Characters`); location.hash = "roster";
+  currentPC = null; RC.id = c.id; pcPersist(); renderRosterTab();
+  toast(`${c.name} saved to your characters`);
 }
 function addPCToCampaign(id, p = currentPC) {
   if (!p) { toast("Forge a character first"); return; }

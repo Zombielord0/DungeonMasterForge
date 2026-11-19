@@ -36,7 +36,7 @@ const log = (...a) => console.log(...a);
   await ava.goto(URL + "#character");
   await ava.fill("#pcName", "Thorin");
   await ava.click("#pcForgeBtn");
-  await ava.click("[data-pc=keep]");
+  await ava.click("[data-draft=keep]");
   await ava.waitForTimeout(1500);
   log("ava badge:", await ava.textContent("#storeBadge"));
 

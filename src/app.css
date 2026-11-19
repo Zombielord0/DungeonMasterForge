@@ -1034,7 +1034,7 @@ nav a[data-view=journal]{--ic:url("data:image/svg+xml,%3Csvg xmlns='http://www.w
 
 /* UI polish (2026-11-18) */
 /* the side panel's Forge button stays in view while the fields scroll (laptops) */
-@media (min-width:901px){.side>.btn.primary.wide[type=submit]{position:sticky;bottom:0;z-index:2;box-shadow:0 -12px 16px -6px rgba(10,10,18,.85),0 3px 0 #4a2809}}
+@media (min-width:901px){:is(.side,#pcForm)>.btn.primary.wide[type=submit]{position:sticky;bottom:0;z-index:2;box-shadow:0 -12px 16px -6px rgba(10,10,18,.85),0 3px 0 #4a2809}}
 /* the character sheet: one row of actions, Discard at the end */
 .pc-actions{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
 .pc-actions .pc-camp{display:inline-flex;gap:6px;align-items:center;flex:0 1 auto;min-width:0}
@@ -1094,3 +1094,14 @@ nav a[data-view=journal]{--ic:url("data:image/svg+xml,%3Csvg xmlns='http://www.w
 @media (max-width:600px){.fold-all-w{display:none}.fold-all{padding:0 7px}}
 .fold-all:hover,.fold-all:focus-visible{background:rgba(0,0,0,.5);border-color:var(--gold);outline:none}
 @media (prefers-reduced-motion:reduce){.fold-btn{transition:none}}
+/* the Characters tab (forge, saved characters and the sheet in one tab, 2026-11-19) */
+.forge-box{margin:10px 0 0}
+.forge-box>summary{list-style:none;display:block;text-align:center;cursor:pointer}
+.forge-box>summary::-webkit-details-marker{display:none}
+.forge-box[open]>summary{margin-bottom:12px}
+.forge-box>form{padding:12px 2px 2px;border-top:1px solid rgba(227,154,59,.25)}
+.camp-item.pc-draft .tag{font-size:11px;padding:1px 6px;margin-left:4px;vertical-align:1px}
+.draft-bar{display:flex;flex-wrap:wrap;gap:10px 14px;align-items:center;justify-content:space-between;border-color:var(--gold)!important;margin-bottom:12px}
+.draft-bar>div:first-child{flex:1 1 260px;min-width:0}
+.draft-acts{display:flex;gap:6px;flex-wrap:wrap}
+@media (max-width:600px){#rosterMain .rc-grid :is(input,select){min-height:44px}} /* phone touch targets on the sheet's top fields */

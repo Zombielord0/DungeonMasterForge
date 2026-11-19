@@ -139,7 +139,7 @@ npm run build     # build the page and bundle the portal (what Netlify runs)
 npm run build:app # build the page only
 ```
 
-One check per feature (Playwright, any OS): `test:assets` (fingerprinted files, repeat visits, offline), `test:map`, `test:backup`, `test:tv`, `test:mapvis`, `test:mapio`, `test:shop`, `test:random`, `test:cards`, `test:mapenc`, `test:calendar`, `test:recap`, `test:sheet` (432 sheets vs the rules), `test:tokens`, `test:npcpic`, `test:hbspell`, `test:hbpend`, `test:import`, `test:layout`, `test:lore`, `test:mythweaver`, `test:campextras`, `test:npclib`, `test:world`, `test:setup` (builds the portal, port 8897), `test:sync` (the DM's data in their account, two devices, port 8896), `test:share` (the players' Journal, turn order on phones, shared rolls; port 8895), `test:hbclass` (homebrew classes), `test:atlas` (World and region maps), `test:polish` (the Adventure, Characters and Items tabs after the 2026-11-18 UI review), `test:cast` (spell bubbles and the spell window), `test:backdrop` (the background pictures and their live torches), `test:lorelink` (Lore items, monsters and encounters filling their tabs; folding lists).
+One check per feature (Playwright, any OS): `test:assets` (fingerprinted files, repeat visits, offline), `test:map`, `test:backup`, `test:tv`, `test:mapvis`, `test:mapio`, `test:shop`, `test:random`, `test:cards`, `test:mapenc`, `test:calendar`, `test:recap`, `test:sheet` (432 sheets vs the rules), `test:tokens`, `test:npcpic`, `test:hbspell`, `test:hbpend`, `test:import`, `test:layout`, `test:lore`, `test:mythweaver`, `test:campextras`, `test:npclib`, `test:world`, `test:setup` (builds the portal, port 8897), `test:sync` (the DM's data in their account, two devices, port 8896), `test:share` (the players' Journal, turn order on phones, shared rolls; port 8895), `test:hbclass` (homebrew classes), `test:atlas` (World and region maps), `test:polish` (the Adventure, Characters and Items tabs after the 2026-11-18 UI review), `test:cast` (spell bubbles and the spell window), `test:backdrop` (the background pictures and their live torches), `test:lorelink` (Lore items, monsters and encounters filling their tabs; folding lists), `test:chartab` (one Characters tab: forge, drafts, save, reroll, discard, the builder).
 
 Playwright and Chromium are pre-installed in cloud sessions. To test offline mode (no sign-in screen), run `localStorage.setItem('dmforge.offline','1')` in an init script.
 
@@ -217,6 +217,7 @@ Playwright and Chromium are pre-installed in cloud sessions. To test offline mod
   - **PR 13:** a photo-real corridor background with live flames on its torches, and a tall picture for phones (`npm run test:backdrop`).
 - **PR 14** (branch `claude/brave-dirac-2mvyiu`), merged to `main` at the owner's request on 2026-11-18: saving a Lore Item, Monster or Encounter adds it to Items → Custom, My monsters or the Encounters tab (`loreLink`; `docs/features/import.md`), and long lists and sheet sections fold (`19-fold.js`; `docs/features/layout.md`).
 - **Branch `claude/brave-dirac-2mvyiu`, after PR 14:** Items, Spells and Monster Manual groups start folded (owner's choice: lists only, not sheets); searching opens them. Character sheets have a Fold all switch too, and sheet titles on phones are no longer cut short (that bug went out with PR 14). Tests that click rows in those lists open a group first.
+- **Same branch, 2026-11-19 (owner's order):** 1. Characters and My Characters merged into one tab (owner's choice: one tab, not just one sheet layout). Then 2. the iron-and-oak look for panels and buttons, 3. a treasure hoard generator, 4. Eldritch Knight and Arcane Trickster spellcasting, all to PR 15.
 - **Next, as the owner said:** make the main screen look more realistic (panels, buttons).
 - **Work branch:** cloud chats use their own `claude/…` branch. After a merge, start the next piece from the latest `main`.
 - **The owner's order of import work:**
@@ -245,13 +246,13 @@ Playwright and Chromium are pre-installed in cloud sessions. To test offline mod
     - on the Characters tab, Browse sits under the slots;
     - Eldritch Knight and Arcane Trickster have no spellcasting.
   - **Tests:** `test:map`'s "TV shows the box-hidden entrance as fog" fails about one run in three, on `main` too (a timing problem).
-- **Ideas not yet done:** one shared sheet layout instead of two (`sheetHTML` and `renderRosterMain`); pictures in account saves (they're in backups now).
+- **Ideas not yet done:** pictures in account saves (they're in backups now).
 
 ## Gotchas found along the way
 
 - **Edit `src/`, not `public/index.html`.** `public/index.html`, `public/sw.js` and `public/assets/` are rebuilt from `src/` and `data/` and aren't in git.
 - **Comments in one-line functions:** a `//` comment swallows the rest of the line, including closing braces. Use `/* … */` there. (The build now catches the syntax errors this causes.)
-- **The sheet markup exists twice.** `sheetHTML` (the Characters tab, read-only with Reroll) and `renderRosterMain` (My Characters, editable with roll buttons and counters) build the same sections differently. The Features & Traits list is shared (`featuresListHTML`, `featTagOf`), and so are `lvBarHTML`, `defHTML` and `preparedHTML`. For anything else, make sure an edit lands in the one you mean.
+- **One character sheet (since 2026-11-19).** Characters and My Characters are one tab (`#roster`; `#character` is an alias that opens the forge form). A freshly forged character is a **draft**: `currentPC`, not in `PCS.roster`, shown on the same editable sheet (`rosterHTML`) with `draftBarHTML` on top (Save / Reroll / Discard). `rosterCur()` returns the draft when `RC.id` is its id; `pcIsDraft(c)` tells them apart. Drafts stay in the browser (`PCS.cur`); only `PCS.roster` goes to a signed-in campaign. `sheetHTML` is gone. `#pcOut` now only holds the step-by-step builder (`pcShow("build" | "sheet")`).
 - Segmented radio inputs are hidden. In Playwright, click `label.opt:has(input[...])`.
 - Once `portal.js` is built, the sign-in gate covers the page. Set `dmforge.offline` to `1` for offline tests.
 - Resilient is **not** repeatable.

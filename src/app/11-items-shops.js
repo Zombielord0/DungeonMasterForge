@@ -131,7 +131,7 @@ function itText(x) {
 function renderItTargets() {
   const row = $("#itTargetRow"), chars = PCS.roster;
   if (IT.target === undefined || !chars.some(c => c.id === IT.target)) IT.target = chars[0] ? chars[0].id : "";
-  row.innerHTML = `${chars.length ? "" : `<span class="hint" style="flex-basis:100%;margin:0">No characters to give items to yet. <a href="#character">Make one on the Characters tab</a> and save it to My characters.</span>`}<span>Give items to</span><select id="itTarget" aria-label="Character">${chars.length ? chars.map(c => `<option value="${esc(c.id)}">${esc(c.name)}</option>`).join("") : `<option value="">No saved characters yet</option>`}</select><span>Loot for</span><select id="itCamp" class="campSelect" aria-label="Campaign"></select>`;
+  row.innerHTML = `${chars.length ? "" : `<span class="hint" style="flex-basis:100%;margin:0">No characters to give items to yet. <a href="#character">Forge one on the Characters tab</a> and save it.</span>`}<span>Give items to</span><select id="itTarget" aria-label="Character">${chars.length ? chars.map(c => `<option value="${esc(c.id)}">${esc(c.name)}</option>`).join("") : `<option value="">No saved characters yet</option>`}</select><span>Loot for</span><select id="itCamp" class="campSelect" aria-label="Campaign"></select>`;
   $("#itTarget").value = IT.target || "";
   renderCampList();
 }
@@ -287,7 +287,7 @@ function payCoins(c, gp) {
 const coinText = c => ["pp", "gp", "ep", "sp", "cp"].filter(k => +c.coins[k]).map(k => `${c.coins[k]} ${k}`).join(", ") || "no coins";
 function itBuy(x) {
   const c = PCS.roster.find(r => r.id === $("#itTarget").value);
-  if (!c) { toast("Save a character to My Characters first"); return; }
+  if (!c) { toast("Save a character on the Characters tab first"); return; }
   const price = x.gp;
   if (price === null || price === undefined || isNaN(+price)) { toast(`${x.n} has no set price. Give it instead, and take the coins off by hand.`); return; }
   if (!payCoins(c, +price)) { toast(`${c.name} can't afford ${x.n} (${fmtGp(+price)}); they have ${coinText(c)}.`); return; }
@@ -295,7 +295,7 @@ function itBuy(x) {
 }
 function itGive(x, quiet) {
   const c = PCS.roster.find(r => r.id === $("#itTarget").value);
-  if (!c) { toast("Save a character to My Characters first"); return; }
+  if (!c) { toast("Save a character on the Characters tab first"); return; }
   c.inv = c.inv || [];
   const ex = c.inv.find(i => i.ref === x.id);
   if (ex) ex.qty = (+ex.qty || 1) + 1;

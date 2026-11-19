@@ -95,8 +95,7 @@ if (location.protocol !== "file:" && localStorage.getItem("dmforge.offline") !==
     <a href="#npc" data-view="npc">NPCs</a>
     <a href="#world" data-view="world">World</a>
     <a href="#monsters" data-view="monsters">Villains &amp; Monsters</a>
-    <a href="#character" data-view="character">Characters</a>
-    <a href="#roster" data-view="roster">My Characters</a>
+    <a href="#roster" data-view="roster">Characters</a>
     <a href="#spells" data-view="spells">Spells</a>
     <a href="#feats" data-view="feats">Feats</a>
     <a href="#items" data-view="items">Items</a>
@@ -478,46 +477,7 @@ if (location.protocol !== "file:" && localStorage.getItem("dmforge.offline") !==
 </section>
 
 <!-- ================= CHARACTER GENERATOR ================= -->
-<section class="view" id="view-character">
-  <div class="layout">
-    <form class="card side" id="pcForm" autocomplete="off">
-      <div class="field"><label>Creation mode</label>
-        <div class="seg"><label class="opt"><input type="radio" name="pcMode" value="random" checked><span>Random forge</span></label><label class="opt"><input type="radio" name="pcMode" value="custom"><span>Custom, step by step</span></label></div>
-      </div>
-      <div class="field"><label>Rules edition</label>
-        <div class="seg"><label class="opt"><input type="radio" name="pcEd" value="2024" checked><span>2024 (5.5e)</span></label><label class="opt"><input type="radio" name="pcEd" value="2014"><span>2014 (5e)</span></label></div>
-        <p class="hint" id="pcEdHint" style="margin:6px 0 0"></p>
-      </div>
-      <div class="field row rnd-only">
-        <div><label>Name</label><input type="text" id="pcName" placeholder="Random"></div>
-        <div style="flex:0 0 130px"><label>Gender</label><select id="pcGender"><option value="">Random</option><option value="male">Male</option><option value="female">Female</option></select></div>
-      </div>
-      <div class="field row rnd-only">
-        <div><label>Race</label><select id="pcRace"><option value="">Random</option></select></div>
-        <div><label>Class</label><select id="pcClass"><option value="">Random</option></select></div>
-      </div>
-      <div class="field rnd-only hidden" id="pcAncWrap"><label id="pcAncLbl">Subrace</label><select id="pcAnc"><option value="">Random</option></select><p class="hint" id="pcAncHint" style="margin:6px 0 0"></p></div>
-      <div class="field row rnd-only">
-        <div><label>Level</label><input type="number" id="pcLevel" min="1" max="20" value="1"></div>
-        <div><label>Background</label><select id="pcBg"><option value="">Random</option></select></div>
-      </div>
-      <p class="hint rnd-only" id="pcBgHint" style="margin:-6px 0 8px"></p>
-      <label class="rnd-only" id="pcGoldWrap" style="display:flex;gap:8px;align-items:center;margin:0 0 14px;font-size:14px"><input type="checkbox" id="pcGold50"> Take 50 gp instead of the background's equipment</label>
-      <div class="field rnd-only"><label>Ability scores</label>
-        <div class="seg"><label class="opt"><input type="radio" name="pcMethod" value="array" checked><span>Standard array</span></label><label class="opt"><input type="radio" name="pcMethod" value="roll"><span>Roll 4d6</span></label></div>
-      </div>
-      <div class="field rnd-only" id="pcBonusWrap"><label>Racial bonuses</label>
-        <div class="seg"><label class="opt"><input type="radio" name="pcBonus" value="flex" checked><span>Flexible +2/+1</span></label><label class="opt"><input type="radio" name="pcBonus" value="fixed"><span>Classic racial</span></label></div>
-      </div>
-      <button class="btn primary wide ico ico-hammer" type="submit" id="pcForgeBtn">Forge Character</button>
-      <div class="field" style="margin-top:14px"><label>My characters</label>
-        <p class="hint" style="margin:0 0 6px">Your current character stays put when you switch tabs. Press “Save to My characters” on its sheet to move it to the My Characters tab, where you can keep editing it.</p>
-        <a class="btn wide" href="#roster" style="display:block;text-align:center;text-decoration:none">Open My Characters <span id="pcRosterN"></span></a>
-      </div>
-    </form>
-    <div id="pcOut"><div class="card empty"><h2>A hero steps from the dark</h2><p>Leave anything on Random, or lock in a race, class and level. You get a full 5e sheet: scores, HP, AC, saves, skills, attacks, spell slots, features, gear and a backstory hook.</p></div></div>
-  </div>
-</section>
+
 <!-- ================= SPELLS ================= -->
 <section class="view" id="view-spells">
   <div class="layout">
@@ -572,7 +532,7 @@ if (location.protocol !== "file:" && localStorage.getItem("dmforge.offline") !==
       <div class="field"><label for="ftQ">Search</label><input type="search" id="ftQ" placeholder="Name or effect, e.g. armor, spell"></div>
       <div class="field" id="ftGrpWrap"><label for="ftGrp">Type</label><select id="ftGrp"></select></div>
       <div class="field"><label class="check"><input type="checkbox" id="ftOk"><span>Only feats the chosen character can take</span></label></div>
-      <p class="hint">Feats added here are extra to the ones chosen at level-ups, for example a DM's reward or a background's origin feat. Remove them from the character's Feats section on My Characters.</p>
+      <p class="hint">Feats added here are extra to the ones chosen at level-ups, for example a DM's reward or a background's origin feat. Remove them from the character's Feats section on the Characters tab.</p>
     </form>
     <div>
       <div class="card" style="padding:12px 16px"><div class="row" style="flex-wrap:wrap"><span id="ftCount" style="flex:1"></span></div><div class="sp-target" id="ftTargetRow"></div></div>
@@ -627,16 +587,52 @@ if (location.protocol !== "file:" && localStorage.getItem("dmforge.offline") !==
   </div>
 </section>
 
-<!-- ================= MY CHARACTERS ================= -->
+<!-- ================= CHARACTERS (forge, saved characters and the sheet in one tab) ================= -->
 <section class="view" id="view-roster">
-  <div class="tlayout">
-    <div class="card side">
-      <div class="sec-h"><h3>My Characters</h3></div>
+  <div class="layout">
+    <div class="card side" id="pcSide">
+      <div class="sec-h"><h3>Your characters</h3></div>
       <div id="rosterList"></div>
-      <a class="btn wide" href="#character" style="display:block;text-align:center;text-decoration:none;margin-top:6px">+ Forge a new character</a>
+      <details class="forge-box" id="forgeBox">
+        <summary class="btn wide">⚒ Forge a new character</summary>
+        <form id="pcForm" autocomplete="off">
+          <div class="field"><label>Creation mode</label>
+            <div class="seg"><label class="opt"><input type="radio" name="pcMode" value="random" checked><span>Random forge</span></label><label class="opt"><input type="radio" name="pcMode" value="custom"><span>Custom, step by step</span></label></div>
+          </div>
+          <div class="field"><label>Rules edition</label>
+            <div class="seg"><label class="opt"><input type="radio" name="pcEd" value="2024" checked><span>2024 (5.5e)</span></label><label class="opt"><input type="radio" name="pcEd" value="2014"><span>2014 (5e)</span></label></div>
+            <p class="hint" id="pcEdHint" style="margin:6px 0 0"></p>
+          </div>
+          <div class="field row rnd-only">
+            <div><label>Name</label><input type="text" id="pcName" placeholder="Random"></div>
+            <div style="flex:0 0 130px"><label>Gender</label><select id="pcGender"><option value="">Random</option><option value="male">Male</option><option value="female">Female</option></select></div>
+          </div>
+          <div class="field row rnd-only">
+            <div><label>Race</label><select id="pcRace"><option value="">Random</option></select></div>
+            <div><label>Class</label><select id="pcClass"><option value="">Random</option></select></div>
+          </div>
+          <div class="field rnd-only hidden" id="pcAncWrap"><label id="pcAncLbl">Subrace</label><select id="pcAnc"><option value="">Random</option></select><p class="hint" id="pcAncHint" style="margin:6px 0 0"></p></div>
+          <div class="field row rnd-only">
+            <div><label>Level</label><input type="number" id="pcLevel" min="1" max="20" value="1"></div>
+            <div><label>Background</label><select id="pcBg"><option value="">Random</option></select></div>
+          </div>
+          <p class="hint rnd-only" id="pcBgHint" style="margin:-6px 0 8px"></p>
+          <label class="rnd-only" id="pcGoldWrap" style="display:flex;gap:8px;align-items:center;margin:0 0 14px;font-size:14px"><input type="checkbox" id="pcGold50"> Take 50 gp instead of the background's equipment</label>
+          <div class="field rnd-only"><label>Ability scores</label>
+            <div class="seg"><label class="opt"><input type="radio" name="pcMethod" value="array" checked><span>Standard array</span></label><label class="opt"><input type="radio" name="pcMethod" value="roll"><span>Roll 4d6</span></label></div>
+          </div>
+          <div class="field rnd-only" id="pcBonusWrap"><label>Racial bonuses</label>
+            <div class="seg"><label class="opt"><input type="radio" name="pcBonus" value="flex" checked><span>Flexible +2/+1</span></label><label class="opt"><input type="radio" name="pcBonus" value="fixed"><span>Classic racial</span></label></div>
+          </div>
+          <button class="btn primary wide ico ico-hammer" type="submit" id="pcForgeBtn">Forge Character</button>
+        </form>
+      </details>
       <button class="btn wide" type="button" id="impCharBtn" style="margin-top:6px">⬆ Import character</button>
     </div>
-    <div id="rosterMain"></div>
+    <div class="pc-main">
+      <div id="pcOut" hidden><div class="card empty"><h2>A hero steps from the dark</h2><p>Leave anything on Random, or lock in a race, class and level. You get a full 5e sheet: scores, HP, AC, saves, skills, attacks, spell slots, features, gear and a backstory hook.</p></div></div>
+      <div id="rosterMain"></div>
+    </div>
   </div>
 </section>
 <!-- ================= HOMEBREW ================= -->

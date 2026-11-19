@@ -899,7 +899,7 @@ const partyChars = camp => (camp.party || []).map(pt => ({ pt, pc: pt.pcId ? PCS
 function partyGlanceHTML(camp) {
   const P = partyChars(camp); if (!P.length) return "";
   const row = ({ pt, pc }) => {
-    if (!pc) return `<tr><td><b>${esc(pt.name || "Hero")}</b><br><span class="muted" style="font-size:13px">${esc(pt.cls || "")} · no saved sheet</span></td><td colspan="6" class="muted">Add the character on My Characters to see it here.</td></tr>`;
+    if (!pc) return `<tr><td><b>${esc(pt.name || "Hero")}</b><br><span class="muted" style="font-size:13px">${esc(pt.cls || "")} · no saved sheet</span></td><td colspan="6" class="muted">Save the character on the Characters tab to see it here.</td></tr>`;
     pcEnsure(pc);
     const conds = CONDS.filter(([k]) => condOn(pc, k)).map(([, l]) => l), D = pc.death || {}, max = +pc.hp || 0, hp = pc.hpCur === undefined || pc.hpCur === "" || isNaN(+pc.hpCur) ? max : +pc.hpCur, pct = max ? Math.max(0, Math.min(100, Math.round(hp / max * 100))) : 0;
     const state = D.dead ? "☠ Dead" : hp === 0 ? (D.stable ? "Stable" : `Dying (${D.s || 0}✓ ${D.f || 0}✗)`) : "";

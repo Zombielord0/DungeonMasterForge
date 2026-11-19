@@ -137,9 +137,9 @@ const server = http.createServer((req, res) => {
   await p.click('#rosterMain .fold-all[data-foldall="0"]');
   check("Unfold all opens every section again", await p.evaluate(() => [...document.querySelectorAll("#rosterMain .sec.foldable")].every(s => !s.classList.contains("folded"))));
   await p.goto(URL + "#character"); await p.waitForTimeout(300);
-  await p.evaluate(() => { currentPC = pcEnsure(generateCharacter({ seed: "FOLD2", name: "Foldo", ed: "2024", level: 3 })); $("#pcOut").innerHTML = sheetHTML(currentPC); });
+  await p.evaluate(() => { currentPC = pcEnsure(generateCharacter({ seed: "FOLD2", name: "Foldo", ed: "2024", level: 3 })); renderPC(); });
   await p.waitForTimeout(100);
-  check("the Characters tab sheet has the switch too", await p.locator("#pcOut .fold-all").count() === 1);
+  check("a new, unsaved character's sheet has the switch too", await p.locator("#rosterMain .draft-bar").count() === 1 && await p.locator("#rosterMain .fold-all").count() === 1);
   await p.goto(URL + "#roster"); await p.waitForFunction(() => document.querySelector("#rosterMain .sec.foldable"));
   await p.click("#sec-gear > .sec-h > .fold-btn");
   check("the Inventory section folds", await p.evaluate(() => document.getElementById("sec-gear").classList.contains("folded")));

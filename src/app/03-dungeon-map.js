@@ -976,7 +976,7 @@ function tokChanged() { tokListRender(); fogChanged(); }
 $("#tokParty").addEventListener("click", () => {
   const c = curCampForMap(), names = c && c.party && c.party.length ? c.party.map(p => p.name).filter(Boolean) : PCS.roster.map(p => p.name);
   const add = names.filter(n => !HOST.tokens.some(t => t.name === n));
-  if (!add.length) { toast(names.length ? "The party's tokens are already on the map." : "No heroes yet: add them to the campaign's Party, or save characters to My Characters."); return; }
+  if (!add.length) { toast(names.length ? "The party's tokens are already on the map." : "No heroes yet: add them to the campaign's Party, or save characters on the Characters tab."); return; }
   add.forEach(n => tokAdd(n, "pc")); tokChanged();
 });
 $("#tokFight").addEventListener("click", () => {

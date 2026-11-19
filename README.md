@@ -13,7 +13,7 @@ Live at https://dungeonmasterforge.netlify.app
 ## How the portals work
 
 - The DM signs in, creates a campaign and shares its join code. The campaign name is optional (it's "New Campaign" until renamed), and the DM can rename it from the account button. **Not now** on the setup screen lets a new DM look around first.
-- Players create an account, enter the code once, and see: Characters, My Characters, Spells, Items, Journal, Whispers.
+- Players create an account, enter the code once, and see: Characters, Spells, Feats, Items, Journal, Whispers.
 - The players' **Journal** shows the quests, session recaps and Lore the DM shares (quest notes and DM-only sections never). The DM's **📱 Show players** button on an encounter puts the turn order on players' phones (Bloodied or Down, never HP). Players can tick **Share my rolls with the DM** in the roll dock.
 - The DM sees every tool plus **Party**: every player's sheet (click to view or edit), an activity feed of changes, and whispers to one player.
 - The DM's **Homebrew** tab adds custom subclasses, backgrounds, feats and species. Everyone in the campaign sees them in the character creator, Level up window and feat list; only the DM can change them.
@@ -72,7 +72,7 @@ The Forge works on phones as well as computers. On a phone the header is one sli
 
 ## Importing characters
 
-On **My Characters**, press **⬆ Import character** and choose a character file from the **5e Companion App** (in the app, open the character and use Export or Share) or a **fillable PDF character sheet** (one you can still type into, like the official 5e sheet). Pick the 2014 or 2024 rules. You'll see what matched, what becomes homebrew and anything that couldn't come across, then press **Import**. The Forge keeps the character's ability scores, skills, gear, coins, spells and story, and works out the rest itself, so levelling up, rests and dice all work.
+On the **Characters** tab, press **⬆ Import character** and choose a character file from the **5e Companion App** (in the app, open the character and use Export or Share) or a **fillable PDF character sheet** (one you can still type into, like the official 5e sheet). Pick the 2014 or 2024 rules. You'll see what matched, what becomes homebrew and anything that couldn't come across, then press **Import**. The Forge keeps the character's ability scores, skills, gear, coins, spells and story, and works out the rest itself, so levelling up, rests and dice all work.
 
 Subclasses, species, backgrounds, feats and spells the Forge doesn't have are added to **Homebrew** automatically, with their rules text from the file. A PDF has only names, so homebrew made from a PDF has no rules text: add it in the Homebrew tab. A scanned or "flattened" PDF can't be read. If a player imports while signed in, that new homebrew waits for the DM: it appears under **Waiting for approval** on the DM's Homebrew tab, and only that player's character uses it until the DM approves it. If the DM doesn't approve a subclass, feat or spell, it's taken off the character; a species or background stays, with a note to choose another with the DM.
 
@@ -80,7 +80,7 @@ Subclasses, species, backgrounds, feats and spells the Forge doesn't have are ad
 
 Each campaign in the **Campaign Tracker** has a **Lore** tab for places, items, monsters, encounters and anything else worth remembering. Search it, filter by type, tap an entry to read it, and use **+ Add entry** or **Edit** to write your own (you can use **bold**, *italic*, # headings and - lists). Parts marked 🔒 DM only are just for you. An entry with a picture link can be shown on the TV.
 
-To bring in a campaign from **MythWeaver**, export your account data from MythWeaver, then press **⬆ Import campaign** in the Campaign Tracker and choose the file. Tick the campaigns and characters you want. Sessions go to Sessions, NPCs to NPCs, everything else to Lore, and characters to My Characters. Your MythWeaver account details aren't kept. Importing the same campaign again updates it and keeps anything you added in the Forge. Lore is stored in this browser with the campaign, so it's in your 💾 Backup file; a big campaign takes a good share of the browser's space, and the import window tells you how much.
+To bring in a campaign from **MythWeaver**, export your account data from MythWeaver, then press **⬆ Import campaign** in the Campaign Tracker and choose the file. Tick the campaigns and characters you want. Sessions go to Sessions, NPCs to NPCs, everything else to Lore, and characters to the Characters tab. Your MythWeaver account details aren't kept. Importing the same campaign again updates it and keeps anything you added in the Forge. Lore is stored in this browser with the campaign, so it's in your 💾 Backup file; a big campaign takes a good share of the browser's space, and the import window tells you how much.
 
 ## NPC pictures
 

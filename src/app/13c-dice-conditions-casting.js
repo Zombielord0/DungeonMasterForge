@@ -234,7 +234,7 @@ function castDialog(c, ed, name, o = {}) {
     <div class="sp-stats">${stats.map(([k, v]) => `<div><span>${esc(k)}</span>${esc(v)}</div>`).join("")}</div>
     <div class="spell-desc">${spFormat(sp.d || "")}${sp.h ? `<p><b>At higher levels.</b> ${esc(sp.h)}</p>` : ""}</div></div>`;
   let cast = "";
-  if (o.view) cast = `<p class="hint" style="margin:10px 0 0">Save to My characters to cast this and track spell slots.</p><div class="row" style="justify-content:flex-end;margin-top:12px"><button class="btn" type="button" data-actclose style="flex:0 0 auto">Close</button></div>`;
+  if (o.view) cast = `<p class="hint" style="margin:10px 0 0">Save the character to cast this and track spell slots.</p><div class="row" style="justify-content:flex-end;margin-top:12px"><button class="btn" type="button" data-actclose style="flex:0 0 auto">Close</button></div>`;
   else {
     /* start on a real slot (or the cantrip); with none left, nothing is picked, so a free casting is always a choice */
     const opts = castOpts(c, sp), first = opts.find(x => !x[3] && (sp.l === 0 || /^slot\d$|^pact$/.test(x[0])));

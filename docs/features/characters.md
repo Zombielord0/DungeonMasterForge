@@ -60,3 +60,13 @@ From PR #5:
 - **How it works.** `openSpellCards(c)` makes one card per prepared spell (`spellCardHTML`) in the item-card style (`ITEMCARD_CSS`), opened through `openOverlay` with a downloadable HTML file. The `data-ra="cards"` button is on My Characters.
 - **The `.ds` clash.** `.icard .ds` resets the death-save dot style that shares the `.ds` class name. Before this fix, card text was squeezed into a 13 px column, in item cards too.
 - **Tests:** `npm run test:cards` (`test/e2e/spell-cards.cjs`).
+
+## One Characters tab (2026-11-19)
+
+The owner chose one tab over two (Characters and My Characters).
+- **Page:** `#view-roster` holds the side panel (`#pcSide`: `#rosterList`, the `<details id="forgeBox">` with `#pcForm`, Import) and the main column (`.pc-main`: `#pcOut` for the step-by-step builder, `#rosterMain` for the sheet). The nav has one link, `data-view="roster"`, labelled Characters. `route()` maps `#character` (old links, news `go:`, a player's `Portal.home`) to `roster`, opening the forge form when there are no characters.
+- **Drafts:** forging sets `currentPC` and `RC.id`, and `renderPC()` shows it on the shared sheet. `rosterCur()` returns the draft when selected; `pcIsDraft(c)` is true for `currentPC` while it isn't in `PCS.roster`. `draftBarHTML` (13e) shows Save (`keepPC`), Reroll (`window.pcReroll`, the forge form's `run`; not for custom builds) and Discard (`discardPC`). The sheet's Delete on a draft discards it.
+- **Saving:** drafts are kept in `PCS.cur` in the browser only. `keepPC` puts them in `PCS.roster`, which is what a signed-in campaign syncs, so rerolls never reach the campaign or its activity feed.
+- **Builder:** `renderCB` calls `pcShow("build")`; quitting, finishing, or picking a character in the list calls `pcShow("sheet")`.
+- `sheetHTML` and the old `#pcOut` sheet handlers are gone. The spell window's `o.view` (rules only) is no longer used by any caller.
+- Check: `npm run test:chartab`.
