@@ -93,6 +93,8 @@ const PNG = Buffer.from("iVBORw0KGgoAAAANSUhEUgAAAAIAAAACCAIAAAD91JpzAAAAFklEQVR
     const brief2 = await dm.evaluate(() => rqBrief({ ...RQ.list[0], data: { ...RQ.list[0].data, devices: [] } }));
     check("the brief is marked as a user's request and its details are a tidy list", /written by a user of the Forge/i.test(brief2) && /^- \*\*Kind:\*\*/m.test(brief2) && !/\n\n\n/.test(brief2) && !/^- \*\*Kind:\*\*.*\n\n- /m.test(brief2), brief2);
 
+    check("a request without a title still gets a sensible brief", await dm.evaluate(() => /^# Feature request: Untitled$/m.test(rqBrief({ ...RQ.list[0], data: { ...RQ.list[0].data, title: "" } }))));
+
     // without signing in, the tab explains instead
     const off = await mk("offline"); await off.addInitScript(() => localStorage.setItem("dmforge.offline", "1"));
     await off.goto(URL + "#requests"); await off.waitForTimeout(800);
