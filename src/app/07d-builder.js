@@ -103,9 +103,10 @@ function cbBody() {
     <p>${esc(subLabel(CB.ed, CB.race, CB.sub))} ${esc(CB.cls)} (${esc(CB.bg)}), level ${CB.level}, ${CB.ed} rules.<br>
     ${AB.map(a => `${AB_NAME[a]} ${base[a]}`).join(" · ")}<br>
     Skills: ${[...cbLocked(), ...CB.skills].join(", ")}</p>
-    <p class="hint">Levels past 4 apply ability score increases to your main abilities automatically. You can fine-tune every score, skill and detail afterwards in My Characters.</p></div>`;
+    <p class="hint">Levels past 4 apply ability score increases to your main abilities automatically. You can fine-tune every score, skill and detail afterwards on the sheet.</p></div>`;
 }
 function renderCB() {
+  pcShow("build"); forgeOpen(false);
   $("#pcOut").innerHTML = `<div class="card">
     <div class="row" style="align-items:flex-start"><div class="sheet-h" style="font-size:24px;flex:1">Create a custom character</div><button class="btn sm" type="button" data-cbquit style="flex:0 0 auto">✕ Cancel</button></div>
     <div class="cb-steps">${CB_STEPS.map((s, i) => `<span class="cb-step ${i === CB.step ? "cur" : ""} ${i < CB.step ? "done" : ""}" ${i < CB.step ? `data-cbgo="${i}" role="button" tabindex="0"` : ""}>${i + 1}. ${s}</span>`).join("")}</div>
@@ -120,14 +121,14 @@ function cbCreate() {
   const custom = { base: cbBase(), skills: [...CB.skills], align: CB.align, plus2: CB.bonus === "flex" || CB.ed === "2024" ? CB.plus2 : null, plus1: CB.bonus === "flex" || CB.ed === "2024" ? CB.plus1 : null, tri: CB.ed === "2024" && CB.bgSpread === "111", bgGold50: CB.ed === "2024" && !!CB.bgGold50 };
   currentPC = pcEnsure(generateCharacter({ seed: newSeed(), name: CB.name.trim().slice(0, 60), race: CB.race, ed: CB.ed, sub: CB.sub || "none", cls: CB.cls, bg: CB.bg, level: 1, gender: CB.gender, method: "custom", bonus: CB.ed === "2024" ? "flex" : CB.bonus, custom }));
   CB.on = false; renderPC(); pcPersist();
-  const target = clamp(CB.level, 1, 20), ready = c => `${c.name} is ready — tweak anything in My Characters`;
+  const target = clamp(CB.level, 1, 20), ready = c => `${c.name} is ready: tweak anything on the sheet, then save them`;
   if (target > 1 || needsSubclass(currentPC)) lvChain(currentPC, target, ready); else toast(ready(currentPC));
 }
 (function initCB() {
   const out = $("#pcOut");
   out.addEventListener("click", e => {
     if (!CB.on) return; const t = e.target; let b;
-    if (b = t.closest("[data-cbquit]")) { CB.on = false; out.innerHTML = currentPC ? sheetHTML(currentPC) : PC_EMPTY; return; }
+    if (b = t.closest("[data-cbquit]")) { CB.on = false; pcShow("sheet"); renderRosterTab(); return; }
     if (b = t.closest("[data-cbgo]")) { CB.step = +b.dataset.cbgo; renderCB(); return; }
     if (b = t.closest("[data-cbback]")) { CB.step--; renderCB(); return; }
     if (b = t.closest("[data-cbnext]")) { if (cbCanNext()) { CB.step++; cbEnter(); renderCB(); } return; }

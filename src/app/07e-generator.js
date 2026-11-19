@@ -1,4 +1,4 @@
-/* 07e-generator.js: generateCharacter (the whole sheet from a few choices, with a seeded RNG), the Characters tab's sheet (sheetHTML) and the quick forge. */
+/* 07e-generator.js: generateCharacter (the whole sheet from a few choices, with a seeded RNG), and the quick forge (the Characters tab's forge form; the sheet itself is rosterHTML in 13e). */
 
 const PC_TRAITS = ["I quote old proverbs for every occasion.", "I'm always polite, even to my enemies.", "I can't sit still for long.", "I ask far too many questions.", "I name my weapons and talk to them.", "I keep a journal of every meal I eat.", "I hum when I'm nervous, and I'm often nervous.", "I trust animals more than people.", "I laugh loudest when things are worst.", "I count my coins twice."];
 const mod = s => Math.floor((s - 10) / 2);
@@ -113,24 +113,26 @@ function generateCharacter(o) {
   if (cls === "Monk") { const md = lv >= 17 ? "1d10" : lv >= 11 ? "1d8" : lv >= 5 ? "1d6" : "1d4"; attacks.push({ name: "Unarmed strike", hit: wm + prof + atkBonus, dmg: md + sgn(wm) }); }
   // spells
   let spell = null;
-  if (C.cast) {
-    const [kind, sa] = C.cast; let slots = [], note = "";
+  const CAST = castOf(cls, subclass);
+  if (CAST) {
+    const [kind, sa] = CAST; let slots = [], note = "";
     if (kind === "full") slots = FULL_SLOTS[lv];
+    else if (kind === "third") slots = thirdSlots(lv);
     else if (kind === "half") slots = lv >= 2 || ed === "2024" ? FULL_SLOTS[Math.ceil(lv / 2)] : []; // 2024 half casters get Spellcasting at level 1
     else { const n = lv >= 17 ? 4 : lv >= 11 ? 3 : lv >= 2 ? 2 : 1, sl = Math.min(5, Math.ceil(lv / 2)); note = `${n} pact slot${n > 1 ? "s" : ""} of level ${sl}, regained on a short rest`; }
     const max = kind === "pact" ? Math.min(5, Math.ceil(lv / 2)) : Math.max(1, slots.length);
     const sb = fxSum("spell");
-    spell = { ab: sa, dc: 8 + prof + m[sa] + sb, atk: prof + m[sa] + sb, bonus: sb, slots, note, max, cantrips: kind !== "half" };
+    spell = { ab: sa, dc: 8 + prof + m[sa] + sb, atk: prof + m[sa] + sb, bonus: sb, slots, note, max, cantrips: kind !== "half", ...(subCaster(cls, subclass) ? { list: castListOf(cls, subclass) } : {}) };
   }
-  const mcCasters = MC.filter(x => CLASS_DATA[x.cls].cast);
+  const mcCasters = MC.filter(x => castOf(x.cls, x.subclass));
   if (mcCasters.length) {
-    const sb = fxSum("spell"), all = [...(C.cast ? [{ cls, lv }] : []), ...mcCasters], slotted = all.filter(x => CLASS_DATA[x.cls].cast[0] !== "pact");
-    const cl = slotted.reduce((t, x) => t + casterLv(ed, x.cls, x.lv), 0);
-    const own = x => { const k = CLASS_DATA[x.cls].cast[0]; return k === "full" ? FULL_SLOTS[x.lv] : k === "half" && x.lv >= 2 ? FULL_SLOTS[Math.ceil(x.lv / 2)] : []; };
+    const sb = fxSum("spell"), all = [...(CAST ? [{ cls, lv, subclass }] : []), ...mcCasters], slotted = all.filter(x => castOf(x.cls, x.subclass)[0] !== "pact");
+    const cl = slotted.reduce((t, x) => t + casterLv(ed, x.cls, x.lv, x.subclass), 0);
+    const own = x => { const k = castOf(x.cls, x.subclass)[0]; return k === "full" ? FULL_SLOTS[x.lv] : k === "third" ? thirdSlots(x.lv) : k === "half" && x.lv >= 2 ? FULL_SLOTS[Math.ceil(x.lv / 2)] : []; };
     const slots = slotted.length >= 2 ? (FULL_SLOTS[Math.max(0, Math.min(20, cl))] || []) : slotted.length === 1 ? own(slotted[0]) : [];
     const lock = all.find(x => x.cls === "Warlock"), P = lock ? pactSlots(lock.lv) : null;
-    const mk = x => { const sa = CLASS_DATA[x.cls].cast[1]; return { cls: x.cls, ab: sa, dc: 8 + prof + m[sa] + sb, atk: prof + m[sa] + sb }; };
-    const head = spell ? { ...spell } : { ...mk(mcCasters[0]), bonus: sb, cantrips: CLASS_DATA[mcCasters[0].cls].cast[0] !== "half", max: 1 };
+    const mk = x => { const sa = castOf(x.cls, x.subclass)[1]; return { cls: x.cls, ...(subCaster(x.cls, x.subclass) ? { list: castListOf(x.cls, x.subclass) } : {}), ab: sa, dc: 8 + prof + m[sa] + sb, atk: prof + m[sa] + sb }; };
+    const head = spell ? { ...spell } : { ...mk(mcCasters[0]), bonus: sb, cantrips: castOf(mcCasters[0].cls, mcCasters[0].subclass)[0] !== "half", max: 1 };
     head.slots = slots; head.note = slots.length ? "" : P ? `${P.n} pact slot${P.n > 1 ? "s" : ""} of level ${P.lvl}, regained on a short rest` : head.note || "";
     head.pact = P && slots.length ? P : null;
     head.max = Math.max(head.max || 1, slots.length, P ? P.lvl : 0);
@@ -223,57 +225,6 @@ const withTraitRes = c => {
 const defList = c => [["Resistant", c.res], ["Immune", c.imm], ["Vulnerable", c.vul], ["Condition immunities", c.cimm], ["Advantage on", (c.sadv || []).map(x => / saves/.test(x) ? x.replace(" against ", " vs ") : `saves vs ${x}`)]].filter(([, l]) => l && l.length);
 const defHTML = c => { const L = defList(c); return L.length ? `<div class="chips" style="margin:8px 0 0">${L.map(([k, l]) => `<span class="tag ${k === "Vulnerable" ? "" : "gold"}">${k}: ${l.map(esc).join(", ")}</span>`).join("")}</div>` : ""; };
 const defText = c => defList(c).map(([k, l]) => `${k}: ${l.join(", ")}`).join(" | ");
-function sheetHTML(c) {
-  const sv = a => m => c.mods[a] + (c.saves.includes(a) ? c.prof : 0);
-  return `<div class="card">
-    <div class="row" style="align-items:flex-start"><div><div class="sheet-h">${esc(c.name)}</div>
-      <div class="gen-sub"><span class="tag gold">Level ${c.level} ${esc(raceLabel(c))} ${esc(c.cls)}</span>${c.gender ? `<span class="tag">${c.gender === "male" ? "Male" : "Female"}</span>` : ""}<span class="tag">${edOf(c)} rules</span>${c.custom ? `<span class="tag">Custom build</span>` : ""}<span class="tag">${esc(c.bg)}</span><span class="tag">${esc(c.align)}</span></div></div>
-      ${c.custom ? "" : `<button class="btn sm" id="pcReroll" style="flex:0 0 auto">↻ Reroll</button>`}</div>
-    <div class="abil">${AB.map(a => `<div class="ab"><div class="n">${AB_NAME[a]}</div><div class="m">${sgn(c.mods[a])}</div><div class="s">${c.scores[a]}</div><div class="sv ${c.saves.includes(a) ? "p" : ""}">save ${sgn(sv(a)())}${c.saves.includes(a) ? " ●" : ""}</div></div>`).join("")}</div>
-    ${c.rolls ? `<p class="hint" style="margin-top:-4px">4d6 rolls (highest three kept): ${c.rolls.map(x => `[${x.d.join(", ")}] → ${x.t}`).join(" · ")}</p>` : ""}
-    <div class="vitals">
-      <div class="vit"><b>${c.hp}</b><span>Hit points</span></div><div class="vit"><b>${c.ac}</b><span>Armor class</span></div>
-      <div class="vit"><b>${sgn(c.init)}</b><span>Initiative</span></div><div class="vit"><b>${c.speed} ft</b><span>Speed</span></div>
-      <div class="vit"><b>${sgn(c.prof)}</b><span>Proficiency</span></div><div class="vit"><b>${c.passive}</b><span>Passive Perc.</span></div>
-      <div class="vit"><b>${c.level}d${c.hd}</b><span>Hit dice</span></div>
-    </div>
-    ${defHTML(c)}
-    <p class="hint">AC from ${esc(c.acSrc)}. HP uses the fixed average per level after 1st.</p>
-    ${lvBarHTML(c, true)}
-    <div class="pc-actions">
-      <button class="btn primary sm" type="button" data-pc="keep" title="Move this character to the My Characters tab for editing">☆ Save to My characters</button>
-      <span class="pc-camp"><select class="campSelect" id="pcCampSheet" aria-label="Campaign"></select><button class="btn sm" type="button" data-pc="camp">+ Add to campaign</button></span>
-      <button class="btn sm" type="button" data-pc="sheet">⎙ Export character sheet</button>
-      <button class="btn sm" type="button" data-pc="copy">Copy sheet as text</button>
-      <button class="btn sm" type="button" data-pc="edit" title="Move to My Characters, where every stat, skill and detail is editable">✎ Edit stats & skills</button>
-      <button class="btn sm danger pc-discard" type="button" data-pc="discard" title="Close and delete this character">✕ Discard</button>
-    </div>
-  </div>
-  <div class="grid2" style="margin-top:0">
-    <div class="sec"><div class="sec-h"><h3>Skills</h3><span class="sp"></span><span class="muted" style="font-size:13px">● proficient ★ expertise</span></div>
-      <div class="skills">${c.skills.map(s => `<div class="${s.p ? "p" : ""} ${s.x ? "x" : ""}"><span>${s.p ? "● " : ""}${esc(s.s)} <span class="muted" style="font-size:12px">${AB_NAME[s.ab]}</span></span><b>${sgn(s.v)}</b></div>`).join("")}</div></div>
-    <div class="sec"><div class="sec-h"><h3>Attacks</h3></div>
-      ${c.attacks.map(a => `<div class="enc" style="border-color:var(--gold)"><b>${esc(a.name)}</b>: ${sgn(a.hit)} to hit, ${esc(a.dmg)} damage</div>`).join("")}
-      ${c.extras.length ? `<ul class="plain" style="margin-top:10px">${c.extras.map(x => `<li>${esc(x)}</li>`).join("")}</ul>` : ""}
-    </div>
-  </div>
-  ${c.spell ? `<div class="sec" id="pcPrepSec"><div class="sec-h"><h3>Spells</h3><span class="sp"></span><button class="btn sm" type="button" id="pcPrepBtn">✦ Prepare spells</button></div>
-    <div class="spell-top"><p style="margin:0 0 4px"><b>Spell save DC ${c.spell.dc}</b> · spell attack ${sgn(c.spell.atk)} · ability ${AB_NAME[c.spell.ab]}</p>
-        ${c.spell.note ? `<div>${esc(c.spell.note)}</div>` : c.spell.slots.length ? `<div class="chips">${c.spell.slots.map((n, i) => `<span class="tag">Lv ${i + 1}: ${n} slot${n > 1 ? "s" : ""}</span>`).join("")}</div>` : `<div class="muted">No spell slots until level 2.</div>`}
-      <button class="btn sm" style="margin-top:10px" data-spells="${esc(c.spell.cls || c.cls)}|${c.spell.max}|${c.spell.cantrips ? 1 : 0}">✦ Browse ${esc(c.spell.cls || c.cls)} spells up to level ${c.spell.max}</button></div>
-    <div class="prep-h">${spellLimits(c).word === "known" ? "Spells known" : "Prepared spells"}</div>
-    <div id="pcPrepared">${preparedHTML(c)}</div>${prepPanelHTML(c)}</div>` : ""}
-  <div class="grid2" style="margin-top:0">
-    <div class="sec"><div class="sec-h"><h3>Features & Traits</h3></div>${featuresListHTML(c)}</div>
-    <div class="sec"><div class="sec-h"><h3>Equipment</h3></div><ul class="plain">${c.kit.map(k => `<li>${esc(k)}</li>`).join("")}${c.bgV >= 2 ? (+c.startGold ? `<li>${+c.startGold} gp</li>` : "") : `<li>${esc(c.bg)} background gear</li>`}</ul></div>
-  </div>
-  <div class="sec"><div class="sec-h"><h3>Personality & Backstory</h3></div>
-    <p><b>Trait:</b> ${esc(c.trait)}<br><b>Ideal:</b> ${esc(c.ideal)}<br><b>Bond:</b> ${esc(cap1(c.bond))}.<br><b>Flaw:</b> ${esc(cap1(c.flaw))}.</p>
-    <p><b>Hook:</b> ${esc(c.name.split(" ")[0])} ${esc(c.hook)}.</p>
-    ${c.hookDetail ? `<p>${esc(c.hookDetail.story)}</p>
-    <p style="margin-bottom:4px"><b>Unanswered questions:</b></p><ul class="plain">${c.hookDetail.questions.map(q => `<li>${esc(q)}</li>`).join("")}</ul>
-    <p class="muted" style="margin-top:10px"><i>For the DM:</i> ${esc(c.hookDetail.use)}</p>` : ""}</div>`;
-}
 function sheetText(c) {
   return `${c.name} — Level ${c.level} ${raceLabel(c)} ${c.cls} [${edOf(c)} rules] (${c.bg}, ${c.align})
 ${AB.map(a => `${AB_NAME[a]} ${c.scores[a]} (${sgn(c.mods[a])})`).join(" | ")}
@@ -288,14 +239,17 @@ Trait: ${c.trait} Ideal: ${c.ideal}. Bond: ${c.bond}. Flaw: ${c.flaw}.
 Hook: ${c.hook}.${c.hookDetail ? `\nBackstory: ${c.hookDetail.story}\nUnanswered questions: ${c.hookDetail.questions.join(" ")}\nFor the DM: ${c.hookDetail.use}` : ""}`;
 }
 let currentPC = null;
-const PC_EMPTY = document.getElementById("pcOut").innerHTML;
+/* The Characters tab's main column shows either the sheet (#rosterMain) or the step-by-step builder (#pcOut) */
+function pcShow(which) { const b = which === "build"; $("#pcOut").hidden = !b; $("#rosterMain").hidden = b; }
+/* the "⚒ Forge a new character" fold-out in the side panel */
+function forgeOpen(on = true) { const d = $("#forgeBox"); if (d) d.open = on; }
 async function discardPC() {
   const c = currentPC; if (!c) return;
   const saved = PCS.roster.some(x => x.id === c.id);
-  if (!(await confirmBox("Discard character?", saved ? `Discard ${c.name}? This also removes them from My characters. Copies already added to a campaign party stay there.` : `Discard ${c.name}? They aren't saved in My characters, so they'll be gone for good.`, "Discard"))) return;
+  if (!(await confirmBox("Discard character?", saved ? `Discard ${c.name}? This also removes them from your characters. Copies already added to a campaign party stay there.` : `Discard ${c.name}? They aren't saved yet, so they'll be gone for good.`, "Discard"))) return;
   PCS.roster = PCS.roster.filter(x => x.id !== c.id);
-  currentPC = null; pcPersist(); renderRoster();
-  $("#pcOut").innerHTML = PC_EMPTY; toast(`${c.name} discarded`);
+  currentPC = null; if (RC.id === c.id) RC.id = null; pcPersist(); renderRosterTab();
+  toast(`${c.name} discarded`);
 }
 (function initPC() {
 
@@ -357,28 +311,8 @@ async function discardPC() {
   const run = () => {
     const lv = clamp(parseInt($("#pcLevel").value) || 1, 1, 20); $("#pcLevel").value = lv;
     currentPC = pcEnsure(generateCharacter({ seed: newSeed(), name: $("#pcName").value.trim().slice(0, 60), gender: $("#pcGender").value || undefined, bgGold50: curEd() === "2024" && $("#pcGold50").checked, race: $("#pcRace").value, ed: curEd(), sub: $("#pcAncWrap").classList.contains("hidden") ? undefined : ($("#pcAnc").value || undefined), cls: $("#pcClass").value, bg: $("#pcBg").value, level: lv, method: $("input[name=pcMethod]:checked").value, bonus: $("input[name=pcBonus]:checked").value }));
-    renderPC(); pcPersist(); showResult("#pcOut");
+    renderPC(); pcPersist(); forgeOpen(false); showResult("#rosterMain");
   };
+  window.pcReroll = run; /* the draft bar's ↻ Reroll forges again from the same form */
   $("#pcForm").addEventListener("submit", e => { e.preventDefault(); if (($("input[name=pcMode]:checked") || {}).value === "custom") { CB.ed = curEd(); cbStart(); } else { CB.on = false; run(); } });
-  $("#pcOut").addEventListener("click", e => {
-    const t = e.target;
-    const spb = t.closest("#pcPrepared [data-spell]");
-    if (spb && currentPC) { const [ed, ...n] = spb.dataset.spell.split("|"); castDialog(currentPC, ed, n.join("|"), { view: true }); return; }
-    if (t.id === "pcReroll") { run(); return; }
-    const sb = t.closest("[data-spells]"); if (sb) { const [cl, mx, ca] = sb.dataset.spells.split("|"); SP.target = currentPC && currentPC.id; openSpellsFor(cl, +mx, ca === "1"); return; }
-    const a = t.closest("[data-pc]");
-    if (a) { const k = a.dataset.pc; if (k === "camp") addPCToCampaign($("#pcCampSheet").value); else if (k === "sheet") openSheet(currentPC); else if (k === "keep" || k === "edit") keepPC(); else if (k === "discard") discardPC(); else if (k === "copy") pcCopyText(); return; }
-    if (t.id === "pcPrepBtn") {
-      const p = $("#pcPrepPanel"); p.classList.toggle("hidden"); const open = !p.classList.contains("hidden");
-      t.textContent = open ? "Close search" : "✦ Prepare spells";
-      if (open) { $("#pcPrepEd").value = SP.ed; renderPrepList(); $("#pcPrepQ").focus(); }
-      return;
-    }
-    const pb = t.closest("[data-prep]");
-    if (pb && currentPC) { const s = spFind(pb.dataset.prep), on = togglePrep(currentPC, s, pb.dataset.prep.split("-")[0]); pb.textContent = on ? "✓ Prepared" : "+ Prepare"; pb.classList.toggle("primary", !on); pcChanged(currentPC); return; }
-    const ub = t.closest("[data-unprep]");
-    if (ub && currentPC) { const [ed, ...rest] = ub.dataset.unprep.split("|"), n = rest.join("|"); currentPC.prepared = currentPC.prepared.filter(x => !(x.ed === ed && x.n === n)); pcChanged(currentPC); renderPrepList(); }
-  });
-  $("#pcOut").addEventListener("input", e => { if (["pcPrepQ", "pcPrepLv", "pcPrepEd"].includes(e.target.id)) renderPrepList(); });
-  async function pcCopyText() { if (!currentPC) { toast("Forge a character first"); return; } try { await navigator.clipboard.writeText(sheetText(currentPC)); toast("Character sheet copied"); } catch { toast("Couldn't copy here"); } }
 })();

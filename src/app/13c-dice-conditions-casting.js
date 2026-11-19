@@ -100,9 +100,9 @@ function rollDamage(c, label, a, crit) {
 function rollDockHTML(c) {
   const L = c.rollLog || [];
   return `<div class="roll-dock ${ROLL.open ? "open" : ""}" id="rollDock" aria-label="Dice rolls">
-    <div class="rd-head"><button type="button" class="btn sm" data-rdtoggle aria-expanded="${ROLL.open}">🎲 Rolls${L.length ? ` · ${typeof L[0].total === "number" ? L[0].total : L[0].total}` : ""}</button>
+    <div class="rd-head"><button type="button" class="btn sm" data-rdtoggle aria-expanded="${ROLL.open}">🎲 Rolls${L.length ? ` · ${esc(String(L[0].total))}` : ""}</button>
       <div class="seg rd-mode" role="radiogroup" aria-label="Next roll">${[["normal", "Normal"], ["adv", "Adv."], ["dis", "Dis."]].map(([v, l]) => `<label class="opt"><input type="radio" name="rollMode" value="${v}" ${ROLL.mode === v ? "checked" : ""}><span>${l}</span></label>`).join("")}</div></div>
-    ${ROLL.open ? rollShareHTML() : ""}${ROLL.open ? `<ol class="rd-list">${L.length ? L.map(e => `<li class="${e.crit || e.nat20 ? "crit" : ""} ${e.fumble ? "fumble" : ""}"><span class="rd-t">${new Date(e.t).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}</span> <b>${esc(e.label)}</b> <span class="rd-total">${esc(String(e.total))}</span>${e.d ? `<small>d20 ${e.d.join(" / ")}${e.bonus ? ` ${sgn(e.bonus)}` : ""}${e.mode && e.mode !== "normal" ? (e.mode === "adv" ? " · advantage" : " · disadvantage") : ""}</small>` : ""}${e.note ? `<small>${esc(e.note)}</small>` : ""}</li>`).join("") : `<li class="muted">Click a skill, save, ability, initiative or attack to roll.</li>`}</ol>${L.length ? `<button type="button" class="btn sm" data-rdclear style="margin-top:6px">Clear</button>` : ""}` : ""}</div>`;
+    ${ROLL.open ? rollShareHTML() : ""}${ROLL.open ? `<ol class="rd-list">${L.length ? L.map(e => `<li class="${e.crit || e.nat20 ? "crit" : ""} ${e.fumble ? "fumble" : ""}"><span class="rd-t">${new Date(e.t).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}</span> <b>${esc(e.label)}</b> <span class="rd-total">${esc(String(e.total))}</span>${e.d ? `<small>d20 ${esc(e.d.join(" / "))}${e.bonus ? ` ${esc(sgn(e.bonus))}` : ""}${e.mode && e.mode !== "normal" ? (e.mode === "adv" ? " · advantage" : " · disadvantage") : ""}</small>` : ""}${e.note ? `<small>${esc(e.note)}</small>` : ""}</li>`).join("") : `<li class="muted">Click a skill, save, ability, initiative or attack to roll.</li>`}</ol>${L.length ? `<button type="button" class="btn sm" data-rdclear style="margin-top:6px">Clear</button>` : ""}` : ""}</div>`;
 }
 /* hit points: damage at 0 counts as a death save failure; dropping to 0 knocks you out; damage asks for a concentration save */
 function pcDamaged(c, dmg, wasZero) {
@@ -191,8 +191,8 @@ function miCaster(c) {
 }
 function spellCaster(c, sp) {
   const mi = (c.prepared || []).some(p => p.src === "Magic Initiate" && p.n === sp.n) ? miCaster(c) : null;
-  const own = [...(c.spell ? [{ cls: c.spell.cls || c.cls, ab: c.spell.ab, dc: c.spell.dc, atk: c.spell.atk }, ...(c.spell.others || [])] : [])];
-  return own.find(x => (sp.c || []).includes(x.cls)) || mi || own[0] || miCaster(c) || { cls: "", ab: "int", dc: 8 + c.prof, atk: c.prof };
+  const own = [...(c.spell ? [{ cls: c.spell.cls || c.cls, list: c.spell.list, ab: c.spell.ab, dc: c.spell.dc, atk: c.spell.atk }, ...(c.spell.others || [])] : [])];
+  return own.find(x => (sp.c || []).includes(x.cls) || (x.list && (sp.c || []).includes(x.list))) || mi || own[0] || miCaster(c) || { cls: "", ab: "int", dc: 8 + c.prof, atk: c.prof };
 }
 /* The spell window: the full rules, then (on My Characters) "Cast at level" buttons and Cast. `o.view`: rules only (the
    Characters tab, where slots aren't tracked). The picked choice is kept in the hidden #castSlot that castGo reads. */
@@ -234,7 +234,7 @@ function castDialog(c, ed, name, o = {}) {
     <div class="sp-stats">${stats.map(([k, v]) => `<div><span>${esc(k)}</span>${esc(v)}</div>`).join("")}</div>
     <div class="spell-desc">${spFormat(sp.d || "")}${sp.h ? `<p><b>At higher levels.</b> ${esc(sp.h)}</p>` : ""}</div></div>`;
   let cast = "";
-  if (o.view) cast = `<p class="hint" style="margin:10px 0 0">Save to My characters to cast this and track spell slots.</p><div class="row" style="justify-content:flex-end;margin-top:12px"><button class="btn" type="button" data-actclose style="flex:0 0 auto">Close</button></div>`;
+  if (o.view) cast = `<p class="hint" style="margin:10px 0 0">Save the character to cast this and track spell slots.</p><div class="row" style="justify-content:flex-end;margin-top:12px"><button class="btn" type="button" data-actclose style="flex:0 0 auto">Close</button></div>`;
   else {
     /* start on a real slot (or the cantrip); with none left, nothing is picked, so a free casting is always a choice */
     const opts = castOpts(c, sp), first = opts.find(x => !x[3] && (sp.l === 0 || /^slot\d$|^pact$/.test(x[0])));

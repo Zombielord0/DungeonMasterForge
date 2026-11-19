@@ -70,15 +70,13 @@ const server = http.createServer((req, res) => {
     check("the ✕ still removes a spell", await p.evaluate(id => !PCS.roster.find(x => x.id === id).prepared.some(s => s.n === "Bless"), id));
     // a non-caster's feat spells: no ✕ (the feat would bring them back)
     check("a non-caster's feat spells have no ✕", await p.evaluate(() => { const c = pcEnsure(generateCharacter({ seed: "MI1", cls: "Fighter", level: 2, ed: "2014" })); c.prepared = [{ n: "Fire Bolt", l: 0, ed: "2014", src: "Magic Initiate" }]; const h = preparedHTML(c, true); return /data-spell=/.test(h) && !/data-unprep=/.test(h); }));
-    // the Characters tab: rules only
+    // a newly forged (unsaved) character uses the same sheet as saved ones (one Characters tab since 2026-11-19)
     await p.goto(URL + "#character"); await p.waitForTimeout(300);
     await p.evaluate(() => { currentPC = pcEnsure(generateCharacter({ seed: "CAST2", name: "Brother Tam", cls: "Cleric", level: 3, ed: "2014" })); currentPC.prepared = [{ n: "Cure Wounds", l: 1, ed: "2014" }]; renderPC(); });
     await p.waitForTimeout(200);
-    await p.click('#pcPrepared .prep-b[data-spell="2014|Cure Wounds"]'); await p.waitForTimeout(200);
-    check("Characters tab: spell slots and DC are in the prepared spells box, not Attacks", await p.evaluate(() => { const s = document.querySelector("#pcPrepSec"); return !!s && /Spell save DC/.test(s.textContent) && /slot/i.test(s.textContent) && ![...document.querySelectorAll("#pcOut h3")].some(h => /Spellcasting/.test(h.textContent)); }));
-    await p.evaluate(() => actClose());
-    await p.click('#pcPrepared .prep-b[data-spell="2014|Cure Wounds"]'); await p.waitForTimeout(200);
-    check("on the Characters tab the window shows the rules without Cast", await p.evaluate(() => { const m = document.querySelector("#actModal.open"); return !!m && !!m.querySelector(".spell-rules") && !m.querySelector("[data-castgo]") && /Save to My characters/i.test(m.textContent); }));
+    check("a new character's sheet has the Spells box with DC and slots, not under Attacks", await p.evaluate(() => { const s = document.querySelector("#sec-spells"); return !!document.querySelector("#rosterMain .draft-bar") && !!s && /Spell save DC/.test(s.textContent) && /slot/i.test(s.textContent) && ![...document.querySelectorAll("#rosterMain h3")].some(h => /Spellcasting/.test(h.textContent)); }));
+    await p.click(bubble("Cure Wounds")); await p.waitForTimeout(200);
+    check("a new character's spell opens the window with Cast", await p.evaluate(() => { const m = document.querySelector("#actModal.open"); return !!m && !!m.querySelector(".spell-rules") && !!m.querySelector("[data-castgo]"); }));
     await ctx.close();
   }
   {

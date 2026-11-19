@@ -91,6 +91,11 @@ const server = http.createServer((req, res) => {
   const grp = '#itList .sec.foldable[data-foldk="it|Your custom items"]';
   check("item groups get a fold button", await p.locator(grp + " > .sec-h > .fold-btn").count() === 1);
   check("lists with several groups get Fold all", await p.locator("#itList > .sec.foldable:first-child > .sec-h > .fold-all").count() === 1);
+  check("list groups start folded", await p.evaluate(() => [...document.querySelectorAll("#itList > .sec.foldable")].every(s => s.classList.contains("folded"))));
+  await p.click(grp + " > .sec-h > .fold-btn");
+  check("the fold button opens a group", await p.evaluate(g => !document.querySelector(g).classList.contains("folded") && document.querySelector(g).children[1].offsetHeight > 0, grp));
+  await p.reload(); await p.waitForFunction(() => document.querySelector("#itList .sec.foldable"));
+  check("an opened group stays open after a reload", await p.evaluate(g => !document.querySelector(g).classList.contains("folded"), grp));
   await p.click(grp + " > .sec-h > .fold-btn");
   check("the fold button hides the group's rows", await p.evaluate(g => { const s = document.querySelector(g); return s.classList.contains("folded") && [...s.children].slice(1).every(e => !e.offsetHeight); }, grp));
   check("the fold button says it's folded", await p.getAttribute(grp + " > .sec-h > .fold-btn", "aria-expanded") === "false");
@@ -105,19 +110,55 @@ const server = http.createServer((req, res) => {
   check("Fold all folds every group", await p.evaluate(() => [...document.querySelectorAll("#itList > .sec.foldable")].every(s => s.classList.contains("folded"))));
   await p.click('#itList .fold-all[data-foldall="0"]');
   check("Unfold all opens them again", await p.evaluate(() => [...document.querySelectorAll("#itList > .sec.foldable")].every(s => !s.classList.contains("folded"))));
+  // saving a custom item shows its group even though groups start folded (without remembering that)
+  await p.click('#itList .fold-all[data-foldall="1"]');
+  await p.evaluate(() => { IT.draft = { ...ciNew(), n: "Freshly Saved Thing" }; ciSave(); });
+  await p.waitForTimeout(150);
+  check("a newly saved custom item is shown, not folded away", await p.evaluate(() => { const r = [...document.querySelectorAll("#itList .it-row")].find(e => /Freshly Saved Thing/.test(e.textContent)); return !!r && r.offsetHeight > 0; }));
+  check("showing it doesn't change what's remembered", await p.evaluate(() => FOLD.get("it|Your custom items") === true));
   await p.goto(URL + "#spells"); await p.waitForFunction(() => document.querySelector("#spList .sec.foldable"));
-  check("spell levels fold too", await p.locator("#spList .sec.foldable .fold-btn").count() >= 9);
+  check("spell levels fold too, and start folded", await p.locator("#spList .sec.foldable .fold-btn").count() >= 9 && await p.evaluate(() => [...document.querySelectorAll("#spList > .sec.foldable")].every(s => s.classList.contains("folded"))));
+  await p.fill("#spQ", "fireball"); await p.waitForTimeout(400);
+  check("searching shows the matching groups open", await p.evaluate(() => { const g = [...document.querySelectorAll("#spList > .sec.foldable")]; return g.length > 0 && g.every(s => !s.classList.contains("folded")) && !!document.querySelector('#spList .sp-row'); }));
+  await p.fill("#spQ", ""); await p.waitForTimeout(400);
+  check("clearing the search folds them again", await p.evaluate(() => [...document.querySelectorAll("#spList > .sec.foldable")].every(s => s.classList.contains("folded"))));
   await p.goto(URL + "#monsters"); await p.waitForTimeout(300); await p.evaluate(() => { const r = document.querySelector('input[name="monMode"][value="manual"]') || document.querySelector('input[name="monMode"]:not([value="build"])'); if (r) { r.checked = true; r.dispatchEvent(new Event("change", { bubbles: true })); } if (typeof renderBestiary === "function") renderBestiary(); }); await p.waitForTimeout(300);
   check("Monster Manual challenge groups fold too", await p.locator("#bsList .sec.foldable .fold-btn").count() > 5);
   // My Characters: a header button keeps its job, and the jump bar opens a folded section
   await p.goto(URL + "#character"); await p.waitForFunction(() => typeof generateCharacter === "function" && $("#storeBadge").textContent !== "Connecting…", null, { timeout: 15000 });
   await p.evaluate(() => { currentPC = pcEnsure(generateCharacter({ seed: "FOLD1", name: "Folda", ed: "2024", level: 3 })); keepPC(); });
   await p.goto(URL + "#roster"); await p.waitForFunction(() => document.querySelector("#rosterMain .sec.foldable"));
-  check("character sheet sections fold", await p.locator('#rosterMain .sec.foldable[data-foldk="sheet|Skills"]').count() === 1);
+  check("character sheet sections fold, and start open", await p.locator('#rosterMain .sec.foldable[data-foldk="sheet|Skills"]').count() === 1 && await p.evaluate(() => ![...document.querySelectorAll("#rosterMain .sec.foldable")].some(s => s.classList.contains("folded"))));
+  const firstSec = await p.evaluate(() => document.querySelector("#rosterMain .sec.foldable").dataset.foldk);
+  check("the sheet has a Fold all switch in its first section", await p.locator("#rosterMain .fold-all").count() === 1 && await p.evaluate(() => document.querySelector("#rosterMain .fold-all").closest(".sec") === document.querySelector("#rosterMain .sec.foldable")), firstSec);
+  await p.click('#rosterMain .fold-all[data-foldall="1"]');
+  check("Fold all folds every section of the sheet", await p.evaluate(() => [...document.querySelectorAll("#rosterMain .sec.foldable")].every(s => s.classList.contains("folded"))));
+  check("the sheet switch then says Unfold all", (await p.getAttribute("#rosterMain .fold-all", "aria-label")) === "Unfold all");
+  await p.click('#rosterMain .fold-all[data-foldall="0"]');
+  check("Unfold all opens every section again", await p.evaluate(() => [...document.querySelectorAll("#rosterMain .sec.foldable")].every(s => !s.classList.contains("folded"))));
+  await p.goto(URL + "#character"); await p.waitForTimeout(300);
+  await p.evaluate(() => { currentPC = pcEnsure(generateCharacter({ seed: "FOLD2", name: "Foldo", ed: "2024", level: 3 })); renderPC(); });
+  await p.waitForTimeout(100);
+  check("a new, unsaved character's sheet has the switch too", await p.locator("#rosterMain .draft-bar").count() === 1 && await p.locator("#rosterMain .fold-all").count() === 1);
+  await p.goto(URL + "#roster"); await p.waitForFunction(() => document.querySelector("#rosterMain .sec.foldable"));
   await p.click("#sec-gear > .sec-h > .fold-btn");
   check("the Inventory section folds", await p.evaluate(() => document.getElementById("sec-gear").classList.contains("folded")));
   await p.evaluate(() => sheetJump("gear")); await p.waitForTimeout(200);
   check("jumping to a folded section opens it", await p.evaluate(() => !document.getElementById("sec-gear").classList.contains("folded")));
+  // phones: title bars don't overflow, and sheet titles aren't cut short ("S…" for Skills)
+  {
+    const pc = await browser.newContext({ viewport: { width: 360, height: 800 }, isMobile: true, hasTouch: true, serviceWorkers: "block" });
+    await pc.addInitScript(() => localStorage.setItem("dmforge.offline", "1"));
+    const q = await pc.newPage(); q.on("pageerror", e => errs.push(e.message));
+    const bad = sel => q.evaluate(s => [...document.querySelectorAll(s + " .sec-h")].filter(e => e.offsetHeight).map(e => { const h = e.querySelector("h3"); return { t: e.textContent.trim().slice(0, 25), over: e.scrollWidth > e.clientWidth + 1, cut: !!h && h.scrollWidth > h.clientWidth + 1 }; }).filter(x => x.over || (x.cut && s === "#rosterMain")), sel);
+    await q.goto(URL + "#items"); await q.waitForFunction(() => document.querySelector("#itList .sec.foldable"));
+    let b = await bad("#itList"); check("phone: item title bars fit", !b.length, JSON.stringify(b));
+    await q.goto(URL + "#character"); await q.waitForFunction(() => typeof generateCharacter === "function" && $("#storeBadge").textContent !== "Connecting…", null, { timeout: 15000 });
+    await q.evaluate(() => { currentPC = pcEnsure(generateCharacter({ seed: "FOLD3", name: "Fitz", ed: "2024", level: 3, cls: "Wizard" })); keepPC(); });
+    await q.goto(URL + "#roster"); await q.waitForFunction(() => document.querySelector("#rosterMain .sec.foldable"));
+    b = await bad("#rosterMain"); check("phone: sheet titles show in full and their bars fit", !b.length, JSON.stringify(b));
+    await pc.close();
+  }
   check("no page errors", !errs.length, errs.join(" | "));
   await browser.close(); server.close();
   console.log(fails ? `\n${fails} check(s) failed` : "\nAll checks passed");

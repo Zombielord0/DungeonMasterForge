@@ -3,20 +3,27 @@
 function renderRoster() {
   hbPendSync();
   const list = $("#rosterList"), cur = rosterCur();
-  if (list) list.innerHTML = PCS.roster.length ? PCS.roster.map(c => `<button class="camp-item ${cur && c.id === cur.id ? "on" : ""}" data-rc="${esc(c.id)}"><b>${esc(c.name)}${window.Portal ? Portal.ownerTag(c) : ""}</b><small>${(c.multi || []).length ? `${esc(c.race)} ${esc(classLine(c))}` : `Lv ${c.level} ${esc(c.race)} ${esc(c.cls)}`}</small></button>`).join("")
-    : `<p class="muted" style="font-size:15px">No saved characters yet. Forge one on the Characters tab and press “Save to My characters”.</p>`;
-  const n = $("#pcRosterN"); if (n) n.textContent = PCS.roster.length ? `(${PCS.roster.length})` : "";
+  const draft = pcIsDraft(currentPC) ? currentPC : null;
+  const item = c => `<button class="camp-item ${cur && c.id === cur.id ? "on" : ""}" data-rc="${esc(c.id)}"><b>${esc(c.name)}${window.Portal ? Portal.ownerTag(c) : ""}</b><small>${(c.multi || []).length ? `${esc(c.race)} ${esc(classLine(c))}` : `Lv ${c.level} ${esc(c.race)} ${esc(c.cls)}`}</small></button>`;
+  if (list) list.innerHTML = (draft ? `<button class="camp-item pc-draft ${cur === draft ? "on" : ""}" data-rc="${esc(draft.id)}"><b>${esc(draft.name)} <span class="tag">New · not saved</span></b><small>Lv ${draft.level} ${esc(draft.race)} ${esc(draft.cls)}</small></button>` : "")
+    + (PCS.roster.length ? PCS.roster.map(item).join("") : draft ? "" : `<p class="muted" style="font-size:15px">No characters yet. Press “⚒ Forge a new character” below, or import one.</p>`);
 }
 function renderRosterTab() { renderRoster(); renderRosterMain(); }
 function renderRosterMain() {
   const c = rosterCur(), main = $("#rosterMain");
-  if (!c) { main.innerHTML = `<div class="card empty"><h2>No saved characters</h2><p>Forge a character on the Characters tab, then press “Save to My characters” to move it here, where you can keep editing it.</p><a class="btn primary" href="#character" style="text-decoration:none;display:inline-block">Go to Characters</a></div>`; return; }
+  if (!c) { main.innerHTML = `<div class="card empty"><h2>A hero steps from the dark</h2><p>Forge a character: leave anything on Random, or lock in a race, class and level, and get a full 5e sheet. Or build one step by step, or import one from another app.</p><button class="btn primary" type="button" data-draft="forge">⚒ Forge a new character</button></div>`; return; }
   RC.id = c.id; pcEnsure(c);
   c.inv = c.inv || []; c.coins = c.coins || { cp: 0, sp: 0, ep: 0, gp: 0, pp: 0 }; if (c.hpCur === undefined) c.hpCur = c.hp;
   if (c.bgV === 1 && CLASS_DATA[c.cls]) { const cur = c.hpCur; pcLevelTo(c, c.level); c.bgV = 2; if (cur !== undefined && cur !== "") c.hpCur = Math.min(+cur, c.hp); pcPersist(); }
+  /* saved before 2026-11-19, when Eldritch Knights and Arcane Tricksters had no spellcasting: rebuild to add it, keeping current HP */
+  if (!c.spell && CLASS_DATA[c.cls] && [{ cls: c.cls, lv: c.level, subclass: c.subclass }, ...(c.multi || [])].some(x => x && subCaster(x.cls, x.subclass) && +x.lv >= 3)) { const cur = c.hpCur; pcLevelTo(c, c.level); if (cur !== undefined && cur !== "") c.hpCur = Math.min(+cur, c.hp); pcPersist(); }
   const moved = pcInvUpgrade(c), synced = pcSubSync(c), nums = pcSubNumbers(c); pcRecompute(c); c.attacks = pcAttacks(c); if (moved || synced || nums) pcPersist();
-  main.innerHTML = rosterHTML(c); renderCampList(); $$("textarea", main).forEach(autoGrow);
+  main.innerHTML = (pcIsDraft(c) ? draftBarHTML(c) : "") + rosterHTML(c); renderCampList(); $$("textarea", main).forEach(autoGrow);
 }
+/* A newly forged character is a draft until saved: everything on the sheet works, and this bar keeps, rerolls or discards it.
+   Drafts stay in this browser (currentPC, PCS.cur); only saved characters (PCS.roster) go to a signed-in campaign. */
+const draftBarHTML = c => `<div class="card draft-bar"><div><b>New character, not saved yet.</b> <span class="muted">Change anything below, then save ${esc(c.name)} to keep them.</span></div>
+  <div class="draft-acts"><button class="btn primary sm" type="button" data-draft="keep">☆ Save character</button>${c.custom ? "" : `<button class="btn sm" type="button" data-draft="reroll" title="Forge again with the same choices">↻ Reroll</button>`}<button class="btn sm danger" type="button" data-draft="discard">✕ Discard</button></div></div>`;
 function rosterHTML(c) {
   const isb = itemSaveBonus(c), sv = a => c.mods[a] + (c.saves.includes(a) ? c.prof : 0) + isb;
   const D = c.hookDetail || { story: "", questions: [], use: "" };
@@ -25,7 +32,7 @@ function rosterHTML(c) {
   return `${sheetJumpHTML(c)}<div class="card">
     <div class="row" style="align-items:flex-start;flex-wrap:wrap"><input class="title-input" type="text" data-rf="name" value="${esc(c.name)}" aria-label="Character name" style="flex:1 1 260px">
       <div style="flex:0 1 auto;min-width:0;display:flex;gap:6px;flex-wrap:wrap"><button class="btn sm" type="button" data-ra="sheet">⎙ Export character sheet</button><button class="btn sm" type="button" data-ra="cards" title="Printable cards for this character's prepared spells">🃏 Spell cards</button><button class="btn sm" type="button" data-ra="copy">Copy as text</button><button class="btn sm danger" type="button" data-ra="del">✕ Delete</button></div></div>
-    <div class="gen-sub"><span class="tag gold">${esc(raceLabel(c))} ${esc((c.multi || []).length ? classLine(c) : c.cls)}</span>${(c.multi || []).length ? `<span class="tag">Level ${totalLv(c)}</span>` : ""}<span class="tag">${edOf(c)} rules</span><span class="tag">${esc(c.bg)}</span>${c.custom ? `<span class="tag">Custom build</span>` : ""}</div>
+    <div class="gen-sub"><span class="tag gold">${esc(raceLabel(c))} ${esc((c.multi || []).length ? classLine(c) : c.cls)}</span>${(c.multi || []).length ? `<span class="tag">Level ${totalLv(c)}</span>` : ""}<span class="tag">${esc(edOf(c))} rules</span><span class="tag">${esc(c.bg)}</span>${c.custom ? `<span class="tag">Custom build</span>` : ""}</div>
     <div class="rc-grid">
       <label>Level<input type="number" min="1" max="20" data-rlv="1" value="${c.level}"></label>
       <label>Gender<select data-rf="gender">${c.gender ? "" : `<option value="">Not set</option>`}${GENDERS.map(([v, l]) => `<option value="${v}" ${c.gender === v ? "selected" : ""}>${l}</option>`).join("")}</select></label>
@@ -57,9 +64,9 @@ function rosterHTML(c) {
   </div>
   <div class="sec"><div class="sec-h"><h3>Abilities</h3><span class="sp"></span><span class="muted" style="font-size:13px">Actions, reactions and boosts from your features · − spends a use, + gives one back</span></div><div id="rcAbl">${rcAbilitiesHTML(c)}</div></div>
   ${c.spell ? `<div class="sec" id="sec-spells"><div class="sec-h"><h3>Spells</h3><span class="sp"></span><button class="btn sm" type="button" data-ra="prep">✦ Prepare spells</button></div>
-    <div class="spell-top">${c.armorUntrained ? `<div class="enc" style="margin-top:10px">⚠ You can't cast spells while wearing armor or a shield you aren't trained with.</div>` : ""}<p style="margin:0 0 4px"><b>Spell save DC ${c.spell.dc}</b> · spell attack ${sgn(c.spell.atk)} · ability ${AB_NAME[c.spell.ab]}${(c.spell.others || []).length ? ` <span class="muted">(${esc(c.spell.cls || c.cls)})</span>` : ""}</p>${(c.spell.others || []).map(o => `<p style="margin:0 0 4px"><b>${esc(o.cls)}: DC ${o.dc}</b> · spell attack ${sgn(o.atk)} · ${AB_NAME[o.ab]}</p>`).join("")}
+    <div class="spell-top">${c.armorUntrained ? `<div class="enc" style="margin-top:10px">⚠ You can't cast spells while wearing armor or a shield you aren't trained with.</div>` : ""}<p style="margin:0 0 4px"><b>Spell save DC ${esc(c.spell.dc)}</b> · spell attack ${esc(sgn(c.spell.atk))} · ability ${AB_NAME[c.spell.ab]}${(c.spell.others || []).length ? ` <span class="muted">(${esc(c.spell.cls || c.cls)})</span>` : ""}</p>${(c.spell.others || []).map(o => `<p style="margin:0 0 4px"><b>${esc(o.cls)}: DC ${esc(o.dc)}</b> · spell attack ${esc(sgn(o.atk))} · ${AB_NAME[o.ab]}</p>`).join("")}
         ${rcSlotsHTML(c)}
-        <button class="btn sm" type="button" style="margin-top:10px" data-spells="${esc(c.spell.cls || c.cls)}|${c.spell.max}|${c.spell.cantrips ? 1 : 0}">✦ Browse ${esc(c.spell.cls || c.cls)} spells</button></div>
+        <button class="btn sm" type="button" style="margin-top:10px" data-spells="${esc(c.spell.list || c.spell.cls || c.cls)}|${esc(c.spell.max)}|${c.spell.cantrips ? 1 : 0}">✦ Browse ${esc(c.spell.cls || c.cls)} spells</button></div>
     <div class="prep-h">${L.word === "known" ? "Spells known" : "Prepared spells"}</div>
     <div id="rcPrepared">${preparedHTML(c, true)}</div>${prepPanelHTML(c, "rc")}</div>` : (c.prepared || []).some(p => p.src) ? `<div class="sec"><div class="sec-h"><h3>Spells</h3><span class="sp"></span><span class="muted" style="font-size:13px">From feats · ${(() => { const K = miCaster(c); return K ? `DC ${K.dc} · spell attack ${sgn(K.atk)} · ${AB_NAME[K.ab]}` : ""; })()}</span></div><div id="rcPrepared">${preparedHTML(c, true)}</div></div>` : ""}
   ${profSecHTML(c)}
@@ -111,7 +118,7 @@ document.getElementById("spFiltersBtn").addEventListener("click", () => { docume
 ["change", "click", "input"].forEach(ev => document.getElementById("spForm").addEventListener(ev, () => setTimeout(spFiltersSync)));
 spFiltersSync();
 (function initRoster() {
-  $("#rosterList").addEventListener("click", e => { const b = e.target.closest("[data-rc]"); if (b) { RC.id = b.dataset.rc; renderRosterTab(); } });
+  $("#rosterList").addEventListener("click", e => { const b = e.target.closest("[data-rc]"); if (b) { RC.id = b.dataset.rc; CB.on = false; pcShow("sheet"); renderRosterTab(); showResult("#rosterMain"); } });
   const main = $("#rosterMain");
   const resSet = (c, key, left) => { const r = pcResources(c).find(x => x.key === key); if (!r || r.max === Infinity) return; c.used = c.used || {}; c.used[key] = r.max - clamp(left, 0, r.max); pcPersist(); renderRosterMain(); };
   main.addEventListener("click", e => {
@@ -210,6 +217,8 @@ spFiltersSync();
     }
   });
   main.addEventListener("click", async e => {
+    const dr = e.target.closest("[data-draft]");
+    if (dr) { const k = dr.dataset.draft; if (k === "forge") { forgeOpen(); const f = $("#forgeBox"); if (f) f.scrollIntoView({ block: "nearest" }); } else if (k === "keep") keepPC(); else if (k === "reroll" && window.pcReroll) pcReroll(); else if (k === "discard") discardPC(); return; }
     const c = rosterCur(); if (!c) return; const t = e.target;
     const sk = t.closest("[data-rsk]");
     if (sk) { const s = c.skills[+sk.dataset.rsk]; if (s.x) { s.x = false; s.p = false; } else if (s.p) s.x = true; else s.p = true; pcRecompute(c); pcPersist(); renderRosterMain(); return; }
@@ -220,6 +229,7 @@ spFiltersSync();
       else if (k === "cards") openSpellCards(c);
       else if (k === "copy") { try { await navigator.clipboard.writeText(sheetText(c)); toast("Character sheet copied"); } catch { toast("Couldn't copy here"); } }
       else if (k === "camp") addPCToCampaign($("#rcCamp").value, c);
+      else if (k === "del" && pcIsDraft(c)) discardPC();
       else if (k === "del") {
         if (!(await confirmBox("Delete character?", `Delete ${c.name}? Copies already added to a campaign party stay there.`, "Delete"))) return;
         PCS.roster = PCS.roster.filter(x => x.id !== c.id); RC.id = null; pcPersist(); renderRosterTab(); toast(`${c.name} deleted`);

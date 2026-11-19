@@ -93,6 +93,33 @@ const check = (name, ok, extra = "") => { console.log((ok ? "PASS " : "FAIL ") +
     const feed = await activity(dm);
     check("a shared roll shows in the DM's activity feed", feed.some(s => /^🎲 .+: \d+/.test(s)), feed.join(" | "));
     check("the DM's own sheets have no share box", !(await dm.evaluate(() => rollShareHTML())));
+    // 4. another member's sheet can't run page code in the DM's browser, whatever its fields hold
+    check("a forced save (Keep mine) is accepted by the server", (await pl.evaluate(async () => {
+      const me = await (await fetch("/api/me")).json(), camp = me.campaigns[0].id, c = JSON.parse(JSON.stringify(PCS.roster[0]));
+      const X = '<img src=x class="pwn" onerror="window.__pwned=1">';
+      Object.assign(c, { name: "Pia " + X, ed: X, race: X, bg: X, notes: 'She said "hi" ' + X, formHp: '1">' + X, active: { "Wild Shape": "x" } });
+      const r = await fetch(`/api/campaigns/${camp}/characters/${encodeURIComponent(c.id)}`, { method: "PUT", headers: { "content-type": "application/json" }, body: JSON.stringify({ data: c, force: true }) });
+      return r.status;
+    })) === 200);
+    await dm.reload(); await dm.waitForFunction(() => Portal.cloud && PCS.roster.length > 0, null, { timeout: 15000 });
+    await dm.evaluate(() => { location.hash = "#roster"; }); await dm.waitForTimeout(300);
+    await dm.evaluate(() => { RC.id = PCS.roster.find(c => /^Pia/.test(c.name)).id; renderRosterTab(); }); await dm.waitForTimeout(400);
+    check("a player's booby-trapped sheet runs no code in the DM's browser", await dm.evaluate(() => !window.__pwned && !document.querySelector("img.pwn")));
+    check("…and still opens, its text exactly as the player wrote it, with nothing able to run", await dm.evaluate(() => { const c = PCS.roster.find(c => /^Pia/.test(c.name)); return /^Pia <img/.test(c.name) && /She said "hi"/.test(c.notes) && !!document.querySelector('#rosterMain [data-rf="name"]') && ![...document.querySelectorAll("*")].some(e => [...e.attributes].some(a => /^on/i.test(a.name) && e.closest("#rosterMain, #rosterList"))); }));
+    // the other way round: the DM edits the player's sheet; the player's browser must not trust it just because it's theirs
+    check("the DM's forced edit of the player's sheet is accepted", (await dm.evaluate(async () => {
+      const me = await (await fetch("/api/me")).json(), camp = me.campaigns[0].id, c = JSON.parse(JSON.stringify(PCS.roster.find(c => /^Pia/.test(c.name))));
+      c.rollLog = [{ t: Date.now(), label: "x", total: '<img src=x class="pwn" onerror="window.__pwned=1">', d: ['<img src=x class="pwn" onerror="window.__pwned=1">'], bonus: '<img src=x class="pwn">' }];
+      return (await fetch(`/api/campaigns/${camp}/characters/${encodeURIComponent(c.id)}`, { method: "PUT", headers: { "content-type": "application/json" }, body: JSON.stringify({ data: c, force: true }) })).status;
+    })) === 200);
+    await pl.reload(); await pl.waitForFunction(() => Portal.cloud && PCS.roster.length > 0, null, { timeout: 15000 });
+    await pl.evaluate(() => { location.hash = "#roster"; RC.id = PCS.roster[0].id; ROLL.open = true; renderRosterTab(); }); await pl.waitForTimeout(400);
+    check("a sheet the DM edited runs no code in the player's browser", await pl.evaluate(() => !window.__pwned && !document.querySelector("img.pwn")));
+    // the player's own save, last written by them, stays exactly as typed
+    await pl.evaluate(() => { const c = PCS.roster[0]; c.notes = 'She said "hi"'; c.rollLog = []; pcPersist(); });
+    await pl.waitForTimeout(2500);
+    await pl.reload(); await pl.waitForFunction(() => Portal.cloud && PCS.roster.length > 0, null, { timeout: 15000 });
+    check("the player's own copy keeps their text exactly", await pl.evaluate(() => /She said "hi"/.test(PCS.roster[0].notes || "")), await pl.evaluate(() => PCS.roster[0].notes));
   } finally {
     check("no page errors", errs.length === 0, errs.join(" | "));
     await browser.close(); srv.kill();

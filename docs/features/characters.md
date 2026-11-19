@@ -60,3 +60,31 @@ From PR #5:
 - **How it works.** `openSpellCards(c)` makes one card per prepared spell (`spellCardHTML`) in the item-card style (`ITEMCARD_CSS`), opened through `openOverlay` with a downloadable HTML file. The `data-ra="cards"` button is on My Characters.
 - **The `.ds` clash.** `.icard .ds` resets the death-save dot style that shares the `.ds` class name. Before this fix, card text was squeezed into a 13 px column, in item cards too.
 - **Tests:** `npm run test:cards` (`test/e2e/spell-cards.cjs`).
+
+## One Characters tab (2026-11-19)
+
+The owner chose one tab over two (Characters and My Characters).
+- **Page:** `#view-roster` holds the side panel (`#pcSide`: `#rosterList`, the `<details id="forgeBox">` with `#pcForm`, Import) and the main column (`.pc-main`: `#pcOut` for the step-by-step builder, `#rosterMain` for the sheet). The nav has one link, `data-view="roster"`, labelled Characters. `route()` maps `#character` (old links, news `go:`, a player's `Portal.home`) to `roster`, opening the forge form when there are no characters.
+- **Drafts:** forging sets `currentPC` and `RC.id`, and `renderPC()` shows it on the shared sheet. `rosterCur()` returns the draft when selected; `pcIsDraft(c)` is true for `currentPC` while it isn't in `PCS.roster`. `draftBarHTML` (13e) shows Save (`keepPC`), Reroll (`window.pcReroll`, the forge form's `run`; not for custom builds) and Discard (`discardPC`). The sheet's Delete on a draft discards it.
+- **Saving:** a draft is never sent to a campaign. Offline (or signed in without a campaign) it is kept in `PCS.cur` in the browser and survives a reload; signed in to a campaign, `pcPersist` hands off to the portal, which only syncs `PCS.roster`, so a draft is lost on reload there (as before the merge). `keepPC` puts it in `PCS.roster`. Rerolls never reach the campaign or its activity feed.
+- **The address:** `route()` rewrites `#character` (and a player's landing page) to `#roster` with `history.replaceState`, because refreshes after level-up (`pcRefresh`), dialogs (`actClose`), homebrew changes and boot check `location.hash === "#roster"`.
+- **Hidden page code in shared text (2026-11-19, security review).** Characters, homebrew and campaign text come from other people (a DM can also edit a player's sheet), and many templates write that text into the page.
+  - **The page guard** (`src/app/00-guard.js`, the first code to run): a `MutationObserver` on the whole page strips, from anything the app adds, event-handler attributes (`on…`), `srcdoc`, `javascript:`/`vbscript:`/`data:text/html` links, and `iframe`, `object`, `embed`, `base`, `meta` elements. Its callback runs as a microtask, before images, toggles and the like can fire; `test:chartab` tries the usual payloads and shows they fire without it. The app never adds any of these itself. **It is not complete** (security review): events fired synchronously right after an insertion (the app calls `.focus()` on new elements in many places) run before it, and an inserted `<meta http-equiv=refresh>` still redirects. `esc()` in every template is the real protection.
+  - **Arriving characters** (`incoming` in `portal.js` → `pcIncoming`): every character from the database, yours too, has its numbers fixed (`pcNums`) and its rules edition forced to 2014/2024 before it's remembered. Text is kept exactly as typed (an earlier version replaced `<`, `>` and `"` and was dropped: it silently rewrote players' notes when a DM saved their sheet).
+  - Still escape with `esc()` in new templates; the guard is the safety net.
+- **Keep mine:** the clash dialog's Keep mine sends `force` without a `baseVersion`. The API used to pass `NaN` to Postgres and answer 500; it now treats a missing version as -1 (force) and saves. `npm test` covers it.
+- **Numbers are numbers:** `pcNums` (in `pcEnsure`) turns `level`, `scores`, `multi[].lv` and the fields in `PC_NUMS` into numbers. Other members' sheets arrive from the campaign database as any JSON, and the list and sheet write these fields into the page as they are.
+- **Builder:** `renderCB` calls `pcShow("build")`; quitting, finishing, or picking a character in the list calls `pcShow("sheet")`.
+- `sheetHTML` and the old `#pcOut` sheet handlers are gone. The spell window's `o.view` (rules only) is no longer used by any caller.
+- Check: `npm run test:chartab`.
+
+## Eldritch Knight and Arcane Trickster spellcasting (2026-11-19)
+
+- Spellcasting can come from a subclass. `castOf(cls, subclass)` (07a) returns the class's own `cast` or, for `SUB_CASTERS` (Fighter|Eldritch Knight, Rogue|Arcane Trickster), `["third", "int"]`. `castListOf` gives the spell list ("Wizard"). Use these instead of `CLASS_DATA[cls].cast` anywhere casting is decided.
+- Slots: `thirdSlots(lv)` = `FULL_SLOTS[ceil(lv / 3)]` from level 3 (2 at 3, up to 4/3/3/1 at 19). Multiclass caster level counts `floor(lv / 3)` (`casterLv(ed, cls, lv, subclass)`).
+- Spells: `THIRD_KNOWN` (3 at level 3 up to 13 at 20), "known" in 2014 and "prepared" in 2024. Cantrips: Eldritch Knight 2, Arcane Trickster 3 (Mage Hand included), +1 at level 10.
+- The spell block carries `list: "Wizard"` (also on `spell.others` entries), used by the Browse button, `pcSpellPool`, the "not on your list" warning and `spellCaster` (which DC a spell uses).
+- The 2014 rule that most of their spells must be from two schools (abjuration/evocation, enchantment/illusion) isn't enforced; any wizard spell can be picked.
+- **Older saves:** a character saved before this (no `c.spell`) whose class or a multiclass is an Eldritch Knight / Arcane Trickster at level 3+ is rebuilt with `pcLevelTo(c, c.level)` when its sheet opens (`renderRosterMain`), keeping current HP.
+- **Level-up window:** `lvGains` builds the preview with the subclass being picked (`LV.pick`) and lists "Spellcasting (…): spell slots …, N spells known/prepared and N cantrips" when spellcasting starts.
+- Check: `npm run test:third`.

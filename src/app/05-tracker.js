@@ -88,7 +88,8 @@ function renderSub(c) {
   }
   const L = LISTS[subTab]; let items = c[subTab], tabsHTML = "";
   if (subTab === "npcs") { worldAdopt(); const T = npcPlaceTabs(items, TN.tab); TN.tab = T.cur; if (items.length) tabsHTML = T.html("tntab"); items = items.filter(T.keep); }
-  return (subTab === "sessions" ? recapBarHTML() : "") + `<div class="sec-h"><h3>${L.label}</h3><span class="sp"></span><button class="btn sm primary" data-add="${subTab}">+ ${L.add}</button></div>` + tabsHTML +
+  return (subTab === "sessions" ? recapBarHTML() : "") + `<div class="sec-h"><h3>${L.label}</h3><span class="sp"></span>${subTab === "loot" ? `<button class="btn sm" type="button" data-hoardopen="1" title="Roll coins, gems, art and magic items for this campaign's level">💰 Roll a hoard</button>` : ""}<button class="btn sm primary" data-add="${subTab}">+ ${L.add}</button></div>` + tabsHTML +
+    (subTab === "loot" && HOARD.T && HOARD.T.camp === c.id ? `<div class="card hoard" style="margin:0 0 12px">${hoardHTML(HOARD.T, "tracker")}</div>` : "") +
     (items.length ? items.map(it => `<div class="item${subTab === "npcs" ? " npc-row" : ""}">` + (subTab === "npcs" ? npcPicHTML(it) + `<div class="npc-body">` : "") + (() => {
       const [first, ...rest] = L.fields; const inline = rest.filter(f => f[1] !== "textarea"), areas = rest.filter(f => f[1] === "textarea");
       return `<div class="item-h">${fieldHTML(subTab, it, first)}${subTab === "loot" ? lootGiveHTML(c, it) : ""}<button class="icon-btn" data-del="${subTab}" data-id="${it.id}" title="Delete">✕</button></div>
@@ -864,6 +865,7 @@ function encCard(c, e) {
       <input type="text" data-ef="name" data-eid="${e.id}" value="${esc(e.name)}" style="flex:1;min-width:220px;font-weight:600" aria-label="Encounter name">
       <select data-ef="status" data-eid="${e.id}" style="width:auto;flex:0 0 auto" aria-label="Status">${["Planned", "Active", "Done"].map(s => `<option ${e.status === s ? "selected" : ""}>${s}</option>`).join("")}</select>
       ${partyChars(c).some(x => x.pc) && M.raw ? `<button class="btn sm ${e.xpAwarded ? "" : "primary"}" type="button" data-ea="xp" data-eid="${e.id}" title="Split this encounter's XP between the party's characters">🏆 ${e.xpAwarded ? "XP awarded · again" : `Award ${M.raw.toLocaleString()} XP`}</button>` : ""}
+      <button class="btn sm" type="button" data-ea="hoard" data-eid="${e.id}" title="Roll treasure for this encounter, for the campaign's Loot">💰 Hoard</button>
       <button class="icon-btn" data-ea="delEnc" data-eid="${e.id}" title="Delete encounter">✕</button>
     </div>
     <div class="enc-meta"><span class="r ${M.rating}">${M.rating}</span> <span>Adjusted XP <b>${M.adj.toLocaleString()}</b> · ${M.raw.toLocaleString()} XP to award</span> <span class="lvl-in">Level <input type="number" min="1" max="20" data-ef="level" data-eid="${e.id}" value="${M.lv}"></span>${e.kind ? `<span class="tag">${e.kind === "boss" ? "Boss" : e.kind === "skirmish" ? "Skirmish" : "Main"}</span>` : ""}</div>
@@ -889,6 +891,7 @@ function encCard(c, e) {
     ${(c.party || []).length ? `<div class="pc-init"><span class="muted" style="font-size:14px">Hero initiative:</span>${c.party.map(p => `<label>${esc(p.name || "Hero")} <input type="number" data-ef="pcinit" data-eid="${e.id}" data-pid="${p.id}" value="${e.pcInit && e.pcInit[p.id] !== undefined ? e.pcInit[p.id] : ""}" style="width:56px"></label>`).join("")}</div>` : `<p class="hint" style="margin:6px 0 0">Add heroes on the Party tab to track their initiative here too.</p>`}
     <div class="row add-foe"><select data-addsel="${e.id}" aria-label="Monster">${mine.length ? `<optgroup label="Your creatures">${mine.map(n => `<option value="${esc(n)}">${esc(n)} (CR ${crLabel(monCR(n))})</option>`).join("")}</optgroup><optgroup label="Monster list">` : ""}${opts.map(n => `<option value="${esc(n)}">${esc(n)} (CR ${crLabel(monCR(n))})</option>`).join("")}${mine.length ? "</optgroup>" : ""}</select><input type="number" min="1" max="20" value="1" data-addn="${e.id}" style="width:70px;flex:0 0 70px" aria-label="Count"><button class="btn sm" data-ea="addMon" data-eid="${e.id}">+ Add enemy</button></div>
     <details class="brief guide" data-guide="${e.id}" ${openGuides.has(e.id) ? "open" : ""}><summary>How to run this encounter</summary><div>${guide.map(([h, b]) => Array.isArray(b) ? `<p><b>${h}:</b></p><ul class="plain tac">${b.map(x => `<li>${esc(x)}</li>`).join("")}</ul>` : `<p><b>${h}:</b> ${esc(b)}</p>`).join("")}</div></details>
+    ${e.treasure ? `<div class="enc-treasure">💰 <b>Treasure</b> (on the Loot tab): ${esc(e.treasure).replace(/\n/g, "<br>")}</div>` : ""}
     <textarea data-ef="notes" data-eid="${e.id}" placeholder="Encounter notes: what happened, loot dropped, who fled…" style="min-height:44px;margin-top:8px">${esc(e.notes)}</textarea>
   </div>`;
 }
@@ -899,7 +902,7 @@ const partyChars = camp => (camp.party || []).map(pt => ({ pt, pc: pt.pcId ? PCS
 function partyGlanceHTML(camp) {
   const P = partyChars(camp); if (!P.length) return "";
   const row = ({ pt, pc }) => {
-    if (!pc) return `<tr><td><b>${esc(pt.name || "Hero")}</b><br><span class="muted" style="font-size:13px">${esc(pt.cls || "")} · no saved sheet</span></td><td colspan="6" class="muted">Add the character on My Characters to see it here.</td></tr>`;
+    if (!pc) return `<tr><td><b>${esc(pt.name || "Hero")}</b><br><span class="muted" style="font-size:13px">${esc(pt.cls || "")} · no saved sheet</span></td><td colspan="6" class="muted">Save the character on the Characters tab to see it here.</td></tr>`;
     pcEnsure(pc);
     const conds = CONDS.filter(([k]) => condOn(pc, k)).map(([, l]) => l), D = pc.death || {}, max = +pc.hp || 0, hp = pc.hpCur === undefined || pc.hpCur === "" || isNaN(+pc.hpCur) ? max : +pc.hpCur, pct = max ? Math.max(0, Math.min(100, Math.round(hp / max * 100))) : 0;
     const state = D.dead ? "☠ Dead" : hp === 0 ? (D.stable ? "Stable" : `Dying (${D.s || 0}✓ ${D.f || 0}✗)`) : "";

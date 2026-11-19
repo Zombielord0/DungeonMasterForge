@@ -63,3 +63,13 @@ Moved here from `CLAUDE.md` on 2026-11-17, unchanged except that `public/index.h
 - **Downloads:** `saveFile` now falls back to a normal browser download (Blob and `<a download>`) when the Claude `downloads` helper isn't there. Before this, Download PNG and Export JSON did nothing on the website.
 - **Tests:** `npm run test:backup` (`test/e2e/backup.cjs`).
 - **Pictures (2026-11-17):** backups are `v: 2` with `images: {key: data URL}` for every picture in `MAPIMG` (imported maps and NPC pictures; `MAPIMG.all()` and `MAPIMG.clear()`). `backupMake` is async. The window counts pictures and their size. Restoring a v2 backup clears the picture store and puts the backup's pictures back; a v1 backup keeps the pictures that are there (and says so).
+
+## Treasure hoards (2026-11-19)
+
+- `src/app/11b-hoard.js`. `hoardRoll(tier, seed, ed)` gives `{tier, seed, ed, coins:{cp,sp,gp,pp}, groups:[{kind:"gem"|"art", name, each, qty}], items:[magic item records from IT.data]}`. Tiers are challenge bands 0–4, 5–10, 11–16, 17+ (`tierOf(level)` for a campaign).
+- The numbers and lists (`HOARD_COINS`, `HOARD_TREASURE`, `HOARD_MAGIC`, `HOARD_GEMS`, `HOARD_ART_*`) are the Forge's own, not the DMG tables (not in the SRD). Magic items come from the chosen edition's rules data, weighted by rarity per band; with too few items of a rarity (the SRD has very few commons) it steps up a rarity, then down. No item twice in one hoard. Artifacts and unpriced items are left out.
+- `hoardToLoot(c, H)` adds one Loot entry for the coins, one per gem or art group and one per magic item (`{id, item, holder, value, notes}`), so Give on the Loot tab hands them out.
+- **Items tab:** `#itHoardBtn` opens `#itHoard` (`HOARD.H`, campaign picker `HOARD.camp`). **Campaign Tracker → Loot:** `[data-hoardopen]` rolls `HOARD.T` for the campaign's level, shown above the list, and adds to that campaign.
+- **Encounters (2026-11-19, owner's request):** a hoard can be for an encounter (`H.enc`). The panel's Encounter menu (Items tab: of the chosen campaign; Loot tab: of this campaign) and each encounter card's **💰 Hoard** button (`data-ea="hoard"`) set it; `hoardEncTier(e)` picks the band from the encounter's toughest monster (or its level). `hoardToLoot` then adds `encId` and "From <encounter>" to each Loot entry and appends a one-line summary to `e.treasure`, which the encounter card shows.
+- **Layout:** `.hoard-top` (title and ✕), `.hoard-ctl` (band and Roll again, wrapping on phones), `.hoard-dest` (campaign and encounter), `.hoard-acts`. `test:hoard` checks everything fits a 360px phone.
+- Check: `npm run test:hoard`.

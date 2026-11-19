@@ -60,8 +60,12 @@ function hdrShrink(y) {
 
 /* ======================= Routing ======================= */
 function route() {
-  const views = (window.Portal && Portal.views) || ["generate", "npc", "world", "monsters", "character", "roster", "spells", "feats", "items", "map", "tracker", "homebrew"];
-  const v = views.includes(location.hash.slice(1)) ? location.hash.slice(1) : ((window.Portal && Portal.home) || "generate");
+  const views = (window.Portal && Portal.views) || ["generate", "npc", "world", "monsters", "character", "roster", "spells", "feats", "items", "map", "tracker", "homebrew", "requests"];
+  let v = views.includes(location.hash.slice(1)) ? location.hash.slice(1) : ((window.Portal && Portal.home) || "generate");
+  /* Characters and My Characters are one tab (#roster) since 2026-11-19; #character (old links, a player's home) opens it with the forge form */
+  if (v === "character") { v = "roster"; if (!PCS.roster.length && !currentPC) forgeOpen(); }
+  /* the address says #roster too: refreshes after level-up, dialogs and homebrew changes check location.hash */
+  if (v === "roster" && location.hash !== "#roster") history.replaceState(null, "", "#roster");
   $$("section.view").forEach(s => s.classList.toggle("active", s.id === "view-" + v));
   $$("nav a").forEach(a => a.classList.toggle("active", a.dataset.view === v));
   { const n = $("nav"), on = $("nav a.active"); if (n && on && n.scrollWidth > n.clientWidth) n.scrollTo({ left: Math.max(0, on.offsetLeft - n.clientWidth / 2 + on.offsetWidth / 2), behavior: "smooth" }); }
@@ -72,12 +76,13 @@ function route() {
   if (v === "world") renderWorld();
   if (v === "spells") renderSpells();
   if (v === "items") renderItems();
-  if (v === "roster") renderRosterTab();
+  if (v === "roster") { if (!CB.on) pcShow("sheet"); renderRosterTab(); }
   if (v === "homebrew") renderHomebrew();
   if (v === "feats") renderFeats();
   if (v === "party" && window.Portal) Portal.renderParty();
   if (v === "whispers" && window.Portal) Portal.renderWhispers();
   if (v === "journal" && window.Portal) Portal.renderJournal();
+  if (v === "requests") renderRequests();
   hdrSync();
 }
 window.addEventListener("hashchange", route);

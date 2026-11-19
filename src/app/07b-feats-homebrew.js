@@ -274,7 +274,7 @@ function hbSpellsApply() {
 }
 function hbRefreshUI() {
   if (window.pcSelectsRefresh) pcSelectsRefresh();
-  if (CB.on && location.hash === "#character") renderCB();
+  if (CB.on && location.hash === "#roster") renderCB();
   if (location.hash === "#homebrew") renderHomebrew();
 }
 function hbSet(list) { HB.list = Array.isArray(list) ? list.filter(x => x && HB_KINDS[x.kind] && x.name) : []; HB.pendSig = ""; hbPendSync(); hbApply(); hbRefreshUI(); }

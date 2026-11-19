@@ -81,7 +81,7 @@ function subLabel(ed, race, sub) {
 const raceLabel = c => subLabel(edOf(c), c.race, c.sub || (c.race === "Dragonborn" ? c.ancestry : null));
 const FEAT_DESC_2024 = {
   Stonecunning: "Bonus action: tremorsense 60 ft for 10 minutes while on stone, proficiency-bonus times per long rest.",
-  "Keen Senses": "Proficiency in Insight, Perception or Survival (Perception chosen; change it in My Characters).",
+  "Keen Senses": "Proficiency in Insight, Perception or Survival (Perception chosen; change it on the sheet).",
   "Infernal Legacy": "Fire resistance; Fire Bolt cantrip, Hellish Rebuke at 3rd level, Darkness at 5th.",
   Trance: "You don't need sleep; a 4-hour trance gives you a long rest."
 };
@@ -98,7 +98,7 @@ Object.assign(FEAT_DESC, {
   "Natural Illusionist": "Minor Illusion cantrip, cast with INT.", "Speak with Small Beasts": "Communicate simple ideas with Small or smaller beasts.",
   "Artificer's Lore": "Double proficiency on History checks about magic items, alchemy and technology.",
   Tinker: "Build tiny clockwork toys, fire starters and music boxes.",
-  "Variant: Bonus Skill": "Proficiency in one skill of your choice (included above).", "Variant: Feat": "One feat of your choice at level 1 — note it under Features in My Characters.",
+  "Variant: Bonus Skill": "Proficiency in one skill of your choice (included above).", "Variant: Feat": "One feat of your choice at level 1 — note it under Features on the sheet.",
   "Celestial Resistance": "Resistance to necrotic and radiant damage.", "Healing Hands": "Magic action: heal proficiency-bonus d4s, once per long rest.",
   "Light Bearer": "Light cantrip, cast with CHA.", "Celestial Revelation": "From level 3, transform for a minute as a bonus action: spectral wings, searing radiance or a necrotic shroud.",
   "Draconic Flight": "From level 5, sprout spectral wings for 10 minutes once per long rest, flying at your walking speed.",

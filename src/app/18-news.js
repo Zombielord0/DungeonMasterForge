@@ -2,6 +2,28 @@
    When a change ships, add an entry to the top of NEWS with a new id, in plain words for players and DMs. */
 
 const NEWS = [
+  { id: "2026-11-19-requests", date: "2026-11-19", title: "Ask for a feature", go: "requests", items: [
+    "There's a new Requests tab. Signed-in players and DMs can ask for something new, a change, or a fix.",
+    "Tell us what you're trying to do and how you'd like it to work. A screenshot (marked up if you can) makes it much more likely to be approved.",
+    "Your requests show their status (New, Planned, Being built, Done) and any reply from us."] },
+  { id: "2026-11-19-third-casters", date: "2026-11-19", title: "Eldritch Knights and Arcane Tricksters cast spells", go: "roster", items: [
+    "Fighters who choose the Eldritch Knight and Rogues who choose the Arcane Trickster now get spellcasting from level 3: spell slots, a spell save DC and attack with Intelligence, and wizard spells to pick.",
+    "Their slots grow as they level (2 first-level slots at level 3, up to level 4 spells at 19), and they count a third of their level toward spell slots when multiclassing.",
+    "Existing characters get it automatically next time their sheet opens or they level up."] },
+  { id: "2026-11-19-treasure-hoard", date: "2026-11-19", title: "Treasure hoards", go: "items", items: [
+    "Items → 🎲 Treasure hoard rolls a monster's lair treasure: coins, gems, art objects and magic items, bigger and rarer for tougher challenges (0–4, 5–10, 11–16, 17+).",
+    "Roll again until you like it, then + Add to campaign Loot. The coins, each gem or art piece and each magic item go on the campaign's Loot list, ready to give to characters.",
+    "In the Campaign Tracker, the Loot tab has 💰 Roll a hoard too, matched to the campaign's level.",
+    "A hoard can belong to an encounter: pick it under Encounter, or press 💰 Hoard on the encounter itself. The hoard matches the toughest monster in that fight, its Loot entries say which encounter they came from, and the encounter shows its treasure."] },
+  { id: "2026-11-19-one-characters-tab", date: "2026-11-19", title: "Characters and My Characters are now one tab", go: "roster", items: [
+    "The Characters tab now holds everything: your characters on the left, ⚒ Forge a new character underneath, and one full sheet.",
+    "A newly forged character opens on the same sheet as your saved ones, so you can roll, change scores, pick spells and gear straight away. A bar on top says it isn't saved yet: ☆ Save character keeps it, ↻ Reroll forges again, ✕ Discard throws it away.",
+    "Unsaved characters stay in this browser. Only saved characters are shared with your campaign."] },
+  { id: "2026-11-18-start-folded", date: "2026-11-18", title: "Long lists start folded", items: [
+    "Items, Spells and the Monster Manual now open with their groups folded, so you see a short list of group names instead of hundreds of rows. Press ▾ on a group to open it.",
+    "Anything you open or fold is remembered on this device. Typing in a list's search box opens the groups so you can see what matches.",
+    "Character sheets still open fully. Their first section's title bar now has Fold all (and then Unfold all), so you can fold the whole sheet down to its section names in one press.",
+    "On phones, section titles on character sheets show in full again instead of being cut short."] },
   { id: "2026-11-18-fold-lore-links", date: "2026-11-18", title: "Fold long lists, and Lore fills your tabs", items: [
     "Long lists fold away: press ▾ at the right of a group's title bar (or click the bar) on Items, Spells, the Monster Manual and character sheets. Lists with several groups also have Fold all and Unfold all. Your choice is remembered on this device.",
     "Campaign Tracker → Lore: saving an entry as an Item adds it to Items → Your custom items, a Monster adds it to My monsters (with its numbers if the text has a stat block), and an Encounter adds it to the campaign's Encounters tab with the monsters its text names. Places already went to the World tab.",

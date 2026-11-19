@@ -15,11 +15,40 @@ const mcMeets = (c, k) => mcPrereq(k).every(g => g.some(a => (+c.scores[a] || 0)
 const MC_ARMOR = { Barbarian: "shield", Bard: "light", Cleric: "light medium shield", Druid: "light medium shield", Fighter: "light medium shield", Paladin: "light medium shield", Ranger: "light medium shield", Rogue: "light", Warlock: "light", Monk: "", Sorcerer: "", Wizard: "" };
 const MC_MARTIAL = ["Barbarian", "Fighter", "Paladin", "Ranger"];
 // a class's own caster level for multiclass slots
-function casterLv(ed, k, l) { const C2 = CLASS_DATA[k]; if (!C2 || !C2.cast) return 0; const kind = C2.cast[0]; return kind === "full" ? l : kind === "half" ? (ed === "2024" ? Math.ceil(l / 2) : Math.floor(l / 2)) : 0; }
+function casterLv(ed, k, l, sub) { const cast = castOf(k, sub); if (!cast) return 0; const kind = cast[0]; return kind === "full" ? l : kind === "half" ? (ed === "2024" ? Math.ceil(l / 2) : Math.floor(l / 2)) : kind === "third" ? Math.floor(l / 3) : 0; }
 const pactSlots = l => ({ n: l >= 17 ? 4 : l >= 11 ? 3 : l >= 2 ? 2 : 1, lvl: Math.min(5, Math.ceil(l / 2)) });
 // what a rebuild keeps from the character as it is: rolled or assigned base scores, skill picks, expertise
 const pcKeep = c => ({ multi: c.multi && c.multi.length ? c.multi : undefined, keepMcSkills: c.mcSkills, base: c.customData ? undefined : c.base, rolls: c.rolls || undefined, keepSkills: (c.skills || []).filter(s => s.p).map(s => s.s), keepExpert: c.expertOrder || (c.skills || []).filter(s => s.x).map(s => s.s), keepSkilled: c.skilled });
-function pcEnsure(c) { if (c) { if (c.bgV === undefined && c.cls) { c.bgV = 1; if (c.ed === "2024") c.bgAsiLegacy = true; } if (!c.id) c.id = uid("pc"); if (c.subclass === undefined) { const f = (c.feats || []).find(x => String(x.f).startsWith("Subclass: ") && x.f !== "Subclass: not chosen yet"); c.subclass = f ? f.f.slice(10) : null; } if (!Array.isArray(c.prepared)) c.prepared = []; if (c.race === "Dragonborn" && !c.ancestry) c.ancestry = makeRng("anc", c.seed || c.id).pick(Object.keys(DRAGON_ANCESTRY)); if (c.race === "Dragonborn" && !c.sub) c.sub = c.ancestry; withTraitRes(c); raceLvUpgrade(c); hookUpgrade(c); } return c; }
+/* Numbers on a sheet are numbers (including the spell block and hit dice). Other members' characters arrive from the campaign database as any JSON, and many
+   of these fields are written into the page as they are, so a string here could carry page code. "" stays "" where the
+   sheet lets a box be emptied. */
+const PC_NUMS = ["hp", "hpCur", "hpTemp", "ac", "acAuto", "speed", "prof", "hd", "init", "passive", "xp", "startGold", "initBonus", "atkBonus", "formHp"];
+function pcNums(c) {
+  const n = v => { const x = parseFloat(v); return Number.isFinite(x) ? x : 0; };
+  if (c.level !== undefined) c.level = clamp(Math.round(n(c.level)) || 1, 1, 20);
+  PC_NUMS.forEach(k => { if (c[k] !== undefined && c[k] !== null && c[k] !== "" && typeof c[k] !== "number") c[k] = n(c[k]); });
+  if (c.scores && typeof c.scores === "object") Object.keys(c.scores).forEach(a => { if (typeof c.scores[a] !== "number") c.scores[a] = n(c.scores[a]); });
+  if (Array.isArray(c.multi)) c.multi.forEach(m => { if (m && typeof m === "object" && m.lv !== undefined) m.lv = clamp(Math.round(n(m.lv)) || 1, 1, 20); });
+  const num = (o, ks) => { if (o && typeof o === "object") ks.forEach(k => { if (o[k] !== undefined && o[k] !== null && typeof o[k] !== "number" && typeof o[k] !== "boolean") o[k] = n(o[k]); }); };
+  if (Array.isArray(c.hdList)) c.hdList = c.hdList.map(d => typeof d === "number" ? d : n(d));
+  const S = c.spell;
+  if (S && typeof S === "object") {
+    num(S, ["dc", "atk", "bonus", "max", "cantrips"]);
+    if (Array.isArray(S.slots)) S.slots = S.slots.map(x => typeof x === "number" ? x : n(x));
+    num(S.pact, ["n", "lvl"]);
+    if (Array.isArray(S.others)) S.others.forEach(o => num(o, ["dc", "atk", "max", "bonus"]));
+  }
+}
+/* A character as it arrives from the campaign database (portal.js calls this before anything reads it). Lossless:
+   only a rules edition that isn't 2014/2024 and number fields that aren't numbers are fixed; text is kept exactly as typed.
+   Page code hidden in text is stopped by the page-wide guard (00-guard.js) and by esc() in the templates. */
+function pcIncoming(d) {
+  if (!d || typeof d !== "object" || Array.isArray(d)) return d;
+  if (d.ed !== undefined && d.ed !== "2014" && d.ed !== "2024") d.ed = "2014";
+  pcNums(d);
+  return d;
+}
+function pcEnsure(c) { if (c) { pcNums(c); if (c.bgV === undefined && c.cls) { c.bgV = 1; if (c.ed === "2024") c.bgAsiLegacy = true; } if (!c.id) c.id = uid("pc"); if (c.subclass === undefined) { const f = (c.feats || []).find(x => String(x.f).startsWith("Subclass: ") && x.f !== "Subclass: not chosen yet"); c.subclass = f ? f.f.slice(10) : null; } if (!Array.isArray(c.prepared)) c.prepared = []; if (c.race === "Dragonborn" && !c.ancestry) c.ancestry = makeRng("anc", c.seed || c.id).pick(Object.keys(DRAGON_ANCESTRY)); if (c.race === "Dragonborn" && !c.sub) c.sub = c.ancestry; withTraitRes(c); raceLvUpgrade(c); hookUpgrade(c); } return c; }
 function pcPersist() {
   PCS.cur = currentPC; PCS.updated = Date.now();
   if (currentPC) { const i = PCS.roster.findIndex(x => x.id === currentPC.id); if (i >= 0) PCS.roster[i] = currentPC; }
@@ -48,15 +77,13 @@ function pcAdoptRemote() {
 }
 function renderPC() {
   if (!currentPC) return;
-  $("#pcOut").innerHTML = sheetHTML(currentPC);
-  renderCampList();
+  RC.id = currentPC.id; pcShow("sheet"); renderRosterTab();
 }
 function keepPC() {
   const c = currentPC; if (!c) return;
   if (!PCS.roster.some(x => x.id === c.id)) PCS.roster.unshift(c);
-  currentPC = null; RC.id = c.id; pcPersist(); renderRoster();
-  $("#pcOut").innerHTML = PC_EMPTY;
-  toast(`${c.name} moved to My Characters`); location.hash = "roster";
+  currentPC = null; RC.id = c.id; pcPersist(); renderRosterTab();
+  toast(`${c.name} saved to your characters`);
 }
 function addPCToCampaign(id, p = currentPC) {
   if (!p) { toast("Forge a character first"); return; }
@@ -80,9 +107,11 @@ const CANTRIP_BASE = { Bard: 2, Cleric: 3, Druid: 2, Sorcerer: 4, Warlock: 2, Wi
 function spellLimits(c) {
   if (!c || !c.spell) return null;
   // every spellcasting class counts, each at its own level
-  const m = c.mods, list = [...(CLASS_DATA[c.cls] && CLASS_DATA[c.cls].cast ? [{ cls: c.cls, lv: c.level }] : []), ...(c.multi || []).filter(x => CLASS_DATA[x.cls] && CLASS_DATA[x.cls].cast && +x.lv > 0)];
+  const m = c.mods, list = [...(castOf(c.cls, c.subclass) ? [{ cls: c.cls, lv: c.level, subclass: c.subclass }] : []), ...(c.multi || []).filter(x => castOf(x.cls, x.subclass) && +x.lv > 0)];
   let n = 0, cant = 0, word = "prepared";
-  list.forEach(({ cls, lv }) => {
+  list.forEach(({ cls, lv, subclass }) => {
+    const sc = subCaster(cls, subclass);
+    if (sc) { n += THIRD_KNOWN[lv - 1] || 0; if (list.length === 1 && edOf(c) === "2014") word = "known"; cant += sc.cantrips + (lv >= 10 ? 1 : 0); return; } /* Eldritch Knight, Arcane Trickster */
     const ab = CLASS_DATA[cls].cast[1];
     if (KNOWN_SPELLS[cls]) { n += KNOWN_SPELLS[cls][lv - 1] || 0; if (list.length === 1) word = "known"; }
     else if (cls === "Paladin") n += lv >= 2 ? Math.max(1, m.cha + Math.floor(lv / 2)) : 0;
@@ -116,9 +145,10 @@ function pcChanged(c) {
    reaches and whether it has cantrips. A Fighter/Wizard prepares from the Wizard list (owner's bug, 2026-11-18). */
 function pcCastClasses(c) {
   if (!c || !c.spell) return [];
-  const ed = edOf(c), list = [{ cls: c.cls, lv: c.level }, ...(c.multi || []).filter(x => +x.lv > 0)].filter(x => CLASS_DATA[x.cls] && CLASS_DATA[x.cls].cast);
-  return list.map(({ cls, lv }) => {
-    const k = CLASS_DATA[cls].cast[0];
+  const ed = edOf(c), list = [{ cls: c.cls, lv: c.level, subclass: c.subclass }, ...(c.multi || []).filter(x => +x.lv > 0)].filter(x => castOf(x.cls, x.subclass));
+  return list.map(({ cls, lv, subclass }) => {
+    const k = castOf(cls, subclass)[0];
+    if (k === "third") return { cls, lv, list: castListOf(cls, subclass), max: thirdSlots(lv).length, cantrips: true };
     const max = k === "pact" ? Math.min(5, Math.ceil(lv / 2)) : k === "full" ? (FULL_SLOTS[lv] || []).length : (lv >= 2 || ed === "2024" ? (FULL_SLOTS[Math.ceil(lv / 2)] || []).length : 0);
     return { cls, lv, max: Math.max(k === "half" && !max ? 0 : 1, max), cantrips: k !== "half" };
   });
@@ -127,7 +157,7 @@ const pcCastNames = c => { const L = pcCastClasses(c).map(x => x.cls); return L.
 function pcSpellPool(c, ed) {
   spLoad();
   const K = pcCastClasses(c); if (!K.length) return [];
-  return SP.data[ed].filter(s => !s.pend && K.some(k => (s.c.includes(k.cls) || s.c.includes(clsSpellList(k.cls))) && (s.l === 0 ? k.cantrips : s.l <= k.max)));
+  return SP.data[ed].filter(s => !s.pend && K.some(k => (s.c.includes(k.cls) || s.c.includes(k.list || clsSpellList(k.cls))) && (s.l === 0 ? k.cantrips : s.l <= k.max)));
 }
 /* Prepared spells as bubbles: tap one for the spell window (castDialog). `cast` (My Characters) adds slots left per level. */
 function prepBubble(p, canRemove = true) {
@@ -189,7 +219,7 @@ function spPrepBtn(s) {
 }
 function spPrepToggle(s) {
   const t = spTargetPC(); if (!t) { toast("Pick a character to prepare spells for"); return; }
-  if (!isPrep(t, s.n, SP.ed) && !pcCastClasses(t).some(k => s.c.includes(k.cls) || s.c.includes(clsSpellList(k.cls)))) toast(`${s.n} isn't on the ${pcCastNames(t)} list, added anyway`);
+  if (!isPrep(t, s.n, SP.ed) && !pcCastClasses(t).some(k => s.c.includes(k.cls) || s.c.includes(k.list || clsSpellList(k.cls)))) toast(`${s.n} isn't on the ${pcCastNames(t)} list, added anyway`);
   togglePrep(t, s, SP.ed); pcChanged(t);
 }
 $("#spTargetRow").addEventListener("change", e => { if (e.target.id === "spTarget") { SP.target = e.target.value; renderSpells(); } });
@@ -282,7 +312,7 @@ function sheetDoc(c) {
         <div class="stat"><div class="line" style="justify-content:flex-end"><span class="lab">Successes</span>${dots(3)}</div><div class="line" style="justify-content:flex-end"><span class="lab">Failures</span>${dots(3)}</div><div class="lab">Death saves</div></div></div>
       <div class="box"><table><tr><th>Name</th><th>Atk bonus</th><th>Damage / type</th></tr>
         ${c.attacks.map(a => `<tr><td>${esc(a.name)}</td><td>${sgn(a.hit)}</td><td>${esc(a.dmg)} ${a.type || DMG_TYPE[a.name] || ""}</td></tr>`).join("")}
-        ${c.spell ? `<tr><td>Spell attack</td><td>${sgn(c.spell.atk)}</td><td>Save DC ${c.spell.dc}</td></tr>` : ""}<tr><td>&nbsp;</td><td></td><td></td></tr></table>
+        ${c.spell ? `<tr><td>Spell attack</td><td>${esc(sgn(c.spell.atk))}</td><td>Save DC ${esc(c.spell.dc)}</td></tr>` : ""}<tr><td>&nbsp;</td><td></td><td></td></tr></table>
         ${c.extras.length ? `<div style="margin-top:5px">${c.extras.map(esc).join("<br>")}</div>` : ""}${defText(c) ? `<div style="margin-top:5px"><b>${esc(defText(c))}</b></div>` : ""}<div class="boxt">Attacks &amp; spellcasting</div></div>
       <div class="box"><ul>${c.kit.map(k => `<li>${esc(k)}</li>`).join("")}${c.bgV >= 2 ? (+c.startGold ? `<li>${+c.startGold} gp</li>` : "") : `<li>${esc(c.bg)} background gear</li>`}${(c.inv || []).filter(i => i.n).map(i => `<li>${+i.qty > 1 ? i.qty + " × " : ""}${esc(i.n)}${i.attuned ? " (attuned)" : ""}</li>`).join("")}</ul><div style="margin-top:6px" class="lab">${["cp", "sp", "ep", "gp", "pp"].map(k => `${k.toUpperCase()} ${c.coins && +c.coins[k] ? c.coins[k] : "____"}`).join(" ")}</div><div class="boxt">Equipment</div></div>
     </div>
