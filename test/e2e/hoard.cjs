@@ -67,6 +67,19 @@ const server = http.createServer((req, res) => {
   const n0 = await p.evaluate(() => curCamp().loot.length), add = await p.evaluate(() => 1 + HOARD.T.groups.length + HOARD.T.items.length);
   await p.click('#campMain .hoard [data-hoard="loot"]'); await p.waitForTimeout(300);
   check("…and adds it to this campaign's Loot, which shows it", await p.evaluate(([n0, add]) => curCamp().loot.length === n0 + add && !document.querySelector("#campMain .hoard") && document.querySelectorAll('#campMain [data-del="loot"]').length === n0 + add, [n0, add]));
+  // small things from review: a deleted campaign in the picker, the edition switch, and switching campaigns
+  await p.goto(URL + "#items"); await p.waitForTimeout(300);
+  await p.evaluate(() => { const c2 = blankCampaign("Second"); Store.save(c2); HOARD.camp = "gone"; }); 
+  await p.click("#itHoardBtn"); await p.waitForTimeout(150);
+  const nLoot = await p.evaluate(() => Store.list().reduce((t, c) => t + (c.loot || []).length, 0));
+  await p.click('#itHoard [data-hoard="loot"]'); await p.waitForTimeout(300);
+  check("a deleted campaign in the picker falls back to the first campaign", await p.evaluate(n => Store.list().reduce((t, c) => t + (c.loot || []).length, 0) > n, nLoot));
+  await p.evaluate(() => { IT.ed = "2014"; }); await p.click('#itHoard [data-hoard="roll"]'); await p.waitForTimeout(150);
+  check("Roll again follows the Items tab's rules edition", await p.evaluate(() => HOARD.H.ed === "2014"));
+  await p.goto(URL + "#tracker"); await p.waitForTimeout(300);
+  await p.evaluate(() => { activeId = Store.list()[0].id; subTab = "loot"; renderTracker(); }); await p.click("[data-hoardopen]"); await p.waitForTimeout(150);
+  await p.evaluate(() => { activeId = Store.list()[1].id; subTab = "loot"; renderTracker(); }); await p.waitForTimeout(150);
+  check("a hoard rolled for one campaign doesn't show on another's Loot tab", await p.evaluate(() => !document.querySelector("#campMain .hoard")));
   check("no page errors", !errs.length, errs.join(" | "));
   await browser.close(); server.close();
   console.log(fails ? `\n${fails} check(s) failed` : "\nAll checks passed");

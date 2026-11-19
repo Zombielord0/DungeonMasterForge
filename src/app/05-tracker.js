@@ -89,7 +89,7 @@ function renderSub(c) {
   const L = LISTS[subTab]; let items = c[subTab], tabsHTML = "";
   if (subTab === "npcs") { worldAdopt(); const T = npcPlaceTabs(items, TN.tab); TN.tab = T.cur; if (items.length) tabsHTML = T.html("tntab"); items = items.filter(T.keep); }
   return (subTab === "sessions" ? recapBarHTML() : "") + `<div class="sec-h"><h3>${L.label}</h3><span class="sp"></span>${subTab === "loot" ? `<button class="btn sm" type="button" data-hoardopen="1" title="Roll coins, gems, art and magic items for this campaign's level">💰 Roll a hoard</button>` : ""}<button class="btn sm primary" data-add="${subTab}">+ ${L.add}</button></div>` + tabsHTML +
-    (subTab === "loot" && HOARD.T ? `<div class="card hoard" style="margin:0 0 12px">${hoardHTML(HOARD.T, "tracker")}</div>` : "") +
+    (subTab === "loot" && HOARD.T && HOARD.T.camp === c.id ? `<div class="card hoard" style="margin:0 0 12px">${hoardHTML(HOARD.T, "tracker")}</div>` : "") +
     (items.length ? items.map(it => `<div class="item${subTab === "npcs" ? " npc-row" : ""}">` + (subTab === "npcs" ? npcPicHTML(it) + `<div class="npc-body">` : "") + (() => {
       const [first, ...rest] = L.fields; const inline = rest.filter(f => f[1] !== "textarea"), areas = rest.filter(f => f[1] === "textarea");
       return `<div class="item-h">${fieldHTML(subTab, it, first)}${subTab === "loot" ? lootGiveHTML(c, it) : ""}<button class="icon-btn" data-del="${subTab}" data-id="${it.id}" title="Delete">✕</button></div>

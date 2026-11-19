@@ -75,7 +75,9 @@ const hoardGroupText = g => g.kind === "gem" ? `${g.qty} × ${g.name} (${g.each.
 function hoardTotalGp(H) { return hoardCoinGp(H.coins) + H.groups.reduce((t, g) => t + g.each * g.qty, 0); }
 
 /* the hoard as a card; `where` is "items" (pick a campaign) or "tracker" (this campaign) */
+const hoardCamp = () => { const L = Store.list(); if (!L.some(c => c.id === HOARD.camp)) HOARD.camp = (L[0] || {}).id || ""; return HOARD.camp; };
 function hoardHTML(H, where) {
+  if (where === "items") hoardCamp();
   const camps = Store.list(), magic = H.items.length ? `<ul class="plain hoard-list">${H.items.map(x => `<li><b>${esc(x.n)}</b> <span class="tag rar-${R_CLASS[x.rk] || "v"}">${esc(RARITY[x.rk] || "")}</span> <span class="muted">${esc(x.cat)}${x.att ? " · attunement" : ""} · ${esc(x.c || "")}</span></li>`).join("")}</ul>` : `<p class="muted">No magic items this time.</p>`;
   return `<div class="row" style="align-items:center;gap:8px;flex-wrap:wrap"><h3 style="margin:0;flex:1 1 auto">💰 Treasure hoard</h3>
       <select data-hoard="tier" aria-label="Challenge of the creatures guarding it" style="flex:0 1 200px">${HOARD_TIERS.map((t, i) => `<option value="${i}" ${H.tier === i ? "selected" : ""}>${t}</option>`).join("")}</select>
@@ -117,11 +119,11 @@ async function hoardAct(e, where) {
   const b = e.target.closest("[data-hoard]"); if (!b || b.tagName === "SELECT") return false;
   const k = b.dataset.hoard, H = where === "tracker" ? HOARD.T : HOARD.H; if (!H) return true;
   const redraw = () => where === "tracker" ? renderTracker() : hoardItemsRender();
-  if (k === "roll") { const n = hoardRoll(H.tier, newSeed(), H.ed); if (where === "tracker") HOARD.T = n; else HOARD.H = n; redraw(); }
+  if (k === "roll") { const n = hoardRoll(H.tier, newSeed(), where === "tracker" ? H.ed : IT.ed); if (where === "tracker") HOARD.T = { ...n, camp: activeId }; else HOARD.H = n; redraw(); }
   else if (k === "close") { if (where === "tracker") HOARD.T = null; else HOARD.H = null; redraw(); }
   else if (k === "copy") { try { await navigator.clipboard.writeText(hoardText(H)); toast("Hoard copied"); } catch { toast("Couldn't copy here"); } }
   else if (k === "loot") {
-    const c = where === "tracker" ? curCamp() : Store.get(HOARD.camp || (Store.list()[0] || {}).id); if (!c) { toast("Pick a campaign first"); return true; }
+    const c = where === "tracker" ? curCamp() : Store.get(hoardCamp()); if (!c) { toast("Pick a campaign first"); return true; }
     const n = hoardToLoot(c, H); toast(`${n} ${n === 1 ? "entry" : "entries"} added to ${c.name}'s Loot`);
     if (where === "tracker") { HOARD.T = null; redraw(); }
   }
@@ -143,11 +145,11 @@ async function hoardAct(e, where) {
 (function initTrackerHoard() {
   if (typeof campMain === "undefined") return;
   campMain.addEventListener("click", e => {
-    if (e.target.closest("[data-hoardopen]")) { const c = curCamp(); HOARD.T = hoardRoll(tierOf(+(c && c.currentLevel) || 1), newSeed(), IT.ed || "2024"); renderTracker(); return; }
+    if (e.target.closest("[data-hoardopen]")) { const c = curCamp(); HOARD.T = hoardRoll(tierOf(+(c && c.currentLevel) || 1), newSeed(), IT.ed || "2024"); HOARD.T.camp = activeId; renderTracker(); return; }
     if (e.target.closest(".hoard [data-hoard]")) hoardAct(e, "tracker");
   });
   campMain.addEventListener("change", e => {
     const t = e.target; if (t.dataset.hoard !== "tier" || !t.closest(".hoard") || !HOARD.T) return;
-    HOARD.T = hoardRoll(+t.value, newSeed(), HOARD.T.ed); renderTracker();
+    HOARD.T = { ...hoardRoll(+t.value, newSeed(), HOARD.T.ed), camp: activeId }; renderTracker();
   });
 })();
