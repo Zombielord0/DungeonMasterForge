@@ -19,7 +19,18 @@ function casterLv(ed, k, l) { const C2 = CLASS_DATA[k]; if (!C2 || !C2.cast) ret
 const pactSlots = l => ({ n: l >= 17 ? 4 : l >= 11 ? 3 : l >= 2 ? 2 : 1, lvl: Math.min(5, Math.ceil(l / 2)) });
 // what a rebuild keeps from the character as it is: rolled or assigned base scores, skill picks, expertise
 const pcKeep = c => ({ multi: c.multi && c.multi.length ? c.multi : undefined, keepMcSkills: c.mcSkills, base: c.customData ? undefined : c.base, rolls: c.rolls || undefined, keepSkills: (c.skills || []).filter(s => s.p).map(s => s.s), keepExpert: c.expertOrder || (c.skills || []).filter(s => s.x).map(s => s.s), keepSkilled: c.skilled });
-function pcEnsure(c) { if (c) { if (c.bgV === undefined && c.cls) { c.bgV = 1; if (c.ed === "2024") c.bgAsiLegacy = true; } if (!c.id) c.id = uid("pc"); if (c.subclass === undefined) { const f = (c.feats || []).find(x => String(x.f).startsWith("Subclass: ") && x.f !== "Subclass: not chosen yet"); c.subclass = f ? f.f.slice(10) : null; } if (!Array.isArray(c.prepared)) c.prepared = []; if (c.race === "Dragonborn" && !c.ancestry) c.ancestry = makeRng("anc", c.seed || c.id).pick(Object.keys(DRAGON_ANCESTRY)); if (c.race === "Dragonborn" && !c.sub) c.sub = c.ancestry; withTraitRes(c); raceLvUpgrade(c); hookUpgrade(c); } return c; }
+/* Numbers on a sheet are numbers. Other members' characters arrive from the campaign database as any JSON, and many
+   of these fields are written into the page as they are, so a string here could carry page code. "" stays "" where the
+   sheet lets a box be emptied. */
+const PC_NUMS = ["hp", "hpCur", "hpTemp", "ac", "acAuto", "speed", "prof", "hd", "init", "passive", "xp", "startGold", "initBonus", "atkBonus"];
+function pcNums(c) {
+  const n = v => { const x = parseFloat(v); return Number.isFinite(x) ? x : 0; };
+  if (c.level !== undefined) c.level = clamp(Math.round(n(c.level)) || 1, 1, 20);
+  PC_NUMS.forEach(k => { if (c[k] !== undefined && c[k] !== null && c[k] !== "" && typeof c[k] !== "number") c[k] = n(c[k]); });
+  if (c.scores && typeof c.scores === "object") Object.keys(c.scores).forEach(a => { if (typeof c.scores[a] !== "number") c.scores[a] = n(c.scores[a]); });
+  if (Array.isArray(c.multi)) c.multi.forEach(m => { if (m && typeof m === "object" && m.lv !== undefined) m.lv = clamp(Math.round(n(m.lv)) || 1, 1, 20); });
+}
+function pcEnsure(c) { if (c) { pcNums(c); if (c.bgV === undefined && c.cls) { c.bgV = 1; if (c.ed === "2024") c.bgAsiLegacy = true; } if (!c.id) c.id = uid("pc"); if (c.subclass === undefined) { const f = (c.feats || []).find(x => String(x.f).startsWith("Subclass: ") && x.f !== "Subclass: not chosen yet"); c.subclass = f ? f.f.slice(10) : null; } if (!Array.isArray(c.prepared)) c.prepared = []; if (c.race === "Dragonborn" && !c.ancestry) c.ancestry = makeRng("anc", c.seed || c.id).pick(Object.keys(DRAGON_ANCESTRY)); if (c.race === "Dragonborn" && !c.sub) c.sub = c.ancestry; withTraitRes(c); raceLvUpgrade(c); hookUpgrade(c); } return c; }
 function pcPersist() {
   PCS.cur = currentPC; PCS.updated = Date.now();
   if (currentPC) { const i = PCS.roster.findIndex(x => x.id === currentPC.id); if (i >= 0) PCS.roster[i] = currentPC; }

@@ -78,6 +78,20 @@ const server = http.createServer((req, res) => {
   await p.click(`#rosterList [data-rc="${await p.evaluate(() => PCS.roster[0].id)}"]`); await p.waitForTimeout(200);
   check("picking a character while building shows its sheet", await p.evaluate(() => document.querySelector("#pcOut").hidden && !document.querySelector("#rosterMain").hidden && !CB.on));
 
+  // arriving through #character (old links, a player's landing page): the address becomes #roster, so refreshes after
+  // level-up and dialogs still redraw the sheet (they check the address)
+  await p.goto(URL + "#character"); await p.waitForTimeout(400);
+  check("#character turns into #roster in the address bar", await p.evaluate(() => location.hash === "#roster"));
+  await p.click('#rosterMain [data-lvup]'); await p.waitForSelector("#lvModal.open");
+  await p.evaluate(() => { const r = document.querySelector('#lvModal input[name="lvAsiMode"]'); if (r) r.click(); });
+  await p.click("#lvModal [data-lvyes]"); await p.waitForTimeout(300);
+  check("levelling up after arriving by #character updates the sheet", await p.evaluate(() => PCS.roster[0].level === 2 && document.querySelector("#rosterMain [data-rlv]").value === "2"), await p.evaluate(() => `${PCS.roster[0].level} / ${document.querySelector("#rosterMain [data-rlv]").value}`));
+
+  // a shared sheet's numbers can't carry page code (another player's character in a campaign)
+  await p.evaluate(() => { const c = JSON.parse(JSON.stringify(PCS.roster[0])); c.id = "evil"; c.name = "Evil"; c.level = '2<img src=x onerror="window.__pwned=1">'; c.hp = "<b>9</b>"; PCS.roster.push(pcEnsure(c)); renderRoster(); });
+  await p.waitForTimeout(200);
+  check("a character's level and HP are numbers once loaded, not page code", await p.evaluate(() => !window.__pwned && !document.querySelector("#rosterList img") && PCS.roster[1].level === 2 && typeof PCS.roster[1].hp === "number"));
+
   // other tabs point at the Characters tab
   await p.evaluate(() => { PCS.roster = []; currentPC = null; pcPersist(); });
   await p.goto(URL + "#items"); await p.waitForTimeout(400);
