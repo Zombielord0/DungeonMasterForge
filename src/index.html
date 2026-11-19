@@ -102,6 +102,7 @@ if (location.protocol !== "file:" && localStorage.getItem("dmforge.offline") !==
     <a href="#map" data-view="map">Dungeon Map</a>
     <a href="#tracker" data-view="tracker">Campaign Tracker</a>
     <a href="#homebrew" data-view="homebrew">Homebrew</a>
+    <a href="#requests" data-view="requests">Requests</a>
     <a href="#party" data-view="party" hidden>Party</a>
     <a href="#journal" data-view="journal" hidden>Journal</a>
     <a href="#whispers" data-view="whispers" hidden>Whispers<span id="whisperN" hidden></span></a>
@@ -635,6 +636,13 @@ if (location.protocol !== "file:" && localStorage.getItem("dmforge.offline") !==
       <div id="pcOut" hidden><div class="card empty"><h2>A hero steps from the dark</h2><p>Leave anything on Random, or lock in a race, class and level. You get a full 5e sheet: scores, HP, AC, saves, skills, attacks, spell slots, features, gear and a backstory hook.</p></div></div>
       <div id="rosterMain"></div>
     </div>
+  </div>
+</section>
+<!-- ================= FEATURE REQUESTS ================= -->
+<section class="view" id="view-requests">
+  <div class="layout">
+    <div class="card side" id="rqSide"></div>
+    <div id="rqMain"></div>
   </div>
 </section>
 <!-- ================= HOMEBREW ================= -->

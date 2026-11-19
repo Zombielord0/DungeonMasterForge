@@ -150,6 +150,11 @@ Signed-in accounts don't need this, because their data is saved on the server.
 2. Turn on sign-in: Project configuration → Identity → Enable Identity. Leave registration **Open** so players can sign up.
    Optional: Emails → Confirmation template → allow sign-up without confirming email.
 3. Deploy. The database is created and its tables applied automatically on the first deploy.
+4. Say which account reviews feature requests (the Requests tab): Project configuration → Environment variables → Add a variable. Key `FORGE_OWNER_EMAILS`, value the email you sign in with (several emails can be separated by commas). Then deploy again so the setting takes effect. Until it's set, everyone can send requests but nobody sees them all.
+
+## Feature requests
+
+Signed-in players and DMs can open the **Requests** tab and ask for a new feature, a change, or a fix. The form asks what they're trying to do, how it should work, step by step, who it's for, how often they'd use it, any rules involved and on which devices, plus an optional screenshot (requests with one are more likely to be approved). Everyone sees their own requests with a status (New, Planned, Being built, Done, Not this time) and the owner's reply. The owner (see step 4 above) sees all requests, sets the status, replies, and can press **📋 Copy as a brief** to paste a request into a Claude chat.
 
 ## Development
 

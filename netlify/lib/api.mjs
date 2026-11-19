@@ -14,6 +14,41 @@ const MAX_DOC_BYTES = 4_000_000;     // one saved Tracker campaign or list (a bi
 const MAX_USER_BYTES = 40_000_000;   // everything one account keeps
 const MERGE_WINDOW = "60 seconds";
 const CODE_CHARS = "ABCDEFGHJKMNPQRSTUVWXYZ23456789"; // no 0/O, 1/I/L
+// ---- feature requests (the Requests tab) ----
+const REQ_KINDS = ["feature", "change", "bug"];
+const REQ_AREAS = ["generate", "npc", "world", "monsters", "characters", "spells", "feats", "items", "map", "tv", "tracker", "homebrew", "party", "journal", "import", "accounts", "phone", "other"];
+const REQ_WHO = ["players", "dm", "both"];
+const REQ_EDITIONS = ["2014", "2024", "both", "none"];
+const REQ_OFTEN = ["every-session", "sometimes", "rarely"];
+const REQ_DEVICES = ["phone", "tablet", "laptop", "tv"];
+const REQ_STATUS = ["new", "planned", "in-progress", "done", "declined"];
+const MAX_REQ_IMAGE = 700_000;   // one screenshot, shrunk in the browser first (a data: URL)
+const MAX_REQ_PER_DAY = 20;
+// The app's owner: emails in the FORGE_OWNER_EMAILS setting (comma-separated), set in Netlify's environment variables.
+const isOwner = user => !!(user && user.email) && String(process.env.FORGE_OWNER_EMAILS || "").split(",").map(e => e.trim().toLowerCase()).filter(Boolean).includes(String(user.email).toLowerCase());
+const text = (s, max) => String(s ?? "").replace(/\r/g, "").trim().slice(0, max); // keeps line breaks, unlike clean()
+function requestData(p) {
+  if (!p || typeof p !== "object") throw new HttpError(400, "Expected a request");
+  const pickOne = (v, list, dflt) => list.includes(v) ? v : dflt;
+  const d = {
+    title: clean(p.title, 120), kind: pickOne(p.kind, REQ_KINDS, "feature"), area: pickOne(p.area, REQ_AREAS, "other"),
+    who: pickOne(p.who, REQ_WHO, "both"), problem: text(p.problem, 4000), idea: text(p.idea, 4000), steps: text(p.steps, 4000),
+    example: text(p.example, 2000), rules: text(p.rules, 1000), edition: pickOne(p.edition, REQ_EDITIONS, "none"),
+    often: pickOne(p.often, REQ_OFTEN, "sometimes"), devices: (Array.isArray(p.devices) ? p.devices : []).filter(v => REQ_DEVICES.includes(v)).slice(0, 4),
+  };
+  if (!d.title) throw new HttpError(400, "Give your request a short title");
+  if (d.problem.length < 10) throw new HttpError(400, "Say what you're trying to do, or what's wrong");
+  if (d.idea.length < 10) throw new HttpError(400, "Say how you'd like it to work");
+  return d;
+}
+function requestImage(img) {
+  if (img === undefined || img === null || img === "") return null;
+  if (typeof img !== "string" || !/^data:image\/(jpeg|png|webp);base64,[A-Za-z0-9+/=]+$/.test(img)) throw new HttpError(400, "The screenshot must be a picture");
+  if (img.length > MAX_REQ_IMAGE) throw new HttpError(413, "The screenshot is too large");
+  return img;
+}
+const reqRow = (r, owner) => ({ id: r.id, data: r.data, image: r.image || null, status: r.status, reply: r.reply, createdAt: r.created_at, updatedAt: r.updated_at,
+  ...(owner ? { userName: r.user_name, userEmail: r.user_email } : {}) });
 
 class HttpError extends Error {
   constructor(status, message, extra) { super(message); this.status = status; this.extra = extra; }
@@ -130,9 +165,48 @@ export async function handle(req, user, db) {
            FROM members m JOIN campaigns k ON k.id = m.campaign_id
           WHERE m.user_id = $1 ORDER BY m.joined_at`, [user.id]);
       return json({
-        user: { id: user.id, email: user.email, name: user.name },
+        user: { id: user.id, email: user.email, name: user.name }, owner: isOwner(user),
         campaigns: rows.map(r => ({ id: r.id, name: r.name, role: r.role, displayName: r.display_name, code: r.role === "dm" ? r.code : undefined })),
       });
+    }
+
+    // ---- feature requests: anyone signed in sends them and sees their own; the owner sees all and sets the status ----
+    if (a === "requests") {
+      const owner = isOwner(user), rid = cid;
+      if (rid && !/^[0-9a-f-]{36}$/i.test(rid)) throw new HttpError(404, "Not found");
+      if (!rid && m === "GET") {
+        const { rows } = owner
+          ? await db.query("SELECT * FROM feature_requests ORDER BY created_at DESC LIMIT 500")
+          : await db.query("SELECT * FROM feature_requests WHERE user_id = $1 ORDER BY created_at DESC LIMIT 200", [user.id]);
+        return json({ owner, requests: rows.map(r => ({ ...reqRow(r, owner), mine: r.user_id === user.id })) });
+      }
+      if (!rid && m === "POST") {
+        const p = await body(req), data = requestData(p), image = requestImage(p.image);
+        const { rows: n } = await db.query("SELECT count(*)::int AS n FROM feature_requests WHERE user_id = $1 AND created_at > now() - interval '1 day'", [user.id]);
+        if (n[0].n >= MAX_REQ_PER_DAY) throw new HttpError(429, "That's a lot of requests for one day. Please try again tomorrow");
+        const { rows } = await db.query(
+          "INSERT INTO feature_requests (user_id, user_name, user_email, data, image) VALUES ($1, $2, $3, $4, $5) RETURNING *",
+          [user.id, clean(p.displayName || user.name, 60), String(user.email || ""), JSON.stringify(data), image]);
+        return json({ request: { ...reqRow(rows[0], owner), mine: true } }, 201);
+      }
+      if (rid && m === "PATCH") {
+        if (!owner) throw new HttpError(403, "Only the app's owner can change a request's status");
+        const p = await body(req);
+        if (p.status !== undefined && !REQ_STATUS.includes(p.status)) throw new HttpError(400, "Unknown status");
+        const { rows } = await db.query(
+          `UPDATE feature_requests SET status = COALESCE($2, status), reply = COALESCE($3, reply), updated_at = now() WHERE id = $1 RETURNING *`,
+          [rid, p.status ?? null, p.reply === undefined ? null : text(p.reply, 2000)]);
+        if (!rows.length) throw new HttpError(404, "That request no longer exists");
+        return json({ request: { ...reqRow(rows[0], owner), mine: rows[0].user_id === user.id } });
+      }
+      if (rid && m === "DELETE") {
+        const { rows } = await db.query("SELECT user_id, status FROM feature_requests WHERE id = $1", [rid]);
+        if (!rows.length) throw new HttpError(404, "That request no longer exists");
+        if (!owner && (rows[0].user_id !== user.id || rows[0].status !== "new")) throw new HttpError(403, "You can only take back your own requests that haven't been looked at yet");
+        await db.query("DELETE FROM feature_requests WHERE id = $1", [rid]);
+        return json({ ok: true });
+      }
+      throw new HttpError(404, "Not found");
     }
 
     // ---- this account's own saved data (private: the Tracker, World, NPCs, custom items, My monsters) ----

@@ -344,3 +344,52 @@ test("each account keeps its own private saved data (Tracker, World, NPCs)", asy
     assert.equal((await call(null, "GET", "me/docs")).status, 401);
   });
 });
+
+test("feature requests: anyone signed in sends them and sees their own; the owner sees all and sets the status", async () => {
+  process.env.FORGE_OWNER_EMAILS = "Owner@Example.com, helper@example.com";
+  const owner = { id: "u-own", email: "owner@example.com" }, rue = { id: "u-rq1", email: "rue@example.com", name: "Rue" }, sam = { id: "u-rq2", email: "sam@example.com" };
+  const good = { title: "Fold the spell list", kind: "change", area: "spells", who: "both", problem: "The spell list is far too long to scroll.", idea: "Let each level fold away.", devices: ["phone", "laptop", "fridge"], edition: "both", often: "every-session" };
+  assert.equal((await call(null, "POST", "requests", good)).status, 401, "signed out can't send");
+  assert.equal((await call(owner, "GET", "me")).body.owner, true, "the owner setting matches emails without minding case");
+  assert.equal((await call(rue, "GET", "me")).body.owner, false);
+  // sending: fields are checked and trimmed; unknown choices fall back; a picture must be a small data: image
+  const sent = await call(rue, "POST", "requests", { ...good, image: "data:image/jpeg;base64,AAAA", extra: "ignored", displayName: "Rue" });
+  assert.equal(sent.status, 201);
+  assert.deepEqual(sent.body.request.data.devices, ["phone", "laptop"]);
+  assert.equal(sent.body.request.data.extra, undefined);
+  assert.equal(sent.body.request.status, "new");
+  assert.equal(sent.body.request.userEmail, undefined, "a requester isn't shown emails");
+  assert.equal((await call(rue, "POST", "requests", { ...good, title: "" })).status, 400);
+  assert.equal((await call(rue, "POST", "requests", { ...good, idea: "x" })).status, 400);
+  assert.equal((await call(rue, "POST", "requests", { ...good, image: "javascript:alert(1)" })).status, 400);
+  assert.equal((await call(rue, "POST", "requests", { ...good, image: "data:image/svg+xml;base64,AAAA" })).status, 400, "no SVG pictures");
+  assert.equal((await call(rue, "POST", "requests", { ...good, image: "data:image/png;base64," + "A".repeat(800_000) })).status, 413);
+  await call(sam, "POST", "requests", { ...good, title: "Sam's idea" });
+  // who sees what
+  const mine = await call(rue, "GET", "requests");
+  assert.equal(mine.body.owner, false);
+  assert.deepEqual(mine.body.requests.map(r => r.data.title), ["Fold the spell list"]);
+  const all = await call(owner, "GET", "requests");
+  assert.equal(all.body.owner, true);
+  assert.equal(all.body.requests.length, 2);
+  assert.ok(all.body.requests.some(r => r.userEmail === "rue@example.com" && r.userName === "Rue"));
+  // only the owner sets the status and replies; the requester then sees them
+  const id = sent.body.request.id;
+  assert.equal((await call(rue, "PATCH", `requests/${id}`, { status: "done" })).status, 403);
+  assert.equal((await call(owner, "PATCH", `requests/${id}`, { status: "maybe" })).status, 400);
+  const set = await call(owner, "PATCH", `requests/${id}`, { status: "planned", reply: "Good idea, coming soon." });
+  assert.equal(set.body.request.status, "planned");
+  const seen = (await call(rue, "GET", "requests")).body.requests[0];
+  assert.equal(seen.status, "planned"); assert.equal(seen.reply, "Good idea, coming soon.");
+  // taking one back: your own, only while it's new; the owner can remove any
+  assert.equal((await call(rue, "DELETE", `requests/${id}`)).status, 403, "not once it's been looked at");
+  const samId = (await call(sam, "GET", "requests")).body.requests[0].id;
+  assert.equal((await call(rue, "DELETE", `requests/${samId}`)).status, 403, "not someone else's");
+  assert.equal((await call(sam, "DELETE", `requests/${samId}`)).status, 200);
+  assert.equal((await call(owner, "DELETE", `requests/${id}`)).status, 200);
+  assert.equal((await call(owner, "GET", "requests/not-a-uuid")).status, 404);
+  // at most 20 a day each
+  for (let i = 0; i < 20; i++) await call(sam, "POST", "requests", { ...good, title: "n" + i });
+  assert.equal((await call(sam, "POST", "requests", good)).status, 429);
+  delete process.env.FORGE_OWNER_EMAILS;
+});

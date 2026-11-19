@@ -2,6 +2,10 @@
    When a change ships, add an entry to the top of NEWS with a new id, in plain words for players and DMs. */
 
 const NEWS = [
+  { id: "2026-11-19-requests", date: "2026-11-19", title: "Ask for a feature", go: "requests", items: [
+    "There's a new Requests tab. Signed-in players and DMs can ask for something new, a change, or a fix.",
+    "Tell us what you're trying to do and how you'd like it to work. A screenshot (marked up if you can) makes it much more likely to be approved.",
+    "Your requests show their status (New, Planned, Being built, Done) and any reply from us."] },
   { id: "2026-11-19-third-casters", date: "2026-11-19", title: "Eldritch Knights and Arcane Tricksters cast spells", go: "roster", items: [
     "Fighters who choose the Eldritch Knight and Rogues who choose the Arcane Trickster now get spellcasting from level 3: spell slots, a spell save DC and attack with Intelligence, and wizard spells to pick.",
     "Their slots grow as they level (2 first-level slots at level 3, up to level 4 spells at 19), and they count a third of their level toward spell slots when multiclassing.",

@@ -60,7 +60,7 @@ function hdrShrink(y) {
 
 /* ======================= Routing ======================= */
 function route() {
-  const views = (window.Portal && Portal.views) || ["generate", "npc", "world", "monsters", "character", "roster", "spells", "feats", "items", "map", "tracker", "homebrew"];
+  const views = (window.Portal && Portal.views) || ["generate", "npc", "world", "monsters", "character", "roster", "spells", "feats", "items", "map", "tracker", "homebrew", "requests"];
   let v = views.includes(location.hash.slice(1)) ? location.hash.slice(1) : ((window.Portal && Portal.home) || "generate");
   /* Characters and My Characters are one tab (#roster) since 2026-11-19; #character (old links, a player's home) opens it with the forge form */
   if (v === "character") { v = "roster"; if (!PCS.roster.length && !currentPC) forgeOpen(); }
@@ -82,6 +82,7 @@ function route() {
   if (v === "party" && window.Portal) Portal.renderParty();
   if (v === "whispers" && window.Portal) Portal.renderWhispers();
   if (v === "journal" && window.Portal) Portal.renderJournal();
+  if (v === "requests") renderRequests();
   hdrSync();
 }
 window.addEventListener("hashchange", route);

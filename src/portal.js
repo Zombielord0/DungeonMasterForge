@@ -17,8 +17,8 @@ const OFFLINE_KEY = "dmforge.offline";
 const CAMP_KEY = "dmforge.campaign";
 const LAST_KEY = "dmforge.lastCampaign."; // + user id: the campaign and role from last visit
 const OFFERED_KEY = "dmforge.uploadOffered.";
-const ALL_VIEWS = ["generate", "npc", "world", "monsters", "character", "roster", "spells", "feats", "items", "map", "tracker", "homebrew", "journal"];
-const PLAYER_VIEWS = ["character", "roster", "spells", "feats", "items", "journal", "whispers"];
+const ALL_VIEWS = ["generate", "npc", "world", "monsters", "character", "roster", "spells", "feats", "items", "map", "tracker", "homebrew", "journal", "requests"];
+const PLAYER_VIEWS = ["character", "roster", "spells", "feats", "items", "journal", "whispers", "requests"];
 const POLL_DM = 4000, POLL_PLAYER = 10000, POLL_WHISPERS = 8000, POLL_HOMEBREW = 30000;
 
 const S = {
@@ -45,6 +45,9 @@ const Portal = window.Portal = {
   hbPut, hbDel,
   renderJournal: () => renderJournal(),
   rolled: (c, e) => shareRoll(c, e),
+  api: (path, opts) => api(path, opts),        // the Requests tab (20-requests.js) talks to the server through this
+  signedIn: () => !!S.user,
+  myName: () => (S.camp && S.camp.displayName) || (S.user && S.user.name) || "",
 };
 
 /* ------------------------------------------------------------ helpers */

@@ -61,7 +61,7 @@ Live site: https://dungeonmasterforge.netlify.app (Netlify; production branch `m
 | `tools/make-backdrop.py` | Shrinks a source picture into `src/backdrop/` (needs Pillow). |
 | `src/sw.js` | The offline helper (service worker); built into `public/sw.js` with the list of files to keep. |
 | `netlify/functions/api.mjs` → `netlify/lib/api.mjs` | Campaign API at `/api/*`. `handle(req, user, db)` holds all the routes. `netlify/lib/diff.mjs` writes the activity feed text. |
-| `netlify/database/migrations/` | Postgres tables, applied automatically on deploy: `campaigns`, `members`, `characters` (versioned jsonb), `activity`, `whispers`, `homebrew`, `campaign_shared` (the players' Journal and turn order) and `user_docs` (each account's own Tracker, World, NPCs, custom items and monsters). |
+| `netlify/database/migrations/` | Postgres tables, applied automatically on deploy: `campaigns`, `members`, `characters` (versioned jsonb), `activity`, `whispers`, `homebrew`, `campaign_shared` (the players' Journal and turn order), `user_docs` (each account's own Tracker, World, NPCs, custom items and monsters) and `feature_requests` (the Requests tab). |
 | `public/player.html` | The TV player screen. It shows only the pictures the DM's window sends. |
 | `public/manifest.webmanifest`, `public/icons/` | Install as an app (PWA). |
 | `public/vendor/pdfjs/` | pdf.js (`pdfjs-dist` 6.5.438 legacy build, Apache-2.0, unchanged), loaded only when someone imports a PDF. |
@@ -112,6 +112,7 @@ Live site: https://dungeonmasterforge.netlify.app (Netlify; production branch `m
 | `17-mythweaver.js` | MythWeaver import and the Import campaign window |
 | `18-news.js` | What's new (`NEWS`) and Install app |
 | `19-fold.js` | Folding list groups and sheet sections (▾ on a `.sec-h`, Fold all), remembered in `dmforge.fold.v2`. Lists start folded; sheets start open |
+| `20-requests.js` | The Requests tab: feature requests (`RQ`, `rqBrief`); see `docs/features/requests.md` |
 
 To find a function, search `src/app/` (for example `grep -n "function pcLevelTo" src/app/*.js`).
 
@@ -141,7 +142,7 @@ npm run build     # build the page and bundle the portal (what Netlify runs)
 npm run build:app # build the page only
 ```
 
-One check per feature (Playwright, any OS): `test:assets` (fingerprinted files, repeat visits, offline), `test:map`, `test:backup`, `test:tv`, `test:mapvis`, `test:mapio`, `test:shop`, `test:random`, `test:cards`, `test:mapenc`, `test:calendar`, `test:recap`, `test:sheet` (432 sheets vs the rules), `test:tokens`, `test:npcpic`, `test:hbspell`, `test:hbpend`, `test:import`, `test:layout`, `test:lore`, `test:mythweaver`, `test:campextras`, `test:npclib`, `test:world`, `test:setup` (builds the portal, port 8897), `test:sync` (the DM's data in their account, two devices, port 8896), `test:share` (the players' Journal, turn order on phones, shared rolls; port 8895), `test:hbclass` (homebrew classes), `test:atlas` (World and region maps), `test:polish` (the Adventure, Characters and Items tabs after the 2026-11-18 UI review), `test:cast` (spell bubbles and the spell window), `test:backdrop` (the background pictures and their live torches), `test:lorelink` (Lore items, monsters and encounters filling their tabs; folding lists), `test:chartab` (one Characters tab: forge, drafts, save, reroll, discard, the builder), `test:hoard` (treasure hoards), `test:third` (Eldritch Knight and Arcane Trickster spellcasting).
+One check per feature (Playwright, any OS): `test:assets` (fingerprinted files, repeat visits, offline), `test:map`, `test:backup`, `test:tv`, `test:mapvis`, `test:mapio`, `test:shop`, `test:random`, `test:cards`, `test:mapenc`, `test:calendar`, `test:recap`, `test:sheet` (432 sheets vs the rules), `test:tokens`, `test:npcpic`, `test:hbspell`, `test:hbpend`, `test:import`, `test:layout`, `test:lore`, `test:mythweaver`, `test:campextras`, `test:npclib`, `test:world`, `test:setup` (builds the portal, port 8897), `test:sync` (the DM's data in their account, two devices, port 8896), `test:share` (the players' Journal, turn order on phones, shared rolls; port 8895), `test:hbclass` (homebrew classes), `test:atlas` (World and region maps), `test:polish` (the Adventure, Characters and Items tabs after the 2026-11-18 UI review), `test:cast` (spell bubbles and the spell window), `test:backdrop` (the background pictures and their live torches), `test:lorelink` (Lore items, monsters and encounters filling their tabs; folding lists), `test:chartab` (one Characters tab: forge, drafts, save, reroll, discard, the builder), `test:hoard` (treasure hoards), `test:third` (Eldritch Knight and Arcane Trickster spellcasting), `test:requests` (the Requests tab, port 8894).
 
 Playwright and Chromium are pre-installed in cloud sessions. To test offline mode (no sign-in screen), run `localStorage.setItem('dmforge.offline','1')` in an init script.
 
@@ -159,6 +160,7 @@ Playwright and Chromium are pre-installed in cloud sessions. To test offline mod
 | `docs/features/homebrew-classes.md` | Homebrew classes: how they join `CLASS_DATA`, `classList(ed)`, the editor, and import of unknown classes. |
 | `docs/features/world-maps.md` | World and region maps: data (`place.atlas`, `W.atlas`, `place.found`), pins, the map view, import, the TV. |
 | `docs/features/layout.md` | Phone and laptop layout, and the background picture. |
+| `docs/features/requests.md` | The Requests tab: feature requests, the owner setting (`FORGE_OWNER_EMAILS`), the API. |
 | `docs/features/accounts.md` | The DM setup screen, renaming a campaign, and **the DM's data saved to their account** (`Cloud`, `/api/me/docs`). |
 
 **Most important rules from those notes:**
@@ -221,6 +223,7 @@ Playwright and Chromium are pre-installed in cloud sessions. To test offline mod
 - **PR 14** (branch `claude/brave-dirac-2mvyiu`), merged to `main` at the owner's request on 2026-11-18: saving a Lore Item, Monster or Encounter adds it to Items → Custom, My monsters or the Encounters tab (`loreLink`; `docs/features/import.md`), and long lists and sheet sections fold (`19-fold.js`; `docs/features/layout.md`).
 - **Branch `claude/brave-dirac-2mvyiu`, after PR 14:** Items, Spells and Monster Manual groups start folded (owner's choice: lists only, not sheets); searching opens them. Character sheets have a Fold all switch too, and sheet titles on phones are no longer cut short (that bug went out with PR 14). Tests that click rows in those lists open a group first.
 - **Same branch, 2026-11-19 (owner's order):** 1. Characters and My Characters merged into one tab (owner's choice: one tab, not just one sheet layout). Then 2. the iron-and-oak look (tried and **rejected by the owner**: "I don't like the wood look at all"; skipped for now), 3. a treasure hoard generator (done, `11b-hoard.js`), 4. Eldritch Knight and Arcane Trickster spellcasting (done: `castOf(cls, subclass)`), all to PR 15.
+- **Requests tab (2026-11-19):** feature requests stored in the database (`feature_requests`); the owner is whoever's email is in the Netlify setting `FORGE_OWNER_EMAILS` (the owner has to add it). When the owner asks to build a request, they paste its brief from **📋 Copy as a brief**.
 - **Main screen look:** a wood-and-iron restyle was tried on 2026-11-19 and the owner rejected it; they chose to skip the look for now. Don't bring back wood.
 - **Work branch:** cloud chats use their own `claude/…` branch. After a merge, start the next piece from the latest `main`.
 - **The owner's order of import work:**
