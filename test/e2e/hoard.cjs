@@ -80,6 +80,34 @@ const server = http.createServer((req, res) => {
   await p.evaluate(() => { activeId = Store.list()[0].id; subTab = "loot"; renderTracker(); }); await p.click("[data-hoardopen]"); await p.waitForTimeout(150);
   await p.evaluate(() => { activeId = Store.list()[1].id; subTab = "loot"; renderTracker(); }); await p.waitForTimeout(150);
   check("a hoard rolled for one campaign doesn't show on another's Loot tab", await p.evaluate(() => !document.querySelector("#campMain .hoard")));
+  // a hoard for an encounter: chosen in the panel, or from the encounter's own 💰 Hoard button
+  await p.evaluate(() => { const c = Store.list()[0]; c.encounters = [newEncounter(null, "Troll bridge", 9, [{ name: "Troll", stat: "Troll", cr: 5, count: 1, boss: false }])]; c.loot = []; Store.save(c); });
+  await p.goto(URL + "#items"); await p.waitForTimeout(300);
+  await p.click("#itHoardBtn"); await p.waitForTimeout(150);
+  await p.selectOption('#itHoard [data-hoard="camp"]', await p.evaluate(() => Store.list()[0].id)); await p.waitForTimeout(100);
+  const eid = await p.evaluate(() => Store.list()[0].encounters[0].id);
+  await p.selectOption('#itHoard [data-hoard="enc"]', eid); await p.waitForTimeout(150);
+  check("choosing an encounter sets the hoard's band from its toughest monster", await p.evaluate(() => HOARD.H.tier === 1 && HOARD.H.enc === Store.list()[0].encounters[0].id));
+  const nItems = await p.evaluate(() => 1 + HOARD.H.groups.length + HOARD.H.items.length);
+  await p.click('#itHoard [data-hoard="loot"]'); await p.waitForTimeout(300);
+  const tagged = await p.evaluate(eid => { const c = Store.list()[0], e = c.encounters[0]; return { loot: c.loot.length, tagged: c.loot.filter(l => l.encId === eid && /Troll bridge/.test(l.notes)).length, treasure: e.treasure || "" }; }, eid);
+  check("the treasure goes on the Loot list, marked with its encounter", tagged.loot === nItems && tagged.tagged === nItems, JSON.stringify(tagged));
+  check("…and the encounter records its treasure", /Coins/.test(tagged.treasure), tagged.treasure);
+  await p.goto(URL + "#tracker"); await p.waitForTimeout(300);
+  await p.evaluate(() => { activeId = Store.list()[0].id; subTab = "encounters"; renderTracker(); }); await p.waitForTimeout(200);
+  check("the encounter card shows its treasure", /💰 Treasure/.test(await p.textContent(`#enc-${eid}`)));
+  await p.click(`#enc-${eid} [data-ea="hoard"]`); await p.waitForTimeout(250);
+  check("an encounter's 💰 Hoard button rolls a hoard for it on the Loot tab", await p.evaluate(eid => subTab === "loot" && HOARD.T && HOARD.T.enc === eid && HOARD.T.tier === 1 && !!document.querySelector("#campMain .hoard"), eid));
+
+  // phones: everything in the hoard panel fits its box
+  const ph = await browser.newContext({ viewport: { width: 360, height: 800 }, isMobile: true, hasTouch: true, serviceWorkers: "block" });
+  await ph.addInitScript(() => localStorage.setItem("dmforge.offline", "1"));
+  const q = await ph.newPage(); await q.goto(URL + "#items"); await q.waitForFunction(() => typeof hoardRoll === "function");
+  await q.evaluate(() => { const c = blankCampaign("Ashes of Velmor"); c.encounters = [newEncounter(null, "A long encounter name for a phone", 3, [])]; Store.save(c); HOARD.H = hoardRoll(1, "PH", "2024"); hoardItemsRender(); });
+  await q.waitForTimeout(200);
+  const over = await q.evaluate(() => { const box = document.querySelector("#itHoard").getBoundingClientRect(); return [...document.querySelectorAll("#itHoard button, #itHoard select")].filter(e => { const r = e.getBoundingClientRect(); return r.left < box.left - 1 || r.right > box.right + 1 || e.scrollWidth > e.clientWidth + 2 || (e.tagName === "BUTTON" && r.width > box.width * 0.9 && e.dataset.hoard === "close"); }).map(e => e.textContent.trim().slice(0, 20) || e.tagName); });
+  check("phone: the hoard's buttons and menus fit inside it, and ✕ stays small", !over.length, JSON.stringify(over));
+  await ph.close();
   check("no page errors", !errs.length, errs.join(" | "));
   await browser.close(); server.close();
   console.log(fails ? `\n${fails} check(s) failed` : "\nAll checks passed");

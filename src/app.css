@@ -1131,3 +1131,14 @@ nav a[data-view=requests]{--ic:url("data:image/svg+xml,%3Csvg xmlns='http://www.
 .rq-st-planned,.rq-st-in-progress{border-color:var(--gold)!important;color:var(--gold2)!important}
 .rq-st-done{border-color:var(--green)!important;color:#b9d9a6!important}
 .rq-st-declined{opacity:.7}
+.hoard-top{display:flex;align-items:center;gap:8px}
+.hoard-top h3{margin:0;flex:1;min-width:0}
+.hoard-ctl{display:flex;flex-wrap:wrap;gap:8px;margin-top:8px}
+.hoard-ctl select{flex:1 1 170px;min-width:0;width:auto}
+.hoard-ctl .btn{flex:0 0 auto}
+.hoard-dest{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:8px 12px;margin-top:12px}
+.hoard-dest label{display:flex;flex-direction:column;gap:4px;margin:0}
+.hoard-dest select{width:100%;min-width:0}
+.hoard-acts{display:flex;flex-wrap:wrap;gap:8px;margin-top:10px}
+.hoard-acts .btn{flex:1 1 auto}
+.enc-treasure{margin-top:8px;padding:6px 10px;border-left:3px solid var(--gold);background:rgba(227,154,59,.08);border-radius:3px;font-size:14px}

@@ -76,22 +76,28 @@ function hoardTotalGp(H) { return hoardCoinGp(H.coins) + H.groups.reduce((t, g) 
 
 /* the hoard as a card; `where` is "items" (pick a campaign) or "tracker" (this campaign) */
 const hoardCamp = () => { const L = Store.list(); if (!L.some(c => c.id === HOARD.camp)) HOARD.camp = (L[0] || {}).id || ""; return HOARD.camp; };
+/* the band for an encounter: its toughest monster's challenge, or its level when it has no monsters yet */
+const hoardEncTier = e => { const crs = (e.enemies || []).map(m => +m.cr || 0); return tierOf(crs.length ? Math.max(...crs) : +e.level || 1); };
+const hoardEncs = c => (c && c.encounters) || [];
 function hoardHTML(H, where) {
   if (where === "items") hoardCamp();
-  const camps = Store.list(), magic = H.items.length ? `<ul class="plain hoard-list">${H.items.map(x => `<li><b>${esc(x.n)}</b> <span class="tag rar-${R_CLASS[x.rk] || "v"}">${esc(RARITY[x.rk] || "")}</span> <span class="muted">${esc(x.cat)}${x.att ? " · attunement" : ""} · ${esc(x.c || "")}</span></li>`).join("")}</ul>` : `<p class="muted">No magic items this time.</p>`;
-  return `<div class="row" style="align-items:center;gap:8px;flex-wrap:wrap"><h3 style="margin:0;flex:1 1 auto">💰 Treasure hoard</h3>
-      <select data-hoard="tier" aria-label="Challenge of the creatures guarding it" style="flex:0 1 200px">${HOARD_TIERS.map((t, i) => `<option value="${i}" ${H.tier === i ? "selected" : ""}>${t}</option>`).join("")}</select>
-      <button class="btn sm" type="button" data-hoard="roll">🎲 Roll again</button>${where === "items" ? `<button class="icon-btn" type="button" data-hoard="close" title="Close" aria-label="Close the hoard">✕</button>` : ""}</div>
+  const camps = Store.list(), camp = where === "items" ? Store.get(HOARD.camp) : curCamp(), encs = hoardEncs(camp);
+  const magic = H.items.length ? `<ul class="plain hoard-list">${H.items.map(x => `<li><b>${esc(x.n)}</b> <span class="tag rar-${R_CLASS[x.rk] || "v"}">${esc(RARITY[x.rk] || "")}</span> <span class="muted">${esc(x.cat)}${x.att ? " · attunement" : ""} · ${esc(x.c || "")}</span></li>`).join("")}</ul>` : `<p class="muted">No magic items this time.</p>`;
+  const canAdd = where === "tracker" || camps.length;
+  return `<div class="hoard-top"><h3>💰 Treasure hoard</h3>${where === "items" ? `<button class="icon-btn" type="button" data-hoard="close" title="Close" aria-label="Close the hoard">✕</button>` : ""}</div>
+    <div class="hoard-ctl"><select data-hoard="tier" aria-label="Challenge of the creatures guarding it">${HOARD_TIERS.map((t, i) => `<option value="${i}" ${H.tier === i ? "selected" : ""}>${t}</option>`).join("")}</select>
+      <button class="btn sm" type="button" data-hoard="roll">🎲 Roll again</button></div>
     <p class="hint" style="margin:6px 0 10px">${H.ed} rules · worth about <b>${Math.round(hoardTotalGp(H)).toLocaleString()} gp</b> before magic items.</p>
     <div class="hoard-grid">
       <div><div class="prep-h">Coins</div><p style="margin:0">${esc(hoardCoinText(H.coins)) || "None"}</p></div>
       <div><div class="prep-h">Gems and art</div>${H.groups.length ? `<ul class="plain hoard-list">${H.groups.map(g => `<li>${esc(hoardGroupText(g))}${g.kind === "art" ? ` <span class="muted">(${g.each.toLocaleString()} gp)</span>` : ""}</li>`).join("")}</ul>` : `<p class="muted" style="margin:0">None this time.</p>`}</div>
     </div>
     <div class="prep-h">Magic items</div>${magic}
-    <div class="row" style="gap:8px;flex-wrap:wrap;margin-top:12px;align-items:center">
-      ${where === "items" ? (camps.length ? `<select data-hoard="camp" aria-label="Campaign" style="flex:1 1 200px">${camps.map(c => `<option value="${esc(c.id)}" ${c.id === HOARD.camp ? "selected" : ""}>${esc(c.name)}</option>`).join("")}</select>` : `<span class="muted" style="flex:1 1 200px">Make a campaign in the Campaign Tracker to keep hoards in its Loot.</span>`) : `<span style="flex:1"></span>`}
-      ${where === "items" && !camps.length ? "" : `<button class="btn primary sm" type="button" data-hoard="loot">+ Add to ${where === "items" ? "campaign Loot" : "this campaign's Loot"}</button>`}
-      <button class="btn sm" type="button" data-hoard="copy">Copy as text</button></div>`;
+    <div class="hoard-dest">
+      ${where === "items" ? (camps.length ? `<label>Campaign<select data-hoard="camp">${camps.map(c => `<option value="${esc(c.id)}" ${c.id === HOARD.camp ? "selected" : ""}>${esc(c.name)}</option>`).join("")}</select></label>` : `<p class="muted" style="margin:0">Make a campaign in the Campaign Tracker to keep hoards in its Loot.</p>`) : ""}
+      ${canAdd && encs.length ? `<label><span>Encounter <span class="muted">(optional)</span></span><select data-hoard="enc"><option value="">None</option>${encs.map(e => `<option value="${esc(e.id)}" ${H.enc === e.id ? "selected" : ""}>${esc(e.name || "Encounter")}${e.status === "Done" ? " (done)" : ""}</option>`).join("")}</select></label>` : ""}
+    </div>
+    <div class="hoard-acts">${canAdd ? `<button class="btn primary sm" type="button" data-hoard="loot">+ Add to ${where === "items" ? "campaign" : "this campaign's"} Loot</button>` : ""}<button class="btn sm" type="button" data-hoard="copy">Copy as text</button></div>`;
 }
 function hoardText(H) {
   return [`Treasure hoard (${HOARD_TIERS[H.tier]})`, `Coins: ${hoardCoinText(H.coins) || "none"}`, ...H.groups.map(g => `${hoardGroupText(g)}${g.kind === "art" ? ` (${g.each} gp)` : ""}`),
@@ -100,8 +106,11 @@ function hoardText(H) {
 /* one Loot entry for the coins, one per gem or art group, one per magic item */
 function hoardToLoot(c, H) {
   c.loot = c.loot || [];
-  const add = (item, value, notes) => c.loot.push({ id: uid("l"), item, holder: "", value, notes });
-  if (hoardCoinText(H.coins)) add(`Coins: ${hoardCoinText(H.coins)}`, `${Math.round(hoardCoinGp(H.coins)).toLocaleString()} gp`, "From a treasure hoard");
+  const e = H.enc && hoardEncs(c).find(x => x.id === H.enc), from = e ? `From ${e.name || "an encounter"}` : "";
+  const add = (item, value, notes) => c.loot.push({ id: uid("l"), item, holder: "", value, notes: [from, notes].filter(Boolean).join(": "), ...(e ? { encId: e.id } : {}) });
+  if (e) { const line = [hoardCoinText(H.coins) && `Coins ${hoardCoinText(H.coins)}`, H.groups.length && `${H.groups.length} gem or art ${H.groups.length === 1 ? "lot" : "lots"}`, ...H.items.map(x => x.n)].filter(Boolean).join("; ");
+    e.treasure = [e.treasure, line].filter(Boolean).join("\n"); }
+  if (hoardCoinText(H.coins)) add(`Coins: ${hoardCoinText(H.coins)}`, `${Math.round(hoardCoinGp(H.coins)).toLocaleString()} gp`, e ? "" : "From a treasure hoard");
   H.groups.forEach(g => add(hoardGroupText(g), `${(g.each * g.qty).toLocaleString()} gp`, g.kind === "art" ? "Art object" : "Gems"));
   H.items.forEach(x => add(x.n, x.c || "", `${RARITY[x.rk] || ""} ${x.cat || ""}${x.att ? ", requires attunement" : ""}`.trim()));
   Store.save(c);
@@ -114,12 +123,19 @@ function hoardItemsRender() {
   if (!HOARD.H) { box.hidden = true; box.innerHTML = ""; return; }
   box.hidden = false; box.innerHTML = hoardHTML(HOARD.H, "items");
 }
+/* pick (or clear) the encounter a hoard is for; its band follows the encounter's toughest monster */
+function hoardForEnc(H, camp, encId, ed) {
+  const e = encId && hoardEncs(camp).find(x => x.id === encId);
+  if (!e) return { ...H, enc: "" };
+  const tier = hoardEncTier(e);
+  return { ...(tier === H.tier ? H : hoardRoll(tier, newSeed(), ed || H.ed)), enc: e.id, ...(H.camp ? { camp: H.camp } : {}) };
+}
 function hoardNew(tier) { HOARD.H = hoardRoll(tier, newSeed(), IT.ed); return HOARD.H; } /* the Items tab's rules edition */
 async function hoardAct(e, where) {
   const b = e.target.closest("[data-hoard]"); if (!b || b.tagName === "SELECT") return false;
   const k = b.dataset.hoard, H = where === "tracker" ? HOARD.T : HOARD.H; if (!H) return true;
   const redraw = () => where === "tracker" ? renderTracker() : hoardItemsRender();
-  if (k === "roll") { const n = hoardRoll(H.tier, newSeed(), where === "tracker" ? H.ed : IT.ed); if (where === "tracker") HOARD.T = { ...n, camp: activeId }; else HOARD.H = n; redraw(); }
+  if (k === "roll") { const n = { ...hoardRoll(H.tier, newSeed(), where === "tracker" ? H.ed : IT.ed), enc: H.enc || "" }; if (where === "tracker") HOARD.T = { ...n, camp: activeId }; else HOARD.H = n; redraw(); }
   else if (k === "close") { if (where === "tracker") HOARD.T = null; else HOARD.H = null; redraw(); }
   else if (k === "copy") { try { await navigator.clipboard.writeText(hoardText(H)); toast("Hoard copied"); } catch { toast("Couldn't copy here"); } }
   else if (k === "loot") {
@@ -136,8 +152,9 @@ async function hoardAct(e, where) {
   box.addEventListener("click", e => { hoardAct(e, "items"); });
   box.addEventListener("change", e => {
     const t = e.target;
-    if (t.dataset.hoard === "tier") { HOARD.tier = +t.value; hoardNew(HOARD.tier); hoardItemsRender(); }
-    else if (t.dataset.hoard === "camp") HOARD.camp = t.value;
+    if (t.dataset.hoard === "tier") { const enc = HOARD.H && HOARD.H.enc; HOARD.tier = +t.value; hoardNew(HOARD.tier); HOARD.H.enc = enc || ""; hoardItemsRender(); }
+    else if (t.dataset.hoard === "camp") { HOARD.camp = t.value; if (HOARD.H) HOARD.H.enc = ""; hoardItemsRender(); }
+    else if (t.dataset.hoard === "enc") { HOARD.H = hoardForEnc(HOARD.H, Store.get(hoardCamp()), t.value, IT.ed); hoardItemsRender(); }
   });
 })();
 
@@ -145,11 +162,14 @@ async function hoardAct(e, where) {
 (function initTrackerHoard() {
   if (typeof campMain === "undefined") return;
   campMain.addEventListener("click", e => {
+    const eb = e.target.closest('[data-ea="hoard"]');
+    if (eb) { const c = curCamp(), en = c && hoardEncs(c).find(x => x.id === eb.dataset.eid); if (!en) return; HOARD.T = { ...hoardRoll(hoardEncTier(en), newSeed(), IT.ed || "2024"), camp: activeId, enc: en.id }; subTab = "loot"; renderTracker(); const h = document.querySelector("#campMain .hoard"); if (h) h.scrollIntoView({ block: "nearest" }); return; }
     if (e.target.closest("[data-hoardopen]")) { const c = curCamp(); HOARD.T = hoardRoll(tierOf(+(c && c.currentLevel) || 1), newSeed(), IT.ed || "2024"); HOARD.T.camp = activeId; renderTracker(); return; }
     if (e.target.closest(".hoard [data-hoard]")) hoardAct(e, "tracker");
   });
   campMain.addEventListener("change", e => {
-    const t = e.target; if (t.dataset.hoard !== "tier" || !t.closest(".hoard") || !HOARD.T) return;
-    HOARD.T = { ...hoardRoll(+t.value, newSeed(), HOARD.T.ed), camp: activeId }; renderTracker();
+    const t = e.target; if (!t.closest(".hoard") || !HOARD.T) return;
+    if (t.dataset.hoard === "tier") { HOARD.T = { ...hoardRoll(+t.value, newSeed(), HOARD.T.ed), camp: activeId, enc: HOARD.T.enc || "" }; renderTracker(); }
+    else if (t.dataset.hoard === "enc") { HOARD.T = { ...hoardForEnc(HOARD.T, curCamp(), t.value, HOARD.T.ed), camp: activeId }; renderTracker(); }
   });
 })();
