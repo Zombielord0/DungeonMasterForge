@@ -44,7 +44,7 @@ function resCtr(c, r) {
   if (!r) return "";
   if (r.max === Infinity) return `<span class="ctr"><span class="tag">Unlimited</span></span>`;
   const left = resLeft(c, r);
-  return `<span class="ctr" title="${esc(r.name)}: ${left} of ${r.max} left"><button type="button" class="ctr-b" data-use="${r.key}" data-d="1" aria-label="Use one ${esc(r.name)}" ${left ? "" : "disabled"}>−</button><input type="number" min="0" max="${r.max}" data-left="${r.key}" value="${left}" aria-label="${esc(r.name)} left"><span class="ctr-max">/ ${r.max}</span><button type="button" class="ctr-b" data-use="${r.key}" data-d="-1" aria-label="Regain one ${esc(r.name)}" ${left < r.max ? "" : "disabled"}>+</button></span>`;
+  return `<span class="ctr" title="${esc(r.name)}: ${left} of ${esc(r.max)} left"><button type="button" class="ctr-b" data-use="${r.key}" data-d="1" aria-label="Use one ${esc(r.name)}" ${left ? "" : "disabled"}>−</button><input type="number" min="0" max="${esc(r.max)}" data-left="${r.key}" value="${left}" aria-label="${esc(r.name)} left"><span class="ctr-max">/ ${esc(r.max)}</span><button type="button" class="ctr-b" data-use="${r.key}" data-d="-1" aria-label="Regain one ${esc(r.name)}" ${left < r.max ? "" : "disabled"}>+</button></span>`;
 }
 // features you use in play: actions, bonus actions, reactions, on-hit riders and auras, with this character's numbers
 function pcAbilities(c) {

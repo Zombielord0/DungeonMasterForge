@@ -19,7 +19,7 @@ function casterLv(ed, k, l) { const C2 = CLASS_DATA[k]; if (!C2 || !C2.cast) ret
 const pactSlots = l => ({ n: l >= 17 ? 4 : l >= 11 ? 3 : l >= 2 ? 2 : 1, lvl: Math.min(5, Math.ceil(l / 2)) });
 // what a rebuild keeps from the character as it is: rolled or assigned base scores, skill picks, expertise
 const pcKeep = c => ({ multi: c.multi && c.multi.length ? c.multi : undefined, keepMcSkills: c.mcSkills, base: c.customData ? undefined : c.base, rolls: c.rolls || undefined, keepSkills: (c.skills || []).filter(s => s.p).map(s => s.s), keepExpert: c.expertOrder || (c.skills || []).filter(s => s.x).map(s => s.s), keepSkilled: c.skilled });
-/* Numbers on a sheet are numbers. Other members' characters arrive from the campaign database as any JSON, and many
+/* Numbers on a sheet are numbers (including the spell block and hit dice). Other members' characters arrive from the campaign database as any JSON, and many
    of these fields are written into the page as they are, so a string here could carry page code. "" stays "" where the
    sheet lets a box be emptied. */
 const PC_NUMS = ["hp", "hpCur", "hpTemp", "ac", "acAuto", "speed", "prof", "hd", "init", "passive", "xp", "startGold", "initBonus", "atkBonus"];
@@ -29,6 +29,15 @@ function pcNums(c) {
   PC_NUMS.forEach(k => { if (c[k] !== undefined && c[k] !== null && c[k] !== "" && typeof c[k] !== "number") c[k] = n(c[k]); });
   if (c.scores && typeof c.scores === "object") Object.keys(c.scores).forEach(a => { if (typeof c.scores[a] !== "number") c.scores[a] = n(c.scores[a]); });
   if (Array.isArray(c.multi)) c.multi.forEach(m => { if (m && typeof m === "object" && m.lv !== undefined) m.lv = clamp(Math.round(n(m.lv)) || 1, 1, 20); });
+  const num = (o, ks) => { if (o && typeof o === "object") ks.forEach(k => { if (o[k] !== undefined && o[k] !== null && typeof o[k] !== "number" && typeof o[k] !== "boolean") o[k] = n(o[k]); }); };
+  if (Array.isArray(c.hdList)) c.hdList = c.hdList.map(d => typeof d === "number" ? d : n(d));
+  const S = c.spell;
+  if (S && typeof S === "object") {
+    num(S, ["dc", "atk", "bonus", "max", "cantrips"]);
+    if (Array.isArray(S.slots)) S.slots = S.slots.map(x => typeof x === "number" ? x : n(x));
+    num(S.pact, ["n", "lvl"]);
+    if (Array.isArray(S.others)) S.others.forEach(o => num(o, ["dc", "atk", "max", "bonus"]));
+  }
 }
 function pcEnsure(c) { if (c) { pcNums(c); if (c.bgV === undefined && c.cls) { c.bgV = 1; if (c.ed === "2024") c.bgAsiLegacy = true; } if (!c.id) c.id = uid("pc"); if (c.subclass === undefined) { const f = (c.feats || []).find(x => String(x.f).startsWith("Subclass: ") && x.f !== "Subclass: not chosen yet"); c.subclass = f ? f.f.slice(10) : null; } if (!Array.isArray(c.prepared)) c.prepared = []; if (c.race === "Dragonborn" && !c.ancestry) c.ancestry = makeRng("anc", c.seed || c.id).pick(Object.keys(DRAGON_ANCESTRY)); if (c.race === "Dragonborn" && !c.sub) c.sub = c.ancestry; withTraitRes(c); raceLvUpgrade(c); hookUpgrade(c); } return c; }
 function pcPersist() {
@@ -291,7 +300,7 @@ function sheetDoc(c) {
         <div class="stat"><div class="line" style="justify-content:flex-end"><span class="lab">Successes</span>${dots(3)}</div><div class="line" style="justify-content:flex-end"><span class="lab">Failures</span>${dots(3)}</div><div class="lab">Death saves</div></div></div>
       <div class="box"><table><tr><th>Name</th><th>Atk bonus</th><th>Damage / type</th></tr>
         ${c.attacks.map(a => `<tr><td>${esc(a.name)}</td><td>${sgn(a.hit)}</td><td>${esc(a.dmg)} ${a.type || DMG_TYPE[a.name] || ""}</td></tr>`).join("")}
-        ${c.spell ? `<tr><td>Spell attack</td><td>${sgn(c.spell.atk)}</td><td>Save DC ${c.spell.dc}</td></tr>` : ""}<tr><td>&nbsp;</td><td></td><td></td></tr></table>
+        ${c.spell ? `<tr><td>Spell attack</td><td>${esc(sgn(c.spell.atk))}</td><td>Save DC ${esc(c.spell.dc)}</td></tr>` : ""}<tr><td>&nbsp;</td><td></td><td></td></tr></table>
         ${c.extras.length ? `<div style="margin-top:5px">${c.extras.map(esc).join("<br>")}</div>` : ""}${defText(c) ? `<div style="margin-top:5px"><b>${esc(defText(c))}</b></div>` : ""}<div class="boxt">Attacks &amp; spellcasting</div></div>
       <div class="box"><ul>${c.kit.map(k => `<li>${esc(k)}</li>`).join("")}${c.bgV >= 2 ? (+c.startGold ? `<li>${+c.startGold} gp</li>` : "") : `<li>${esc(c.bg)} background gear</li>`}${(c.inv || []).filter(i => i.n).map(i => `<li>${+i.qty > 1 ? i.qty + " × " : ""}${esc(i.n)}${i.attuned ? " (attuned)" : ""}</li>`).join("")}</ul><div style="margin-top:6px" class="lab">${["cp", "sp", "ep", "gp", "pp"].map(k => `${k.toUpperCase()} ${c.coins && +c.coins[k] ? c.coins[k] : "____"}`).join(" ")}</div><div class="boxt">Equipment</div></div>
     </div>

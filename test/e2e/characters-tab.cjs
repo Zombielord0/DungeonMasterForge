@@ -92,6 +92,18 @@ const server = http.createServer((req, res) => {
   await p.waitForTimeout(200);
   check("a character's level and HP are numbers once loaded, not page code", await p.evaluate(() => !window.__pwned && !document.querySelector("#rosterList img") && PCS.roster[1].level === 2 && typeof PCS.roster[1].hp === "number"));
 
+  // ...including the spell numbers shown on the sheet (DC, attack, slot counts, other casting classes, hit dice)
+  await p.evaluate(() => {
+    const X = '<img src=x class="pwn" onerror="window.__pwned=1">';
+    const c = pcEnsure(generateCharacter({ seed: "EVIL2", name: "Evil Wizard", cls: "Wizard", level: 5, ed: "2014" }));
+    c.id = "evil2"; c.spell.bonus = "0" + X; c.spell.max = '3"><img src=x class="pwn" onerror="window.__pwned=1">'; c.spell.slots = ["4" + X, 3, 2];
+    c.spell.others = [{ cls: "Cleric", ab: "wis", dc: X, atk: X }]; c.spell.pact = { n: X, lvl: X }; c.hdList = [X]; c.multi = [];
+    const clean = pcEnsure(JSON.parse(JSON.stringify(c))); PCS.roster.push(clean); RC.id = "evil2"; renderRosterTab();
+  });
+  await p.waitForTimeout(400);
+  check("a shared sheet's spell numbers can't carry page code either", await p.evaluate(() => !window.__pwned && !document.querySelector("img.pwn") && !!document.querySelector("#sec-spells")));
+  check("and the spell numbers still work as numbers", await p.evaluate(() => { const c = PCS.roster.find(x => x.id === "evil2"); return typeof c.spell.dc === "number" && c.spell.slots.every(n => typeof n === "number") && typeof c.spell.max === "number"; }));
+
   // other tabs point at the Characters tab
   await p.evaluate(() => { PCS.roster = []; currentPC = null; pcPersist(); });
   await p.goto(URL + "#items"); await p.waitForTimeout(400);
