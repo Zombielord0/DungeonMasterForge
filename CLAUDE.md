@@ -211,7 +211,7 @@ Playwright and Chromium are pre-installed in cloud sessions. To test offline mod
   - Netlify skips builds for notes-only pushes (`tools/netlify-skip.mjs`).
   - **The DM's Tracker, World, NPCs, custom items and monsters saved to their account** (`Cloud`, `/api/me/docs`, `npm run test:sync`).
   - Later the same day, in the same PR: the players' Journal, turn order on phones and shared rolls; homebrew classes; **World and region maps** (`06b-atlas.js`, `npm run test:atlas`).
-  - The page went from 829 KB to about 14 KB compressed on repeat visits when nothing changed. The code (about 360 KB compressed) and the data (about 440 KB) are downloaded again only when they change.
+  - The page went from 829 KB to about 14 KB compressed on repeat visits when nothing changed. The code (about 360 KB compressed) and the data (about 440 KB, plus about 1.1 MB for the extra books since 2026-11-20) are downloaded again only when they change.
 - **PRs 10 to 13 were merged to `main`** at the owner's request (11 on 2026-11-18; 12 and 13 later the same day):
   - **PR 11:**
     - shops made in the World builder (rarity, stock size, manner, markup, own prices, sold stays sold, Restock; `docs/features/dm-tools.md`);

@@ -21,6 +21,29 @@ srdmon = importlib.util.module_from_spec(spec); spec.loader.exec_module(srdmon)
 
 def lj(path): return json.load(open(os.path.join(V2, path)))
 
+# A few entries carry HTML (tables, headings, <em>); the app shows text, so it becomes the light markdown the lists
+# understand: **bold**, _italic_, "- " bullets and | pipe | tables. Any other tag is dropped.
+def clean(t):
+    if not isinstance(t, str) or "<" not in t and "#" not in t: return t
+    def table(m):
+        rows = re.findall(r"<tr>(.*?)</tr>", m.group(0), re.S)
+        cells = [[re.sub(r"<[^>]+>", "", c).strip() for c in re.findall(r"<t[hd][^>]*>(.*?)</t[hd]>", r, re.S)] for r in rows]
+        return "\n\n" + "\n".join("| " + " | ".join(c) + " |" for c in cells if c) + "\n\n"
+    t = re.sub(r"<table.*?</table>", table, t, flags=re.S)
+    t = re.sub(r"<br\s*/?>", "\n", t)
+    t = re.sub(r"<h\d[^>]*>(.*?)</h\d>", lambda m: "\n\n**" + m.group(1).strip() + "**\n\n", t, flags=re.S)
+    t = re.sub(r"^#{1,6}\s*(.+)$", r"**\1**", t, flags=re.M)
+    t = re.sub(r"<(strong|b)>(.*?)</\1>", r"**\2**", t, flags=re.S)
+    t = re.sub(r"<(em|i)>(.*?)</\1>", r"_\2_", t, flags=re.S)
+    t = re.sub(r"<li[^>]*>(.*?)</li>", lambda m: "\n- " + m.group(1).strip(), t, flags=re.S)
+    t = re.sub(r"</?[a-z][^>]*>", "", t)
+    return re.sub(r"\n{3,}", "\n\n", t).strip()
+def clean_all(x):
+    if isinstance(x, str): return clean(x)
+    if isinstance(x, list): return [clean_all(v) for v in x]
+    if isinstance(x, dict): return {k: (clean_all(v) if k not in ("n", "src", "k") else v) for k, v in x.items()}
+    return x
+
 # The 2023 edition of Tome of Beasts 1 comes first, so the 2016 book only adds the monsters it dropped (and lends the
 # 2023 ones its habitats).
 MONSTER_BOOKS = ["kobold-press/tob-2023", "kobold-press/tob", "kobold-press/tob2", "kobold-press/tob3", "kobold-press/ccdx", "kobold-press/bfrd"]
@@ -169,7 +192,7 @@ def dump(name, data):
     json.dump(data, open(p, "w"), separators=(",", ":"), ensure_ascii=False)
     print(p, len(data) if isinstance(data, list) else len(data.get("books", {})), f"{os.path.getsize(p) // 1024} KB")
 
-mons, sps, its = monsters(), spells(), items()
+mons, sps, its = clean_all(monsters()), clean_all(spells()), clean_all(items())
 dump("extra-monsters.json", mons); dump("extra-spells.json", sps); dump("extra-items.json", its)
 ogl = next(x["fields"]["desc"] for x in lj("License.json") if x["pk"] == "ogl-10a")
 dump("extra-books.json", {"books": books, "ogl": ogl.replace("\r\n", "\n")})

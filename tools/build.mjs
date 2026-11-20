@@ -68,6 +68,7 @@ for (const [name, key] of [["spells", "spellData"], ["monsters", "monsterData"],
   const { books, ogl } = JSON.parse(read("data/extra-books.json"));
   const h = t => String(t).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
   const L = Object.values(books), ogls = L.filter(b => b.lic === "ogl-10a"), ccs = L.filter(b => b.lic === "cc-by-40");
+  for (const b of L) if (b.url && !/^https:\/\//.test(b.url)) throw new Error(`data/extra-books.json: ${b.name}'s link isn't https: ${b.url}`);
   const link = b => b.url ? ` <a href="${h(b.url)}" rel="noopener">${h(b.url)}</a>` : "";
   const page = `<!DOCTYPE html>
 <!-- Built by tools/build.mjs from data/extra-books.json. -->

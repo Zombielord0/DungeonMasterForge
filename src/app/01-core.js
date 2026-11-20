@@ -34,7 +34,7 @@ function dmSpell2024(s) {
 function dmBook(code) {
   if (!code) return null;
   if (!DM_DATA.bookData) { try { DM_DATA.bookData = JSON.parse(window.DMDATA.bookData).books; } catch { DM_DATA.bookData = {}; } }
-  return DM_DATA.bookData[code] || { name: code, short: code };
+  return DM_DATA.bookData[code] || { name: code, short: code, by: "another publisher" };
 }
 /* the small tag on a list row, and the "Source" line in its details */
 const bookTag = x => { const b = dmBook(x && x.src); return b ? `<span class="tag book hide-sm" title="${esc(b.name)}">${esc(b.short)}</span>` : ""; };

@@ -28,6 +28,8 @@ const X = { sp: data("extra-spells"), mon: data("extra-monsters"), it: data("ext
   check("every extra monster has a habitat", X.mon.every(m => (m.env || []).length));
   check("no extra monster lives everywhere", X.mon.every(m => m.env.length <= 8), JSON.stringify(X.mon.filter(m => m.env.length > 8).map(m => m.n).slice(0, 5)));
   check("extra magic items have fixed keys", X.it.every(m => /^[a-z0-9-]+_[a-z0-9-]+$/.test(m.k)) && new Set(X.it.map(m => m.k)).size === X.it.length);
+  check("no HTML tags in the extras' text", ![X.sp, X.mon, X.it].some(L => L.some(x => /<\/?[a-z][^>]*>/i.test(JSON.stringify(x)))));
+  check("every book link is https", Object.values(X.books).every(b => !b.url || /^https:\/\//.test(b.url)));
   check("lots of each kind", X.sp.length > 800 && X.mon.length > 1500 && X.it.length > 1000, `${X.sp.length} spells, ${X.mon.length} monsters, ${X.it.length} items`);
 
   await new Promise(r => server.listen(0, r));
@@ -65,6 +67,10 @@ const X = { sp: data("extra-spells"), mon: data("extra-monsters"), it: data("ext
   const det = await p.evaluate(() => ({ tag: ($(".sp-row .tag.book") || {}).textContent, line: ($(".sp-row .book-line") || {}).textContent || "", href: ($(".sp-row .book-line a") || {}).href }));
   check("spells: the row shows its book", det.tag === "Deep Magic", JSON.stringify(det));
   check("spells: the details name the book and link the credits", /Deep Magic for 5th Edition/.test(det.line) && /credits\.html$/.test(det.href || ""), JSON.stringify(det));
+  await p.fill("#spQ", "alter weather"); await p.waitForTimeout(400);
+  await p.click(".sp-head[data-sp=toggle]"); await p.waitForTimeout(150);
+  const aw = await p.evaluate(() => ({ tables: $$(".sp-row .sp-table").length, raw: /<t[dr]>|<em>/.test($(".sp-row .sp-detail").textContent) }));
+  check("spells: a book's tables show as tables", aw.tables >= 3 && !aw.raw, JSON.stringify(aw));
   await p.click("#spReset");
   check("spells: Clear filters clears Book", await p.evaluate(() => $("#spBook").value === ""));
   const pool = await p.evaluate(() => { const c = pcEnsure(generateCharacter({ seed: "XW", name: "W", cls: "Wizard", level: 9, ed: "2014" })), L = pcSpellPool(c, "2014"); return { n: L.length, x: L.filter(s => s.src).length }; });
