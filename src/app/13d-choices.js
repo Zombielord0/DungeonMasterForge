@@ -136,9 +136,9 @@ function rcEquippedHTML(c) {
   const ed = edOf(c), L = (c.inv || []).filter(i => i.eq && (+i.qty || 0) > 0);
   if (!L.length) return `<p class="muted">Nothing equipped. Tick <b>Equip</b> next to an item in the inventory.</p>`;
   return `<ul class="plain">${L.map(i => {
-    const ref = i.ref ? itFind(i.ref) : null, w = eqWeaponOf(i, ed), a = (c.attacks || []).find(x => x.iid === i.id), ar = eqArmorOf(i, ed);
-    const ac = ar ? ((ar.st.find(([k]) => k === "Armor Class") || [])[1] || "") + (eqArmorBonus(i) ? ` +${eqArmorBonus(i)}` : i.att && !i.attuned && /\+[1-3]/.test(i.n) ? " (attune for its bonus)" : "") : null;
+    const ref = inventoryCatalogItem(i, ed), w = eqWeaponOf(i, ed), a = (c.attacks || []).find(x => x.iid === i.id), ar = eqArmorOf(i, ed);
+    const ac = ar ? ((ar.st.find(([k]) => k === "Armor Class") || [])[1] || "") + (eqArmorBonus(i, ed) ? ` +${eqArmorBonus(i, ed)}` : i.att && !i.attuned && /\+[1-3]/.test(i.n) ? " (attune for its bonus)" : "") : null;
     const what = a ? `${sgn(a.hit)} to hit, ${esc(a.dmg)} ${esc(a.type)}` : ac ? `AC ${esc(ac)}` : w ? "" : ref && /Weapon/.test(ref.cat + (ref.type || "")) ? `<span class="hint">Add its weapon to the name, e.g. “Longsword +1”, to get an attack</span>` : esc(i.note || "");
-    return `<li><b>${esc(i.n)}</b>${+i.qty > 1 ? ` <span class="muted">×${esc(i.qty)}</span>` : ""}${what ? ` <span class="muted">· ${what}</span>` : ""}</li>`;
+    return `<li>${inventoryDetailsButton(i, i.n || "Item details")}${+i.qty > 1 ? ` <span class="muted">×${esc(i.qty)}</span>` : ""}${what ? ` <span class="muted">· ${what}</span>` : ""}</li>`;
   }).join("")}</ul>`;
 }

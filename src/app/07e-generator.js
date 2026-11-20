@@ -60,7 +60,8 @@ function generateCharacter(o) {
   // feats added outside level-ups (Feats tab / sheet): { n: name, l: level added, a: ability raised by 1, max }
   const bonusFeats = (o.bonusFeats || []).filter(b => b && b.n);
   // 2024: the background's Origin feat
-  const BGI = bgInfo(ed, bg), bgFeat = ed === "2024" && BGI && BGI.feat ? BGI.feat : "", bgGold50 = !!(o.bgGold50 || (o.custom && o.custom.bgGold50));
+  const BGI = bgInfo(ed, bg), bgFeat = ed === "2024" && BGI && BGI.feat ? BGI.feat : "";
+  const bgGold50 = ed === "2024" && BGI && !BGI.hb && Boolean(o.bgGold50 || o.custom?.bgGold50);
   bonusFeats.forEach(b => { if (AB.includes(b.a)) sc[b.a] = Math.max(sc[b.a], Math.min(b.max || 20, sc[b.a] + 1)); });
   // homebrew effects (see hbEffects); ability scores first, since everything else reads them
   const fx = hbEffects(ed, race, sub, bg, cls, subclass, lv, [...asiLv.map(L => asiPicks[L]).filter(pk => pk && pk.feat).map(pk => pk.feat), ...bonusFeats.map(b => b.n), ...(bgFeat ? [bgFeat] : [])]);
@@ -187,7 +188,7 @@ function generateCharacter(o) {
     init: m.dex + initBonus + SB.init + (SB.athlete ? Math.ceil(prof / 2) : 0) + (jack && ed === "2014" ? Math.floor(prof / 2) : 0) /* 2014 Jack of All Trades counts on initiative, a Dexterity check */, initBonus, atkBonus, hbAc, hbSpeed: fxSum("speed"), hbSig: fx.length ? JSON.stringify(fx) : "",
     ...Object.fromEntries(["res", "imm", "vul", "cimm"].map(t => [t, [...new Set([...fx.filter(e => e.t === t).map(e => e.a), ...(t === "res" ? traitRes(R.traits, anc, ed) : [])])].sort()])),
     sadv: [...new Set([...traitSadv(R.traits), ...fx.filter(e => e.t === "sadv").map(e => e.a)])], passive: 10 + skillVals.find(s => s.s === "Perception").v, subHp: SB.hp, subSpd: SB.speed,
-    attacks, spell, feats, extras, traits: R.traits.filter(t => !RL.hidden.has(t)), kit: [...C.kit, ...((BGI && BGI.gear && !(bgGold50 && ed === "2024")) ? BGI.gear : [])], startGold: bgGold50 && ed === "2024" && BGI && !BGI.hb ? 50 : (BGI && BGI.gp) || 0, bgGold50: bgGold50 || undefined, bgV: 2, skilled, expertOrder, multi: MC.length ? MC : undefined, totalLevel: TL, mcSkills, hdList: [C.hd, ...MC.map(x => CLASS_DATA[x.cls].hd)], bgAsiLegacy: o.bgAsiLegacy || undefined, hd: C.hd,
+    attacks, spell, feats, extras, traits: R.traits.filter(t => !RL.hidden.has(t)), kit: [...C.kit, ...((BGI && BGI.gear && !bgGold50) ? BGI.gear : [])], startGold: bgGold50 ? 50 : (BGI && BGI.gp) || 0, bgGold50: bgGold50 || undefined, bgV: 2, skilled, expertOrder, multi: MC.length ? MC : undefined, totalLevel: TL, mcSkills, hdList: [C.hd, ...MC.map(x => CLASS_DATA[x.cls].hd)], bgAsiLegacy: o.bgAsiLegacy || undefined, hd: C.hd,
     trait: r.pick(PC_TRAITS), ideal: r.pick(IDEALS), bond: r.pick(BONDS), flaw: r.pick(FLAWS), hook: hk.hook, hookDetail: hk.hookDetail
   };
 }
@@ -251,6 +252,10 @@ async function discardPC() {
   currentPC = null; if (RC.id === c.id) RC.id = null; pcPersist(); renderRosterTab();
   toast(`${c.name} discarded`);
 }
+function setForgeLineage(value) {
+  $("#pcAnc").value = value;
+  $("#pcAnc").dispatchEvent(new Event("change"));
+}
 (function initPC() {
 
   const curEd = () => ($("input[name=pcEd]:checked") || {}).value || "2024";
@@ -260,13 +265,15 @@ async function discardPC() {
     $("#pcClass").value = L.includes(keep) ? keep : "";
   };
   fillClasses();
+  const syncBackgroundEquipment = () => {
+    $("#pcGoldWrap").classList.toggle("ed-hide", curEd() !== "2024" || Boolean(HB_BG[$("#pcBg").value]));
+  };
   const fillBgs = () => {
     const keep = $("#pcBg").value, L = bgList(curEd());
     $("#pcBg").innerHTML = `<option value="">Random</option>` + L.map(x => `<option>${esc(x)}</option>`).join("");
     $("#pcBg").value = L.includes(keep) ? keep : "";
     $("#pcBonusWrap").classList.toggle("ed-hide", curEd() === "2024");
-    $("#pcGoldWrap").classList.toggle("ed-hide", curEd() !== "2024");
-    if (window.pcBgHint) window.pcBgHint();
+    syncBackgroundEquipment();
   };
   const fillRaces = () => {
     const ed = curEd(), keep = $("#pcRace").value;
@@ -295,13 +302,24 @@ async function discardPC() {
     fillRaces(); syncRace();
   };
   $$("input[name=pcEd]").forEach(rd => rd.addEventListener("change", () => { fillRaces(); syncRace(); fillBgs(); fillClasses(); }));
-  $("#pcRace").addEventListener("change", syncRace);
+  $("#pcRace").addEventListener("change", event => {
+    syncRace();
+    if (event.target.value) {
+      const race = PC_RACES[curEd()][event.target.value];
+      openProgression(curEd(), "species", event.target.value, race.subs ? $("#pcAnc").value : "", event.target, {
+        setLineage: setForgeLineage,
+      });
+    }
+  });
   $("#pcAnc").addEventListener("change", ancHint);
-  const bgHint = () => {
-    const v = $("#pcBg").value, ed = curEd(), H = HB_BG[v], d = H ? H.desc : ed === "2024" ? BG_DESC_2024[v] : BG_DESC[v];
-    $("#pcBgHint").innerHTML = !v ? "" : `${d ? `${esc(d)}<br>` : ""}${bgLines(ed, v).map(([k, x]) => `<b>${esc(k)}:</b> ${esc(x)}`).join("<br>")}${ed === "2024" && !H ? "<br>Random forging puts the +2 and +1 on your class's best of the three." : ""}`;
-  };
-  $("#pcBg").addEventListener("change", bgHint); window.pcBgHint = bgHint; fillBgs();
+  $("#pcClass").addEventListener("change", event => {
+    if (event.target.value) openProgression(curEd(), "class", event.target.value, "", event.target);
+  });
+  $("#pcBg").addEventListener("change", event => {
+    syncBackgroundEquipment();
+    if (event.target.value) openBackgroundReference(curEd(), event.target.value, event.target);
+  });
+  fillBgs();
   $$("input[name=pcMode]").forEach(rd => rd.addEventListener("change", () => {
     const cust = ($("input[name=pcMode]:checked") || {}).value === "custom";
     $$("#pcForm .rnd-only").forEach(d => d.classList.toggle("hidden", cust));

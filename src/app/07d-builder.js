@@ -55,22 +55,19 @@ function cbEnter() {
 function cbBody() {
   const C = CLASS_DATA[CB.cls], R = cbR();
   if (CB.step === 0) {
-    const RS = PC_RACES[CB.ed], B = RS[CB.race];
+    const RS = PC_RACES[CB.ed];
     const asiTxt = d => CB.ed === "2024" ? "Ability bonuses from background" : Object.entries(d.asi).map(([a, v]) => `+${v} ${AB_NAME[a]}`).join(", ") + (d.plus1 ? ` and +1 to ${d.plus1} others` : "") + (d.subs ? " + subrace" : "");
     return `<div class="seg" style="margin-bottom:12px"><label class="opt"><input type="radio" name="cbEd" value="2024" ${CB.ed === "2024" ? "checked" : ""}><span>2024 rules (5.5e)</span></label><label class="opt"><input type="radio" name="cbEd" value="2014" ${CB.ed === "2014" ? "checked" : ""}><span>2014 rules (5e)</span></label></div>
-    <p class="hint" style="margin-top:0">${CB.ed === "2024" ? "Pick a species. In the 2024 rules your background, not your species, gives the ability score increases." : "Pick a race. This sets ability bonuses, speed and racial traits."}</p>
-    <div class="pick-grid">${Object.keys(RS).map(x => { const d = RS[x]; return `<button type="button" class="pick ${CB.race === x ? "on" : ""}" data-cbrace="${esc(x)}"><b>${esc(x)}</b><small>${asiTxt(d)} · ${d.speed} ft${d.subs ? ` · ${Object.keys(d.subs).length} ${esc((d.term || "subrace").toLowerCase())} options` : ""}</small><small>${esc(RACE_DESC[x] || "")}</small>${d.hb ? `<small class="req">Homebrew</small>` : ""}</button>`; }).join("")}</div>
-    ${B && B.subs ? `<div class="field" style="margin-top:16px"><label>${esc(B.term || "Subrace")}</label><div class="pick-grid">${Object.entries(B.subs).map(([k, S]) => `<button type="button" class="pick ${CB.sub === k ? "on" : ""}" data-cbsub="${esc(k)}"><b>${esc(subLabel(CB.ed, CB.race, k))}</b>${S.asi && CB.ed === "2014" ? `<small>${Object.entries(S.asi).map(([a, v]) => `+${v} ${AB_NAME[a]}`).join(", ")}</small>` : ""}<small>${esc(S.d || "")}</small></button>`).join("")}</div></div>` : B ? `<p class="hint" style="margin-top:12px">${esc(CB.race)} has no ${CB.ed === "2024" ? "lineages" : "subraces"} in the ${CB.ed} rules.</p>` : ""}`;
+    <p class="hint" style="margin-top:0">${CB.ed === "2024" ? "Pick a species to see its traits and choose a lineage. Your background sets ability score increases." : "Pick a race to see its bonuses and traits and choose a subrace."}</p>
+    <div class="pick-grid">${raceList(CB.ed).map(x => { const d = RS[x]; return `<button type="button" class="pick ${CB.race === x ? "on" : ""}" data-cbrace="${esc(x)}"><b>${esc(x)}</b><small>${asiTxt(d)} · ${d.speed} ft${d.subs ? ` · ${Object.keys(d.subs).length} ${esc((d.term || "subrace").toLowerCase())} options` : ""}</small>${CB.race === x && CB.sub ? `<small data-cb-lineage>${esc(subLabel(CB.ed, x, CB.sub))}</small>` : ""}${d.src ? `<small class="req">${esc(dmBook(d.src).name)}</small>` : d.hb ? `<small class="req">Homebrew</small>` : ""}</button>`; }).join("")}</div>`;
   }
   if (CB.step === 1) return `<p class="hint" style="margin-top:0">Pick a class. This sets hit points, armor, saves, skills and spellcasting.</p>
     <div class="pick-grid">${classList(CB.ed).map(x => { const d = CLASS_DATA[x]; return `<button type="button" class="pick ${CB.cls === x ? "on" : ""}" data-cbcls="${esc(x)}"><b>${esc(x)}</b><small>d${d.hd} hit die · ${d.pri.slice(0, 2).map(a => AB_NAME[a]).join(" & ")}${d.cast ? ` · ${d.cast[0] === "half" ? "half caster" : d.cast[0] === "pact" ? "pact magic" : "full caster"}` : ""}</small><small>${esc(CLASS_DESC[x] || (d.hbx && d.hbx.desc) || "Homebrew class")}</small></button>`; }).join("")}</div>`;
   if (CB.step === 2) {
     const L = bgList(CB.ed); if (CB.bg && !L.includes(CB.bg)) CB.bg = "";
-    const desc = x => HB_BG[x] ? HB_BG[x].desc || "" : CB.ed === "2024" ? BG_DESC_2024[x] || "" : BG_DESC[x] || "";
-    const card = x => { const B = bgInfo(CB.ed, x) || {}; return `<button type="button" class="pick ${CB.bg === x ? "on" : ""}" data-cbbg="${esc(x)}"><b>${esc(x)}</b><small>${(B.sk || []).join(" · ")}</small>${CB.ed === "2024" && B.ab ? `<small>${B.ab.map(a => AB_NAME[a]).join(" · ")} · ${esc(bgFeatLabel(B))}</small>` : B.feature ? `<small>Feature: ${esc(B.feature[0])}</small>` : ""}<small>${esc(desc(x))}</small>${HB_BG[x] ? `<small class="req">Homebrew</small>` : ""}</button>`; };
+    const card = x => { const B = bgInfo(CB.ed, x) || {}; return `<button type="button" class="pick ${CB.bg === x ? "on" : ""}" data-cbbg="${esc(x)}"><b>${esc(x)}</b><small>${(B.sk || []).join(" · ")}</small>${CB.ed === "2024" && B.ab ? `<small>${B.ab.map(a => AB_NAME[a]).join(" · ")} · ${esc(bgFeatLabel(B))}</small>` : B.feature ? `<small>Feature: ${esc(B.feature[0])}</small>` : ""}${HB_BG[x] ? `<small class="req">${HB_BG[x].src ? esc(dmBook(HB_BG[x].src).name) : "Homebrew"}</small>` : ""}</button>`; };
     return `<p class="hint" style="margin-top:0">${CB.ed === "2024" ? "Pick a background. In the 2024 rules it gives two skills, a tool, an Origin feat (added to your character) and starting equipment, and raises three of your ability scores." : "Pick a background. It gives two skills, tools or languages, starting equipment and a special feature."}</p>
-    <div class="pick-grid">${L.map(card).join("")}</div>
-    ${CB.bg ? `<div class="bg-detail"><h4>${esc(CB.bg)}</h4><p class="muted" style="margin:2px 0 8px">${esc(desc(CB.bg))}</p><dl>${bgLines(CB.ed, CB.bg).map(([k, v]) => `<dt>${esc(k)}</dt><dd>${esc(v)}</dd>`).join("")}</dl>${CB.ed === "2024" && !HB_BG[CB.bg] ? `<div class="seg" role="radiogroup" aria-label="Starting equipment" style="margin-top:10px"><label class="opt"><input type="radio" name="cbGold" value="kit" ${CB.bgGold50 ? "" : "checked"}><span>Take the equipment and ${(bgInfo(CB.ed, CB.bg) || {}).gp || 0} gp</span></label><label class="opt"><input type="radio" name="cbGold" value="gold" ${CB.bgGold50 ? "checked" : ""}><span>Take 50 gp instead</span></label></div>` : ""}</div>` : ""}`;
+    <div class="pick-grid">${L.map(card).join("")}</div>`;
   }
   if (CB.step === 3) {
     const base = cbBase(), ok = AB.every(a => base[a] != null), fin = ok ? cbFinal(base) : null;
@@ -133,10 +130,37 @@ function cbCreate() {
     if (b = t.closest("[data-cbback]")) { CB.step--; renderCB(); return; }
     if (b = t.closest("[data-cbnext]")) { if (cbCanNext()) { CB.step++; cbEnter(); renderCB(); } return; }
     if (t.closest("[data-cbcreate]")) { cbCreate(); return; }
-    if (b = t.closest("[data-cbrace]")) { if (CB.race !== b.dataset.cbrace) { CB.race = b.dataset.cbrace; const B = PC_RACES[CB.ed][CB.race]; CB.sub = B && B.subs ? Object.keys(B.subs)[0] : ""; } renderCB(); return; }
-    if (b = t.closest("[data-cbsub]")) { CB.sub = b.dataset.cbsub; renderCB(); return; }
-    if (b = t.closest("[data-cbcls]")) { CB.cls = b.dataset.cbcls; renderCB(); return; }
-    if (b = t.closest("[data-cbbg]")) { CB.bg = b.dataset.cbbg; renderCB(); return; }
+    if (b = t.closest("[data-cbrace]")) {
+      const race = b.dataset.cbrace;
+      const lineages = Object.keys(PC_RACES[CB.ed][race].subs || {});
+      if (CB.race !== race || !lineages.includes(CB.sub)) CB.sub = lineages[0] || "";
+      CB.race = race;
+      renderCB();
+      const card = $(".pick.on", out);
+      openProgression(CB.ed, "species", race, CB.sub, card, {
+        requireLineage: true,
+        setLineage: value => {
+          CB.sub = value;
+          $("[data-cb-lineage]", card).textContent = subLabel(CB.ed, race, value);
+        },
+      });
+      return;
+    }
+    if (b = t.closest("[data-cbcls]")) {
+      CB.cls = b.dataset.cbcls;
+      renderCB();
+      openProgression(CB.ed, "class", CB.cls, "", $(".pick.on", out));
+      return;
+    }
+    if (b = t.closest("[data-cbbg]")) {
+      CB.bg = b.dataset.cbbg;
+      renderCB();
+      openBackgroundReference(CB.ed, CB.bg, $(".pick.on", out), {
+        gold: CB.bgGold50,
+        setGold: value => { CB.bgGold50 = value; },
+      });
+      return;
+    }
     if (t.closest("[data-cbroll]")) {
       CB.rolls = Array.from({ length: 6 }, () => { const d = Array.from({ length: 4 }, () => 1 + Math.floor(Math.random() * 6)).sort((x, y) => y - x); return { d, t: d[0] + d[1] + d[2] }; });
       CB.pool = CB.rolls.map(x => x.t).sort((a, b) => b - a); CB.assignIdx = {}; renderCB(); return;
@@ -153,7 +177,6 @@ function cbCreate() {
     else if (t.name === "cbBonus") { CB.bonus = t.value; renderCB(); }
     else if (t.name === "cbSpread") { CB.bgSpread = t.value; renderCB(); }
     else if (t.name === "cbGender") { CB.gender = t.value; renderCB(); }
-    else if (t.name === "cbGold") { CB.bgGold50 = t.value === "gold"; renderCB(); }
     else if (t.dataset.cbplus) { CB[t.dataset.cbplus] = t.value; if (CB.plus1 === CB.plus2) CB.plus1 = AB.find(a => a !== CB.plus2); if (CB.ed === "2024") cbFix24(); renderCB(); }
     else if (t.dataset.cbassign) { const a = t.dataset.cbassign; if (t.value === "") delete CB.assignIdx[a]; else CB.assignIdx[a] = +t.value; renderCB(); }
     else if (t.dataset.cbsk) { const s = t.dataset.cbsk; if (t.checked) { if (CB.skills.size >= cbNeed()) { t.checked = false; toast(`That's all ${cbNeed()} — untick one first`); return; } CB.skills.add(s); } else CB.skills.delete(s); renderCB(); }

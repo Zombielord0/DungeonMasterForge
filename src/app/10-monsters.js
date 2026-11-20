@@ -606,15 +606,17 @@ function bsFilters() {
   fill("#bsSize", BS_SIZES.filter(z => all.some(m => m.size === z)));
   const envs = [...new Set(all.flatMap(m => m.env || []))].sort();
   fill("#bsEnv", envs); $("#bsEnvWrap").classList.toggle("hidden", !envs.length);
+  const book = $("#bsBook").value; $("#bsBook").innerHTML = bookOptions(all); if ([...$("#bsBook").options].some(o => o.value === book)) $("#bsBook").value = book;
+  $("#bsBookWrap").classList.toggle("hidden", BS.ed === "custom");
 }
 function bsFiltered() {
   const q = $("#bsQ").value.trim().toLowerCase(), inText = $("#bsInText").checked;
-  const lo = +$("#bsCrMin").value, hi = +$("#bsCrMax").value, type = $("#bsType").value, size = $("#bsSize").value, env = $("#bsEnv").value;
+  const lo = +$("#bsCrMin").value, hi = +$("#bsCrMax").value, type = $("#bsType").value, size = $("#bsSize").value, env = $("#bsEnv").value, book = $("#bsBook").value;
   const leg = $("#bsLeg").checked, cast = $("#bsCast").checked, mine = $("#bsMine").checked;
   const list = BS.data[BS.ed].filter(m =>
     m.cr >= Math.min(lo, hi) && m.cr <= Math.max(lo, hi) && (!type || m.type === type) && (!size || m.size === size) &&
     (!env || (m.env || []).includes(env)) && (!leg || (m.legend || []).length) && (!cast || m.cast) &&
-    (!q || m.n.toLowerCase().includes(q) || (inText && m.blob.includes(q))) && (!mine || bsInCamp(m, BS.ed)));
+    (!q || m.n.toLowerCase().includes(q) || (inText && m.blob.includes(q))) && (!mine || bsInCamp(m, BS.ed)) && bookOk(m, BS.ed === "custom" ? "" : book));
   const by = $("#bsSort").value;
   return list.sort((a, b) => by === "name" ? a.n.localeCompare(b.n) : by === "hp" ? b.hp - a.hp || a.n.localeCompare(b.n)
     : by === "ac" ? b.ac - a.ac || a.n.localeCompare(b.n) : a.cr - b.cr || a.n.localeCompare(b.n));
@@ -629,9 +631,9 @@ function bsRow(m) {
       <span class="sp-meta hide-sm">${esc(cap1(m.size))}</span>
       <span class="sp-meta num" title="Armor class">AC ${m.ac}</span>
       <span class="sp-meta num" title="Hit points">${m.hp} HP</span>
-      <span class="sp-tags">${(m.legend || []).length ? `<span class="tag gold hide-sm" title="Legendary actions">L</span>` : ""}<button class="btn sm ${have ? "" : "primary"}" type="button" data-bs="add1" data-id="${m.id}" title="Add one to the chosen campaign${$("#bsEnc").value ? " and encounter" : ""}">${have && !$("#bsEnc").value ? "✓ In campaign" : "+ Add"}</button></span>
+      <span class="sp-tags">${bookTag(m)}${(m.legend || []).length ? `<span class="tag gold hide-sm" title="Legendary actions">L</span>` : ""}<button class="btn sm ${have ? "" : "primary"}" type="button" data-bs="add1" data-id="${m.id}" title="Add one to the chosen campaign${$("#bsEnc").value ? " and encounter" : ""}">${have && !$("#bsEnc").value ? "✓ In campaign" : "+ Add"}</button></span>
     </div>
-    ${open ? `<div class="sp-detail">${bsSbHTML(m, ed)}
+    ${open ? `<div class="sp-detail">${bsSbHTML(m, ed)}${bookLine(m)}
       <div class="bs-add"><label class="muted" for="bsN-${m.id}">How many</label><input type="number" min="1" max="20" value="1" id="bsN-${m.id}">
         <button class="btn sm primary" type="button" data-bs="addN" data-id="${m.id}">Add to campaign</button>
         <button class="btn sm" type="button" data-bs="copy" data-id="${m.id}">Copy stat block</button>
@@ -641,7 +643,7 @@ function bsRow(m) {
 function renderBestiary() {
   bsLoad(); if (!$("#bsCrMin").options.length) bsFilters(); bsFillEnc();
   const list = bsFiltered(), total = BS.data[BS.ed].length;
-  $("#bsCount").innerHTML = `Showing <b>${list.length}</b> of ${total} ${BS.ed === "2024" ? "2024 (SRD 5.2)" : BS.ed === "2014" ? "2014 (SRD 5.1)" : "custom"} monsters`;
+  $("#bsCount").innerHTML = `Showing <b>${list.length}</b> of ${total} ${BS.ed === "custom" ? "custom monsters" : `${BS.ed} monsters (SRD ${BS.ed === "2024" ? "5.2" : "5.1"} and extra books)`}`;
   if (!total && BS.ed === "custom") { $("#bsList").innerHTML = `<div class="card empty"><h2>No custom monsters yet</h2><p>Build one in “✎ Build a monster”, or open any monster here and press “Edit a copy”.</p></div>`; return; }
   if (!list.length) { $("#bsList").innerHTML = `<div class="card empty"><h2>No monsters found</h2><p>Loosen a filter or clear them all.</p></div>`; return; }
   const byCR = $("#bsSort").value === "cr";
@@ -665,7 +667,7 @@ const bsRerender = () => { clearTimeout(bsTimer); bsTimer = setTimeout(renderBes
   $("#bsCamp").addEventListener("change", () => { bsFillEnc(); renderBestiary(); });
   $("#bsEnc").addEventListener("change", renderBestiary);
   $("#bsReset").addEventListener("click", () => {
-    $("#bsQ").value = ""; ["#bsType", "#bsSize", "#bsEnv"].forEach(id => $(id).value = ""); ["#bsInText", "#bsLeg", "#bsCast", "#bsMine"].forEach(id => $(id).checked = false);
+    $("#bsQ").value = ""; ["#bsType", "#bsSize", "#bsEnv", "#bsBook"].forEach(id => $(id).value = ""); ["#bsInText", "#bsLeg", "#bsCast", "#bsMine"].forEach(id => $(id).checked = false);
     $("#bsCrMin").selectedIndex = 0; $("#bsCrMax").selectedIndex = $("#bsCrMax").options.length - 1; $("#bsSort").value = "cr"; renderBestiary();
   });
   $("#bsExpand").addEventListener("click", () => { BS.expandAll = !BS.expandAll; if (!BS.expandAll) BS.open.clear(); $("#bsExpand").textContent = BS.expandAll ? "Collapse all" : "Expand all"; renderBestiary(); });
