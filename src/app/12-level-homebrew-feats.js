@@ -344,7 +344,7 @@ function hbItemOf(d) { // form state -> the entry that is saved and shared
     req: d.reqType === "cast" ? "cast" : d.reqType === "ability" ? `${d.reqAb}${clamp(parseInt(d.reqMin) || 13, 1, 30)}` : d.reqType === "other" && t(d.reqText, 80) ? "@" + t(d.reqText, 80) : "",
     ab: d.abType === "any" ? "any" : d.abType === "some" ? AB.filter(a => d.abs.includes(a)).join(" ") : "" });
   if (d.kind === "species") Object.assign(x, { speed: clamp(parseInt(d.speed) || 30, 0, 120), skills: d.skills.filter(k => SKILLS[k]).slice(0, 1),
-    asi: Object.fromEntries(AB.filter(a => +d.asi[a]).map(a => [a, clamp(+d.asi[a], -2, 3)])), traits: rows(d.traits, true), subs: rows(d.subs), term: t(d.term, 30) });
+    asi: Object.fromEntries(AB.filter(a => +d.asi[a]).map(a => [a, clamp(+d.asi[a], -2, 3)])), traits: rows(d.traits, true), subs: rows(d.subs).map(r => { const o = (d.subs || []).find(y => String(y.n ?? "").trim().slice(0, 60) === r.n), a = o && o.asi && Object.fromEntries(AB.filter(k => +o.asi[k]).map(k => [k, clamp(+o.asi[k], -2, 3)])); return a && Object.keys(a).length ? { ...r, asi: a } : r; }), term: t(d.term, 30) });
   return x;
 }
 const hbDirty = () => !!HBE.draft && JSON.stringify(hbItemOf(HBE.draft)) !== HBE.saved;
@@ -369,7 +369,7 @@ function renderHomebrew() {
   const side = $("#hbSide"), main = $("#hbMain"); if (!side) return;
   if (hbCloud() && !Portal.isDM()) { side.innerHTML = ""; main.innerHTML = `<div class="card empty"><h2>Homebrew</h2><p>Your DM adds homebrew for this campaign. It appears in your character choices.</p></div>`; return; }
   const where = hbCloud() ? `Shared with everyone in ${esc(Portal.campName())}. Players pick these when building and levelling characters.` : "Saved in this browser. Sign in and join a campaign to share homebrew with your players.";
-  side.innerHTML = `<div class="sec-h"><h3>Homebrew</h3></div><p class="hint" style="margin:0 0 4px">${where}</p>${hbPendHTML()}
+  side.innerHTML = `<div class="sec-h"><h3>Homebrew</h3></div><p class="hint" style="margin:0 0 4px">${where}</p><button class="btn wide" type="button" id="hbBulk" style="margin:4px 0 8px">📥 Bulk import from a file</button>${hbPendHTML()}
     ${Object.entries(HB_KINDS).map(([k, l]) => `<div class="hb-kind"><h4>${l}</h4><button class="btn sm" type="button" data-hbnew="${k}" style="flex:0 0 auto" aria-label="New ${l.toLowerCase()}">+ New</button></div>
       ${hbOf(k).map(x => `<button class="camp-item ${HBE.id === x.id ? "on" : ""}" type="button" data-hbsel="${esc(x.id)}"><b>${esc(x.name)}</b><small>${esc([x.kind === "subclass" ? x.cls : x.kind === "class" ? `d${x.hd}${x.cast && x.cast !== "none" ? ", spellcaster" : ""}` : "", x.ed === "both" || !x.ed ? "2014 & 2024" : x.ed + " rules"].filter(Boolean).join(" · "))}</small></button>`).join("") || `<p class="muted" style="font-size:14px;margin:0">None yet.</p>`}`).join("")}`;
   const d = HBE.draft;

@@ -2,6 +2,10 @@
    When a change ships, add an entry to the top of NEWS with a new id, in plain words for players and DMs. */
 
 const NEWS = [
+  { id: "2026-11-20-bulk-import", date: "2026-11-20", title: "Bulk import for DMs", go: "homebrew", items: [
+    "Homebrew → 📥 Bulk import from a file adds many spells, feats, species, backgrounds, subclasses, magic items or monsters at once, for example from books you own.",
+    "Download a template for each kind, fill it in with Excel or Google Sheets, save it as CSV and choose it. Before anything is added you see what's new, what the Forge already has, and any problems.",
+    "Spells, feats, species, backgrounds and subclasses become your homebrew, so your players can pick them. Magic items go to Items → Custom and monsters (paste the whole stat block) to My monsters."] },
   { id: "2026-11-20-book-options", date: "2026-11-20", title: "New species, subclasses, feats and backgrounds", go: "roster", items: [
     "Characters can now choose from 11 more species (with their subraces) from Kobold Press's Tome of Heroes: Alseid, Catfolk, Darakhul, Derro, Drow, Erina, Gearforged, Minotaur, Mushroomfolk, Satarre and Shade.",
     "97 more subclasses for the usual classes, from Tome of Heroes, the Tal'Dorei Campaign Setting and Open5e, like the Ancient Dragons patron, Circle of Bees and the Way of the Tipsy Monkey. Their features arrive at the right levels with their full text.",
