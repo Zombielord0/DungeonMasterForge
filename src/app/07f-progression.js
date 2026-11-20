@@ -225,7 +225,7 @@ function openProgression(ed, kind, name, option, trigger) {
   const options = choices.map(([key, label]) => `<option value="${esc(key)}"${key === option ? " selected" : ""}>${esc(kind === "class" ? key : label)}</option>`).join("");
   const title = kind === "subclass" ? option + " progression" : name + " progression";
   const dialog = characterReference(title, `
-    <p class="hint">${ed} rules · Levels 1–20${kind === "species" ? " by character level" : " by class level"}</p>
+    <p class="hint">${esc(ed)} rules · Levels 1–20${kind === "species" ? " by character level" : " by class level"}</p>
     ${options ? `<label class="field">${kind === "class" ? "Compare a subclass" : "Compare an ancestry or lineage"}<select data-progression-compare><option value="">${kind === "class" ? "Class only" : "Base species"}</option>${options}</select></label>` : ""}
     <div data-progression-rows></div>
     ${builtIn ? `<p class="hint">Class progression adapted from the System Reference Document ${source} by Wizards of the Coast LLC, available at <a href="https://www.dndbeyond.com/srd">dndbeyond.com/srd</a>, licensed under <a href="https://creativecommons.org/licenses/by/4.0/legalcode">CC BY 4.0</a>. The table is a planning reference.</p>` : ""}`, trigger);

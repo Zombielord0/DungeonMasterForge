@@ -57,6 +57,17 @@ const { chromium } = require("playwright");
       RC.id = c.id;
       pcInvUpgrade(c);
       itLoad();
+      for (const ed of ["2014", "2024"]) {
+        const flameTongue = IT.data[ed].find(item => item.n === "Flame Tongue");
+        const choices = inventoryWeaponChoices(flameTongue, ed);
+        if (!choices.some(item => item.n === "Longsword") ||
+            choices.some(item => item.n === "Longbow") ||
+            choices.some(item => item.n === "Dagger") !== (ed === "2024")) {
+          throw new Error("Unexpected Flame Tongue base weapons for " + ed);
+        }
+      }
+      const arrows = IT.data["2014"].find(item => item.type?.startsWith("Weapon (any ammunition)"));
+      if (inventoryWeaponChoices(arrows, "2014").length) throw new Error("Ammunition should not offer a base weapon");
       for (const [id, pattern] of [["test-sword", /^Weapon \+1$/], ["test-ring", /^Ring of Free Action$/]]) {
         const x = IT.data["2024"].find(item => pattern.test(item.n));
         c.inv.push({ id, ref: x.id, n: x.n, qty: 1, att: !!x.att });
@@ -67,6 +78,11 @@ const { chromium } = require("playwright");
       });
       renderRosterTab();
     });
+    await page.locator('#rosterMain [data-progression="class"]').click();
+    await dialog.locator("select").selectOption("Champion");
+    assert.match(await rows.nth(2).textContent(), /Improved Critical/);
+    assert.equal(await page.evaluate(() => rosterCur().subclass), null);
+    await dialog.getByRole("button", { name: "Close" }).click();
     await page.locator('#sec-gear [data-item-details="test-sword"]').click();
     assert.match(await dialog.textContent(), /bonus to attack rolls and damage rolls/);
     await dialog.locator("[data-item-base]").selectOption("Longsword");

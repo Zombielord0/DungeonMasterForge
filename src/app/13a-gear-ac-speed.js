@@ -75,7 +75,7 @@ function eqWeaponOf(i, ed) {
   const forms = x => { const n = x.n.toLowerCase(), m = n.match(/^(.+), (.+)$/); return m ? [n, `${m[2]} ${m[1]}`] : [n]; };
   const hits = t => { t = String(t || "").toLowerCase(); return W.filter(x => forms(x).some(f => new RegExp(`\\b${f.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}`).test(t))); };
   const best = L => L.sort((a, b) => b.n.length - a.n.length)[0];
-  const chosen = W.find(x => x.n === i.baseWeapon);
+  const chosen = i.baseWeapon && inventoryWeaponChoices(ref, ed).find(x => x.n === i.baseWeapon);
   if (chosen) return chosen;
   { const L = hits(i.n); if (L.length) return best(L); }
   if (eqIsWeapon(ref)) return ref;

@@ -50,12 +50,26 @@ function inventoryEffectsHTML(c) {
 function inventoryWeaponChoices(ref, ed) {
   if (ref?.cat !== "Weapon" && !/^Weapon\b/i.test(String(ref?.type || ""))) return [];
   const type = String(ref.type || "").toLowerCase();
+  const qualifier = type.match(/^weapon\s*\(([^)]+)\)/)?.[1];
   const matches = IT.data[ed].filter(eqIsWeapon);
-  const explicit = matches.filter(x => type.includes(x.n.toLowerCase()));
-  if (explicit.length) return explicit;
-  if (type.includes("slashing")) return matches.filter(x => /sword|scimitar/i.test(x.n) && x.st.some(([k, v]) => k === "Damage" && /slashing/i.test(v)));
-  if (type.includes("(any") || /^weapon(?:,|$)/.test(type)) return matches;
-  return [];
+  const sword = x => /sword|rapier|scimitar/.test(x.n.toLowerCase());
+  const axe = x => /axe/.test(x.n.toLowerCase());
+  switch (qualifier) {
+    case "any": return matches;
+    case "any simple or martial": return matches.filter(x => /^(simple|martial) /i.test(x.cat));
+    case "any melee weapon": return matches.filter(x => /\bmelee\b/i.test(x.cat));
+    case "any ranged weapon": return matches.filter(x => /\branged\b/i.test(x.cat));
+    case "any axe": return matches.filter(axe);
+    case "any axe or sword": return matches.filter(x => axe(x) || sword(x));
+    case "any sword": return matches.filter(sword);
+    case "any sword that deals slashing damage":
+      return matches.filter(x => sword(x) && x.st.some(([k, v]) => k === "Damage" && /slashing/i.test(v)));
+    default: {
+      if (!qualifier && /^weapon(?:,|$)/.test(type)) return matches;
+      const names = (qualifier || "").split(/,\s*(?:or\s+)?|\s+or\s+/);
+      return matches.filter(x => names.includes(x.n.toLowerCase()));
+    }
+  }
 }
 
 function openInventoryDetails(c, i, trigger) {
