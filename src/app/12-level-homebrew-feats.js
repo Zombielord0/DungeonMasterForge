@@ -84,7 +84,7 @@ function lvFeatHTML(c) {
   const A = LV.asi;
   if (!A.feat) return `<button class="btn primary" type="button" data-featopen>✦ Choose a feat…</button>`;
   const F = featInfo(edOf(c), A.feat), max = F && F[4] === "b" ? 30 : 20, abs = featAbs(F), open = abs.filter(a => LV.cur[a] + 1 <= max);
-  return `<div class="pick on feat-chosen"><b>${esc(A.feat)}</b>${F && F[5] ? ` <span class="tag gold">Homebrew</span>` : F && F[4] ? ` <span class="tag">${FEAT_GROUPS[F[4]]}</span>` : ""}<small>${esc(F ? F[3] : "Your own feat — note its details under Features after levelling up.")}</small></div>
+  return `<div class="pick on feat-chosen"><b>${esc(A.feat)}</b>${F && F[5] ? ` <span class="tag gold">Homebrew</span>` : F && F[6] ? ` <span class="tag">${esc(dmBook(F[6]).short)}</span>` : F && F[4] ? ` <span class="tag">${FEAT_GROUPS[F[4]]}</span>` : ""}<small>${esc(F ? F[3] : "Your own feat — note its details under Features after levelling up.")}</small></div>
     ${open.length > 1 ? `<label class="lbl" style="margin:0;flex:1 1 220px">+1 from the feat to<select data-lvfeatab><option value="">Choose…</option>${abs.map(a => `<option value="${a}" ${A.featAb === a ? "selected" : ""} ${open.includes(a) ? "" : "disabled"}>${AB_FULL[a]} ${LV.cur[a]} → ${Math.min(max, LV.cur[a] + 1)}${open.includes(a) ? "" : ` (max ${max})`}</option>`).join("")}</select></label>`
       : open.length === 1 ? `<p class="hint" style="margin:0;flex:1 1 220px">Also +1 ${AB_FULL[open[0]]} (${LV.cur[open[0]]} → ${LV.cur[open[0]] + 1}).</p>` : ""}
     <button class="btn sm" type="button" data-featopen style="flex:0 0 auto;align-self:flex-end">Change feat</button>`;
@@ -128,7 +128,7 @@ function featRender() {
   $("#featList").innerHTML = list.length ? `<div class="pick-grid">${list.map(F => {
     const why = taken.has(F[0]) && !FEAT_REPEAT.has(F[0]) ? "Already taken" : featBlock(F, c, cur, to), abs = featAbs(F), req = featReqText(F);
     return `<button type="button" class="pick ${LV.asi.feat === F[0] ? "on" : ""}" data-feat="${esc(F[0])}" ${why ? `disabled aria-disabled="true"` : ""}>
-      <b>${esc(F[0])}</b>${F[5] ? ` <span class="tag gold">Homebrew</span>` : F[4] && !FP.grp ? ` <span class="tag">${FEAT_GROUPS[F[4]]}</span>` : ""}
+      <b>${esc(F[0])}</b>${F[5] ? ` <span class="tag gold">Homebrew</span>` : F[6] ? ` <span class="tag">${esc(dmBook(F[6]).short)}</span>` : F[4] && !FP.grp ? ` <span class="tag">${FEAT_GROUPS[F[4]]}</span>` : ""}
       ${req ? `<small class="req">Prerequisite: ${esc(req)}</small>` : ""}
       ${abs.length ? `<small>+1 ${abs.length === 6 ? "to any score" : abs.map(a => AB_NAME[a]).join(" or ")}${F[4] === "b" ? " (up to 30)" : ""}</small>` : ""}
       <small>${esc(F[3])}</small>${why ? `<small class="why">${esc(why)}</small>` : ""}</button>`;
@@ -553,7 +553,7 @@ function renderFeats() {
   $("#ftCount").textContent = `${rows.length} feat${rows.length === 1 ? "" : "s"}`;
   $("#ftList").innerHTML = rows.length ? rows.map(({ F, why }) => {
     const abs = featAbs(F), req = featReqText(F), mine = t && has.filter(n => n === F[0]).length;
-    return `<div class="sec ft-card"><div class="ft-h"><h3>${esc(F[0])}</h3>${F[5] ? `<span class="tag gold">Homebrew</span>` : F[4] ? `<span class="tag">${FEAT_GROUPS[F[4]]}</span>` : ""}${mine ? `<span class="tag gold">✓ ${esc(t.name)} has it</span>` : ""}
+    return `<div class="sec ft-card"><div class="ft-h"><h3>${esc(F[0])}</h3>${F[5] ? `<span class="tag gold">Homebrew</span>` : F[6] ? `<span class="tag" title="${esc(dmBook(F[6]).name)}">${esc(dmBook(F[6]).short)}</span>` : F[4] ? `<span class="tag">${FEAT_GROUPS[F[4]]}</span>` : ""}${mine ? `<span class="tag gold">✓ ${esc(t.name)} has it</span>` : ""}
       ${t ? `<button class="btn sm ${why ? "" : "primary"}" type="button" data-ftadd="${esc(F[0])}" style="flex:0 0 auto">+ Add to ${esc(t.name)}</button>` : ""}</div>
       ${req || abs.length ? `<p class="hint" style="margin:4px 0 0">${req ? `Prerequisite: ${esc(req)}` : ""}${req && abs.length ? " · " : ""}${abs.length ? `+1 ${abs.length === 6 ? "to any score" : abs.map(a => AB_NAME[a]).join(" or ")}${F[4] === "b" ? " (up to 30)" : ""}` : ""}</p>` : ""}
       <p>${esc(F[3])}</p>${why ? `<p class="ft-why" style="margin:4px 0 0;font-size:14px">⚠ ${esc(why)}</p>` : ""}</div>`;

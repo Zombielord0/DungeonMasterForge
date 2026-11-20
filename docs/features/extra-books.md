@@ -18,6 +18,17 @@ About 3,700 open-licensed monsters, spells and magic items from books other than
 - **Everything that reads the rules data uses them:** random encounters (`randMonsters`), shops, hoards, spell scrolls, `pcSpellPool`, Wild Shape and companions.
 - **The Adventure and Dungeon Map generators don't** (`MON` in `01-core.js`): saved dungeon maps are rebuilt from their seed, so changing that table would change them.
 
+## Species, subclasses, feats and backgrounds
+
+- `data/extra-options.json`: a list of **homebrew-shaped entries** (the Homebrew tab's saved format, `docs/features/homebrew-classes.md`) with `id: "book-<Open5e key>"`, `book: true` and `src`. 11 species (Tome of Heroes, with subraces), 97 subclasses (Tome of Heroes, Tal'Dorei, Open5e; one 2024 Wizard subclass), 14 feats and 25 backgrounds.
+  - **Species:** `asi` and `speed` from the Ability Score Increase and Speed traits; Age, Alignment, Size and Languages go into the description; skill proficiencies and damage resistances in a trait's text become `skills` and `fx`. Subraces are `subs` with their own `asi` (applied in 2014 only, like the species' own) and `fx`.
+  - **Subclasses:** feature levels from Open5e; a feature with no level comes at the class's subclass level. **A feature name two subclasses share gets the subclass in brackets** ("Expanded Spell List (Ancient Dragons)"), because the sheet finds feature text by name (`featDesc` → `HB_DESC`).
+  - **Feats:** `req` is `wis13` for a plain ability minimum, else `@` and the text; `ab` from "Increase your X score by 1".
+  - **Left out:** Black Flag's own classes and subclasses (another rules system, and the Mechanist has no proficiency table), and the Stoor Halfling (a subrace of a built-in species).
+- `hbBook(kind)` (`07b-feats-homebrew.js`) reads them; **`hbAny(kind)` = the campaign's homebrew, then pending, then book entries**, so `hbApply`, `hbEffects`, `featDesc`, imports (`impHave`) and level-ups treat them like homebrew, and a homebrew entry of the same name wins. `hbOf` (the Homebrew tab, syncing) never includes them.
+- `subclassList` adds them as `[name, desc, true, src]` and `featList` as `[..., false, src]` (not "Homebrew"; the Feats tab shows the book's short name). Species and backgrounds carry `src` (`PC_RACES[ed][name].src`, `HB_BG[name].src`); the builder shows the book's name.
+- **Random characters never pick them** (`generateCharacter` skips `hb` species, `HB_BG` backgrounds and subclasses with `x[2]`), so a character's seed keeps giving the same choices when it levels up.
+
 ## Licences
 
 Only OGL 1.0a and CC BY 4.0 books. `public/credits.html` lists each book, its licence, the OGL text and its section 15 notices, and is linked from every extra entry's details and from the licence notes under the lists. Never add a book without a licence from that list, and never add Wizards of the Coast's non-SRD books.

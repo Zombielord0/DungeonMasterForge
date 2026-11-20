@@ -30,6 +30,10 @@ Left out: Level Up Advanced 5e (`a5e-*`; its own rules), species, classes, feats
 - **Generators:** anything that reads the rules data gets the extras without changes: random encounters (Tracker), shops, treasure hoards, spell scrolls, the class spell lists characters choose from, Wild Shape and companions.
   - **Not changed:** the Adventure and Dungeon Map generators use their own curated monster table (`MON` in `01-core.js`). Dungeon maps are rebuilt from their seed each time they open, so changing that table would change maps people have already saved. That needs its own design.
 
+## Second part: species, subclasses, feats and backgrounds (owner's request, same day)
+
+The owner asked for these next ("Add species classes and feats and the bulk import"). They come as homebrew-shaped entries in `data/extra-options.json`, joined after the campaign's own homebrew by `hbBook`/`hbAny`, so the whole homebrew machinery (pickers, sheet effects, feature text, imports) works unchanged. Black Flag's new classes were left out: their data is incomplete and they use Black Flag's own rules. Random characters keep to the official rules because their seed is reused on level-up. Details: `docs/features/extra-books.md`.
+
 ## Size
 
 About 1.1 MB more to download (compressed), once: after that the service worker keeps the files, and turning the text into lists still waits until a tab needs it (under 0.1 s each).

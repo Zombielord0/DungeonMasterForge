@@ -13,7 +13,7 @@ const server = http.createServer((req, res) => {
 });
 const data = n => JSON.parse(fs.readFileSync(path.join(__dirname, "..", "..", "data", n + ".json"), "utf8"));
 const SRD = { sp: data("spells"), mon: data("monsters"), it: data("items") };
-const X = { sp: data("extra-spells"), mon: data("extra-monsters"), it: data("extra-items"), books: data("extra-books").books };
+const X = { sp: data("extra-spells"), mon: data("extra-monsters"), it: data("extra-items"), opt: data("extra-options"), books: data("extra-books").books };
 
 (async () => {
   // the data files themselves
@@ -30,6 +30,14 @@ const X = { sp: data("extra-spells"), mon: data("extra-monsters"), it: data("ext
   check("extra magic items have fixed keys", X.it.every(m => /^[a-z0-9-]+_[a-z0-9-]+$/.test(m.k)) && new Set(X.it.map(m => m.k)).size === X.it.length);
   check("no HTML tags in the extras' text", ![X.sp, X.mon, X.it].some(L => L.some(x => /<\/?[a-z][^>]*>/i.test(JSON.stringify(x)))));
   check("every book link is https", Object.values(X.books).every(b => !b.url || /^https:\/\//.test(b.url)));
+  // species, subclasses, feats and backgrounds (homebrew-shaped)
+  const kinds = {}; X.opt.forEach(x => kinds[x.kind] = (kinds[x.kind] || 0) + 1);
+  check("options: species, subclasses, feats and backgrounds", kinds.species >= 10 && kinds.subclass >= 90 && kinds.feat >= 10 && kinds.background >= 20, JSON.stringify(kinds));
+  check("options: each is marked as a book entry with a known book", X.opt.every(x => x.book === true && X.books[x.src] && /^book-/.test(x.id)));
+  check("options: ids are unique", new Set(X.opt.map(x => x.id)).size === X.opt.length);
+  const featNames = X.opt.filter(x => x.kind === "subclass").flatMap(x => x.features.map(f => f.n));
+  check("options: no two subclass features share a name", new Set(featNames).size === featNames.length);
+  check("options: no Black Flag classes (another rules system)", !X.opt.some(x => x.kind === "class" || /^book-bfrd/.test(x.id)));
   check("lots of each kind", X.sp.length > 800 && X.mon.length > 1500 && X.it.length > 1000, `${X.sp.length} spells, ${X.mon.length} monsters, ${X.it.length} items`);
 
   await new Promise(r => server.listen(0, r));
@@ -75,6 +83,46 @@ const X = { sp: data("extra-spells"), mon: data("extra-monsters"), it: data("ext
   check("spells: Clear filters clears Book", await p.evaluate(() => $("#spBook").value === ""));
   const pool = await p.evaluate(() => { const c = pcEnsure(generateCharacter({ seed: "XW", name: "W", cls: "Wizard", level: 9, ed: "2014" })), L = pcSpellPool(c, "2014"); return { n: L.length, x: L.filter(s => s.src).length }; });
   check("spells: a wizard's spell choices include the extra books", pool.x > 100, JSON.stringify(pool));
+
+  // ---- species, subclasses, feats and backgrounds ----
+  const op = await p.evaluate(() => {
+    const out = {};
+    out.races14 = raceList("2014").includes("Catfolk"); out.races24 = raceList("2024").includes("Catfolk");
+    out.src = PC_RACES["2014"].Catfolk && PC_RACES["2014"].Catfolk.src;
+    const r14 = raceInfo("2014", "Catfolk", "Malkin"), r24 = raceInfo("2024", "Catfolk", "Malkin");
+    out.asi14 = JSON.stringify(r14.asi); out.asi24 = JSON.stringify(r24.asi); out.speed = r14.speed; out.skills = r14.skills;
+    const c = pcEnsure(generateCharacter({ seed: "BK1", name: "Kit", race: "Catfolk", sub: "Malkin", cls: "Warlock", subclass: "Ancient Dragons", level: 6, ed: "2014" }));
+    out.char = { race: c.race, sub: c.sub, subclass: c.subclass, feats: (c.feats || []).map(f => f.f), prof: c.skills || c.prof };
+    out.mien = featDesc("Draconic Mien", c).slice(0, 40);
+    out.spellList = featDesc("Expanded Spell List (Ancient Dragons)", c).length > 50;
+    out.subs = subclassList("2014", "Warlock").filter(x => x[3]).length; out.subs24 = subclassList("2024", "Wizard").some(x => x[0] === "Abjurationist");
+    out.subs14Abj = subclassList("2014", "Wizard").some(x => x[0] === "Abjurationist");
+    out.randomRace = out.randomSub = 0;
+    for (let i = 0; i < 300; i++) { const g = generateCharacter({ seed: "RND" + i, name: "R", level: 5, ed: i % 2 ? "2014" : "2024" }); if (PC_RACES[g.ed || "2014"][g.race] && PC_RACES[g.ed || "2014"][g.race].src) out.randomRace++; if (subclassList(g.ed || "2014", g.cls).some(x => x[0] === g.subclass && x[3])) out.randomSub++; if (HB_BG[g.bg]) out.randomRace++; }
+    const F = featList("2014").find(x => x[0] === "Diehard"), F24 = featList("2024").find(x => x[0] === "Diehard");
+    out.feat = F && { ab: F[1], req: F[2], hb: F[5], src: F[6] }; out.feat24 = !!F24;
+    out.bg = bgList("2014").includes("Court Servant") && bgList("2024").includes("Court Servant");
+    out.bgSkills = (bgInfo("2014", "Court Servant") || {}).sk;
+    const d = pcEnsure(generateCharacter({ seed: "BK2", name: "Dar", race: "Darakhul", sub: "Drow Heritage", cls: "Fighter", level: 3, ed: "2014" }));
+    out.darakhulRes = JSON.stringify(hbEffects("2014", "Darakhul", "Drow Heritage", d.bg, "Fighter", null, 3, []).filter(e => e.t === "res"));
+    out.hbTab = hbOf("species").length + hbOf("subclass").length + hbOf("feat").length + hbOf("background").length;
+    // a campaign's own homebrew of the same name wins over the book's
+    const keep = HB.list; hbSet([{ id: "hbX", kind: "species", name: "Catfolk", ed: "both", desc: "Ours", speed: 50, traits: [], subs: [] }]);
+    out.override = PC_RACES["2014"].Catfolk.speed; hbSet(keep); out.back = PC_RACES["2014"].Catfolk.speed;
+    return out;
+  });
+  check("species: book species are offered in both editions", op.races14 && op.races24 && op.src === "toh", JSON.stringify(op));
+  check("species: 2014 ability bonuses include the subrace's; 2024 has none", op.asi14 === JSON.stringify({ dex: 2, int: 1 }) && op.asi24 === "{}", op.asi14 + " " + op.asi24);
+  check("species: skills from traits", ["Perception", "Stealth"].every(k => op.skills.includes(k)), JSON.stringify(op.skills));
+  check("species: a character can be made with one", op.char.race === "Catfolk" && op.char.sub === "Malkin", JSON.stringify(op.char));
+  check("species: trait resistances reach the sheet", /necrotic/.test(op.darakhulRes), op.darakhulRes);
+  check("subclasses: book subclasses join the class's list", op.subs >= 8 && op.subs24 && !op.subs14Abj, JSON.stringify([op.subs, op.subs24, op.subs14Abj]));
+  check("subclasses: a character gets the features by level, with their text", op.char.subclass === "Ancient Dragons" && op.char.feats.includes("Draconic Mien") && !op.char.feats.includes("Ascended Blessing") && op.mien.length > 20 && op.spellList, JSON.stringify(op.char.feats));
+  check("random characters never pick a book species, subclass or background", op.randomRace === 0 && op.randomSub === 0, JSON.stringify([op.randomRace, op.randomSub]));
+  check("feats: book feats are listed with their book, not as homebrew", op.feat && op.feat.src === "toh" && op.feat.hb === false && op.feat.req === "con13" && op.feat.ab === "con" && op.feat24, JSON.stringify(op.feat));
+  check("backgrounds: book backgrounds are offered with their skills", op.bg && JSON.stringify(op.bgSkills || []).includes("History"), JSON.stringify(op.bgSkills));
+  check("the Homebrew tab doesn't list book entries", op.hbTab === 0, String(op.hbTab));
+  check("a campaign's own homebrew of the same name wins", op.override === 50 && op.back === 30, JSON.stringify([op.override, op.back]));
 
   // ---- monsters ----
   await p.goto(URL + "#monsters"); await p.waitForTimeout(400);

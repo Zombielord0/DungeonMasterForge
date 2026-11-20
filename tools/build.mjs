@@ -57,7 +57,7 @@ function emit(name, ext, text) { // text: a string, or a Buffer for pictures
 }
 mkdirSync(at("public/assets/"), { recursive: true });
 for (const [name, key] of [["spells", "spellData"], ["monsters", "monsterData"], ["items", "itemData"],
-  ["extra-spells", "spellExtra"], ["extra-monsters", "monsterExtra"], ["extra-items", "itemExtra"], ["extra-books", "bookData"]]) {
+  ["extra-spells", "spellExtra"], ["extra-monsters", "monsterExtra"], ["extra-items", "itemExtra"], ["extra-options", "optionExtra"], ["extra-books", "bookData"]]) {
   // stored as text, so the app turns it into objects only when a tab needs it (dmData in src/app/01-core.js)
   const text = JSON.stringify(JSON.parse(read(`data/${name}.json`)));
   const lit = JSON.stringify(text).split(String.fromCharCode(0x2028)).join("\\u2028").split(String.fromCharCode(0x2029)).join("\\u2029");

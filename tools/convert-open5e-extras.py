@@ -53,7 +53,7 @@ OK_LICENCES = {"ogl-10a", "cc-by-40"}
 # the short label on list rows
 SHORT = {"tob-2023": "ToB1", "tob": "ToB1 (2016)", "tob2": "ToB2", "tob3": "ToB3", "ccdx": "Creature Codex", "bfrd": "Black Flag",
          "deepm": "Deep Magic", "deepmx": "Deep Magic Ext.", "toh": "Tome of Heroes", "kp": "Kobold Press", "wz": "Warlock",
-         "spells-that-dont-suck": "STDS", "vom": "Vault of Magic"}
+         "spells-that-dont-suck": "STDS", "vom": "Vault of Magic", "tdcs": "Tal'Dorei", "open5e": "Open5e", "open5e-2024": "Open5e"}
 
 books = OrderedDict()
 def book(path):
@@ -187,12 +187,147 @@ def items():
     out.sort(key=lambda m: m["n"])
     return out
 
+# ---------- species, subclasses, feats and backgrounds ----------
+# Written as homebrew entries (the Homebrew tab's saved format, docs/features/homebrew-classes.md), with id "book-<key>",
+# book: true and src. The app joins them to the homebrew it applies (hbBook in src/app/07b-feats-homebrew.js), so
+# pickers, sheets and imports see them, but they aren't anyone's homebrew and are never synced.
+SKILL_NAMES = ["Acrobatics", "Animal Handling", "Arcana", "Athletics", "Deception", "History", "Insight", "Intimidation", "Investigation",
+               "Medicine", "Nature", "Perception", "Performance", "Persuasion", "Religion", "Sleight of Hand", "Stealth", "Survival"]
+ABIL = {"strength": "str", "dexterity": "dex", "constitution": "con", "intelligence": "int", "wisdom": "wis", "charisma": "cha"}
+DMG = ["acid", "bludgeoning", "cold", "fire", "force", "lightning", "necrotic", "piercing", "poison", "psychic", "radiant", "slashing", "thunder"]
+SUB_LV = {"Cleric": 1, "Sorcerer": 1, "Warlock": 1, "Druid": 2, "Wizard": 2}  # 2014 subclass levels; the rest choose at 3
+OPTION_BOOKS = {"species": ["kobold-press/toh"], "subclass": ["kobold-press/toh", "green-ronin/tdcs", "open5e/open5e", "open5e/open5e-2024"],
+                "feat": ["kobold-press/toh", "green-ronin/tdcs"], "background": ["kobold-press/toh", "green-ronin/tdcs", "open5e/open5e"]}
+
+def skills_in(t):
+    return [k for k in SKILL_NAMES if re.search(r"\b" + k + r"\b", t)]
+def asi_in(t):
+    return {ABIL[a.lower()]: int(n) for a, n in re.findall(r"(Strength|Dexterity|Constitution|Intelligence|Wisdom|Charisma) score (?:increases|increase) by (\d)", t)}
+def trait_fx(t):
+    """the sheet effects a trait's text clearly gives: skill proficiencies and damage resistances"""
+    fx = []
+    m = re.search(r"proficiency in the ([A-Z][\w ]+?) skills?\b", t)
+    if m: fx += [{"t": "skill", "a": k} for k in skills_in(m.group(1))]
+    for d in re.findall(r"resistance to (\w+) damage", t):
+        if d in DMG: fx.append({"t": "res", "a": d})
+    return fx[:12]
+
+def species_list():
+    out = []
+    for path in OPTION_BOOKS["species"]:
+        code = book(path)
+        S = lj(f"{path}/Species.json"); T = lj(f"{path}/SpeciesTrait.json")
+        traits = {}
+        for t in T: traits.setdefault(t["fields"]["parent"], []).append(t["fields"])
+        own = {x["pk"]: x for x in S}
+        for x in S:
+            f = x["fields"]
+            if f.get("subspecies_of"): continue
+            e = {"id": "book-" + x["pk"], "kind": "species", "name": f["name"], "ed": "both", "book": True, "src": code,
+                 "speed": 30, "skills": [], "asi": {}, "traits": [], "subs": [], "term": "Subrace"}
+            about = [f.get("desc") or ""]
+            for t in traits.get(x["pk"], []):
+                n, d = t["name"], t["desc"]
+                if n == "Ability Score Increase": e["asi"] = asi_in(d); about.append(f"**{n}.** {d}"); continue
+                if n == "Speed":
+                    m = re.search(r"(\d+) feet", d)
+                    if m: e["speed"] = int(m.group(1))
+                    about.append(f"**{n}.** {d}"); continue
+                if n in ("Age", "Alignment", "Size", "Languages"): about.append(f"**{n}.** {d}"); continue
+                fx = trait_fx(d)
+                e["skills"] += [a["a"] for a in fx if a["t"] == "skill" and a["a"] not in e["skills"]]
+                e["traits"].append({"l": 1, "n": n, "d": d, "fx": [a for a in fx if a["t"] != "skill"]})
+            for y in S:
+                g = y["fields"]
+                if g.get("subspecies_of") != x["pk"]: continue
+                ts = traits.get(y["pk"], [])
+                asi = next((asi_in(t["desc"]) for t in ts if t["name"] == "Ability Score Increase"), {})
+                body = [g.get("desc") or ""] + [f"**{t['name']}.** {t['desc']}" for t in ts]
+                fx = [a for t in ts if t["name"] != "Ability Score Increase" for a in trait_fx(t["desc"])]
+                e["subs"].append({"n": g["name"], "d": "\n\n".join(b for b in body if b), "asi": asi, "fx": fx[:12]})
+            e["desc"] = "\n\n".join(a for a in about if a)
+            if not e["subs"]: del e["term"]
+            out.append(e)
+    return out
+
+def subclass_list():
+    out = []
+    for path in OPTION_BOOKS["subclass"]:
+        code = book(path)
+        C = lj(f"{path}/CharacterClass.json"); F = lj(f"{path}/ClassFeature.json"); I = lj(f"{path}/ClassFeatureItem.json")
+        lv = {}
+        for i in I: lv.setdefault(i["fields"]["parent"], []).append(i["fields"]["level"])
+        for x in C:
+            f = x["fields"]; parent = f.get("subclass_of") or ""
+            m = re.match(r"srd(-2024)?_([a-z]+)$", parent)
+            if not m: continue  # Black Flag's own classes and their subclasses: a different rules system
+            cls = m.group(2).capitalize(); ed = "2024" if m.group(1) else "both"
+            first = 3 if ed == "2024" else SUB_LV.get(cls, 3)
+            feats = [{"l": min(lv.get(y["pk"]) or [first]), "n": y["fields"]["name"], "d": y["fields"]["desc"]} for y in F if y["fields"]["parent"] == x["pk"]]
+            feats.sort(key=lambda a: (a["l"], a["n"]))
+            out.append({"id": "book-" + x["pk"], "kind": "subclass", "name": f["name"], "ed": ed, "book": True, "src": code, "cls": cls,
+                        "desc": f.get("desc") or "", "features": feats})
+    # the sheet finds a feature's text by its name, so a name two subclasses share gets its subclass in brackets
+    count = {}
+    for e in out:
+        for ft in e["features"]: count[ft["n"]] = count.get(ft["n"], 0) + 1
+    for e in out:
+        for ft in e["features"]:
+            if count[ft["n"]] > 1: ft["n"] = f"{ft['n']} ({e['name']})"
+    return out
+
+def feat_list():
+    out = []
+    for path in OPTION_BOOKS["feat"]:
+        code = book(path)
+        F = lj(f"{path}/Feat.json"); B = lj(f"{path}/FeatBenefit.json")
+        for x in F:
+            f = x["fields"]; ben = [b["fields"]["desc"] for b in B if b["fields"]["parent"] == x["pk"]]
+            req = re.sub(r"\s+", " ", (f.get("prerequisite") or "").replace("*", "")).strip()
+            m = re.fullmatch(r"(Strength|Dexterity|Constitution|Intelligence|Wisdom|Charisma) (\d+) or higher", req)
+            req = "" if req in ("", "N/A", "None") else f"{ABIL[m.group(1).lower()]}{m.group(2)}" if m else "@" + req
+            ab = []
+            for b in ben:
+                mm = re.match(r"Increase your ((?:\w+(?:, | or )?)+) score by 1", b)
+                if mm: ab = [ABIL[w.lower()] for w in re.findall(r"Strength|Dexterity|Constitution|Intelligence|Wisdom|Charisma", mm.group(1))]
+            desc = (f.get("desc") or "") + ("\n\n" + "\n".join("- " + b for b in ben) if ben else "")
+            out.append({"id": "book-" + x["pk"], "kind": "feat", "name": f["name"], "ed": "both", "book": True, "src": code,
+                        "desc": desc, "req": req, "ab": " ".join(ab), "group": "g"})
+    return out
+
+def background_list():
+    out = []
+    for path in OPTION_BOOKS["background"]:
+        code = book(path)
+        G = lj(f"{path}/Background.json"); B = lj(f"{path}/BackgroundBenefit.json")
+        for x in G:
+            f = x["fields"]; ben = [b["fields"] for b in B if b["fields"]["parent"] == x["pk"]]
+            by = {}
+            for b in ben: by.setdefault(b.get("type") or "", []).append(b)
+            sk = skills_in(" ".join(b["desc"] for b in by.get("skill_proficiency", [])))[:2]
+            feature = [f"**{b['name']}.** {b['desc']}" for b in by.get("feature", [])]
+            extra = [f"**{b['name']}.** {b['desc']}" for t in ("tool_proficiency", "language") for b in by.get(t, [])]
+            out.append({"id": "book-" + x["pk"], "kind": "background", "name": f["name"], "ed": "both", "book": True, "src": code,
+                        "desc": "\n\n".join(a for a in [f.get("desc") or ""] + extra + feature if a), "skills": sk + [""] * (2 - len(sk)),
+                        "feat": "", "gear": " ".join(b["desc"] for b in by.get("equipment", []))})
+    return out
+
 def dump(name, data):
     p = os.path.join(OUT, name)
     json.dump(data, open(p, "w"), separators=(",", ":"), ensure_ascii=False)
     print(p, len(data) if isinstance(data, list) else len(data.get("books", {})), f"{os.path.getsize(p) // 1024} KB")
 
 mons, sps, its = clean_all(monsters()), clean_all(spells()), clean_all(items())
+# the official names a book entry mustn't take (a user's homebrew of the same name still wins in the app)
+taken = {"species": srd_names("Species"), "background": srd_names("Background"), "feat": srd_names("Feat"), "subclass": set()}
+opts = []
+for L in (species_list(), subclass_list(), feat_list(), background_list()):
+    seen = set()
+    for e in clean_all(L):
+        k = (e.get("cls", ""), e["name"].lower())
+        if k in seen or e["name"].lower() in taken[e["kind"]]: continue
+        seen.add(k); opts.append(e)
+dump("extra-options.json", opts)
 dump("extra-monsters.json", mons); dump("extra-spells.json", sps); dump("extra-items.json", its)
 ogl = next(x["fields"]["desc"] for x in lj("License.json") if x["pk"] == "ogl-10a")
 dump("extra-books.json", {"books": books, "ogl": ogl.replace("\r\n", "\n")})

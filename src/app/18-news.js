@@ -2,6 +2,11 @@
    When a change ships, add an entry to the top of NEWS with a new id, in plain words for players and DMs. */
 
 const NEWS = [
+  { id: "2026-11-20-book-options", date: "2026-11-20", title: "New species, subclasses, feats and backgrounds", go: "roster", items: [
+    "Characters can now choose from 11 more species (with their subraces) from Kobold Press's Tome of Heroes: Alseid, Catfolk, Darakhul, Derro, Drow, Erina, Gearforged, Minotaur, Mushroomfolk, Satarre and Shade.",
+    "97 more subclasses for the usual classes, from Tome of Heroes, the Tal'Dorei Campaign Setting and Open5e, like the Ancient Dragons patron, Circle of Bees and the Way of the Tipsy Monkey. Their features arrive at the right levels with their full text.",
+    "14 more feats and 25 more backgrounds. Each shows the book it comes from.",
+    "Random characters still use only the official rules, so characters you already have level up exactly as before."] },
   { id: "2026-11-20-extra-books", date: "2026-11-20", title: "About 3,700 more monsters, spells and magic items", go: "monsters", items: [
     "The Monster Manual has about 1,700 more monsters from Kobold Press's open-licensed books: Tome of Beasts 1, 2 and 3, Creature Codex and Black Flag.",
     "Spells has about 900 more, from Deep Magic, Tome of Heroes and other Kobold Press books, plus Spells That Don't Suck. Characters can prepare them like any other spell.",

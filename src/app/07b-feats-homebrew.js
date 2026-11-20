@@ -116,7 +116,10 @@ const FEATS = {
 };
 const FEAT_GROUPS = { o: "Origin", g: "General", b: "Epic boon" };
 const FEAT_REPEAT = new Set(["Elemental Adept", "Magic Initiate", "Skilled"]);
-const featList = ed => [...(FEATS[ed] || FEATS["2014"]), ...hbOf("feat").filter(x => hbEdOk(x, ed)).map(x => [x.name, x.ab || "", x.req || "", (x.desc || "") + fxNote(x.fx), ed === "2024" ? (x.group || "g") : undefined, true])];
+/* a feat row: [name, abilities, prerequisite, text, 2024 group, homebrew?, book code] */
+const featList = ed => { const L = [...(FEATS[ed] || FEATS["2014"]), ...hbOf("feat").filter(x => hbEdOk(x, ed)).map(x => [x.name, x.ab || "", x.req || "", (x.desc || "") + fxNote(x.fx), ed === "2024" ? (x.group || "g") : undefined, true])];
+  hbBook("feat").filter(x => hbEdOk(x, ed) && !L.some(F => F[0] === x.name)).forEach(x => L.push([x.name, x.ab || "", x.req || "", x.desc || "", ed === "2024" ? (x.group || "g") : undefined, false, x.src]));
+  return L; };
 const featInfo = (ed, name) => featList(ed).find(f => f[0] === name) || null;
 const featAbs = F => !F || !F[1] ? [] : F[1] === "any" ? [...AB] : F[1].split(" ");
 // Why a character can't take a feat right now ("" if they can). scores are their scores before this level's points.
@@ -187,7 +190,15 @@ const hbOf = kind => HB.list.filter(x => x.kind === kind);
    It lives on the character (c.hbPending). HB.pend gathers it from the roster so those characters build properly,
    but pickers only read hbOf (HB.list), so nobody else can choose it until the DM approves. */
 const pendKey = x => `${x.kind}|${x.kind === "subclass" ? String(x.cls || "").toLowerCase() : ""}|${String(x.name || "").toLowerCase()}`;
-const hbAny = kind => [...hbOf(kind), ...HB.pend.filter(x => x.kind === kind)];
+/* The extra books' species, subclasses, feats and backgrounds (data/extra-options.json, docs/features/extra-books.md):
+   homebrew-shaped entries with book: true and src. They come after the campaign's own homebrew, so a homebrew entry
+   of the same name wins. They aren't in HB.list, so the Homebrew tab doesn't list them and they're never synced. */
+let HB_BOOK = null;
+function hbBook(kind) {
+  if (!HB_BOOK) { try { HB_BOOK = JSON.parse((window.DMDATA && window.DMDATA.optionExtra) || "[]"); } catch { HB_BOOK = []; } if (window.DMDATA) delete window.DMDATA.optionExtra; }
+  return HB_BOOK.filter(x => x.kind === kind);
+}
+const hbAny = kind => [...hbOf(kind), ...HB.pend.filter(x => x.kind === kind), ...hbBook(kind)];
 function hbPendSync() {
   const have = new Set(HB.list.map(pendKey)), by = new Map();
   for (const c of PCS.roster) for (const e of (c.hbPending || [])) {
@@ -256,7 +267,8 @@ function hbApply() {
     ["2014", "2024"].filter(ed => hbEdOk(x, ed) && !PC_RACES[ed][x.name]).forEach(ed => {
       PC_RACES[ed][x.name] = { hb: true, ...(x.pend ? { pend: true } : {}), asi: ed === "2014" ? Object.fromEntries(AB.filter(a => +(x.asi || {})[a]).map(a => [a, +x.asi[a]])) : {}, speed: +x.speed || 30,
         traits: traits.map(t => t.n), skills: (x.skills || []).filter(k => SKILLS[k]), term: x.term || (ed === "2024" ? "Lineage" : "Subrace"),
-        ...(subs.length ? { subs: Object.fromEntries(subs.map(t => [t.n, { label: `${t.n}`, traits: [t.n], d: t.d || "" }])) } : {}) };
+        ...(subs.length ? { subs: Object.fromEntries(subs.map(t => [t.n, { label: `${t.n}`, traits: [t.n], d: t.d || "", ...(ed === "2014" && t.asi ? { asi: Object.fromEntries(AB.filter(a => +t.asi[a]).map(a => [a, +t.asi[a]])) } : {}) }])) } : {}),
+        ...(x.src ? { src: x.src } : {}) };
       N.races.push([ed, x.name]);
     });
     if (!RACE_DESC[x.name]) { RACE_DESC[x.name] = x.desc || ""; N.raceDesc.push(x.name); }
