@@ -2,6 +2,9 @@
    When a change ships, add an entry to the top of NEWS with a new id, in plain words for players and DMs. */
 
 const NEWS = [
+  { id: "2026-11-20-character-references", date: "2026-11-20", title: "Plan your next levels and inspect your gear", go: "roster", items: [
+    "Open a level 1–20 preview for a class, subclass, species, or lineage in Characters.",
+    "Open Item details from your inventory to see weapon dice, attunement, and magic effects. Equipped magic item effects appear under Features & Traits."] },
   { id: "2026-11-19-requests", date: "2026-11-19", title: "Ask for a feature", go: "requests", items: [
     "There's a new Requests tab. Signed-in players and DMs can ask for something new, a change, or a fix.",
     "Tell us what you're trying to do and how you'd like it to work. A screenshot (marked up if you can) makes it much more likely to be approved.",

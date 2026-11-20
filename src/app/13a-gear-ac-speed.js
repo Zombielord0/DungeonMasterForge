@@ -70,11 +70,13 @@ function pcInvUpgrade(c) {
 // which standard weapon an inventory item is: its Items-tab entry, else a weapon named in its name, notes or magic type
 function eqWeaponOf(i, ed) {
   itLoad();
-  const ref = i.ref ? itFind(i.ref) : null;
+  const ref = inventoryCatalogItem(i, ed);
   const W = IT.data[ed === "2014" ? "2014" : "2024"].filter(eqIsWeapon);
   const forms = x => { const n = x.n.toLowerCase(), m = n.match(/^(.+), (.+)$/); return m ? [n, `${m[2]} ${m[1]}`] : [n]; };
   const hits = t => { t = String(t || "").toLowerCase(); return W.filter(x => forms(x).some(f => new RegExp(`\\b${f.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}`).test(t))); };
   const best = L => L.sort((a, b) => b.n.length - a.n.length)[0];
+  const chosen = W.find(x => x.n === i.baseWeapon);
+  if (chosen) return chosen;
   { const L = hits(i.n); if (L.length) return best(L); }
   if (eqIsWeapon(ref)) return ref;
   { const L = hits(i.note); if (L.length) return best(L); }
@@ -96,7 +98,8 @@ function eqAttack(c, i, w) {
   const dm = dmgTxt.match(/^(\d+(?:d\d+)?)\s+([a-z]+)/); if (!dm) return null;
   const m = c.mods, ranged = /Ranged/.test(w.cat), monk = c.cls === "Monk" && (/Simple Melee/.test(w.cat) || w.n === "Shortsword" || (/Melee/.test(w.cat) && /Light/.test(props) && edOf(c) === "2024"));
   const ab = /Finesse/.test(props) || monk ? (m.dex > m.str ? "dex" : "str") : ranged ? "dex" : "str";
-  const magic = +(((i.n + " " + (i.note || "")).match(/\+([1-3])\b/) || [])[1] || 0), needsAtt = !!i.att && !i.attuned, bonus = needsAtt ? 0 : magic;
+  const ref = inventoryCatalogItem(i, edOf(c));
+  const magic = inventoryEnhancement(i, ref, "weapon"), needsAtt = inventoryNeedsAttunement(i, ref) && !i.attuned, bonus = needsAtt ? 0 : magic;
   const prof = eqProficient(c, w), mod = m[ab] + bonus, hit = m[ab] + (prof ? c.prof : 0) + bonus;
   const two = (dmgTxt.match(/two-handed (\d+d\d+)/) || [])[1];
   return { name: i.n, iid: i.id, hit, type: dm[2], two, ab, prof, magic, needsAtt, melee: !ranged, twoH: /Two-Handed/.test(props), thrown: /Thrown/.test(props), mod, die: dm[1] };
@@ -151,10 +154,12 @@ const ARMOR_MAGIC = { "dwarven plate": 2, "dragon scale mail": 1, "elven chain":
 // the standard armor (or shield) an inventory item is: its Items-tab entry, else armor named in its name, notes or magic type
 function eqArmorOf(i, ed) {
   itLoad();
-  const ref = i.ref ? itFind(i.ref) : null;
+  const ref = inventoryCatalogItem(i, ed);
   const L = IT.data[ed === "2014" ? "2014" : "2024"].filter(eqIsArmor);
   const forms = x => { const n = x.n.toLowerCase(); return [n, n.replace(/ armor$/, "")]; };
   const hits = t => { t = String(t || "").toLowerCase(); return L.filter(x => forms(x).some(f => new RegExp(`\\b${f.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}\\b`).test(t))); };
+  const chosen = L.find(x => x.n === i.baseArmor);
+  if (chosen) return chosen;
   const best = H => H.sort((a, b) => b.n.length - a.n.length)[0];
   { const H = hits(i.n); if (H.length) return best(H); }
   if (eqIsArmor(ref)) return ref;
@@ -162,15 +167,16 @@ function eqArmorOf(i, ed) {
   if (ref && ref.type) { const H = hits(ref.type.replace(/^armor\s*/i, "")); if (H.length) return best(H); }
   return null;
 }
-function eqArmorBonus(i) {
-  if (i.att && !i.attuned) return 0;
-  const t = (i.n + " " + (i.note || "")).toLowerCase(), named = +((t.match(/\+([1-3])\b/) || [])[1] || 0);
+function eqArmorBonus(i, ed) {
+  const ref = inventoryCatalogItem(i, ed);
+  if (inventoryNeedsAttunement(i, ref) && !i.attuned) return 0;
+  const t = (i.n + " " + (i.note || "")).toLowerCase(), named = inventoryEnhancement(i, ref, "armor");
   return named || Object.entries(ARMOR_MAGIC).reduce((v, [k, b]) => t.includes(k) ? b : v, 0);
 }
 function pcAC(c) {
   const ed = edOf(c), m = c.mods, eq = (c.inv || []).filter(i => i.eq && (+i.qty || 0) > 0);
   const worn = eq.map(i => ({ i, a: eqArmorOf(i, ed) })).filter(x => x.a);
-  const val = x => { const t = (x.a.st.find(([k]) => k === "Armor Class") || [])[1] || "", mm = t.match(/^\+?(\d+)(\s*\+\s*Dex modifier)?(\s*\(max 2\))?/); if (!mm) return 0; return +mm[1] + (mm[2] ? (mm[3] ? Math.min(m.dex, 2) : m.dex) : 0) + eqArmorBonus(x.i); };
+  const val = x => { const t = (x.a.st.find(([k]) => k === "Armor Class") || [])[1] || "", mm = t.match(/^\+?(\d+)(\s*\+\s*Dex modifier)?(\s*\(max 2\))?/); if (!mm) return 0; return +mm[1] + (mm[2] ? (mm[3] ? Math.min(m.dex, 2) : m.dex) : 0) + eqArmorBonus(x.i, ed); };
   const body = worn.filter(x => x.a.cat !== "Shield").sort((a, b) => val(b) - val(a))[0], shield = worn.filter(x => x.a.cat === "Shield").sort((a, b) => val(b) - val(a))[0];
   const parts = [], warn = [], fx = c.fx || {}, T = armorTraining(c), F = pcFx(c);
   let ac, speedPen = 0, stealthDis = false, untrained = false;
@@ -222,8 +228,13 @@ function pcLoad(c) {
 function pcSpeed(c, A) {
   A = A || pcAC(c);
   const ed = edOf(c), lv = c.level, fx = c.fx || {}, has = n => (c.feats || []).some(f => f.f === n);
+  const freeAction = (c.inv || []).some(i => {
+    if (!i.eq || +i.qty <= 0 || !i.attuned) return false;
+    return /^ring of free action$/i.test(inventoryCatalogItem(i, ed)?.n || i.n);
+  });
   const R = raceInfo(ed, c.race, c.sub), base = R.speed || 30, parts = [`${raceLabel(c)} ${base}`], other = [];
   let sp = base;
+  if (freeAction) other.push("Difficult terrain costs no extra movement (Ring of Free Action)");
   const add = (n, v) => { if (v) { sp += v; parts.push(`${n} ${v > 0 ? "+" : "−"}${Math.abs(v)}`); } };
   const FF = pcFx(c);
   if (FF.form) {

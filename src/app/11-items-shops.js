@@ -299,13 +299,13 @@ function itGive(x, quiet) {
   c.inv = c.inv || [];
   const ex = c.inv.find(i => i.ref === x.id);
   if (ex) ex.qty = (+ex.qty || 1) + 1;
-  else c.inv.push({ id: uid("i"), ref: x.id, n: x.n, qty: 1, w: x.w || 0, att: !!x.att, attuned: false, value: x.c, note: x.kind === "gear" ? "" : `${rarName(x)} ${String(x.cat).toLowerCase()}` });
+  else c.inv.push({ id: uid("i"), ref: x.id, itemRules: inventoryRulesSnapshot(x), n: x.n, qty: 1, w: x.w || 0, att: !!x.att, attuned: false, value: x.c, note: x.kind === "gear" ? "" : `${rarName(x)} ${String(x.cat).toLowerCase()}` });
   pcPersist(); if (!quiet) toast(`${x.n} given to ${c.name}`);
 }
 function itLoot(x) {
   const c = Store.get($("#itCamp").value); if (!c) { toast("Create a campaign first (Campaign Tracker)"); return; }
   c.loot = c.loot || [];
-  c.loot.unshift({ id: uid("l"), item: x.n, holder: "", value: x.c, notes: `${itTypeLine(x)}. ${String(x.d || "").replace(/\*\*/g, "").slice(0, 700)}` });
+  c.loot.unshift({ id: uid("l"), item: x.n, ref: x.id, itemRules: inventoryRulesSnapshot(x), holder: "", value: x.c, notes: `${itTypeLine(x)}. ${String(x.d || "").replace(/\*\*/g, "").slice(0, 700)}` });
   Store.save(c); toast(`${x.n} added to “${c.name}” loot`);
 }
 function itCardHTML(x) {

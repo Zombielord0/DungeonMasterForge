@@ -611,8 +611,8 @@ if (location.protocol !== "file:" && localStorage.getItem("dmforge.offline") !==
             <div style="flex:0 0 130px"><label>Gender</label><select id="pcGender"><option value="">Random</option><option value="male">Male</option><option value="female">Female</option></select></div>
           </div>
           <div class="field row rnd-only">
-            <div><label>Race</label><select id="pcRace"><option value="">Random</option></select></div>
-            <div><label>Class</label><select id="pcClass"><option value="">Random</option></select></div>
+            <div><label>Race</label><select id="pcRace"><option value="">Random</option></select><button class="btn sm" type="button" data-progression="species">Species progression</button></div>
+            <div><label>Class</label><select id="pcClass"><option value="">Random</option></select><button class="btn sm" type="button" data-progression="class">Class progression</button></div>
           </div>
           <div class="field rnd-only hidden" id="pcAncWrap"><label id="pcAncLbl">Subrace</label><select id="pcAnc"><option value="">Random</option></select><p class="hint" id="pcAncHint" style="margin:6px 0 0"></p></div>
           <div class="field row rnd-only">

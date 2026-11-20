@@ -157,6 +157,7 @@ function mcRefresh() {
   $("#mcSub").innerHTML = needSub ? `<div class="field" style="margin:10px 0 0"><label for="mcSubSel">${esc(k)} subclass (chosen at ${esc(k)} level ${sl})</label><select id="mcSubSel"><option value="">Choose…</option>${subclassList(ed, k).map(([n]) => `<option ${M.sub === n ? "selected" : ""}>${esc(n)}</option>`).join("")}</select></div>` : "";
   const pre = [k, c.cls, ...(c.multi || []).filter(x => +x.lv > 0).map(x => x.cls)].every(x => mcMeets(c, x)), over = $("#mcOverride").checked;
   const miss = [!pre && !over ? "meet the prerequisites (or tick the DM option)" : "", needSub && !M.sub ? "choose a subclass" : ""].filter(Boolean);
+  $("#mcSub").insertAdjacentHTML("beforeend", progressionButton(ed, "class", k, M.sub || cur.subclass || ""));
   $("#mcMiss").textContent = miss.length ? cap1(miss.join(" and ")) + " to continue." : `${k} ${to} adds d${CLASS_DATA[k].hd} hit points and its level ${to} features.`;
   $("[data-mcgo]").disabled = miss.length > 0;
 }
@@ -229,7 +230,7 @@ function lvRender(focusSel) {
     ${LV.asi ? lvAsiHTML(c, to) : ""}
     ${ask ? `<div class="sec-h" style="margin-top:14px"><h3>Choose your subclass</h3></div>
       <p class="hint" style="margin:4px 0 0">${esc(c.cls)}s choose a subclass at level ${sl} (${ed} rules). This is required to ${onlySub ? "finish the sheet" : "level up"}.</p>
-      <div class="pick-grid" role="radiogroup" aria-label="Subclass">${list.map(([n, d]) => `<button type="button" class="pick ${LV.pick === n ? "on" : ""}" data-lvsub="${esc(n)}" role="radio" aria-checked="${LV.pick === n}"><b>${esc(n)}</b><small>${esc(d)}</small></button>`).join("")}</div>` : ""}
+      <div class="pick-grid" role="group" aria-label="Subclass">${list.map(([n, d]) => `<div class="progression-choice"><button type="button" class="pick ${LV.pick === n ? "on" : ""}" data-lvsub="${esc(n)}" aria-pressed="${LV.pick === n}"><b>${esc(n)}</b><small>${esc(d)}</small></button>${progressionButton(ed, "subclass", c.cls, n)}</div>`).join("")}</div>` : ""}
     <div class="row" style="justify-content:flex-end;margin-top:14px"><button class="btn" type="button" data-lvno style="flex:0">Cancel</button>
       <button class="btn primary" type="button" data-lvyes style="flex:0 0 auto">${yes}</button></div>
     <p class="hint" id="lvMiss" style="text-align:right;margin:6px 0 0" aria-live="polite"></p>`;
