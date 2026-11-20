@@ -29,13 +29,14 @@ function itLoad() {
   for (const ed of Object.keys(raw)) {
     const L = [];
     raw[ed].eq.forEach((e, i) => L.push({ id: `${ed}-g${i}`, kind: "gear", n: e.n, cat: e.cat, g: e.g, c: e.c, gp: e.gp, w: e.w, st: e.st, d: e.d, rk: -2 }));
-    raw[ed].mi.forEach((m, i) => { const p = magicPrice(m); L.push({ id: `${ed}-m${i}`, kind: "magic", n: m.n, cat: m.cat, type: m.type, r: m.r, rk: m.rk, att: m.att, cons: m.cons, base: m.base, c: p.text, gp: p.gp, st: [], d: m.d }); });
+    raw[ed].mi.forEach((m, i) => { const p = magicPrice(m); L.push({ id: m.k ? `${ed}-${m.k}` : `${ed}-m${i}`, src: m.src, kind: "magic", n: m.n, cat: m.cat, type: m.type, r: m.r, rk: m.rk, att: m.att, cons: m.cons, base: m.base, c: p.text, gp: p.gp, st: [], d: m.d }); });
     L.forEach(x => { x.hay = x.n.toLowerCase(); x.hayD = (x.n + " " + x.cat + " " + (x.type || "") + " " + x.d).toLowerCase(); });
     IT.data[ed] = L;
   }
   const all = Object.values(IT.data).flat();
   [...new Set(all.filter(x => x.kind === "gear").map(x => x.g))].sort().forEach(g => $("#itGroup").insertAdjacentHTML("beforeend", `<option>${esc(g)}</option>`));
   [...new Set(all.filter(x => x.kind === "magic").map(x => x.cat))].sort().forEach(g => $("#itMType").insertAdjacentHTML("beforeend", `<option>${esc(g)}</option>`));
+  $("#itBook").innerHTML = bookOptions(all);
 }
 const itemsGear = () => (itLoad(), IT.data[IT.ed].filter(x => x.kind === "gear"));
 function itCustomList() { return IT.custom.map(x => Object.assign(x, { hay: String(x.n).toLowerCase(), hayD: (x.n + " " + x.cat + " " + (x.type || "") + " " + x.d).toLowerCase() })); }
@@ -60,7 +61,7 @@ function itFiltered() {
   const words = $("#itQ").value.trim().toLowerCase().split(/\s+/).filter(Boolean), inD = $("#itInDesc").checked;
   const grp = IT.mode === "magic" || IT.mode === "custom" ? "" : $("#itGroup").value;
   const mt = IT.mode === "gear" ? "" : $("#itMType").value, att = IT.mode === "gear" ? "" : $("#itAtt").value;
-  const rar = IT.mode === "gear" ? new Set() : IT.rar, max = parseFloat($("#itMax").value);
+  const rar = IT.mode === "gear" ? new Set() : IT.rar, max = parseFloat($("#itMax").value), book = IT.mode === "gear" || IT.mode === "custom" ? "" : $("#itBook").value;
   const base = IT.data[IT.ed];
   let list = IT.mode === "custom" ? itCustomList() : IT.mode === "gear" ? base.filter(x => x.kind === "gear") : IT.mode === "magic" ? base.filter(x => x.kind === "magic") : base.concat(itCustomList());
   const magicF = mt || rar.size || att;
@@ -73,6 +74,7 @@ function itFiltered() {
     if (att === "1" && !x.att) return false;
     if (att === "0" && x.att) return false;
     if (!isNaN(max) && (x.gp === null || x.gp === undefined || x.gp > max)) return false;
+    if (book && !bookOk(x, book)) return false;
     return true;
   });
   const s = $("#itSort").value, byName = (a, b) => a.n.localeCompare(b.n);
@@ -111,7 +113,7 @@ function itRow(x) {
       <b class="sp-name">${esc(x.n)}</b>
       <span class="sp-meta hide-sm">${esc(x.cat)}</span>
       <span class="sp-meta it-cost">${esc(x.c)}</span>
-      <span class="sp-tags">${x.att ? `<span class="tag" title="Requires attunement">A</span>` : ""}${x.cons ? `<span class="tag hide-sm" title="Consumable">1×</span>` : ""}${x.kind === "custom" ? `<span class="tag gold" title="Your custom item">✎</span>` : ""}${rar}</span>
+      <span class="sp-tags">${x.att ? `<span class="tag" title="Requires attunement">A</span>` : ""}${x.cons ? `<span class="tag hide-sm" title="Consumable">1×</span>` : ""}${x.kind === "custom" ? `<span class="tag gold" title="Your custom item">✎</span>` : ""}${bookTag(x)}${rar}</span>
     </div>${open ? itDetail(x) : ""}</div>`;
 }
 function itCanBase(x) { return x.kind === "gear" && (x.g === "Weapons" || x.g === "Armor" || x.cat === "Ammunition"); }
@@ -122,6 +124,7 @@ function itDetail(x) {
     <div class="sp-stats">${itStats(x).map(([k, v]) => `<div><span>${esc(k)}</span>${esc(v)}</div>`).join("")}</div>
     ${spFormat(x.d || "")}
     ${note ? `<p class="hint">${esc(note)}</p>` : ""}
+    ${bookLine(x)}
     <div class="actions"><button class="btn sm" data-it="card" data-id="${esc(x.id)}">🂠 Export item card</button><button class="btn sm" data-it="copy" data-id="${esc(x.id)}">Copy</button><button class="btn sm primary" data-it="give" data-id="${esc(x.id)}">+ Give to character</button>${x.gp !== null && x.gp !== undefined ? `<button class="btn sm" data-it="buy" data-id="${esc(x.id)}" title="Take the price from the character's coins">🪙 Buy (${esc(fmtGp(+x.gp))})</button>` : ""}<button class="btn sm" data-it="loot" data-id="${esc(x.id)}">+ Campaign loot</button>${x.kind === "custom" ? `<button class="btn sm" data-it="edit" data-id="${esc(x.id)}">✎ Edit</button><button class="btn sm danger" data-it="del" data-id="${esc(x.id)}">✕ Delete</button>` : itCanBase(x) ? `<button class="btn sm" data-it="clone" data-id="${esc(x.id)}">✚ Make a magic version</button>` : ""}</div>
   </div>`;
 }
@@ -162,7 +165,8 @@ function shopMake({ type, size, level, seed, ed, rar, amount, moodIx }) {
   let nMagic = !S.magic ? 0 : S.magicShare ? Math.round(total * S.magicShare) : [0, r.int(0, 1), r.int(1, 3)][si];
   if (rarOn && S.magic) nMagic = Math.max(nMagic, 2);
   const rkOk = x => rarOn ? rar.includes(x.rk) : x.rk >= 0 && x.rk <= maxRk;
-  const magicPool = S.magic ? r.shuffle(all.filter(x => x.kind === "magic" && rkOk(x) && priced(x) && S.magic(x))) : [];
+  const magicPool = S.magic ? shopMagicMix(r.shuffle(all.filter(x => x.kind === "magic" && !x.src && rkOk(x) && priced(x) && S.magic(x))),
+    all.filter(x => x.kind === "magic" && x.src && rkOk(x) && priced(x) && S.magic(x)), key) : [];
   const gearPool = r.shuffle(all.filter(x => x.kind === "gear" && priced(x) && S.gear(x)));
   nMagic = Math.min(nMagic, total, magicPool.length);
   const picks = [...gearPool.slice(0, total - nMagic), ...magicPool.slice(0, nMagic)];
@@ -174,6 +178,16 @@ function shopMake({ type, size, level, seed, ed, rar, amount, moodIx }) {
   }).sort((a, b) => (a.kind === b.kind ? 0 : a.kind === "gear" ? -1 : 1) || a.n.localeCompare(b.n));
   const out = { seed, type, size, level: lv, ed, name: `The ${r.pick(SHOP_ADJ)} ${r.pick(S.nouns)}`, label: S.label, keeper: fullName(r, r.pick(["male", "female"])), mood: mood[0], stock };
   out.moodIx = SHOP_MOODS.indexOf(mood); if (rarOn) out.rar = rar.slice(); if (amtOn) out.amount = amount;
+  return out;
+}
+/* The extra books' magic items (2026-11-20) join a shop's magic pool through their own random stream, so a seed from
+   before them still gives the same shop: r draws exactly what it drew then (SRD items only), and the extras are mixed in
+   by a second stream, each slot taking an extra in proportion to how many there are. */
+function shopMagicMix(srd, extra, key) {
+  if (!extra.length) return srd;
+  const rx = makeRng(...key, "extra"), X = rx.shuffle(extra), share = X.length / (X.length + srd.length), out = [];
+  let i = 0, j = 0;
+  while (i < srd.length || j < X.length) out.push(j < X.length && (i >= srd.length || rx.f() < share) ? X[j++] : srd[i++]);
   return out;
 }
 function shopLevelGuess() { const lv = PCS.roster.map(c => totalLv(c)).filter(Boolean); return lv.length ? Math.max(...lv) : 3; }
@@ -247,7 +261,7 @@ $("#itShop").addEventListener("click", async e => {
   if (c && JSON.stringify(c.coins || {}) !== before) { x.qty--; shopSave(); shopRender(); }
 });
 /* Phones fold the Items filters behind a Filters button, as the Spells tab does. */
-function itFiltersSync() { const b = document.getElementById("itFiltersBtn"); if (!b) return; const n = ["itGroup", "itMType", "itAtt", "itMax"].filter(id => (document.getElementById(id) || {}).value).length + document.querySelectorAll("#itRar .chip.on").length + (IT.mode && IT.mode !== "all" ? 1 : 0), open = $("#itForm").classList.contains("filters-open"); b.textContent = `${open ? "▴" : "▾"} Filters${n ? ` · ${n} on` : ""}`; b.setAttribute("aria-expanded", String(open)); }
+function itFiltersSync() { const b = document.getElementById("itFiltersBtn"); if (!b) return; const n = ["itGroup", "itMType", "itAtt", "itMax", "itBook"].filter(id => (document.getElementById(id) || {}).value).length + document.querySelectorAll("#itRar .chip.on").length + (IT.mode && IT.mode !== "all" ? 1 : 0), open = $("#itForm").classList.contains("filters-open"); b.textContent = `${open ? "▴" : "▾"} Filters${n ? ` · ${n} on` : ""}`; b.setAttribute("aria-expanded", String(open)); }
 $("#itFiltersBtn").addEventListener("click", () => { $("#itForm").classList.toggle("filters-open"); itFiltersSync(); });
 function renderItems() {
   itLoad(); renderItTargets(); itFiltersSync();
@@ -255,7 +269,7 @@ function renderItems() {
   $("#itGearF").classList.toggle("hidden", IT.mode === "magic" || IT.mode === "custom");
   $("#itMagicF").classList.toggle("hidden", IT.mode === "gear");
   const list = itFiltered();
-  const label = { all: IT.ed === "2024" ? "2024 (SRD 5.2) and custom" : "2014 (SRD 5.1) and custom", gear: IT.ed === "2024" ? "2024 standard" : "2014 standard", magic: IT.ed === "2024" ? "2024 magic" : "2014 magic", custom: "custom" }[IT.mode];
+  const label = { all: IT.ed === "2024" ? "2024 (SRD 5.2, extra books and custom)" : "2014 (SRD 5.1, extra books and custom)", gear: IT.ed === "2024" ? "2024 standard" : "2014 standard", magic: IT.ed === "2024" ? "2024 magic" : "2014 magic", custom: "custom" }[IT.mode];
   $("#itCount").innerHTML = `Showing <b>${list.length}</b> ${label} items`;
   if (!list.length) {
     $("#itList").innerHTML = IT.mode === "custom" && !IT.custom.length ? `<div class="card empty"><h2>No custom items yet</h2><p>Press “Create custom item” to build one. Its rarity and price are worked out as you add properties.</p></div>` : `<div class="card empty"><h2>No items found</h2><p>Loosen a filter or clear them all.</p></div>`;
@@ -299,13 +313,13 @@ function itGive(x, quiet) {
   c.inv = c.inv || [];
   const ex = c.inv.find(i => i.ref === x.id);
   if (ex) ex.qty = (+ex.qty || 1) + 1;
-  else c.inv.push({ id: uid("i"), ref: x.id, n: x.n, qty: 1, w: x.w || 0, att: !!x.att, attuned: false, value: x.c, note: x.kind === "gear" ? "" : `${rarName(x)} ${String(x.cat).toLowerCase()}` });
+  else c.inv.push({ id: uid("i"), ref: x.id, itemRules: inventoryRulesSnapshot(x), n: x.n, qty: 1, w: x.w || 0, att: !!x.att, attuned: false, value: x.c, note: x.kind === "gear" ? "" : `${rarName(x)} ${String(x.cat).toLowerCase()}` });
   pcPersist(); if (!quiet) toast(`${x.n} given to ${c.name}`);
 }
 function itLoot(x) {
   const c = Store.get($("#itCamp").value); if (!c) { toast("Create a campaign first (Campaign Tracker)"); return; }
   c.loot = c.loot || [];
-  c.loot.unshift({ id: uid("l"), item: x.n, holder: "", value: x.c, notes: `${itTypeLine(x)}. ${String(x.d || "").replace(/\*\*/g, "").slice(0, 700)}` });
+  c.loot.unshift({ id: uid("l"), item: x.n, ref: x.id, itemRules: inventoryRulesSnapshot(x), holder: "", value: x.c, notes: `${itTypeLine(x)}. ${String(x.d || "").replace(/\*\*/g, "").slice(0, 700)}` });
   Store.save(c); toast(`${x.n} added to “${c.name}” loot`);
 }
 function itCardHTML(x) {
@@ -582,7 +596,7 @@ function ciSave(card) {
   });
   $("#itRar").addEventListener("click", e => { const c = e.target.closest(".chip"); if (!c) return; const r = +c.dataset.r; IT.rar.has(r) ? IT.rar.delete(r) : IT.rar.add(r); c.classList.toggle("on"); renderItems(); });
   $("#itReset").addEventListener("click", () => {
-    ["#itQ", "#itGroup", "#itMType", "#itAtt", "#itMax"].forEach(id => $(id).value = ""); $("#itInDesc").checked = false; $("#itSort").value = "name";
+    ["#itQ", "#itGroup", "#itMType", "#itAtt", "#itMax", "#itBook"].forEach(id => $(id).value = ""); $("#itInDesc").checked = false; $("#itSort").value = "name";
     IT.rar.clear(); $$("#itRar .chip").forEach(c => c.classList.remove("on"));
     IT.mode = "all"; const all = $("input[name=itMode][value=all]"); if (all) all.checked = true; renderItems();
   });

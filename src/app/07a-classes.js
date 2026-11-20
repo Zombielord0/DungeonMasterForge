@@ -513,7 +513,10 @@ function pcSubNumbers(c) {
   return JSON.stringify([c.hp, c.hpCur, c.speed, c.saves, c.ac, c.acSrc]) !== before;
 }
 const subAblKey = n => "sub:" + n.toLowerCase().replace(/[^a-z]+/g, "-");
-const subclassList = (ed, cls) => [...(((SUBCLASSES[ed] || SUBCLASSES["2014"])[cls]) || []), ...hbOf("subclass").filter(x => x.cls === cls && hbEdOk(x, ed)).map(x => [x.name, x.desc || "", true])];
+/* [name, description, not built in (random picks skip it), book code] */
+const subclassList = (ed, cls) => { const L = [...(((SUBCLASSES[ed] || SUBCLASSES["2014"])[cls]) || []), ...hbOf("subclass").filter(x => x.cls === cls && hbEdOk(x, ed)).map(x => [x.name, x.desc || "", true])];
+  hbBook("subclass").filter(x => x.cls === cls && hbEdOk(x, ed) && !L.some(y => y[0] === x.name)).forEach(x => L.push([x.name, x.desc || "", true, x.src]));
+  return L; };
 const subclassLevel = (ed, cls) => CLASS_DATA[cls] && CLASS_DATA[cls].hb ? CLASS_DATA[cls].sub[1] : ed === "2024" ? 3 : (CLASS_DATA[cls] ? CLASS_DATA[cls].sub[1] : 3);
 /* the classes a rules set offers: the built-ins plus the campaign's homebrew classes (not ones waiting for the DM) */
 const classList = ed => Object.keys(CLASS_DATA).filter(k => { const C = CLASS_DATA[k]; return !C.pend && (!C.hb || hbEdOk(C.hbx, ed)); });

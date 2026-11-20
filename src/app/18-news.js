@@ -2,6 +2,24 @@
    When a change ships, add an entry to the top of NEWS with a new id, in plain words for players and DMs. */
 
 const NEWS = [
+  { id: "2026-11-20-character-references", date: "2026-11-20", title: "Plan your next levels and inspect your gear", go: "roster", items: [
+    "Choosing a class, species, or background opens its details right away. See level 1–20 progression, compare subclasses from books and homebrew, or review lineage choices and background benefits.",
+    "Open Item details from your inventory to see weapon dice, attunement, and magic effects. Equipped magic item effects appear under Features & Traits."] },
+  { id: "2026-11-20-bulk-import", date: "2026-11-20", title: "Bulk import for DMs", go: "homebrew", items: [
+    "Homebrew → 📥 Bulk import from a file adds many spells, feats, species, backgrounds, subclasses, magic items or monsters at once, for example from books you own.",
+    "Download a template for each kind, fill it in with Excel or Google Sheets, save it as CSV and choose it. Before anything is added you see what's new, what the Forge already has, and any problems.",
+    "Spells, feats, species, backgrounds and subclasses become your homebrew, so your players can pick them. Magic items go to Items → Custom and monsters (paste the whole stat block) to My monsters."] },
+  { id: "2026-11-20-book-options", date: "2026-11-20", title: "New species, subclasses, feats and backgrounds", go: "roster", items: [
+    "Characters can now choose from 11 more species (with their subraces) from Kobold Press's Tome of Heroes: Alseid, Catfolk, Darakhul, Derro, Drow, Erina, Gearforged, Minotaur, Mushroomfolk, Satarre and Shade.",
+    "97 more subclasses for the usual classes, from Tome of Heroes, the Tal'Dorei Campaign Setting and Open5e, like the Ancient Dragons patron, Circle of Bees and the Way of the Tipsy Monkey. Their features arrive at the right levels with their full text.",
+    "14 more feats and 25 more backgrounds. Each shows the book it comes from.",
+    "Random characters still use only the official rules, so characters you already have level up exactly as before."] },
+  { id: "2026-11-20-extra-books", date: "2026-11-20", title: "About 3,700 more monsters, spells and magic items", go: "monsters", items: [
+    "The Monster Manual has about 1,700 more monsters from Kobold Press's open-licensed books: Tome of Beasts 1, 2 and 3, Creature Codex and Black Flag.",
+    "Spells has about 900 more, from Deep Magic, Tome of Heroes and other Kobold Press books, plus Spells That Don't Suck. Characters can prepare them like any other spell.",
+    "Items has about 1,000 more magic items from Vault of Magic.",
+    "Each one shows its book's name, and a new Book filter in each list can show just one book, or just the official rules.",
+    "They also turn up in random encounters, shops, treasure hoards and Wild Shape. Each place now has many more creatures to roll."] },
   { id: "2026-11-19-requests", date: "2026-11-19", title: "Ask for a feature", go: "requests", items: [
     "There's a new Requests tab. Signed-in players and DMs can ask for something new, a change, or a fix.",
     "Tell us what you're trying to do and how you'd like it to work. A screenshot (marked up if you can) makes it much more likely to be approved.",

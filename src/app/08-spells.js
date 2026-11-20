@@ -32,6 +32,7 @@ function spLoad() {
   fillSel("#spClass", [...new Set(all.flatMap(s => s.c))].sort());
   fillSel("#spSchool", [...new Set(all.map(s => s.s))].sort());
   fillSel("#spDmg", [...new Set(all.map(s => s.dt).filter(Boolean))].sort());
+  $("#spBook").innerHTML = bookOptions(all);
 }
 const FAV_KEY = "dmforge.favspells";
 let favs = new Set(); try { favs = new Set(JSON.parse(localStorage.getItem(FAV_KEY) || "[]")); } catch { }
@@ -41,13 +42,13 @@ function toggleFav(s) { const k = favKey(s); favs.has(k) ? favs.delete(k) : favs
 function spFiltered() {
   const q = $("#spQ").value.trim().toLowerCase(), inD = $("#spInDesc").checked;
   const cls = $("#spClass").value, sch = $("#spSchool").value, tm = $("#spTime").value, conc = $("#spConc").value;
-  const dmg = $("#spDmg").value, sv = $("#spSave").value, rit = $("#spRitual").checked, noM = $("#spNoM").checked, fav = $("#spFav").checked;
+  const dmg = $("#spDmg").value, sv = $("#spSave").value, book = $("#spBook").value, rit = $("#spRitual").checked, noM = $("#spNoM").checked, fav = $("#spFav").checked;
   const words = q.split(/\s+/).filter(Boolean);
   let list = SP.data[SP.ed].filter(s => !s.pend &&
     (!words.length || words.every(w => (inD ? s.hayD : s.hay).includes(w))) &&
     (!SP.levels.size || SP.levels.has(s.l)) && (!cls || s.c.includes(cls)) && (!sch || s.s === sch) &&
     (!tm || s.tc === tm) && (conc === "" || s.co === +conc) && (!dmg || s.dt === dmg) &&
-    (!sv || (sv === "attack" ? !!s.at : s.save === sv)) && (!rit || s.ri) && (!noM || !s.cp.includes("M")) && (!fav || favs.has(favKey(s))));
+    (!sv || (sv === "attack" ? !!s.at : s.save === sv)) && (!rit || s.ri) && (!noM || !s.cp.includes("M")) && (!fav || favs.has(favKey(s))) && bookOk(s, book));
   const byName = (a, b) => a.n.localeCompare(b.n);
   list.sort($("#spSort").value === "name" ? byName : (a, b) => a.l - b.l || byName(a, b));
   return list;
@@ -75,6 +76,7 @@ function spDetail(s) {
     <div class="sp-stats"><div><span>Casting time</span>${esc(s.t)}${s.ri ? " or ritual" : ""}</div><div><span>Range</span>${esc(s.r)}</div><div><span>Components</span>${esc(comps)}</div><div><span>Duration</span>${s.co && !/concentration/i.test(s.du) ? "Concentration, " : ""}${esc(s.du)}</div></div>
     ${spFormat(s.d)}
     ${s.h ? `<p><b><i>${SP.ed === "2024" ? "Using a Higher-Level Spell Slot." : "At Higher Levels."}</i></b> ${spFormat(s.h).replace(/^<p>|<\/p>$/g, "")}</p>` : ""}
+    ${bookLine(s)}
     <div class="actions"><button class="btn sm" data-sp="copy" data-id="${s.id}">Copy spell</button><button class="btn sm" data-sp="fav" data-id="${s.id}">${favs.has(favKey(s)) ? "★ Remove favorite" : "☆ Add favorite"}</button>${spPrepBtn(s)}</div>
   </div>`;
 }
@@ -87,7 +89,7 @@ function spRow(s) {
       <span class="sp-meta">${esc(s.s)}</span>
       <span class="sp-meta hide-sm">${esc(s.ts.length > 22 ? s.tc + "*" : s.ts)}</span>
       <span class="sp-meta hide-sm">${esc(s.r)}</span>
-      <span class="sp-tags">${s.hb ? `<span class="tag gold" title="Homebrew spell">Homebrew</span>` : ""}${s.co ? `<span class="tag" title="Concentration">C</span>` : ""}${s.ri ? `<span class="tag" title="Ritual">R</span>` : ""}${s.dt ? `<span class="tag hide-sm">${esc(s.dt)}</span>` : ""}${spTargetPC() && isPrep(spTargetPC(), s.n, SP.ed) ? `<span class="tag gold" title="Prepared for ${esc(spTargetPC().name)}">✦</span>` : ""}</span>
+      <span class="sp-tags">${s.hb ? `<span class="tag gold" title="Homebrew spell">Homebrew</span>` : ""}${bookTag(s)}${s.co ? `<span class="tag" title="Concentration">C</span>` : ""}${s.ri ? `<span class="tag" title="Ritual">R</span>` : ""}${s.dt ? `<span class="tag hide-sm">${esc(s.dt)}</span>` : ""}${spTargetPC() && isPrep(spTargetPC(), s.n, SP.ed) ? `<span class="tag gold" title="Prepared for ${esc(spTargetPC().name)}">✦</span>` : ""}</span>
     </div>
     ${open ? spDetail(s) : ""}
   </div>`;
@@ -95,7 +97,7 @@ function spRow(s) {
 function renderSpells() {
   spLoad(); renderSpTargets();
   const list = spFiltered(), total = SP.data[SP.ed].length;
-  $("#spCount").innerHTML = `Showing <b>${list.length}</b> of ${total} ${SP.ed === "2024" ? "2024 (SRD 5.2)" : "2014 (SRD 5.1)"} spells`;
+  $("#spCount").innerHTML = `Showing <b>${list.length}</b> of ${total} ${SP.ed} spells (SRD ${SP.ed === "2024" ? "5.2" : "5.1"} and extra books)`;
   if (!list.length) { $("#spList").innerHTML = `<div class="card empty"><h2>No spells found</h2><p>Loosen a filter or clear them all.</p></div>`; return; }
   let h = "", last = null;
   const byLevel = $("#spSort").value === "level";
@@ -116,7 +118,7 @@ const spRerender = () => { clearTimeout(spTimer); spTimer = setTimeout(renderSpe
   $("#spForm").addEventListener("input", e => { if (e.target.name === "spEd") { SP.ed = e.target.value; SP.open.clear(); } spRerender(); });
   $("#spLevels").addEventListener("click", e => { const c = e.target.closest(".chip"); if (!c) return; const l = +c.dataset.l; SP.levels.has(l) ? SP.levels.delete(l) : SP.levels.add(l); c.classList.toggle("on"); renderSpells(); });
   $("#spReset").addEventListener("click", () => {
-    $("#spQ").value = ""; ["#spClass", "#spSchool", "#spTime", "#spConc", "#spDmg", "#spSave"].forEach(id => $(id).value = "");
+    $("#spQ").value = ""; ["#spClass", "#spSchool", "#spTime", "#spConc", "#spDmg", "#spSave", "#spBook"].forEach(id => $(id).value = "");
     ["#spInDesc", "#spRitual", "#spNoM", "#spFav"].forEach(id => $(id).checked = false);
     SP.levels.clear(); $$("#spLevels .chip").forEach(c => c.classList.remove("on")); renderSpells();
   });

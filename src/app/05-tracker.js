@@ -107,11 +107,11 @@ document.addEventListener("change", e => {
   const t = e.target; if (!t.dataset || !t.dataset.lootgive || !t.value) return;
   const camp = Store.get(activeId), it = camp && (camp.loot || []).find(x => x.id === t.dataset.lootgive), p = PCS.roster.find(x => x.id === t.value);
   if (!it || !p) return;
-  itLoad(); const ref = [...itCustomList(), ...Object.values(IT.data).flat()].find(x => x.n.toLowerCase() === String(it.item || "").toLowerCase());
+  itLoad(); const ref = (it.ref && itFind(it.ref)) || [...itCustomList(), ...IT.data[edOf(p)]].find(x => x.n.toLowerCase() === String(it.item || "").toLowerCase());
   p.inv = p.inv || [];
   const ex = p.inv.find(i => i.n.toLowerCase() === String(it.item || "").toLowerCase());
   if (ex) ex.qty = (+ex.qty || 1) + 1;
-  else p.inv.push({ id: uid("i"), ref: ref ? ref.id : undefined, n: it.item || "Loot", qty: 1, w: ref ? ref.w || 0 : 0, att: !!(ref && ref.att), attuned: false, value: it.value || (ref ? ref.c : ""), note: String(it.notes || "").slice(0, 120) });
+  else p.inv.push({ id: uid("i"), ref: ref ? ref.id : it.ref, itemRules: it.itemRules || inventoryRulesSnapshot(ref), n: it.item || "Loot", qty: 1, w: ref ? ref.w || 0 : 0, att: !!(ref && ref.att), attuned: false, value: it.value || (ref ? ref.c : ""), note: String(it.notes || "").slice(0, 120) });
   it.holder = p.name; it.givenTo = p.name; Store.save(camp); pcPersist();
   toast(`${it.item || "Loot"} given to ${p.name}`); renderTracker();
 });

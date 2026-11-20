@@ -55,6 +55,7 @@ Live site: https://dungeonmasterforge.netlify.app (Netlify; production branch `m
 | `src/app.css` | All the styling. |
 | `src/app/NN-*.js` | The app's code, in numbered files (table below). Vanilla JS with global functions. |
 | `data/spells.json`, `monsters.json`, `items.json` | The built-in rules data (SRD 5.1 and 5.2). |
+| `data/extra-*.json` | The open-licensed extra books (Kobold Press, Spells That Don't Suck): monsters, spells, magic items and their credits. See `docs/features/extra-books.md`. |
 | `tools/build.mjs` | Builds the page into `public/` (see "How the page is built"). |
 | `src/portal.js` | Sign-in, campaigns, shared characters, the Party tab, whispers, homebrew sync. esbuild bundles it into `public/portal.js`. |
 | `src/backdrop/` | The background pictures (`corridor-wide.webp`, `corridor-tall.webp`), fingerprinted by the build. See `docs/features/layout.md`. |
@@ -69,6 +70,7 @@ Live site: https://dungeonmasterforge.netlify.app (Netlify; production branch `m
 | `test/e2e/*.cjs` | One Playwright check per feature (`npm run test:…`). Each starts its own static server for `public/` and needs no database. `server.mjs` serves the app, the API and an in-memory database (`npm run dev`); `fake-identity.js` stands in for Netlify Identity; `walkthrough.cjs` is a sign-in walkthrough. |
 | `test/e2e/fixtures/` | Test files: `companion-zook.json` (a real 5e Companion App character, no personal details), `sheet-wizard.pdf` and `mythweaver-sample.json` (made up). Never commit players' own files or the owner's MythWeaver export: it holds their email. |
 | `tools/convert-srd-monsters.py` | Writes `data/monsters.json` from the Open5e SRD files. Its `FIXES` list corrects mistakes in the SRD source. |
+| `tools/convert-open5e-extras.py` | Writes `data/extra-*.json` from Open5e's open-licensed books. |
 | `tools/make-test-sheet.py` | Writes `test/e2e/fixtures/sheet-wizard.pdf` (needs pypdf). |
 | `tools/test-all.mjs` | `npm run test:all`. |
 | `.github/workflows/checks.yml` | GitHub runs `npm run build` and `npm run test:all` on every pull request (GitHub minutes, not Netlify credits; notes-only pushes skipped). It installs Playwright 1.63 for the run, because `package.json` doesn't list it. |
@@ -101,6 +103,7 @@ Live site: https://dungeonmasterforge.netlify.app (Netlify; production branch `m
 | `11-items-shops.js` | Items tab and shops |
 | `11b-hoard.js` | The treasure hoard generator (`hoardRoll`, `hoardToLoot`): Items tab and the Tracker's Loot tab |
 | `12-level-homebrew-feats.js` | Level up, the Homebrew tab, the Feats tab |
+| `12b-bulk-import.js` | Bulk import (Homebrew tab): CSV or JSON files of spells, feats, species, backgrounds, subclasses, items and monsters; see `docs/features/bulk-import.md` |
 | `13a-gear-ac-speed.js` | My Characters: inventory and attacks (`pcAttacks`), armor training, AC (`pcAC`), speed (`pcSpeed`) |
 | `13b-abilities-rests.js` | Resources (`pcResources`), the Abilities list, activations (`ACT`), their dialogs, rests, Wild Shape |
 | `13c-dice-conditions-casting.js` | Conditions, exhaustion, concentration, death saves, the dice roller and roll dock, casting from the sheet |
@@ -121,13 +124,14 @@ To find a function, search `src/app/` (for example `grep -n "function pcLevelTo"
 - `npm run build:app` (part of `npm run build`, which Netlify runs) writes:
   - `public/assets/app.<fingerprint>.js`: the `src/app/*.js` files joined in order, under one `"use strict"`;
   - `public/assets/app.<fingerprint>.css` from `src/app.css`;
-  - `public/assets/spells|monsters|items.<fingerprint>.js` from `data/*.json` (each sets `DMDATA.<key>` to the JSON as text);
+  - `public/assets/spells|monsters|items.<fingerprint>.js` from `data/*.json` (each sets `DMDATA.<key>` to the JSON as text), and `extra-*.<fingerprint>.js` from the extra books;
+  - `public/credits.html` (the extra books' credits and licences) from `data/extra-books.json`;
   - `public/index.html` from `src/index.html`, and `public/sw.js` from `src/sw.js`, pointing at those names.
 - **These are build output and aren't in git.** Edit `src/` and `data/`. Every `npm run test:…` and `npm run dev` builds first, so tests always run the current code.
 - The fingerprint is a short code made from the file's contents. Netlify serves `/assets/*` with a one-year cache, and the service worker keeps those files without asking the server again, so repeat visits only fetch the small page. When a file changes, its name changes, so updates still show at once.
 - The build checks the joined code for syntax errors first and names the file and line, so a typo can't blank the page.
 - **The code files are plain scripts sharing one global scope**, as when they were one `<script>`: a function or top-level `const` in one file can be used from any other. Order matters only for code that runs at start-up; `14-boot.js` starts the app, before 15 to 18 have run their own start-up lines.
-- **Rules data:** `dmData("spellData" | "monsterData" | "itemData")` parses each set once and shares it. `spLoad`, `bsLoad` and `itLoad` add their own fields on top. The Monster Manual, random encounters and MythWeaver import share one monster list.
+- **Rules data:** `dmData("spellData" | "monsterData" | "itemData")` parses each set once and shares it, with the extra books joined to the end of both editions' lists (entries with `src`). `spLoad`, `bsLoad` and `itLoad` add their own fields on top. The Monster Manual, random encounters and MythWeaver import share one monster list.
 - To change the rules data, edit `data/*.json` (or re-run `tools/convert-srd-monsters.py`, which writes `data/monsters.json`).
 
 ## Commands
@@ -142,7 +146,7 @@ npm run build     # build the page and bundle the portal (what Netlify runs)
 npm run build:app # build the page only
 ```
 
-One check per feature (Playwright, any OS): `test:assets` (fingerprinted files, repeat visits, offline), `test:map`, `test:backup`, `test:tv`, `test:mapvis`, `test:mapio`, `test:shop`, `test:random`, `test:cards`, `test:mapenc`, `test:calendar`, `test:recap`, `test:sheet` (432 sheets vs the rules), `test:tokens`, `test:npcpic`, `test:hbspell`, `test:hbpend`, `test:import`, `test:layout`, `test:lore`, `test:mythweaver`, `test:campextras`, `test:npclib`, `test:world`, `test:setup` (builds the portal, port 8897), `test:sync` (the DM's data in their account, two devices, port 8896), `test:share` (the players' Journal, turn order on phones, shared rolls; port 8895), `test:hbclass` (homebrew classes), `test:atlas` (World and region maps), `test:polish` (the Adventure, Characters and Items tabs after the 2026-11-18 UI review), `test:cast` (spell bubbles and the spell window), `test:backdrop` (the background pictures and their live torches), `test:lorelink` (Lore items, monsters and encounters filling their tabs; folding lists), `test:chartab` (one Characters tab: forge, drafts, save, reroll, discard, the builder), `test:hoard` (treasure hoards), `test:third` (Eldritch Knight and Arcane Trickster spellcasting), `test:requests` (the Requests tab, port 8894).
+One check per feature (Playwright, any OS): `test:assets` (fingerprinted files, repeat visits, offline), `test:map`, `test:backup`, `test:tv`, `test:mapvis`, `test:mapio`, `test:shop`, `test:random`, `test:cards`, `test:mapenc`, `test:calendar`, `test:recap`, `test:sheet` (432 sheets vs the rules), `test:tokens`, `test:npcpic`, `test:hbspell`, `test:hbpend`, `test:import`, `test:layout`, `test:lore`, `test:mythweaver`, `test:campextras`, `test:npclib`, `test:world`, `test:setup` (builds the portal, port 8897), `test:sync` (the DM's data in their account, two devices, port 8896), `test:share` (the players' Journal, turn order on phones, shared rolls; port 8895), `test:hbclass` (homebrew classes), `test:atlas` (World and region maps), `test:polish` (the Adventure, Characters and Items tabs after the 2026-11-18 UI review), `test:cast` (spell bubbles and the spell window), `test:backdrop` (the background pictures and their live torches), `test:lorelink` (Lore items, monsters and encounters filling their tabs; folding lists), `test:chartab` (one Characters tab: forge, drafts, save, reroll, discard, the builder), `test:hoard` (treasure hoards), `test:third` (Eldritch Knight and Arcane Trickster spellcasting), `test:requests` (the Requests tab, port 8894), `test:extras` (the extra books), `test:bulk` (bulk import).
 
 Playwright and Chromium are pre-installed in cloud sessions. To test offline mode (no sign-in screen), run `localStorage.setItem('dmforge.offline','1')` in an init script.
 
@@ -161,6 +165,8 @@ Playwright and Chromium are pre-installed in cloud sessions. To test offline mod
 | `docs/features/world-maps.md` | World and region maps: data (`place.atlas`, `W.atlas`, `place.found`), pins, the map view, import, the TV. |
 | `docs/features/layout.md` | Phone and laptop layout, and the background picture. |
 | `docs/features/requests.md` | The Requests tab: feature requests, the owner setting (`FORGE_OWNER_EMAILS`), the API. |
+| `docs/features/extra-books.md` | The extra books: their files, how they join the lists, the Book filter, licences and the credits page. |
+| `docs/features/bulk-import.md` | Bulk import: file formats, the templates, what each kind becomes. |
 | `docs/features/accounts.md` | The DM setup screen, renaming a campaign, and **the DM's data saved to their account** (`Cloud`, `/api/me/docs`). |
 
 **Most important rules from those notes:**
@@ -207,7 +213,7 @@ Playwright and Chromium are pre-installed in cloud sessions. To test offline mod
   - Netlify skips builds for notes-only pushes (`tools/netlify-skip.mjs`).
   - **The DM's Tracker, World, NPCs, custom items and monsters saved to their account** (`Cloud`, `/api/me/docs`, `npm run test:sync`).
   - Later the same day, in the same PR: the players' Journal, turn order on phones and shared rolls; homebrew classes; **World and region maps** (`06b-atlas.js`, `npm run test:atlas`).
-  - The page went from 829 KB to about 14 KB compressed on repeat visits when nothing changed. The code (about 360 KB compressed) and the data (about 440 KB) are downloaded again only when they change.
+  - The page went from 829 KB to about 14 KB compressed on repeat visits when nothing changed. The code (about 360 KB compressed) and the data (about 440 KB, plus about 1.1 MB for the extra books since 2026-11-20) are downloaded again only when they change.
 - **PRs 10 to 13 were merged to `main`** at the owner's request (11 on 2026-11-18; 12 and 13 later the same day):
   - **PR 11:**
     - shops made in the World builder (rarity, stock size, manner, markup, own prices, sold stays sold, Restock; `docs/features/dm-tools.md`);
@@ -254,6 +260,7 @@ Playwright and Chromium are pre-installed in cloud sessions. To test offline mod
   - **Fixed 2026-11-19:** the clash dialog's Keep mine always failed (the API crashed on a missing `baseVersion`).
   - **Tests:** `test:map`'s "TV shows the box-hidden entrance as fog" fails about one run in three, on `main` too (a timing problem).
   - **Tests:** `test:atlas` also fails now and then when the machine is busy and passes on `test:all`'s retry (seen several times on 2026-11-19, before and after the page guard).
+- **Extra books (2026-11-20, branch `ccr-e270467c-w9cy1p`):** the owner asked to scrape 5e.tools; declined, because it carries Wizards of the Coast's paid books (owning them doesn't allow republishing). **Never add non-SRD Wizards content to the site's data.** The owner chose the free open-licensed extras instead: 1,695 monsters, 920 spells and 1,062 magic items, in every list and in random encounters, shops, hoards and spell choices; then 11 species, 97 subclasses, 14 feats and 25 backgrounds as built-in homebrew-shaped entries (`hbBook`; `docs/features/extra-books.md`); and **bulk import** for DMs' own content (`12b-bulk-import.js`, `docs/features/bulk-import.md`). Not done yet: the Adventure and Dungeon Map generators using the full monster list (needs care: saved maps are rebuilt from their seed).
 - **Ideas not yet done:** pictures in account saves (they're in backups now).
 
 ## Gotchas found along the way

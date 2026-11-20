@@ -41,10 +41,13 @@
     "test:atlas": "node tools/build.mjs --quiet && node test/e2e/atlas.cjs",
     "test:backdrop": "node tools/build.mjs --quiet && node test/e2e/backdrop.cjs",
     "test:lorelink": "node tools/build.mjs --quiet && node test/e2e/lore-link.cjs",
+    "test:character-reference": "node tools/build.mjs --quiet && node test/e2e/character-reference.cjs",
     "test:chartab": "node tools/build.mjs --quiet && node test/e2e/characters-tab.cjs",
     "test:hoard": "node tools/build.mjs --quiet && node test/e2e/hoard.cjs",
     "test:third": "node tools/build.mjs --quiet && node test/e2e/third-casters.cjs",
-    "test:requests": "node tools/build.mjs --quiet && node test/e2e/requests.cjs"
+    "test:requests": "node tools/build.mjs --quiet && node test/e2e/requests.cjs",
+    "test:extras": "node tools/build.mjs --quiet && node test/e2e/extras.cjs",
+    "test:bulk": "node tools/build.mjs --quiet && node test/e2e/bulk-import.cjs"
   },
   "dependencies": {
     "@netlify/database": "^2.0.3",

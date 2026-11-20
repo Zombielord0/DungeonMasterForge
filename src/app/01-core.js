@@ -1,12 +1,50 @@
 /* 01-core.js: Shared basics: the rules data loader (dmData), utilities ($, esc, toast), seeded random numbers, encounter maths and the content tables. */
 
 /* The built-in rules data (spells, monsters, items), turned into objects the first time something needs it and shared after that.
-   The text comes from the /data/*.js files above (tools/build-data.mjs); it is dropped once read, to save memory. */
+   The text comes from the /assets/*.js files (tools/build.mjs); it is dropped once read, to save memory.
+   The open-licensed extra books (data/extra-*.json, tools/convert-open5e-extras.py) join the end of each edition's list,
+   after the SRD entries, so the SRD entries keep their ids. They are written for the 2014 rules and work in both, so
+   each edition gets its own copy (the tabs add their own fields to each one). Each extra entry has src, its book's code. */
 const DM_DATA = {};
+const DM_EXTRA = { spellData: "spellExtra", monsterData: "monsterExtra", itemData: "itemExtra" };
 function dmData(key) {
-  if (!DM_DATA[key]) { DM_DATA[key] = JSON.parse(window.DMDATA[key]); delete window.DMDATA[key]; }
+  if (!DM_DATA[key]) {
+    const d = JSON.parse(window.DMDATA[key]); delete window.DMDATA[key];
+    const xk = DM_EXTRA[key], text = xk && window.DMDATA[xk];
+    if (text) {
+      delete window.DMDATA[xk];
+      for (const ed of ["2014", "2024"]) {
+        const L = JSON.parse(text);
+        if (key === "spellData") d[ed].push(...(ed === "2024" ? L.map(dmSpell2024) : L));
+        else if (key === "monsterData") d[ed].push(...L);
+        else d[ed].mi.push(...L);
+      }
+    }
+    DM_DATA[key] = d;
+  }
   return DM_DATA[key];
 }
+/* 2024 wording for a spell written the 2014 way ("1 action" → "Action") */
+function dmSpell2024(s) {
+  s.t = s.t.replace(/^1 (action|bonus action|reaction)/, (_, a) => a.replace(/\b\w/g, c => c.toUpperCase()));
+  s.du = s.du.replace(/^Up to/, "up to");
+  return s;
+}
+/* The extra books: dmBook(code) → { name, short, by, lic, url }, or null for SRD entries */
+function dmBook(code) {
+  if (!code) return null;
+  if (!DM_DATA.bookData) { try { DM_DATA.bookData = JSON.parse(window.DMDATA.bookData).books; } catch { DM_DATA.bookData = {}; } }
+  return DM_DATA.bookData[code] || { name: code, short: code, by: "another publisher" };
+}
+/* the small tag on a list row, and the "Source" line in its details */
+const bookTag = x => { const b = dmBook(x && x.src); return b ? `<span class="tag book hide-sm" title="${esc(b.name)}">${esc(b.short)}</span>` : ""; };
+const bookLine = x => { const b = dmBook(x && x.src); return b ? `<p class="hint book-line">Source: <i>${esc(b.name)}</i> (${esc(b.by)}), open content. <a href="/credits.html" target="_blank" rel="noopener">Credits and licences</a></p>` : ""; };
+/* The Book filter's choices for a list: Any, the SRD, then each extra book in it. Its values: "", "srd" or a book code. */
+function bookOptions(list) {
+  const codes = [...new Set(list.map(x => x.src).filter(Boolean))].sort((a, b) => dmBook(a).name.localeCompare(dmBook(b).name));
+  return `<option value="">Any</option><option value="srd">Official rules (SRD)</option>` + codes.map(c => `<option value="${esc(c)}">${esc(dmBook(c).name)}</option>`).join("");
+}
+const bookOk = (x, v) => !v || (v === "srd" ? !x.src && !x.hb && x.kind !== "custom" : x.src === v);
 /* ======================= Utilities ======================= */
 const $ = (s, r = document) => r.querySelector(s);
 const $$ = (s, r = document) => [...r.querySelectorAll(s)];

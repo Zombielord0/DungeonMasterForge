@@ -41,6 +41,10 @@ function rosterHTML(c) {
       <label>Experience<input type="number" min="0" data-rf="xp" value="${esc(c.xp ?? "")}" placeholder="XP"></label>
     </div>
     ${lvBarHTML(c)}
+    <div class="actions">
+      ${[c, ...(c.multi || [])].filter(x => Object.hasOwn(CLASS_DATA, x.cls)).map(x => progressionButton(edOf(c), "class", x.cls, x.subclass || "", x.cls + " progression")).join("")}
+      ${Object.hasOwn(PC_RACES[edOf(c)], c.race) ? progressionButton(edOf(c), "species", c.race, c.sub || c.ancestry || "", "Species progression") : ""}
+    </div>
     ${hbRejectedHTML(c)}${hbStale(c) ? `<div class="lv-bar"><span class="lv-need">⚠ Homebrew this character uses has changed.</span><button class="btn sm" type="button" data-hbupdate="${esc(c.id)}" title="Rebuilds the numbers from the homebrew; current HP, notes, inventory and spells stay">Update sheet</button></div>` : ""}
     <p class="hint">Changes save automatically. Level up, or changing the level, rebuilds hit points, proficiency, features, spell slots and ability scores for the new level; your notes, inventory and spells stay.</p>
     <div class="pc-actions"><select class="campSelect" id="rcCamp" aria-label="Campaign"></select><button class="btn primary sm" type="button" data-ra="camp">+ Add to campaign party</button></div>
@@ -76,15 +80,15 @@ function rosterHTML(c) {
     <div class="row rc-coins">${["cp", "sp", "ep", "gp", "pp"].map(k => `<label>${k.toUpperCase()}<input type="number" min="0" data-rcoin="${k}" value="${+c.coins[k] || 0}"></label>`).join("")}</div>
     ${c.inv.length ? `<table class="foes rc-inv"><thead><tr><th>Qty</th><th>Item</th><th>Notes</th><th>Equip</th><th>Attuned</th><th></th></tr></thead><tbody>${c.inv.map(i => `<tr>
       <td><input type="number" min="0" data-rinv="qty" data-iid="${esc(i.id)}" value="${esc(i.qty)}" style="width:64px" aria-label="Quantity"></td>
-      <td><input type="text" data-rinv="n" data-iid="${esc(i.id)}" value="${esc(i.n)}" placeholder="Item name" aria-label="Item"></td>
+      <td><input type="text" data-rinv="n" data-iid="${esc(i.id)}" value="${esc(i.n)}" placeholder="Item name" aria-label="Item">${inventoryDetailsButton(i)}</td>
       <td><input type="text" data-rinv="note" data-iid="${esc(i.id)}" value="${esc(i.note || "")}" placeholder="Notes" aria-label="Notes"></td>
       <td><input type="checkbox" data-rinv="eq" data-iid="${esc(i.id)}" ${i.eq ? "checked" : ""} aria-label="Equip ${esc(i.n)}"></td>
-      <td>${i.att ? `<input type="checkbox" data-rinv="attuned" data-iid="${esc(i.id)}" ${i.attuned ? "checked" : ""} aria-label="Attuned">` : `<span class="muted">—</span>`}</td>
+      <td data-attunement-cell>${inventoryAttunementControl(i, edOf(c))}</td>
       <td><button class="icon-btn" type="button" data-rdel="${esc(i.id)}" title="Remove">✕</button></td></tr>`).join("")}</tbody></table>` : `<p class="muted">Nothing carried yet. Add items here, or give them from the Items tab.</p>`}
     <p class="hint">Attuned to <b class="${attN > 3 ? "over" : ""}">${attN} / 3</b> magic items · ${(() => { const LD = pcLoad(c); return `carrying <b class="${LD.lb > LD.cap ? "over" : ""}">${LD.lb} lb</b> of ${LD.cap} lb${LD.lb > LD.cap ? " — over your carrying capacity: speed 5 ft" : LD.variant && LD.lb > LD.heavy ? " — heavily encumbered" : LD.variant && LD.lb > LD.enc ? " — encumbered" : ""}`; })()}.</p>
     ${edOf(c) === "2014" ? `<label style="display:flex;gap:8px;align-items:center;font-size:14px"><input type="checkbox" data-varenc ${c.varEnc ? "checked" : ""}> Use variant encumbrance (−10 ft over ${pcLoad(c).enc} lb, −20 ft and disadvantage over ${pcLoad(c).heavy} lb)</label>` : ""}</div>
   <div class="grid2 rc-two" style="margin-top:0">
-    <div class="sec"><div class="sec-h"><h3>Features & Traits</h3></div>${featuresListHTML(c, true)}
+    <div class="sec"><div class="sec-h"><h3>Features & Traits</h3></div>${featuresListHTML(c, true)}<div id="rcItemFeatures">${inventoryEffectsHTML(c)}</div>
       <textarea data-rf="featNotes" placeholder="Extra features, feats, boons…" style="margin-top:8px">${esc(c.featNotes || "")}</textarea></div>
     <div class="sec"><div class="sec-h"><h3>Equipped Items</h3></div><div id="rcEquipped">${rcEquippedHTML(c)}</div><div id="rcACLine">${rcACLine(c)}</div></div>
   </div>
@@ -110,7 +114,7 @@ document.addEventListener("keydown", e => { const a = e.target.closest && e.targ
 // how many Spells filters are on (shown on the phone's Filters button)
 function spFilterCount() {
   const f = document.getElementById("spForm"); if (!f) return 0;
-  return ["spClass", "spSchool", "spTime", "spConc", "spDmg", "spSave"].filter(id => (document.getElementById(id) || {}).value).length
+  return ["spClass", "spSchool", "spTime", "spConc", "spDmg", "spSave", "spBook"].filter(id => (document.getElementById(id) || {}).value).length
     + f.querySelectorAll("#spLevels .chip.on").length + ["spRitual", "spNoM", "spFav"].filter(id => (document.getElementById(id) || {}).checked).length;
 }
 function spFiltersSync() { const b = document.getElementById("spFiltersBtn"); if (!b) return; const n = spFilterCount(), open = document.getElementById("spForm").classList.contains("filters-open"); b.textContent = `${open ? "▴" : "▾"} Filters${n ? ` · ${n} on` : ""}`; b.setAttribute("aria-expanded", String(open)); }
@@ -202,7 +206,20 @@ spFiltersSync();
       i[f] = f === "attuned" || f === "eq" ? t.checked : f === "qty" ? Math.max(0, +t.value || 0) : t.value;
       c.attacks = pcAttacks(c); pcACApply(c); pcPersist();
       if (f === "attuned" || f === "eq") renderRosterMain();
-      else { $("#rcAtk").innerHTML = rcAttacksHTML(c); $("#rcEquipped").innerHTML = rcEquippedHTML(c); $("#rcACLine").innerHTML = rcACLine(c); $("#rcSpeedLine").innerHTML = rcSpeedLine(c); const a = $('[data-rf="ac"]', main); if (a && !c.acManual) a.value = c.ac; const sp = $('[data-rf="speed"]', main); if (sp && !c.speedManual) sp.value = c.speed; }
+      else {
+        if (f === "n") {
+          const row = t.closest("tr");
+          $("[data-attunement-cell]", row).innerHTML = inventoryAttunementControl(i, edOf(c));
+          $("[data-item-details]", row).setAttribute("aria-label", i.n ? "Item details for " + i.n : "Item details");
+          $('[data-rinv="eq"]', row).setAttribute("aria-label", "Equip " + i.n);
+        }
+        const saveBonus = itemSaveBonus(c);
+        AB.forEach(a => {
+          const trained = c.saves.includes(a), bonus = c.mods[a] + (trained ? c.prof : 0) + saveBonus;
+          $(`[data-roll="save:${a}"]`, main).innerHTML = `save ${sgn(bonus)}${trained ? " ●" : ""}${rollMark(c, "save", a)}`;
+        });
+        $("#rcItemFeatures").innerHTML = inventoryEffectsHTML(c); $("#rcAtk").innerHTML = rcAttacksHTML(c); $("#rcEquipped").innerHTML = rcEquippedHTML(c); $("#rcACLine").innerHTML = rcACLine(c); $("#rcSpeedLine").innerHTML = rcSpeedLine(c); const a = $('[data-rf="ac"]', main); if (a && !c.acManual) a.value = c.ac; const sp = $('[data-rf="speed"]', main); if (sp && !c.speedManual) sp.value = c.speed;
+      }
     }
   });
   main.addEventListener("change", e => {

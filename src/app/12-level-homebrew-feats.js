@@ -84,7 +84,7 @@ function lvFeatHTML(c) {
   const A = LV.asi;
   if (!A.feat) return `<button class="btn primary" type="button" data-featopen>✦ Choose a feat…</button>`;
   const F = featInfo(edOf(c), A.feat), max = F && F[4] === "b" ? 30 : 20, abs = featAbs(F), open = abs.filter(a => LV.cur[a] + 1 <= max);
-  return `<div class="pick on feat-chosen"><b>${esc(A.feat)}</b>${F && F[5] ? ` <span class="tag gold">Homebrew</span>` : F && F[4] ? ` <span class="tag">${FEAT_GROUPS[F[4]]}</span>` : ""}<small>${esc(F ? F[3] : "Your own feat — note its details under Features after levelling up.")}</small></div>
+  return `<div class="pick on feat-chosen"><b>${esc(A.feat)}</b>${F && F[5] ? ` <span class="tag gold">Homebrew</span>` : F && F[6] ? ` <span class="tag">${esc(dmBook(F[6]).short)}</span>` : F && F[4] ? ` <span class="tag">${FEAT_GROUPS[F[4]]}</span>` : ""}<small>${esc(F ? F[3] : "Your own feat — note its details under Features after levelling up.")}</small></div>
     ${open.length > 1 ? `<label class="lbl" style="margin:0;flex:1 1 220px">+1 from the feat to<select data-lvfeatab><option value="">Choose…</option>${abs.map(a => `<option value="${a}" ${A.featAb === a ? "selected" : ""} ${open.includes(a) ? "" : "disabled"}>${AB_FULL[a]} ${LV.cur[a]} → ${Math.min(max, LV.cur[a] + 1)}${open.includes(a) ? "" : ` (max ${max})`}</option>`).join("")}</select></label>`
       : open.length === 1 ? `<p class="hint" style="margin:0;flex:1 1 220px">Also +1 ${AB_FULL[open[0]]} (${LV.cur[open[0]]} → ${LV.cur[open[0]] + 1}).</p>` : ""}
     <button class="btn sm" type="button" data-featopen style="flex:0 0 auto;align-self:flex-end">Change feat</button>`;
@@ -128,7 +128,7 @@ function featRender() {
   $("#featList").innerHTML = list.length ? `<div class="pick-grid">${list.map(F => {
     const why = taken.has(F[0]) && !FEAT_REPEAT.has(F[0]) ? "Already taken" : featBlock(F, c, cur, to), abs = featAbs(F), req = featReqText(F);
     return `<button type="button" class="pick ${LV.asi.feat === F[0] ? "on" : ""}" data-feat="${esc(F[0])}" ${why ? `disabled aria-disabled="true"` : ""}>
-      <b>${esc(F[0])}</b>${F[5] ? ` <span class="tag gold">Homebrew</span>` : F[4] && !FP.grp ? ` <span class="tag">${FEAT_GROUPS[F[4]]}</span>` : ""}
+      <b>${esc(F[0])}</b>${F[5] ? ` <span class="tag gold">Homebrew</span>` : F[6] ? ` <span class="tag">${esc(dmBook(F[6]).short)}</span>` : F[4] && !FP.grp ? ` <span class="tag">${FEAT_GROUPS[F[4]]}</span>` : ""}
       ${req ? `<small class="req">Prerequisite: ${esc(req)}</small>` : ""}
       ${abs.length ? `<small>+1 ${abs.length === 6 ? "to any score" : abs.map(a => AB_NAME[a]).join(" or ")}${F[4] === "b" ? " (up to 30)" : ""}</small>` : ""}
       <small>${esc(F[3])}</small>${why ? `<small class="why">${esc(why)}</small>` : ""}</button>`;
@@ -157,6 +157,7 @@ function mcRefresh() {
   $("#mcSub").innerHTML = needSub ? `<div class="field" style="margin:10px 0 0"><label for="mcSubSel">${esc(k)} subclass (chosen at ${esc(k)} level ${sl})</label><select id="mcSubSel"><option value="">Choose…</option>${subclassList(ed, k).map(([n]) => `<option ${M.sub === n ? "selected" : ""}>${esc(n)}</option>`).join("")}</select></div>` : "";
   const pre = [k, c.cls, ...(c.multi || []).filter(x => +x.lv > 0).map(x => x.cls)].every(x => mcMeets(c, x)), over = $("#mcOverride").checked;
   const miss = [!pre && !over ? "meet the prerequisites (or tick the DM option)" : "", needSub && !M.sub ? "choose a subclass" : ""].filter(Boolean);
+  $("#mcSub").insertAdjacentHTML("beforeend", progressionButton(ed, "class", k, M.sub || cur.subclass || ""));
   $("#mcMiss").textContent = miss.length ? cap1(miss.join(" and ")) + " to continue." : `${k} ${to} adds d${CLASS_DATA[k].hd} hit points and its level ${to} features.`;
   $("[data-mcgo]").disabled = miss.length > 0;
 }
@@ -229,7 +230,7 @@ function lvRender(focusSel) {
     ${LV.asi ? lvAsiHTML(c, to) : ""}
     ${ask ? `<div class="sec-h" style="margin-top:14px"><h3>Choose your subclass</h3></div>
       <p class="hint" style="margin:4px 0 0">${esc(c.cls)}s choose a subclass at level ${sl} (${ed} rules). This is required to ${onlySub ? "finish the sheet" : "level up"}.</p>
-      <div class="pick-grid" role="radiogroup" aria-label="Subclass">${list.map(([n, d]) => `<button type="button" class="pick ${LV.pick === n ? "on" : ""}" data-lvsub="${esc(n)}" role="radio" aria-checked="${LV.pick === n}"><b>${esc(n)}</b><small>${esc(d)}</small></button>`).join("")}</div>` : ""}
+      <div class="pick-grid" role="group" aria-label="Subclass">${list.map(([n, d]) => `<div class="progression-choice"><button type="button" class="pick ${LV.pick === n ? "on" : ""}" data-lvsub="${esc(n)}" aria-pressed="${LV.pick === n}"><b>${esc(n)}</b><small>${esc(d)}</small></button>${progressionButton(ed, "subclass", c.cls, n)}</div>`).join("")}</div>` : ""}
     <div class="row" style="justify-content:flex-end;margin-top:14px"><button class="btn" type="button" data-lvno style="flex:0">Cancel</button>
       <button class="btn primary" type="button" data-lvyes style="flex:0 0 auto">${yes}</button></div>
     <p class="hint" id="lvMiss" style="text-align:right;margin:6px 0 0" aria-live="polite"></p>`;
@@ -344,7 +345,7 @@ function hbItemOf(d) { // form state -> the entry that is saved and shared
     req: d.reqType === "cast" ? "cast" : d.reqType === "ability" ? `${d.reqAb}${clamp(parseInt(d.reqMin) || 13, 1, 30)}` : d.reqType === "other" && t(d.reqText, 80) ? "@" + t(d.reqText, 80) : "",
     ab: d.abType === "any" ? "any" : d.abType === "some" ? AB.filter(a => d.abs.includes(a)).join(" ") : "" });
   if (d.kind === "species") Object.assign(x, { speed: clamp(parseInt(d.speed) || 30, 0, 120), skills: d.skills.filter(k => SKILLS[k]).slice(0, 1),
-    asi: Object.fromEntries(AB.filter(a => +d.asi[a]).map(a => [a, clamp(+d.asi[a], -2, 3)])), traits: rows(d.traits, true), subs: rows(d.subs), term: t(d.term, 30) });
+    asi: Object.fromEntries(AB.filter(a => +d.asi[a]).map(a => [a, clamp(+d.asi[a], -2, 3)])), traits: rows(d.traits, true), subs: rows(d.subs).map(r => { const o = (d.subs || []).find(y => String(y.n ?? "").trim().slice(0, 60) === r.n), a = o && o.asi && Object.fromEntries(AB.filter(k => +o.asi[k]).map(k => [k, clamp(+o.asi[k], -2, 3)])); return a && Object.keys(a).length ? { ...r, asi: a } : r; }), term: t(d.term, 30) });
   return x;
 }
 const hbDirty = () => !!HBE.draft && JSON.stringify(hbItemOf(HBE.draft)) !== HBE.saved;
@@ -369,7 +370,7 @@ function renderHomebrew() {
   const side = $("#hbSide"), main = $("#hbMain"); if (!side) return;
   if (hbCloud() && !Portal.isDM()) { side.innerHTML = ""; main.innerHTML = `<div class="card empty"><h2>Homebrew</h2><p>Your DM adds homebrew for this campaign. It appears in your character choices.</p></div>`; return; }
   const where = hbCloud() ? `Shared with everyone in ${esc(Portal.campName())}. Players pick these when building and levelling characters.` : "Saved in this browser. Sign in and join a campaign to share homebrew with your players.";
-  side.innerHTML = `<div class="sec-h"><h3>Homebrew</h3></div><p class="hint" style="margin:0 0 4px">${where}</p>${hbPendHTML()}
+  side.innerHTML = `<div class="sec-h"><h3>Homebrew</h3></div><p class="hint" style="margin:0 0 4px">${where}</p><button class="btn wide" type="button" id="hbBulk" style="margin:4px 0 8px">📥 Bulk import from a file</button>${hbPendHTML()}
     ${Object.entries(HB_KINDS).map(([k, l]) => `<div class="hb-kind"><h4>${l}</h4><button class="btn sm" type="button" data-hbnew="${k}" style="flex:0 0 auto" aria-label="New ${l.toLowerCase()}">+ New</button></div>
       ${hbOf(k).map(x => `<button class="camp-item ${HBE.id === x.id ? "on" : ""}" type="button" data-hbsel="${esc(x.id)}"><b>${esc(x.name)}</b><small>${esc([x.kind === "subclass" ? x.cls : x.kind === "class" ? `d${x.hd}${x.cast && x.cast !== "none" ? ", spellcaster" : ""}` : "", x.ed === "both" || !x.ed ? "2014 & 2024" : x.ed + " rules"].filter(Boolean).join(" · "))}</small></button>`).join("") || `<p class="muted" style="font-size:14px;margin:0">None yet.</p>`}`).join("")}`;
   const d = HBE.draft;
@@ -553,7 +554,7 @@ function renderFeats() {
   $("#ftCount").textContent = `${rows.length} feat${rows.length === 1 ? "" : "s"}`;
   $("#ftList").innerHTML = rows.length ? rows.map(({ F, why }) => {
     const abs = featAbs(F), req = featReqText(F), mine = t && has.filter(n => n === F[0]).length;
-    return `<div class="sec ft-card"><div class="ft-h"><h3>${esc(F[0])}</h3>${F[5] ? `<span class="tag gold">Homebrew</span>` : F[4] ? `<span class="tag">${FEAT_GROUPS[F[4]]}</span>` : ""}${mine ? `<span class="tag gold">✓ ${esc(t.name)} has it</span>` : ""}
+    return `<div class="sec ft-card"><div class="ft-h"><h3>${esc(F[0])}</h3>${F[5] ? `<span class="tag gold">Homebrew</span>` : F[6] ? `<span class="tag" title="${esc(dmBook(F[6]).name)}">${esc(dmBook(F[6]).short)}</span>` : F[4] ? `<span class="tag">${FEAT_GROUPS[F[4]]}</span>` : ""}${mine ? `<span class="tag gold">✓ ${esc(t.name)} has it</span>` : ""}
       ${t ? `<button class="btn sm ${why ? "" : "primary"}" type="button" data-ftadd="${esc(F[0])}" style="flex:0 0 auto">+ Add to ${esc(t.name)}</button>` : ""}</div>
       ${req || abs.length ? `<p class="hint" style="margin:4px 0 0">${req ? `Prerequisite: ${esc(req)}` : ""}${req && abs.length ? " · " : ""}${abs.length ? `+1 ${abs.length === 6 ? "to any score" : abs.map(a => AB_NAME[a]).join(" or ")}${F[4] === "b" ? " (up to 30)" : ""}` : ""}</p>` : ""}
       <p>${esc(F[3])}</p>${why ? `<p class="ft-why" style="margin:4px 0 0;font-size:14px">⚠ ${esc(why)}</p>` : ""}</div>`;
