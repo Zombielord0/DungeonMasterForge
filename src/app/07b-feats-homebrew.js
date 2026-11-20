@@ -118,7 +118,7 @@ const FEAT_GROUPS = { o: "Origin", g: "General", b: "Epic boon" };
 const FEAT_REPEAT = new Set(["Elemental Adept", "Magic Initiate", "Skilled"]);
 /* a feat row: [name, abilities, prerequisite, text, 2024 group, homebrew?, book code] */
 const featList = ed => { const L = [...(FEATS[ed] || FEATS["2014"]), ...hbOf("feat").filter(x => hbEdOk(x, ed)).map(x => [x.name, x.ab || "", x.req || "", (x.desc || "") + fxNote(x.fx), ed === "2024" ? (x.group || "g") : undefined, true])];
-  hbBook("feat").filter(x => hbEdOk(x, ed) && !L.some(F => F[0] === x.name)).forEach(x => L.push([x.name, x.ab || "", x.req || "", x.desc || "", ed === "2024" ? (x.group || "g") : undefined, false, x.src]));
+  hbBook("feat").filter(x => hbEdOk(x, ed) && !L.some(F => F[0] === x.name)).forEach(x => L.push([x.name, x.ab || "", x.req || "", (x.desc || "") + fxNote(x.fx), ed === "2024" ? (x.group || "g") : undefined, false, x.src]));
   return L; };
 const featInfo = (ed, name) => featList(ed).find(f => f[0] === name) || null;
 const featAbs = F => !F || !F[1] ? [] : F[1] === "any" ? [...AB] : F[1].split(" ");
@@ -243,6 +243,16 @@ function hbPendHTML() {
     ${L.map(x => { const k = esc(pendKey(x)); return `<div class="hb-pend" data-pendrow="${k}"><details><summary><b>${esc(x.name)}</b> <small class="muted">${kindName[x.kind]}${x.kind === "subclass" ? ` (${esc(x.cls)})` : ""} · from ${esc(x.from.map(f => f.name).join(", "))}</small></summary><div class="hb-pend-text">${esc(body(x) || "No description.")}</div></details>
       <div class="row" style="gap:6px;margin-top:4px"><button class="btn sm primary" type="button" data-pendact="ok" data-pendkey="${k}">✓ Approve</button><button class="btn sm" type="button" data-pendact="no" data-pendkey="${k}">✕ Don't approve</button></div></div>`; }).join("")}</div>`;
 }
+/* a feature's text by name; a book entry never replaces text a campaign's own homebrew already set */
+const hbDescSet = (x, n, d) => { if (!x.book || !(n in HB_DESC)) HB_DESC[n] = d; };
+/* a species trait's text from the character's own homebrew or book species: several book species share trait names
+   ("Darkvision", "Sunlight Sensitivity") with different text */
+function hbTraitDesc(f, c) {
+  if (!c || !c.race || !PC_RACES[edOf(c)] || !(PC_RACES[edOf(c)][c.race] || {}).hb) return "";
+  const sp = hbAny("species").find(x => x.name === c.race); if (!sp) return "";
+  const t = [...(sp.traits || []), ...(sp.subs || [])].find(y => y.n === f);
+  return t ? (t.d || "") + fxNote(t.fx) : "";
+}
 function hbApply() {
   const A = HB.applied;
   A.bg.forEach(n => { delete BACKGROUNDS[n]; delete HB_BG[n]; });
@@ -254,16 +264,16 @@ function hbApply() {
   hbAny("class").forEach(x => {
     if (CLASS_DATA[x.name]) return; // never replace a built-in
     CLASS_DATA[x.name] = hbClassData(x); N.classes.push(x.name);
-    (x.features || []).forEach(f => { if (f.n) HB_DESC[f.n] = (f.d || "") + fxNote(f.fx); });
+    (x.features || []).forEach(f => { if (f.n) hbDescSet(x, f.n, (f.d || "") + fxNote(f.fx)); });
   });
   hbAny("background").forEach(x => {
     if (BACKGROUNDS[x.name]) return; // never replace a built-in
     BACKGROUNDS[x.name] = (x.skills || []).filter(k => SKILLS[k]).slice(0, 2); HB_BG[x.name] = x; N.bg.push(x.name);
-    HB_DESC[`${x.name} background`] = [x.desc, x.feat ? `Origin feat: ${x.feat}.` : "", x.gear ? `Gear: ${x.gear}.` : ""].filter(Boolean).join(" ") + fxNote(x.fx);
+    hbDescSet(x, `${x.name} background`, [x.desc, x.feat ? `Origin feat: ${x.feat}.` : "", x.gear ? `Gear: ${x.gear}.` : ""].filter(Boolean).join(" ") + fxNote(x.fx));
   });
   hbAny("species").forEach(x => {
     const traits = (x.traits || []).filter(t => t.n), subs = (x.subs || []).filter(t => t.n);
-    traits.concat(subs).forEach(t => HB_DESC[t.n] = (t.d || "") + fxNote(t.fx));
+    traits.concat(subs).forEach(t => hbDescSet(x, t.n, (t.d || "") + fxNote(t.fx)));
     ["2014", "2024"].filter(ed => hbEdOk(x, ed) && !PC_RACES[ed][x.name]).forEach(ed => {
       PC_RACES[ed][x.name] = { hb: true, ...(x.pend ? { pend: true } : {}), asi: ed === "2014" ? Object.fromEntries(AB.filter(a => +(x.asi || {})[a]).map(a => [a, +x.asi[a]])) : {}, speed: +x.speed || 30,
         traits: traits.map(t => t.n), skills: (x.skills || []).filter(k => SKILLS[k]), term: x.term || (ed === "2024" ? "Lineage" : "Subrace"),
@@ -273,7 +283,7 @@ function hbApply() {
     });
     if (!RACE_DESC[x.name]) { RACE_DESC[x.name] = x.desc || ""; N.raceDesc.push(x.name); }
   });
-  hbAny("subclass").forEach(x => (x.features || []).forEach(f => { if (f.n) HB_DESC[f.n] = (f.d || "") + fxNote(f.fx); }));
+  hbAny("subclass").forEach(x => (x.features || []).forEach(f => { if (f.n) hbDescSet(x, f.n, (f.d || "") + fxNote(f.fx)); }));
   hbSpellsApply();
 }
 /* homebrew spells join the spell data (after the built-ins, so built-in ids stay the same) */

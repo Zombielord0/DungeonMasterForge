@@ -85,7 +85,7 @@ const X = { sp: data("extra-spells"), mon: data("extra-monsters"), it: data("ext
   check("spells: a wizard's spell choices include the extra books", pool.x > 100, JSON.stringify(pool));
 
   // ---- species, subclasses, feats and backgrounds ----
-  const op = await p.evaluate(() => {
+  const op = await p.evaluate(X_OPT => {
     const out = {};
     out.races14 = raceList("2014").includes("Catfolk"); out.races24 = raceList("2024").includes("Catfolk");
     out.src = PC_RACES["2014"].Catfolk && PC_RACES["2014"].Catfolk.src;
@@ -106,11 +106,21 @@ const X = { sp: data("extra-spells"), mon: data("extra-monsters"), it: data("ext
     const d = pcEnsure(generateCharacter({ seed: "BK2", name: "Dar", race: "Darakhul", sub: "Drow Heritage", cls: "Fighter", level: 3, ed: "2014" }));
     out.darakhulRes = JSON.stringify(hbEffects("2014", "Darakhul", "Drow Heritage", d.bg, "Fighter", null, 3, []).filter(e => e.t === "res"));
     out.hbTab = hbOf("species").length + hbOf("subclass").length + hbOf("feat").length + hbOf("background").length;
+    // a trait several book species share shows the character's own species' text
+    const trait = (sp, n) => { const x = X_OPT.find(y => y.kind === "species" && y.name === sp); return x.traits.find(t => t.n === n).d; };
+    const cat = pcEnsure(generateCharacter({ seed: "BK3", name: "Cat", race: "Catfolk", cls: "Fighter", level: 1, ed: "2014" }));
+    const als = pcEnsure(generateCharacter({ seed: "BK4", name: "Als", race: "Alseid", cls: "Fighter", level: 1, ed: "2014" }));
+    out.dvCat = featDesc("Darkvision", cat) === trait("Catfolk", "Darkvision"); out.dvAls = featDesc("Darkvision", als) === trait("Alseid", "Darkvision");
+    // a campaign's homebrew feature keeps its own text when a book feature has the same name
+    const keep0 = HB.list; hbSet([{ id: "hbF", kind: "subclass", name: "Our Path", cls: "Barbarian", ed: "both", desc: "", features: [{ l: 3, n: "Draconic Mien", d: "Our own text.", fx: [] }] }]);
+    out.ownText = HB_DESC["Draconic Mien"]; hbSet(keep0);
     // a campaign's own homebrew of the same name wins over the book's
     const keep = HB.list; hbSet([{ id: "hbX", kind: "species", name: "Catfolk", ed: "both", desc: "Ours", speed: 50, traits: [], subs: [] }]);
     out.override = PC_RACES["2014"].Catfolk.speed; hbSet(keep); out.back = PC_RACES["2014"].Catfolk.speed;
     return out;
-  });
+  }, X.opt);
+  check("species: a shared trait name shows the character's own species' text", op.dvCat && op.dvAls, JSON.stringify([op.dvCat, op.dvAls]));
+  check("a campaign's homebrew feature keeps its text when a book feature has its name", op.ownText === "Our own text.", op.ownText);
   check("species: book species are offered in both editions", op.races14 && op.races24 && op.src === "toh", JSON.stringify(op));
   check("species: 2014 ability bonuses include the subrace's; 2024 has none", op.asi14 === JSON.stringify({ dex: 2, int: 1 }) && op.asi24 === "{}", op.asi14 + " " + op.asi24);
   check("species: skills from traits", ["Perception", "Stealth"].every(k => op.skills.includes(k)), JSON.stringify(op.skills));

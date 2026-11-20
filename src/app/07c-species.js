@@ -272,6 +272,7 @@ function featDesc(f, c) {
   if (f === "Draconic Ancestry") return A ? `${c.ancestry} dragon: your breath weapon and resistance are ${A.type}.` : "Your dragon color sets your breath weapon and resistance.";
   if (f === "Breath Weapon") return edOf(c) === "2024" ? (A ? `Replace one attack: exhale ${A.type} in a 15 ft cone or 30 ft line (DEX save) — damage and DC under Attacks.` : "Replace one attack with a cone or line of energy; damage and DC under Attacks.") : A ? `Exhale ${A.type} in a ${A.shape} (${A.save} save) — damage and DC under Attacks.` : "Exhale destructive energy; damage and DC under Attacks.";
   const sd = subFeatDesc(f, c); if (sd) return sd;
+  const td = hbTraitDesc(f, c); if (td) return td;
   if (edOf(c) === "2024" && FEAT_DESC_2024[f]) return FEAT_DESC_2024[f];
   if (f === "Damage Resistance") return A ? `Resistance to ${A.type} damage.` : "Resistance to your ancestry's damage type.";
   return FEAT_DESC[f] || HB_DESC[f] || "";
