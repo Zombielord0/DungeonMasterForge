@@ -20,6 +20,12 @@ function inventoryNeedsAttunement(i, ref) {
   return Boolean(i.att || ref?.att);
 }
 
+function inventoryAttunementControl(i, ed) {
+  return inventoryNeedsAttunement(i, inventoryCatalogItem(i, ed))
+    ? `<input type="checkbox" data-rinv="attuned" data-iid="${esc(i.id)}" ${i.attuned ? "checked" : ""} aria-label="Attuned">`
+    : '<span class="muted">—</span>';
+}
+
 function inventoryEffectActive(i, ref) {
   return +i.qty > 0 && i.eq && (!inventoryNeedsAttunement(i, ref) || i.attuned);
 }
@@ -72,6 +78,20 @@ function inventoryWeaponChoices(ref, ed) {
   }
 }
 
+function inventoryArmorChoices(ref, ed) {
+  const qualifier = String(ref?.type || "").toLowerCase().match(/^armor\s*\(([^)]+)\)/)?.[1];
+  if (!qualifier) return [];
+  const [included, excluded] = qualifier.replace(/^any\s+/, "").split(/,\s*(?:except|but not)\s+/);
+  const names = included.split(/,\s*(?:or\s+)?|\s+or\s+/);
+  const normalize = name => name.replace(/-/g, " ").replace(/ armor$/, "");
+  return IT.data[ed].filter(x => {
+    if (!eqIsArmor(x)) return false;
+    const name = normalize(x.n.toLowerCase());
+    return (!excluded || name !== normalize(excluded))
+      && names.some(choice => normalize(choice) === name || choice === armorKind(x));
+  });
+}
+
 function openInventoryDetails(c, i, trigger) {
   const ed = edOf(c), ref = inventoryCatalogItem(i, ed);
   const weapon = eqWeaponOf(i, ed), armor = eqArmorOf(i, ed);
@@ -90,9 +110,7 @@ function openInventoryDetails(c, i, trigger) {
   const status = +i.qty <= 0 ? "Quantity is zero" : !i.eq ? "Carried"
     : needsAttunement && !i.attuned ? "Equipped · awaiting attunement" : "Equipped";
   const weaponChoices = inventoryWeaponChoices(ref, ed);
-  const armorType = String(ref?.type || "");
-  const armorChoices = /^Armor.*\bany\b|^Armor.*light, medium, or heavy/i.test(armorType)
-    ? IT.data[ed].filter(x => eqIsArmor(x) && x.cat !== "Shield") : [];
+  const armorChoices = inventoryArmorChoices(ref, ed);
   const choices = weaponChoices.length ? weaponChoices : armorChoices;
   const base = weaponChoices.length ? weapon : armor;
   const field = weaponChoices.length ? "baseWeapon" : "baseArmor";

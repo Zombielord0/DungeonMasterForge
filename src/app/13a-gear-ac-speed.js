@@ -155,15 +155,17 @@ const ARMOR_MAGIC = { "dwarven plate": 2, "dragon scale mail": 1, "elven chain":
 function eqArmorOf(i, ed) {
   itLoad();
   const ref = inventoryCatalogItem(i, ed);
-  const L = IT.data[ed === "2014" ? "2014" : "2024"].filter(eqIsArmor);
+  const choices = inventoryArmorChoices(ref, ed);
+  const L = choices.length ? choices : IT.data[ed].filter(eqIsArmor);
   const forms = x => { const n = x.n.toLowerCase(); return [n, n.replace(/ armor$/, "")]; };
   const hits = t => { t = String(t || "").toLowerCase(); return L.filter(x => forms(x).some(f => new RegExp(`\\b${f.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}\\b`).test(t))); };
-  const chosen = L.find(x => x.n === i.baseArmor);
+  const chosen = choices.find(x => x.n === i.baseArmor);
   if (chosen) return chosen;
   const best = H => H.sort((a, b) => b.n.length - a.n.length)[0];
   { const H = hits(i.n); if (H.length) return best(H); }
   if (eqIsArmor(ref)) return ref;
   { const H = hits(i.note); if (H.length) return best(H); }
+  if (choices.length) return choices.length === 1 ? choices[0] : null;
   if (ref && ref.type) { const H = hits(ref.type.replace(/^armor\s*/i, "")); if (H.length) return best(H); }
   return null;
 }

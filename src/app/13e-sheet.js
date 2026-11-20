@@ -83,7 +83,7 @@ function rosterHTML(c) {
       <td><input type="text" data-rinv="n" data-iid="${esc(i.id)}" value="${esc(i.n)}" placeholder="Item name" aria-label="Item">${inventoryDetailsButton(i)}</td>
       <td><input type="text" data-rinv="note" data-iid="${esc(i.id)}" value="${esc(i.note || "")}" placeholder="Notes" aria-label="Notes"></td>
       <td><input type="checkbox" data-rinv="eq" data-iid="${esc(i.id)}" ${i.eq ? "checked" : ""} aria-label="Equip ${esc(i.n)}"></td>
-      <td>${inventoryNeedsAttunement(i, inventoryCatalogItem(i, edOf(c))) ? `<input type="checkbox" data-rinv="attuned" data-iid="${esc(i.id)}" ${i.attuned ? "checked" : ""} aria-label="Attuned">` : `<span class="muted">—</span>`}</td>
+      <td data-attunement-cell>${inventoryAttunementControl(i, edOf(c))}</td>
       <td><button class="icon-btn" type="button" data-rdel="${esc(i.id)}" title="Remove">✕</button></td></tr>`).join("")}</tbody></table>` : `<p class="muted">Nothing carried yet. Add items here, or give them from the Items tab.</p>`}
     <p class="hint">Attuned to <b class="${attN > 3 ? "over" : ""}">${attN} / 3</b> magic items · ${(() => { const LD = pcLoad(c); return `carrying <b class="${LD.lb > LD.cap ? "over" : ""}">${LD.lb} lb</b> of ${LD.cap} lb${LD.lb > LD.cap ? " — over your carrying capacity: speed 5 ft" : LD.variant && LD.lb > LD.heavy ? " — heavily encumbered" : LD.variant && LD.lb > LD.enc ? " — encumbered" : ""}`; })()}.</p>
     ${edOf(c) === "2014" ? `<label style="display:flex;gap:8px;align-items:center;font-size:14px"><input type="checkbox" data-varenc ${c.varEnc ? "checked" : ""}> Use variant encumbrance (−10 ft over ${pcLoad(c).enc} lb, −20 ft and disadvantage over ${pcLoad(c).heavy} lb)</label>` : ""}</div>
@@ -207,6 +207,12 @@ spFiltersSync();
       c.attacks = pcAttacks(c); pcACApply(c); pcPersist();
       if (f === "attuned" || f === "eq") renderRosterMain();
       else {
+        if (f === "n") {
+          const row = t.closest("tr");
+          $("[data-attunement-cell]", row).innerHTML = inventoryAttunementControl(i, edOf(c));
+          $("[data-item-details]", row).setAttribute("aria-label", i.n ? "Item details for " + i.n : "Item details");
+          $('[data-rinv="eq"]', row).setAttribute("aria-label", "Equip " + i.n);
+        }
         const saveBonus = itemSaveBonus(c);
         AB.forEach(a => {
           const trained = c.saves.includes(a), bonus = c.mods[a] + (trained ? c.prof : 0) + saveBonus;

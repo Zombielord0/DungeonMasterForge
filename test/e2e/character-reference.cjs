@@ -69,6 +69,15 @@ const { chromium } = require("playwright");
             choices.some(item => item.n === "Dagger") !== (ed === "2024")) {
           throw new Error("Unexpected Flame Tongue base weapons for " + ed);
         }
+        const adamantine = IT.data[ed].find(item => item.n === "Adamantine Armor");
+        const armor = inventoryArmorChoices(adamantine, ed).map(item => item.n);
+        if (!armor.includes("Plate Armor") || armor.includes("Hide Armor") || armor.includes("Leather Armor")) {
+          throw new Error("Unexpected Adamantine Armor bases for " + ed);
+        }
+        const savedArmor = { ref: adamantine.id, n: adamantine.n, baseArmor: "Hide Armor" };
+        if (eqArmorOf(savedArmor, ed) !== null) throw new Error("Saved invalid armor base should be ignored");
+        savedArmor.baseArmor = "Plate Armor";
+        if (eqArmorOf(savedArmor, ed)?.n !== "Plate Armor") throw new Error("Saved valid armor base should be used");
       }
       const arrows = IT.data["2014"].find(item => item.type?.startsWith("Weapon (any ammunition)"));
       if (inventoryWeaponChoices(arrows, "2014").length) throw new Error("Ammunition should not offer a base weapon");
@@ -103,6 +112,12 @@ const { chromium } = require("playwright");
     await page.locator('[data-rdel="test-ring"]').click();
     assert.doesNotMatch(await page.locator("#rcSpeedLine").textContent(), /Difficult terrain/);
     assert.doesNotMatch(await page.locator("#rcItemFeatures").textContent(), /Ring of Free Action/);
+    await page.locator('[data-ra="addInv"]').click();
+    const manual = page.locator('.rc-inv tbody tr').last();
+    await manual.locator('[data-rinv="n"]').fill("Ring of Free Action");
+    assert.equal(await manual.locator('[data-rinv="attuned"]').isVisible(), true);
+    await manual.locator('[data-rinv="n"]').fill("Plain ring");
+    assert.equal(await manual.locator('[data-rinv="attuned"]').count(), 0);
     await page.locator('#sec-gear [data-item-details="test-custom"]').click();
     assert.match(await dialog.textContent(), /<strong>Shared rules<\/strong>/);
     assert.equal(await dialog.locator("strong").count(), 0);
