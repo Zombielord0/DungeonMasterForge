@@ -93,6 +93,12 @@ const PROGRESSION_SUMMARIES = {
   "Metamagic": "Spend Sorcery Points to alter how your spells work.",
   "Countercharm": "Help a creature reroll a failed save against being Charmed or Frightened.",
   "Favored Enemy": "Always prepare Hunter’s Mark and cast it a limited number of times without a spell slot.",
+  "Foe Slayer": "Hunter’s Mark uses a d10 damage die.",
+  "Stroke of Luck": "Once per Short or Long Rest, turn a failed D20 Test into a roll of 20.",
+  "Archdruid": "Recover one Wild Shape use when you roll Initiative with none left, trade uses for a spell slot once per Long Rest, and age more slowly.",
+  "Unarmored Defense": "Calculate Armor Class using Dexterity and your class’s other defensive ability when you meet the feature’s requirements.",
+  "Extra Attack": "Attack twice when you take the Attack action.",
+  "Spellcasting": "Prepare and cast spells using your class’s spell list.",
   "Weapon Mastery": "Choose weapons whose mastery properties you can use.",
   "Tactical Mind": "Spend a use of Second Wind to improve a failed ability check.",
   "Tactical Shift": "Move up to half your speed without provoking opportunity attacks when you use Second Wind.",
@@ -130,7 +136,7 @@ function progressionRows(ed, kind, name, option = "") {
       const features = revised ? revisedNames.split(", ").filter(Boolean)
         : [...(C.f[level] || []), ...(!C.hb && additions ? additions.split(", ") : [])];
       features.filter(f => f !== C.sub[0] && f !== name + " Subclass" && !/^(Primal Path|Bard College|Divine Domain|Druid Circle|Martial Archetype|Monastic Tradition|Sacred Oath|Ranger Archetype|Roguish Archetype|Sorcerous Origin|Otherworldly Patron|Arcane Tradition)$/.test(f))
-        .forEach(f => add(level, f, revised ? PROGRESSION_SUMMARIES[f] || FEAT_DESC_2024[f] || featDesc(f, ctx) : featDesc(f, ctx)));
+        .forEach(f => add(level, f, revised ? PROGRESSION_SUMMARIES[f] || FEAT_DESC_2024[f] || "" : featDesc(f, ctx)));
       if (level === choice && subclassList(ed, name).length) add(level, "Choose a subclass");
       const milestones = name === "Cleric" && revised ? [6, 17] : SUBCLASS_MILESTONES[name];
       if (!C.hb && milestones?.includes(level)) add(level, "Subclass feature", "Select a subclass above to see the feature.");
