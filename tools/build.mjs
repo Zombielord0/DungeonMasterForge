@@ -4,6 +4,8 @@
 //   src/app.css        the styling                              -> public/assets/app.<fingerprint>.css
 //   src/app/*.js       the app's code, joined in file order     -> public/assets/app.<fingerprint>.js
 //   data/*.json        built-in spells, monsters and items      -> public/assets/<name>.<fingerprint>.js
+//                      (extra-*.json: the open-licensed extra books, joined to the lists by dmData in src/app/01-core.js)
+//   data/extra-books.json  the extra books' credits             -> public/credits.html (the Open Game License asks for it)
 //   src/backdrop/corridor-<name>.webp  the background pictures  -> public/assets/backdrop-<name>.<fingerprint>.webp,
 //                      named in the styling as /assets/backdrop-<name>.webp (left out of the offline install list, so a
 //                      phone only downloads the picture it shows; the service worker keeps it once it's been seen)
@@ -54,11 +56,43 @@ function emit(name, ext, text) { // text: a string, or a Buffer for pictures
   if (!quiet) console.log(`public/assets/${file}  ${(Buffer.byteLength(text) / 1024).toFixed(0)} KB`);
 }
 mkdirSync(at("public/assets/"), { recursive: true });
-for (const [name, key] of [["spells", "spellData"], ["monsters", "monsterData"], ["items", "itemData"]]) {
+for (const [name, key] of [["spells", "spellData"], ["monsters", "monsterData"], ["items", "itemData"],
+  ["extra-spells", "spellExtra"], ["extra-monsters", "monsterExtra"], ["extra-items", "itemExtra"], ["extra-books", "bookData"]]) {
   // stored as text, so the app turns it into objects only when a tab needs it (dmData in src/app/01-core.js)
   const text = JSON.stringify(JSON.parse(read(`data/${name}.json`)));
   const lit = JSON.stringify(text).split(String.fromCharCode(0x2028)).join("\\u2028").split(String.fromCharCode(0x2029)).join("\\u2029");
   emit(name, "js", `/* Built from data/${name}.json by tools/build.mjs. */\n(window.DMDATA = window.DMDATA || {}).${key} = ${lit};\n`);
+}
+// the credits page for the extra books (each book's notice and licence, and the Open Game License text)
+{
+  const { books, ogl } = JSON.parse(read("data/extra-books.json"));
+  const h = t => String(t).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
+  const L = Object.values(books), ogls = L.filter(b => b.lic === "ogl-10a"), ccs = L.filter(b => b.lic === "cc-by-40");
+  const link = b => b.url ? ` <a href="${h(b.url)}" rel="noopener">${h(b.url)}</a>` : "";
+  const page = `<!DOCTYPE html>
+<!-- Built by tools/build.mjs from data/extra-books.json. -->
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Credits and licences · Dungeon Master's Forge</title>
+<style>body{font:16px/1.55 Georgia,serif;max-width:760px;margin:0 auto;padding:24px 18px;color:#2a2118;background:#f6efe2}h1,h2{font-family:Cinzel,Georgia,serif}li{margin:6px 0}pre{white-space:pre-wrap;font:13px/1.45 Georgia,serif;background:#fffaf0;border:1px solid #d9c9a8;padding:14px}a{color:#7a2e12}</style></head><body>
+<h1>Credits and licences</h1>
+<p><a href="/">← Back to the Forge</a></p>
+<h2>Official rules</h2>
+<p>This work includes material from the System Reference Document 5.1 (“SRD 5.1”) and System Reference Document 5.2 (“SRD 5.2”) by Wizards of the Coast LLC, available at <a href="https://dnd.wizards.com/resources/systems-reference-document">dnd.wizards.com/resources/systems-reference-document</a>, licensed under the <a href="https://creativecommons.org/licenses/by/4.0/legalcode">Creative Commons Attribution 4.0 International License</a>.</p>
+<h2>Extra books</h2>
+<p>The extra monsters, spells and magic items (marked with their book's name in the lists) come from these books, through the open-source <a href="https://github.com/open5e/open5e-api">Open5e</a> project. They were converted into the Forge's format; the rules text is unchanged. None of these publishers endorse the Forge.</p>
+<ul>${L.map(b => `<li><b>${h(b.name)}</b> by ${h(b.authors || b.by)} (${h(b.by)}${b.year ? ", " + h(b.year) : ""}). ${b.lic === "cc-by-40" ? `Licensed under the <a href="https://creativecommons.org/licenses/by/4.0/legalcode">Creative Commons Attribution 4.0 International License</a>.` : "Open Game Content under the Open Game License 1.0a (below)."}${link(b)}</li>`).join("\n")}</ul>
+<h2>Open Game License</h2>
+<p><b>Designation of Open Game Content:</b> the rules text of the monsters, spells and magic items from ${ogls.map(b => h(b.name)).join(", ")} shown in the Forge is Open Game Content. <b>Product Identity:</b> none is used; the Forge's own name, code, pictures and other text are not Open Game Content.</p>
+<pre>${h(ogl.trim())}
+
+15. COPYRIGHT NOTICE
+Open Game License v 1.0a Copyright 2000, Wizards of the Coast, LLC.
+System Reference Document 5.1 Copyright 2016, Wizards of the Coast, Inc.; Authors Mike Mearls, Jeremy Crawford, Chris Perkins, Rodney Thompson, Peter Lee, James Wyatt, Robert J. Schwalb, Bruce R. Cordell, Chris Sims, and Steve Townshend, based on original material by E. Gary Gygax and Dave Arneson.
+${ogls.map(b => `${h(b.name)}. Copyright ${h(b.year)} ${h(b.by)}; Authors ${h(b.authors)}.`).join("\n")}</pre>
+${ccs.length ? `<p>${ccs.map(b => h(b.name)).join(" and ")}: Creative Commons Attribution 4.0, credited above.</p>` : ""}
+</body></html>
+`;
+  writeFileSync(at("public/credits.html"), page);
 }
 // the background pictures first, so the styling can name them
 const pics = {};

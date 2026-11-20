@@ -110,7 +110,7 @@ document.addEventListener("keydown", e => { const a = e.target.closest && e.targ
 // how many Spells filters are on (shown on the phone's Filters button)
 function spFilterCount() {
   const f = document.getElementById("spForm"); if (!f) return 0;
-  return ["spClass", "spSchool", "spTime", "spConc", "spDmg", "spSave"].filter(id => (document.getElementById(id) || {}).value).length
+  return ["spClass", "spSchool", "spTime", "spConc", "spDmg", "spSave", "spBook"].filter(id => (document.getElementById(id) || {}).value).length
     + f.querySelectorAll("#spLevels .chip.on").length + ["spRitual", "spNoM", "spFav"].filter(id => (document.getElementById(id) || {}).checked).length;
 }
 function spFiltersSync() { const b = document.getElementById("spFiltersBtn"); if (!b) return; const n = spFilterCount(), open = document.getElementById("spForm").classList.contains("filters-open"); b.textContent = `${open ? "▴" : "▾"} Filters${n ? ` · ${n} on` : ""}`; b.setAttribute("aria-expanded", String(open)); }

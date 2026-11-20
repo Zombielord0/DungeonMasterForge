@@ -428,6 +428,7 @@ if (location.protocol !== "file:" && localStorage.getItem("dmforge.offline") !==
         <div><label for="bsSize">Size</label><select id="bsSize"><option value="">Any</option></select></div>
       </div>
       <div class="field" id="bsEnvWrap"><label for="bsEnv">Environment</label><select id="bsEnv"><option value="">Any</option></select></div>
+      <div class="field" id="bsBookWrap"><label for="bsBook">Book</label><select id="bsBook"><option value="">Any</option></select></div>
       <div class="field">
         <label class="check"><input type="checkbox" id="bsLeg"><span>Legendary creatures only</span></label>
         <label class="check"><input type="checkbox" id="bsCast"><span>Spellcasters only</span></label>
@@ -446,7 +447,7 @@ if (location.protocol !== "file:" && localStorage.getItem("dmforge.offline") !==
         <p class="hint" style="margin:6px 0 0">Added monsters join that campaign's encounter “Add enemy” list. Pick an encounter to drop them straight into its fight too.</p>
       </div>
       <div id="bsList"></div>
-      <p class="hint" style="margin-top:16px">This work includes material taken from the System Reference Document 5.1 (“SRD 5.1”) by Wizards of the Coast LLC and available at <a href="https://dnd.wizards.com/resources/systems-reference-document">dnd.wizards.com/resources/systems-reference-document</a>, and from the System Reference Document 5.2 (“SRD 5.2”) by Wizards of the Coast LLC, available at <a href="https://www.dndbeyond.com/srd">dndbeyond.com/srd</a>. Both are licensed under the <a href="https://creativecommons.org/licenses/by/4.0/legalcode">Creative Commons Attribution 4.0 International License</a>. Monster data compiled by the open-source <a href="https://github.com/open5e/open5e-api">Open5e</a> project. The SRDs hold only part of each Monster Manual, so monsters from other books aren't listed.</p>
+      <p class="hint" style="margin-top:16px">This work includes material taken from the System Reference Document 5.1 (“SRD 5.1”) by Wizards of the Coast LLC and available at <a href="https://dnd.wizards.com/resources/systems-reference-document">dnd.wizards.com/resources/systems-reference-document</a>, and from the System Reference Document 5.2 (“SRD 5.2”) by Wizards of the Coast LLC, available at <a href="https://www.dndbeyond.com/srd">dndbeyond.com/srd</a>. Both are licensed under the <a href="https://creativecommons.org/licenses/by/4.0/legalcode">Creative Commons Attribution 4.0 International License</a>. Monster data compiled by the open-source <a href="https://github.com/open5e/open5e-api">Open5e</a> project. The SRDs hold only part of each Monster Manual, so Wizards of the Coast's other monsters aren't listed. Monsters marked with a book's name come from open-licensed Kobold Press books (Tome of Beasts 1 to 3, Creature Codex, Black Flag). <a href="/credits.html" target="_blank" rel="noopener">Credits and licences</a>.</p>
     </div>
   </div>
   <div class="layout" id="monForge">
@@ -505,6 +506,7 @@ if (location.protocol !== "file:" && localStorage.getItem("dmforge.offline") !==
         <div><label>Damage type</label><select id="spDmg"><option value="">Any</option></select></div>
         <div><label>Saving throw</label><select id="spSave"><option value="">Any</option><option>Strength</option><option>Dexterity</option><option>Constitution</option><option>Intelligence</option><option>Wisdom</option><option>Charisma</option><option value="attack">Spell attack</option></select></div>
       </div>
+      <div class="field"><label for="spBook">Book</label><select id="spBook"><option value="">Any</option></select></div>
       <div class="field">
         <label class="check"><input type="checkbox" id="spRitual"><span>Ritual spells only</span></label>
         <label class="check"><input type="checkbox" id="spNoM"><span>No material components</span></label>
@@ -519,7 +521,7 @@ if (location.protocol !== "file:" && localStorage.getItem("dmforge.offline") !==
     <div>
       <div class="card" style="padding:12px 16px"><div class="row" style="flex-wrap:wrap"><span id="spCount" style="flex:1"></span><button class="btn sm" type="button" id="spExpand" style="flex:0 0 auto">Expand all</button></div><div class="sp-target" id="spTargetRow"></div></div>
       <div id="spList"></div>
-      <p class="hint" style="margin-top:16px">This work includes material taken from the System Reference Document 5.1 (“SRD 5.1”) by Wizards of the Coast LLC and available at <a href="https://dnd.wizards.com/resources/systems-reference-document">dnd.wizards.com/resources/systems-reference-document</a>, and from the System Reference Document 5.2 (“SRD 5.2”) by Wizards of the Coast LLC, available at <a href="https://www.dndbeyond.com/srd">dndbeyond.com/srd</a>. Both are licensed under the <a href="https://creativecommons.org/licenses/by/4.0/legalcode">Creative Commons Attribution 4.0 International License</a>. Spell data compiled by the open-source <a href="https://github.com/5e-bits/5e-database">5e-database</a> project. The SRDs hold only part of each edition's spells, so spells from other books aren't listed.</p>
+      <p class="hint" style="margin-top:16px">This work includes material taken from the System Reference Document 5.1 (“SRD 5.1”) by Wizards of the Coast LLC and available at <a href="https://dnd.wizards.com/resources/systems-reference-document">dnd.wizards.com/resources/systems-reference-document</a>, and from the System Reference Document 5.2 (“SRD 5.2”) by Wizards of the Coast LLC, available at <a href="https://www.dndbeyond.com/srd">dndbeyond.com/srd</a>. Both are licensed under the <a href="https://creativecommons.org/licenses/by/4.0/legalcode">Creative Commons Attribution 4.0 International License</a>. Spell data compiled by the open-source <a href="https://github.com/5e-bits/5e-database">5e-database</a> project. The SRDs hold only part of each edition's spells, so Wizards of the Coast's other spells aren't listed. Spells marked with a book's name come from open-licensed books (Kobold Press's Deep Magic and Tome of Heroes, and Spells That Don't Suck). <a href="/credits.html" target="_blank" rel="noopener">Credits and licences</a>.</p>
     </div>
   </div>
 </section>
@@ -565,6 +567,7 @@ if (location.protocol !== "file:" && localStorage.getItem("dmforge.offline") !==
           <div><label>Magic item type</label><select id="itMType"><option value="">Any</option></select></div>
           <div><label>Attunement</label><select id="itAtt"><option value="">Any</option><option value="1">Required</option><option value="0">Not required</option></select></div>
         </div>
+        <div class="field"><label for="itBook">Book</label><select id="itBook"><option value="">Any</option></select></div>
       </div>
       <div class="field row">
         <div><label>Max price (gp)</label><input type="number" id="itMax" min="0" placeholder="Any"></div>
@@ -585,7 +588,7 @@ if (location.protocol !== "file:" && localStorage.getItem("dmforge.offline") !==
       <div class="card hoard" id="itHoard" hidden style="margin-bottom:14px"></div>
       <div class="card" style="padding:12px 16px"><div class="row" style="flex-wrap:wrap"><span id="itCount" style="flex:1"></span></div><div class="sp-target" id="itTargetRow"></div></div>
       <div id="itList"></div>
-      <p class="hint" style="margin-top:16px">Item rules text includes material from the System Reference Document 5.1 (“SRD 5.1”) and System Reference Document 5.2 (“SRD 5.2”) by Wizards of the Coast LLC, available at <a href="https://dnd.wizards.com/resources/systems-reference-document">dnd.wizards.com/resources/systems-reference-document</a> and <a href="https://www.dndbeyond.com/srd">dndbeyond.com/srd</a>, licensed under the <a href="https://creativecommons.org/licenses/by/4.0/legalcode">Creative Commons Attribution 4.0 International License</a>. Item data compiled by the open-source <a href="https://github.com/5e-bits/5e-database">5e-database</a> project. Standard items use their listed cost. Magic item prices are suggestions based on rarity (2024 Dungeon Master's Guide values: common 100 gp, uncommon 400 gp, rare 4,000 gp, very rare 40,000 gp, legendary 200,000 gp; consumables half), since the SRD doesn't price magic items. The SRDs hold only part of each edition's items.</p>
+      <p class="hint" style="margin-top:16px">Item rules text includes material from the System Reference Document 5.1 (“SRD 5.1”) and System Reference Document 5.2 (“SRD 5.2”) by Wizards of the Coast LLC, available at <a href="https://dnd.wizards.com/resources/systems-reference-document">dnd.wizards.com/resources/systems-reference-document</a> and <a href="https://www.dndbeyond.com/srd">dndbeyond.com/srd</a>, licensed under the <a href="https://creativecommons.org/licenses/by/4.0/legalcode">Creative Commons Attribution 4.0 International License</a>. Item data compiled by the open-source <a href="https://github.com/5e-bits/5e-database">5e-database</a> project. Standard items use their listed cost. Magic item prices are suggestions based on rarity (2024 Dungeon Master's Guide values: common 100 gp, uncommon 400 gp, rare 4,000 gp, very rare 40,000 gp, legendary 200,000 gp; consumables half), since the SRD doesn't price magic items. The SRDs hold only part of each edition's items. Items marked with a book's name come from Kobold Press's open-licensed Vault of Magic. <a href="/credits.html" target="_blank" rel="noopener">Credits and licences</a>.</p>
     </div>
   </div>
 </section>
@@ -702,6 +705,11 @@ if (location.protocol !== "file:" && localStorage.getItem("dmforge.offline") !==
 <script src="/assets/spells.js"></script>
 <script src="/assets/monsters.js"></script>
 <script src="/assets/items.js"></script>
+<!-- The open-licensed extra books (tools/convert-open5e-extras.py), joined to the lists above by dmData. -->
+<script src="/assets/extra-spells.js"></script>
+<script src="/assets/extra-monsters.js"></script>
+<script src="/assets/extra-items.js"></script>
+<script src="/assets/extra-books.js"></script>
 <script src="/assets/app.js"></script>
 <script type="module" src="/portal.js"></script>
 </body>

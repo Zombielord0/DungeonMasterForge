@@ -2,6 +2,12 @@
    When a change ships, add an entry to the top of NEWS with a new id, in plain words for players and DMs. */
 
 const NEWS = [
+  { id: "2026-11-20-extra-books", date: "2026-11-20", title: "About 3,700 more monsters, spells and magic items", go: "monsters", items: [
+    "The Monster Manual has about 1,700 more monsters from Kobold Press's open-licensed books: Tome of Beasts 1, 2 and 3, Creature Codex and Black Flag.",
+    "Spells has about 900 more, from Deep Magic, Tome of Heroes and other Kobold Press books, plus Spells That Don't Suck. Characters can prepare them like any other spell.",
+    "Items has about 1,000 more magic items from Vault of Magic.",
+    "Each one shows its book's name, and a new Book filter in each list can show just one book, or just the official rules.",
+    "They also turn up in random encounters, shops, treasure hoards and Wild Shape. Each place now has many more creatures to roll."] },
   { id: "2026-11-19-requests", date: "2026-11-19", title: "Ask for a feature", go: "requests", items: [
     "There's a new Requests tab. Signed-in players and DMs can ask for something new, a change, or a fix.",
     "Tell us what you're trying to do and how you'd like it to work. A screenshot (marked up if you can) makes it much more likely to be approved.",

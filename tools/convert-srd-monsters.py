@@ -3,15 +3,13 @@
 # Usage: python3 tools/convert-srd-monsters.py <open5e>/data/v2/wizards-of-the-coast data/monsters.json
 import json, sys, re
 from collections import defaultdict
-D, OUT = sys.argv[1], sys.argv[2]
+D, OUT = (sys.argv[1], sys.argv[2]) if __name__ == "__main__" else (None, None)
 AB = ["strength","dexterity","constitution","intelligence","wisdom","charisma"]
 ABS = ["Str","Dex","Con","Int","Wis","Cha"]
 SKILLS = ["acrobatics","animal_handling","arcana","athletics","deception","history","insight","intimidation","investigation","medicine","nature","perception","performance","persuasion","religion","sleight_of_hand","stealth","survival"]
 mod = lambda s: (s - 10) // 2
 sgn = lambda n: f"+{n}" if n >= 0 else str(n)
 num = lambda v: int(v) if v is not None and float(v).is_integer() else v
-
-def load(ed, name): return json.load(open(f"{D}/{ed}/{name}.json"))
 
 def uses(f):
     t, p = f.get("uses_type"), f.get("uses_param")
@@ -35,13 +33,15 @@ def role(m, traits, acts):
 # Corrections where the SRD source data is wrong or incomplete (missing walking speeds, HP that doesn't match the hit dice)
 FIXES = {"2014": {"Donkey": {"speed": "40 ft."}, "Elf, Drow": {"speed": "30 ft."}, "Gnome, Deep (Svirfneblin)": {"speed": "20 ft."},
                   "Cult Fanatic": {"hp": 33}, "Reef Shark": {"hd": "4d8+4"}}}
-out = {}
-for ed, key in [("srd-2014", "2014"), ("srd-2024", "2024")]:
+def convert(folder, fixes=None):
+    """Turns one Open5e document folder (Creature, CreatureAction, CreatureTrait) into the app's monster list."""
+    fixes = fixes or {}
+    lj = lambda name: json.load(open(f"{folder}/{name}.json"))
     acts, traits = defaultdict(list), defaultdict(list)
-    for a in load(ed, "CreatureAction"): acts[a["fields"]["parent"]].append(a["fields"])
-    for t in load(ed, "CreatureTrait"): traits[t["fields"]["parent"]].append(t["fields"])
+    for a in lj("CreatureAction"): acts[a["fields"]["parent"]].append(a["fields"])
+    for t in lj("CreatureTrait"): traits[t["fields"]["parent"]].append(t["fields"])
     mons = []
-    for c in load(ed, "Creature"):
+    for c in lj("Creature"):
         f, pk = c["fields"], c["pk"]
         scores = [f[f"ability_score_{a}"] for a in AB]
         saves = [f"{ABS[i]} {sgn(f[f'saving_throw_{a}'])}" for i, a in enumerate(AB)
@@ -69,9 +69,12 @@ for ed, key in [("srd-2014", "2014"), ("srd-2024", "2024")]:
         }
         if m["cr"].is_integer(): m["cr"] = int(m["cr"])
         m["role"] = role(m, tr, m["actions"])
-        m.update(FIXES.get(key, {}).get(m["n"], {}))
+        m.update(fixes.get(m["n"], {}))
         mons.append({k: v for k, v in m.items() if v not in ("", [], None) or k in ("traits", "actions")})
     mons.sort(key=lambda m: m["n"])
-    out[key] = mons
-json.dump(out, open(OUT, "w"), separators=(",", ":"), ensure_ascii=False)
-for k, v in out.items(): print(k, len(v), "monsters")
+    return mons
+
+if __name__ == "__main__":
+    out = {key: convert(f"{D}/{ed}", FIXES.get(key)) for ed, key in [("srd-2014", "2014"), ("srd-2024", "2024")]}
+    json.dump(out, open(OUT, "w"), separators=(",", ":"), ensure_ascii=False)
+    for k, v in out.items(): print(k, len(v), "monsters")

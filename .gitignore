@@ -5,4 +5,6 @@ public/portal.js
 # Built by tools/build.mjs from src/ and data/ (npm run build:app)
 public/index.html
 public/sw.js
+public/credits.html
 public/assets/
+__pycache__/
