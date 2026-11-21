@@ -24,6 +24,33 @@ function dmData(key) {
   }
   return DM_DATA[key];
 }
+/* Load the largest optional catalog when a tool first needs it. */
+let extraMonsterRequest, extraMonstersReady = false;
+function dmLoadExtraMonsters() {
+  if (extraMonsterRequest) return extraMonsterRequest;
+  extraMonsterRequest = new Promise((resolve, reject) => {
+    const script = document.createElement("script");
+    script.src = document.querySelector('meta[name="forge-extra-monsters"]').content;
+    script.onload = () => { script.remove(); resolve(); };
+    script.onerror = () => { script.remove(); reject(new Error("Extra monsters are unavailable")); };
+    document.head.append(script);
+  }).then(() => {
+    const raw = dmData("monsterData");
+    const extra = window.DMDATA.monsterExtra;
+    if (extra) {
+      for (const ed of ["2014", "2024"]) {
+        const first = raw[ed].length;
+        raw[ed].push(...JSON.parse(extra));
+        if (BS.data) raw[ed].slice(first).forEach((m, i) => bsPrepareMonster(m, ed, first + i));
+      }
+      delete window.DMDATA.monsterExtra;
+    }
+    RAND_MON = null;
+    extraMonstersReady = true;
+    return true;
+  }).catch(() => { extraMonsterRequest = null; return false; });
+  return extraMonsterRequest;
+}
 /* 2024 wording for a spell written the 2014 way ("1 action" → "Action") */
 function dmSpell2024(s) {
   s.t = s.t.replace(/^1 (action|bonus action|reaction)/, (_, a) => a.replace(/\b\w/g, c => c.toUpperCase()));
@@ -31,14 +58,17 @@ function dmSpell2024(s) {
   return s;
 }
 /* The extra books: dmBook(code) → { name, short, by, lic, url }, or null for SRD entries */
+function dmBooks() {
+  if (!DM_DATA.bookData) { try { DM_DATA.bookData = JSON.parse(window.DMDATA.bookData).books; } catch { DM_DATA.bookData = {}; } }
+  return DM_DATA.bookData;
+}
 function dmBook(code) {
   if (!code) return null;
-  if (!DM_DATA.bookData) { try { DM_DATA.bookData = JSON.parse(window.DMDATA.bookData).books; } catch { DM_DATA.bookData = {}; } }
-  return DM_DATA.bookData[code] || { name: code, short: code, by: "another publisher" };
+  return dmBooks()[code] || { name: code, short: code, by: "another publisher" };
 }
 /* the small tag on a list row, and the "Source" line in its details */
 const bookTag = x => { const b = dmBook(x && x.src); return b ? `<span class="tag book hide-sm" title="${esc(b.name)}">${esc(b.short)}</span>` : ""; };
-const bookLine = x => { const b = dmBook(x && x.src); return b ? `<p class="hint book-line">Source: <i>${esc(b.name)}</i> (${esc(b.by)}), open content. <a href="/credits.html" target="_blank" rel="noopener">Credits and licences</a></p>` : ""; };
+const bookLine = x => { const b = dmBook(x && x.src); return b ? `<p class="hint book-line">Source: <i>${esc(b.name)}</i> (${esc(b.by)})${x.page ? `, p. ${esc(x.page)}` : ""}${b.lic === "reference" ? " · Rules summary" : ", open content"}. <a href="/credits.html" target="_blank" rel="noopener">Credits and licences</a></p>` : ""; };
 /* The Book filter's choices for a list: Any, the SRD, then each extra book in it. Its values: "", "srd" or a book code. */
 function bookOptions(list) {
   const codes = [...new Set(list.map(x => x.src).filter(Boolean))].sort((a, b) => dmBook(a).name.localeCompare(dmBook(b).name));

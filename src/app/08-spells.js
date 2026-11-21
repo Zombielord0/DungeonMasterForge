@@ -69,15 +69,15 @@ function spFormat(text) {
   flushT(); flushL();
   return h;
 }
-function spDetail(s) {
+function spDetail(s, { edition = SP.ed, actions = true } = {}) {
   const comps = s.cp.split("").join(", ") + (s.m ? ` (${s.m})` : "");
   return `<div class="sp-detail">
     <div class="muted"><i>${s.l ? `Level ${s.l} ${esc(s.s)}` : `${esc(s.s)} cantrip`}${s.ri ? " (ritual)" : ""} · ${esc(s.c.join(", "))}</i></div>
     <div class="sp-stats"><div><span>Casting time</span>${esc(s.t)}${s.ri ? " or ritual" : ""}</div><div><span>Range</span>${esc(s.r)}</div><div><span>Components</span>${esc(comps)}</div><div><span>Duration</span>${s.co && !/concentration/i.test(s.du) ? "Concentration, " : ""}${esc(s.du)}</div></div>
     ${spFormat(s.d)}
-    ${s.h ? `<p><b><i>${SP.ed === "2024" ? "Using a Higher-Level Spell Slot." : "At Higher Levels."}</i></b> ${spFormat(s.h).replace(/^<p>|<\/p>$/g, "")}</p>` : ""}
+    ${s.h ? `<p><b><i>${edition === "2024" ? "Using a Higher-Level Spell Slot." : "At Higher Levels."}</i></b> ${spFormat(s.h).replace(/^<p>|<\/p>$/g, "")}</p>` : ""}
     ${bookLine(s)}
-    <div class="actions"><button class="btn sm" data-sp="copy" data-id="${s.id}">Copy spell</button><button class="btn sm" data-sp="fav" data-id="${s.id}">${favs.has(favKey(s)) ? "★ Remove favorite" : "☆ Add favorite"}</button>${spPrepBtn(s)}</div>
+    ${actions ? `<div class="actions"><button class="btn sm" data-sp="copy" data-id="${s.id}">Copy spell</button><button class="btn sm" data-sp="fav" data-id="${s.id}">${favs.has(favKey(s)) ? "★ Remove favorite" : "☆ Add favorite"}</button>${spPrepBtn(s)}</div>` : ""}
   </div>`;
 }
 function spRow(s) {
@@ -109,7 +109,7 @@ function renderSpells() {
   $("#spList").innerHTML = h;
 }
 function spText(s) {
-  return `${s.n}\n${s.l ? `Level ${s.l} ${s.s}` : `${s.s} cantrip`} (${s.c.join(", ")})\nCasting Time: ${s.t}${s.ri ? " or Ritual" : ""}\nRange: ${s.r}\nComponents: ${s.cp.split("").join(", ")}${s.m ? ` (${s.m})` : ""}\nDuration: ${s.co && !/concentration/i.test(s.du) ? "Concentration, " : ""}${s.du}\n\n${s.d.replace(/\*\*/g, "")}${s.h ? `\n\n${SP.ed === "2024" ? "Using a Higher-Level Spell Slot" : "At Higher Levels"}: ${s.h}` : ""}`;
+  return `${s.n}\n${s.l ? `Level ${s.l} ${s.s}` : `${s.s} cantrip`} (${s.c.join(", ")})\nCasting Time: ${s.t}${s.ri ? " or Ritual" : ""}\nRange: ${s.r}\nComponents: ${s.cp.split("").join(", ")}${s.m ? ` (${s.m})` : ""}\nDuration: ${s.co && !/concentration/i.test(s.du) ? "Concentration, " : ""}${s.du}\n\n${s.d.replace(/\*\*/g, "")}${s.h ? `\n\n${edition === "2024" ? "Using a Higher-Level Spell Slot" : "At Higher Levels"}: ${s.h}` : ""}`;
 }
 const spFind = id => SP.data[id.split("-")[0]][+id.split("-")[1]];
 let spTimer = null;

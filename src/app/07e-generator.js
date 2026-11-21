@@ -145,7 +145,7 @@ function generateCharacter(o) {
   const feats = [];
   Object.entries(C.f).forEach(([l, list]) => { if (+l <= lv) list.forEach(f => feats.push({ l: +l, f })); });
   if (lv >= subLv) feats.push({ l: subLv, f: subclass ? `Subclass: ${subclass}` : "Subclass: not chosen yet" });
-  const hbSub = subclass && hbAny("subclass").find(x => x.name === subclass && x.cls === cls);
+  const hbSub = subclass && hbAny("subclass").find(x => x.name === subclass && x.cls === cls && hbEdOk(x, ed));
   if (hbSub) (hbSub.features || []).filter(f => f.n && +f.l <= lv).forEach(f => feats.push({ l: +f.l, f: f.n }));
   else if (subclass) feats.push(...subFeatList(ed, subclass, lv));
   const SB = subBonuses(ed, subclass, lv, m, prof);
@@ -258,9 +258,9 @@ function setForgeLineage(value) {
 }
 (function initPC() {
 
-  const curEd = () => ($("input[name=pcEd]:checked") || {}).value || "2024";
+  const curEd = () => currentSourceRules()?.edition || ($("input[name=pcEd]:checked") || {}).value || "2024";
   const fillClasses = () => {
-    const keep = $("#pcClass").value, L = classList(curEd());
+    const keep = $("#pcClass").value, L = campaignClassChoices(curEd());
     $("#pcClass").innerHTML = `<option value="">Random</option>` + L.map(x => `<option>${esc(x)}</option>`).join("");
     $("#pcClass").value = L.includes(keep) ? keep : "";
   };
@@ -269,7 +269,7 @@ function setForgeLineage(value) {
     $("#pcGoldWrap").classList.toggle("ed-hide", curEd() !== "2024" || Boolean(HB_BG[$("#pcBg").value]));
   };
   const fillBgs = () => {
-    const keep = $("#pcBg").value, L = bgList(curEd());
+    const keep = $("#pcBg").value, L = campaignBackgroundChoices(curEd());
     $("#pcBg").innerHTML = `<option value="">Random</option>` + L.map(x => `<option>${esc(x)}</option>`).join("");
     $("#pcBg").value = L.includes(keep) ? keep : "";
     $("#pcBonusWrap").classList.toggle("ed-hide", curEd() === "2024");
@@ -277,8 +277,8 @@ function setForgeLineage(value) {
   };
   const fillRaces = () => {
     const ed = curEd(), keep = $("#pcRace").value;
-    $("#pcRace").innerHTML = `<option value="">Random</option>` + raceList(ed).map(x => `<option>${esc(x)}</option>`).join("");
-    if (raceList(ed).includes(keep)) $("#pcRace").value = keep;
+    $("#pcRace").innerHTML = `<option value="">Random</option>` + campaignRaceChoices(ed).map(x => `<option>${esc(x)}</option>`).join("");
+    if (campaignRaceChoices(ed).includes(keep)) $("#pcRace").value = keep;
     $("#pcEdHint").textContent = ed === "2024" ? "2024 Player's Handbook: species (with Aasimar, Goliath and Orc); ability bonuses come from your background." : "2014 Player's Handbook: races with subraces; ability bonuses come from your race.";
   };
   const ancHint = () => {
@@ -298,6 +298,11 @@ function setForgeLineage(value) {
   };
   fillRaces();
   window.pcSelectsRefresh = () => {
+    const edition = currentSourceRules()?.edition;
+    $$("input[name=pcEd]").forEach(r => {
+      r.disabled = !!edition && r.value !== edition;
+      if (edition) r.checked = r.value === edition;
+    });
     fillBgs(); fillClasses();
     fillRaces(); syncRace();
   };
@@ -313,7 +318,7 @@ function setForgeLineage(value) {
   });
   $("#pcAnc").addEventListener("change", ancHint);
   $("#pcClass").addEventListener("change", event => {
-    if (event.target.value) openProgression(curEd(), "class", event.target.value, "", event.target);
+    if (event.target.value) openProgression(curEd(), "class", event.target.value, "", event.target, { campaign: true });
   });
   $("#pcBg").addEventListener("change", event => {
     syncBackgroundEquipment();

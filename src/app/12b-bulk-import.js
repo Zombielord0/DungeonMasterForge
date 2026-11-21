@@ -146,7 +146,7 @@ const BI_MAKE = {
   },
   subclass(g, P) {
     if (!g.cls) throw new Error(`“${biStr(g.rows[0].class) || "no class"}” isn't a class the Forge knows`);
-    const d = hbNew("subclass"), first = subclassLevel("2014", g.cls);
+    const d = hbNew("subclass"), first = subclassLevel(g.edition === "2024" ? "2024" : "2014", g.cls);
     Object.assign(d, { name: g.name, cls: g.cls, desc: biCut(P, g.name, "the description", g.rows.map(r => biStr(r.description)).find(Boolean) || "", 4000),
       features: g.rows.filter(r => biStr(r.feature)).map(r => ({ l: clamp(parseInt(r.level) || first, 1, 20), n: biStr(r.feature), d: biCut(P, g.name, `${biStr(r.feature)}'s text`, biStr(r.feature_text), 4000), fx: [] })) });
     if (!d.features.length) P.probs.push(`${g.name}: no features (one row per feature, with its level)`);
@@ -167,18 +167,19 @@ const BI_MAKE = {
   }
 };
 /* why the Forge already has this entry, or "" */
-function biHave(kind, name, cls) {
+function biHave(kind, name, cls, edition = "both") {
+  const editions = edition !== "both" && ["spell", "feat", "subclass"].includes(kind) ? [edition] : ["2014", "2024"];
   const lc = s => String(s || "").toLowerCase(), n = lc(name);
   if (BI_COLS[kind] && HB_KINDS[kind]) {
-    const h = hbAny(kind).find(x => lc(x.name) === n && (kind !== "subclass" || x.cls === cls));
+    const h = hbAny(kind).find(x => editions.some(ed => hbEdOk(x, ed)) && lc(x.name) === n && (kind !== "subclass" || x.cls === cls));
     if (h) return h.book ? `already in the Forge (${dmBook(h.src).name})` : h.pend ? "already waiting for your approval" : "already in your homebrew";
   }
   const built = {
-    spell: () => { spLoad(); return [...SP.data["2014"], ...SP.data["2024"]].some(s => !s.hb && lc(s.n) === n); },
-    feat: () => [...FEATS["2014"], ...FEATS["2024"]].some(F => lc(F[0]) === n),
-    species: () => ["2014", "2024"].some(ed => Object.keys(PC_RACES[ed]).some(k => !PC_RACES[ed][k].hb && lc(k) === n)),
-    background: () => ["2014", "2024"].some(ed => Object.keys(BG_DATA[ed]).some(k => lc(k) === n)),
-    subclass: () => ["2014", "2024"].some(ed => ((SUBCLASSES[ed] || {})[cls] || []).some(x => lc(x[0]) === n)),
+    spell: () => { spLoad(); return editions.flatMap(ed => SP.data[ed]).some(s => !s.hb && lc(s.n) === n); },
+    feat: () => editions.flatMap(ed => FEATS[ed]).some(F => lc(F[0]) === n),
+    species: () => editions.some(ed => Object.keys(PC_RACES[ed]).some(k => !PC_RACES[ed][k].hb && lc(k) === n)),
+    background: () => editions.some(ed => Object.keys(BG_DATA[ed]).some(k => lc(k) === n)),
+    subclass: () => editions.some(ed => ((SUBCLASSES[ed] || {})[cls] || []).some(x => lc(x[0]) === n)),
     item: () => { itLoad(); return IT.custom.some(x => lc(x.n) === n) || Object.values(IT.data).flat().some(x => lc(x.n) === n); },
     monster: () => { mbLoadLib(); return MB.lib.some(x => lc(x.name) === n); }
   }[kind];
@@ -191,14 +192,26 @@ function biPlan(rows) {
     const line = i + 2, kind = BI_KIND[biKey(r.kind)], name = biStr(r.name).slice(0, 60);
     if (!kind) { P.probs.push(`Row ${line}: “${biStr(r.kind) || "(empty)"}” isn't a kind the import knows (${Object.keys(BI_COLS).join(", ")})`); return; }
     if (!name) { P.probs.push(`Row ${line}: no name`); return; }
-    const cls = kind === "subclass" ? biClass(r.class) : "", k = `${kind}|${cls}|${name.toLowerCase()}`;
-    if (!groups.has(k)) groups.set(k, { kind, name, cls, rows: [] });
+    const edition = biStr(r.edition || r.ed) || "both";
+    if (!["2014", "2024", "both"].includes(edition)) { P.probs.push(`Row ${line}: edition must be 2014, 2024, or both`); return; }
+    const cls = kind === "subclass" ? biClass(r.class) : "", k = `${kind}|${cls}|${name.toLowerCase()}|${edition}`;
+    if (!groups.has(k)) groups.set(k, { kind, name, cls, edition, rows: [] });
     groups.get(k).rows.push(r);
   });
-  for (const g of groups.values()) {
-    const why = biHave(g.kind, g.name, g.cls);
+  const entries = [...groups.values()].sort((a, b) => Number(b.edition === "both") - Number(a.edition === "both"));
+  const planned = new Map();
+  for (const g of entries) {
+    const key = `${g.kind}|${g.cls}|${g.name.toLowerCase()}`;
+    if (planned.get(key)?.has("both")) { P.skip.push(`${g.name} (${g.kind}): already included for both editions in this file`); continue; }
+    const why = biHave(g.kind, g.name, g.cls, g.edition);
     if (why) { P.skip.push(`${g.name} (${g.kind}): ${why}`); continue; }
-    try { P.add.push({ kind: g.kind, name: g.name, ...BI_MAKE[g.kind](g, P) }); } catch (e) { P.probs.push(`${g.name}: ${e.message}`); }
+    try {
+      const entry = BI_MAKE[g.kind](g, P);
+      if (entry.dest === "hb") entry.x.ed = g.edition;
+      P.add.push({ kind: g.kind, name: g.name, ...entry });
+      if (!planned.has(key)) planned.set(key, new Set());
+      planned.get(key).add(["spell", "feat", "subclass"].includes(g.kind) ? g.edition : "both");
+    } catch (e) { P.probs.push(`${g.name}: ${e.message}`); }
   }
   return P;
 }

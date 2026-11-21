@@ -17,8 +17,8 @@ const OFFLINE_KEY = "dmforge.offline";
 const CAMP_KEY = "dmforge.campaign";
 const LAST_KEY = "dmforge.lastCampaign."; // + user id: the campaign and role from last visit
 const OFFERED_KEY = "dmforge.uploadOffered.";
-const ALL_VIEWS = ["generate", "npc", "world", "monsters", "character", "roster", "spells", "feats", "items", "map", "tracker", "homebrew", "journal", "requests"];
-const PLAYER_VIEWS = ["character", "roster", "spells", "feats", "items", "journal", "whispers", "requests"];
+const ALL_VIEWS = ["generate", "npc", "world", "monsters", "character", "roster", "compendium", "spells", "feats", "items", "map", "tracker", "homebrew", "journal", "requests"];
+const PLAYER_VIEWS = ["character", "roster", "compendium", "spells", "feats", "items", "journal", "whispers", "requests"];
 const POLL_DM = 4000, POLL_PLAYER = 10000, POLL_WHISPERS = 8000, POLL_HOMEBREW = 30000;
 
 const S = {
@@ -44,6 +44,8 @@ const Portal = window.Portal = {
   campName: () => (S.camp && S.camp.name) || "your campaign",
   hbPut, hbDel,
   renderJournal: () => renderJournal(),
+  linkedTrackerId: () => Portal.cloud && isDM() ? trackerId() : null,
+  sourceRules: () => isDM() ? Store.get(trackerId())?.sourceRules : S.shared.journal?.data?.sourceRules,
   rolled: (c, e) => shareRoll(c, e),
   api: (path, opts) => api(path, opts),        // the Requests tab (20-requests.js) talks to the server through this
   signedIn: () => !!S.user,
@@ -698,24 +700,36 @@ document.addEventListener("change", e => {
    poll, only when they changed. Players read them every 30 seconds, or every 5 while a fight is on their phones. */
 async function publishShared() {
   if (!isDM() || !Portal.cloud) return;
-  const tid = trackerId();
-  const want = { journal: tid ? journalFor(Store.get(tid)) : null, turns: turnsNow() };
+  const campaignId = S.camp.id, published = S.published, tid = trackerId();
+  const want = { journal: tid ? journalFor(Store.get(tid)) : null, turns: playersFightGet()?.cid === tid ? turnsNow() : null };
   for (const [id, data] of Object.entries(want)) {
+    if (S.camp?.id !== campaignId || S.published !== published || trackerId() !== tid) return;
     const text = data ? JSON.stringify(data) : null;
-    if (S.published[id] === text) continue;
-    if (S.published[id] === undefined && !text) { S.published[id] = null; await api(campPath("shared/" + id), { method: "DELETE" }); continue; }
-    const r = text ? await api(campPath("shared/" + id), { method: "PUT", body: { data } }) : await api(campPath("shared/" + id), { method: "DELETE" });
-    if (r.ok) S.published[id] = text;
+    if (published[id] === text) continue;
+    const path = `campaigns/${campaignId}/shared/${id}`;
+    const r = text ? await api(path, { method: "PUT", body: { data } }) : await api(path, { method: "DELETE" });
+    if (r.ok && S.published === published && S.camp?.id === campaignId) published[id] = text;
   }
 }
 async function loadShared() {
   clearTimeout(S.sharedTimer);
   if (!Portal.cloud || isDM()) return;
   if (!document.hidden) {
+    const campaignId = S.camp?.id;
     const r = await api(campPath("shared"));
+    if (campaignId !== S.camp?.id || !Portal.cloud || isDM()) return;
     if (r.ok) {
-      const before = JSON.stringify(S.shared); S.shared = r.data || {};
-      if (JSON.stringify(S.shared) !== before) { renderTurnBar(); if (location.hash === "#journal") renderJournal(); }
+      const before = S.shared, after = r.data || {};
+      S.shared = after;
+      if (before.journal?.updatedAt !== after.journal?.updatedAt) {
+        const oldRules = before.journal?.data?.sourceRules, rules = after.journal?.data?.sourceRules;
+        if (JSON.stringify(oldRules) !== JSON.stringify(rules)) {
+          pcSelectsRefresh();
+          if (location.hash === "#compendium") compendiumSearch();
+        }
+        if (location.hash === "#journal") renderJournal();
+      }
+      if (before.turns?.updatedAt !== after.turns?.updatedAt) renderTurnBar();
     }
   }
   S.sharedTimer = setTimeout(loadShared, S.shared.turns ? 5000 : 30000);
@@ -726,12 +740,19 @@ function renderJournal() {
   const J = isDM() ? (trackerId() ? journalFor(Store.get(trackerId())) : null) : S.shared.journal && S.shared.journal.data;
   const head = isDM() ? `<p class="muted">This is what your players see. It comes from <b>${esc((J && J.name) || "the party's Tracker campaign")}</b>: quests and sessions unless you set “Players see it” to No, and Lore entries you tick “Players see this”. Quest notes and DM-only sections stay with you.</p>` : "";
   if (!J) { el.innerHTML = `<div class="sec-h"><h3>Journal</h3></div>${head}<p class="muted">${isDM() ? "Link a Tracker campaign on the Party tab first." : "Your DM hasn't shared anything yet. Quests, session recaps and lore they share will appear here."}</p>`; return; }
+  const openedHandouts = new Set($$("details.j-handout[open]", el).map(x => x.dataset.handoutId));
+  const handouts = Array.isArray(J.handouts) ? J.handouts.filter(x => x && typeof x.id === "string") : [];
   const q = J.quests || [], open = q.filter(x => x.status === "Active" || x.status === "On hold"), done = q.filter(x => x.status === "Completed" || x.status === "Failed");
   const quest = x => `<li><b>${esc(x.title || "Quest")}</b>${x.status !== "Active" ? ` <span class="tag">${esc(x.status)}</span>` : ""}${x.giver ? `<span class="muted"> · from ${esc(x.giver)}</span>` : ""}</li>`;
   el.innerHTML = `<div class="sec-h"><h3>Journal${J.name ? ": " + esc(J.name) : ""}</h3></div>${head}
     ${J.cal ? `<p class="j-cal">📅 Day ${esc(J.cal.day)} · ${esc(J.cal.season)}${J.cal.weather ? ` · ${esc(J.cal.weather)}` : ""}</p>` : ""}
     <h4 class="j-h">Quests</h4>${open.length ? `<ul class="j-list">${open.map(quest).join("")}</ul>` : `<p class="muted">No open quests.</p>`}
     ${done.length ? `<details class="j-done"><summary>Finished (${done.length})</summary><ul class="j-list">${done.map(quest).join("")}</ul></details>` : ""}
+    ${handouts.length ? `<h4 class="j-h">Handouts</h4>${handouts.map(x => {
+      const picture = journalPictureOK(x.picture) ? x.picture : npcUrlOk(x.url) ? x.url : "";
+      return `<details class="lore-card j-handout" data-handout-id="${esc(x.id)}" ${openedHandouts.has(x.id) ? "open" : ""}><summary class="lore-head">${esc(x.title)}</summary>
+        <div class="lore-body">${picture ? `<img class="journal-handout-picture" src="${esc(picture)}" alt="${esc(x.title)}" loading="lazy" referrerpolicy="no-referrer">` : ""}${mdHTML(String(x.notes || ""))}</div></details>`;
+    }).join("")}` : ""}
     <h4 class="j-h">Sessions</h4>${(J.sessions || []).length ? J.sessions.map(x => `<details class="lore-card j-sess"><summary class="lore-head"><span class="lore-name">${esc(x.title || (x.num ? "Session " + x.num : "Session"))}</span>${x.date ? `<small class="muted">${esc(x.date)}</small>` : ""}</summary><div class="lore-body">${mdHTML(x.summary || "")}</div></details>`).join("") : `<p class="muted">No sessions written up yet.</p>`}
     ${(J.lore || []).length ? `<h4 class="j-h">Lore</h4>${J.lore.map(x => `<details class="lore-card"><summary class="lore-head">${x.imgUrl ? `<img class="lore-pic" src="${esc(x.imgUrl)}" alt="" referrerpolicy="no-referrer" loading="lazy">` : ""}<span class="lore-name">${esc(x.name || "Untitled")}</span><small class="muted">${JTYPE[x.type] || "Other"}${(x.tags || []).length ? " · " + esc(x.tags.join(", ")) : ""}</small></summary>
       <div class="lore-body">${x.desc ? `<div class="lore-desc">${mdHTML(x.desc)}</div>` : ""}${(x.sections || []).map(z => `<div class="lore-sec"><h4>${esc(z.t)}</h4>${mdHTML(z.x)}</div>`).join("")}</div></details>`).join("")}` : ""}`;

@@ -219,12 +219,12 @@ function progressionButton(ed, kind, name, option = "", label = "Level 1–20 pr
   return `<button type="button" class="btn sm" data-progression="${kind}" data-progression-ed="${esc(ed)}" data-progression-name="${esc(name)}" data-progression-option="${esc(option)}" aria-label="${esc(label + (name ? " for " + (kind === "subclass" ? option : name) : ""))}">${esc(label)}</button>`;
 }
 
-function openProgression(ed, kind, name, option, trigger, { setLineage, requireLineage } = {}) {
+function openProgression(ed, kind, name, option, trigger, { setLineage, requireLineage, campaign = false } = {}) {
   if (kind === "class" && !classList(ed).includes(name) || kind === "species" && !Object.hasOwn(PC_RACES[ed], name)) {
     toast("Choose a class or species first");
     return;
   }
-  const choices = kind === "class" ? subclassList(ed, name)
+  const choices = kind === "class" ? (campaign ? campaignSubclassChoices(ed, name) : subclassList(ed, name))
     : kind === "species" ? Object.keys(PC_RACES[ed][name].subs || {}).map(key => [key, subLabel(ed, name, key)]) : [];
   const builtIn = kind === "class" && !CLASS_DATA[name].hb;
   const source = ed === "2024" ? "5.2.1" : "5.1";

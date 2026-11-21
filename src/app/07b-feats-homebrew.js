@@ -178,7 +178,7 @@ function hbEffects(ed, race, sub, bg, cls, subclass, lv, featNames) {
   const sp = hbAny("species").find(x => x.name === race && hbEdOk(x, ed) && PC_RACES[ed][race] && PC_RACES[ed][race].hb);
   if (sp) { (sp.traits || []).filter(t => (+t.l || 1) <= lv).forEach(t => add(t.n, t.fx)); const su = (sp.subs || []).find(t => t.n === sub); if (su) add(su.n, su.fx); }
   if (HB_BG[bg]) add(`${bg} background`, HB_BG[bg].fx);
-  const sc = subclass && hbAny("subclass").find(x => x.name === subclass && x.cls === cls);
+  const sc = subclass && hbAny("subclass").find(x => x.name === subclass && x.cls === cls && hbEdOk(x, ed));
   if (sc) (sc.features || []).filter(f => f.n && +f.l <= lv).forEach(f => add(f.n, f.fx));
   const hc = CLASS_DATA[cls] && CLASS_DATA[cls].hb && CLASS_DATA[cls].hbx;
   if (hc) (hc.features || []).filter(f => f.n && +f.l <= lv).forEach(f => add(f.n, f.fx));
@@ -298,6 +298,7 @@ function hbRefreshUI() {
   if (window.pcSelectsRefresh) pcSelectsRefresh();
   if (CB.on && location.hash === "#roster") renderCB();
   if (location.hash === "#homebrew") renderHomebrew();
+  if (location.hash === "#compendium") compendiumSearch();
 }
 function hbSet(list) { HB.list = Array.isArray(list) ? list.filter(x => x && HB_KINDS[x.kind] && x.name) : []; HB.pendSig = ""; hbPendSync(); hbApply(); hbRefreshUI(); }
 function hbLoadLocal() { let l = []; try { l = JSON.parse(localStorage.getItem(HB_KEY) || "[]"); } catch { } hbSet(l); }

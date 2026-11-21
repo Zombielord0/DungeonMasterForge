@@ -152,8 +152,19 @@ const { chromium } = require("playwright");
     const manual = page.locator('.rc-inv tbody tr').last();
     await manual.locator('[data-rinv="n"]').fill("Ring of Free Action");
     assert.equal(await manual.locator('[data-rinv="attuned"]').isVisible(), true);
+    await manual.locator('[data-rinv="attuned"]').check();
+    assert.match(await page.locator("#rcAttunementCount").textContent(), /1 \/ 3/);
     await manual.locator('[data-rinv="n"]').fill("Plain ring");
     assert.equal(await manual.locator('[data-rinv="attuned"]').count(), 0);
+    assert.match(await page.locator("#rcAttunementCount").textContent(), /0 \/ 3/);
+    await manual.locator('[data-rinv="n"]').press("Tab");
+    assert.equal(await page.evaluate(() => rosterCur().inv.at(-1).attuned), false);
+    await page.evaluate(() => {
+      rosterCur().inv.at(-1).attuned = true; // An older save with a stale flag.
+      renderRosterMain();
+    });
+    assert.equal(await page.evaluate(() => rosterCur().inv.at(-1).attuned), false);
+    assert.match(await page.locator("#rcAttunementCount").textContent(), /0 \/ 3/);
     await page.locator('#sec-gear [data-item-details="test-custom"]').click();
     assert.match(await dialog.textContent(), /<strong>Shared rules<\/strong>/);
     assert.equal(await dialog.locator("strong").count(), 0);

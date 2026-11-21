@@ -219,13 +219,17 @@ test("the DM shares the Journal and turn order; players share their rolls", asyn
   const cid = made.body.id;
   await call(pl, "POST", "join", { code: made.body.code, displayName: "Pia" });
   assert.deepEqual((await call(pl, "GET", `campaigns/${cid}/shared`)).body, {}, "nothing shared yet");
-  const journal = { quests: [{ title: "Find the bell", status: "Active" }] };
+  const journal = { quests: [{ title: "Find the bell", status: "Active" }],
+    sourceRules: { edition: "2014", books: ["tob3", "tob3", "bad source"], homebrew: true, private: "Only for the DM" },
+    handouts: [{ id: "letter", title: "A letter", notes: "Meet at the mill.", picture: "data:image/webp;base64,AAAA", url: "http://example.com", private: "Only for the DM" }] };
   assert.equal((await call(pl, "PUT", `campaigns/${cid}/shared/journal`, { data: journal })).status, 403, "players can't publish");
   assert.equal((await call(dm, "PUT", `campaigns/${cid}/shared/secrets`, { data: {} })).status, 404, "only the known kinds");
   assert.equal((await call(dm, "PUT", `campaigns/${cid}/shared/journal`, { data: journal })).status, 200);
   await call(dm, "PUT", `campaigns/${cid}/shared/turns`, { data: { round: 2, rows: [{ name: "Goblin", foe: true, cur: true, state: "Bloodied" }] } });
   const seen = (await call(pl, "GET", `campaigns/${cid}/shared`)).body;
   assert.equal(seen.journal.data.quests[0].title, "Find the bell");
+  assert.deepEqual(seen.journal.data.sourceRules, { edition: "2014", books: ["tob3"], homebrew: true });
+  assert.deepEqual(seen.journal.data.handouts, [{ id: "letter", title: "A letter", notes: "Meet at the mill.", picture: "data:image/webp;base64,AAAA" }]);
   assert.equal(seen.turns.data.round, 2);
   assert.equal((await call(out, "GET", `campaigns/${cid}/shared`)).status, 403, "outsiders see nothing");
   await call(dm, "DELETE", `campaigns/${cid}/shared/turns`);
