@@ -32,6 +32,7 @@ const { chromium } = require("playwright");
     await page.selectOption("#pcClass", "Fighter");
     const dialog = page.locator("#characterReference");
     const rows = dialog.locator("tbody tr");
+    const next = dialog.getByRole("button", { name: /^Next/ });
     assert.equal(await rows.count(), 20);
     assert.match(await rows.nth(1).textContent(), /Tactical Mind/);
     await dialog.locator("select").selectOption("Champion");
@@ -50,7 +51,8 @@ const { chromium } = require("playwright");
     await dialog.locator("select").selectOption("Drow");
     assert.equal(await page.locator("#pcAnc").inputValue(), "Drow");
     assert.match(await rows.nth(2).textContent(), /Faerie Fire/);
-    await dialog.getByRole("button", { name: "Close" }).click();
+    await next.click();
+    assert.equal(await page.evaluate(() => document.activeElement.id), "pcClass");
 
     await page.evaluate(() => hbSet([
       ...HB.list,
@@ -77,26 +79,31 @@ const { chromium } = require("playwright");
     }), true);
 
     await page.evaluate(() => { CB.ed = "2014"; cbStart(); });
+    assert.equal(await page.evaluate(() => {
+      const pickerSearch = getComputedStyle(document.querySelector("[data-choice-query]"));
+      const spellSearch = getComputedStyle(document.querySelector("#spQ"));
+      return ["backgroundImage", "borderRadius", "boxShadow"].every(key => pickerSearch[key] === spellSearch[key]) &&
+        pickerSearch.backgroundImage !== "none";
+    }), true);
     await page.getByLabel("Search races").fill("no such species");
     assert.equal(await page.getByText("No matching choices.").isVisible(), true);
     await page.getByLabel("Search races").fill("alseid tome");
     assert.equal(await page.locator("[data-cbrace]:visible").count(), 1);
     await page.locator('[data-cbrace="Alseid"]').click();
     assert.match(await dialog.textContent(), /Alseid.*Tome of Heroes/s);
-    await dialog.getByRole("button", { name: "Close" }).click();
-    await page.locator("[data-cbnext]").click();
+    await next.click();
     await page.getByLabel("Search classes").fill("druid");
     assert.equal(await page.locator("[data-cbcls]:visible").count(), 1);
     await page.locator('[data-cbcls="Druid"]').click();
     await dialog.locator("select").selectOption("Circle of Bees");
     assert.match(await rows.nth(1).textContent(), /Bee Bond/);
-    await dialog.getByRole("button", { name: "Close" }).click();
-    await page.locator("[data-cbnext]").click();
+    await next.click();
     await page.getByLabel("Search backgrounds").fill("court servant");
     assert.equal(await page.locator("[data-cbbg]:visible").count(), 1);
     await page.locator('[data-cbbg="Court Servant"]').click();
     assert.match(await dialog.textContent(), /Court Servant.*Tome of Heroes.*Insight/s);
-    await dialog.getByRole("button", { name: "Close" }).click();
+    await next.click();
+    assert.match(await page.locator("#pcOut [aria-current=step]").textContent(), /Abilities/);
     await page.locator("[data-cbquit]").click();
 
     await page.evaluate(() => {
@@ -139,6 +146,7 @@ const { chromium } = require("playwright");
     await dialog.locator("select").selectOption("Champion");
     assert.match(await rows.nth(2).textContent(), /Improved Critical/);
     assert.equal(await page.evaluate(() => rosterCur().subclass), null);
+    assert.equal(await next.isVisible(), false);
     await dialog.getByRole("button", { name: "Close" }).click();
     await page.locator('#sec-gear [data-item-details="test-sword"]').click();
     assert.match(await dialog.textContent(), /bonus to attack rolls and damage rolls/);
@@ -365,6 +373,20 @@ const { chromium } = require("playwright");
     assert.match(await page.locator("#actModal").textContent(), /2d8 Necrotic/);
     await page.getByRole("button", { name: "Roll 2d8", exact: true }).click();
     assert.match(await page.locator("[data-spell-roll]").textContent(), /=/);
+    await page.evaluate(() => actClose());
+    await page.goto(`http://127.0.0.1:${server.address().port}/#roster`);
+    await page.waitForSelector("#view-roster.active");
+    await page.evaluate(() => {
+      const c = pcEnsure(generateCharacter({ seed: "NEXT", ed: "2024", cls: "Fighter", level: 2 }));
+      PCS.roster = [c];
+      RC.id = c.id;
+      renderRosterTab();
+    });
+    await page.locator("#rosterMain [data-lvup]").click();
+    await page.locator('#lvModal [data-progression-option="Champion"]').click();
+    await next.click();
+    assert.equal(await page.evaluate(() => rosterCur().subclass), "Champion");
+    assert.equal(await page.evaluate(() => rosterCur().level), 3);
     assert.deepEqual(errors, []);
     console.log("PASS edition-aware progression, expansion subclass choices, item stats and attunement");
   } finally {

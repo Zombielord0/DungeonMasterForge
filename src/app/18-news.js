@@ -2,6 +2,10 @@
    When a change ships, add an entry to the top of NEWS with a new id, in plain words for players and DMs. */
 
 const NEWS = [
+  { id: "2026-11-21-builder-next", date: "2026-11-21", title: "Keep building from the details panel", go: "roster", items: [
+    "Search fields use the same style across the Forge. Tap Next in a race, lineage, class, or background panel to continue building your character.",
+    "Preview a subclass during level-up and tap Next to use it."
+  ] },
   { id: "2026-11-21-phone-session", date: "2026-11-21", title: "Play from your phone", go: "roster", items: [
     "Use the bottom navigation to reach the tools you use during a session. Open More for the complete menu.",
     "Adjust current HP and roll initiative or an attack from the top of your character sheet. Builder details open full screen on phones."

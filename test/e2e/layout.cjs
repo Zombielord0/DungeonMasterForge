@@ -99,6 +99,9 @@ const away = p => p.evaluate(() => document.documentElement.classList.contains("
       await dialog.evaluate(el => { el.scrollTop = el.scrollHeight; });
       const button = await close.boundingBox();
       check("phone: progression Close stays visible after scrolling", button && button.y >= 0 && button.y + button.height <= 640);
+      const next = dialog.getByRole("button", { name: /^Next/ });
+      const nextBox = await next.boundingBox();
+      check("phone: progression Next stays visible after scrolling", nextBox && nextBox.y >= 0 && nextBox.y + nextBox.height <= 640);
       await close.tap();
       check("phone: closing progression restores focus to the class picker", await p.evaluate(() => document.activeElement.id === "pcClass"));
       await p.locator("#forgeBox > summary").tap();

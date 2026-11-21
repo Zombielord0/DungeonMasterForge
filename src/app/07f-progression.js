@@ -194,10 +194,10 @@ function progressionRows(ed, kind, name, option = "") {
 }
 
 let characterReferenceTrigger;
-function characterReference(title, html, trigger) {
+function characterReference(title, html, trigger, onNext) {
   let dialog = $("#characterReference");
   if (!dialog) {
-    document.body.insertAdjacentHTML("beforeend", '<dialog id="characterReference" class="character-reference" aria-labelledby="characterReferenceTitle"><div class="character-reference-heading"><h2 id="characterReferenceTitle"></h2><button type="button" class="btn sm" autofocus>Close</button></div><div class="character-reference-body"></div></dialog>');
+    document.body.insertAdjacentHTML("beforeend", '<dialog id="characterReference" class="character-reference" aria-labelledby="characterReferenceTitle"><div class="character-reference-heading"><h2 id="characterReferenceTitle"></h2><div class="reference-actions"><button type="button" class="btn sm" autofocus>Close</button><button type="button" class="btn sm primary" data-reference-next hidden>Next →</button></div></div><div class="character-reference-body"></div></dialog>');
     dialog = $("#characterReference");
     $("button", dialog).addEventListener("click", () => dialog.close());
     dialog.addEventListener("keydown", event => {
@@ -210,6 +210,14 @@ function characterReference(title, html, trigger) {
   $("#characterReferenceTitle").textContent = title;
   $(".character-reference-body", dialog).innerHTML = html;
   characterReferenceTrigger = trigger;
+  const next = $("[data-reference-next]", dialog);
+  next.hidden = !onNext;
+  next.disabled = false;
+  next.onclick = onNext ? () => {
+    characterReferenceTrigger = null;
+    dialog.close();
+    onNext();
+  } : null;
   if (!dialog.open) dialog.showModal();
   dialog.scrollTop = 0;
   return dialog;
@@ -219,7 +227,7 @@ function progressionButton(ed, kind, name, option = "", label = "Level 1–20 pr
   return `<button type="button" class="btn sm" data-progression="${kind}" data-progression-ed="${esc(ed)}" data-progression-name="${esc(name)}" data-progression-option="${esc(option)}" aria-label="${esc(label + (name ? " for " + (kind === "subclass" ? option : name) : ""))}">${esc(label)}</button>`;
 }
 
-function openProgression(ed, kind, name, option, trigger, { setLineage, requireLineage, campaign = false } = {}) {
+function openProgression(ed, kind, name, option, trigger, { setLineage, requireLineage, campaign = false, onNext } = {}) {
   if (kind === "class" && !classList(ed).includes(name) || kind === "species" && !Object.hasOwn(PC_RACES[ed], name)) {
     toast("Choose a class or species first");
     return;
@@ -246,7 +254,7 @@ function openProgression(ed, kind, name, option, trigger, { setLineage, requireL
     ${options ? `<label class="field">${kind === "class" ? "Compare a subclass" : esc(lineageLabel)}<select data-progression-compare>${requireLineage ? "" : `<option value="">${kind === "class" ? "Class only" : setLineage ? "Random" : "Base species"}</option>`}${options}</select></label>` : ""}
     <p class="hint" data-progression-description hidden></p>
     <div data-progression-rows></div>
-    ${builtIn ? `<p class="hint">Class progression adapted from the System Reference Document ${source} by Wizards of the Coast LLC, available at <a href="https://www.dndbeyond.com/srd">dndbeyond.com/srd</a>, licensed under <a href="https://creativecommons.org/licenses/by/4.0/legalcode">CC BY 4.0</a>. The table is a planning reference.</p>` : ""}`, trigger);
+    ${builtIn ? `<p class="hint">Class progression adapted from the System Reference Document ${source} by Wizards of the Coast LLC, available at <a href="https://www.dndbeyond.com/srd">dndbeyond.com/srd</a>, licensed under <a href="https://creativecommons.org/licenses/by/4.0/legalcode">CC BY 4.0</a>. The table is a planning reference.</p>` : ""}`, trigger, onNext);
   const render = selected => {
     const rows = progressionRows(ed, kind, name, kind === "class" ? "" : selected);
     if (kind === "class" && selected) {
@@ -260,8 +268,11 @@ function openProgression(ed, kind, name, option, trigger, { setLineage, requireL
     $("[data-progression-rows]", dialog).innerHTML = `<table class="progression-table"><thead><tr><th scope="col">Level</th><th scope="col">Features and abilities</th></tr></thead><tbody>${rows.map((features, i) => `<tr><th scope="row">${i + 1}</th><td>${features.length ? features.map(([f, d]) => `<div><strong>${esc(f)}</strong>${d ? ` <span class="muted">${esc(d)}</span>` : ""}</div>`).join("") : '<span class="muted">—</span>'}</td></tr>`).join("")}</tbody></table>`;
   };
   const select = $("[data-progression-compare]", dialog);
+  const next = $("[data-reference-next]", dialog);
+  if (onNext && requireLineage && species?.subs) next.disabled = !select?.value;
   if (select) select.addEventListener("change", () => {
     if (setLineage) setLineage(select.value);
+    if (onNext && requireLineage) next.disabled = !select.value;
     render(select.value);
   });
   render(select ? select.value : option);
@@ -271,7 +282,7 @@ function backgroundDescription(ed, name) {
   return (HB_BG[name]?.desc ?? (ed === "2024" ? BG_DESC_2024[name] : BG_DESC[name])) || "";
 }
 
-function openBackgroundReference(ed, name, trigger, equipment) {
+function openBackgroundReference(ed, name, trigger, { gold, setGold, onNext } = {}) {
   const background = bgInfo(ed, name);
   if (!background || !bgList(ed).includes(name)) {
     toast("Choose a background first");
@@ -280,17 +291,17 @@ function openBackgroundReference(ed, name, trigger, equipment) {
   const description = backgroundDescription(ed, name);
   const homebrew = HB_BG[name];
   const source = homebrew ? homebrew.src ? dmBook(homebrew.src).name : "Homebrew" : "";
-  const showEquipment = equipment && ed === "2024" && !homebrew;
+  const showEquipment = setGold && ed === "2024" && !homebrew;
   const dialog = characterReference(name + " background", `
     <p class="hint">${esc(ed)} rules${source ? " · " + esc(source) : ""}</p>
     ${description ? `<p>${esc(description)}</p>` : ""}
     <dl class="reference-details">${bgLines(ed, name).map(([label, value]) => `<dt>${esc(label)}</dt><dd>${esc(value)}</dd>`).join("")}</dl>
     ${showEquipment ? `<div class="seg" role="radiogroup" aria-label="Starting equipment">
-      <label class="opt"><input type="radio" name="cbGold" value="kit" ${equipment.gold ? "" : "checked"}><span>Take the equipment and ${background.gp || 0} gp</span></label>
-      <label class="opt"><input type="radio" name="cbGold" value="gold" ${equipment.gold ? "checked" : ""}><span>Take 50 gp instead</span></label>
-    </div>` : ""}`, trigger);
+      <label class="opt"><input type="radio" name="cbGold" value="kit" ${gold ? "" : "checked"}><span>Take the equipment and ${background.gp || 0} gp</span></label>
+      <label class="opt"><input type="radio" name="cbGold" value="gold" ${gold ? "checked" : ""}><span>Take 50 gp instead</span></label>
+    </div>` : ""}`, trigger, onNext);
   if (showEquipment) $$('input[name="cbGold"]', dialog).forEach(input => {
-    input.addEventListener("change", () => equipment.setGold(input.value === "gold"));
+    input.addEventListener("change", () => setGold(input.value === "gold"));
   });
 }
 
@@ -300,11 +311,18 @@ document.addEventListener("click", e => {
   const { progression: kind, progressionEd, progressionName, progressionOption } = b.dataset;
   const ed = progressionEd || $('input[name="pcEd"]:checked')?.value || "2024";
   if (kind === "background") {
-    openBackgroundReference(ed, $("#pcBg").value, b);
+    openBackgroundReference(ed, $("#pcBg").value, b, { onNext: () => focusForgeField("background") });
     return;
   }
   const name = progressionName || $(kind === "class" ? "#pcClass" : "#pcRace").value;
   const option = progressionOption || (!progressionEd && kind === "species" ? $("#pcAnc").value : "");
-  const settings = !progressionEd && kind === "species" ? { setLineage: setForgeLineage } : undefined;
+  const settings = !progressionEd ? {
+    campaign: true,
+    setLineage: kind === "species" ? setForgeLineage : undefined,
+    onNext: () => focusForgeField(kind),
+  } : kind === "subclass" && b.closest("#lvModal") ? {
+    campaign: true,
+    onNext: () => lvAdvanceSubclass(option),
+  } : undefined;
   openProgression(ed, kind, name, option, b, settings);
 });

@@ -259,6 +259,9 @@ async function discardPC() {
   currentPC = null; if (RC.id === c.id) RC.id = null; pcPersist(); renderRosterTab();
   toast(`${c.name} discarded`);
 }
+function focusForgeField(kind) {
+  $({ species: "#pcClass", class: "#pcBg", background: "#pcForgeBtn" }[kind]).focus();
+}
 function setForgeLineage(value) {
   $("#pcAnc").value = value;
   $("#pcAnc").dispatchEvent(new Event("change"));
@@ -320,16 +323,17 @@ function setForgeLineage(value) {
       const race = PC_RACES[curEd()][event.target.value];
       openProgression(curEd(), "species", event.target.value, race.subs ? $("#pcAnc").value : "", event.target, {
         setLineage: setForgeLineage,
+        onNext: () => focusForgeField("species"),
       });
     }
   });
   $("#pcAnc").addEventListener("change", ancHint);
   $("#pcClass").addEventListener("change", event => {
-    if (event.target.value) openProgression(curEd(), "class", event.target.value, "", event.target, { campaign: true });
+    if (event.target.value) openProgression(curEd(), "class", event.target.value, "", event.target, { campaign: true, onNext: () => focusForgeField("class") });
   });
   $("#pcBg").addEventListener("change", event => {
     syncBackgroundEquipment();
-    if (event.target.value) openBackgroundReference(curEd(), event.target.value, event.target);
+    if (event.target.value) openBackgroundReference(curEd(), event.target.value, event.target, { onNext: () => focusForgeField("background") });
   });
   fillBgs();
   $$("input[name=pcMode]").forEach(rd => rd.addEventListener("change", () => {

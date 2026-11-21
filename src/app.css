@@ -56,7 +56,8 @@ section.view.active{display:block;animation:rise .25s ease-out}
 @media (max-width:900px){.side{position:static;max-height:none;overflow:visible}}
 .field{margin-bottom:14px}
 .field label:not(.check):not(.opt),.lbl{display:block;font-family:Cinzel,serif;font-size:12px;letter-spacing:.1em;text-transform:uppercase;color:#b8ad9a;margin-bottom:6px;text-shadow:0 -1px 0 #000}
-input[type=text],input[type=number],input[type=date],select,textarea{width:100%;background:var(--well);border:1px solid #0d0c0b;border-radius:4px;padding:7px 10px;outline:none;box-shadow:inset 0 2px 5px rgba(0,0,0,.7),0 1px 0 rgba(255,255,255,.06)}
+input[type=text],input[type=number],input[type=date],input[type=search],select,textarea{width:100%;background:var(--well);border:1px solid #0d0c0b;border-radius:4px;padding:7px 10px;outline:none;box-shadow:inset 0 2px 5px rgba(0,0,0,.7),0 1px 0 rgba(255,255,255,.06)}
+input[type=search]{appearance:none;min-width:0}
 select option{background:#24221f}
 input:focus,select:focus,textarea:focus{border-color:#a8682a;box-shadow:inset 0 2px 5px rgba(0,0,0,.7),0 0 0 2px rgba(227,154,59,.25)}
 textarea{resize:vertical;min-height:70px}
@@ -464,6 +465,7 @@ nav a.active::after{content:"";position:absolute;left:50%;bottom:-7px;width:8px;
 .cb-step.done{color:var(--gold2);cursor:pointer}
 .cb-step.done:hover{border-color:#8a5a2a}
 .pick-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(215px,1fr));gap:10px}
+.choice-search-label{display:block}
 [data-choice-results] > [hidden]{display:none}
 .pick{text-align:left;background:var(--well);border:1px solid #0d0c0b;border-radius:5px;padding:10px 12px;cursor:pointer;color:var(--text);box-shadow:inset 0 2px 6px rgba(0,0,0,.6)}
 .pick:hover{border-color:#8a5a2a}
@@ -543,7 +545,8 @@ nav a{border-color:#090a12!important;color:#cfcbd8!important}
 nav a.active{color:var(--ink)!important}
 .badge{border-color:#090a12}
 .mini,.item,.chapter,.encard,.camp-item,.check,.chip,.ab,.vit,.sp-detail{border-color:#080910!important}
-input[type=text],input[type=number],input[type=date],select,textarea{border-color:#080910}
+input[type=text],input[type=number],input[type=date],input[type=search],select,textarea{border-color:#080910}
+input[type=search]{appearance:none;min-width:0}
 select option{background:#171a2a}
 .subtabs{border-bottom-color:rgba(0,0,0,.6)}
 #toast{background:var(--noise),linear-gradient(rgba(30,33,50,.96),rgba(18,20,32,.96))}
@@ -604,7 +607,7 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:16px;heigh
 input[type=range]::-moz-range-thumb{width:16px;height:16px;border-radius:50%;background:radial-gradient(circle at 35% 30%,#ffd88a,#c47a2c 60%,#6e3c12);border:1px solid #2a1606;box-shadow:0 0 8px rgba(240,150,60,.5)}
 /* dropdowns with a brass arrow */
 select:not([multiple]){-webkit-appearance:none;appearance:none;padding-right:30px!important;cursor:pointer;background:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1.5l5 5 5-5' fill='none' stroke='%23e39a3b' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E") right 11px center/12px 8px no-repeat,var(--well)}
-input[type=text]:hover,input[type=number]:hover,input[type=date]:hover,select:hover,textarea:hover{border-color:#3a2c1c}
+input[type=text]:hover,input[type=number]:hover,input[type=date]:hover,input[type=search]:hover,select:hover,textarea:hover{border-color:#3a2c1c}
 /* buttons: brass top edge and ember glow on hover */
 .btn:not(.primary){border-top-color:rgba(201,140,60,.4)}
 .btn:hover{box-shadow:inset 0 1px 0 rgba(255,255,255,.14),0 3px 0 #0b0a09,0 0 14px rgba(240,150,60,.28)}
@@ -1159,7 +1162,13 @@ nav a[data-view=requests]{--ic:url("data:image/svg+xml,%3Csvg xmlns='http://www.
   padding: .75rem 0;
   background: inherit;
 }
-.character-reference h2 { margin: 0; }
+.character-reference h2 { margin: 0; min-width: 0; overflow-wrap: anywhere; }
+.reference-actions { display: flex; flex: 0 0 auto; gap: .5rem; }
+.reference-actions [hidden] { display: none; }
+@media (max-width: 600px) {
+  .character-reference-heading:has(.reference-actions [data-reference-next]:not([hidden])) { flex-wrap: wrap; }
+  .character-reference-heading .reference-actions { margin-left: auto; }
+}
 .reference-details { display: grid; grid-template-columns: minmax(6rem, max-content) minmax(0, 1fr); gap: .4rem 1rem; }
 .reference-details dt { font-weight: 700; }
 .reference-details dd { margin: 0; }
