@@ -47,6 +47,18 @@ const MIXED = [
   const tpl = await p.evaluate(() => Object.keys(BI_COLS).map(k => { const R = biRead(biTemplate(k)), P = R.rows ? biPlan(R.rows) : { add: [], probs: [R.error], skip: [] }; return { k, add: P.add.length, kinds: P.add.map(e => e.kind), probs: P.probs, skip: P.skip }; }));
   check("templates: each reads back as one entry with no problems", tpl.every(t => t.add === 1 && t.kinds[0] === t.k && !t.probs.length && !t.skip.length), JSON.stringify(tpl));
 
+  const editions = await p.evaluate(() => {
+    const rows = [
+      { kind: "spell", name: "Elementalism", edition: "2014", school: "Evocation", level: 1 },
+      { kind: "spell", name: "Elementalism", edition: "2024", school: "Evocation", level: 1 },
+      { kind: "spell", name: "Fireball", edition: "2014", school: "Evocation", level: 3 },
+    ];
+    const plan = biPlan(rows);
+    return { add: plan.add.map(e => [e.name, e.x.ed]), skip: plan.skip };
+  });
+  check("edition-aware import fills a 2014 gap without replacing the 2024 spell",
+    JSON.stringify(editions.add) === JSON.stringify([["Elementalism", "2014"]]) && editions.skip.length === 2, JSON.stringify(editions));
+
   // the window, its template downloads, and a mixed file
   await p.click("#hbBulk"); await p.waitForTimeout(150);
   check("window: opens from the Homebrew tab with a template per kind", await p.evaluate(() => $("#bulkModal").classList.contains("open") && $$("#bulkTpl [data-bitpl]").length === 7));

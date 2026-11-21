@@ -495,6 +495,7 @@ function registerBestiary(c) {
     else if (b.dataset.fg === "copy") { try { await navigator.clipboard.writeText(forgeText(forgeCur)); toast("Stat block copied"); } catch { toast("Couldn't copy here"); } }
     else {
       const c = Store.get($("#fgCampaign").value); if (!c) { toast("Create a campaign first (Campaign Tracker)"); return; }
+      if (!sourceAllowed(normalizeSourceRules(c.sourceRules), null, true)) { toast("This campaign has homebrew turned off."); return; }
       c.bestiary = c.bestiary || []; const be = bestiaryEntry(forgeCur);
       c.bestiary = c.bestiary.filter(x => x.name !== be.name); c.bestiary.push(be); registerBestiary(c);
       if (forgeCur.villain) c.npcs.unshift({ id: uid("n"), name: forgeCur.name, role: `Villain · ${forgeCur.villain.archetype}`, attitude: "Hostile", notes: forgeText(forgeCur) });
@@ -509,21 +510,24 @@ const BS_SIZES = ["tiny", "small", "medium", "large", "huge", "gargantuan"];
 function bsLoad() {
   if (BS.data) return;
   BS.data = dmData("monsterData");
-  for (const ed of Object.keys(BS.data)) BS.data[ed].forEach((m, i) => {
-    m.id = ed + "-" + i;
-    m.cast = [...m.traits, ...m.actions].some(([n]) => /spellcasting/i.test(n));
-    m.blob = [...m.traits, ...m.actions, ...(m.bonus || []), ...(m.reacts || []), ...(m.legend || [])].map(x => x.join(" ")).join(" ").toLowerCase();
-  });
+  for (const ed of Object.keys(BS.data)) BS.data[ed].forEach((m, i) => bsPrepareMonster(m, ed, i));
   bsCustomRefresh();
+}
+function bsPrepareMonster(m, ed, i) {
+  m.id = ed + "-" + i;
+  m.cast = [...m.traits, ...m.actions].some(([n]) => /spellcasting/i.test(n));
+  m.blob = [...m.traits, ...m.actions, ...(m.bonus || []), ...(m.reacts || []), ...(m.legend || [])].map(x => x.join(" ")).join(" ").toLowerCase();
 }
 const bsFind = id => BS.data[id.split("-")[0]][+id.split("-")[1]];
 const bsPB = cr => cr < 5 ? 2 : cr < 9 ? 3 : cr < 13 ? 4 : cr < 17 ? 5 : cr < 21 ? 6 : cr < 25 ? 7 : cr < 29 ? 8 : 9;
 const bsFmt = t => esc(t).replace(/\*\*(.+?)\*\*/g, "<b>$1</b>").replace(/(^|[^\w])[_*]([^_*]+?)[_*](?=[^\w]|$)/g, "$1<i>$2</i>").replace(/\n+/g, "<br>");
 const bsSub = m => `${cap1(m.size)} ${m.type}${m.sub ? ` (${m.sub})` : ""}${m.al ? `, ${m.al}` : ""}`;
 function bsName(c, m, ed) {
-  // the same monster from both editions can sit side by side in one campaign
-  const clash = (c.bestiary || []).find(b => b.name === m.n && b.ed && b.ed !== ed);
-  return clash ? `${m.n} (${ed})` : m.n;
+  // Keep different editions and books when they publish creatures with the same name.
+  const clash = (c.bestiary || []).find(b => b.name === m.n);
+  if (!clash) return m.n;
+  if (clash.ed && clash.ed !== ed) return `${m.n} (${ed})`;
+  return `${m.n} (${m.src ? dmBook(m.src).short : ed === "custom" ? "Homebrew" : "SRD"})`;
 }
 function bsInCamp(m, ed) {
   const c = Store.get($("#bsCamp").value);
@@ -535,7 +539,7 @@ function bsSbHTML(m, ed) {
   const the = "the " + m.n.toLowerCase();
   const legIntro = ed !== "2024"
     ? `<p>${esc(cap1(the))} can take ${m.legN || 3} legendary actions, choosing from the options below. Only one legendary action option can be used at a time and only at the end of another creature's turn. ${esc(cap1(the))} regains spent legendary actions at the start of its turn.</p>`
-    : `<p>Immediately after another creature's turn, ${esc(the)} can expend a use to take one of the following actions. ${esc(cap1(the))} regains all expended uses at the start of each of its turns.</p>`;
+    : `<p><b>Legendary action uses:</b> ${m.legN || 3}${m.legLair ? ` (${m.legLair} in its lair)` : ""}. Immediately after another creature's turn, ${esc(the)} can expend a use to take one of the following actions. ${esc(cap1(the))} regains all expended uses at the start of each of its turns.</p>`;
   return `<div class="statblock">
     <div class="sb-name">${esc(m.n)}</div>
     <div class="sb-sub">${esc(bsSub(m))}</div>
@@ -562,18 +566,26 @@ function bsText(m, ed) {
   L.push(`Challenge ${crLabel(m.cr)} (${(xpOf(m.cr) || 0).toLocaleString()} XP)`, "");
   const block = (h, arr) => { if (arr && arr.length) { if (h) L.push(h.toUpperCase()); arr.forEach(([n, t]) => L.push(`${n}. ${t.replace(/[*_]/g, "")}`)); L.push(""); } };
   block("", m.traits); block("Actions", m.actions); block("Bonus Actions", m.bonus); block("Reactions", m.reacts); block("Legendary Actions", m.legend);
-  if (ed !== "custom") L.push(`Source: ${ed === "2024" ? "SRD 5.2 (2024)" : "SRD 5.1 (2014)"}, CC BY 4.0`);
+  if (m.src) {
+    const book = dmBook(m.src);
+    L.push(`Source: ${book.name}${m.page ? `, p. ${m.page}` : ""} · ${book.lic === "reference" ? "Rules summary" : book.lic === "cc-by-40" ? "CC BY 4.0" : "Open content"}`);
+  } else if (ed !== "custom") L.push(`Source: ${ed === "2024" ? "SRD 5.2 (2024)" : "SRD 5.1 (2014)"}, CC BY 4.0`);
   return L.join("\n");
 }
 function bsEntry(m, ed, name) {
   const multi = (m.actions.find(a => a[0] === "Multiattack") || [, ""])[1];
   const atk = m.actions.filter(a => a[0] !== "Multiattack").slice(0, 3)
     .map(([n, t]) => { const s = t.replace(/[*_]/g, "").replace(/^(Melee|Ranged|Melee or Ranged) (Weapon |Spell )?Attack( Roll)?:\s*/i, ""); return `${n}: ${s.length > 150 ? s.slice(0, 147) + "…" : s}`; }).join(" ");
-  return { name, cr: m.cr, ed, srd: m.key || m.id, stat: [m.ac, m.hp, m.hd || "", m.init, m.speed, (multi ? multi.replace(/[*_]/g, "") + " " : "") + atk, (m.traits || []).map(t => t[0]).join("; ") || "None", m.role], text: bsText(m, ed) };
+  return { name, cr: m.cr, ed, src: m.src, srd: m.key || m.id, stat: [m.ac, m.hp, m.hd || "", m.init, m.speed, (multi ? multi.replace(/[*_]/g, "") + " " : "") + atk, (m.traits || []).map(t => t[0]).join("; ") || "None", m.role], text: bsText(m, ed) };
 }
 function bsAdd(m, n) {
   const c = Store.get($("#bsCamp").value); if (!c) { toast("Create a campaign first (Campaign Tracker)"); return; }
   const ed = m.id.split("-")[0];
+  const rules = normalizeSourceRules(c.sourceRules);
+  if (rules && ((ed !== "custom" && ed !== rules.edition) || !sourceAllowed(rules, m.src, ed === "custom"))) {
+    toast("This creature is outside the campaign's sourcebooks.");
+    return;
+  }
   c.bestiary = c.bestiary || [];
   const existing = c.bestiary.find(b => b.srd === (m.key || m.id)), name = existing ? existing.name : bsName(c, m, ed);
   c.bestiary = c.bestiary.filter(b => b.name !== name); c.bestiary.push(bsEntry(m, ed, name)); registerBestiary(c);
@@ -610,10 +622,12 @@ function bsFilters() {
   $("#bsBookWrap").classList.toggle("hidden", BS.ed === "custom");
 }
 function bsFiltered() {
+  const rules = normalizeSourceRules(Store.get($("#bsCamp").value)?.sourceRules);
   const q = $("#bsQ").value.trim().toLowerCase(), inText = $("#bsInText").checked;
   const lo = +$("#bsCrMin").value, hi = +$("#bsCrMax").value, type = $("#bsType").value, size = $("#bsSize").value, env = $("#bsEnv").value, book = $("#bsBook").value;
   const leg = $("#bsLeg").checked, cast = $("#bsCast").checked, mine = $("#bsMine").checked;
   const list = BS.data[BS.ed].filter(m =>
+    (!rules || (BS.ed === "custom" || BS.ed === rules.edition) && sourceAllowed(rules, m.src, BS.ed === "custom")) &&
     m.cr >= Math.min(lo, hi) && m.cr <= Math.max(lo, hi) && (!type || m.type === type) && (!size || m.size === size) &&
     (!env || (m.env || []).includes(env)) && (!leg || (m.legend || []).length) && (!cast || m.cast) &&
     (!q || m.n.toLowerCase().includes(q) || (inText && m.blob.includes(q))) && (!mine || bsInCamp(m, BS.ed)) && bookOk(m, BS.ed === "custom" ? "" : book));
@@ -641,7 +655,17 @@ function bsRow(m) {
   </div>`;
 }
 function renderBestiary() {
-  bsLoad(); if (!$("#bsCrMin").options.length) bsFilters(); bsFillEnc();
+  bsLoad();
+  const rules = normalizeSourceRules(Store.get($("#bsCamp").value)?.sourceRules);
+  $$("input[name=bsEd]").forEach(r => r.disabled = !!rules && (r.value === "custom" ? !rules.homebrew : r.value !== rules.edition));
+  if (rules && BS.ed !== rules.edition && (BS.ed !== "custom" || !rules.homebrew)) {
+    BS.ed = rules.edition; BS.open.clear();
+    const radio = $(`input[name="bsEd"][value="${rules.edition}"]`);
+    if (radio) radio.checked = true;
+    $("#bsCrMin").innerHTML = $("#bsCrMax").innerHTML = "";
+  }
+  if (!$("#bsCrMin").options.length) bsFilters();
+  bsFillEnc();
   const list = bsFiltered(), total = BS.data[BS.ed].length;
   $("#bsCount").innerHTML = `Showing <b>${list.length}</b> of ${total} ${BS.ed === "custom" ? "custom monsters" : `${BS.ed} monsters (SRD ${BS.ed === "2024" ? "5.2" : "5.1"} and extra books)`}`;
   if (!total && BS.ed === "custom") { $("#bsList").innerHTML = `<div class="card empty"><h2>No custom monsters yet</h2><p>Build one in “✎ Build a monster”, or open any monster here and press “Edit a copy”.</p></div>`; return; }
@@ -657,10 +681,22 @@ function renderBestiary() {
 let bsTimer = null;
 const bsRerender = () => { clearTimeout(bsTimer); bsTimer = setTimeout(renderBestiary, 110); };
 (function initBestiary() {
-  const mode = () => {
+  const mode = async () => {
     const v = $('input[name="monMode"]:checked').value;
     $("#monSrd").classList.toggle("hidden", v !== "srd"); $("#monForge").classList.toggle("hidden", v !== "forge"); $("#monBuild").classList.toggle("hidden", v !== "build");
-    if (v === "srd") { bsLoad(); bsCustomRefresh(); bsFilters(); renderBestiary(); }
+    if (v === "srd") {
+      bsLoad(); bsCustomRefresh(); bsFilters(); renderBestiary();
+      if (!extraMonstersReady) {
+        $("#bsCount").textContent = "Loading monster catalog…";
+        const all = await dmLoadExtraMonsters();
+        if ($('input[name="monMode"]:checked').value !== "srd") return;
+        if (!all) toast("Extra monsters are unavailable. Showing the saved catalog.");
+        const upper = $("#bsCrMax"), atMaximum = upper.selectedIndex === upper.options.length - 1;
+        bsFilters();
+        if (atMaximum) upper.selectedIndex = upper.options.length - 1;
+        renderBestiary();
+      }
+    }
   };
   $$('input[name="monMode"]').forEach(r => r.addEventListener("change", mode));
   $("#bsForm").addEventListener("input", e => { if (e.target.name === "bsEd") { BS.ed = e.target.value; BS.open.clear(); $("#bsCrMin").innerHTML = $("#bsCrMax").innerHTML = ""; bsFilters(); } bsRerender(); });
@@ -841,6 +877,7 @@ function mbEditFrom(m) {
   $("#mbCopy").addEventListener("click", async () => { try { await navigator.clipboard.writeText((MB.f.desc ? MB.f.desc + "\n\n" : "") + bsText(mbCompile(MB.f), "custom")); toast("Stat block copied"); } catch { toast("Couldn't copy here"); } });
   $("#mbToCamp").addEventListener("click", () => {
     const c = Store.get($("#mbCamp").value); if (!c) { toast("Create a campaign first (Campaign Tracker)"); return; }
+    if (!sourceAllowed(normalizeSourceRules(c.sourceRules), null, true)) { toast("This campaign has homebrew turned off."); return; }
     if (!mbStore()) return;
     const m = mbCompile(MB.f); c.bestiary = c.bestiary || [];
     c.bestiary = c.bestiary.filter(b => b.srd !== MB.f.id && b.name !== m.n); c.bestiary.push(bsEntry(m, "custom", m.n)); registerBestiary(c);
@@ -891,13 +928,22 @@ function compSectionHTML(c) {
   if (!kinds.length && !list.length) return "";
   const card = x => {
     const m = compFind(x);
-    return `<div class="comp-card">
+    if (!m && !extraMonstersReady) dmLoadExtraMonsters().then(loaded => {
+      if (!loaded || rosterCur()?.id !== c.id) return;
+      const row = $(`[data-comp-card="${CSS.escape(x.id)}"]`);
+      const monster = compFind(x);
+      const placeholder = row?.querySelector("[data-comp-stat]");
+      if (!placeholder || !monster) return;
+      $(".comp-sub", row).append(` · CR ${crLabel(monster.cr)} · AC ${monster.ac} · ${monster.speed}`);
+      placeholder.outerHTML = `<details class="comp-sb"><summary>Stat block</summary>${bsSbHTML(monster, x.ed)}</details>`;
+    });
+    return `<div class="comp-card" data-comp-card="${esc(x.id)}">
       <div class="comp-top"><input type="text" class="comp-nick" data-comp="nick" data-cid="${esc(x.id)}" value="${esc(x.nick || "")}" placeholder="${esc(x.n)}" aria-label="Name for this ${esc(COMP_KIND[x.kind] || "companion")}">
         <span class="tag">${esc(COMP_KIND[x.kind] || "Companion")}</span><button class="icon-btn" type="button" data-cdel="${esc(x.id)}" title="Remove ${esc(x.nick || x.n)}">✕</button></div>
       <div class="muted comp-sub">${esc(x.n)} · ${x.ed === "custom" ? "custom" : x.ed} rules${m ? ` · CR ${crLabel(m.cr)} · AC ${m.ac} · ${esc(m.speed)}` : ""}</div>
       <div class="row comp-hp"><label>HP <input type="number" min="0" data-comp="hp" data-cid="${esc(x.id)}" value="${esc(x.hp)}" aria-label="Current hit points"></label><span class="muted">/ ${esc(x.max)}</span>
         <input type="text" data-comp="notes" data-cid="${esc(x.id)}" value="${esc(x.notes || "")}" placeholder="Notes: tricks, conditions, where it is…" aria-label="Notes"></div>
-      ${m ? `<details class="comp-sb"><summary>Stat block</summary>${bsSbHTML(m, x.ed)}</details>` : `<p class="hint">This creature's stat block isn't in the Forge's data.</p>`}
+      ${m ? `<details class="comp-sb"><summary>Stat block</summary>${bsSbHTML(m, x.ed)}</details>` : `<p class="hint" data-comp-stat>This creature's stat block isn't in the Forge's data.</p>`}
     </div>`;
   };
   return `<div class="sec" id="rcComp"><div class="sec-h"><h3>Companions &amp; Wild Shape</h3><span class="sp"></span>${kinds.length ? `<button class="btn sm" type="button" data-ra="comp">✦ Find a beast</button>` : ""}</div>
@@ -934,13 +980,17 @@ function renderCompList(c) {
     x[t.dataset.comp] = t.dataset.comp === "hp" ? Math.max(0, parseInt(t.value) || 0) : t.value;
     pcPersist();
   });
-  main.addEventListener("click", e => {
+  main.addEventListener("click", async e => {
     const c = rosterCur(); if (!c) return;
     const open = e.target.closest('[data-ra="comp"]');
     if (open) {
       const p = $("#rcCompPanel"); p.classList.toggle("hidden"); const on = !p.classList.contains("hidden");
       open.textContent = on ? "Close search" : "✦ Find a beast";
-      if (on) { bsLoad(); $("#rcCompEd").value = BS.ed === "2014" ? "2014" : "2024"; renderCompList(c); $("#rcCompQ").focus(); }
+      if (on) {
+        await dmLoadExtraMonsters();
+        if (!p.isConnected || p.classList.contains("hidden")) return;
+        bsLoad(); $("#rcCompEd").value = BS.ed === "2014" ? "2014" : "2024"; renderCompList(c); $("#rcCompQ").focus();
+      }
       return;
     }
     const add = e.target.closest("[data-cadd]");

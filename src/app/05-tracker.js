@@ -53,10 +53,10 @@ function renderTracker() {
   registerBestiary(c);
   const done = c.chapters.filter(x => x.done).length, tot = c.chapters.length, pct = tot ? Math.round(done / tot * 100) : 0;
   const active = c.quests.filter(q => q.status === "Active").length;
-  const tabs = [["overview", "Overview"], ["encounters", "Encounters", (c.encounters || []).length], ["sessions", "Sessions", c.sessions.length], ["party", "Party", c.party.length], ["npcs", "NPCs", c.npcs.length], ["lore", "Lore", (c.lore = c.lore || []).length], ["quests", "Quests", c.quests.length], ["loot", "Loot", c.loot.length], ["notes", "Notes"], ["maps", "Maps", (c.maps || []).length], ["calendar", "Calendar"]];
+  const tabs = [["overview", "Overview"], ["session", "Open Session"], ["encounters", "Encounters", (c.encounters || []).length], ["sessions", "Sessions", c.sessions.length], ["party", "Party", c.party.length], ["npcs", "NPCs", c.npcs.length], ["lore", "Lore", (c.lore = c.lore || []).length], ["quests", "Quests", c.quests.length], ["loot", "Loot", c.loot.length], ["notes", "Notes"], ["maps", "Maps", (c.maps || []).length], ["calendar", "Calendar"], ["sources", "Sourcebooks"], ["handouts", "Handouts"]];
   let h = `<div class="card">
     <div class="row" style="align-items:flex-start"><input class="title-input" type="text" data-field="name" value="${esc(c.name)}" aria-label="Campaign name">
-      <div style="flex:0 0 auto;display:flex;gap:6px"><button class="btn sm" id="exportCamp">Export JSON</button><button class="btn sm danger" id="delCamp">Delete</button></div></div>
+      <div style="flex:0 0 auto;display:flex;gap:6px"><button class="btn sm" id="exportCamp">Export campaign</button><button class="btn sm danger" id="delCamp">Delete</button></div></div>
     <div class="row" style="margin-top:10px;gap:14px;flex-wrap:wrap">
       <div style="flex:0 0 auto" class="row"><span class="lbl" style="margin:0">Party level</span><input type="number" min="1" max="20" data-field="currentLevel" value="${c.currentLevel || 1}" style="width:70px"></div>
       <div style="flex:1;min-width:200px"><div class="row" style="justify-content:space-between;font-size:14px" ><span class="muted">Story progress</span><span><b id="pctTxt">${pct}%</b> <span class="muted">(${done}/${tot} ${c.gen && c.gen.outline.kind === "oneshot" ? "scenes" : "chapters"})</span></span></div><div class="progress"><div id="pctBar" style="width:${pct}%"></div></div></div>
@@ -68,7 +68,42 @@ function renderTracker() {
   main.innerHTML = h;
   $$("textarea.ch-note", main).forEach(autoGrow);
 }
+function sessionDashboardHTML(c) {
+  const recap = [...c.sessions].sort((a, b) => String(b.date || "").localeCompare(String(a.date || "")) || (+b.num || 0) - (+a.num || 0))[0];
+  const encounters = (c.encounters || []).filter(e => e.status === "Active");
+  const pins = c.sessionPins || {};
+  const map = (c.maps || []).find(m => m.id === pins.maps);
+  const npc = c.npcs.find(n => n.id === pins.npcs);
+  const lore = (c.lore || []).find(l => l.id === pins.lore);
+  const picker = (key, label, entries, selected) => `<label>${label}<select data-session-pin="${key}">
+    <option value="">Choose…</option>${entries.map(x => `<option value="${esc(x.id)}" ${x === selected ? "selected" : ""}>${esc(x.name || "Untitled")}</option>`).join("")}
+    </select></label>`;
+  return `<div class="session-dashboard">
+    <section class="card"><h3>Active encounters</h3>
+      ${encounters.length ? encounters.map(e => `<p><b>${esc(e.name || "Encounter")}</b>${e.round ? ` · Round ${esc(e.round)}` : ""}
+        <button type="button" class="btn sm" data-resume-encounter="${esc(e.id)}">Resume encounter</button></p>`).join("") : '<p class="muted">No active encounters.</p><button type="button" class="btn sm" data-sub="encounters">Open Encounters</button>'}
+    </section>
+    <section class="card"><h3>Latest recap</h3>
+      ${recap ? `<details><summary>${esc(recap.title || "Session recap")}</summary>${mdHTML(recap.summary)}</details>` : '<p class="muted">No sessions logged yet.</p>'}
+      <button type="button" class="btn sm" data-sub="sessions">Open Sessions</button>
+    </section>
+    <section class="card"><h3>Pinned map</h3>
+      ${picker("maps", "Campaign map", c.maps || [], map)}
+      ${map ? `<button type="button" class="btn sm" data-openmap="${esc(map.id)}">Open map</button>` : '<button type="button" class="btn sm" data-sub="maps">Open Maps</button>'}
+    </section>
+    <section class="card"><h3>Pinned references</h3>
+      ${picker("npcs", "NPC", c.npcs, npc)}
+      ${npc ? `<details><summary>${esc(npc.name || "NPC")}</summary><p>${esc(npc.role || "")}</p>${mdHTML(npc.notes)}</details>` : ""}
+      ${picker("lore", "Lore entry", c.lore || [], lore)}
+      ${lore ? `<details><summary>${esc(lore.name || "Lore entry")}</summary>${mdHTML(lore.desc)}
+        ${(lore.sections || []).map(x => `<h4>${esc(x.t || "")}</h4>${mdHTML(x.x)}`).join("")}</details>` : ""}
+    </section>
+  </div>`;
+}
 function renderSub(c) {
+  if (subTab === "sources") return campaignSourcesHTML(c);
+  if (subTab === "handouts") return campaignHandoutsHTML(c);
+  if (subTab === "session") return sessionDashboardHTML(c);
   if (subTab === "encounters") return renderEncounters(c);
   if (subTab === "lore") return loreHTML(c);
   if (subTab === "calendar") return calHTML(c);
@@ -198,15 +233,17 @@ $("#newCamp").addEventListener("click", () => { const c = blankCampaign(); Store
 $("#importFile").addEventListener("change", async e => {
   const f = e.target.files[0]; e.target.value = ""; if (!f) return;
   let j = null; try { j = JSON.parse(await f.text()); } catch { }
-  if (j && j.format === "mythweaver-account-export") { const R = mwRead(j); if (R.error) toast(R.error); else impCampOpen(R); return; }
+  if (j && j.format === "mythweaver-account-export") { await dmLoadExtraMonsters(); const R = mwRead(j); if (R.error) toast(R.error); else impCampOpen(R); return; }
   try {
     const c = j;
     if (!c || typeof c !== "object" || !c.name) throw 0;
-    const { extras, ...camp } = c;
+    const { extras, pictures, ...camp } = c;
     const base = blankCampaign(); const merged = { ...base, ...camp, id: uid("c") };
     ["chapters", "encounters", "sessions", "party", "npcs", "lore", "quests", "loot", "maps"].forEach(k => { if (!Array.isArray(merged[k])) merged[k] = []; });
+    const restored = await restoreCampaignPictures(merged, pictures);
     Store.save(merged); activeId = merged.id; renderTracker();
     const got = await campExtrasAdopt(extras); worldAdopt();
+    if (restored) got.push(`${restored} uploaded picture${restored === 1 ? "" : "s"}`);
     toast(got.length ? `Campaign imported, with ${got.join(", ")}` : "Campaign imported");
   } catch { toast("That file isn't a Forge campaign export"); }
 });
@@ -217,6 +254,53 @@ function campExtras(c) {
   [...ids].forEach(id => wpPath(wp(id)).forEach(x => ids.add(x.id)));
   const world = W.places.filter(p => ids.has(p.id));
   return { items: IT.custom.map(({ hay, hayD, ...x }) => x), homebrew: HB.list.slice(), monsters: MB.lib.slice(), world, ...(W.atlas && world.some(p => p.type === "region" && !p.parent) ? { worldMap: W.atlas } : {}) };
+}
+function campaignPictureRefs(c) {
+  const refs = [];
+  const add = (record, field) => {
+    const key = record?.[field];
+    if (typeof key === "string" && key) refs.push({ record, field, key });
+  };
+  for (const map of c.maps || []) if (map?.kind === "image") add(map, "imgId");
+  for (const npc of c.npcs || []) add(npc, "img");
+  return refs;
+}
+async function exportCampaign(c, button) {
+  button.disabled = true;
+  try {
+    const snapshot = JSON.parse(JSON.stringify({ ...c, extras: campExtras(c) }));
+    const keys = new Set(campaignPictureRefs(snapshot).map(ref => ref.key));
+    const pictures = Object.create(null);
+    let missing = 0;
+    for (const key of keys) {
+      const image = await MAPIMG.get(key);
+      if (image) pictures[key] = await blobToDataURL(image);
+      else missing++;
+    }
+    const filename = c.name.replace(/[^\w\- ]+/g, "").trim().replace(/\s+/g, "-") || "Campaign";
+    await saveFile(filename + ".json", JSON.stringify({ ...snapshot, pictures }, null, 2));
+    if (missing) toast(`Exported campaign. ${missing} uploaded picture${missing === 1 ? " was" : "s were"} unavailable on this device.`);
+  } catch { toast("Couldn't export the campaign. Try again."); }
+  finally { button.disabled = false; }
+}
+async function restoreCampaignPictures(c, pictures) {
+  if (!pictures || typeof pictures !== "object") return 0;
+  const refs = campaignPictureRefs(c), stored = new Map();
+  try {
+    for (const { key } of refs) {
+      if (stored.has(key) || !Object.hasOwn(pictures, key)) continue;
+      const data = pictures[key];
+      if (typeof data !== "string" || !/^data:image\/(?:png|jpeg|webp);base64,[A-Za-z0-9+/]+={0,2}$/.test(data)) throw new Error("Invalid campaign picture");
+      const id = uid("picture"), blob = await (await fetch(data)).blob();
+      await MAPIMG.put(id, blob);
+      stored.set(key, id);
+    }
+  } catch (error) {
+    await Promise.allSettled([...stored.values()].map(id => MAPIMG.del(id)));
+    throw error;
+  }
+  for (const { record, field, key } of refs) if (stored.has(key)) record[field] = stored.get(key);
+  return stored.size;
 }
 async function campExtrasAdopt(ex) {
   const out = [], plural = (n, w) => `${n} ${w}${n === 1 ? "" : "s"}`;
@@ -418,8 +502,13 @@ campMain.addEventListener("click", async e => {
     const i = c.lore.findIndex(y => y.id === clean.id); if (i >= 0) c.lore[i] = clean; else c.lore.unshift(clean);
     LORE.edit = null; LORE.draft = null; LORE.open.add(clean.id); Store.save(c);
     if (clean.type === "place" || d.wpId) { worldAdopt(); const p = clean.type === "place" && wp(clean.wpId); if (p) { WP_LORE.forEach(k => { if (clean[k] === undefined) delete p[k]; else p[k] = JSON.parse(JSON.stringify(clean[k])); }); worldSave(); wpSyncOut(p); } }
+    if (clean.type === "encounter" && !extraMonstersReady) {
+      loreRender();
+      await dmLoadExtraMonsters();
+      if (Store.get(c.id) !== c || !c.lore.includes(clean)) return;
+    }
     const made = loreLink(c, clean); if (made.length) toast(made.join(" · "));
-    loreRender();
+    if (curCamp()?.id === c.id && subTab === "lore") loreRender();
   }
   else if (a === "del" && x) { if (!(await confirmBox("Delete lore entry?", `Remove “${x.name || "Untitled"}”? This can't be undone.`))) return; c.lore = c.lore.filter(y => y.id !== id); Store.save(c); loreRender(); }
   else if (a === "tv" && x) loreTV(x);
@@ -536,6 +625,17 @@ campMain.addEventListener("click", ev => {
   Store.save(c); renderTracker();
 });
 campMain.addEventListener("change", ev => {
+  const key = ev.target.dataset.sessionPin;
+  if (["maps", "npcs", "lore"].includes(key)) {
+    const c = curCamp();
+    if (!c) return;
+    const selected = (c[key] || []).find(x => x.id === ev.target.value);
+    c.sessionPins = { ...c.sessionPins, [key]: selected?.id || "" };
+    Store.save(c);
+    renderTracker();
+    campMain.querySelector(`[data-session-pin="${key}"]`)?.focus();
+    return;
+  }
   const id = ev.target.id; if (!["calClimate", "calSeason", "calDay"].includes(id)) return; const c = curCamp(); if (!c) return; const cal = calEnsure(c);
   if (id === "calClimate") cal.climate = ev.target.value; else if (id === "calSeason") cal.season = ev.target.value; else cal.day = Math.max(1, parseInt(ev.target.value) || 1);
   cal.weather = calWeather(c.id, cal.day, cal.climate, calSeason(cal)); Store.save(c); renderTracker();
@@ -544,6 +644,15 @@ campMain.addEventListener("click", async e => {
   const c = curCamp(); if (!c) return;
   const t = e.target;
   const sb = t.closest("[data-sub]"); if (sb) { subTab = sb.dataset.sub; renderTracker(); return; }
+  const resume = t.closest("[data-resume-encounter]");
+  if (resume) {
+    subTab = "encounters";
+    renderTracker();
+    const encounter = document.getElementById("enc-" + resume.dataset.resumeEncounter);
+    encounter?.scrollIntoView({ block: "start" });
+    encounter?.querySelector("input")?.focus({ preventScroll: true });
+    return;
+  }
   const ad = t.closest("[data-add]");
   if (ad) {
     const k = ad.dataset.add; const it = { id: uid(k[0]) };
@@ -582,7 +691,7 @@ campMain.addEventListener("click", async e => {
     if (!(await confirmBox("Delete campaign?", `Permanently delete “${c.name}” and all of its notes?`))) return;
     await Store.remove(c.id); activeId = null; renderTracker(); toast("Campaign deleted"); return;
   }
-  if (t.id === "exportCamp") saveFile(c.name.replace(/[^\w\- ]+/g, "").trim().replace(/\s+/g, "-") + ".json", JSON.stringify({ ...c, extras: campExtras(c) }, null, 2));
+  if (t.id === "exportCamp") await exportCampaign(c, t);
 });
 function onEdit(e) {
   const c = curCamp(); if (!c) return; const t = e.target;
@@ -756,21 +865,29 @@ const RAND = { env: "forest", diff: "medium" };
 let RAND_MON = null;
 function randMonsters() { if (!RAND_MON) { const d = dmData("monsterData"); RAND_MON = (d["2014"] || []).filter(m => (m.env || []).length && CR_XP[m.cr] !== undefined && m.hp > 0); } return RAND_MON; }
 function randMonster(name) { return randMonsters().find(m => m.n === name) || null; }
-function randomEncounter(r, env, level, party, diff) {
+function randomEncounter(r, env, level, party, diff, poolForCampaign = randMonsters()) {
   level = clamp(level, 1, 20); const target = partyThr(level, party, diff), cap = target * 1.5, lo = level <= 3 ? 0 : level / 4, hi = level + (diff === "deadly" ? 4 : 2);
-  const here = randMonsters().filter(m => m.env.includes(env)); if (!here.length) return null;
+  const here = poolForCampaign.filter(m => m.env.includes(env)); if (!here.length) return null;
   let pool = here.filter(m => m.cr >= lo && m.cr <= hi); if (pool.length < 2) pool = here.filter(m => m.cr <= hi); if (!pool.length) pool = here;
   let best = null;
   for (let a = 0; a < 40; a++) { const m = r.pick(pool); for (let n = 1; n <= 8; n++) { const adj = n * xpOf(m.cr) * mult(n); if (adj > cap) break; const score = Math.abs(adj - target); if (!best || score < best.score) best = { m, n, score }; } }
   if (!best) best = { m: pool.reduce((a, b) => (a.cr <= b.cr ? a : b)), n: 1 }; // nothing fits: the weakest thing that lives here
-  return { groups: [{ name: best.m.n, stat: best.m.n, cr: best.m.cr, count: best.n, boss: false }], hook: `${best.n > 1 ? best.n + " × " + best.m.n : "A lone " + best.m.n}, ${r.pick(RAND_HOOKS)}.` };
+  return { groups: [{ name: best.m.n, stat: best.m.n, cr: best.m.cr, count: best.n, boss: false }], monster: best.m, hook: `${best.n > 1 ? best.n + " × " + best.m.n : "A lone " + best.m.n}, ${r.pick(RAND_HOOKS)}.` };
 }
 function randRoll(c) {
-  const lv = c.currentLevel || 1, res = randomEncounter(makeRng("rand", Date.now(), Math.random()), RAND.env, lv, partySize(c), RAND.diff);
+  const lv = c.currentLevel || 1, rules = normalizeSourceRules(c.sourceRules);
+  let pool = randMonsters();
+  if (rules) {
+    const raw = dmData("monsterData");
+    const habitats = new Map(raw["2014"].filter(m => m.env?.length).map(m => [m.n, m.env]));
+    pool = raw[rules.edition].filter(m => sourceAllowed(rules, m.src, false) && CR_XP[m.cr] !== undefined && m.hp > 0)
+      .map(m => m.env?.length ? m : { ...m, env: habitats.get(m.n) || [] });
+  }
+  const res = randomEncounter(makeRng("rand", Date.now(), Math.random()), RAND.env, lv, partySize(c), RAND.diff, pool);
   if (!res) { toast("No monsters live there in the Monster Manual. Try another place."); return; }
   const g = res.groups[0], label = (RAND_ENVS.find(x => x[0] === RAND.env) || [0, RAND.env])[1];
   const e = newEncounter(null, `Random: ${label} — ${g.count > 1 ? g.count + " × " : ""}${g.name}`, lv, res.groups, { notes: res.hook, kind: "random" });
-  e.enemies.forEach(m => { const mm = randMonster(m.stat); if (mm) { m.ac = mm.ac; m.hp = m.max = mm.hp; } });
+  e.enemies.forEach(m => { m.ac = res.monster.ac; m.hp = m.max = res.monster.hp; });
   c.encounters = c.encounters || []; c.encounters.push(e); Store.save(c); renderTracker();
   const el = document.getElementById("enc-" + e.id); if (el) el.scrollIntoView({ behavior: "smooth", block: "center" });
   toast(`Rolled: ${res.hook}`);
@@ -854,11 +971,24 @@ function encOrder(c, e) {
   (c.party || []).forEach(p => { const v = e.pcInit && e.pcInit[p.id]; if (v !== undefined && v !== "") rows.push({ key: p.id, name: p.name || "Hero", init: +v, foe: false, down: false, dex: 99 }); });
   return rows.sort((a, b) => b.init - a.init || b.dex - a.dex);
 }
+function campaignBestiaryEntryAllowed(c, b) {
+  const rules = normalizeSourceRules(c.sourceRules);
+  if (!rules) return true;
+  if (b.ed === "custom" || !b.ed) return rules.homebrew;
+  const source = b.src || dmData("monsterData")[b.ed]?.find(m => m.n === b.name || b.name === `${m.n} (${b.ed})`)?.src;
+  return rules.edition === b.ed && sourceAllowed(rules, source, false);
+}
+function encounterCatalog(c) {
+  const rules = normalizeSourceRules(c.sourceRules);
+  if (!rules) return null;
+  return new Map(dmData("monsterData")[rules.edition].filter(m => sourceAllowed(rules, m.src, false)).map(m => [m.n, m]));
+}
 function encCard(c, e) {
   const M = encMath(c, e), order = encOrder(c, e);
   const hpPct = m => Math.max(0, Math.min(100, Math.round(m.hp / (m.max || 1) * 100)));
-  const opts = MON.map(m => m[0]).concat(VSTAT.map(v => v[0])).filter((n, i, a) => a.indexOf(n) === i).sort((a, b) => monCR(a) - monCR(b) || a.localeCompare(b));
-  const mine = (c.bestiary || []).map(b => b.name);
+  const catalog = encounterCatalog(c);
+  const opts = MON.map(m => m[0]).concat(VSTAT.map(v => v[0])).filter((n, i, a) => a.indexOf(n) === i && (!catalog || catalog.has(n))).sort((a, b) => monCR(a) - monCR(b) || a.localeCompare(b));
+  const mine = (c.bestiary || []).filter(b => campaignBestiaryEntryAllowed(c, b)).map(b => b.name);
   const guide = encGuide(c, e);
   return `<div class="encard ${e.status === "Done" ? "done" : ""} ${e.status === "Active" ? "live" : ""}" id="enc-${e.id}">
     <div class="row" style="align-items:center;gap:8px;flex-wrap:wrap">
@@ -870,11 +1000,16 @@ function encCard(c, e) {
     </div>
     <div class="enc-meta"><span class="r ${M.rating}">${M.rating}</span> <span>Adjusted XP <b>${M.adj.toLocaleString()}</b> · ${M.raw.toLocaleString()} XP to award</span> <span class="lvl-in">Level <input type="number" min="1" max="20" data-ef="level" data-eid="${e.id}" value="${M.lv}"></span>${e.kind ? `<span class="tag">${e.kind === "boss" ? "Boss" : e.kind === "skirmish" ? "Skirmish" : "Main"}</span>` : ""}</div>
     <div class="enc-bar">
+      ${(c.maps || []).length ? `<label>Encounter map <select data-ef="map" data-eid="${esc(e.id)}">
+        <option value="">No map</option>${(c.maps || []).map(m => `<option value="${esc(m.id)}" ${m.id === e.mapId ? "selected" : ""}>${esc(m.name)}</option>`).join("")}
+        </select></label>` : ""}
+      ${(c.maps || []).some(m => m.id === e.mapId) ? `<button class="btn sm" type="button" data-openmap="${esc(e.mapId)}">Open encounter map</button>` : ""}
+      <button class="btn sm" type="button" data-ea="saveTemplate" data-eid="${esc(e.id)}">Save as template</button>
       <button class="btn sm primary" data-ea="roll" data-eid="${e.id}">🎲 Roll enemy initiative</button>
       <button class="btn sm" data-ea="next" data-eid="${e.id}" ${order.length ? "" : "disabled"}>Next turn ▶</button>
       <button class="btn sm" data-ea="reset" data-eid="${e.id}">Reset</button>
       <button class="btn sm" data-ea="tv" data-eid="${e.id}" title="Show the turn order on the player screen (TV). Monsters show as Bloodied or Down, never their HP.">${HOST.enc && HOST.enc.eid === e.id ? "📺 Off TV" : "📺 Show on TV"}</button>
-      ${window.Portal && Portal.cloud && Portal.isDM() ? `<button class="btn sm" data-ea="players" data-eid="${e.id}" title="Show the turn order on your players' phones. Monsters show as Bloodied or Down, never their HP.">${playersFight(c.id, e.id) ? "📱 Off players' phones" : "📱 Show players"}</button>` : ""}
+      ${window.Portal?.linkedTrackerId?.() === c.id ? `<button class="btn sm" data-ea="players" data-eid="${e.id}" title="Show the turn order on your players' phones. Monsters show as Bloodied or Down, never their HP.">${playersFight(c.id, e.id) ? "📱 Off players' phones" : "📱 Show players"}</button>` : ""}
       <span class="muted" style="font-size:14px">${e.round ? `Round <b>${e.round}</b>` : "Not started"}</span>
     </div>
     ${order.length ? `<div class="init-strip">${order.map(o => `<span class="init-chip ${o.foe ? "foe" : "pc"} ${o.down ? "down" : ""} ${e.turn === o.key ? "cur" : ""}">${e.turn === o.key ? "▶ " : ""}${esc(o.name)} <b>${o.init}</b></span>`).join("")}</div>` : ""}
@@ -922,13 +1057,23 @@ document.addEventListener("click", e => {
   const inp = document.querySelector(`[data-pgamt="${CSS.escape(g.dataset.pc)}"]`), v = Math.abs(parseInt(inp && inp.value) || 0); if (!v) { if (inp) inp.focus(); return; }
   toast(actApply("pc:" + g.dataset.pc, v, g.dataset.pg)); renderTracker();
 });
+function encounterTemplatesHTML(c) {
+  const templates = Array.isArray(c.encounterTemplates) ? c.encounterTemplates : [];
+  if (!templates.length) return "";
+  return `<details class="card" open><summary>Encounter templates</summary>
+    ${templates.filter(t => t && typeof t.id === "string").map(t => `<div class="item-h"><b>${esc(t.name)}</b>
+      <button class="btn sm" type="button" data-ea="startTemplate" data-template="${esc(t.id)}">Start encounter</button>
+      <button class="btn sm danger" type="button" data-ea="deleteTemplate" data-template="${esc(t.id)}">Delete template</button>
+    </div>`).join("")}
+  </details>`;
+}
 function renderEncounters(c) {
   const encs = c.encounters || [];
   const chIds = new Set(c.chapters.map(x => x.id));
   const group = (ch, list, i) => `<div class="enc-ch" id="encch-${ch ? ch.id : "other"}">
       <div class="sec-h"><h3>${ch ? `${esc(c.gen && c.gen.outline.kind === "oneshot" ? "Scene" : "Chapter")} ${i + 1}: ${esc(ch.title || "Untitled")}` : "Other encounters"}</h3><span class="sp"></span>${ch ? `<button class="btn sm" data-ea="addEnc" data-ch="${ch.id}">+ Add encounter</button>` : ""}</div>
       ${list.length ? list.map(e => encCard(c, e)).join("") : `<p class="muted" style="margin:0 0 6px">No encounters planned for this ${ch ? "chapter" : "campaign"} yet.</p>`}</div>`;
-  let h = partyGlanceHTML(c) + randHTML() + `<p class="hint" style="margin-top:0">Each chapter's fights with enemy stats, HP and initiative tracking, and notes on how to run them. Roll initiative, enter damage, then press Next turn to step through the round.</p>`;
+  let h = encounterTemplatesHTML(c) + partyGlanceHTML(c) + randHTML() + `<p class="hint" style="margin-top:0">Each chapter's fights with enemy stats, HP and initiative tracking, and notes on how to run them. Roll initiative, enter damage, then press Next turn to step through the round.</p>`;
   h += c.chapters.map((ch, i) => group(ch, encs.filter(e => e.chId === ch.id), i)).join("");
   const orphans = encs.filter(e => !chIds.has(e.chId));
   if (orphans.length || !c.chapters.length) h += group(null, orphans, 0) + (c.chapters.length ? "" : `<button class="btn sm" data-ea="addEnc" data-ch="">+ Add encounter</button>`);
@@ -944,11 +1089,53 @@ function rerenderEnc(c, e) {
 function findEnc(c, id) { return (c.encounters || []).find(x => x.id === id); }
 campMain.addEventListener("change", ev => { if (ev.target.id === "randEnv") RAND.env = ev.target.value; if (ev.target.id === "randDiff") RAND.diff = ev.target.value; });
 campMain.addEventListener("click", async ev => {
-  if (ev.target.id === "randRoll") { const c = curCamp(); if (c) randRoll(c); return; }
+  if (ev.target.id === "randRoll") {
+    const c = curCamp(), button = ev.target;
+    if (!c || button.disabled) return;
+    button.disabled = true;
+    try { await dmLoadExtraMonsters(); if (curCamp()?.id === c.id) randRoll(c); }
+    finally { button.disabled = false; }
+    return;
+  }
   const b = ev.target.closest("[data-ea],[data-goenc]"); if (!b) return;
   const c = curCamp(); if (!c) return;
   if (b.dataset.goenc !== undefined) { subTab = "encounters"; renderTracker(); const t = document.getElementById("encch-" + b.dataset.goenc); if (t) t.scrollIntoView({ behavior: "smooth", block: "start" }); return; }
   const a = b.dataset.ea, e = findEnc(c, b.dataset.eid);
+  if (a === "saveTemplate" && e) {
+    const templates = Array.isArray(c.encounterTemplates) ? c.encounterTemplates : [];
+    const { name, level, mapId, notes, kind, pcInit, enemies } = e;
+    c.encounterTemplates = [...templates, {
+      id: uid("template"), name: name || "Encounter", level, mapId, notes, kind,
+      pcInit: { ...pcInit },
+      enemies: enemies.map(({ name, stat, cr, ac, max, init, boss }) => ({ name, stat, cr, ac, max, init, boss }))
+    }];
+    Store.save(c); renderTracker(); toast("Encounter template saved");
+    return;
+  }
+  if (a === "startTemplate" || a === "deleteTemplate") {
+    const template = Array.isArray(c.encounterTemplates) && c.encounterTemplates.find(x => x?.id === b.dataset.template);
+    if (!template) return;
+    if (a === "deleteTemplate") {
+      if (!(await confirmBox("Delete encounter template?", template.name, "Delete"))) return;
+      c.encounterTemplates = c.encounterTemplates.filter(x => x.id !== template.id);
+      Store.save(c); if (curCamp()?.id === c.id) renderTracker();
+      return;
+    }
+    const fight = newEncounter(null, template.name, template.level, [], {
+      status: "Active", notes: template.notes || "", kind: template.kind, mapId: template.mapId,
+      pcInit: { ...template.pcInit },
+      enemies: (Array.isArray(template.enemies) ? template.enemies : []).filter(Boolean).map(m => {
+        const max = Math.max(1, Number(m.max) || 1);
+        return { id: uid("m"), name: String(m.name || "Enemy"), stat: String(m.stat || ""),
+          cr: Number(m.cr) || 0, ac: Number(m.ac) || 10, max, hp: max,
+          init: m.init === "" || !Number.isFinite(Number(m.init)) ? "" : Number(m.init), cond: "", boss: !!m.boss };
+      })
+    });
+    c.encounters.push(fight);
+    Store.save(c); renderTracker();
+    document.getElementById("enc-" + fight.id)?.scrollIntoView({ block: "start" });
+    return;
+  }
   if (a === "players" && e) {
     if (playersFight(c.id, e.id)) { playersFightSet(null); toast("Turn order taken off your players' phones"); }
     else { playersFightSet({ cid: c.id, eid: e.id }); toast("Your players see the turn order on their phones"); }
@@ -987,8 +1174,13 @@ campMain.addEventListener("click", async ev => {
   } else if (a === "delMon") { e.enemies = e.enemies.filter(x => x !== m); if (e.turn === b.dataset.mid) e.turn = null; }
   else if (a === "addMon") {
     const nm = document.querySelector(`[data-addsel="${e.id}"]`).value, n = clamp(parseInt(document.querySelector(`[data-addn="${e.id}"]`).value) || 1, 1, 20);
+    if (!nm) return;
+    const catalog = encounterCatalog(c), stored = (c.bestiary || []).find(m => m.name === nm && campaignBestiaryEntryAllowed(c, m));
+    const monster = catalog?.get(nm);
+    if (catalog && !monster && !stored) return;
     const have = e.enemies.filter(x => x.stat === nm && !x.boss).length;
-    const rows = makeEnemies([{ name: nm, stat: nm, cr: monCR(nm), count: n, boss: false }]);
+    const rows = makeEnemies([{ name: nm, stat: nm, cr: stored?.cr ?? monster?.cr ?? monCR(nm), count: n, boss: false }]);
+    if (monster && !stored) rows.forEach(row => { row.ac = monster.ac; row.hp = row.max = monster.hp; });
     rows.forEach((r, k) => r.name = (have + n > 1) ? `${nm} ${have + k + 1}` : nm);
     e.enemies.push(...rows);
   } else if (a === "roll") {
@@ -1013,6 +1205,7 @@ function onEncField(ev, commit) {
   const f = t.dataset.ef, m = t.dataset.mid ? e.enemies.find(x => x.id === t.dataset.mid) : null;
   if (f === "name" || f === "notes") e[f] = t.value;
   else if (f === "status") e.status = t.value;
+  else if (f === "map") e.mapId = (c.maps || []).find(m => m.id === t.value)?.id || "";
   else if (f === "level") e.level = clamp(parseInt(t.value) || 1, 1, 20);
   else if (f === "pcinit") { e.pcInit = e.pcInit || {}; e.pcInit[t.dataset.pid] = t.value === "" ? "" : +t.value; }
   else if (m) {
@@ -1022,7 +1215,7 @@ function onEncField(ev, commit) {
     else if (f === "hp") m.hp = clamp(parseInt(t.value) || 0, 0, 9999);
   }
   Store.save(c);
-  if (commit && ["status", "level", "pcinit", "init", "hp"].includes(f)) rerenderEnc(c, e);
+  if (commit && ["status", "level", "map", "pcinit", "init", "hp"].includes(f)) rerenderEnc(c, e);
 }
 campMain.addEventListener("input", ev => onEncField(ev, false));
 campMain.addEventListener("change", ev => onEncField(ev, true));
@@ -1044,7 +1237,11 @@ function journalFor(c) {
   const seen = x => x && x.players !== "No";
   const cal = c.cal && c.cal.weather ? { day: c.cal.day, season: cap1(calSeason(c.cal)), weather: c.cal.weather.text || "" } : null;
   return {
-    name: c.name || "", cal,
+    name: c.name || "", cal, sourceRules: normalizeSourceRules(c.sourceRules),
+    handouts: journalHandouts(c).filter(x => x.revealed === true).map(x => ({
+      id: x.id, title: x.title.slice(0, 100), notes: String(x.notes || "").slice(0, 4000),
+      picture: journalPictureOK(x.picture) ? x.picture : undefined, url: npcUrlOk(x.url) ? x.url : undefined,
+    })),
     quests: (c.quests || []).filter(seen).map(q => ({ id: q.id, title: q.title || "", status: q.status || "Active", giver: q.giver || "" })),
     sessions: (c.sessions || []).filter(seen).map(x => ({ id: x.id, title: x.title || "", num: x.num || "", date: x.date || "", summary: x.summary || "" })),
     lore: (c.lore || []).filter(x => x.shared).map(x => ({ id: x.id, name: x.name || "", type: x.type || "other", tags: x.tags || [], imgUrl: npcUrlOk(x.imgUrl) ? x.imgUrl : undefined, desc: x.desc || "",

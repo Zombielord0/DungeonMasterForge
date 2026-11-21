@@ -17,17 +17,35 @@ function renderRosterMain() {
   if (c.bgV === 1 && CLASS_DATA[c.cls]) { const cur = c.hpCur; pcLevelTo(c, c.level); c.bgV = 2; if (cur !== undefined && cur !== "") c.hpCur = Math.min(+cur, c.hp); pcPersist(); }
   /* saved before 2026-11-19, when Eldritch Knights and Arcane Tricksters had no spellcasting: rebuild to add it, keeping current HP */
   if (!c.spell && CLASS_DATA[c.cls] && [{ cls: c.cls, lv: c.level, subclass: c.subclass }, ...(c.multi || [])].some(x => x && subCaster(x.cls, x.subclass) && +x.lv >= 3)) { const cur = c.hpCur; pcLevelTo(c, c.level); if (cur !== undefined && cur !== "") c.hpCur = Math.min(+cur, c.hp); pcPersist(); }
-  const moved = pcInvUpgrade(c), synced = pcSubSync(c), nums = pcSubNumbers(c); pcRecompute(c); c.attacks = pcAttacks(c); if (moved || synced || nums) pcPersist();
+  const moved = pcInvUpgrade(c), synced = pcSubSync(c), nums = pcSubNumbers(c);
+  let repairedAttunement = false;
+  for (const item of c.inv) {
+    if (clearUnsupportedAttunement(item, edOf(c))) repairedAttunement = true;
+  }
+  pcRecompute(c);
+  c.attacks = pcAttacks(c);
+  if (moved || synced || nums || repairedAttunement) pcPersist();
   main.innerHTML = (pcIsDraft(c) ? draftBarHTML(c) : "") + rosterHTML(c); renderCampList(); $$("textarea", main).forEach(autoGrow);
 }
 /* A newly forged character is a draft until saved: everything on the sheet works, and this bar keeps, rerolls or discards it.
    Drafts stay in this browser (currentPC, PCS.cur); only saved characters (PCS.roster) go to a signed-in campaign. */
 const draftBarHTML = c => `<div class="card draft-bar"><div><b>New character, not saved yet.</b> <span class="muted">Change anything below, then save ${esc(c.name)} to keep them.</span></div>
   <div class="draft-acts"><button class="btn primary sm" type="button" data-draft="keep">☆ Save character</button>${c.custom ? "" : `<button class="btn sm" type="button" data-draft="reroll" title="Forge again with the same choices">↻ Reroll</button>`}<button class="btn sm danger" type="button" data-draft="discard">✕ Discard</button></div></div>`;
+function clearUnsupportedAttunement(item, edition) {
+  if (!item?.attuned || inventoryNeedsAttunement(item, inventoryCatalogItem(item, edition))) return false;
+  item.attuned = false;
+  return true;
+}
+function inventoryAttunementCount(c) {
+  const count = c.inv.filter(i => i.attuned && inventoryNeedsAttunement(i, inventoryCatalogItem(i, edOf(c)))).length;
+  const level = clsLv(c, "Artificer");
+  const limit = level >= 18 ? 6 : level >= 14 ? 5 : level >= 10 ? 4 : 3;
+  return `<b id="rcAttunementCount" class="${count > limit ? "over" : ""}">${count} / ${limit}</b>`;
+}
 function rosterHTML(c) {
   const isb = itemSaveBonus(c), sv = a => c.mods[a] + (c.saves.includes(a) ? c.prof : 0) + isb;
   const D = c.hookDetail || { story: "", questions: [], use: "" };
-  const attN = c.inv.filter(i => i.attuned).length, wt = c.inv.reduce((s, i) => s + (+i.w || 0) * (+i.qty || 0), 0);
+  const wt = c.inv.reduce((s, i) => s + (+i.w || 0) * (+i.qty || 0), 0);
   const L = c.spell ? spellLimits(c) : null;
   return `${sheetJumpHTML(c)}<div class="card">
     <div class="row" style="align-items:flex-start;flex-wrap:wrap"><input class="title-input" type="text" data-rf="name" value="${esc(c.name)}" aria-label="Character name" style="flex:1 1 260px">
@@ -85,7 +103,7 @@ function rosterHTML(c) {
       <td><input type="checkbox" data-rinv="eq" data-iid="${esc(i.id)}" ${i.eq ? "checked" : ""} aria-label="Equip ${esc(i.n)}"></td>
       <td data-attunement-cell>${inventoryAttunementControl(i, edOf(c))}</td>
       <td><button class="icon-btn" type="button" data-rdel="${esc(i.id)}" title="Remove">✕</button></td></tr>`).join("")}</tbody></table>` : `<p class="muted">Nothing carried yet. Add items here, or give them from the Items tab.</p>`}
-    <p class="hint">Attuned to <b class="${attN > 3 ? "over" : ""}">${attN} / 3</b> magic items · ${(() => { const LD = pcLoad(c); return `carrying <b class="${LD.lb > LD.cap ? "over" : ""}">${LD.lb} lb</b> of ${LD.cap} lb${LD.lb > LD.cap ? " — over your carrying capacity: speed 5 ft" : LD.variant && LD.lb > LD.heavy ? " — heavily encumbered" : LD.variant && LD.lb > LD.enc ? " — encumbered" : ""}`; })()}.</p>
+    <p class="hint">Attuned to ${inventoryAttunementCount(c)} magic items · ${(() => { const LD = pcLoad(c); return `carrying <b class="${LD.lb > LD.cap ? "over" : ""}">${LD.lb} lb</b> of ${LD.cap} lb${LD.lb > LD.cap ? " — over your carrying capacity: speed 5 ft" : LD.variant && LD.lb > LD.heavy ? " — heavily encumbered" : LD.variant && LD.lb > LD.enc ? " — encumbered" : ""}`; })()}.</p>
     ${edOf(c) === "2014" ? `<label style="display:flex;gap:8px;align-items:center;font-size:14px"><input type="checkbox" data-varenc ${c.varEnc ? "checked" : ""}> Use variant encumbrance (−10 ft over ${pcLoad(c).enc} lb, −20 ft and disadvantage over ${pcLoad(c).heavy} lb)</label>` : ""}</div>
   <div class="grid2 rc-two" style="margin-top:0">
     <div class="sec"><div class="sec-h"><h3>Features & Traits</h3></div>${featuresListHTML(c, true)}<div id="rcItemFeatures">${inventoryEffectsHTML(c)}</div>
@@ -210,6 +228,7 @@ spFiltersSync();
         if (f === "n") {
           const row = t.closest("tr");
           $("[data-attunement-cell]", row).innerHTML = inventoryAttunementControl(i, edOf(c));
+          $("#rcAttunementCount", main).outerHTML = inventoryAttunementCount(c);
           $("[data-item-details]", row).setAttribute("aria-label", i.n ? "Item details for " + i.n : "Item details");
           $('[data-rinv="eq"]', row).setAttribute("aria-label", "Equip " + i.n);
         }
@@ -224,6 +243,11 @@ spFiltersSync();
   });
   main.addEventListener("change", e => {
     const c = rosterCur(); if (!c) return; const t = e.target;
+    if (t.dataset.rinv === "n") {
+      const item = c.inv.find(i => i.id === t.dataset.iid);
+      if (clearUnsupportedAttunement(item, edOf(c))) pcPersist();
+      return;
+    }
     if (t.dataset.rs) { c.scores[t.dataset.rs] = clamp(parseInt(t.value) || 10, 1, 30); pcRecompute(c); pcPersist(); renderRosterMain(); }
     else if (t.dataset.rlv) {
       const lv = clamp(parseInt(t.value) || 1, 1, 20);

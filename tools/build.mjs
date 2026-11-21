@@ -57,7 +57,7 @@ function emit(name, ext, text) { // text: a string, or a Buffer for pictures
 }
 mkdirSync(at("public/assets/"), { recursive: true });
 for (const [name, key] of [["spells", "spellData"], ["monsters", "monsterData"], ["items", "itemData"],
-  ["extra-spells", "spellExtra"], ["extra-monsters", "monsterExtra"], ["extra-items", "itemExtra"], ["extra-options", "optionExtra"], ["extra-books", "bookData"]]) {
+  ["extra-spells", "spellExtra"], ["extra-monsters", "monsterExtra"], ["extra-items", "itemExtra"], ["extra-options", "optionExtra"], ["extra-books", "bookData"], ["book-references", "bookReferences"]]) {
   // stored as text, so the app turns it into objects only when a tab needs it (dmData in src/app/01-core.js)
   const text = JSON.stringify(JSON.parse(read(`data/${name}.json`)));
   const lit = JSON.stringify(text).split(String.fromCharCode(0x2028)).join("\\u2028").split(String.fromCharCode(0x2029)).join("\\u2029");
@@ -67,7 +67,8 @@ for (const [name, key] of [["spells", "spellData"], ["monsters", "monsterData"],
 {
   const { books, ogl } = JSON.parse(read("data/extra-books.json"));
   const h = t => String(t).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
-  const L = Object.values(books), ogls = L.filter(b => b.lic === "ogl-10a"), ccs = L.filter(b => b.lic === "cc-by-40");
+  const refs = Object.values(books).filter(b => b.lic === "reference");
+  const L = Object.values(books).filter(b => b.lic !== "reference"), ogls = L.filter(b => b.lic === "ogl-10a"), ccs = L.filter(b => b.lic === "cc-by-40");
   for (const b of L) if (b.url && !/^https:\/\//.test(b.url)) throw new Error(`data/extra-books.json: ${b.name}'s link isn't https: ${b.url}`);
   const link = b => b.url ? ` <a href="${h(b.url)}" rel="noopener">${h(b.url)}</a>` : "";
   const page = `<!DOCTYPE html>
@@ -82,6 +83,7 @@ for (const [name, key] of [["spells", "spellData"], ["monsters", "monsterData"],
 <h2>Extra books</h2>
 <p>The extra monsters, spells and magic items (marked with their book's name in the lists) come from these books, through the open-source <a href="https://github.com/open5e/open5e-api">Open5e</a> project. They were converted into the Forge's format; the rules text is unchanged. None of these publishers endorse the Forge.</p>
 <ul>${L.map(b => `<li><b>${h(b.name)}</b> by ${h(b.authors || b.by)} (${h(b.by)}${b.year ? ", " + h(b.year) : ""}). ${b.lic === "cc-by-40" ? `Licensed under the <a href="https://creativecommons.org/licenses/by/4.0/legalcode">Creative Commons Attribution 4.0 International License</a>.` : "Open Game Content under the Open Game License 1.0a (below)."}${link(b)}</li>`).join("\n")}</ul>
+${refs.length ? `<h2>Rules summaries</h2><ul>${refs.map(b => `<li><cite>${h(b.name)}</cite> by ${h(b.by)}. Entry details include printed page references where available.</li>`).join("")}</ul>` : ""}
 <h2>Open Game License</h2>
 <p><b>Designation of Open Game Content:</b> the rules text of the monsters, spells and magic items from ${ogls.map(b => h(b.name)).join(", ")} shown in the Forge is Open Game Content. <b>Product Identity:</b> none is used; the Forge's own name, code, pictures and other text are not Open Game Content.</p>
 <pre>${h(ogl.trim())}
@@ -121,7 +123,9 @@ html = html.replace(/^(<!DOCTYPE html>\n?)/i, "$1<!-- Built by tools/build.mjs f
 if (!/^<!DOCTYPE html>/i.test(html)) throw new Error("src/index.html must start with <!DOCTYPE html>");
 writeFileSync(at("public/index.html"), html);
 const files = Object.values(out).filter(f => !f.endsWith(".webp"));
-const sw = read("src/sw.js").replace(/^const ASSETS = .*$/m, `const ASSETS = ${JSON.stringify(files)};`)
+const lazyFiles = [out["/assets/extra-monsters.js"], out["/assets/book-references.js"]];
+const coreFiles = files.filter(f => !lazyFiles.includes(f));
+const sw = read("src/sw.js").replace(/^const ASSETS = .*$/m, `const ASSETS = ${JSON.stringify(coreFiles)};`)
   .replace(/^const CACHE = "([\w-]+?)";/m, (_, name) => `const CACHE = "${name}-${fp(files.join())}";`);
 writeFileSync(at("public/sw.js"), "/* Built by tools/build.mjs from src/sw.js. */\n" + sw);
 if (!quiet) console.log("public/index.html and public/sw.js updated");

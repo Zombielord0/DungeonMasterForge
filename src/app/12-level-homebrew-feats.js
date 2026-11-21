@@ -33,7 +33,7 @@ function pcRefresh(c) {
 }
 const LV = { c: null, to: 0, pick: "", onlySub: false, back: null, asi: null };
 const lvBuild = (c, to, picks) => generateCharacter({ seed: c.seed || c.id, name: c.name, race: c.race, ed: edOf(c), sub: c.sub || (c.race === "Dragonborn" && c.ancestry) || "none", ancestry: c.ancestry || undefined, cls: c.cls, bg: c.bg, level: to, subclass: c.subclass || "none", asiPicks: picks, bonusFeats: c.bonusFeats || undefined, bgAsiLegacy: c.bgAsiLegacy || undefined, ...pcKeep(c), method: c.method || "array", bonus: c.bonus || "flex", custom: c.customData || undefined });
-const lvHasAsi = (c, to) => (CLASS_DATA[c.cls].asi || [4, 8, 12, 16, 19]).includes(to);
+const lvHasAsi = (c, to) => (classData(edOf(c), c.cls).asi || [4, 8, 12, 16, 19]).includes(to);
 // The choice as stored on the character: { str: 2 }, { str: 1, con: 1 } or { feat: "Alert" }; null while incomplete.
 function lvAsiPick() {
   const A = LV.asi; if (!A) return null;
@@ -53,7 +53,7 @@ function lvGains(c, to) {
   const n = lvBuild(sub ? { ...c, subclass: sub } : c, to, lvPicks(c, to, lvAsiPick() || (lvHasAsi(c, to) ? { feat: "-" } : null)));
   const g = [`Hit points ${c.hp} → <b>${n.hp}</b> (+${n.hp - c.hp})`];
   if (n.prof !== c.prof) g.push(`Proficiency bonus ${sgn(c.prof)} → <b>${sgn(n.prof)}</b>`);
-  const C = CLASS_DATA[c.cls];
+  const C = classData(edOf(c), c.cls);
   n.feats.filter(f => f.l === to && !f.f.startsWith("Subclass: ") && !f.f.startsWith("Ability Score") && !f.f.startsWith("Feat: ")).forEach(f => { const d = featDesc(f.f, n); g.push(`<b>${esc(f.f)}</b>${d ? ` — ${esc(d)}` : ""}`); });
   if (n.spell && c.spell) {
     if (n.spell.note && n.spell.note !== c.spell.note) g.push(esc(cap1(n.spell.note)));
@@ -124,7 +124,8 @@ function featRender() {
   const tabs = (ed === "2024" ? [["", "All"], ["g", "General"], ["o", "Origin"], ["b", "Epic boon"]] : [["", "All"]]).concat(featList(ed).some(F => F[5]) ? [["h", "Homebrew"]] : []);
   $("#featGrp").innerHTML = tabs.length > 1 ? tabs.map(([k, l]) => `<button type="button" class="btn sm ${FP.grp === k ? "primary" : ""}" data-featgrp="${k}" aria-pressed="${FP.grp === k}" style="flex:0 0 auto">${l}</button>`).join("") : "";
   const words = FP.q.toLowerCase().split(/\s+/).filter(Boolean);
-  const list = featList(ed).filter(F => (!FP.grp || (FP.grp === "h" ? F[5] : F[4] === FP.grp)) && words.every(w => (F[0] + " " + F[3] + " " + featReqText(F)).toLowerCase().includes(w)));
+  const rules = currentSourceRules();
+  const list = featList(ed).filter(F => sourceAllowed(rules, F[6], F[5]) && (!FP.grp || (FP.grp === "h" ? F[5] : F[4] === FP.grp)) && words.every(w => (F[0] + " " + F[3] + " " + featReqText(F)).toLowerCase().includes(w)));
   $("#featList").innerHTML = list.length ? `<div class="pick-grid">${list.map(F => {
     const why = taken.has(F[0]) && !FEAT_REPEAT.has(F[0]) ? "Already taken" : featBlock(F, c, cur, to), abs = featAbs(F), req = featReqText(F);
     return `<button type="button" class="pick ${LV.asi.feat === F[0] ? "on" : ""}" data-feat="${esc(F[0])}" ${why ? `disabled aria-disabled="true"` : ""}>
@@ -138,7 +139,7 @@ function featPick(name) { LV.asi.feat = name; LV.asi.featAb = ""; featClose(); l
 function featClose() { const m = $("#featModal"); if (m) m.classList.remove("open"); const f = $("#lvModal [data-featopen]"); if (f) f.focus(); }
 function mcDialog(c) {
   pcEnsure(c); ACTX.c = c; ACTX.mc = { pick: "", sub: "", ok: false };
-  const ed = edOf(c), have = (c.multi || []).filter(x => +x.lv > 0), fresh = classList(ed).filter(k => k !== c.cls && !have.some(x => x.cls === k));
+  const ed = edOf(c), have = (c.multi || []).filter(x => +x.lv > 0), fresh = campaignClassChoices(ed).filter(k => k !== c.cls && !have.some(x => x.cls === k));
   const needAll = [c.cls, ...have.map(x => x.cls)].filter(k => !mcMeets(c, k));
   const opt = (k, label) => { const ok = mcMeets(c, k); return `<label class="mc-opt"><input type="radio" name="mcPick" value="${esc(k)}"> <b>${esc(label)}</b> <span class="${ok ? "muted" : "warn"}">${ok ? "✓" : "✗"} needs ${esc(mcPrereqText(k))}</span></label>`; };
   actDialog(`<h3 id="actTitle">Level up in another class</h3>
@@ -154,7 +155,7 @@ function mcDialog(c) {
 function mcRefresh() {
   const c = ACTX.c, M = ACTX.mc, ed = edOf(c), k = M.pick; if (!k) return;
   const cur = ((c.multi || []).find(x => x.cls === k) || { lv: 0, subclass: null }), to = cur.lv + 1, sl = subclassLevel(ed, k), needSub = to >= sl && !cur.subclass;
-  $("#mcSub").innerHTML = needSub ? `<div class="field" style="margin:10px 0 0"><label for="mcSubSel">${esc(k)} subclass (chosen at ${esc(k)} level ${sl})</label><select id="mcSubSel"><option value="">Choose…</option>${subclassList(ed, k).map(([n]) => `<option ${M.sub === n ? "selected" : ""}>${esc(n)}</option>`).join("")}</select></div>` : "";
+  $("#mcSub").innerHTML = needSub ? `<div class="field" style="margin:10px 0 0"><label for="mcSubSel">${esc(k)} subclass (chosen at ${esc(k)} level ${sl})</label><select id="mcSubSel"><option value="">Choose…</option>${campaignSubclassChoices(ed, k).map(([n]) => `<option ${M.sub === n ? "selected" : ""}>${esc(n)}</option>`).join("")}</select></div>` : "";
   const pre = [k, c.cls, ...(c.multi || []).filter(x => +x.lv > 0).map(x => x.cls)].every(x => mcMeets(c, x)), over = $("#mcOverride").checked;
   const miss = [!pre && !over ? "meet the prerequisites (or tick the DM option)" : "", needSub && !M.sub ? "choose a subclass" : ""].filter(Boolean);
   $("#mcSub").insertAdjacentHTML("beforeend", progressionButton(ed, "class", k, M.sub || cur.subclass || ""));
@@ -220,7 +221,7 @@ function lvOpen(c, onlySub) {
 }
 function lvRender(focusSel) {
   const { c, to, onlySub } = LV, ed = edOf(c), sl = subclassLevel(ed, c.cls);
-  const ask = !c.subclass && to >= sl, list = subclassList(ed, c.cls);
+  const ask = !c.subclass && to >= sl, list = campaignSubclassChoices(ed, c.cls);
   const gains = onlySub ? [] : lvGains(c, to), ch = LV.chain;
   const step = ch ? ch.steps.indexOf(to) + 1 : 0, more = ch && step < ch.steps.length;
   const yes = more ? "Next →" : ch && ch.target > ch.start ? `⬆ Level up to ${ch.target}` : onlySub ? "Choose subclass" : `⬆ Level up to ${to}`;
@@ -230,7 +231,7 @@ function lvRender(focusSel) {
     ${LV.asi ? lvAsiHTML(c, to) : ""}
     ${ask ? `<div class="sec-h" style="margin-top:14px"><h3>Choose your subclass</h3></div>
       <p class="hint" style="margin:4px 0 0">${esc(c.cls)}s choose a subclass at level ${sl} (${ed} rules). This is required to ${onlySub ? "finish the sheet" : "level up"}.</p>
-      <div class="pick-grid" role="group" aria-label="Subclass">${list.map(([n, d]) => `<div class="progression-choice"><button type="button" class="pick ${LV.pick === n ? "on" : ""}" data-lvsub="${esc(n)}" aria-pressed="${LV.pick === n}"><b>${esc(n)}</b><small>${esc(d)}</small></button>${progressionButton(ed, "subclass", c.cls, n)}</div>`).join("")}</div>` : ""}
+      ${searchableChoices("Search subclasses", list.map(([n, d, hb, src]) => `<div class="progression-choice"><button type="button" class="pick ${LV.pick === n ? "on" : ""}" data-lvsub="${esc(n)}" aria-pressed="${LV.pick === n}"><b>${esc(n)}</b><small>${esc(d)}</small>${src || hb ? `<small class="req">${esc(src ? dmBook(src).name : "Homebrew")}</small>` : ""}</button>${progressionButton(ed, "subclass", c.cls, n)}</div>`).join(""))}` : ""}
     <div class="row" style="justify-content:flex-end;margin-top:14px"><button class="btn" type="button" data-lvno style="flex:0">Cancel</button>
       <button class="btn primary" type="button" data-lvyes style="flex:0 0 auto">${yes}</button></div>
     <p class="hint" id="lvMiss" style="text-align:right;margin:6px 0 0" aria-live="polite"></p>`;
@@ -286,14 +287,15 @@ document.addEventListener("click", e => {
 
 /* ======================= Homebrew editor (DM) ======================= */
 const HBE = { id: null, draft: null, saved: "" };
-const hbBuiltIn = (kind, name, cls) => {
+const hbBuiltIn = (kind, name, cls, edition) => {
+  const editions = edition === "2014" || edition === "2024" ? [edition] : ["2014", "2024"];
   const n = name.toLowerCase(), has = l => l.some(x => x.toLowerCase() === n);
   if (kind === "background") return has(Object.keys(BACKGROUNDS).filter(x => !HB_BG[x]));
-  if (kind === "spell") { spLoad(); return has([...SP.data["2014"], ...SP.data["2024"]].filter(x => !x.hb).map(x => x.n)); }
+  if (kind === "spell") { spLoad(); return has(editions.flatMap(ed => SP.data[ed]).filter(x => !x.hb).map(x => x.n)); }
   if (kind === "species") return ["2014", "2024"].some(ed => has(Object.keys(PC_RACES[ed]).filter(x => !PC_RACES[ed][x].hb)));
   if (kind === "class") return has(builtInClasses());
-  if (kind === "feat") return has([...FEATS["2014"], ...FEATS["2024"]].map(F => F[0]));
-  return ["2014", "2024"].some(ed => has(((SUBCLASSES[ed] || {})[cls] || []).map(x => x[0])));
+  if (kind === "feat") return has(editions.flatMap(ed => FEATS[ed]).map(F => F[0]));
+  return editions.some(ed => has(((SUBCLASSES[ed] || {})[cls] || []).map(x => x[0])));
 };
 function hbNew(kind) {
   const d = { id: uid("hb"), kind, name: "", ed: "both", desc: "" };
@@ -351,8 +353,8 @@ function hbItemOf(d) { // form state -> the entry that is saved and shared
 const hbDirty = () => !!HBE.draft && JSON.stringify(hbItemOf(HBE.draft)) !== HBE.saved;
 function hbProblem(x) {
   if (!x.name) return "Give it a name";
-  if (hbBuiltIn(x.kind, x.name, x.cls)) return `“${x.name}” is already a built-in ${x.kind === "species" ? "species" : x.kind}. Pick another name.`;
-  if (HB.list.some(y => y.id !== x.id && y.kind === x.kind && y.name.toLowerCase() === x.name.toLowerCase() && (x.kind !== "subclass" || y.cls === x.cls))) return `You already have a homebrew ${x.kind} called “${x.name}”`;
+  if (hbBuiltIn(x.kind, x.name, x.cls, x.ed)) return `“${x.name}” is already a built-in ${x.kind === "species" ? "species" : x.kind}. Pick another name.`;
+  if (HB.list.some(y => y.id !== x.id && y.kind === x.kind && (!["spell", "feat", "subclass"].includes(x.kind) || x.ed === "both" || hbEdOk(y, x.ed)) && y.name.toLowerCase() === x.name.toLowerCase() && (x.kind !== "subclass" || y.cls === x.cls))) return `You already have a homebrew ${x.kind} called “${x.name}”`;
   if (x.kind === "background" && (x.skills.length !== 2 || x.skills[0] === x.skills[1])) return "Pick two different skills";
   if (x.kind === "class" && !x.pri.length) return "Pick the class's main ability";
   if (x.kind === "class" && x.saves.length !== 2) return "Pick two different saving throws";
@@ -562,6 +564,7 @@ function renderFeats() {
 }
 async function ftAdd(c, name) {
   const ed = FT.ed, F = featInfo(ed, name); if (!F) return;
+  if (!sourceAllowed(currentSourceRules(), F[6], F[5])) { toast("This feat is outside the campaign sourcebooks."); return; }
   if (pcFeatNames(c).includes(name) && !FEAT_REPEAT.has(name)) { toast(`${c.name} already has ${name}`); return; }
   if (edOf(c) !== ed && !(await confirmBox("Different rules edition", `${name} is from the ${ed} feat list, but ${c.name} uses the ${edOf(c)} rules. Add it anyway?`, "Add anyway"))) return;
   const block = featBlock(F, c, c.scores, c.level);
@@ -599,7 +602,7 @@ const RACE_LANG_PICK = { Human: 1, "Half-Elf": 1 };
 function profInfo(c) {
   const ed = edOf(c), B = bgInfo(ed, c.bg) || {}, T = armorTraining(c);
   const armor = [T.has("light") && "Light armor", T.has("medium") && "Medium armor", T.has("heavy") && "Heavy armor", T.has("shield") && "Shields"].filter(Boolean);
-  const HC = CLASS_DATA[c.cls] && CLASS_DATA[c.cls].hb ? CLASS_DATA[c.cls] : null;
+  const HC = classData(edOf(c), c.cls) && classData(edOf(c), c.cls).hb ? classData(edOf(c), c.cls) : null;
   const weapons = [(CLASS_WEAPONS[ed] || CLASS_WEAPONS["2014"])[c.cls] || (HC && HC.weapons) || "", ...(c.multi || []).filter(x => MC_MARTIAL.includes(x.cls)).length ? ["Martial weapons (multiclass)"] : [], ...(c.multi || []).some(x => x.cls === "Monk") ? ["Shortswords (multiclass)"] : []].filter(Boolean);
   const tools = [CLASS_TOOLS[c.cls] || (HC && HC.tools), ...(c.multi || []).map(x => MC_TOOLS[x.cls]), B.tools && `${B.tools} (background)`, ...choiceOf(c, "Feat: Crafter"), ...choiceOf(c, "Feat: Musician"), (c.subclass === "Battle Master" && "One artisan's tool (Student of War)")].filter(Boolean);
   const langs = ["Common"], picks = [];

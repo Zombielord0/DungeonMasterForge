@@ -69,7 +69,14 @@ const bgList = ed => [...Object.keys(BG_DATA[ed === "2014" ? "2014" : "2024"]), 
 // a background's rules for a rule set (built-in, or homebrew shaped the same way)
 function bgInfo(ed, name) {
   const B = BG_DATA[ed === "2014" ? "2014" : "2024"][name]; if (B) return B;
-  const H = HB_BG[name]; if (H) return { sk: BACKGROUNDS[name] || [], tools: "", lang: "", gear: H.gear ? String(H.gear).split(/,\s*/).filter(Boolean) : [], gp: 0, feat: ed === "2024" && H.feat && featInfo("2024", H.feat) ? H.feat : "", ab: null, hb: true };
+  const H = HB_BG[name];
+  if (H) {
+    const revisedBook = ed === "2024" && H.book && H.ed === "2024";
+    return { sk: BACKGROUNDS[name] || [], tools: revisedBook ? H.tools || "" : "", lang: "",
+      gear: H.gear ? String(H.gear).split(/,\s*/).filter(Boolean) : [], gp: revisedBook ? +H.gp || 0 : 0,
+      feat: ed === "2024" && H.feat && featInfo("2024", H.feat) ? H.feat : "",
+      ab: revisedBook && H.ab?.length === 3 ? H.ab : null, hb: !revisedBook };
+  }
   const L = BG_DATA[ed === "2014" ? "2024" : "2014"][name]; return L ? { ...L, other: true } : null; // a background from the other rule set, on an older character
 }
 const bgSkills = (ed, name) => (bgInfo(ed, name) || {}).sk || BACKGROUNDS[name] || [];
@@ -113,6 +120,9 @@ const CLASS_DATA = {
   Warlock: { hd: 8, pri: ["cha", "con", "dex"], saves: ["wis", "cha"], skills: [["Arcana", "Deception", "History", "Intimidation", "Investigation", "Nature", "Religion"], 2], ac: (m) => [11 + m.dex, "Leather armor"], kit: ["Light crossbow + 20 bolts", "Leather armor", "Two daggers", "Arcane focus", "Scholar's pack"], wpn: ["Light crossbow", "1d8", "dex"], f: { 1: ["Otherworldly Patron", "Pact Magic"], 2: ["Eldritch Invocations"], 3: ["Pact Boon"], 11: ["Mystic Arcanum"], 20: ["Eldritch Master"] }, sub: ["The Fiend", 1], cast: ["pact", "cha"] },
   Wizard: { hd: 6, pri: ["int", "con", "dex"], saves: ["int", "wis"], skills: [["Arcana", "History", "Insight", "Investigation", "Medicine", "Religion"], 2], ac: (m) => [10 + m.dex, "No armor (Mage Armor: " + (13 + m.dex) + ")"], kit: ["Quarterstaff", "Spellbook", "Arcane focus", "Scholar's pack"], wpn: ["Quarterstaff", "1d6", "str"], f: { 1: ["Spellcasting", "Arcane Recovery"], 2: ["Arcane Tradition"], 18: ["Spell Mastery"], 20: ["Signature Spells"] }, sub: ["School of Evocation", 2], cast: ["full", "int"] }
 };
+const ARTIFICER_SLOTS = [[], [2], [2], [3], [3], [4, 2], [4, 2], [4, 3], [4, 3],
+  [4, 3, 2], [4, 3, 2], [4, 3, 3], [4, 3, 3], [4, 3, 3, 1], [4, 3, 3, 1],
+  [4, 3, 3, 2], [4, 3, 3, 2], [4, 3, 3, 3, 1], [4, 3, 3, 3, 1], [4, 3, 3, 3, 2], [4, 3, 3, 3, 2]];
 const FULL_SLOTS = [null, [2], [3], [4, 2], [4, 3], [4, 3, 2], [4, 3, 3], [4, 3, 3, 1], [4, 3, 3, 2], [4, 3, 3, 3, 1], [4, 3, 3, 3, 2], [4, 3, 3, 3, 2, 1], [4, 3, 3, 3, 2, 1], [4, 3, 3, 3, 2, 1, 1], [4, 3, 3, 3, 2, 1, 1], [4, 3, 3, 3, 2, 1, 1, 1], [4, 3, 3, 3, 2, 1, 1, 1], [4, 3, 3, 3, 2, 1, 1, 1, 1], [4, 3, 3, 3, 3, 1, 1, 1, 1], [4, 3, 3, 3, 3, 2, 1, 1, 1], [4, 3, 3, 3, 3, 2, 2, 1, 1]];
 const ALIGN = ["Lawful good", "Neutral good", "Chaotic good", "Lawful neutral", "True neutral", "Chaotic neutral"];
 // [hook line, backstory, unanswered questions, how the DM can use it]
@@ -414,7 +424,11 @@ const subFeatList = (ed, name, lv) => subFeatsOf(ed, name).filter(x => x[0] <= l
 function subFeatDesc(f, c) { if (!c) return ""; for (const sc2 of [c.subclass, ...(c.multi || []).map(m => m.subclass)].filter(Boolean)) { const x = subFeatsOf(edOf(c), sc2).find(y => y[1] === f); if (x) return x[2]; } return ""; }
 // keep a saved character's subclass features in step with its subclass and level
 function pcSubSync(c) {
-  const keep = (c.feats || []).filter(f => !f.sub), add = c.subclass ? subFeatList(edOf(c), c.subclass, c.level) : [];
+  const ed = edOf(c);
+  const entry = c.subclass && subclassEntry(ed, c.cls, c.subclass);
+  const keep = (c.feats || []).filter(f => !f.sub && !f.bookSub);
+  const add = entry?.book ? entry.features.filter(f => +f.l <= c.level)
+    .map(f => ({ l: +f.l, f: f.n, bookSub: true })) : c.subclass && !entry ? subFeatList(ed, c.subclass, c.level) : [];
   const before = JSON.stringify(c.feats || []);
   c.feats = [...keep, ...add].sort((a, b) => a.l - b.l);
   return JSON.stringify(c.feats) !== before;
@@ -514,12 +528,41 @@ function pcSubNumbers(c) {
 }
 const subAblKey = n => "sub:" + n.toLowerCase().replace(/[^a-z]+/g, "-");
 /* [name, description, not built in (random picks skip it), book code] */
-const subclassList = (ed, cls) => { const L = [...(((SUBCLASSES[ed] || SUBCLASSES["2014"])[cls]) || []), ...hbOf("subclass").filter(x => x.cls === cls && hbEdOk(x, ed)).map(x => [x.name, x.desc || "", true])];
-  hbBook("subclass").filter(x => x.cls === cls && hbEdOk(x, ed) && !L.some(y => y[0] === x.name)).forEach(x => L.push([x.name, x.desc || "", true, x.src]));
-  return L; };
+function bookSubclassEntries(ed, cls) {
+  const entries = hbBook("subclass").filter(x => x.cls === cls && hbEdOk(x, ed));
+  return [...entries.filter(x => x.src === "tce" || x.src === "xge"), ...entries.filter(x => x.src !== "tce" && x.src !== "xge")];
+}
+function subclassEntry(ed, cls, name, includePending = true) {
+  const custom = includePending ? [...hbOf("subclass"), ...HB.pend.filter(x => x.kind === "subclass")] : hbOf("subclass");
+  const entry = custom.find(x => x.cls === cls && x.name === name && hbEdOk(x, ed))
+    || bookSubclassEntries(ed, cls).find(x => x.name === name);
+  if (!entry?.baseSubclass) return entry;
+  const features = subFeatsOf(ed, entry.baseSubclass)
+    .filter(([level, name]) => !entry.features.some(f => +f.l === level && f.n === name))
+    .map(([l, n, d]) => ({ l, n, d }));
+  return { ...entry, features: [...entry.features, ...features].sort((a, b) => +a.l - +b.l) };
+}
+function subclassList(ed, cls, allowed = () => true) {
+  const builtIn = ((SUBCLASSES[ed] || SUBCLASSES["2014"])[cls]) || [];
+  const custom = hbOf("subclass").filter(x => x.cls === cls && hbEdOk(x, ed)).map(x => [x.name, x.desc || "", true]);
+  const books = bookSubclassEntries(ed, cls).map(x => [x.name, x.desc || "", true, x.src]);
+  const seen = new Set();
+  return [...builtIn, ...custom, ...books].filter(entry => {
+    const [name, , homebrew, book] = entry;
+    if (seen.has(name) || !allowed(book, homebrew)) return false;
+    seen.add(name);
+    return true;
+  });
+}
 const subclassLevel = (ed, cls) => CLASS_DATA[cls] && CLASS_DATA[cls].hb ? CLASS_DATA[cls].sub[1] : ed === "2024" ? 3 : (CLASS_DATA[cls] ? CLASS_DATA[cls].sub[1] : 3);
 /* the classes a rules set offers: the built-ins plus the campaign's homebrew classes (not ones waiting for the DM) */
-const classList = ed => Object.keys(CLASS_DATA).filter(k => { const C = CLASS_DATA[k]; return !C.pend && (!C.hb || hbEdOk(C.hbx, ed)); });
+const BOOK_CLASS_VARIANTS = {};
+const classData = (ed, name) => BOOK_CLASS_VARIANTS[ed]?.[name] || CLASS_DATA[name];
+const classList = ed => Object.keys(CLASS_DATA).filter(k => {
+  const C = classData(ed, k);
+  return !C.pend && (!C.hb || hbEdOk(C.hbx, ed));
+});
+const baseClassOf = name => CLASS_DATA[name]?.hbx?.bookBase || name;
 const builtInClasses = () => Object.keys(CLASS_DATA).filter(k => !CLASS_DATA[k].hb);
 /* whose spell list a class uses: its own, or for a homebrew class the class the DM chose */
 const clsSpellList = cls => (CLASS_DATA[cls] && CLASS_DATA[cls].spellsFrom) || cls;
@@ -539,8 +582,13 @@ function hbClassData(x) {
   const pri = [...new Set((x.pri || []).map(ab).filter(Boolean))]; if (!pri.length) pri.push("str");
   const f = {}; (x.features || []).filter(t => t && t.n).forEach(t => { const l = clamp(+t.l || 1, 1, 20); (f[l] = f[l] || []).push(t.n); });
   const sk = x.skills || {}, from = sk.any || !(sk.from || []).length ? ALL_SKILLS : sk.from.filter(k => SKILLS[k]);
-  const cast = ["full", "half", "pact"].includes(x.cast) ? [x.cast, ab(x.castAb) || "int"] : undefined;
+  const cast = (["full", "half", "pact"].includes(x.cast) || (x.book && x.cast === "artificer")) ? [x.cast, ab(x.castAb) || "int"] : undefined;
   const w = x.wpn || {}, asi = (Array.isArray(x.asi) ? x.asi : [4, 8, 12, 16, 19]).map(Number).filter(l => l >= 1 && l <= 20);
+  const parent = x.book && x.bookBase && CLASS_DATA[x.bookBase];
+  if (parent) {
+    const armorT = (x.armor || []).join(" ");
+    return { ...parent, hb: true, hbx: x, f, asi, sub: [x.subName, x.subLv], armorT };
+  }
   return { hb: true, hbx: x, ...(x.pend ? { pend: true } : {}), hd: [6, 8, 10, 12].includes(+x.hd) ? +x.hd : 8, pri, saves: (x.saves || []).filter(ab).slice(0, 2),
     skills: [from, clamp(parseInt(sk.n) || 0, 0, 8)], ac: m => [10 + m.dex, "No armor"],
     kit: String(x.kit || "").split(",").map(t => t.trim()).filter(Boolean).slice(0, 20),
@@ -549,7 +597,8 @@ function hbClassData(x) {
     ...(cast ? { cast } : {}), spellsFrom: x.spellsFrom && CLASS_DATA[x.spellsFrom] && !CLASS_DATA[x.spellsFrom].hb ? x.spellsFrom : undefined,
     armorT: (x.armor || []).filter(k => ["light", "medium", "heavy", "shield"].includes(k)).join(" "), weapons: String(x.weapons || "").slice(0, 300), tools: String(x.tools || "").slice(0, 300) };
 }
-function subclassDesc(name) {
+function subclassDesc(name, ed, cls) {
+  if (ed && cls) return subclassEntry(ed, cls, name)?.desc || subclassList(ed, cls).find(x => x[0] === name)?.[1] || "";
   const h = hbAny("subclass").find(x => x.name === name); if (h) return h.desc || "";
   for (const ed of ["2024", "2014"]) for (const list of Object.values(SUBCLASSES[ed])) { const h = list.find(x => x[0] === name); if (h) return h[1]; }
   return SUB_DESC[name] || "";

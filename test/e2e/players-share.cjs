@@ -58,6 +58,46 @@ const check = (name, ok, extra = "") => { console.log((ok ? "PASS " : "FAIL ") +
     await dm.goto(URL + "#journal"); await dm.waitForSelector("#journalMain .j-h");
     check("the DM can preview what players see", /This is what your players see/.test(await dm.textContent("#journalMain")) && /Find the silver bell/.test(await dm.textContent("#journalMain")) && !/Unmask/.test(await dm.textContent("#journalMain")));
 
+    // The linked DM campaign publishes its source settings and only revealed handouts.
+    await dm.evaluate(() => { activeId = Store.list()[0].id; location.hash = "tracker"; renderTracker(); });
+    await dm.locator('[data-sub="sources"]').click();
+    await dm.locator('#campaignSources select[name="edition"]').selectOption("2014");
+    await dm.locator('#campaignSources input[type="checkbox"]').evaluateAll(boxes => boxes.forEach(box => { box.checked = false; }));
+    await dm.locator('#campaignSources button[type="submit"]').click();
+    check("existing characters outside the edition are flagged", /Pia Wren.*2024 rules/s.test(await dm.locator("#campaignSources").innerText()));
+    await dm.locator('[data-sub="handouts"]').click();
+    const handoutForm = dm.locator("#journalHandoutForm");
+    await handoutForm.locator('input[name="title"]').fill("A sealed letter");
+    await handoutForm.locator('textarea[name="text"]').fill("Meet at **the old mill**.");
+    const png = await dm.evaluate(() => {
+      const canvas = document.createElement("canvas");
+      canvas.width = 8; canvas.height = 8;
+      const ctx = canvas.getContext("2d");
+      ctx.fillStyle = "#12a345"; ctx.fillRect(0, 0, 8, 8);
+      return canvas.toDataURL("image/png").split(",")[1];
+    });
+    await handoutForm.locator('input[name="picture"]').setInputFiles({ name: "letter.png", mimeType: "image/png", buffer: Buffer.from(png, "base64") });
+    await handoutForm.locator("button").click();
+    await dm.waitForSelector("[data-journal-reveal]", { state: "attached" });
+    check("a new handout starts hidden", await dm.evaluate(() => journalFor(curCamp()).handouts.length === 0));
+    await dm.locator("details.lore-card summary", { hasText: "A sealed letter" }).click();
+    await dm.locator("[data-journal-reveal]").click();
+    await dm.waitForTimeout(5000);
+    await pl.reload(); await ready(pl);
+    await pl.goto(URL + "#journal");
+    await pl.waitForSelector(".j-handout", { timeout: 20000 });
+    await pl.locator(".j-handout summary").click();
+    await pl.waitForFunction(() => document.querySelector(".j-handout img")?.naturalWidth > 0);
+    check("the player can reopen the revealed clue and its picture", await pl.locator(".j-handout strong").innerText() === "the old mill");
+    await pl.goto(URL + "#compendium");
+    await pl.waitForFunction(() => document.querySelector("#compendiumEdition").disabled);
+    check("the player gets the campaign's edition and source filters", await pl.evaluate(() => currentSourceRules()?.edition === "2014" && !currentSourceRules().books.length && !currentSourceRules().homebrew));
+    await pl.goto(URL + "#roster");
+    check("the player's character builder uses the campaign edition", await pl.locator('input[name="pcEd"][value="2014"]').isChecked() && await pl.locator('input[name="pcEd"][value="2024"]').isDisabled());
+    await dm.locator("details.lore-card summary", { hasText: "A sealed letter" }).click();
+    await dm.locator("[data-journal-reveal]").click();
+    check("hiding a handout removes it from the published journal", await dm.evaluate(() => journalFor(curCamp()).handouts.length === 0));
+
     // 2. turn order on phones
     await dm.evaluate(() => {
       const c = Store.list().find(c => c.name === "Velmor"), pia = c.party.find(p => p.name === "Pia Wren");

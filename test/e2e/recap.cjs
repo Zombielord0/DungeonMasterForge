@@ -47,6 +47,77 @@ const server = http.createServer((req, res) => {
   await p.click("#recapBtn"); await p.waitForTimeout(200);
   const s2 = await p.evaluate(() => curCamp().sessions);
   check("the next recap only has what's new", s2.length === 2 && /Find the bell/.test(s2[0].summary + s2[1].summary) && !(/Ambush/.test(s2.find(x => x.num === 2).summary)));
+  const encounterId = await p.evaluate(() => {
+    const c = curCamp();
+    const fight = c.encounters.find(e => e.status === "Planned");
+    fight.status = "Active";
+    fight.round = 2;
+    c.maps.push({ ...readMapForm(), id: "session-map", name: "The Ford" });
+    c.npcs.push({ id: "session-npc", name: "Old Tam", notes: "Knows the crossing." });
+    c.lore.push({ id: "session-lore", name: "The Bell", desc: "Beneath the ford." });
+    Store.save(c);
+    renderTracker();
+    return fight.id;
+  });
+  await p.click('[data-sub="session"]');
+  const dashboard = p.locator(".session-dashboard");
+  await dashboard.getByText("Session 2", { exact: true }).click();
+  check("dashboard shows the latest recap", (await dashboard.getByText(/Find the bell/).isVisible()));
+  await dashboard.locator('[data-session-pin="maps"]').selectOption("session-map");
+  await dashboard.locator('[data-session-pin="npcs"]').selectOption("session-npc");
+  await dashboard.locator('[data-session-pin="lore"]').selectOption("session-lore");
+  await p.waitForFunction(() => Store.lsRead().some(c => c.sessionPins?.lore === "session-lore"));
+  await p.reload();
+  await p.locator('[data-sub="session"]').dispatchEvent("click");
+  check("dashboard remembers its pins", await dashboard.locator('[data-openmap="session-map"]').isVisible()
+    && await dashboard.locator('[data-session-pin="npcs"]').inputValue() === "session-npc"
+    && await dashboard.locator('[data-session-pin="lore"]').inputValue() === "session-lore");
+  await dashboard.getByRole("button", { name: "Open map" }).dispatchEvent("click");
+  check("dashboard opens the pinned map", await p.locator("#mapName").inputValue() === "The Ford");
+  await p.evaluate(() => { location.hash = "tracker"; });
+  await dashboard.getByRole("button", { name: "Resume encounter" }).dispatchEvent("click");
+  check("dashboard resumes the existing fight", await p.locator(`#enc-${encounterId}`).isVisible()
+    && await p.evaluate(id => curCamp().encounters.find(e => e.id === id).round, encounterId) === 2);
+  await p.evaluate(id => {
+    const c = curCamp(), e = c.encounters.find(x => x.id === id);
+    e.mapId = "session-map";
+    e.enemies[0].hp = 1;
+    e.enemies[0].init = 17;
+    e.enemies[0].cond = "Prone";
+    renderTracker();
+  }, encounterId);
+  await p.locator(`#enc-${encounterId} [data-ea="saveTemplate"]`).dispatchEvent("click");
+  await p.locator('[data-ea="startTemplate"]').dispatchEvent("click");
+  const template = await p.evaluate(() => {
+    const c = curCamp(), fresh = c.encounters.at(-1), first = c.encounters.find(e => e.name === fresh.name);
+    const m = fresh.enemies[0];
+    return fresh.id !== first.id && fresh.round === 0 && fresh.mapId === "session-map"
+      && m.id !== first.enemies[0].id && m.hp === m.max && m.init === 17 && m.cond === "" && first.enemies[0].hp === 1;
+  });
+  check("templates start an independent fight with its map and initiative", template);
+
+  await p.evaluate(async () => {
+    const c = curCamp(), canvas = document.createElement("canvas");
+    canvas.width = canvas.height = 32;
+    const image = await canvasBlob(canvas);
+    await MAPIMG.put("template-test-image", image);
+    await MAPIMG.put("unrelated-test-image", image);
+    c.npcs[0].img = "template-test-image";
+    c.maps.push({ id: "imported-map", kind: "image", imgId: "template-test-image", name: "Uploaded map" });
+  });
+  const downloadPromise = p.waitForEvent("download");
+  await p.locator("#exportCamp").dispatchEvent("click");
+  const exported = fs.readFileSync(await (await downloadPromise).path());
+  const payload = JSON.parse(exported);
+  check("export includes only pictures referenced by the campaign", Object.keys(payload.pictures).join() === "template-test-image");
+  await p.locator("#importFile").setInputFiles({ name: "campaign.json", mimeType: "application/json", buffer: exported });
+  await p.waitForFunction(() => Store.list().length === 2 && !!curCamp().npcs[0].img);
+  const picturesRestored = await p.evaluate(async () => {
+    const c = curCamp(), img = c.npcs[0].img;
+    return img !== "template-test-image" && c.maps.find(m => m.id === "imported-map").imgId === img
+      && !!await MAPIMG.get(img) && !!await MAPIMG.get("template-test-image");
+  });
+  check("campaign import restores its map and portrait without overwriting originals", picturesRestored);
   check("no page errors", errs.length === 0, errs.join(" | "));
   await browser.close(); server.close();
   console.log(fails ? `\n${fails} check(s) failed` : "\nAll recap checks passed");

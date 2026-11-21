@@ -77,15 +77,23 @@ const { chromium } = require("playwright");
     }), true);
 
     await page.evaluate(() => { CB.ed = "2014"; cbStart(); });
+    await page.getByLabel("Search races").fill("no such species");
+    assert.equal(await page.getByText("No matching choices.").isVisible(), true);
+    await page.getByLabel("Search races").fill("alseid tome");
+    assert.equal(await page.locator("[data-cbrace]:visible").count(), 1);
     await page.locator('[data-cbrace="Alseid"]').click();
     assert.match(await dialog.textContent(), /Alseid.*Tome of Heroes/s);
     await dialog.getByRole("button", { name: "Close" }).click();
     await page.locator("[data-cbnext]").click();
+    await page.getByLabel("Search classes").fill("druid");
+    assert.equal(await page.locator("[data-cbcls]:visible").count(), 1);
     await page.locator('[data-cbcls="Druid"]').click();
     await dialog.locator("select").selectOption("Circle of Bees");
     assert.match(await rows.nth(1).textContent(), /Bee Bond/);
     await dialog.getByRole("button", { name: "Close" }).click();
     await page.locator("[data-cbnext]").click();
+    await page.getByLabel("Search backgrounds").fill("court servant");
+    assert.equal(await page.locator("[data-cbbg]:visible").count(), 1);
     await page.locator('[data-cbbg="Court Servant"]').click();
     assert.match(await dialog.textContent(), /Court Servant.*Tome of Heroes.*Insight/s);
     await dialog.getByRole("button", { name: "Close" }).click();
@@ -152,14 +160,213 @@ const { chromium } = require("playwright");
     const manual = page.locator('.rc-inv tbody tr').last();
     await manual.locator('[data-rinv="n"]').fill("Ring of Free Action");
     assert.equal(await manual.locator('[data-rinv="attuned"]').isVisible(), true);
+    await manual.locator('[data-rinv="attuned"]').check();
+    assert.match(await page.locator("#rcAttunementCount").textContent(), /1 \/ 3/);
     await manual.locator('[data-rinv="n"]').fill("Plain ring");
     assert.equal(await manual.locator('[data-rinv="attuned"]').count(), 0);
+    assert.match(await page.locator("#rcAttunementCount").textContent(), /0 \/ 3/);
+    await manual.locator('[data-rinv="n"]').press("Tab");
+    assert.equal(await page.evaluate(() => rosterCur().inv.at(-1).attuned), false);
+    await page.evaluate(() => {
+      rosterCur().inv.at(-1).attuned = true; // An older save with a stale flag.
+      renderRosterMain();
+    });
+    assert.equal(await page.evaluate(() => rosterCur().inv.at(-1).attuned), false);
+    assert.match(await page.locator("#rcAttunementCount").textContent(), /0 \/ 3/);
     await page.locator('#sec-gear [data-item-details="test-custom"]').click();
     assert.match(await dialog.textContent(), /<strong>Shared rules<\/strong>/);
     assert.equal(await dialog.locator("strong").count(), 0);
     await dialog.getByRole("button", { name: "Close" }).click();
+    const expansion = await page.evaluate(() => {
+      const subclasses = hbBook("subclass").filter(x => ["tce", "xge"].includes(x.src));
+      const armorer = generateCharacter({ seed: "ARMOR", ed: "2014", cls: "Artificer", subclass: "Armorer", level: 5 });
+      const fighter = generateCharacter({ seed: "RUNES", ed: "2014", cls: "Fighter", subclass: "Rune Knight", level: 7 });
+      const rogue = generateCharacter({ seed: "SCOUT", ed: "2014", cls: "Fighter", level: 5,
+        multi: [{ cls: "Rogue", lv: 3, subclass: "Scout" }] });
+      const hasSources = (sub, books) => subclassList("2014", "Rogue", src => !src || books.includes(src))
+        .some(([name]) => name === sub);
+      return {
+        counts: ["tce", "xge"].map(src => subclasses.filter(x => x.src === src).length),
+        allDescribed: subclasses.every(x => x.features.length && x.features.every(f => f.d && !f.d.includes("See the source book"))),
+        armorerSlots: armorer.spell.slots,
+        artificerCanPrepare: pcSpellPool(armorer, "2014").some(s => s.n === "Cure Wounds"),
+        armorerSummary: progressionRows("2014", "subclass", "Artificer", "Armorer")[2].find(([name]) => name === "Armor Model")[1],
+        runeOptions: CHOICES["Rune Carver"].opts(fighter).map(([id]) => id),
+        runeLimit: CHOICES["Rune Carver"].n(fighter),
+        scoutFeature: rogue.feats.some(f => f.mcsub === "Scout" && f.f === "Skirmisher"),
+        reprintSources: [hasSources("Swashbuckler", ["scag"]), hasSources("Swashbuckler", ["xge"])],
+        revisedArtificer: classList("2024").includes("Artificer"),
+        revisedFeature: classData("2024", "Artificer").f[2][0],
+        legacyFeature: classData("2014", "Artificer").f[2][0],
+      };
+    });
+    assert.deepEqual(expansion, {
+      counts: [30, 31],
+      allDescribed: true,
+      armorerSlots: [4, 2],
+      artificerCanPrepare: true,
+      armorerSummary: "Choose Guardian or Infiltrator and switch after a short or long rest with smith’s tools.",
+      runeOptions: ["Cloud", "Fire", "Frost", "Stone", "Hill", "Storm"],
+      runeLimit: 3,
+      scoutFeature: true,
+      reprintSources: [true, true],
+      revisedArtificer: true,
+      revisedFeature: "Replicate Magic Item",
+      legacyFeature: "Infuse Item",
+    });
+    const revised = await page.evaluate(() => {
+      const c = pcEnsure(generateCharacter({ seed: "EBERRON", ed: "2024", cls: "Artificer",
+        race: "Warforged", bg: "House Lyrandar Heir", subclass: "Armorer", level: 5 }));
+      const spells = pcSpellPool(c, "2024");
+      const rows = progressionRows("2024", "subclass", "Artificer", "Cartographer");
+      itLoad();
+      bsLoad();
+      return {
+        slots: c.spell.slots,
+        prepared: spellLimits(c).n,
+        options: CHOICES["Armor Model"].opts(c).map(([name]) => name),
+        cartographer: rows[4].some(([name]) => name === "Guided Precision"),
+        speciesBonus: c.hbAc,
+        origin: c.feats.some(f => f.f === "Feat: Mark of Storm"),
+        arcaneVigor: spells.some(s => s.n === "Arcane Vigor" && s.src === "phb-2024"),
+        mindFlayer: BS.data["2024"].find(m => m.n === "Mind Flayer").hp,
+        energyBow: inventoryWeaponChoices(IT.data["2024"].find(i => i.n === "Energy Bow"), "2024").map(i => i.n).sort(),
+        pathChoices: Object.keys(PC_RACES["2024"].Shifter.subs).length,
+      };
+    });
+    assert.deepEqual(revised, {
+      slots: [4, 2],
+      prepared: 6,
+      options: ["Dreadnaught", "Guardian", "Infiltrator"],
+      cartographer: true,
+      speciesBonus: 1,
+      origin: true,
+      arcaneVigor: true,
+      mindFlayer: 99,
+      energyBow: ["Longbow", "Shortbow"],
+      pathChoices: 4,
+    });
+    await page.evaluate(() => {
+      const c = pcEnsure(generateCharacter({ seed: "MODEL", ed: "2014", name: "Model Tester", cls: "Artificer", subclass: "Armorer", level: 3 }));
+      PCS.roster.push(c);
+      RC.id = c.id;
+      pcPersist();
+      renderRosterTab();
+    });
+    const model = page.getByRole("combobox", { name: "Choose Armor model" });
+    await model.selectOption("Infiltrator");
+    assert.deepEqual(await page.evaluate(() => choiceOf(rosterCur(), "Armor Model")), ["Infiltrator"]);
+    await page.reload();
+    await page.waitForFunction(() => PCS.roster.some(c => c.name === "Model Tester"));
+    assert.deepEqual(await page.evaluate(() => choiceOf(PCS.roster.find(c => c.name === "Model Tester"), "Armor Model")), ["Infiltrator"]);
+    const summon = await page.evaluate(() => {
+      const spell = spellOf("2024", "Summon Celestial");
+      return summonSpiritHTML(spell, "2024", 7, { atk: 8, dc: 16 });
+    });
+    assert.match(summon, /Avenger<\/b> · AC 18 · HP 60/);
+    assert.match(summon, /Defender<\/b> · AC 20 · HP 60/);
+    assert.match(summon, /Spell attack \+8 · Save DC 16/);
+    await page.evaluate(() => {
+      const caster = pcEnsure(generateCharacter({seed: "SUMMON", ed: "2024", cls: "Wizard", level: 13}));
+      castDialog(caster, "2024", "Summon Construct");
+    });
+    await page.locator('[data-castlv="slot7"]').click();
+    await page.locator('[data-castgo]').click();
+    assert.match(await page.locator("#actBox").textContent(), /Construct Spirit · slot level 7/);
+    assert.match(await page.locator("#actBox").textContent(), /Clay · AC 20 · HP 85/);
+    assert.equal(await page.evaluate(() => ACTX.c.used.slot7), 1);
+    assert.equal(await page.evaluate(() => ACTX.c.conc?.spell), "Summon Construct");
+    const monsters = await page.evaluate(() => {
+      bsLoad();
+      return ["Primeval Owlbear", "Arch-hag", "Blob of Annihilation"].map(name => {
+        const monster = BS.data["2024"].find(m => m.n === name);
+        const entry = bsEntry(monster, "2024", name);
+        return { hp: entry.stat[1], source: entry.src, text: entry.text };
+      });
+    });
+    assert.deepEqual(monsters.map(m => m.hp), [126, 333, 448]);
+    assert.ok(monsters.every(m => m.source === "mm-2025" && m.text.includes("Source: Monster Manual (2025)")));
+    assert.match(monsters[1].text, /Condition Immunities charmed, exhaustion, frightened/);
+    const catalog = await page.evaluate(() => {
+      const spell = spellOf("2024", "Melf's Acid Arrow");
+      const bg = bgInfo("2024", "Chondathan Freebooter");
+      const armor = IT.data["2024"].find(item => item.n === "+1 Rod of the Pact Keeper");
+      const variants = ["Armor of Fire Resistance", "Armor of Vulnerability (Piercing)", "Enspelled Weapon (Level 7)"]
+        .map(name => IT.data["2024"].find(item => item.n === name));
+      const rival = { name: "Death Knight", src: "mm-2025", ed: "2024" };
+      return {
+        alias: spell?.n,
+        variants: variants.map(item => [item.src, item.rk, item.att]),
+        enspelledWeapons: inventoryWeaponChoices(variants[2], "2024").length,
+        manualCast: castPreview(generateCharacter({ seed: "REF", ed: "2024", cls: "Wizard", level: 3 }),
+          spellOf("2024", "Bonestorm"), "free"),
+        fromBook: armor?.src,
+        backgroundSkills: bg?.sk.length,
+        azerothDwarf: raceList("2024").includes("Dwarf (Azeroth)"),
+        homonym: bsName({ bestiary: [rival] }, { n: "Death Knight", src: "tob" }, "2024"),
+      };
+    });
+    assert.equal(catalog.alias, "Acid Arrow");
+    assert.deepEqual(catalog.variants, [[ "dmg-2024", 2, "Required" ], [ "dmg-2024", 2, "Required" ], [ "dmg-2024", 4, "Required" ]]);
+    assert.ok(catalog.enspelledWeapons > 1);
+    assert.match(catalog.manualCast, /Use the spell description for additional effects/);
+    assert.equal(catalog.fromBook, "dmg-2024");
+    assert.equal(catalog.backgroundSkills, 2);
+    assert.equal(catalog.azerothDwarf, true);
+    assert.match(catalog.homonym, /^Death Knight \(.*\)$/);
+    await page.locator("#actModal [data-actclose]").click();
+    await page.evaluate(() => lvOpen(generateCharacter({ seed: "REF", ed: "2024", cls: "Fighter", level: 2 })));
+    await page.getByLabel("Search subclasses").fill("champion");
+    assert.equal(await page.locator('[data-lvsub="Battle Master"]').isVisible(), false);
+    await page.locator('[data-lvsub="Champion"]').click();
+    assert.equal(await page.locator('[data-lvsub="Champion"]').getAttribute("aria-pressed"), "true");
+    await page.locator("[data-lvno]").click();
+
+    await page.goto(`http://127.0.0.1:${server.address().port}/#items`);
+    await page.locator("#itQ").fill("enspelled weapon level 7");
+    await page.locator('#itList [data-it="toggle"]').filter({ hasText: "Enspelled Weapon (Level 7)" }).click();
+    assert.match(await page.locator("#itList").textContent(), /Spell save DC 18/);
+    await page.locator('#itList [data-it="give"]').click();
+    assert.equal(await page.evaluate(() => PCS.roster.some(c => c.inv?.some(i => i.n === "Enspelled Weapon (Level 7)" && i.att))), true);
+    const warcraft = await page.evaluate(() => {
+      const classes = hbBook("class").filter(x => x.src === "wow").map(x => {
+        const sub = subclassList("2024", x.name)[0][0];
+        const c = pcEnsure(generateCharacter({ seed: "AZEROTH", ed: "2024", cls: x.name, subclass: sub, level: 17 }));
+        return { name: c.cls, subclass: sub, hitDie: c.hd, feats: c.feats.filter(f => f.bookSub).length,
+          available: classList("2024").includes(x.name) && !classList("2014").includes(x.name) };
+      });
+      const dk = pcEnsure(generateCharacter({ seed: "DK", ed: "2024", cls: "Death Knight", subclass: "Oath of the Ebon Blade", level: 17 }));
+      dk.choices = { Runeforging: ["Blood"] };
+      syncBookSpells(dk);
+      const blood = dk.prepared.some(x => x.n === "Bonestorm" && x.bookGrant);
+      dk.choices.Runeforging = ["Frost"];
+      syncBookSpells(dk);
+      const frost = dk.prepared.some(x => x.n === "Chains of Ice") && !dk.prepared.some(x => x.n === "Bonestorm");
+      const dh = pcEnsure(generateCharacter({ seed: "DH", ed: "2024", cls: "Demon Hunter", subclass: "Demon Hunter", level: 5 }));
+      dh.choices = { "Demon Hunter specialization": ["Havoc"] };
+      syncBookSpells(dh);
+      const pool = pcSpellPool(dh, "2024");
+      const eye = spellPlan(spellOf("2024", "Eye Beam"));
+      castDialog(dk, "2024", "Rune Strike");
+      castPick("freeRuneStrike");
+      castGo();
+      return { classes, blood, frost, frees: dk.used.freeRuneStrike, slots: dk.used.slot1 || 0,
+        eye: [eye.dice, eye.save, eye.half],
+        prepared: dh.prepared.map(x => x.n), demonHunterPool: pool.map(x => x.n),
+        assigned: SP.data["2024"].filter(s => s.src === "wow").every(s => s.c.length > 0 && !s.rulesSummary) };
+    });
+    assert.equal(warcraft.classes.length, 8);
+    assert.ok(warcraft.classes.every(row => row.available && row.hitDie >= 6 && row.feats > 0), JSON.stringify(warcraft.classes));
+    assert.equal(warcraft.blood && warcraft.frost && warcraft.assigned, true);
+    assert.equal(warcraft.frees, 1);
+    assert.equal(warcraft.slots, 0);
+    assert.deepEqual(warcraft.eye, ["3d6", "dex", true]);
+    assert.ok(warcraft.prepared.includes("Eye Beam") && warcraft.demonHunterPool.includes("Eye Beam"));
+    assert.match(await page.locator("#actModal").textContent(), /2d8 Necrotic/);
+    await page.getByRole("button", { name: "Roll 2d8", exact: true }).click();
+    assert.match(await page.locator("[data-spell-roll]").textContent(), /=/);
     assert.deepEqual(errors, []);
-    console.log("PASS edition-aware progression, item stats, enhancement, attunement and removal");
+    console.log("PASS edition-aware progression, expansion subclass choices, item stats and attunement");
   } finally {
     await browser?.close();
     server.close();

@@ -27,6 +27,8 @@ const server = http.createServer((req, res) => {
   const html = fs.readFileSync(path.join(ROOT, "index.html"), "utf8"), sw = fs.readFileSync(path.join(ROOT, "sw.js"), "utf8");
   const files = [...html.matchAll(/(?:src|href)="(\/assets\/[\w.]+)"/g)].map(m => m[1]);
   check("the page loads five fingerprinted files (data, code, styling)", files.length === 5, files.join(", "));
+  const extraMonsters = html.match(/name="forge-extra-monsters" content="([^"]+)"/)?.[1];
+  check("the extra monster catalog is lazy", !!extraMonsters && !files.includes(extraMonsters) && !sw.includes(extraMonsters));
   for (const [name, key] of [["spells", "spellData"], ["monsters", "monsterData"], ["items", "itemData"]]) {
     const f = files.find(x => x.startsWith(`/assets/${name}.`)), js = f && fs.existsSync(path.join(ROOT, f)) ? fs.readFileSync(path.join(ROOT, f), "utf8") : "";
     const w = {}; try { new Function("window", js)(w); } catch { }
@@ -82,6 +84,19 @@ const server = http.createServer((req, res) => {
       shared: rand[0] === BS.data["2014"].find(m => m.n === rand[0].n), dropped: !window.DMDATA.spellData && !window.DMDATA.monsterData && !window.DMDATA.itemData,
     };
   });
+  const handbook = await p.evaluate(() => ({
+    spells: SP.data["2014"].filter(x => x.src === "phb-2014").length,
+    items: IT.data["2014"].filter(x => x.src === "dmg-2014").length,
+    revised: [...SP.data["2024"], ...IT.data["2024"]].some(x => /^(phb|dmg)-2014$/.test(x.src || "")),
+    death: subclassList("2014", "Cleric").some(([n]) => n === "Death Domain") &&
+      progressionRows("2014", "subclass", "Cleric", "Death Domain")[1].some(([n]) => n.includes("Touch of Death")),
+    oath: subclassList("2014", "Paladin").some(([n]) => n === "Oathbreaker") &&
+      !subclassList("2024", "Paladin").some(([n]) => n === "Oathbreaker"),
+    credit: bookLine(IT.data["2014"].find(x => x.n === "Sending Stones"))
+  }));
+  check("2014 handbook spells and items stay in their edition", handbook.spells === 28 && handbook.items === 20 && !handbook.revised, JSON.stringify(handbook));
+  check("2014 DMG subclasses show in the builder and progression", handbook.death && handbook.oath);
+  check("handbook summaries show printed page attribution", /p. 199.*Rules summary/.test(handbook.credit));
   check("the styling is applied (served as text/css)", await p.evaluate(() => [...document.styleSheets].some(s => /\/assets\/app\.\w+\.css$/.test(s.href || "") && s.cssRules.length > 100) && getComputedStyle(document.body).fontFamily.includes("Crimson")));
   check("the page is in standards mode", await p.evaluate(() => document.compatMode === "CSS1Compat"));
   check("the data is there before the app starts", r.raw);
@@ -92,11 +107,34 @@ const server = http.createServer((req, res) => {
 
   // a second visit doesn't download the data again
   await p.evaluate(() => navigator.serviceWorker.ready);
+  check("the first visit does not download the extra monster catalog", !hits[extraMonsters]);
   await p.reload(); await p.waitForFunction(() => !!navigator.serviceWorker.controller);
   for (const k of Object.keys(hits)) delete hits[k];
   await p.reload(); await p.waitForFunction(() => typeof generateCharacter === "function");
   check("a second visit doesn't download the code, styling or data", files.every(f => !hits[f]), JSON.stringify(hits));
   check("…but does fetch the page fresh, so updates show", hits["/"] >= 1, JSON.stringify(hits));
+
+  check("the extra catalog has stayed off the startup path", !hits[extraMonsters]);
+  await p.goto(URL + "#compendium");
+  await p.locator("#compendiumType").selectOption("Spell");
+  await p.locator("#compendiumQuery").fill("Fireball");
+  const results = p.locator("#compendiumResults");
+  await results.getByRole("button", { name: /Fireball.*Spell/ }).first().click();
+  check("compendium opens spell details", await p.locator("#characterReference").getByText("Casting time").isVisible());
+  await p.locator("#characterReference").getByRole("button", { name: "Close" }).click();
+  await p.locator("#compendiumEdition").selectOption("2014");
+  await results.getByRole("button", { name: /Fireball.*2014/ }).first().waitFor();
+  check("compendium respects the edition filter", !/2024/.test(await results.innerText()));
+  await p.locator("#compendiumQuery").fill("Test campaign spell");
+  await p.evaluate(() => hbSet([{ id: "compendium-test", kind: "spell", name: "Test campaign spell", desc: "A campaign spell.", ed: "2014" }]));
+  check("compendium updates when campaign homebrew arrives", /Homebrew/.test(await results.innerText()));
+  await p.evaluate(() => hbSet([]));
+  check("compendium drops removed campaign homebrew", !/Test campaign spell/.test(await results.innerText()));
+  await p.locator("#compendiumType").selectOption("Monster");
+  await p.locator("#compendiumQuery").fill("Tome of Beasts 3");
+  await p.waitForFunction(() => extraMonstersReady && $("#compendiumResults").textContent.includes("Tome of Beasts 3"));
+  check("search loads the extra monster catalog once", hits[extraMonsters] === 1);
+  await p.waitForFunction(url => caches.match(url).then(Boolean), extraMonsters);
 
   if (picUrl) await p.evaluate(u => fetch(u).then(r => r.blob()), picUrl);
   await p.waitForTimeout(300);
@@ -105,6 +143,9 @@ const server = http.createServer((req, res) => {
   await p.goto(URL + "#spells").catch(() => {});
   const off = await p.waitForFunction(() => typeof spLoad === "function", null, { timeout: 10000 }).then(() => p.evaluate(() => { spLoad(); bsLoad(); itLoad(); return SP.data["2024"].length > 100 && BS.data["2024"].length > 100 && IT.data["2024"].length > 100; })).catch(e => String(e));
   check("offline: spells, monsters and items still load", off === true, String(off));
+  await p.reload().catch(() => {});
+  const cachedExtra = await p.evaluate(() => dmLoadExtraMonsters());
+  check("offline: the previously opened extra catalog still loads", cachedExtra === true);
   const pic = picUrl ? await p.evaluate(u => fetch(u).then(r => r.ok && r.headers.get("content-type") === "image/webp").catch(e => String(e)), picUrl) : "no picture";
   check("offline: the background picture comes from the saved copy", pic === true, String(pic));
   await ctx.setOffline(false);

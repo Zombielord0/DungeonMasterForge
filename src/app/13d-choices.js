@@ -39,8 +39,51 @@ const ARTISAN = ["Alchemist's supplies", "Brewer's supplies", "Calligrapher's su
 const INSTRUMENTS = ["Bagpipes", "Drum", "Dulcimer", "Flute", "Horn", "Lute", "Lyre", "Pan flute", "Shawm", "Viol"];
 const byEd = (c, L) => L.filter(x => !x[3] || typeof x[3] !== "string" || x[3] === edOf(c));
 const opt3 = L => L.map(x => typeof x === "string" ? [x, x, ""] : [x[0], x[1], x[2] || ""]);
+// Use the owning class level, including when the subclass belongs to a multiclass.
+function expansionSubclassLevel(c, cls, subclass, ed) {
+  if (ed && edOf(c) !== ed) return 0;
+  if (c.cls === cls && c.subclass === subclass) return +c.level;
+  return +(c.multi || []).find(entry => entry.cls === cls && entry.subclass === subclass)?.lv || 0;
+}
+function expansionChoice(cls, subclass, label, options, limit = () => 1, ed = "2014") {
+  return {
+    label,
+    n: c => {
+      const level = expansionSubclassLevel(c, cls, subclass, ed);
+      return level >= subclassLevel(edOf(c), cls) ? limit(level) : 0;
+    },
+    opts: c => opt3(typeof options === "function" ? options(expansionSubclassLevel(c, cls, subclass, ed), c) : options),
+  };
+}
 /* key: the feature (or "Feat: X") the choice belongs to. n(c): how many to choose. opts(c): [[id, label, description]] */
 const CHOICES = {
+  "Armor Model": expansionChoice("Artificer", "Armorer", "Armor model", (_, c) =>
+    edOf(c) === "2024" ? ["Dreadnaught", "Guardian", "Infiltrator"] : ["Guardian", "Infiltrator"], () => 1, null),
+  "Eldritch Cannon": expansionChoice("Artificer", "Artillerist", "Cannon type", ["Flamethrower", "Force Ballista", "Protector"], () => 1, null),
+  "Vestige Companion": expansionChoice("Warlock", "Vestige Patron", "Companion type", ["Celestial", "Fiend", "Undead"], () => 1, "2024"),
+  "Vestige Spells": expansionChoice("Warlock", "Vestige Patron", "Vestige domain", ["Life", "Light", "Trickery", "War"], () => 1, "2024"),
+  "Arcane Archer Lore": expansionChoice("Fighter", "Arcane Archer", "Cantrip", ["Druidcraft", "Prestidigitation"], () => 1, "2024"),
+  "Runeforging": {
+    label: "Weapon rune",
+    n: c => Math.max(expansionSubclassLevel(c, "Death Knight", "Oath of the Ebon Blade", "2024"),
+      expansionSubclassLevel(c, "Paladin", "Oath of the Ebon Blade", "2024")) >= 3 ? 1 : 0,
+    opts: () => opt3(["Blood", "Frost", "Unholy"]),
+  },
+  "Demon Hunter specialization": expansionChoice("Demon Hunter", "Demon Hunter", "Specialization", ["Devourer", "Havoc", "Vengeance"], () => 1, "2024"),
+  "Evoker specialization": expansionChoice("Evoker", "Draconic Sorcery", "Specialization", ["Augmentation", "Devastation", "Preservation"], () => 1, "2024"),
+  "Storm Aura": expansionChoice("Barbarian", "Path of the Storm Herald", "Storm environment", ["Desert", "Sea", "Tundra"]),
+  "Divine Fury": expansionChoice("Barbarian", "Path of the Zealot", "Divine Fury damage", ["Radiant", "Necrotic"]),
+  "Form of the Beast": expansionChoice("Barbarian", "Path of the Beast", "Natural weapon for this rage", ["Bite", "Claws", "Tail"]),
+  "Bestial Soul": expansionChoice("Barbarian", "Path of the Beast", "Bestial adaptation", ["Swimming", "Climbing", "Jumping"], level => level >= 6 ? 1 : 0),
+  "Fighting Style": expansionChoice("Bard", "College of Swords", "College of Swords fighting style", ["Dueling", "Two-Weapon Fighting"]),
+  "Implement of Peace": expansionChoice("Cleric", "Peace Domain", "Skill proficiency", ["Insight", "Performance", "Persuasion"]),
+  "Rune Carver": expansionChoice("Fighter", "Rune Knight", "Runes", level => ["Cloud", "Fire", "Frost", "Stone", ...(level >= 7 ? ["Hill", "Storm"] : [])],
+    level => level >= 15 ? 5 : level >= 10 ? 4 : level >= 7 ? 3 : 2),
+  "Arcane Shot Options": expansionChoice("Fighter", "Arcane Archer", "Arcane Shot options", ["Banishing Arrow", "Beguiling Arrow", "Bursting Arrow", "Enfeebling Arrow", "Grasping Arrow", "Piercing Arrow", "Seeking Arrow", "Shadow Arrow"],
+    level => level >= 18 ? 6 : level >= 15 ? 5 : level >= 10 ? 4 : level >= 7 ? 3 : 2),
+  "Otherworldly Glamour": expansionChoice("Ranger", "Fey Wanderer", "Skill proficiency", ["Deception", "Performance", "Persuasion"]),
+  "Divine Magic": expansionChoice("Sorcerer", "Divine Soul", "Divine affinity", [["Good", "Good", "Cure Wounds"], ["Evil", "Evil", "Inflict Wounds"], ["Law", "Law", "Bless"], ["Chaos", "Chaos", "Bane"], ["Neutrality", "Neutrality", "Protection from Evil and Good"]]),
+  "Genie's Vessel": expansionChoice("Warlock", "The Genie", "Genie patron", [["Dao", "Dao", "Bludgeoning"], ["Djinni", "Djinni", "Thunder"], ["Efreeti", "Efreeti", "Fire"], ["Marid", "Marid", "Cold"]]),
   "Combat Superiority": { label: "Maneuvers", n: c => { const l = c.subclass === "Battle Master" ? c.level : 0; return l >= 15 ? 9 : l >= 10 ? 7 : l >= 7 ? 5 : l >= 3 ? 3 : 0; }, opts: c => MANEUVERS.filter(m => !m[3] || m[3] === edOf(c)).map(m => [m[0], m[1], m[2]]) },
   "Eldritch Invocations": { label: "Invocations", n: c => { const l = clsLv(c, "Warlock"); return edOf(c) === "2024" ? [0, 1, 3, 3, 3, 5, 5, 6, 6, 7, 7, 7, 8, 8, 8, 9, 9, 9, 10, 10, 10][l] : [0, 0, 2, 2, 2, 3, 3, 4, 4, 5, 5, 5, 6, 6, 6, 7, 7, 7, 8, 8, 8][l]; }, opts: c => INVOCATIONS.filter(v => (!v[4] || v[4] === edOf(c)) && clsLv(c, "Warlock") >= v[3]).map(v => [v[0], v[1] + (v[3] > 1 ? ` (lv ${v[3]})` : ""), v[2]]) },
   Metamagic: { label: "Metamagic options", n: c => { const l = clsLv(c, "Sorcerer"); return l >= 17 ? 4 : l >= 10 ? 3 : l >= (edOf(c) === "2024" ? 2 : 3) ? 2 : 0; }, opts: c => METAMAGIC.filter(m => !m[2] || m[2] === edOf(c)).map(m => [m[0], m[1], ""]) },
@@ -50,7 +93,7 @@ const CHOICES = {
   "Superior Hunter's Defense": { label: "Superior Hunter's Defense", n: c => edOf(c) === "2014" ? 1 : 0, opts: () => opt3([["evasion", "Evasion", "No damage on a successful DEX save for half, half on a failure."], ["tide", "Stand Against the Tide", "Redirect a missed melee attack to another creature."], ["uncanny", "Uncanny Dodge", "Reaction: halve an attack's damage."]]) },
   "Favored Enemy": { label: "Favored enemies", n: c => { if (edOf(c) === "2024") return 0; const l = clsLv(c, "Ranger"); return l >= 14 ? 3 : l >= 6 ? 2 : 1; }, opts: () => opt3(["Aberrations", "Beasts", "Celestials", "Constructs", "Dragons", "Elementals", "Fey", "Fiends", "Giants", "Monstrosities", "Oozes", "Plants", "Undead", "Two humanoid races"]) },
   "Natural Explorer": { label: "Favored terrains", n: c => { if (edOf(c) === "2024") return 0; const l = clsLv(c, "Ranger"); return l >= 10 ? 3 : l >= 6 ? 2 : 1; }, opts: () => opt3(["Arctic", "Coast", "Desert", "Forest", "Grassland", "Mountain", "Swamp", "Underdark"]) },
-  "Circle Spells": { label: "Your land", n: () => 1, opts: () => opt3(["Arctic", "Coast", "Desert", "Forest", "Grassland", "Mountain", "Swamp", "Underdark"]) },
+  "Circle Spells": { label: "Your land", n: c => c.subclass === "Circle of the Land" || (c.multi || []).some(x => x.subclass === "Circle of the Land") ? 1 : 0, opts: () => opt3(["Arctic", "Coast", "Desert", "Forest", "Grassland", "Mountain", "Swamp", "Underdark"]) },
   "Circle of the Land Spells": { label: "Your land (change after a long rest)", n: () => 1, opts: () => opt3(["Arid", "Polar", "Temperate", "Tropical"]) },
   "Dragon Ancestor": { label: "Dragon ancestor", n: () => 1, opts: () => DRAGONS.map(d => [d, `${d} (${DRAGON_ANCESTRY[d] ? DRAGON_ANCESTRY[d].type : ""})`, ""]) },
   "Pact Boon": { label: "Pact boon", n: c => edOf(c) === "2014" ? 1 : 0, opts: () => opt3([["chain", "Pact of the Chain", "Find Familiar with special forms."], ["blade", "Pact of the Blade", "Conjure a pact weapon."], ["tome", "Pact of the Tome", "A Book of Shadows with three cantrips."]]) },
@@ -59,6 +102,49 @@ const CHOICES = {
 };
 const choiceOf = (c, k) => ((c.choices || {})[k]) || [];
 const hasChoice = (c, k, id) => choiceOf(c, k).includes(id);
+const DRAGON_FEATURE_ELEMENTS = ["Acid", "Cold", "Fire", "Lightning", "Poison"];
+const FEATURE_CHOICE_LANGUAGES = ["Common", "Dwarvish", "Elvish", "Giant", "Gnomish", "Goblin", "Halfling", "Orc", "Abyssal", "Celestial", "Draconic", "Deep Speech", "Infernal", "Primordial", "Sylvan", "Undercommon"];
+const choiceList = (label, options, n = 1) => ({ label, n: () => n, opts: () => opt3(options) });
+const choiceSpellOptions = (c, filter) => {
+  spLoad();
+  return opt3([...new Set((SP.data[edOf(c)] || []).filter(s => !s.pend && filter(s)).map(s => s.n))].sort());
+};
+Object.assign(CHOICES, {
+  "Giant Power": choiceList("Cantrip", ["Thaumaturgy", "Druidcraft"]),
+  "Giant Power language": choiceList("Language", FEATURE_CHOICE_LANGUAGES),
+  "Draconic Gift": choiceList("Language", FEATURE_CHOICE_LANGUAGES),
+  "Draconic Disciple": choiceList("Language", FEATURE_CHOICE_LANGUAGES),
+  "Drake Companion": choiceList("Drake essence (choose each summon)", DRAGON_FEATURE_ELEMENTS),
+  "Drake's Breath": choiceList("Breath damage (choose each use)", DRAGON_FEATURE_ELEMENTS),
+  "Breath of the Dragon": choiceList("Breath damage (choose each use)", DRAGON_FEATURE_ELEMENTS),
+  "Elemental Cleaver": choiceList("Weapon damage (choose each rage)", DRAGON_FEATURE_ELEMENTS.concat("Thunder").filter(x => x !== "Poison")),
+  "Aspect of the Wyrm": choiceList("Aura (choose each use)", ["Frightful Presence", ...DRAGON_FEATURE_ELEMENTS.map(x => x + " resistance")]),
+  "Bonus Proficiencies": choiceList("Order Domain skill", ["Intimidation", "Persuasion"]),
+  "Arcane Initiate": { label: "Wizard cantrips", n: () => 2, opts: c => choiceSpellOptions(c, s => s.l === 0 && s.c.includes("Wizard")) },
+  "Spirit Session": { label: "Session spell", n: () => 1, opts: c => choiceSpellOptions(c, s => s.l > 0 && s.l <= Math.min(c.prof, Math.ceil(clsLv(c, "Bard") / 2)) && ["Divination", "Necromancy"].includes(s.s)) },
+  "Training in War and Song (Bladesinging)": choiceList("One-handed melee weapon proficiency", ["Club", "Dagger", "Handaxe", "Javelin", "Light Hammer", "Mace", "Sickle", "Spear", "Battleaxe", "Flail", "Longsword", "Morningstar", "Rapier", "Scimitar", "Shortsword", "Trident", "War Pick", "Warhammer", "Whip"]),
+  Eladrin: choiceList("Season", [
+    ["Autumn", "Autumn", "Your Fey Step can charm up to two nearby creatures."],
+    ["Winter", "Winter", "Your Fey Step can frighten a creature near your starting point."],
+    ["Spring", "Spring", "You can teleport a willing creature instead of yourself."],
+    ["Summer", "Summer", "Your Fey Step deals fire damage to chosen creatures near your destination."]]),
+});
+for (const lineage of ["Air Genasi", "Earth Genasi", "Fire Genasi", "Water Genasi"]) {
+  CHOICES[lineage] = choiceList("Innate spellcasting ability", ["Intelligence", "Wisdom", "Charisma"]);
+}
+for (const level of [6, 7, 8, 9]) {
+  CHOICES["Arcane Mastery " + level] = { label: "Level " + level + " wizard spell", n: () => 1, opts: c => choiceSpellOptions(c, s => s.l === level && s.c.includes("Wizard")) };
+}
+const additionalFeatureChoices = {
+  "Demon Hunter Spells": ["Demon Hunter specialization"],
+  "Evoker Spells": ["Evoker specialization"],
+  "Giant Power": ["Giant Power language"],
+  "Arcane Mastery": [6, 7, 8, 9].map(level => "Arcane Mastery " + level)
+};
+function featureChoiceHTML(c, k) {
+  const keys = CHOICES[k] ? [k] : [];
+  return keys.concat(additionalFeatureChoices[k] || []).map(key => choiceHTML(c, key)).join("");
+}
 function choiceHTML(c, k) {
   const S = CHOICES[k]; if (!S) return "";
   const n = S.n(c); if (!n) return "";
@@ -78,6 +164,33 @@ function miHTML(c) {
   return `<div class="choice"><span class="lbl" style="margin:0">Spell list</span>${lists.length > 1 ? `<select data-mi="list" aria-label="Spell list"><option value="">Choose…</option>${lists.map(l => `<option ${list === l ? "selected" : ""}>${esc(l)}</option>`).join("")}</select>` : `<span class="tag">${esc(list)}</span>`}
     ${list ? `<span class="lbl" style="margin:0">Cantrips ${M.can.length}/2</span>${pick("c", 0, 2, M.can)}<span class="lbl" style="margin:0">1st level ${M.one.length}/1</span>${pick("s", 1, 1, M.one)}
     <p class="hint" style="margin:4px 0 0">These are added to your spells. Cast the 1st-level spell once per long rest without a slot ("Without a slot"), or with your slots.</p>` : ""}</div>`;
+}
+function syncBookSpells(c) {
+  const ed = edOf(c);
+  if (ed !== "2024") return;
+  const classes = [{ cls: c.cls, lv: c.level, subclass: c.subclass }, ...(c.multi || [])];
+  if (!classes.some(x => classData(ed, x.cls)?.hbx?.bookBase) && !c.prepared.some(p => p.bookGrant)) return;
+
+  c.prepared = c.prepared.filter(p => !p.bookGrant);
+  const add = (track, level, label) => {
+    for (const [minimum, names] of Object.entries(track || {})) {
+      if (+minimum > level) continue;
+      for (const name of names) {
+        const spell = spellOf(ed, name);
+        if (spell && !isPrep(c, spell.n, ed)) c.prepared.push({ n: spell.n, l: spell.l, ed, src: label, bookGrant: true });
+      }
+    }
+  };
+  for (const { cls, lv, subclass } of classes) {
+    const data = classData(ed, cls)?.hbx;
+    if (!data?.bookBase) continue;
+    add(data.alwaysPrepared, lv, cls);
+    const entry = subclassEntry(ed, cls, subclass);
+    if (entry?.spellTracks) {
+      add(entry.spellTracks.All, lv, subclass);
+      add(entry.spellTracks[choiceOf(c, entry.spellTrackChoice)[0]], lv, subclass);
+    }
+  }
 }
 function miSync(c) {
   const M = miState(c), ed = edOf(c);

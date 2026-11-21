@@ -29,7 +29,7 @@ function itLoad() {
   for (const ed of Object.keys(raw)) {
     const L = [];
     raw[ed].eq.forEach((e, i) => L.push({ id: `${ed}-g${i}`, kind: "gear", n: e.n, cat: e.cat, g: e.g, c: e.c, gp: e.gp, w: e.w, st: e.st, d: e.d, rk: -2 }));
-    raw[ed].mi.forEach((m, i) => { const p = magicPrice(m); L.push({ id: m.k ? `${ed}-${m.k}` : `${ed}-m${i}`, src: m.src, kind: "magic", n: m.n, cat: m.cat, type: m.type, r: m.r, rk: m.rk, att: m.att, cons: m.cons, base: m.base, c: p.text, gp: p.gp, st: [], d: m.d }); });
+    raw[ed].mi.forEach((m, i) => { const p = magicPrice(m); L.push({ id: m.k ? `${ed}-${m.k}` : `${ed}-m${i}`, src: m.src, page: m.page, kind: "magic", n: m.n, cat: m.cat, type: m.type, r: m.r, rk: m.rk, att: m.att, cons: m.cons, base: m.base, c: p.text, gp: p.gp, st: [], d: m.d }); });
     L.forEach(x => { x.hay = x.n.toLowerCase(); x.hayD = (x.n + " " + x.cat + " " + (x.type || "") + " " + x.d).toLowerCase(); });
     IT.data[ed] = L;
   }
@@ -117,7 +117,7 @@ function itRow(x) {
     </div>${open ? itDetail(x) : ""}</div>`;
 }
 function itCanBase(x) { return x.kind === "gear" && (x.g === "Weapons" || x.g === "Armor" || x.cat === "Ammunition"); }
-function itDetail(x) {
+function itDetail(x, actions = true) {
   const note = itPriceNote(x);
   return `<div class="sp-detail">
     <div class="muted"><i>${esc(itTypeLine(x))}</i></div>
@@ -125,7 +125,7 @@ function itDetail(x) {
     ${spFormat(x.d || "")}
     ${note ? `<p class="hint">${esc(note)}</p>` : ""}
     ${bookLine(x)}
-    <div class="actions"><button class="btn sm" data-it="card" data-id="${esc(x.id)}">🂠 Export item card</button><button class="btn sm" data-it="copy" data-id="${esc(x.id)}">Copy</button><button class="btn sm primary" data-it="give" data-id="${esc(x.id)}">+ Give to character</button>${x.gp !== null && x.gp !== undefined ? `<button class="btn sm" data-it="buy" data-id="${esc(x.id)}" title="Take the price from the character's coins">🪙 Buy (${esc(fmtGp(+x.gp))})</button>` : ""}<button class="btn sm" data-it="loot" data-id="${esc(x.id)}">+ Campaign loot</button>${x.kind === "custom" ? `<button class="btn sm" data-it="edit" data-id="${esc(x.id)}">✎ Edit</button><button class="btn sm danger" data-it="del" data-id="${esc(x.id)}">✕ Delete</button>` : itCanBase(x) ? `<button class="btn sm" data-it="clone" data-id="${esc(x.id)}">✚ Make a magic version</button>` : ""}</div>
+    ${actions ? `<div class="actions"><button class="btn sm" data-it="card" data-id="${esc(x.id)}">🂠 Export item card</button><button class="btn sm" data-it="copy" data-id="${esc(x.id)}">Copy</button><button class="btn sm primary" data-it="give" data-id="${esc(x.id)}">+ Give to character</button>${x.gp !== null && x.gp !== undefined ? `<button class="btn sm" data-it="buy" data-id="${esc(x.id)}" title="Take the price from the character's coins">🪙 Buy (${esc(fmtGp(+x.gp))})</button>` : ""}<button class="btn sm" data-it="loot" data-id="${esc(x.id)}">+ Campaign loot</button>${x.kind === "custom" ? `<button class="btn sm" data-it="edit" data-id="${esc(x.id)}">✎ Edit</button><button class="btn sm danger" data-it="del" data-id="${esc(x.id)}">✕ Delete</button>` : itCanBase(x) ? `<button class="btn sm" data-it="clone" data-id="${esc(x.id)}">✚ Make a magic version</button>` : ""}</div>` : ""}
   </div>`;
 }
 function itText(x) {

@@ -125,7 +125,7 @@ function progressionRows(ed, kind, name, option = "") {
   const add = (level, title, desc = "") => {
     if (rows[level - 1] && title) rows[level - 1].push([title, desc]);
   };
-  const C = kind === "class" && Object.hasOwn(CLASS_DATA, name) ? CLASS_DATA[name] : null;
+  const C = kind === "class" && Object.hasOwn(CLASS_DATA, name) ? classData(ed, name) : null;
   if (C) {
     const revised = ed === "2024" && !C.hb;
     const ctx = { ed, cls: name };
@@ -136,12 +136,12 @@ function progressionRows(ed, kind, name, option = "") {
       const features = revised ? revisedNames.split(", ").filter(Boolean)
         : [...(C.f[level] || []), ...(!C.hb && additions ? additions.split(", ") : [])];
       features.filter(f => f !== C.sub[0] && f !== name + " Subclass" && !/^(Primal Path|Bard College|Divine Domain|Druid Circle|Martial Archetype|Monastic Tradition|Sacred Oath|Ranger Archetype|Roguish Archetype|Sorcerous Origin|Otherworldly Patron|Arcane Tradition)$/.test(f))
-        .forEach(f => add(level, f, revised ? PROGRESSION_SUMMARIES[f] || FEAT_DESC_2024[f] || "" : featDesc(f, ctx)));
+        .forEach(f => add(level, f, revised ? PROGRESSION_SUMMARIES[f] || FEAT_DESC_2024[f] || "" : featDesc(f, ctx) || PROGRESSION_SUMMARIES[f] || FEAT_DESC_2024[f] || ""));
       if (level === choice && subclassList(ed, name).length) add(level, "Choose a subclass");
       const milestones = name === "Cleric" && revised ? [6, 17] : SUBCLASS_MILESTONES[name];
       if (!C.hb && milestones?.includes(level)) add(level, "Subclass feature", "Select a subclass above to see the feature.");
       if ((C.asi || [4, 8, 12, 16, 19]).includes(level)) {
-        const feature = revised && level === 19 ? "Epic Boon" : "Ability Score Improvement";
+        const feature = (revised || C.hbx?.bookBase || C.hbx?.id === "reference-efota-artificer") && level === 19 ? "Epic Boon" : "Ability Score Improvement";
         add(level, feature, PROGRESSION_SUMMARIES[feature]);
       }
       if (name === "Rogue" && level % 2 === 1) add(level, "Sneak Attack damage", Math.ceil(level / 2) + "d6");
@@ -153,13 +153,13 @@ function progressionRows(ed, kind, name, option = "") {
       if (casting === "pact") {
         const slots = pactSlots(level);
         add(level, "Pact Magic slots", slots.n + " × level " + slots.lvl);
-      } else if (casting === "full" || (casting === "half" && level >= (ed === "2024" ? 1 : 2))) {
-        const slots = FULL_SLOTS[casting === "half" ? Math.ceil(level / 2) : level];
+      } else if (casting === "full" || casting === "artificer" || (casting === "half" && level >= (ed === "2024" ? 1 : 2))) {
+        const slots = casting === "artificer" ? ARTIFICER_SLOTS[level] : FULL_SLOTS[casting === "full" ? level : Math.ceil(level / 2)];
         add(level, "Spell slots by spell level", slots.join(" / "));
       }
     }
   } else if (kind === "subclass") {
-    const homebrew = [...hbOf("subclass"), ...hbBook("subclass")].find(x => x.cls === name && x.name === option && hbEdOk(x, ed));
+    const homebrew = subclassEntry(ed, name, option, false);
     const features = homebrew ? (homebrew.features || []).map(f => [+f.l, f.n, (f.d || "") + fxNote(f.fx)]) : subFeatsOf(ed, option);
     for (const [level, feature, desc] of features) add(level, feature, desc);
     if (subCaster(name, option)) {
@@ -219,18 +219,18 @@ function progressionButton(ed, kind, name, option = "", label = "Level 1–20 pr
   return `<button type="button" class="btn sm" data-progression="${kind}" data-progression-ed="${esc(ed)}" data-progression-name="${esc(name)}" data-progression-option="${esc(option)}" aria-label="${esc(label + (name ? " for " + (kind === "subclass" ? option : name) : ""))}">${esc(label)}</button>`;
 }
 
-function openProgression(ed, kind, name, option, trigger, { setLineage, requireLineage } = {}) {
+function openProgression(ed, kind, name, option, trigger, { setLineage, requireLineage, campaign = false } = {}) {
   if (kind === "class" && !classList(ed).includes(name) || kind === "species" && !Object.hasOwn(PC_RACES[ed], name)) {
     toast("Choose a class or species first");
     return;
   }
-  const choices = kind === "class" ? subclassList(ed, name)
-    : kind === "species" ? Object.keys(PC_RACES[ed][name].subs || {}).map(key => [key, subLabel(ed, name, key)]) : [];
-  const builtIn = kind === "class" && !CLASS_DATA[name].hb;
+  const choices = kind === "class" ? (campaign ? campaignSubclassChoices(ed, name) : subclassList(ed, name))
+    : kind === "species" ? (campaign || setLineage ? campaignLineageChoices(ed, name) : Object.keys(PC_RACES[ed][name].subs || {})).map(key => [key, subLabel(ed, name, key)]) : [];
+  const builtIn = kind === "class" && !classData(ed, name).hb;
   const source = ed === "2024" ? "5.2.1" : "5.1";
   const species = kind === "species" ? PC_RACES[ed][name] : null;
-  const subclass = kind === "subclass" ? subclassList(ed, name).find(([key]) => key === option) : null;
-  const sourceName = species?.src || subclass?.[3];
+  const subclass = kind === "subclass" ? (campaign ? campaignSubclassChoices(ed, name) : subclassList(ed, name)).find(([key]) => key === option) : null;
+  const sourceName = species?.src || subclass?.[3] || (kind === "class" ? classData(ed, name).hbx?.src : "");
   const attribution = sourceName ? dmBook(sourceName).name : species?.hb || subclass?.[2] ? "Homebrew" : "";
   const lineageLabel = species?.term || (ed === "2024" ? "Lineage" : "Subrace");
   const options = choices.map(([key, label, custom, book]) => {

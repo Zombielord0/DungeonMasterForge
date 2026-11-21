@@ -6,16 +6,20 @@ const PCS = { cur: null, roster: [], updated: 0 };
 let pcRemote = null, pcTimer = null;
 /* ---- multiclassing: c.multi = [{ cls, lv, subclass }] beside the main class (c.cls at c.level) ---- */
 const clsLv = (c, k) => !c ? 0 : c.cls === k ? c.level : (((c.multi || []).find(x => x.cls === k)) || {}).lv || 0;
+// Variants use the feature scaling of their parent class while keeping separate character class levels.
+const classFeatureLevel = (c, k) => Math.max(clsLv(c, k),
+  baseClassOf(c.cls) === k ? +c.level : 0,
+  ...(c.multi || []).filter(x => baseClassOf(x.cls) === k).map(x => +x.lv));
 const totalLv = c => (c.level || 0) + (c.multi || []).reduce((s2, x) => s2 + (+x.lv || 0), 0);
 const classLine = c => [`${c.cls} ${c.level}`, ...(c.multi || []).filter(x => +x.lv > 0).map(x => `${x.cls} ${x.lv}`)].join(" / ");
 const MC_PREREQ = { Barbarian: [["str"]], Bard: [["cha"]], Cleric: [["wis"]], Druid: [["wis"]], Fighter: [["str", "dex"]], Monk: [["dex"], ["wis"]], Paladin: [["str"], ["cha"]], Ranger: [["dex"], ["wis"]], Rogue: [["dex"]], Sorcerer: [["cha"]], Warlock: [["cha"]], Wizard: [["int"]] };
-const mcPrereq = k => MC_PREREQ[k] || (CLASS_DATA[k] && CLASS_DATA[k].hb ? [[CLASS_DATA[k].pri[0]]] : []); // a homebrew class: its main ability
+const mcPrereq = k => MC_PREREQ[baseClassOf(k)] || (CLASS_DATA[k] && CLASS_DATA[k].hb ? [[CLASS_DATA[k].pri[0]]] : []); // a homebrew class: its main ability
 const mcPrereqText = k => mcPrereq(k).map(g => g.map(a => `${AB_NAME[a]} 13`).join(" or ")).join(" and ");
 const mcMeets = (c, k) => mcPrereq(k).every(g => g.some(a => (+c.scores[a] || 0) >= 13));
 const MC_ARMOR = { Barbarian: "shield", Bard: "light", Cleric: "light medium shield", Druid: "light medium shield", Fighter: "light medium shield", Paladin: "light medium shield", Ranger: "light medium shield", Rogue: "light", Warlock: "light", Monk: "", Sorcerer: "", Wizard: "" };
 const MC_MARTIAL = ["Barbarian", "Fighter", "Paladin", "Ranger"];
 // a class's own caster level for multiclass slots
-function casterLv(ed, k, l, sub) { const cast = castOf(k, sub); if (!cast) return 0; const kind = cast[0]; return kind === "full" ? l : kind === "half" ? (ed === "2024" ? Math.ceil(l / 2) : Math.floor(l / 2)) : kind === "third" ? Math.floor(l / 3) : 0; }
+function casterLv(ed, k, l, sub) { const cast = castOf(k, sub); if (!cast) return 0; const kind = cast[0]; return kind === "full" ? l : kind === "artificer" ? Math.ceil(l / 2) : kind === "half" ? (ed === "2024" ? Math.ceil(l / 2) : Math.floor(l / 2)) : kind === "third" ? Math.floor(l / 3) : 0; }
 const pactSlots = l => ({ n: l >= 17 ? 4 : l >= 11 ? 3 : l >= 2 ? 2 : 1, lvl: Math.min(5, Math.ceil(l / 2)) });
 // what a rebuild keeps from the character as it is: rolled or assigned base scores, skill picks, expertise
 const pcKeep = c => ({ multi: c.multi && c.multi.length ? c.multi : undefined, keepMcSkills: c.mcSkills, base: c.customData ? undefined : c.base, rolls: c.rolls || undefined, keepSkills: (c.skills || []).filter(s => s.p).map(s => s.s), keepExpert: c.expertOrder || (c.skills || []).filter(s => s.x).map(s => s.s), keepSkilled: c.skilled });
@@ -48,7 +52,7 @@ function pcIncoming(d) {
   pcNums(d);
   return d;
 }
-function pcEnsure(c) { if (c) { pcNums(c); if (c.bgV === undefined && c.cls) { c.bgV = 1; if (c.ed === "2024") c.bgAsiLegacy = true; } if (!c.id) c.id = uid("pc"); if (c.subclass === undefined) { const f = (c.feats || []).find(x => String(x.f).startsWith("Subclass: ") && x.f !== "Subclass: not chosen yet"); c.subclass = f ? f.f.slice(10) : null; } if (!Array.isArray(c.prepared)) c.prepared = []; if (c.race === "Dragonborn" && !c.ancestry) c.ancestry = makeRng("anc", c.seed || c.id).pick(Object.keys(DRAGON_ANCESTRY)); if (c.race === "Dragonborn" && !c.sub) c.sub = c.ancestry; withTraitRes(c); raceLvUpgrade(c); hookUpgrade(c); } return c; }
+function pcEnsure(c) { if (c) { pcNums(c); if (c.bgV === undefined && c.cls) { c.bgV = 1; if (c.ed === "2024") c.bgAsiLegacy = true; } if (!c.id) c.id = uid("pc"); if (c.subclass === undefined) { const f = (c.feats || []).find(x => String(x.f).startsWith("Subclass: ") && x.f !== "Subclass: not chosen yet"); c.subclass = f ? f.f.slice(10) : null; } if (!Array.isArray(c.prepared)) c.prepared = []; syncBookSpells(c); if (c.race === "Dragonborn" && !c.ancestry) c.ancestry = makeRng("anc", c.seed || c.id).pick(Object.keys(DRAGON_ANCESTRY)); if (c.race === "Dragonborn" && !c.sub) c.sub = c.ancestry; withTraitRes(c); raceLvUpgrade(c); hookUpgrade(c); } return c; }
 function pcPersist() {
   PCS.cur = currentPC; PCS.updated = Date.now();
   if (currentPC) { const i = PCS.roster.findIndex(x => x.id === currentPC.id); if (i >= 0) PCS.roster[i] = currentPC; }
@@ -112,7 +116,19 @@ function spellLimits(c) {
   list.forEach(({ cls, lv, subclass }) => {
     const sc = subCaster(cls, subclass);
     if (sc) { n += THIRD_KNOWN[lv - 1] || 0; if (list.length === 1 && edOf(c) === "2014") word = "known"; cant += sc.cantrips + (lv >= 10 ? 1 : 0); return; } /* Eldritch Knight, Arcane Trickster */
+    const book = classData(edOf(c), cls).hbx;
+    if (book?.preparedAt) {
+      n += Number(book.preparedAt[lv - 1]) || 0;
+      cant += Number(book.cantripsAt?.[lv - 1]) || 0;
+      return;
+    }
     const ab = CLASS_DATA[cls].cast[1];
+    if (CLASS_DATA[cls].cast[0] === "artificer") {
+      const revised = [0, 2, 3, 4, 5, 6, 6, 7, 7, 9, 9, 10, 10, 11, 11, 12, 12, 14, 14, 15, 15];
+      n += edOf(c) === "2024" ? revised[lv] : Math.max(1, m[ab] + Math.floor(lv / 2));
+      cant += 2 + (lv >= 10 ? 1 : 0) + (lv >= 14 ? 1 : 0);
+      return;
+    }
     if (KNOWN_SPELLS[cls]) { n += KNOWN_SPELLS[cls][lv - 1] || 0; if (list.length === 1) word = "known"; }
     else if (cls === "Paladin") n += lv >= 2 ? Math.max(1, m.cha + Math.floor(lv / 2)) : 0;
     else if (CLASS_DATA[cls].hb && CLASS_DATA[cls].cast[0] === "half") n += Math.max(1, m[ab] + Math.floor(lv / 2)); // a homebrew half caster prepares like a 2014 Paladin
@@ -149,6 +165,7 @@ function pcCastClasses(c) {
   return list.map(({ cls, lv, subclass }) => {
     const k = castOf(cls, subclass)[0];
     if (k === "third") return { cls, lv, list: castListOf(cls, subclass), max: thirdSlots(lv).length, cantrips: true };
+    if (k === "artificer") return { cls, lv, max: ARTIFICER_SLOTS[lv].length, cantrips: true };
     const max = k === "pact" ? Math.min(5, Math.ceil(lv / 2)) : k === "full" ? (FULL_SLOTS[lv] || []).length : (lv >= 2 || ed === "2024" ? (FULL_SLOTS[Math.ceil(lv / 2)] || []).length : 0);
     return { cls, lv, max: Math.max(k === "half" && !max ? 0 : 1, max), cantrips: k !== "half" };
   });
@@ -302,7 +319,7 @@ function sheetDoc(c) {
         </div>
       </div>
       <div class="pill"><span class="num">${c.passive}</span><span class="lab">Passive wisdom (perception)</span></div>
-      <div class="box"><div><b>Armor &amp; weapons:</b> ${esc(CLASS_PROFS[c.cls] || (CLASS_DATA[c.cls] && CLASS_DATA[c.cls].hb ? [CLASS_DATA[c.cls].armorT.replace(/shield/, "shields").split(" ").filter(Boolean).map(k => k === "shields" ? k : k + " armor").join(", "), CLASS_DATA[c.cls].weapons, CLASS_DATA[c.cls].tools].filter(Boolean).join("; ") : ""))}</div><div style="margin-top:4px"><b>Languages:</b> ${esc(RACE_LANGS[c.race] || "Common")}</div><div class="boxt">Other proficiencies &amp; languages</div></div>
+      <div class="box"><div><b>Armor &amp; weapons:</b> ${esc(CLASS_PROFS[baseClassOf(c.cls)] || (CLASS_DATA[c.cls] && CLASS_DATA[c.cls].hb ? [CLASS_DATA[c.cls].armorT.replace(/shield/, "shields").split(" ").filter(Boolean).map(k => k === "shields" ? k : k + " armor").join(", "), CLASS_DATA[c.cls].weapons, CLASS_DATA[c.cls].tools].filter(Boolean).join("; ") : ""))}</div><div style="margin-top:4px"><b>Languages:</b> ${esc(RACE_LANGS[c.race] || "Common")}</div><div class="boxt">Other proficiencies &amp; languages</div></div>
     </div>
     <div>
       <div class="trio"><div class="stat"><div class="v">${c.ac}</div><div class="lab">Armor class</div></div><div class="stat"><div class="v">${sgn(c.init)}</div><div class="lab">Initiative</div></div><div class="stat"><div class="v">${c.speed}</div><div class="lab">Speed</div></div></div>

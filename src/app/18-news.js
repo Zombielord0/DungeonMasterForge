@@ -2,6 +2,26 @@
    When a change ships, add an entry to the top of NEWS with a new id, in plain words for players and DMs. */
 
 const NEWS = [
+  { id: "2026-11-21-tasha-xanathar-subclasses", date: "2026-11-21", title: "Build with Tasha’s and Xanathar’s subclasses", go: "roster", items: [
+    "Use the 2014 builder to select Artificer or browse subclasses from both books. The level-by-level view now describes their features.",
+    "Save choices such as an Armorer model, Rune Knight runes, and a Genie patron in Features & Traits."] },
+  { id: "2026-11-20-2014-book-catalogs", date: "2026-11-20", title: "Search more 2014 sourcebooks", go: "compendium", items: [
+    "Search by book or entry name to see source pages, spell parameters, monster statistics, and character options.",
+    "Book references point to the full rules. Mind Sliver, Absorb Elements, and Zephyr Strike are also available in the 2014 spell catalog."] },
+  { id: "2026-11-20-expansion-subclass-references", date: "2026-11-20", title: "More 2014 subclass references", go: "roster", items: [
+    "Explore 20 more 2014 subclass options in the character builder and Compendium, including Drakewarden, College of Spirits, and Path of the Giant. The progression view shows feature names, levels, and where to read the rules."] },
+  { id: "2026-11-20-campaign-sources-handouts", date: "2026-11-20", title: "Choose campaign sourcebooks and reveal handouts", go: "tracker", items: [
+    "Use Sourcebooks in Campaign Tracker to set an edition and choose which books and homebrew your table uses.",
+    "Save clues, portraits, and fog-safe map snapshots in Handouts. Reveal them when your players are ready to see them in the Journal."
+  ] },
+  { id: "2026-11-20-compendium-and-campaign-tools", date: "2026-11-20", title: "Search rules and reuse campaign prep", go: "compendium", items: [
+    "Search character options, spells, items, and monsters in the Compendium. Filter by rules edition and open the details from your results.",
+    "Save an encounter as a template to reuse its lineup, initiative setup, and linked map. Each new fight starts with full enemy HP.",
+    "Campaign exports now include uploaded maps and NPC portraits available on this device."
+  ] },
+  { id: "2026-11-20-session-dashboard", date: "2026-11-20", title: "Open everything you need for tonight’s session", go: "tracker", items: [
+    "Open Session in Campaign Tracker to resume a fight, read the latest recap, or pin a map, NPC, and lore entry for quick access.",
+    "Renaming an inventory item that no longer requires attunement now updates the character sheet’s attunement count."] },
   { id: "2026-11-20-character-references", date: "2026-11-20", title: "Plan your next levels and inspect your gear", go: "roster", items: [
     "Choosing a class, species, or background opens its details right away. See level 1–20 progression, compare subclasses from books and homebrew, or review lineage choices and background benefits.",
     "Open Item details from your inventory to see weapon dice, attunement, and magic effects. Equipped magic item effects appear under Features & Traits."] },

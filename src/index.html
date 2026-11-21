@@ -20,6 +20,8 @@ if (location.protocol !== "file:" && localStorage.getItem("dmforge.offline") !==
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@500;700&family=Cinzel+Decorative:wght@700&family=Crimson+Pro:ital,wght@0,400;0,600;1,400&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="/assets/app.css">
+<meta name="forge-extra-monsters" content="/assets/extra-monsters.js">
+<meta name="forge-book-references" content="/assets/book-references.js">
 </head>
 <body>
 <header>
@@ -96,6 +98,7 @@ if (location.protocol !== "file:" && localStorage.getItem("dmforge.offline") !==
     <a href="#world" data-view="world">World</a>
     <a href="#monsters" data-view="monsters">Villains &amp; Monsters</a>
     <a href="#roster" data-view="roster">Characters</a>
+    <a href="#compendium" data-view="compendium">Compendium</a>
     <a href="#spells" data-view="spells">Spells</a>
     <a href="#feats" data-view="feats">Feats</a>
     <a href="#items" data-view="items">Items</a>
@@ -123,6 +126,18 @@ if (location.protocol !== "file:" && localStorage.getItem("dmforge.offline") !==
 
 <main>
 <div id="turnBar" hidden aria-live="polite"></div>
+<section class="view" id="view-compendium">
+  <div class="card">
+    <h2>Compendium</h2>
+    <form id="compendiumForm" class="compendium-filters">
+      <label>Search<input type="search" id="compendiumQuery" placeholder="Search names or sources"></label>
+      <label>Edition<select id="compendiumEdition"><option>2024</option><option>2014</option></select></label>
+      <label>Type<select id="compendiumType"><option value="">All types</option></select></label>
+    </form>
+    <p class="muted" id="compendiumCount" aria-live="polite"></p>
+    <div id="compendiumResults" class="compendium-results"></div>
+  </div>
+</section>
 <!-- ================= GENERATOR ================= -->
 <section class="view" id="view-generate">
   <div class="layout">
@@ -710,16 +725,15 @@ if (location.protocol !== "file:" && localStorage.getItem("dmforge.offline") !==
 <div id="toast"></div>
 
 <!-- The built-in spells, monsters and items, then the app. npm run build writes these into public/assets/ with a fingerprint in each name. -->
-<script src="/assets/spells.js"></script>
-<script src="/assets/monsters.js"></script>
-<script src="/assets/items.js"></script>
+<script defer src="/assets/spells.js"></script>
+<script defer src="/assets/monsters.js"></script>
+<script defer src="/assets/items.js"></script>
 <!-- The open-licensed extra books (tools/convert-open5e-extras.py), joined to the lists above by dmData. -->
-<script src="/assets/extra-spells.js"></script>
-<script src="/assets/extra-monsters.js"></script>
-<script src="/assets/extra-items.js"></script>
-<script src="/assets/extra-options.js"></script>
-<script src="/assets/extra-books.js"></script>
-<script src="/assets/app.js"></script>
+<script defer src="/assets/extra-spells.js"></script>
+<script defer src="/assets/extra-items.js"></script>
+<script defer src="/assets/extra-options.js"></script>
+<script defer src="/assets/extra-books.js"></script>
+<script defer src="/assets/app.js"></script>
 <script type="module" src="/portal.js"></script>
 </body>
 </html>
