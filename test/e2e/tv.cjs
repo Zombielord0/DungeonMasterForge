@@ -68,9 +68,12 @@ const server = http.createServer((req, res) => {
   fs.writeFileSync(png, Buffer.from(await dm.evaluate(() => { const c = document.createElement("canvas"); c.width = 400; c.height = 800; const g = c.getContext("2d"); g.fillStyle = "#3a6"; g.fillRect(0, 0, 400, 800); return c.toDataURL("image/png").split(",")[1]; }), "base64"));
   n = await frames(); await dm.setInputFiles("#handoutFile", png);
   check("a picture handout goes to the TV", await waitFrame(n));
-  await tv.waitForTimeout(200);
+  const portrait = await tv.waitForFunction(() => {
+    const rect = window.tvRect;
+    return rect && Math.abs(rect.w / rect.h - 0.5) < 0.02;
+  }, null, { timeout: 5000, polling: 50 }).then(() => true, () => false);
   const ar = await tv.evaluate(() => window.tvRect.w / window.tvRect.h);
-  check("the TV shows the picture's own shape", Math.abs(ar - 0.5) < 0.02, ar);
+  check("the TV shows the picture's own shape", portrait, ar);
   check("the DM sees that a handout is showing", await dm.evaluate(() => HOST.show === "handout") && await dm.isVisible("#handoutBack"));
   n = await frames(); await dm.click("#handoutBack");
   check("Back to map returns the TV to the map", await waitFrame(n) && await dm.evaluate(() => HOST.show === "map"));

@@ -24,7 +24,9 @@ const X = { sp: data("extra-spells"), mon: data("extra-monsters"), it: data("ext
   check("no extra magic item has an SRD item's name", !X.it.some(m => srdNames(SRD.it, l => l.mi).has(lc(m.n))));
   check("no name appears twice in an extras list", [X.sp, X.mon, X.it].every(L => new Set(L.map(x => lc(x.n))).size === L.length));
   check("every extra entry names a known book", [...X.sp, ...X.mon, ...X.it].every(x => X.books[x.src]));
-  check("every book is OGL 1.0a or CC BY 4.0", Object.values(X.books).every(b => b.lic === "ogl-10a" || b.lic === "cc-by-40"));
+  check("book metadata distinguishes licensed sources and reference summaries",
+    Object.entries(X.books).every(([key, b]) => ["phb-2014", "dmg-2014"].includes(key) ? b.lic === "reference" : ["ogl-10a", "cc-by-40"].includes(b.lic)) &&
+    [...X.sp, ...X.mon, ...X.it].every(x => ["ogl-10a", "cc-by-40"].includes(X.books[x.src]?.lic)));
   check("every extra monster has a habitat", X.mon.every(m => (m.env || []).length));
   check("no extra monster lives everywhere", X.mon.every(m => m.env.length <= 8), JSON.stringify(X.mon.filter(m => m.env.length > 8).map(m => m.n).slice(0, 5)));
   check("extra magic items have fixed keys", X.it.every(m => /^[a-z0-9-]+_[a-z0-9-]+$/.test(m.k)) && new Set(X.it.map(m => m.k)).size === X.it.length);
@@ -52,13 +54,13 @@ const X = { sp: data("extra-spells"), mon: data("extra-monsters"), it: data("ext
   // ---- spells ----
   const sp = await p.evaluate(() => {
     spLoad();
-    const ex = ed => SP.data[ed].filter(s => s.src);
+    const ex = ed => SP.data[ed].filter(s => s.src && dmBook(s.src).lic !== "reference");
     const a = SP.data["2014"].find(s => s.n === "Abhorrent Apparition"), b = SP.data["2024"].find(s => s.n === "Abhorrent Apparition");
     return { n14: SP.data["2014"].length, n24: SP.data["2024"].length, x14: ex("2014").length, x24: ex("2024").length,
       first: spFind("2014-0").n, a: a && { id: a.id, t: a.t, src: a.src, save: a.save }, b: b && { t: b.t },
       sameObj: a === b, books: [...$("#spBook").options].map(o => o.value) };
   });
-  check("spells: every extra spell is in both editions", sp.x14 === X.sp.length && sp.x24 === X.sp.length, JSON.stringify(sp));
+  check("spells: every open-book bonus spell is in both editions", sp.x14 === X.sp.length && sp.x24 === X.sp.length, JSON.stringify(sp));
   check("spells: the SRD spells keep their places", sp.first === SRD.sp["2014"][0].n && sp.n14 === SRD.sp["2014"].length + X.sp.length);
   check("spells: each edition has its own copy", sp.a && sp.b && !sp.sameObj);
   check("spells: 2014 and 2024 wording for casting time", sp.a.t === "1 action" && sp.b.t === "Action", JSON.stringify([sp.a, sp.b]));
@@ -137,7 +139,7 @@ const X = { sp: data("extra-spells"), mon: data("extra-monsters"), it: data("ext
   // ---- monsters ----
   await p.goto(URL + "#monsters"); await p.waitForTimeout(400);
   await p.evaluate(() => { const r = $('input[name="monMode"][value="srd"]'); if (r) { r.checked = true; r.dispatchEvent(new Event("change", { bubbles: true })); } });
-  await p.waitForTimeout(300);
+  await p.waitForFunction(() => extraMonstersReady && $("#bsBook").options.length > 1);
   const mon = await p.evaluate(() => {
     bsLoad();
     const f = BS.data["2014"].find(m => m.src === "tob2");

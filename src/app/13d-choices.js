@@ -57,6 +57,49 @@ const CHOICES = {
   "Feat: Crafter": { label: "Artisan's tools", n: () => 3, opts: () => opt3(ARTISAN) },
   "Feat: Musician": { label: "Instruments", n: () => 3, opts: () => opt3(INSTRUMENTS) }
 };
+const DRAGON_FEATURE_ELEMENTS = ["Acid", "Cold", "Fire", "Lightning", "Poison"];
+const FEATURE_CHOICE_LANGUAGES = ["Common", "Dwarvish", "Elvish", "Giant", "Gnomish", "Goblin", "Halfling", "Orc", "Abyssal", "Celestial", "Draconic", "Deep Speech", "Infernal", "Primordial", "Sylvan", "Undercommon"];
+const choiceList = (label, options, n = 1) => ({ label, n: () => n, opts: () => opt3(options) });
+const choiceSpellOptions = (c, filter) => {
+  spLoad();
+  return opt3([...new Set((SP.data[edOf(c)] || []).filter(s => !s.pend && filter(s)).map(s => s.n))].sort());
+};
+Object.assign(CHOICES, {
+  "Armor Model": choiceList("Arcane armor model", ["Guardian", "Infiltrator"]),
+  "Eldritch Cannon": choiceList("Cannon mode", ["Flamethrower", "Force Ballista", "Protector"]),
+  "Giant Power": choiceList("Cantrip", ["Thaumaturgy", "Druidcraft"]),
+  "Giant Power language": choiceList("Language", FEATURE_CHOICE_LANGUAGES),
+  "Draconic Gift": choiceList("Language", FEATURE_CHOICE_LANGUAGES),
+  "Draconic Disciple": choiceList("Language", FEATURE_CHOICE_LANGUAGES),
+  "Drake Companion": choiceList("Drake essence (choose each summon)", DRAGON_FEATURE_ELEMENTS),
+  "Drake's Breath": choiceList("Breath damage (choose each use)", DRAGON_FEATURE_ELEMENTS),
+  "Breath of the Dragon": choiceList("Breath damage (choose each use)", DRAGON_FEATURE_ELEMENTS),
+  "Elemental Cleaver": choiceList("Weapon damage (choose each rage)", DRAGON_FEATURE_ELEMENTS.concat("Thunder").filter(x => x !== "Poison")),
+  "Aspect of the Wyrm": choiceList("Aura (choose each use)", ["Frightful Presence", ...DRAGON_FEATURE_ELEMENTS.map(x => x + " resistance")]),
+  "Bonus Proficiencies": choiceList("Order Domain skill", ["Intimidation", "Persuasion"]),
+  "Arcane Initiate": { label: "Wizard cantrips", n: () => 2, opts: c => choiceSpellOptions(c, s => s.l === 0 && s.c.includes("Wizard")) },
+  "Spirit Session": { label: "Session spell", n: () => 1, opts: c => choiceSpellOptions(c, s => s.l > 0 && s.l <= Math.min(c.prof, Math.ceil(clsLv(c, "Bard") / 2)) && ["Divination", "Necromancy"].includes(s.s)) },
+  "Training in War and Song (Bladesinging)": choiceList("One-handed melee weapon proficiency", ["Club", "Dagger", "Handaxe", "Javelin", "Light Hammer", "Mace", "Sickle", "Spear", "Battleaxe", "Flail", "Longsword", "Morningstar", "Rapier", "Scimitar", "Shortsword", "Trident", "War Pick", "Warhammer", "Whip"]),
+  Eladrin: choiceList("Season", [
+    ["Autumn", "Autumn", "Your Fey Step can charm up to two nearby creatures."],
+    ["Winter", "Winter", "Your Fey Step can frighten a creature near your starting point."],
+    ["Spring", "Spring", "You can teleport a willing creature instead of yourself."],
+    ["Summer", "Summer", "Your Fey Step deals fire damage to chosen creatures near your destination."]]),
+});
+for (const lineage of ["Air Genasi", "Earth Genasi", "Fire Genasi", "Water Genasi"]) {
+  CHOICES[lineage] = choiceList("Innate spellcasting ability", ["Intelligence", "Wisdom", "Charisma"]);
+}
+for (const level of [6, 7, 8, 9]) {
+  CHOICES["Arcane Mastery " + level] = { label: "Level " + level + " wizard spell", n: () => 1, opts: c => choiceSpellOptions(c, s => s.l === level && s.c.includes("Wizard")) };
+}
+const additionalFeatureChoices = {
+  "Giant Power": ["Giant Power language"],
+  "Arcane Mastery": [6, 7, 8, 9].map(level => "Arcane Mastery " + level)
+};
+function featureChoiceHTML(c, k) {
+  const keys = CHOICES[k] ? [k] : [];
+  return keys.concat(additionalFeatureChoices[k] || []).map(key => choiceHTML(c, key)).join("");
+}
 const choiceOf = (c, k) => ((c.choices || {})[k]) || [];
 const hasChoice = (c, k, id) => choiceOf(c, k).includes(id);
 function choiceHTML(c, k) {

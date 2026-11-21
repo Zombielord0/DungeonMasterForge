@@ -124,6 +124,15 @@ function sharedClean(id, d) {
   const cal = d.cal && typeof d.cal === "object" ? { day: num(d.cal.day), season: str(d.cal.season, 20), weather: str(d.cal.weather, 300) } : null;
   return {
     name: str(d.name, 120), cal,
+    sourceRules: ["2014", "2024"].includes(d.sourceRules?.edition) ? {
+      edition: d.sourceRules.edition, homebrew: d.sourceRules.homebrew === true,
+      books: Array.isArray(d.sourceRules.books) ? [...new Set(d.sourceRules.books.filter(x => typeof x === "string" && /^[a-z0-9-]{1,40}$/.test(x)))].slice(0, 100) : [],
+    } : null,
+    handouts: arr(d.handouts, 6).map(x => ({
+      id: str(x.id, 64), title: str(x.title, 100), notes: str(x.notes, 4000),
+      ...(typeof x.picture === "string" && x.picture.length <= 95000 && /^data:image\/webp;base64,[A-Za-z0-9+/]+={0,2}$/.test(x.picture) ? { picture: x.picture } : {}),
+      ...(typeof x.url === "string" && x.url.length <= 500 && /^https:\/\/[^\s"'<>]+$/i.test(x.url) ? { url: x.url } : {}),
+    })),
     quests: arr(d.quests, 300).map(q => ({ id: str(q.id, 64), title: str(q.title, 200), status: ["Active", "On hold", "Completed", "Failed"].includes(q.status) ? q.status : "Active", giver: str(q.giver, 120) })),
     sessions: arr(d.sessions, 300).map(x => ({ id: str(x.id, 64), title: str(x.title, 200), num: str(x.num, 10), date: str(x.date, 20), summary: str(x.summary, 20000) })),
     lore: arr(d.lore, 500).map(x => ({

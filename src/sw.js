@@ -17,7 +17,7 @@ self.addEventListener("fetch", e => {
   if (req.method !== "GET" || url.origin !== location.origin) return;
   if (url.pathname.startsWith("/api/") || url.pathname.startsWith("/.netlify/")) return;
   if (url.pathname.startsWith("/icons/") || url.pathname.startsWith("/assets/")) {
-    e.respondWith(caches.match(req).then(hit => hit || fetch(req).then(res => { const copy = res.clone(); caches.open(CACHE).then(c => c.put(req, copy)); return res; })));
+    e.respondWith(caches.match(req).then(hit => hit || fetch(req).then(res => { if (res.ok) { const copy = res.clone(); e.waitUntil(caches.open(CACHE).then(c => c.put(req, copy))); } return res; })));
     return;
   }
   // The app is one page, so app navigations share the "/" copy; the TV window (player.html) keeps its own copy.

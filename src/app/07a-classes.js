@@ -411,7 +411,19 @@ const SUB_FEATS = {
 const subFeatsOf = (ed, name) => SUB_FEATS[`${ed}|${name}`] || [];
 // a built-in subclass's features up to this level, as feature-list entries
 const subFeatList = (ed, name, lv) => subFeatsOf(ed, name).filter(x => x[0] <= lv).map(x => ({ l: x[0], f: x[1], sub: true }));
-function subFeatDesc(f, c) { if (!c) return ""; for (const sc2 of [c.subclass, ...(c.multi || []).map(m => m.subclass)].filter(Boolean)) { const x = subFeatsOf(edOf(c), sc2).find(y => y[1] === f); if (x) return x[2]; } return ""; }
+function subFeatDesc(f, c) {
+  if (!c) return "";
+  const ed = edOf(c);
+  for (const { cls, subclass } of [c, ...(c.multi || [])]) {
+    if (!subclass) continue;
+    const native = subFeatsOf(ed, subclass).find(row => row[1] === f);
+    if (native) return native[2];
+    const entry = hbAny("subclass").find(x => x.cls === cls && x.name === subclass && hbEdOk(x, ed));
+    const feature = entry?.features?.find(x => x.n === f);
+    if (feature) return (feature.d || "") + fxNote(feature.fx);
+  }
+  return "";
+}
 // keep a saved character's subclass features in step with its subclass and level
 function pcSubSync(c) {
   const keep = (c.feats || []).filter(f => !f.sub), add = c.subclass ? subFeatList(edOf(c), c.subclass, c.level) : [];
@@ -539,10 +551,10 @@ function hbClassData(x) {
   const pri = [...new Set((x.pri || []).map(ab).filter(Boolean))]; if (!pri.length) pri.push("str");
   const f = {}; (x.features || []).filter(t => t && t.n).forEach(t => { const l = clamp(+t.l || 1, 1, 20); (f[l] = f[l] || []).push(t.n); });
   const sk = x.skills || {}, from = sk.any || !(sk.from || []).length ? ALL_SKILLS : sk.from.filter(k => SKILLS[k]);
-  const cast = ["full", "half", "pact"].includes(x.cast) ? [x.cast, ab(x.castAb) || "int"] : undefined;
+  const cast = (["full", "half", "pact"].includes(x.cast) || (x.book && x.cast === "artificer")) ? [x.cast, ab(x.castAb) || "int"] : undefined;
   const w = x.wpn || {}, asi = (Array.isArray(x.asi) ? x.asi : [4, 8, 12, 16, 19]).map(Number).filter(l => l >= 1 && l <= 20);
   return { hb: true, hbx: x, ...(x.pend ? { pend: true } : {}), hd: [6, 8, 10, 12].includes(+x.hd) ? +x.hd : 8, pri, saves: (x.saves || []).filter(ab).slice(0, 2),
-    skills: [from, clamp(parseInt(sk.n) || 0, 0, 8)], ac: m => [10 + m.dex, "No armor"],
+    skills: [from, clamp(parseInt(sk.n) || 0, 0, 8)], ac: cast?.[0] === "artificer" ? m => [14 + Math.min(2, m.dex), "Scale mail"] : m => [10 + m.dex, "No armor"],
     kit: String(x.kit || "").split(",").map(t => t.trim()).filter(Boolean).slice(0, 20),
     wpn: [String(w.n || "Club").slice(0, 40), /^\d+d\d+$/.test(String(w.d || "")) ? w.d : "1d4", ab(w.ab) || pri[0]],
     f, sub: [String(x.subName || "Subclass").slice(0, 60), clamp(parseInt(x.subLv) || 3, 1, 20)], asi,

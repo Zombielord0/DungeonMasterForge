@@ -60,7 +60,7 @@ function hdrShrink(y) {
 
 /* ======================= Routing ======================= */
 function route() {
-  const views = (window.Portal && Portal.views) || ["generate", "npc", "world", "monsters", "character", "roster", "spells", "feats", "items", "map", "tracker", "homebrew", "requests"];
+  const views = (window.Portal && Portal.views) || ["generate", "npc", "world", "monsters", "character", "roster", "compendium", "spells", "feats", "items", "map", "tracker", "homebrew", "requests"];
   let v = views.includes(location.hash.slice(1)) ? location.hash.slice(1) : ((window.Portal && Portal.home) || "generate");
   /* Characters and My Characters are one tab (#roster) since 2026-11-19; #character (old links, a player's home) opens it with the forge form */
   if (v === "character") { v = "roster"; if (!PCS.roster.length && !currentPC) forgeOpen(); }
@@ -74,9 +74,10 @@ function route() {
   if (v === "tracker") renderTracker();
   if (v === "npc") { worldAdopt(); renderNpcLib(); }
   if (v === "world") renderWorld();
+  if (v === "compendium") compendiumSearch();
   if (v === "spells") renderSpells();
   if (v === "items") renderItems();
-  if (v === "roster") { if (!CB.on) pcShow("sheet"); renderRosterTab(); }
+  if (v === "roster") { pcSelectsRefresh(); if (!CB.on) pcShow("sheet"); renderRosterTab(); }
   if (v === "homebrew") renderHomebrew();
   if (v === "feats") renderFeats();
   if (v === "party" && window.Portal) Portal.renderParty();
@@ -92,4 +93,4 @@ hbLoadLocal(); // the campaign's homebrew replaces this once signed in
 pcRestore();
 route();
 renderCampList();
-Store.init().then(() => { try { worldAdopt(); } catch (e) { console.warn(e); } renderCampList(); pcAdoptRemote(); itemsAdopt(); if (location.hash === "#tracker") renderTracker(); if (location.hash === "#roster") renderRosterTab(); });
+Store.init().then(() => { try { worldAdopt(); } catch (e) { console.warn(e); } renderCampList(); pcAdoptRemote(); itemsAdopt(); pcSelectsRefresh(); if (location.hash === "#compendium") compendiumSearch(); if (location.hash === "#tracker") renderTracker(); if (location.hash === "#roster") renderRosterTab(); });
