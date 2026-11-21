@@ -136,12 +136,12 @@ function progressionRows(ed, kind, name, option = "") {
       const features = revised ? revisedNames.split(", ").filter(Boolean)
         : [...(C.f[level] || []), ...(!C.hb && additions ? additions.split(", ") : [])];
       features.filter(f => f !== C.sub[0] && f !== name + " Subclass" && !/^(Primal Path|Bard College|Divine Domain|Druid Circle|Martial Archetype|Monastic Tradition|Sacred Oath|Ranger Archetype|Roguish Archetype|Sorcerous Origin|Otherworldly Patron|Arcane Tradition)$/.test(f))
-        .forEach(f => add(level, f, revised ? PROGRESSION_SUMMARIES[f] || FEAT_DESC_2024[f] || "" : featDesc(f, ctx)));
+        .forEach(f => add(level, f, revised ? PROGRESSION_SUMMARIES[f] || FEAT_DESC_2024[f] || "" : featDesc(f, ctx) || PROGRESSION_SUMMARIES[f] || FEAT_DESC_2024[f] || ""));
       if (level === choice && subclassList(ed, name).length) add(level, "Choose a subclass");
       const milestones = name === "Cleric" && revised ? [6, 17] : SUBCLASS_MILESTONES[name];
       if (!C.hb && milestones?.includes(level)) add(level, "Subclass feature", "Select a subclass above to see the feature.");
       if ((C.asi || [4, 8, 12, 16, 19]).includes(level)) {
-        const feature = (revised || C.hbx?.id === "reference-efota-artificer") && level === 19 ? "Epic Boon" : "Ability Score Improvement";
+        const feature = (revised || C.hbx?.bookBase || C.hbx?.id === "reference-efota-artificer") && level === 19 ? "Epic Boon" : "Ability Score Improvement";
         add(level, feature, PROGRESSION_SUMMARIES[feature]);
       }
       if (name === "Rogue" && level % 2 === 1) add(level, "Sneak Attack damage", Math.ceil(level / 2) + "d6");

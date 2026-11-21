@@ -3,12 +3,19 @@
 /* ---- limited-use resources (ki, rages, slots, hit dice…), the Abilities list, and rests ---- */
 // recharge: "long" = back on a long rest; "short" = all back on a short rest; "short1" = one back on a short rest (2024 rules)
 function pcResources(c) {
-  const ed = edOf(c), lv = c.level, m = c.mods, prof = c.prof, has = n => (c.feats || []).some(f => f.f === n), tr = n => (c.traits || []).includes(n); const CLV = k => clsLv(c, k), TLV = totalLv(c);
+  const ed = edOf(c), lv = c.level, m = c.mods, prof = c.prof, has = n => (c.feats || []).some(f => f.f === n), tr = n => (c.traits || []).includes(n); const CLV = k => classFeatureLevel(c, k), TLV = totalLv(c);
   const R = [], add = (key, name, max, recharge) => R.push({ key, name, max, recharge });
   add("hd", `Hit dice (${[...new Set(c.hdList || [c.hd])].map(d => "d" + d).join(" + ")})`, TLV, "hd");
+  if (clsLv(c, "Death Knight")) add("deathCoil", "Death Coil dice", Math.max(1, 1 + c.mods.cha), "long");
+  if (has("Runic Smite")) add("freeRuneStrike", "Free Rune Strike", 1, "long");
+  if (clsLv(c, "Death Knight") >= 5) add("freeFindSteed", "Free Find Steed", 1, "long");
+  if (has("Soul Fragments")) {
+    const level = clsLv(c, "Demon Hunter");
+    add("soulFragments", "Soul fragments", Math.max(1, c.mods.wis) + (level >= 13 ? 1 : 0) + (level >= 17 ? 1 : 0), "long");
+  }
   if (has("Rage")) add("rage", "Rages", ed === "2014" && CLV("Barbarian") >= 20 ? Infinity : CLV("Barbarian") >= 17 ? 6 : CLV("Barbarian") >= 12 ? 5 : CLV("Barbarian") >= 6 ? 4 : CLV("Barbarian") >= 3 ? 3 : 2, ed === "2024" ? "short1" : "long");
   if (has("Bardic Inspiration")) add("bardic", "Bardic Inspiration", Math.max(1, m.cha), CLV("Bard") >= 5 ? "short" : "long");
-  if (has("Channel Divinity")) add("channel", "Channel Divinity", ed === "2024" ? (CLV("Cleric") >= 18 ? 4 : CLV("Cleric") >= 6 ? 3 : 2) : (CLV("Cleric") >= 18 ? 3 : CLV("Cleric") >= 6 ? 2 : 1), ed === "2024" ? "short1" : "short");
+  if (has("Channel Divinity") && (CLV("Cleric") || CLV("Paladin") < 3)) add("channel", "Channel Divinity", ed === "2024" ? (CLV("Cleric") >= 18 ? 4 : CLV("Cleric") >= 6 ? 3 : 2) : (CLV("Cleric") >= 18 ? 3 : CLV("Cleric") >= 6 ? 2 : 1), ed === "2024" ? "short1" : "short");
   if (CLV("Paladin") >= 3) add("channel", "Channel Divinity", ed === "2024" ? (CLV("Paladin") >= 11 ? 3 : 2) : 1, ed === "2024" ? "short1" : "short");
   if (has("Wild Shape")) add("wild", "Wild Shape", ed === "2014" && CLV("Druid") >= 20 ? Infinity : ed === "2024" ? (CLV("Druid") >= 17 ? 4 : CLV("Druid") >= 6 ? 3 : 2) : 2, ed === "2024" ? "short1" : "short");
   if (has("Second Wind")) add("wind", "Second Wind", ed === "2024" ? (CLV("Fighter") >= 10 ? 4 : CLV("Fighter") >= 4 ? 3 : 2) : 1, ed === "2024" ? "short1" : "short");
@@ -48,7 +55,7 @@ function resCtr(c, r) {
 }
 // features you use in play: actions, bonus actions, reactions, on-hit riders and auras, with this character's numbers
 function pcAbilities(c) {
-  const ed = edOf(c), lv = c.level, m = c.mods, prof = c.prof, has = n => (c.feats || []).some(f => f.f === n), tr = n => (c.traits || []).includes(n); const CLV = k => clsLv(c, k), TLV = totalLv(c);
+  const ed = edOf(c), lv = c.level, m = c.mods, prof = c.prof, has = n => (c.feats || []).some(f => f.f === n), tr = n => (c.traits || []).includes(n); const CLV = k => classFeatureLevel(c, k), TLV = totalLv(c);
   const A = [], add = (name, when, text, res, src) => A.push({ name, when, text, res, src });
   const wisDC = 8 + prof + m.wis, chaB = Math.max(1, m.cha);
   if (has("Rage")) add("Rage", "Bonus action", `+${CLV("Barbarian") >= 16 ? 4 : CLV("Barbarian") >= 9 ? 3 : 2} damage on Strength melee attacks, resistance to bludgeoning, piercing and slashing, advantage on Strength checks and saves. No spellcasting while raging.`, "rage");
@@ -56,7 +63,7 @@ function pcAbilities(c) {
   const ea = has("Extra Attack (3)") ? 4 : has("Extra Attack (2)") ? 3 : has("Extra Attack") ? 2 : 0;
   if (ea) add("Extra Attack", "Action", `Make ${ea} attacks when you take the Attack action.`);
   if (has("Bardic Inspiration")) add("Bardic Inspiration", "Bonus action", `Give a creature within 60 ft a d${CLV("Bard") >= 15 ? 12 : CLV("Bard") >= 10 ? 10 : CLV("Bard") >= 5 ? 8 : 6} to add to one attack, check or save.`, "bardic");
-  if (has("Channel Divinity")) add("Channel Divinity", "Action", `Turn Undead: undead within 30 ft make a WIS save (DC ${wisDC}) or are turned for 1 minute.${ed === "2024" ? ` Divine Spark: heal, or deal radiant or necrotic damage (CON save), ${CLV("Cleric") >= 18 ? 4 : CLV("Cleric") >= 13 ? 3 : CLV("Cleric") >= 7 ? 2 : 1}d8 + ${m.wis}.` : ""} Your domain adds more options.`, "channel");
+  if (has("Channel Divinity") && (CLV("Cleric") || CLV("Paladin") < 3)) add("Channel Divinity", "Action", `Turn Undead: undead within 30 ft make a WIS save (DC ${wisDC}) or are turned for 1 minute.${ed === "2024" ? ` Divine Spark: heal, or deal radiant or necrotic damage (CON save), ${CLV("Cleric") >= 18 ? 4 : CLV("Cleric") >= 13 ? 3 : CLV("Cleric") >= 7 ? 2 : 1}d8 + ${m.wis}.` : ""} Your domain adds more options.`, "channel");
   if (CLV("Paladin") >= 3) add("Channel Divinity", "Action", `Use one of your Sacred Oath's Channel Divinity options${ed === "2024" ? ", or Divine Sense" : ""}.`, "channel");
   if (has("Wild Shape")) add("Wild Shape", ed === "2024" ? "Bonus action" : "Action", (L => `Turn into a beast up to CR ${crText(L.cr)}${L.noFly && L.noSwim ? " (no flying or swimming)" : L.noFly ? " (no flying)" : ""} for ${Math.max(1, Math.floor(CLV("Druid") / 2))} hour${CLV("Druid") >= 4 ? "s" : ""}. Pick the beast, then Activate.`)(wildShapeLimit(c)), "wild");
   if (has("Second Wind")) add("Second Wind", "Bonus action", `Regain 1d10 + ${CLV("Fighter")} hit points.`, "wind");
@@ -107,7 +114,7 @@ const giveTemp = (c, n) => { if (n > (+c.hpTemp || 0)) { c.hpTemp = n; return tr
 const wearingArmor = c => (c.inv || []).some(i => i.eq && (+i.qty || 0) > 0 && (a => a && a.cat !== "Shield")(eqArmorOf(i, edOf(c))));
 const isActive = (c, n) => !!(c.active || {})[n];
 const maDie = c => { const lv = clsLv(c, "Monk") || c.level; return edOf(c) === "2024" ? (lv >= 17 ? 12 : lv >= 11 ? 10 : lv >= 5 ? 8 : 6) : (lv >= 17 ? 10 : lv >= 11 ? 8 : lv >= 5 ? 6 : 4); };
-const rageDmg = c => { const l = clsLv(c, "Barbarian"); return l >= 16 ? 4 : l >= 9 ? 3 : 2; };
+const rageDmg = c => { const l = classFeatureLevel(c, "Barbarian"); return l >= 16 ? 4 : l >= 9 ? 3 : 2; };
 const psiDie = c => c.level >= 17 ? 12 : c.level >= 11 ? 10 : c.level >= 5 ? 8 : 6;
 const healMsg = (c, label, r) => { const h = healSelf(c, r.total); return `${label}: ${r.text}. You regain ${h} hit point${h === 1 ? "" : "s"} (${c.hpCur}/${c.hp}).`; };
 const rollMsg = (label, expr, tail) => { const r = rollDice(expr); return `${label}: ${r.text}${tail ? ". " + tail : ""}`; };
@@ -176,9 +183,9 @@ const ACT = {
   "Cosmic Omen": { kind: "instant", use: () => rollMsg("Cosmic Omen", "1d6", "Add it to an ally's roll (Weal) or subtract it from an enemy's (Woe)") },
   "Natural Recovery": { kind: "instant", dialog: (c, a) => recoveryDialog(c, "Natural Recovery", a.res) },
   // ---------- Fighter
-  "Second Wind": { kind: "instant", use: c => healMsg(c, "Second Wind", rollDice(`1d10+${clsLv(c, "Fighter")}`)) },
+  "Second Wind": { kind: "instant", use: c => healMsg(c, "Second Wind", rollDice(`1d10+${classFeatureLevel(c, "Fighter")}`)) },
   "Action Surge": { kind: "instant", use: () => "Action Surge: take one additional action this turn." },
-  Indomitable: { kind: "instant", use: c => `Indomitable: reroll the failed saving throw${edOf(c) === "2024" ? `, adding +${clsLv(c, "Fighter")}` : ""}.` },
+  Indomitable: { kind: "instant", use: c => `Indomitable: reroll the failed saving throw${edOf(c) === "2024" ? `, adding +${classFeatureLevel(c, "Fighter")}` : ""}.` },
   "Combat Superiority": { kind: "instant", choices: c => { const mine = choiceOf(c, "Combat Superiority").map(id => MANEUVERS.find(m => m[0] === id)).filter(Boolean).map(m => [m[0], m[1]]); return mine.length ? mine : [["trip", "Trip Attack"], ["riposte", "Riposte"], ["precision", "Precision Attack"], ["disarm", "Disarming Attack"], ["push", "Pushing Attack"], ["menace", "Menacing Attack"], ["other", "Other maneuver"]]; },
     use: (c, ch) => { const d = c.level >= 18 ? 12 : c.level >= 10 ? 10 : 8, dc = 8 + c.prof + Math.max(c.mods.str, c.mods.dex), lab = (MANEUVERS.find(m => m[0] === ch) || [, "Maneuver"])[1]; return ch === "precision" ? rollMsg(lab, `1d${d}`, "Add it to the attack roll") : roll(lab, `1d${d}`, "damage", `Extra damage on the hit${["trip", "disarm", "push", "menace"].includes(ch) ? `; the target makes a save against DC ${dc}` : ""}`); } },
   "Psionic Power": { kind: "instant", choices: c => c.subclass === "Soulknife" ? [["knack", "Psi-Bolstered Knack"], ["whisper", "Psychic Whispers"]] : [["field", "Protective Field"], ["strike", "Psionic Strike"], ["move", "Telekinetic Movement"]],
@@ -384,6 +391,14 @@ function actDialogClick(e) {
     const R = ACTX.r, k = R.kind === "either" ? (($("input[name=actKind]:checked") || {}).value || "damage") : R.kind, n = ap.dataset.actapply === "half" ? Math.floor(R.amount / 2) : R.amount;
     const msg = actApply($("#actTarget").value, n, k); actClose(); toast(msg); return;
   }
+  const spellDiceButton = e.target.closest("[data-spell-dice]");
+  if (spellDiceButton) {
+    const expression = spellDiceButton.dataset.spellDice;
+    const roll = rollDice(expression);
+    $("[data-spell-roll]").textContent = roll.text;
+    if (ACTX.c) rollLog(ACTX.c, { label: `${ACTX.cast.name} · ${expression}`, total: roll.total, note: roll.text });
+    return;
+  }
   const rc = e.target.closest("[data-recover]"); if (rc) { recoveryConfirm(); return; }
   if (e.target.closest("[data-castgo]")) { castGo(); return; }
   const lvb = e.target.closest("[data-castlv]"); if (lvb && !lvb.disabled) { castPick(lvb.dataset.castlv); return; }
@@ -493,8 +508,8 @@ function actAoeDialog(c, R) {
   ACTX.c = c; ACTX.r = R; ACTX.aoe = null;
   const L = aoeTargets(c, edOf(c)), groups = [...new Set(L.map(t => t.group))];
   actDialog(`<h3 id="actTitle">${esc(R.title)}</h3><p style="margin:10px 0">${esc(R.desc)}</p>
-    ${L.length ? `<p class="hint" style="margin:0 0 6px">Tick every creature in the area${R.save ? `. Each one makes its own ${R.save.toUpperCase()} save against DC ${R.dc}` : ""}.</p>
-      <div class="aoe-list">${groups.map(g => `<fieldset><legend>${esc(g)}</legend>${L.filter(t => t.group === g).map(t => `<label class="aoe-t"><input type="checkbox" data-aoet="${esc(t.id)}" ${t.foe ? "checked" : ""}> ${esc(t.label)}</label>`).join("")}</fieldset>`).join("")}</div>
+    ${L.length ? `<p class="hint" style="margin:0 0 6px">${R.singleTarget ? "Select the target" : "Tick every creature in the area"}${R.save ? `. Each one makes its own ${R.save.toUpperCase()} save against DC ${R.dc}` : ""}.</p>
+      <div class="aoe-list">${groups.map(g => `<fieldset><legend>${esc(g)}</legend>${L.filter(t => t.group === g).map(t => `<label class="aoe-t"><input type="${R.singleTarget ? "radio" : "checkbox"}" name="aoeTarget" data-aoet="${esc(t.id)}" ${t.foe && !R.singleTarget ? "checked" : ""}> ${esc(t.label)}</label>`).join("")}</fieldset>`).join("")}</div>
       <div class="seg" role="radiogroup" aria-label="Damage rolls" style="margin-top:10px"><label class="opt"><input type="radio" name="aoeShare" value="0" ${aoeShared() ? "" : "checked"}><span>Separate ${esc(R.expr)} roll for each target</span></label><label class="opt"><input type="radio" name="aoeShare" value="1" ${aoeShared() ? "checked" : ""}><span>One shared roll for everyone (rules as written)</span></label></div>
       <div class="row" style="justify-content:flex-end;margin-top:14px;flex-wrap:wrap"><button class="btn" type="button" data-actclose style="flex:0 0 auto">Cancel</button><button class="btn primary" type="button" data-aoeroll style="flex:0 0 auto" autofocus>Roll damage</button></div>`
     : `<p class="hint">No creatures to target. Add an encounter with monsters in the Campaign Tracker, or other characters on the Characters tab.</p><div class="row" style="justify-content:flex-end"><button class="btn primary" type="button" data-actclose style="flex:0 0 auto">OK</button></div>`}`);

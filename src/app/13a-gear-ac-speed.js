@@ -86,7 +86,7 @@ function eqWeaponOf(i, ed) {
 function eqProficient(c, w) {
   if (/^Simple/.test(w.cat) || w.cat === "Arcane Foci") return true;
   const props = ((w.st.find(([k]) => k === "Properties") || [])[1] || "");
-  if (["Barbarian", "Fighter", "Paladin", "Ranger"].includes(c.cls) || (c.multi || []).some(x => MC_MARTIAL.includes(x.cls))) return true;
+  if (["Barbarian", "Fighter", "Paladin", "Ranger"].includes(baseClassOf(c.cls)) || (c.multi || []).some(x => MC_MARTIAL.includes(baseClassOf(x.cls)))) return true;
   if (w.n === "Shortsword" && (c.multi || []).some(x => x.cls === "Monk")) return true;
   if (["Rogue", "Bard"].includes(c.cls)) return /Finesse|Light/.test(props) || /^(Longsword|Crossbow, hand|Hand Crossbow)$/.test(w.n);
   if (c.cls === "Druid") return w.n === "Scimitar";
@@ -125,12 +125,12 @@ const fightSlots = c => ((c.feats || []).some(f => f.f === "Fighting Style") ? 1
 const hasStyle = (c, n) => (c.fightStyles || []).slice(0, fightSlots(c)).includes(n);
 // armor the character is trained in: class, subclass, species and feats
 function armorTraining(c) {
-  const ed = edOf(c), T = new Set(({ Barbarian: "light medium shield", Bard: "light", Cleric: "light medium shield", Druid: ed === "2024" ? "light shield" : "light medium shield", Fighter: "light medium heavy shield", Monk: "", Paladin: "light medium heavy shield", Ranger: "light medium shield", Rogue: "light", Sorcerer: "", Warlock: "light", Wizard: "" }[c.cls] || (CLASS_DATA[c.cls] && CLASS_DATA[c.cls].armorT) || "").split(" ").filter(Boolean));
+  const ed = edOf(c), T = new Set(({ Barbarian: "light medium shield", Bard: "light", Cleric: "light medium shield", Druid: ed === "2024" ? "light shield" : "light medium shield", Fighter: "light medium heavy shield", Monk: "", Paladin: "light medium heavy shield", Ranger: "light medium shield", Rogue: "light", Sorcerer: "", Warlock: "light", Wizard: "" }[baseClassOf(c.cls)] || (CLASS_DATA[c.cls] && CLASS_DATA[c.cls].armorT) || "").split(" ").filter(Boolean));
   const sub = c.subclass || "", f = n => (c.feats || []).some(x => x.f.replace(/ \(.*$/, "") === "Feat: " + n);
   if (ed === "2014" && ["Life Domain", "Nature Domain", "Tempest Domain", "War Domain"].includes(sub) && c.level >= 1) T.add("heavy");
   if (sub === "College of Valor" && c.level >= 3) { T.add("medium"); T.add("shield"); }
   if ((c.traits || []).includes("Dwarven Armor Training")) { T.add("light"); T.add("medium"); }
-  (c.multi || []).forEach(x => (MC_ARMOR[x.cls] || "").split(" ").filter(Boolean).forEach(k => T.add(k)));
+  (c.multi || []).forEach(x => (MC_ARMOR[baseClassOf(x.cls)] || "").split(" ").filter(Boolean).forEach(k => T.add(k)));
   if (f("Lightly Armored")) T.add("light");
   if (f("Moderately Armored")) { T.add("light"); T.add("medium"); T.add("shield"); }
   if (f("Heavily Armored")) { T.add("light"); T.add("medium"); T.add("heavy"); }
@@ -195,7 +195,7 @@ function pcAC(c) {
     if (fx.mageArmor) opts.push([13 + m.dex, "Mage Armor (13 + DEX)"]);
     if (c.subclass === "College of Dance" && c.level >= 3 && !shield) opts.push([10 + m.dex + m.cha, "Dazzling Footwork (10 + DEX + CHA)"]);
     F.acUnarm.forEach(o => opts.push(o));
-    if (c.cls === "Barbarian") opts.push([10 + m.dex + m.con, "Unarmored Defense (10 + DEX + CON)"]);
+    if (baseClassOf(c.cls) === "Barbarian") opts.push([10 + m.dex + m.con, "Unarmored Defense (10 + DEX + CON)"]);
     if (c.cls === "Monk" && !shield) opts.push([10 + m.dex + m.wis, "Unarmored Defense (10 + DEX + WIS)"]);
     const B = subBonusOf(c); if (B.ac) opts.push(B.ac);
     const best = opts.sort((a, b) => b[0] - a[0])[0]; ac = best[0]; parts.push(`${best[1]} ${best[0]}`);

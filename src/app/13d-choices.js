@@ -63,7 +63,14 @@ const CHOICES = {
   "Vestige Companion": expansionChoice("Warlock", "Vestige Patron", "Companion type", ["Celestial", "Fiend", "Undead"], () => 1, "2024"),
   "Vestige Spells": expansionChoice("Warlock", "Vestige Patron", "Vestige domain", ["Life", "Light", "Trickery", "War"], () => 1, "2024"),
   "Arcane Archer Lore": expansionChoice("Fighter", "Arcane Archer", "Cantrip", ["Druidcraft", "Prestidigitation"], () => 1, "2024"),
-  "Runeforging": expansionChoice("Paladin", "Oath of the Ebon Blade", "Weapon rune", ["Blood", "Frost", "Unholy"], () => 1, "2024"),
+  "Runeforging": {
+    label: "Weapon rune",
+    n: c => Math.max(expansionSubclassLevel(c, "Death Knight", "Oath of the Ebon Blade", "2024"),
+      expansionSubclassLevel(c, "Paladin", "Oath of the Ebon Blade", "2024")) >= 3 ? 1 : 0,
+    opts: () => opt3(["Blood", "Frost", "Unholy"]),
+  },
+  "Demon Hunter specialization": expansionChoice("Demon Hunter", "Demon Hunter", "Specialization", ["Devourer", "Havoc", "Vengeance"], () => 1, "2024"),
+  "Evoker specialization": expansionChoice("Evoker", "Draconic Sorcery", "Specialization", ["Augmentation", "Devastation", "Preservation"], () => 1, "2024"),
   "Storm Aura": expansionChoice("Barbarian", "Path of the Storm Herald", "Storm environment", ["Desert", "Sea", "Tundra"]),
   "Divine Fury": expansionChoice("Barbarian", "Path of the Zealot", "Divine Fury damage", ["Radiant", "Necrotic"]),
   "Form of the Beast": expansionChoice("Barbarian", "Path of the Beast", "Natural weapon for this rage", ["Bite", "Claws", "Tail"]),
@@ -129,6 +136,8 @@ for (const level of [6, 7, 8, 9]) {
   CHOICES["Arcane Mastery " + level] = { label: "Level " + level + " wizard spell", n: () => 1, opts: c => choiceSpellOptions(c, s => s.l === level && s.c.includes("Wizard")) };
 }
 const additionalFeatureChoices = {
+  "Demon Hunter Spells": ["Demon Hunter specialization"],
+  "Evoker Spells": ["Evoker specialization"],
   "Giant Power": ["Giant Power language"],
   "Arcane Mastery": [6, 7, 8, 9].map(level => "Arcane Mastery " + level)
 };
@@ -155,6 +164,33 @@ function miHTML(c) {
   return `<div class="choice"><span class="lbl" style="margin:0">Spell list</span>${lists.length > 1 ? `<select data-mi="list" aria-label="Spell list"><option value="">Choose…</option>${lists.map(l => `<option ${list === l ? "selected" : ""}>${esc(l)}</option>`).join("")}</select>` : `<span class="tag">${esc(list)}</span>`}
     ${list ? `<span class="lbl" style="margin:0">Cantrips ${M.can.length}/2</span>${pick("c", 0, 2, M.can)}<span class="lbl" style="margin:0">1st level ${M.one.length}/1</span>${pick("s", 1, 1, M.one)}
     <p class="hint" style="margin:4px 0 0">These are added to your spells. Cast the 1st-level spell once per long rest without a slot ("Without a slot"), or with your slots.</p>` : ""}</div>`;
+}
+function syncBookSpells(c) {
+  const ed = edOf(c);
+  if (ed !== "2024") return;
+  const classes = [{ cls: c.cls, lv: c.level, subclass: c.subclass }, ...(c.multi || [])];
+  if (!classes.some(x => classData(ed, x.cls)?.hbx?.bookBase) && !c.prepared.some(p => p.bookGrant)) return;
+
+  c.prepared = c.prepared.filter(p => !p.bookGrant);
+  const add = (track, level, label) => {
+    for (const [minimum, names] of Object.entries(track || {})) {
+      if (+minimum > level) continue;
+      for (const name of names) {
+        const spell = spellOf(ed, name);
+        if (spell && !isPrep(c, spell.n, ed)) c.prepared.push({ n: spell.n, l: spell.l, ed, src: label, bookGrant: true });
+      }
+    }
+  };
+  for (const { cls, lv, subclass } of classes) {
+    const data = classData(ed, cls)?.hbx;
+    if (!data?.bookBase) continue;
+    add(data.alwaysPrepared, lv, cls);
+    const entry = subclassEntry(ed, cls, subclass);
+    if (entry?.spellTracks) {
+      add(entry.spellTracks.All, lv, subclass);
+      add(entry.spellTracks[choiceOf(c, entry.spellTrackChoice)[0]], lv, subclass);
+    }
+  }
 }
 function miSync(c) {
   const M = miState(c), ed = edOf(c);

@@ -341,7 +341,7 @@ function featDesc(f, c, feature) {
   const row = chosenSubclassFeature(f, c, feature);
   if (row) return (row.d || "") + fxNote(row.fx);
   const classRow = classData(ed, cls)?.hbx?.features?.find(x => x.n === f);
-  if (classRow) return classRow.d || "";
+  if (classRow?.d) return classRow.d;
   if (f === "Subclass: not chosen yet") return "Pick your subclass with the Choose subclass button on this sheet.";
   if (f.startsWith("Subclass: ")) return subclassDesc(f.slice(10), ed, cls);
   if (f.startsWith("Background: ")) return bgSummary(edOf(c), f.slice(12));

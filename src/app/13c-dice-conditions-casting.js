@@ -159,7 +159,7 @@ function spellOf(ed, name) {
 // what a spell does, read from its text: damage or healing dice, upcasting, cantrip growth, attack or save, area, number of rays or darts
 function spellPlan(sp) {
   const d = String(sp.d || ""), h = String(sp.h || "") + " " + d, P = { heal: false, dice: "", flat: 0, type: sp.dt || "", per: "", count: 1, countPer: 0, save: "", half: false, attack: sp.at || "", area: false, mod: false };
-  if (sp.rulesSummary) return P;
+  if (sp.rulesSummary || sp.manualRoll) return P;
   const heal = d.match(/regains?\s+(?:a number of\s+)?hit points equal to\s+(\d+d\d+)(\s*(?:\+|plus)\s*your spellcasting ability modifier)?/i);
   if (heal) { P.heal = true; P.dice = heal[1]; P.mod = !!heal[2]; }
   else {
@@ -171,7 +171,7 @@ function spellPlan(sp) {
   if (many) { P.count = { two: 2, three: 3, four: 4 }[many[1].toLowerCase()]; if (/(one more|one additional|additional)\s+(dart|ray|beam|bolt)/i.test(h)) P.countPer = 1; }
   const sv = (sp.sv || (d.match(/(strength|dexterity|constitution|intelligence|wisdom|charisma)\s+saving throw/i) || [])[1] || "").toLowerCase();
   P.save = AB_WORD[sv] || sv.slice(0, 3);
-  P.half = /half as much damage|half damage|half (?:as much )?on a success/i.test(d);
+  P.half = /half as much damage|half damage|half (?:as much )?on (?:a )?success|halved on success/i.test(d);
   if (!P.attack) { const at = d.match(/make an? (ranged|melee) spell attack/i); if (at) P.attack = at[1].toLowerCase(); }
   P.area = /\b\d+-foot[- ](?:radius|cone|cube|line|sphere|emanation|cylinder|square)|\beach creature\b/i.test(d);
   P.cantripTiers = sp.l === 0 && /when you reach 5th level|cantrip upgrade|levels? 5 \(/i.test(d);
@@ -202,11 +202,14 @@ function spellCaster(c, sp) {
 }
 /* The spell window: the full rules, then (on My Characters) "Cast at level" buttons and Cast. `o.view`: rules only (the
    Characters tab, where slots aren't tracked). The picked choice is kept in the hidden #castSlot that castGo reads. */
+const BOOK_FREE_CASTS = { "Rune Strike": "freeRuneStrike", "Find Steed": "freeFindSteed" };
 function castOpts(c, sp) {
   const R = pcResources(c), opts = [];
   if (sp.l === 0) { opts.push(["free", "Cantrip", "no slot needed"]); return opts; }
   R.filter(r => /^slot\d$/.test(r.key) && +r.key.slice(4) >= sp.l).forEach(r => { const L = +r.key.slice(4), left = resLeft(c, r); opts.push([r.key, ordinal(L), `${left} left`, !left]); });
   const pact = R.find(r => r.key === "pact"); if (pact) { const L = +(pact.name.match(/level (\d)/) || [])[1]; if (L >= sp.l) opts.push(["pact", `Pact slot (${ordinal(L)})`, `${resLeft(c, pact)} left`, !resLeft(c, pact)]); }
+  const grant = R.find(r => r.key === BOOK_FREE_CASTS[sp.n]);
+  if (grant) opts.push([grant.key, grant.name, `${resLeft(c, grant)} left per long rest`, !resLeft(c, grant)]);
   if (sp.ri) opts.push(["ritual", "As a ritual", "no slot, 10 min longer"]);
   opts.push(["free", "Without a slot", "a feature or item"]);
   return opts;
@@ -219,10 +222,13 @@ function castSlotLevel(c, sp, how) {
 function castPreview(c, sp, how) {
   const P = spellTweak(c, sp, spellPlan(sp)), K = spellCaster(c, sp), slot = castSlotLevel(c, sp, how), up = Math.max(0, slot - sp.l);
   const count = P.count + (P.countPer ? up : 0), parts = [];
+  if (sp.manualRoll && sp.sv) parts.push(`${sp.sv.toUpperCase()} save DC ${K.dc}`);
+  if (sp.manualRoll && sp.at) parts.push(`Spell attack ${sgn(K.atk)}`);
   if (P.attack) parts.push(`Spell attack ${sgn(K.atk)}`); else if (P.save) parts.push(`${P.save.toUpperCase()} save against DC ${K.dc}`);
   if (P.dice) parts.push(`${P.heal ? "heals" : "deals"} ${spellDice(c, sp, P, slot)}${P.type && !P.heal ? " " + P.type.toLowerCase() : ""}${count > 1 ? ` × ${count}` : ""}`);
   if (sp.l && up && (P.per || P.countPer)) parts.push(`upcast +${up} level${up === 1 ? "" : "s"}`);
   if (sp.rulesSummary) parts.push("Resolve the spell’s effects using its sourcebook");
+  if (sp.manualEffects) parts.push("Use the spell description for additional effects");
   if (sp.co) parts.push(`needs concentration${c.conc ? ` (ends ${c.conc.spell})` : ""}`);
   return (sp.l ? `At ${ordinal(slot)}: ` : "") + (parts.join(" · ") || "No dice to roll.");
 }
@@ -260,6 +266,11 @@ function castGo() {
   let slot = sp.l;
   if (/^slot\d$/.test(how)) { const r = R.find(x => x.key === how); if (!r || resLeft(c, r) < 1) { toast("No slot of that level left"); return; } c.used[how] = (+c.used[how] || 0) + 1; slot = +how.slice(4); }
   else if (how === "pact") { const r = R.find(x => x.key === "pact"); if (!r || resLeft(c, r) < 1) { toast("No pact slot left"); return; } c.used.pact = (+c.used.pact || 0) + 1; slot = +(r.name.match(/level (\d)/) || [])[1] || sp.l; }
+  const grant = R.find(r => r.key === how && BOOK_FREE_CASTS[sp.n] === how);
+  if (grant) {
+    if (!resLeft(c, grant)) { toast("No free uses left until a long rest"); return; }
+    c.used[how] = (+c.used[how] || 0) + 1;
+  }
   const notes = [`${c.name} casts ${sp.n}${sp.l ? ` at level ${slot}` : ""}${how === "ritual" ? " as a ritual" : ""}.`];
   if (sp.co) { const ended = concStart(c, sp.n); if (ended) notes.push(ended); notes.push(`Concentrating on ${sp.n}.`); }
   rollLog(c, { label: `Cast ${sp.n}`, total: sp.l ? `L${slot}` : "✦", note: how === "free" ? "no slot" : how === "ritual" ? "ritual" : "" });
@@ -270,15 +281,17 @@ function castGo() {
     actDialog(`<h3 id="actTitle">${esc(sp.n)}</h3><p>${esc(notes.join(" "))}</p>${summoned}<button class="btn" type="button" data-actclose>Close</button>`);
     return;
   }
-  if (sp.rulesSummary) {
+  if (sp.rulesSummary || sp.manualRoll) {
+    const manualDice = sp.manualRoll ? [...new Set((sp.d + " " + sp.h).match(/\b[1-9]\d?d(?:4|6|8|10|12|20|100)\b/gi) || [])] : [];
     actDialog(`<h3 id="actTitle">${esc(sp.n)}</h3><p>${esc(notes.join(" "))}</p>
-      <p class="hint">Resolve the remaining effects using the sourcebook.</p>
+      ${sp.rulesSummary ? '<p class="hint">Resolve the remaining effects using the sourcebook.</p>' : ""}
       ${spDetail(sp, { edition: ed, actions: false })}
+      ${manualDice.length ? `<div class="row" style="flex-wrap:wrap">${manualDice.map(expr => `<button class="btn sm" type="button" data-spell-dice="${esc(expr)}">Roll ${esc(expr)}</button>`).join("")}</div><p role="status" data-spell-roll></p>` : ""}
       <button class="btn" type="button" data-actclose>Close</button>`);
     return;
   }
   if (!dice) { actClose(); toast(notes.join(" ")); return; }
-  if (P.heal) { const r = rollDice(dice); actResultDialog(c, { title: sp.n, msg: `${notes.join(" ")} Healing ${r.text}.`, amount: r.total, kind: "heal" }); return; }
+  if (P.heal) { const r = rollDice(dice); actResultDialog(c, { title: sp.n, msg: `${notes.join(" ")} Healing ${r.text}.${sp.manualEffects ? " " + sp.d : ""}`, amount: r.total, kind: "heal" }); return; }
   if (P.attack) {
     const lines = []; let tot = 0;
     for (let i = 0; i < count; i++) {
@@ -288,12 +301,12 @@ function castGo() {
       lines.push(`${count > 1 ? `${sp.n === "Eldritch Blast" ? "beam" : /dart/i.test(sp.d) ? "dart" : "ray"} ${i + 1}: ` : ""}attack ${a.total}${a.crit ? " (critical)" : a.fumble ? " (natural 1, misses)" : ""}, damage ${hit.total}`);
       if (!a.fumble) tot += hit.total;
     }
-    actResultDialog(c, { title: sp.n, msg: `${notes.join(" ")} ${lines.join("; ")}. Apply the damage of the attacks that hit (total if all hit: ${tot}).`, amount: tot, kind: "damage" });
+    actResultDialog(c, { title: sp.n, msg: `${notes.join(" ")} ${lines.join("; ")}. Apply the damage of the attacks that hit (total if all hit: ${tot}).${sp.manualEffects ? " " + sp.d : ""}`, amount: tot, kind: "damage" });
     return;
   }
   if (P.save) {
     const expr = count > 1 ? dice.replace(/^(\d+)d/, (m, n) => `${n * count}d`) : dice;
-    actAoeDialog(c, { aoe: true, title: sp.n, expr, save: P.save, dc: K.dc, dtype: P.type || "", noneOnSave: !P.half, desc: `${notes.join(" ")} ${P.area ? "" : "Tick only the target. "}${P.half ? "Half damage on a successful save." : "No damage on a successful save."}` });
+    actAoeDialog(c, { aoe: true, title: sp.n, expr, save: P.save, dc: K.dc, dtype: P.type || "", noneOnSave: !P.half, singleTarget: !P.area, note: sp.manualEffects ? sp.d : "", desc: `${notes.join(" ")} ${P.area ? "" : "Tick only the target. "}${P.half ? "Half damage on a successful save." : "No damage on a successful save."}${sp.manualEffects ? " " + sp.d : ""}` });
     return;
   }
   // automatic hits such as Magic Missile: every dart rolls

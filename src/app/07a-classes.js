@@ -424,7 +424,11 @@ const subFeatList = (ed, name, lv) => subFeatsOf(ed, name).filter(x => x[0] <= l
 function subFeatDesc(f, c) { if (!c) return ""; for (const sc2 of [c.subclass, ...(c.multi || []).map(m => m.subclass)].filter(Boolean)) { const x = subFeatsOf(edOf(c), sc2).find(y => y[1] === f); if (x) return x[2]; } return ""; }
 // keep a saved character's subclass features in step with its subclass and level
 function pcSubSync(c) {
-  const keep = (c.feats || []).filter(f => !f.sub), add = c.subclass ? subFeatList(edOf(c), c.subclass, c.level) : [];
+  const ed = edOf(c);
+  const entry = c.subclass && subclassEntry(ed, c.cls, c.subclass);
+  const keep = (c.feats || []).filter(f => !f.sub && !f.bookSub);
+  const add = entry?.book ? entry.features.filter(f => +f.l <= c.level)
+    .map(f => ({ l: +f.l, f: f.n, bookSub: true })) : c.subclass && !entry ? subFeatList(ed, c.subclass, c.level) : [];
   const before = JSON.stringify(c.feats || []);
   c.feats = [...keep, ...add].sort((a, b) => a.l - b.l);
   return JSON.stringify(c.feats) !== before;
@@ -530,8 +534,13 @@ function bookSubclassEntries(ed, cls) {
 }
 function subclassEntry(ed, cls, name, includePending = true) {
   const custom = includePending ? [...hbOf("subclass"), ...HB.pend.filter(x => x.kind === "subclass")] : hbOf("subclass");
-  return custom.find(x => x.cls === cls && x.name === name && hbEdOk(x, ed))
+  const entry = custom.find(x => x.cls === cls && x.name === name && hbEdOk(x, ed))
     || bookSubclassEntries(ed, cls).find(x => x.name === name);
+  if (!entry?.baseSubclass) return entry;
+  const features = subFeatsOf(ed, entry.baseSubclass)
+    .filter(([level, name]) => !entry.features.some(f => +f.l === level && f.n === name))
+    .map(([l, n, d]) => ({ l, n, d }));
+  return { ...entry, features: [...entry.features, ...features].sort((a, b) => +a.l - +b.l) };
 }
 function subclassList(ed, cls, allowed = () => true) {
   const builtIn = ((SUBCLASSES[ed] || SUBCLASSES["2014"])[cls]) || [];
@@ -553,6 +562,7 @@ const classList = ed => Object.keys(CLASS_DATA).filter(k => {
   const C = classData(ed, k);
   return !C.pend && (!C.hb || hbEdOk(C.hbx, ed));
 });
+const baseClassOf = name => CLASS_DATA[name]?.hbx?.bookBase || name;
 const builtInClasses = () => Object.keys(CLASS_DATA).filter(k => !CLASS_DATA[k].hb);
 /* whose spell list a class uses: its own, or for a homebrew class the class the DM chose */
 const clsSpellList = cls => (CLASS_DATA[cls] && CLASS_DATA[cls].spellsFrom) || cls;
@@ -574,6 +584,11 @@ function hbClassData(x) {
   const sk = x.skills || {}, from = sk.any || !(sk.from || []).length ? ALL_SKILLS : sk.from.filter(k => SKILLS[k]);
   const cast = (["full", "half", "pact"].includes(x.cast) || (x.book && x.cast === "artificer")) ? [x.cast, ab(x.castAb) || "int"] : undefined;
   const w = x.wpn || {}, asi = (Array.isArray(x.asi) ? x.asi : [4, 8, 12, 16, 19]).map(Number).filter(l => l >= 1 && l <= 20);
+  const parent = x.book && x.bookBase && CLASS_DATA[x.bookBase];
+  if (parent) {
+    const armorT = (x.armor || []).join(" ");
+    return { ...parent, hb: true, hbx: x, f, asi, sub: [x.subName, x.subLv], armorT };
+  }
   return { hb: true, hbx: x, ...(x.pend ? { pend: true } : {}), hd: [6, 8, 10, 12].includes(+x.hd) ? +x.hd : 8, pri, saves: (x.saves || []).filter(ab).slice(0, 2),
     skills: [from, clamp(parseInt(sk.n) || 0, 0, 8)], ac: m => [10 + m.dex, "No armor"],
     kit: String(x.kit || "").split(",").map(t => t.trim()).filter(Boolean).slice(0, 20),

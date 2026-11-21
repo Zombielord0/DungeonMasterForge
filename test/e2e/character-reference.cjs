@@ -309,7 +309,7 @@ const { chromium } = require("playwright");
     assert.equal(catalog.alias, "Acid Arrow");
     assert.deepEqual(catalog.variants, [[ "dmg-2024", 2, "Required" ], [ "dmg-2024", 2, "Required" ], [ "dmg-2024", 4, "Required" ]]);
     assert.ok(catalog.enspelledWeapons > 1);
-    assert.match(catalog.manualCast, /Resolve the spell’s effects/);
+    assert.match(catalog.manualCast, /Use the spell description for additional effects/);
     assert.equal(catalog.fromBook, "dmg-2024");
     assert.equal(catalog.backgroundSkills, 2);
     assert.equal(catalog.azerothDwarf, true);
@@ -328,6 +328,43 @@ const { chromium } = require("playwright");
     assert.match(await page.locator("#itList").textContent(), /Spell save DC 18/);
     await page.locator('#itList [data-it="give"]').click();
     assert.equal(await page.evaluate(() => PCS.roster.some(c => c.inv?.some(i => i.n === "Enspelled Weapon (Level 7)" && i.att))), true);
+    const warcraft = await page.evaluate(() => {
+      const classes = hbBook("class").filter(x => x.src === "wow").map(x => {
+        const sub = subclassList("2024", x.name)[0][0];
+        const c = pcEnsure(generateCharacter({ seed: "AZEROTH", ed: "2024", cls: x.name, subclass: sub, level: 17 }));
+        return { name: c.cls, subclass: sub, hitDie: c.hd, feats: c.feats.filter(f => f.bookSub).length,
+          available: classList("2024").includes(x.name) && !classList("2014").includes(x.name) };
+      });
+      const dk = pcEnsure(generateCharacter({ seed: "DK", ed: "2024", cls: "Death Knight", subclass: "Oath of the Ebon Blade", level: 17 }));
+      dk.choices = { Runeforging: ["Blood"] };
+      syncBookSpells(dk);
+      const blood = dk.prepared.some(x => x.n === "Bonestorm" && x.bookGrant);
+      dk.choices.Runeforging = ["Frost"];
+      syncBookSpells(dk);
+      const frost = dk.prepared.some(x => x.n === "Chains of Ice") && !dk.prepared.some(x => x.n === "Bonestorm");
+      const dh = pcEnsure(generateCharacter({ seed: "DH", ed: "2024", cls: "Demon Hunter", subclass: "Demon Hunter", level: 5 }));
+      dh.choices = { "Demon Hunter specialization": ["Havoc"] };
+      syncBookSpells(dh);
+      const pool = pcSpellPool(dh, "2024");
+      const eye = spellPlan(spellOf("2024", "Eye Beam"));
+      castDialog(dk, "2024", "Rune Strike");
+      castPick("freeRuneStrike");
+      castGo();
+      return { classes, blood, frost, frees: dk.used.freeRuneStrike, slots: dk.used.slot1 || 0,
+        eye: [eye.dice, eye.save, eye.half],
+        prepared: dh.prepared.map(x => x.n), demonHunterPool: pool.map(x => x.n),
+        assigned: SP.data["2024"].filter(s => s.src === "wow").every(s => s.c.length > 0 && !s.rulesSummary) };
+    });
+    assert.equal(warcraft.classes.length, 8);
+    assert.ok(warcraft.classes.every(row => row.available && row.hitDie >= 6 && row.feats > 0), JSON.stringify(warcraft.classes));
+    assert.equal(warcraft.blood && warcraft.frost && warcraft.assigned, true);
+    assert.equal(warcraft.frees, 1);
+    assert.equal(warcraft.slots, 0);
+    assert.deepEqual(warcraft.eye, ["3d6", "dex", true]);
+    assert.ok(warcraft.prepared.includes("Eye Beam") && warcraft.demonHunterPool.includes("Eye Beam"));
+    assert.match(await page.locator("#actModal").textContent(), /2d8 Necrotic/);
+    await page.getByRole("button", { name: "Roll 2d8", exact: true }).click();
+    assert.match(await page.locator("[data-spell-roll]").textContent(), /=/);
     assert.deepEqual(errors, []);
     console.log("PASS edition-aware progression, expansion subclass choices, item stats and attunement");
   } finally {

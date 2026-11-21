@@ -43,8 +43,8 @@ const X = { sp: data("extra-spells"), mon: data("extra-monsters"), it: data("ext
   check("options: ids are unique", new Set(X.opt.map(x => x.id)).size === X.opt.length);
   check("options: subclass feature names are unique within each level", X.opt.filter(x => x.kind === "subclass")
     .every(x => new Set(x.features.map(f => f.l + "|" + f.n)).size === x.features.length));
-  check("options: Artificer is the only additional class, with one entry per edition",
-    X.opt.filter(x => x.kind === "class").length === 2 &&
+  check("options: both Artificers and eight Warcraft classes have book entries",
+    X.opt.filter(x => x.kind === "class" && x.src === "wow" && x.ed === "2024").length === 8 &&
     X.opt.some(x => x.kind === "class" && x.name === "Artificer" && x.ed === "2024" && x.src === "efota") &&
     X.opt.some(x => x.kind === "class" && x.name === "Artificer" && x.ed === "2014" && x.src === "tce") &&
     !X.opt.some(x => /^book-bfrd/.test(x.id)));

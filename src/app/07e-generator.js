@@ -83,7 +83,7 @@ function generateCharacter(o) {
   // Skilled (an Origin feat): three more skills, picked with their own dice so other rolls stay the same
   const skilled = !bgFeat || bgFeat !== "Skilled" ? [] : o.keepSkilled ? o.keepSkilled.filter(x => SKILLS[x]) : makeRng("skilled", o.seed).shuffle(ALL_SKILLS.filter(x => !profSk.has(x))).sort((a, b) => m[SKILLS[b]] - m[SKILLS[a]]).slice(0, 3);
   skilled.forEach(x => profSk.add(x));
-  const mcSkills = o.keepMcSkills || MC.filter(x => ["Bard", "Ranger", "Rogue"].includes(x.cls)).flatMap(x => makeRng("mc" + x.cls, o.seed).shuffle(classData(ed, x.cls).skills[0].filter(k => !profSk.has(k))).sort((a, b) => m[SKILLS[b]] - m[SKILLS[a]]).slice(0, 1));
+  const mcSkills = o.keepMcSkills || MC.filter(x => ["Bard", "Ranger", "Rogue"].includes(baseClassOf(x.cls))).flatMap(x => makeRng("mc" + x.cls, o.seed).shuffle(classData(ed, x.cls).skills[0].filter(k => !profSk.has(k))).sort((a, b) => m[SKILLS[b]] - m[SKILLS[a]]).slice(0, 1));
   mcSkills.forEach(k => { if (SKILLS[k]) profSk.add(k); });
   const expert = new Set();
   // expertise: keep what the character already has, and pick more only when a new level grants it
