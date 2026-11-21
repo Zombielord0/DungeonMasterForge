@@ -5,9 +5,10 @@ const hdrPhone = matchMedia("(max-width:600px)");
 let hdrHold = 0, hdrPinned = false; // hdrPinned: "Show tabs" pressed while the laptop header was shrunk by scrolling; stays full until back at the top // until then, scrolling doesn't move the header (the page shifts when the full header opens)
 function hdrSync() {
   const H = document.documentElement, mini = hdrPhone.matches ? !H.classList.contains("hdr-full") : H.classList.contains("hdr-mini") || H.classList.contains("hdr-auto"), btn = document.getElementById("hdrToggle");
-  btn.textContent = mini ? "▾ Show tabs" : "▴ Hide tabs";
+  const label = hdrPhone.matches ? "toolbar" : "tabs";
+  btn.textContent = mini ? `▾ Show ${label}` : `▴ Hide ${label}`;
   btn.setAttribute("aria-expanded", String(!mini));
-  btn.title = mini ? "Show the toolbar and tabs" : "Hide the toolbar to give this tab more room";
+  btn.title = mini ? `Show the ${label}` : "Hide the toolbar to give this tab more room";
   const sel = document.getElementById("hdrTabSel"), tabs = $$("nav a").filter(a => !a.hidden);
   sel.innerHTML = tabs.map(a => `<option value="${esc(a.dataset.view)}"${a.classList.contains("active") ? " selected" : ""}>${esc(a.firstChild.textContent.trim())}</option>`).join("");
 }
@@ -58,6 +59,40 @@ function hdrShrink(y) {
   document.addEventListener("focusout", e => { if (field(e.target)) typing = false; });
 })();
 
+const mobileMenu = $("#mobileMenu");
+const mobileMore = $("#mobileMore");
+function mobileNavSync(view) {
+  const tabs = new Map($$("header nav a[data-view]:not([hidden])").map(a => [a.dataset.view, a]));
+  const shortcuts = document.body.classList.contains("portal-player")
+    ? [["roster", "Sheet"], ["spells", "Spells"], ["journal", "Journal"]]
+    : document.body.classList.contains("portal-dm")
+      ? [["tracker", "Encounter"], ["party", "Party"], ["compendium", "Compendium"]]
+      : [["roster", "Sheet"], ["spells", "Spells"], ["tracker", "Encounter"]];
+  const link = (key, label, shortcut = false) => `<a href="#${esc(key)}"${key === view ? ' aria-current="page"' : ""}${shortcut && key === "tracker" ? " data-mobile-encounters" : ""}>${esc(label)}</a>`;
+  const available = shortcuts.filter(([key]) => tabs.has(key));
+  const quickLinks = $("#mobileNavLinks");
+  const focused = quickLinks.contains(document.activeElement) ? document.activeElement.getAttribute("href") : null;
+  quickLinks.innerHTML = available.map(([key, label]) => link(key, label, true)).join("");
+  if (focused) [...quickLinks.children].find(a => a.getAttribute("href") === focused)?.focus({ preventScroll: true });
+  $("#mobileMenuLinks").innerHTML = [...tabs].map(([key, a]) => link(key, a.firstChild.textContent.trim())).join("");
+  mobileMore.classList.toggle("on", !available.some(([key]) => key === view));
+}
+mobileMore.addEventListener("click", () => mobileMenu.showModal());
+function mobileNavigate(e) {
+  const link = e.target.closest("a");
+  if (!link || e.defaultPrevented || e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) return;
+  if (link.hasAttribute("data-mobile-encounters")) {
+    subTab = "encounters";
+    if (location.hash === "#tracker") renderTracker();
+  }
+  if (mobileMenu.open) mobileMenu.close();
+  if (location.hash === link.hash) window.scrollTo({ top: 0, behavior: "instant" });
+}
+$("#mobileNavLinks").addEventListener("click", mobileNavigate);
+mobileMenu.addEventListener("click", mobileNavigate);
+mobileMenu.addEventListener("keydown", e => { if (e.key === "Escape") e.stopPropagation(); });
+hdrPhone.addEventListener("change", () => { if (!hdrPhone.matches && mobileMenu.open) mobileMenu.close(); });
+
 /* ======================= Routing ======================= */
 function route() {
   const views = (window.Portal && Portal.views) || ["generate", "npc", "world", "monsters", "character", "roster", "compendium", "spells", "feats", "items", "map", "tracker", "homebrew", "requests"];
@@ -66,9 +101,13 @@ function route() {
   if (v === "character") { v = "roster"; if (!PCS.roster.length && !currentPC) forgeOpen(); }
   /* the address says #roster too: refreshes after level-up, dialogs and homebrew changes check location.hash */
   if (v === "roster" && location.hash !== "#roster") history.replaceState(null, "", "#roster");
+  const previous = $("section.view.active");
   $$("section.view").forEach(s => s.classList.toggle("active", s.id === "view-" + v));
+  if (hdrPhone.matches && previous && previous.id !== "view-" + v) {
+    window.scrollTo({ top: 0, behavior: "instant" });
+    document.documentElement.classList.remove("hdr-away");
+  }
   $$("nav a").forEach(a => a.classList.toggle("active", a.dataset.view === v));
-  { const n = $("nav"), on = $("nav a.active"); if (n && on && n.scrollWidth > n.clientWidth) n.scrollTo({ left: Math.max(0, on.offsetLeft - n.clientWidth / 2 + on.offsetWidth / 2), behavior: "smooth" }); }
   if (v === "map" && !currentMap) renderMap();
   if (v === "map") mapPlaceFill();
   if (v === "tracker") renderTracker();
@@ -85,6 +124,7 @@ function route() {
   if (v === "journal" && window.Portal) Portal.renderJournal();
   if (v === "requests") renderRequests();
   hdrSync();
+  mobileNavSync(v);
 }
 window.addEventListener("hashchange", route);
 

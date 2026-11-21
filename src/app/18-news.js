@@ -2,6 +2,10 @@
    When a change ships, add an entry to the top of NEWS with a new id, in plain words for players and DMs. */
 
 const NEWS = [
+  { id: "2026-11-21-phone-session", date: "2026-11-21", title: "Play from your phone", go: "roster", items: [
+    "Use the bottom navigation to reach the tools you use during a session. Open More for the complete menu.",
+    "Adjust current HP and roll initiative or an attack from the top of your character sheet. Builder details open full screen on phones."
+  ] },
   { id: "2026-11-21-tasha-xanathar-subclasses", date: "2026-11-21", title: "Build with Tasha’s and Xanathar’s subclasses", go: "roster", items: [
     "Use the 2014 builder to select Artificer or browse subclasses from both books. The level-by-level view now describes their features.",
     "Save choices such as an Armorer model, Rune Knight runes, and a Genie patron in Features & Traits."] },

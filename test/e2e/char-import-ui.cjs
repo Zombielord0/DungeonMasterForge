@@ -1,7 +1,5 @@
 // The Import character window (run from char-import.cjs)
-const path = require("path");
-module.exports = async (p, { URL, check, FIX }) => {
-  const zook = path.join(FIX, "companion-zook.json");
+module.exports = async (p, { URL, check, zook }) => {
   await p.goto(URL + "#roster"); await p.waitForTimeout(300);
   await p.evaluate(() => { PCS.roster = []; pcPersist(); renderRosterTab(); });
   const hbCount = name => p.evaluate(n => HB.list.filter(x => x.name === n).length, name);
@@ -27,7 +25,7 @@ module.exports = async (p, { URL, check, FIX }) => {
   check("Import closes the window", await p.$("#impCharModal.open") === null);
   const ros = await p.evaluate(() => PCS.roster.map(c => [c.name, c.cls, c.level]));
   check("the character is on My Characters", ros.length === 1 && ros[0][0] === "Zook Hornraven", JSON.stringify(ros));
-  check("its homebrew is saved", await hbCount("Swarmkeeper [UA]") === 1 && await hbCount("Mark of Sentinel Human") === 1 && await hbCount("Blade Ward") === 1);
+  check("its homebrew is saved", await hbCount("Swarmkeeper [UA]") === 1 && await hbCount("Mark of Sentinel Human") === 1 && await hbCount("Glimmershell Aegis") === 1);
   check("the sheet opens on the new character", await p.evaluate(() => { const i = document.querySelector('#rosterMain [data-rf="name"]'); return !!i && i.value === "Zook Hornraven"; }) && /Ranger/.test(await p.textContent("#rosterMain")));
   // 4. importing again doesn't duplicate homebrew
   await open(); await choose(zook);
@@ -47,7 +45,7 @@ module.exports = async (p, { URL, check, FIX }) => {
 
   // 7. a signed-in player: new homebrew waits on the character
   await p.evaluate(() => {
-    HB.list = HB.list.filter(x => !["Swarmkeeper [UA]", "Mark of Sentinel Human", "Blade Ward"].includes(x.name)); hbApply();
+    HB.list = HB.list.filter(x => !["Swarmkeeper [UA]", "Mark of Sentinel Human", "Glimmershell Aegis"].includes(x.name)); hbApply();
     PCS.roster = []; window.__realPortal = window.Portal;
     window.Portal = { cloud: true, isDM: () => false, changed() { }, ownerTag: () => "", campName: () => "Test", hbPut: () => { throw new Error("players can't write homebrew"); } };
   });

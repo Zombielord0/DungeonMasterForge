@@ -204,7 +204,7 @@ function characterReference(title, html, trigger) {
       if (event.key === "Escape") event.stopPropagation();
     });
     dialog.addEventListener("close", () => {
-      if (!dialog.open && characterReferenceTrigger?.isConnected) characterReferenceTrigger.focus();
+      if (!dialog.open && characterReferenceTrigger?.isConnected) characterReferenceTrigger.focus({ preventScroll: true });
     });
   }
   $("#characterReferenceTitle").textContent = title;

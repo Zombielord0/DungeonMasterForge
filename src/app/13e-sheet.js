@@ -42,12 +42,39 @@ function inventoryAttunementCount(c) {
   const limit = level >= 18 ? 6 : level >= 14 ? 5 : level >= 10 ? 4 : 3;
   return `<b id="rcAttunementCount" class="${count > limit ? "over" : ""}">${count} / ${limit}</b>`;
 }
+function quickSheetActions(c) {
+  const attackIndex = c.attacks.findIndex(a => !a.save);
+  const attack = c.attacks[attackIndex];
+  return `
+    <button type="button" class="btn sm" data-quick-roll="init">Initiative</button>
+    ${attack ? `<button type="button" class="btn sm" data-quick-roll="atk:${attackIndex}">Roll ${esc(attack.name)}</button>` : ""}
+    <button type="button" class="btn sm" data-jump="attacks">Attacks</button>
+    ${hasSheetSpells(c) ? '<button type="button" class="btn sm" data-jump="spells">Spells</button>' : ""}
+    <button type="button" class="btn sm" data-jump="conditions">Conditions</button>`;
+}
+const hasSheetSpells = c => !!c.spell || (c.prepared || []).some(p => p.src);
+function quickSheetHTML(c) {
+  const conditions = CONDS.filter(([key]) => condOn(c, key)).map(([, label]) => label);
+  if (exhOf(c)) conditions.push(`Exhaustion ${exhOf(c)}`);
+  return `<section class="card mobile-sheet-quick" aria-label="Character quick controls">
+    <h3>${esc(c.name)}</h3>
+    <div class="mobile-vitals">
+      <label>Current HP <input type="number" inputmode="numeric" min="0" max="${esc(c.hp)}" data-quick-hp value="${esc(c.hpCur)}"></label>
+      <span>Max HP <b data-quick-vital="hp">${esc(c.hp)}</b></span>
+      <span>Temp HP <b data-quick-vital="hpTemp">${esc(c.hpTemp || 0)}</b></span>
+      <span>AC <b data-quick-vital="ac">${esc(c.ac)}</b></span>
+    </div>
+    ${conditions.length ? `<p>${esc(conditions.join(" · "))}</p>` : ""}
+    <div class="mobile-quick-actions">${quickSheetActions(c)}</div>
+  </section>`;
+}
+
 function rosterHTML(c) {
   const isb = itemSaveBonus(c), sv = a => c.mods[a] + (c.saves.includes(a) ? c.prof : 0) + isb;
   const D = c.hookDetail || { story: "", questions: [], use: "" };
   const wt = c.inv.reduce((s, i) => s + (+i.w || 0) * (+i.qty || 0), 0);
   const L = c.spell ? spellLimits(c) : null;
-  return `${sheetJumpHTML(c)}<div class="card">
+  return `${sheetJumpHTML(c)}${quickSheetHTML(c)}<div class="card">
     <div class="row" style="align-items:flex-start;flex-wrap:wrap"><input class="title-input" type="text" data-rf="name" value="${esc(c.name)}" aria-label="Character name" style="flex:1 1 260px">
       <div style="flex:0 1 auto;min-width:0;display:flex;gap:6px;flex-wrap:wrap"><button class="btn sm" type="button" data-ra="sheet">⎙ Export character sheet</button><button class="btn sm" type="button" data-ra="cards" title="Printable cards for this character's prepared spells">🃏 Spell cards</button><button class="btn sm" type="button" data-ra="copy">Copy as text</button><button class="btn sm danger" type="button" data-ra="del">✕ Delete</button></div></div>
     <div class="gen-sub"><span class="tag gold">${esc(raceLabel(c))} ${esc((c.multi || []).length ? classLine(c) : c.cls)}</span>${(c.multi || []).length ? `<span class="tag">Level ${totalLv(c)}</span>` : ""}<span class="tag">${esc(edOf(c))} rules</span><span class="tag">${esc(c.bg)}</span>${c.custom ? `<span class="tag">Custom build</span>` : ""}</div>
@@ -73,7 +100,7 @@ function rosterHTML(c) {
     <div class="vitals" id="sec-hp">
       ${[["hp", "Max HP"], ["hpCur", "Current HP"], ["hpTemp", "Temp HP"], ["ac", "Armor class"], ["speed", "Speed (ft)"]].map(([k, l]) => `<div class="vit"><input type="number" data-rf="${k}" value="${esc(c[k] ?? "")}" aria-label="${l}"><span>${l}</span></div>`).join("")}
       <div class="vit"><button type="button" class="roll-b vit-roll" data-roll="init" title="Roll initiative">${rollMark(c, "init", "dex")}${sgn(c.init)}</button><span>Initiative</span></div><div class="vit"><b>${sgn(c.prof)}</b><span>Proficiency</span></div><div class="vit"><b>${c.passive}</b><span>Passive Perc.</span></div><div class="vit">${resCtr(c, pcResources(c).find(r => r.key === "hd"))}<span>Hit dice (d${c.hd})</span></div>
-    </div><div id="rcSpeedLine">${rcSpeedLine(c)}</div>${defHTML(c)}${rcStatusHTML(c)}</div>
+    </div><div id="rcSpeedLine">${rcSpeedLine(c)}</div>${defHTML(c)}<div id="sec-conditions">${rcStatusHTML(c)}</div></div>
   <div class="grid2 rc-two" style="margin-top:0">
     <div class="sec"><div class="sec-h"><h3>Skills</h3><span class="sp"></span><span class="muted" style="font-size:13px">Click a name to cycle none → ● → ★; click a number to roll</span></div>
       <div class="skills">${c.skills.map((s, i) => `<div class="${s.p ? "p" : ""} ${s.x ? "x" : ""} rc-sk"><button type="button" class="sk-name" data-rsk="${i}" title="Change proficiency">${s.p ? "● " : ""}${esc(s.s)} <span class="muted" style="font-size:12px">${AB_NAME[s.ab]}</span></button><button type="button" class="sk-roll roll-b" data-roll="skill:${i}" title="Roll ${esc(s.s)}">${rollMark(c, "check", s.ab, { skill: s.s })}${sgn(s.v)}</button></div>`).join("")}</div></div>
@@ -90,7 +117,7 @@ function rosterHTML(c) {
         ${rcSlotsHTML(c)}
         <button class="btn sm" type="button" style="margin-top:10px" data-spells="${esc(c.spell.list || c.spell.cls || c.cls)}|${esc(c.spell.max)}|${c.spell.cantrips ? 1 : 0}">✦ Browse ${esc(c.spell.cls || c.cls)} spells</button></div>
     <div class="prep-h">${L.word === "known" ? "Spells known" : "Prepared spells"}</div>
-    <div id="rcPrepared">${preparedHTML(c, true)}</div>${prepPanelHTML(c, "rc")}</div>` : (c.prepared || []).some(p => p.src) ? `<div class="sec"><div class="sec-h"><h3>Spells</h3><span class="sp"></span><span class="muted" style="font-size:13px">From feats · ${(() => { const K = miCaster(c); return K ? `DC ${K.dc} · spell attack ${sgn(K.atk)} · ${AB_NAME[K.ab]}` : ""; })()}</span></div><div id="rcPrepared">${preparedHTML(c, true)}</div></div>` : ""}
+    <div id="rcPrepared">${preparedHTML(c, true)}</div>${prepPanelHTML(c, "rc")}</div>` : hasSheetSpells(c) ? `<div class="sec" id="sec-spells"><div class="sec-h"><h3>Spells</h3><span class="sp"></span><span class="muted" style="font-size:13px">From feats · ${(() => { const K = miCaster(c); return K ? `DC ${K.dc} · spell attack ${sgn(K.atk)} · ${AB_NAME[K.ab]}` : ""; })()}</span></div><div id="rcPrepared">${preparedHTML(c, true)}</div></div>` : ""}
   ${profSecHTML(c)}
   ${featsSecHTML(c)}
   ${compSectionHTML(c)}
@@ -122,7 +149,7 @@ function rosterHTML(c) {
 }
 /* Phones: a bar of shortcuts to the parts of the sheet you need mid-fight. It stays under the header (or at the very top
    while the header is away); the sections' scroll-margin keeps them clear of both. */
-const sheetJumpHTML = c => `<div id="sheetJump" class="sheet-jump" role="navigation" aria-label="Jump to part of the sheet">${[["hp", "❤ HP"], ["attacks", "⚔ Attacks"], ...(c.spell ? [["spells", "✦ Spells"]] : []), ["gear", "🎒 Gear"], ["notes", "📝 Notes"]].map(([k, l]) => `<a role="button" tabindex="0" data-jump="${k}">${l}</a>`).join("")}</div>`;
+const sheetJumpHTML = c => `<div id="sheetJump" class="sheet-jump" role="navigation" aria-label="Jump to part of the sheet">${[["hp", "❤ HP"], ["attacks", "⚔ Attacks"], ...(hasSheetSpells(c) ? [["spells", "✦ Spells"]] : []), ["gear", "🎒 Gear"], ["notes", "📝 Notes"]].map(([k, l]) => `<a role="button" tabindex="0" data-jump="${k}">${l}</a>`).join("")}</div>`;
 function sheetJump(k) {
   const t = document.getElementById("sec-" + k); if (!t) return; foldOpen(t);
   t.scrollIntoView({ behavior: matchMedia("(prefers-reduced-motion:reduce)").matches ? "auto" : "smooth", block: "start" });
@@ -151,9 +178,9 @@ spFiltersSync();
     if (mr) { const k = "Feat: Magic Initiate"; c.choices = { ...(c.choices || {}) }; c.choices[k] = choiceOf(c, k).filter(x => x !== mr.dataset.mirm); miSync(c); pcPersist(); renderRosterMain(); return; }
     const cb = e.target.closest("[data-spell]");
     if (cb && cb.closest("#rcPrepared")) { const [ed, ...n] = cb.dataset.spell.split("|"); castDialog(c, ed, n.join("|")); return; }
-    const rb = e.target.closest("[data-roll]");
+    const rb = e.target.closest("[data-roll], [data-quick-roll]");
     if (rb) {
-      const [k, v] = rb.dataset.roll.split(":"), xb = itemSaveBonus(c);
+      const [k, v] = (rb.dataset.roll || rb.dataset.quickRoll).split(":"), xb = itemSaveBonus(c);
       if (k === "check") rollD20(c, `${AB_FULL[v]} check`, c.mods[v], "check", v);
       else if (k === "save") rollD20(c, `${AB_FULL[v]} save`, c.mods[v] + (c.saves.includes(v) ? c.prof : 0) + xb, "save", v);
       else if (k === "skill") { const s = c.skills[+v]; rollD20(c, s.s, s.v, "check", s.ab, { skill: s.s }); }
@@ -196,8 +223,13 @@ spFiltersSync();
     else if (t.dataset.choice) { if (t.value) { const k = t.dataset.choice; c.choices = { ...(c.choices || {}) }; c.choices[k] = [...choiceOf(c, k), t.value]; pcRecompute(c); pcPersist(); renderRosterMain(); const f = $(`[data-choice="${CSS.escape(k)}"]`, main); if (f) f.focus(); } }
     else if (t.dataset.mi) { if (t.value) { const k = "Feat: Magic Initiate"; c.choices = { ...(c.choices || {}) }; let L = choiceOf(c, k); if (t.dataset.mi === "list") L = [`list:${t.value}`]; else L = [...L.filter(x => !x.startsWith("list:")), ...(miState(c).list ? [] : [`list:${miLists(c)[0]}`]), `${t.dataset.mi}:${t.value}`, ...L.filter(x => x.startsWith("list:"))]; c.choices[k] = [...new Set(L)]; miSync(c); pcPersist(); renderRosterMain(); } }
     else if (t.dataset.concset !== undefined) { const v = t.value.trim().slice(0, 60); if (v) { concStart(c, v); pcPersist(); renderRosterMain(); } }
-    else if (t.dataset.rf === "hpCur") {
-      const prev = t.dataset.prev === undefined || t.dataset.prev === "" ? null : +t.dataset.prev, now = +t.value || 0; t.dataset.prev = t.value;
+    else if (t.dataset.rf === "hpCur" || t.hasAttribute("data-quick-hp")) {
+      const quick = t.hasAttribute("data-quick-hp");
+      if (quick && !Number.isFinite(t.valueAsNumber)) { t.value = c.hpCur; return; }
+      const prev = quick ? +(c.hpCur || 0) : t.dataset.prev === undefined || t.dataset.prev === "" ? null : +t.dataset.prev;
+      const now = quick ? clamp(Math.trunc(t.valueAsNumber), 0, +c.hp || 0) : +t.value || 0;
+      if (quick) c.hpCur = now;
+      t.dataset.prev = t.value;
       if (prev !== null && now < prev) { const n = pcDamaged(c, prev - now, prev === 0); if (n.length) toast(n.map(cap1).join(". ") + "."); }
       else if (prev !== null && now > prev) { const n = pcHealed(c, prev === 0); if (n.length) toast(n.join(". ") + "."); }
       pcRecompute(c); pcPersist(); renderRosterMain();
@@ -214,8 +246,14 @@ spFiltersSync();
       if (k.startsWith("hd.")) { c.hookDetail = c.hookDetail || { story: "", questions: [], use: "" }; const f = k.slice(3); c.hookDetail[f] = f === "questions" ? v.split("\n").map(x => x.trim()).filter(Boolean) : v; }
       else if (["hp", "hpCur", "hpTemp", "ac", "speed", "xp"].includes(k)) { c[k] = v === "" ? "" : +v; if (k === "ac") { c.acManual = v !== "" && +v !== c.acAuto; const l = $("#rcACLine"); if (l) l.innerHTML = rcACLine(c); } if (k === "speed") { c.speedManual = v !== "" && +v !== c.speedAuto; const l = $("#rcSpeedLine"); if (l) l.innerHTML = rcSpeedLine(c); } }
       else c[k] = v;
+      const vital = $(`[data-quick-vital="${CSS.escape(k)}"]`, main);
+      if (vital) vital.textContent = c[k] || 0;
+      if (k === "hp") $("[data-quick-hp]", main).max = c.hp;
       if (t.tagName === "TEXTAREA") autoGrow(t);
-      if (k === "name") renderRoster();
+      if (k === "name") {
+        $(".mobile-sheet-quick h3", main).textContent = c.name;
+        renderRoster();
+      }
       pcPersist(); return;
     }
     if (t.dataset.rcoin) { c.coins[t.dataset.rcoin] = Math.max(0, +t.value || 0); pcACApply(c); const sl = $("#rcSpeedLine"); if (sl) sl.innerHTML = rcSpeedLine(c); const sp = $('[data-rf="speed"]', main); if (sp && !c.speedManual) sp.value = c.speed; pcPersist(); return; }
@@ -237,6 +275,8 @@ spFiltersSync();
           const trained = c.saves.includes(a), bonus = c.mods[a] + (trained ? c.prof : 0) + saveBonus;
           $(`[data-roll="save:${a}"]`, main).innerHTML = `save ${sgn(bonus)}${trained ? " ●" : ""}${rollMark(c, "save", a)}`;
         });
+        $("[data-quick-vital=ac]", main).textContent = c.ac;
+        $(".mobile-quick-actions", main).innerHTML = quickSheetActions(c);
         $("#rcItemFeatures").innerHTML = inventoryEffectsHTML(c); $("#rcAtk").innerHTML = rcAttacksHTML(c); $("#rcEquipped").innerHTML = rcEquippedHTML(c); $("#rcACLine").innerHTML = rcACLine(c); $("#rcSpeedLine").innerHTML = rcSpeedLine(c); const a = $('[data-rf="ac"]', main); if (a && !c.acManual) a.value = c.ac; const sp = $('[data-rf="speed"]', main); if (sp && !c.speedManual) sp.value = c.speed;
       }
     }
@@ -291,6 +331,9 @@ spFiltersSync();
     const sb = t.closest("[data-spells]"); if (sb) { const [cl, mx, ca] = sb.dataset.spells.split("|"); SP.target = c.id; openSpellsFor(cl, +mx, ca === "1"); return; }
     const pb = t.closest("[data-prep]"); if (pb) { const s = spFind(pb.dataset.prep), on = togglePrep(c, s, pb.dataset.prep.split("-")[0]); pb.textContent = on ? "✓ Prepared" : "+ Prepare"; pb.classList.toggle("primary", !on); pcChanged(c); return; }
     const ub = t.closest("[data-unprep]"); if (ub) { const [ed, ...rest] = ub.dataset.unprep.split("|"), n = rest.join("|"); c.prepared = c.prepared.filter(x => !(x.ed === ed && x.n === n)); pcChanged(c); renderPrepList(c, "rc"); }
+  });
+  main.addEventListener("keydown", e => {
+    if (e.key === "Enter" && e.target.hasAttribute("data-quick-hp")) e.target.blur();
   });
   main.addEventListener("focusin", e => { if (e.target.matches('[data-rf="hpCur"]')) e.target.dataset.prev = e.target.value; });
 })();

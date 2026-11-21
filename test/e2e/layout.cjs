@@ -63,6 +63,48 @@ const away = p => p.evaluate(() => document.documentElement.classList.contains("
     const { p, ctx } = await page(browser, size, URL);
     // no sideways scrolling
     for (const t of TABS) { await go(p, URL, t); const over = await p.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth); check(`${size}: no sideways scrolling on #${t}`, over <= 0, `${over}px`); }
+    const quickNav = p.locator("#mobileNav");
+    check(`${size}: phone navigation is only visible on a phone`, await quickNav.isVisible() === (size === "phone"));
+    if (size === "phone") {
+      await quickNav.getByRole("link", { name: "Sheet" }).tap();
+      await p.waitForURL("**/#roster");
+      await p.waitForSelector("#mobileNav a[aria-current=page][href=\"#roster\"]");
+      check("phone: Sheet is marked as the current page", await quickNav.getByRole("link", { name: "Sheet" }).getAttribute("aria-current") === "page");
+      await quickNav.getByRole("button", { name: "More" }).tap();
+      const menu = p.locator("#mobileMenu");
+      check("phone: More shows tools available to this session", await menu.getByRole("link", { name: "Compendium" }).isVisible() && !(await menu.getByRole("link", { name: "Party" }).count()));
+      await menu.getByRole("link", { name: "Compendium" }).tap();
+      await p.waitForURL("**/#compendium");
+      check("phone: choosing a tool closes More", !(await menu.isVisible()));
+      await quickNav.getByRole("link", { name: "Sheet" }).tap();
+      await p.waitForURL("**/#roster");
+
+      const hp = p.locator("[data-quick-hp]");
+      const oldHP = Number(await hp.inputValue());
+      await hp.fill("0");
+      await hp.press("Tab");
+      check("phone: quick HP updates the sheet and applies unconsciousness", await p.evaluate(() => rosterCur().hpCur === 0 && rosterCur().conds.unconscious && $('[data-rf="hpCur"]').value === "0"));
+      await hp.fill(String(oldHP));
+      await hp.press("Tab");
+      check("phone: healing with quick HP clears unconsciousness", await p.evaluate(() => !rosterCur().conds?.unconscious));
+      await p.locator('[data-quick-roll^="atk:"]').tap();
+      check("phone: quick attack uses the sheet's roll log", await p.evaluate(() => /attack$/i.test(rosterCur().rollLog[0].label)));
+
+      await p.locator("#forgeBox > summary").tap();
+      await p.selectOption("#pcClass", "Fighter");
+      const dialog = p.locator("#characterReference");
+      const close = dialog.getByRole("button", { name: "Close" });
+      const box = await dialog.boundingBox();
+      check("phone: class progression fills the phone width", box && Math.abs(box.width - 390) <= 1);
+      await dialog.evaluate(el => { el.scrollTop = el.scrollHeight; });
+      const button = await close.boundingBox();
+      check("phone: progression Close stays visible after scrolling", button && button.y >= 0 && button.y + button.height <= 640);
+      await close.tap();
+      check("phone: closing progression restores focus to the class picker", await p.evaluate(() => document.activeElement.id === "pcClass"));
+      await p.locator("#forgeBox > summary").tap();
+      await quickNav.getByRole("link", { name: "Encounter" }).tap();
+      await p.waitForSelector('#campMain [data-sub="encounters"].on');
+    }
     // windows show their buttons
     await go(p, URL, "roster");
     await p.click("#impCharBtn"); await p.setInputFiles("#impCharFile", path.join(FIX, "companion-zook.json")); await p.waitForFunction(() => /Matched/.test(document.querySelector("#impCharOut").textContent), null, { timeout: 15000 }).catch(() => { });
