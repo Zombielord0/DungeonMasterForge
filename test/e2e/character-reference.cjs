@@ -345,14 +345,14 @@ const { chromium } = require("playwright");
       });
       const dk = pcEnsure(generateCharacter({ seed: "DK", ed: "2024", cls: "Death Knight", subclass: "Oath of the Ebon Blade", level: 17 }));
       dk.choices = { Runeforging: ["Blood"] };
-      syncBookSpells(dk);
+      syncGrantedSpells(dk);
       const blood = dk.prepared.some(x => x.n === "Bonestorm" && x.bookGrant);
       dk.choices.Runeforging = ["Frost"];
-      syncBookSpells(dk);
+      syncGrantedSpells(dk);
       const frost = dk.prepared.some(x => x.n === "Chains of Ice") && !dk.prepared.some(x => x.n === "Bonestorm");
       const dh = pcEnsure(generateCharacter({ seed: "DH", ed: "2024", cls: "Demon Hunter", subclass: "Demon Hunter", level: 5 }));
       dh.choices = { "Demon Hunter specialization": ["Havoc"] };
-      syncBookSpells(dh);
+      syncGrantedSpells(dh);
       const pool = pcSpellPool(dh, "2024");
       const eye = spellPlan(spellOf("2024", "Eye Beam"));
       castDialog(dk, "2024", "Rune Strike");
@@ -387,6 +387,100 @@ const { chromium } = require("playwright");
     await next.click();
     assert.equal(await page.evaluate(() => rosterCur().subclass), "Champion");
     assert.equal(await page.evaluate(() => rosterCur().level), 3);
+    const granted = await page.evaluate(() => {
+      const c = pcEnsure(generateCharacter({ seed: "GRANTS", ed: "2024", cls: "Druid", level: 1, race: "Gnome", sub: "Forest Gnome" }));
+      c.prepared.push({ n: "Speak with Animals", ed: "2024", l: 1 });
+      syncGrantedSpells(c);
+      const speak = spellOf("2024", "Speak with Animals");
+      const sources = spellPreparationSources(c, speak.n);
+      const resource = freeSpellResources(c, speak, "2024", pcResources(c)).find(r => r.key.startsWith("speciesSpell:"));
+      c.choices = { "Species Spellcasting": ["Charisma"] };
+      const caster = spellCaster(c, speak, resource.key);
+      const manualLimit = manualPreparedSpells(c).length;
+      togglePrep(c, speak, "2024");
+      const old = pcEnsure(generateCharacter({ seed: "GRANTS14", ed: "2014", cls: "Cleric", level: 1, subclass: "Life Domain" }));
+      const sub = pcEnsure(generateCharacter({ seed: "GRANTSUB", ed: "2024", cls: "Cleric", level: 3, subclass: "Life Domain" }));
+      const subclassGrant = spellPreparationSources(sub, "Bless")[0]?.name;
+      pcLevelTo(sub, 2);
+      pcEnsure(sub);
+
+      PCS.roster = [c];
+      RC.id = c.id;
+      renderRosterTab();
+      return { sources, uses: resource.max, ab: caster.ab, manualLimit, staysPrepared: isPrep(c, speak.n, "2024"),
+        old: spellPreparationSources(old, "Cure Wounds")[0]?.name,
+        subclassGrant, losesGrant: !isPrep(sub, "Bless", "2024") };
+    });
+    assert.deepEqual(granted.sources.map(s => s.kind), ["class", "species"]);
+    assert.equal(granted.uses, 2);
+    assert.equal(granted.ab, "cha");
+    assert.equal(granted.manualLimit, 0);
+    assert.equal(granted.staysPrepared, true);
+    assert.equal(granted.old, "Life Domain");
+    assert.equal(granted.subclassGrant, "Life Domain");
+    assert.equal(granted.losesGrant, true);
+    const speakChip = page.locator('#rcPrepared .prep-chip:has([data-spell="2024|Speak with Animals"])');
+    assert.equal(await speakChip.count(), 1);
+    assert.match(await speakChip.textContent(), /Always prepared.*Druidic.*Forest Gnome/s);
+    assert.equal(await speakChip.locator("[data-unprep]").count(), 0);
+    await speakChip.getByRole("button", { name: /^Speak with Animals/ }).click();
+    assert.match(await page.locator("#actModal").textContent(), /Always prepared.*Forest Gnome/s);
+    await page.locator('#actModal [data-castlv^="speciesSpell:"]').click();
+    await page.locator("#actModal [data-castgo]").click();
+    assert.equal(await page.evaluate(() => Object.entries(rosterCur().used).find(([key]) => key.startsWith("speciesSpell:"))?.[1]), 1);
+    const example = await page.evaluate(() => {
+      actClose();
+      const legacy = pcEnsure(generateCharacter({ seed: "LEGACY", ed: "2014", cls: "Cleric", level: 3, subclass: "Light Domain", race: "Tiefling" }));
+      const rebuke = spellOf("2014", "Hellish Rebuke");
+      const use = castOpts(legacy, rebuke);
+      const c = pcEnsure(generateCharacter({ seed: "LIGHT", ed: "2024", cls: "Cleric", level: 5, subclass: "Light Domain", race: "Tiefling", sub: "Infernal" }));
+      PCS.roster = [c]; RC.id = c.id;
+      renderRosterTab();
+      c.inv.push({ id: "untrained-plate", n: "Plate Armor", qty: 1, eq: true });
+      renderRosterTab();
+      return {
+        light: spellPreparationSources(legacy, "Burning Hands")[0]?.name,
+        innate: spellPreparationSources(legacy, rebuke.n)[0]?.innate,
+        innateOnly: use.length === 1 && use[0][0].startsWith("speciesSpell:2014:"),
+        castLevel: castSlotLevel(legacy, rebuke, use[0][0]),
+      };
+    });
+    assert.deepEqual(example, { light: "Light Domain", innate: true, innateOnly: true, castLevel: 2 });
+    const spellChip = name => page.locator(`#rcPrepared .prep-chip:has([data-spell="2024|${name}"])`);
+    for (const name of ["Burning Hands", "Faerie Fire", "Scorching Ray", "See Invisibility", "Daylight", "Fireball"]) {
+      assert.match(await spellChip(name).textContent(), /Always prepared.*Subclass · Light Domain/s);
+    }
+    for (const name of ["Hellish Rebuke", "Darkness"]) {
+      assert.match(await spellChip(name).textContent(), /Always prepared.*Species · Tiefling \(Infernal\)/s);
+    }
+    assert.match(await spellChip("Fire Bolt").textContent(), /Granted cantrip.*Tiefling/);
+    const armorWarning = page.locator("#rcArmorCastingWarning");
+    const rollMarks = page.locator('#rosterMain [data-roll] .dis[title*="armor you aren"]');
+    assert.equal(await armorWarning.isVisible(), true);
+    assert.ok(await rollMarks.count() > 0);
+    await spellChip("Hellish Rebuke").getByRole("button").click();
+    assert.match(await page.locator("#actModal.open").textContent(), /can't cast spells while wearing armor/);
+    assert.equal(await page.locator("#actModal [data-castgo]").count(), 0);
+    await page.locator("#actModal.open [data-actclose]").click();
+
+    const quantity = page.locator('[data-iid="untrained-plate"][data-rinv="qty"]');
+    const equip = page.locator('[data-iid="untrained-plate"][data-rinv="eq"]');
+    await quantity.fill("0");
+    assert.equal(await armorWarning.isVisible(), false);
+    assert.equal(await rollMarks.count(), 0);
+    await quantity.fill("1");
+    assert.equal(await armorWarning.isVisible(), true);
+    await equip.uncheck();
+    assert.equal(await armorWarning.isVisible(), false);
+    assert.equal(await rollMarks.count(), 0);
+    await equip.check();
+    await page.locator('[data-rdel="untrained-plate"]').click();
+    assert.equal(await armorWarning.isVisible(), false);
+    assert.equal(await rollMarks.count(), 0);
+
+    await spellChip("Hellish Rebuke").getByRole("button").click();
+    assert.match(await page.locator('#actModal [data-castlv^="speciesSpell:"]').textContent(), /Infernal.*1 left per long rest/s);
+    assert.equal(await page.locator("#actModal [data-castgo]").isEnabled(), true);
     assert.deepEqual(errors, []);
     console.log("PASS edition-aware progression, expansion subclass choices, item stats and attunement");
   } finally {

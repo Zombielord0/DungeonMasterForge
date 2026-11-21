@@ -2,6 +2,11 @@
    When a change ships, add an entry to the top of NEWS with a new id, in plain words for players and DMs. */
 
 const NEWS = [
+  { id: "2026-11-21-granted-spell-sources", date: "2026-11-21", title: "See what grants your spells", go: "roster", items: [
+    "The character sheet labels always-prepared spells and granted cantrips with their class, subclass, or species.",
+    "Granted spells stay prepared and leave room for your own spell choices. An innate spell shows its free-use option when you open it.",
+    "Removing untrained armor clears its spellcasting warning and disadvantage markers immediately."
+  ] },
   { id: "2026-11-21-forge-focus", date: "2026-11-21", title: "Make room for character creation", go: "roster", items: [
     "Opening Forge a new character folds away Your characters and brings the creation form forward. Expand Your characters any time to switch back to a sheet."
   ] },

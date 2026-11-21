@@ -69,6 +69,7 @@ function quickSheetHTML(c) {
   </section>`;
 }
 
+const armorCastingWarningHTML = c => `<div id="rcArmorCastingWarning" class="enc" style="margin-top:10px" ${c.armorUntrained ? "" : "hidden"}>${esc(ARMOR_CASTING_WARNING)}</div>`;
 function rosterHTML(c) {
   const isb = itemSaveBonus(c), sv = a => c.mods[a] + (c.saves.includes(a) ? c.prof : 0) + isb;
   const D = c.hookDetail || { story: "", questions: [], use: "" };
@@ -113,11 +114,12 @@ function rosterHTML(c) {
   </div>
   <div class="sec"><div class="sec-h"><h3>Abilities</h3><span class="sp"></span><span class="muted" style="font-size:13px">Actions, reactions and boosts from your features · − spends a use, + gives one back</span></div><div id="rcAbl">${rcAbilitiesHTML(c)}</div></div>
   ${c.spell ? `<div class="sec" id="sec-spells"><div class="sec-h"><h3>Spells</h3><span class="sp"></span><button class="btn sm" type="button" data-ra="prep">✦ Prepare spells</button></div>
-    <div class="spell-top">${c.armorUntrained ? `<div class="enc" style="margin-top:10px">⚠ You can't cast spells while wearing armor or a shield you aren't trained with.</div>` : ""}<p style="margin:0 0 4px"><b>Spell save DC ${esc(c.spell.dc)}</b> · spell attack ${esc(sgn(c.spell.atk))} · ability ${AB_NAME[c.spell.ab]}${(c.spell.others || []).length ? ` <span class="muted">(${esc(c.spell.cls || c.cls)})</span>` : ""}</p>${(c.spell.others || []).map(o => `<p style="margin:0 0 4px"><b>${esc(o.cls)}: DC ${esc(o.dc)}</b> · spell attack ${esc(sgn(o.atk))} · ${AB_NAME[o.ab]}</p>`).join("")}
+    <div class="spell-top">${armorCastingWarningHTML(c)}<p style="margin:0 0 4px"><b>Spell save DC ${esc(c.spell.dc)}</b> · spell attack ${esc(sgn(c.spell.atk))} · ability ${AB_NAME[c.spell.ab]}${(c.spell.others || []).length ? ` <span class="muted">(${esc(c.spell.cls || c.cls)})</span>` : ""}</p>${(c.spell.others || []).map(o => `<p style="margin:0 0 4px"><b>${esc(o.cls)}: DC ${esc(o.dc)}</b> · spell attack ${esc(sgn(o.atk))} · ${AB_NAME[o.ab]}</p>`).join("")}
         ${rcSlotsHTML(c)}
         <button class="btn sm" type="button" style="margin-top:10px" data-spells="${esc(c.spell.list || c.spell.cls || c.cls)}|${esc(c.spell.max)}|${c.spell.cantrips ? 1 : 0}">✦ Browse ${esc(c.spell.cls || c.cls)} spells</button></div>
+    ${speciesSpellChoicesHTML(c)}
     <div class="prep-h">${L.word === "known" ? "Spells known" : "Prepared spells"}</div>
-    <div id="rcPrepared">${preparedHTML(c, true)}</div>${prepPanelHTML(c, "rc")}</div>` : hasSheetSpells(c) ? `<div class="sec" id="sec-spells"><div class="sec-h"><h3>Spells</h3><span class="sp"></span><span class="muted" style="font-size:13px">From feats · ${(() => { const K = miCaster(c); return K ? `DC ${K.dc} · spell attack ${sgn(K.atk)} · ${AB_NAME[K.ab]}` : ""; })()}</span></div><div id="rcPrepared">${preparedHTML(c, true)}</div></div>` : ""}
+    <div id="rcPrepared">${preparedHTML(c, true)}</div>${prepPanelHTML(c, "rc")}</div>` : hasSheetSpells(c) ? `<div class="sec" id="sec-spells"><div class="sec-h"><h3>Spells</h3><span class="sp"></span></div>${armorCastingWarningHTML(c)}${speciesSpellChoicesHTML(c)}<div id="rcPrepared">${preparedHTML(c, true)}</div></div>` : ""}
   ${profSecHTML(c)}
   ${featsSecHTML(c)}
   ${compSectionHTML(c)}
@@ -270,8 +272,15 @@ spFiltersSync();
           $("[data-item-details]", row).setAttribute("aria-label", i.n ? "Item details for " + i.n : "Item details");
           $('[data-rinv="eq"]', row).setAttribute("aria-label", "Equip " + i.n);
         }
+        const warning = $("#rcArmorCastingWarning", main);
+        if (warning) warning.hidden = !c.armorUntrained;
+        $('[data-roll="init"]', main).innerHTML = rollMark(c, "init", "dex") + sgn(c.init);
+        c.skills.forEach((skill, index) => {
+          $(`[data-roll="skill:${index}"]`, main).innerHTML = rollMark(c, "check", skill.ab, { skill: skill.s }) + sgn(skill.v);
+        });
         const saveBonus = itemSaveBonus(c);
         AB.forEach(a => {
+          $(`[data-roll="check:${a}"]`, main).innerHTML = rollMark(c, "check", a) + sgn(c.mods[a]);
           const trained = c.saves.includes(a), bonus = c.mods[a] + (trained ? c.prof : 0) + saveBonus;
           $(`[data-roll="save:${a}"]`, main).innerHTML = `save ${sgn(bonus)}${trained ? " ●" : ""}${rollMark(c, "save", a)}`;
         });
@@ -327,10 +336,10 @@ spFiltersSync();
     }
     const rf = t.closest("[data-rmfeat]");
     if (rf) { const b = (c.bonusFeats || [])[+rf.dataset.rmfeat]; if (!b || !(await confirmBox(`Remove ${b.n}?`, `${c.name} loses ${b.n}${b.a ? ` and its +1 ${AB_FULL[b.a]}` : ""}.`, "Remove"))) return; c.bonusFeats.splice(+rf.dataset.rmfeat, 1); pcRebuild(c); toast(`${b.n} removed`); return; }
-    const dl = t.closest("[data-rdel]"); if (dl) { c.inv = c.inv.filter(i => i.id !== dl.dataset.rdel); pcPersist(); renderRosterMain(); return; }
+    const dl = t.closest("[data-rdel]"); if (dl) { c.inv = c.inv.filter(i => i.id !== dl.dataset.rdel); renderRosterMain(); pcPersist(); return; }
     const sb = t.closest("[data-spells]"); if (sb) { const [cl, mx, ca] = sb.dataset.spells.split("|"); SP.target = c.id; openSpellsFor(cl, +mx, ca === "1"); return; }
     const pb = t.closest("[data-prep]"); if (pb) { const s = spFind(pb.dataset.prep), on = togglePrep(c, s, pb.dataset.prep.split("-")[0]); pb.textContent = on ? "✓ Prepared" : "+ Prepare"; pb.classList.toggle("primary", !on); pcChanged(c); return; }
-    const ub = t.closest("[data-unprep]"); if (ub) { const [ed, ...rest] = ub.dataset.unprep.split("|"), n = rest.join("|"); c.prepared = c.prepared.filter(x => !(x.ed === ed && x.n === n)); pcChanged(c); renderPrepList(c, "rc"); }
+    const ub = t.closest("[data-unprep]"); if (ub) { const [ed, ...rest] = ub.dataset.unprep.split("|"), n = rest.join("|"); c.prepared = c.prepared.filter(x => x.src || x.ed !== ed || x.n !== n); pcChanged(c); renderPrepList(c, "rc"); }
   });
   main.addEventListener("keydown", e => {
     if (e.key === "Enter" && e.target.hasAttribute("data-quick-hp")) e.target.blur();

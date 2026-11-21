@@ -8,6 +8,16 @@ function pcResources(c) {
   add("hd", `Hit dice (${[...new Set(c.hdList || [c.hd])].map(d => "d" + d).join(" + ")})`, TLV, "hd");
   if (clsLv(c, "Death Knight")) add("deathCoil", "Death Coil dice", Math.max(1, 1 + c.mods.cha), "long");
   if (has("Runic Smite")) add("freeRuneStrike", "Free Rune Strike", 1, "long");
+  if (ed === "2024" && clsLv(c, "Paladin") >= 2) add("freeDivineSmite", "Paladin's Smite", 1, "long");
+  if (ed === "2024" && clsLv(c, "Paladin") >= 5) add("freePaladinSteed", "Faithful Steed", 1, "long");
+  for (const spell of c.prepared || []) {
+    if (!spell.bookGrant) continue;
+    for (const source of spell.sources || []) {
+      if (source.kind === "species" && source.free) {
+        add(source.free, `${source.feature || source.name} · ${spell.n}`, source.uses === "proficiency" ? prof : source.uses, "long");
+      }
+    }
+  }
   if (clsLv(c, "Death Knight") >= 5) add("freeFindSteed", "Free Find Steed", 1, "long");
   if (has("Soul Fragments")) {
     const level = clsLv(c, "Demon Hunter");
