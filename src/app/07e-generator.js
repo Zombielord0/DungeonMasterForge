@@ -248,9 +248,22 @@ Hook: ${c.hook}.${c.hookDetail ? `\nBackstory: ${c.hookDetail.story}\nUnanswered
 }
 let currentPC = null;
 /* The Characters tab's main column shows either the sheet (#rosterMain) or the step-by-step builder (#pcOut) */
-function pcShow(which) { const b = which === "build"; $("#pcOut").hidden = !b; $("#rosterMain").hidden = b; }
-/* the "⚒ Forge a new character" fold-out in the side panel */
-function forgeOpen(on = true) { const d = $("#forgeBox"); if (d) d.open = on; }
+function pcShow(which) {
+  const out = $("#pcOut"), building = which === "build", wasBuilding = !out.hidden;
+  out.hidden = !building;
+  $("#rosterMain").hidden = building;
+  if (building !== wasBuilding && !$("#forgeBox").open) $("#rosterBox").open = !building;
+}
+function forgeOpen(on = true) { $("#forgeBox").open = on; }
+$("#forgeBox").addEventListener("toggle", event => {
+  if (event.currentTarget.open) {
+    if (CB.on) { CB.on = false; pcShow("sheet"); }
+    $("#pcSide").scrollTop = 0;
+    if ($("#view-roster").classList.contains("active")) showResult("#forgeBox");
+  } else if (!CB.on) {
+    $("#rosterBox").open = true;
+  }
+});
 async function discardPC() {
   const c = currentPC; if (!c) return;
   const saved = PCS.roster.some(x => x.id === c.id);
@@ -345,7 +358,7 @@ function setForgeLineage(value) {
   const run = () => {
     const lv = clamp(parseInt($("#pcLevel").value) || 1, 1, 20); $("#pcLevel").value = lv;
     currentPC = pcEnsure(generateCharacter({ seed: newSeed(), campaign: true, name: $("#pcName").value.trim().slice(0, 60), gender: $("#pcGender").value || undefined, bgGold50: curEd() === "2024" && $("#pcGold50").checked, race: $("#pcRace").value, ed: curEd(), sub: $("#pcAncWrap").classList.contains("hidden") ? undefined : ($("#pcAnc").value || undefined), cls: $("#pcClass").value, bg: $("#pcBg").value, level: lv, method: $("input[name=pcMethod]:checked").value, bonus: $("input[name=pcBonus]:checked").value }));
-    renderPC(); pcPersist(); forgeOpen(false); showResult("#rosterMain");
+    renderPC(); pcPersist(); showResult("#rosterMain");
   };
   window.pcReroll = run; /* the draft bar's ↻ Reroll forges again from the same form */
   $("#pcForm").addEventListener("submit", e => { e.preventDefault(); if (($("input[name=pcMode]:checked") || {}).value === "custom") { CB.ed = curEd(); cbStart(); } else { CB.on = false; run(); } });

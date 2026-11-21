@@ -81,12 +81,12 @@ function pcAdoptRemote() {
 }
 function renderPC() {
   if (!currentPC) return;
-  RC.id = currentPC.id; pcShow("sheet"); renderRosterTab();
+  RC.id = currentPC.id; forgeOpen(false); pcShow("sheet"); renderRosterTab();
 }
 function keepPC() {
   const c = currentPC; if (!c) return;
   if (!PCS.roster.some(x => x.id === c.id)) PCS.roster.unshift(c);
-  currentPC = null; RC.id = c.id; pcPersist(); renderRosterTab();
+  currentPC = null; RC.id = c.id; forgeOpen(false); pcPersist(); renderRosterTab();
   toast(`${c.name} saved to your characters`);
 }
 function addPCToCampaign(id, p = currentPC) {

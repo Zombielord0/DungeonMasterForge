@@ -55,6 +55,10 @@ const server = http.createServer((req, res) => {
   check("the saved character is shown, with Delete", await p.evaluate(() => !!document.querySelector('#rosterMain [data-ra="del"]') && !document.querySelector(".draft-bar")));
 
   // a second draft, then discard it (and Delete on a draft discards too)
+  await p.click("#forgeBox > summary");
+  check("opening Forge collapses the saved list and gives the form the page", await p.locator("#pcForm").isVisible() && !(await p.locator("#rosterList").isVisible()) && !(await p.locator("#rosterMain").isVisible()));
+  await p.click("#rosterBox > summary");
+  check("expanding Your characters restores the saved list and the selected sheet", !(await p.locator("#pcForm").isVisible()) && await p.locator("#rosterList").isVisible() && await p.locator("#rosterMain").isVisible());
   await p.click("#forgeBox > summary"); await p.fill("#pcName", "Throwaway"); await p.click("#pcForgeBtn"); await p.waitForTimeout(300);
   s = await st();
   check("a second draft sits above the saved character", s.draft && /^Throwaway New · not saved/.test(s.list) && s.saved.length === 1, s.list);
@@ -72,9 +76,12 @@ const server = http.createServer((req, res) => {
   // the step-by-step builder takes the main column, and quitting brings the sheet back
   await p.click("#forgeBox > summary"); await p.click('#pcForm label.opt:has(input[name=pcMode][value=custom])'); await p.click("#pcForgeBtn"); await p.waitForTimeout(300);
   check("Custom, step by step shows the builder in place of the sheet", await p.evaluate(() => !document.querySelector("#pcOut").hidden && document.querySelector("#rosterMain").hidden && /Create a custom character/.test(document.querySelector("#pcOut").textContent)));
+  check("the guided builder starts focused with the saved list collapsed", !(await p.locator("#rosterList").isVisible()) && await p.evaluate(() => document.activeElement.matches("#pcOut .sheet-h")));
   await p.click("[data-cbquit]"); await p.waitForTimeout(200);
+  check("cancelling restores the saved list", await p.locator("#rosterList").isVisible());
   check("quitting the builder brings the sheet back", await p.evaluate(() => document.querySelector("#pcOut").hidden && !document.querySelector("#rosterMain").hidden));
   await p.click("#forgeBox > summary"); await p.click("#pcForgeBtn"); await p.waitForTimeout(200);
+  await p.click("#rosterBox > summary");
   await p.click(`#rosterList [data-rc="${await p.evaluate(() => PCS.roster[0].id)}"]`); await p.waitForTimeout(200);
   check("picking a character while building shows its sheet", await p.evaluate(() => document.querySelector("#pcOut").hidden && !document.querySelector("#rosterMain").hidden && !CB.on));
 

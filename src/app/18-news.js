@@ -2,6 +2,9 @@
    When a change ships, add an entry to the top of NEWS with a new id, in plain words for players and DMs. */
 
 const NEWS = [
+  { id: "2026-11-21-forge-focus", date: "2026-11-21", title: "Make room for character creation", go: "roster", items: [
+    "Opening Forge a new character folds away Your characters and brings the creation form forward. Expand Your characters any time to switch back to a sheet."
+  ] },
   { id: "2026-11-21-builder-next", date: "2026-11-21", title: "Keep building from the details panel", go: "roster", items: [
     "Search fields use the same style across the Forge. Tap Next in a race, lineage, class, or background panel to continue building your character.",
     "Preview a subclass during level-up and tap Next to use it."

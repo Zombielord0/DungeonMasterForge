@@ -299,7 +299,7 @@ spFiltersSync();
   });
   main.addEventListener("click", async e => {
     const dr = e.target.closest("[data-draft]");
-    if (dr) { const k = dr.dataset.draft; if (k === "forge") { forgeOpen(); const f = $("#forgeBox"); if (f) f.scrollIntoView({ block: "nearest" }); } else if (k === "keep") keepPC(); else if (k === "reroll" && window.pcReroll) pcReroll(); else if (k === "discard") discardPC(); return; }
+    if (dr) { const k = dr.dataset.draft; if (k === "forge") forgeOpen(); else if (k === "keep") keepPC(); else if (k === "reroll" && window.pcReroll) pcReroll(); else if (k === "discard") discardPC(); return; }
     const c = rosterCur(); if (!c) return; const t = e.target;
     const sk = t.closest("[data-rsk]");
     if (sk) { const s = c.skills[+sk.dataset.rsk]; if (s.x) { s.x = false; s.p = false; } else if (s.p) s.x = true; else s.p = true; pcRecompute(c); pcPersist(); renderRosterMain(); return; }

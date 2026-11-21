@@ -7,7 +7,11 @@ function cbStart() { CB.on = true; CB.step = 0; CB.ed = currentSourceRules()?.ed
   if (!campaignRaceChoices(CB.ed).includes(CB.race)) { CB.race = ""; CB.sub = ""; }
   else if (!campaignLineageChoices(CB.ed, CB.race).includes(CB.sub)) CB.sub = "";
   if (!campaignClassChoices(CB.ed).includes(CB.cls)) CB.cls = "";
-  if (!campaignBackgroundChoices(CB.ed).includes(CB.bg)) CB.bg = ""; if (CB.ed === "2024") CB.bonus = "flex"; renderCB(); }
+  if (!campaignBackgroundChoices(CB.ed).includes(CB.bg)) CB.bg = ""; if (CB.ed === "2024") CB.bonus = "flex";
+  renderCB();
+  $("#pcOut .sheet-h").focus({ preventScroll: true });
+  showResult("#pcOut");
+}
 const cbR = () => raceInfo(CB.ed, CB.race, CB.sub);
 function cbAllowed() { const C = classData(CB.ed, CB.cls), R = cbR(); return new Set(R && R.extraSkills ? ALL_SKILLS : C.skills[0]); }
 function cbLocked() { const R = cbR(); return new Set([...bgSkills(CB.ed, CB.bg), ...((R && R.skills) || [])]); }
@@ -135,9 +139,9 @@ function cbBody() {
     <p class="hint">Levels past 4 apply ability score increases to your main abilities automatically. You can fine-tune every score, skill and detail afterwards on the sheet.</p></div>`;
 }
 function renderCB() {
-  pcShow("build"); forgeOpen(false);
+  forgeOpen(false); pcShow("build");
   $("#pcOut").innerHTML = `<div class="card">
-    <div class="row" style="align-items:flex-start"><div class="sheet-h" style="font-size:24px;flex:1">Create a custom character</div><button class="btn sm" type="button" data-cbquit style="flex:0 0 auto">✕ Cancel</button></div>
+    <div class="row" style="align-items:flex-start"><div class="sheet-h" tabindex="-1" style="font-size:24px;flex:1">Create a custom character</div><button class="btn sm" type="button" data-cbquit style="flex:0 0 auto">✕ Cancel</button></div>
     <div class="cb-steps">${CB_STEPS.map((s, i) => `<span class="cb-step ${i === CB.step ? "cur" : ""} ${i < CB.step ? "done" : ""}" ${i < CB.step ? `data-cbgo="${i}" role="button" tabindex="0"` : i === CB.step ? 'aria-current="step" tabindex="-1"' : ""}>${i + 1}. ${s}</span>`).join("")}</div>
     ${cbBody()}
     <div class="row" style="margin-top:16px">

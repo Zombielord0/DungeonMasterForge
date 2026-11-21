@@ -566,7 +566,7 @@ async function importCommit(D, c) {
     if (impPlayer()) c.hbPending = D.homebrew.map(x => ({ ...x }));
     else for (const x of D.homebrew) { let ok = false; try { ok = await hbPut({ ...x }); } catch { ok = false; } if (!ok) { toast(`Couldn't save the homebrew “${x.name}”, so the character wasn't imported`); return false; } }
   }
-  PCS.roster.unshift(c); RC.id = c.id; pcPersist(); hbPendSync(); renderRosterTab();
+  PCS.roster.unshift(c); RC.id = c.id; CB.on = false; forgeOpen(false); pcShow("sheet"); pcPersist(); hbPendSync(); renderRosterTab();
   return true;
 }
 function impCharOpen() { IMPC.file = null; document.getElementById("impCharFile").value = ""; impCharRefresh(); document.getElementById("impCharModal").classList.add("open"); document.getElementById("impCharFile").closest("label").focus(); }

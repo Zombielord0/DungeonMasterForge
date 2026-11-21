@@ -91,6 +91,8 @@ const away = p => p.evaluate(() => document.documentElement.classList.contains("
       check("phone: quick attack uses the sheet's roll log", await p.evaluate(() => /attack$/i.test(rosterCur().rollLog[0].label)));
 
       await p.locator("#forgeBox > summary").tap();
+      const form = await p.locator("#pcForm").boundingBox();
+      check("phone: opening Forge brings its form into view and folds the saved list", form && form.y >= 0 && form.y < 280 && !(await p.locator("#rosterList").isVisible()));
       await p.selectOption("#pcClass", "Fighter");
       const dialog = p.locator("#characterReference");
       const close = dialog.getByRole("button", { name: "Close" });
