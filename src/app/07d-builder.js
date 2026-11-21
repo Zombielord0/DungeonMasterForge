@@ -5,7 +5,7 @@ const CB = { on: false, step: 0, ed: "2024", race: "", sub: "", cls: "", bg: "",
 const CB_STEPS = ["Race", "Class", "Background", "Abilities", "Skills", "Details"];
 function cbStart() { CB.on = true; CB.step = 0; CB.ed = currentSourceRules()?.edition || CB.ed;
   if (!campaignRaceChoices(CB.ed).includes(CB.race)) { CB.race = ""; CB.sub = ""; }
-  else if (!PC_RACES[CB.ed][CB.race].subs?.[CB.sub]) CB.sub = "";
+  else if (!campaignLineageChoices(CB.ed, CB.race).includes(CB.sub)) CB.sub = "";
   if (!campaignClassChoices(CB.ed).includes(CB.cls)) CB.cls = "";
   if (!campaignBackgroundChoices(CB.ed).includes(CB.bg)) CB.bg = ""; if (CB.ed === "2024") CB.bonus = "flex"; renderCB(); }
 const cbR = () => raceInfo(CB.ed, CB.race, CB.sub);
@@ -40,7 +40,7 @@ function cbFinal(base) {
   return s;
 }
 function cbCanNext() {
-  if (CB.step === 0) { const B = PC_RACES[CB.ed][CB.race]; return !!B && (!B.subs || !!B.subs[CB.sub]); }
+  if (CB.step === 0) { const B = PC_RACES[CB.ed][CB.race]; return !!B && (!B.subs || campaignLineageChoices(CB.ed, CB.race).includes(CB.sub)); }
   if (CB.step === 1) return !!CB.cls;
   if (CB.step === 2) return !!CB.bg;
   if (CB.step === 3) return CB.method === "manual" || (CB.pool && AB.every(a => CB.assignIdx[a] != null));
@@ -63,7 +63,7 @@ function cbBody() {
     const asiTxt = d => CB.ed === "2024" ? "Ability bonuses from background" : Object.entries(d.asi).map(([a, v]) => `+${v} ${AB_NAME[a]}`).join(", ") + (d.plus1 ? ` and +1 to ${d.plus1} others` : "") + (d.subs ? " + subrace" : "");
     return `<div class="seg" style="margin-bottom:12px"><label class="opt"><input type="radio" name="cbEd" value="2024" ${CB.ed === "2024" ? "checked" : ""} ${currentSourceRules()?.edition === "2014" ? "disabled" : ""}><span>2024 rules (5.5e)</span></label><label class="opt"><input type="radio" name="cbEd" value="2014" ${CB.ed === "2014" ? "checked" : ""} ${currentSourceRules()?.edition === "2024" ? "disabled" : ""}><span>2014 rules (5e)</span></label></div>
     <p class="hint" style="margin-top:0">${CB.ed === "2024" ? "Pick a species to see its traits and choose a lineage. Your background sets ability score increases." : "Pick a race to see its bonuses and traits and choose a subrace."}</p>
-    <div class="pick-grid">${campaignRaceChoices(CB.ed).map(x => { const d = RS[x]; return `<button type="button" class="pick ${CB.race === x ? "on" : ""}" data-cbrace="${esc(x)}"><b>${esc(x)}</b><small>${asiTxt(d)} · ${d.speed} ft${d.subs ? ` · ${Object.keys(d.subs).length} ${esc((d.term || "subrace").toLowerCase())} options` : ""}</small>${CB.race === x && CB.sub ? `<small data-cb-lineage>${esc(subLabel(CB.ed, x, CB.sub))}</small>` : ""}${d.src ? `<small class="req">${esc(dmBook(d.src).name)}</small>` : d.hb ? `<small class="req">Homebrew</small>` : ""}</button>`; }).join("")}</div>`;
+    <div class="pick-grid">${campaignRaceChoices(CB.ed).map(x => { const d = RS[x]; return `<button type="button" class="pick ${CB.race === x ? "on" : ""}" data-cbrace="${esc(x)}"><b>${esc(x)}</b><small>${asiTxt(d)} · ${d.speed} ft${d.subs ? ` · ${campaignLineageChoices(CB.ed, x).length} ${esc((d.term || "subrace").toLowerCase())} options` : ""}</small>${CB.race === x && CB.sub ? `<small data-cb-lineage>${esc(subLabel(CB.ed, x, CB.sub))}</small>` : ""}${d.src ? `<small class="req">${esc(dmBook(d.src).name)}</small>` : d.hb ? `<small class="req">Homebrew</small>` : ""}</button>`; }).join("")}</div>`;
   }
   if (CB.step === 1) return `<p class="hint" style="margin-top:0">Pick a class. This sets hit points, armor, saves, skills and spellcasting.</p>
     <div class="pick-grid">${campaignClassChoices(CB.ed).map(x => { const d = CLASS_DATA[x]; return `<button type="button" class="pick ${CB.cls === x ? "on" : ""}" data-cbcls="${esc(x)}"><b>${esc(x)}</b><small>d${d.hd} hit die · ${d.pri.slice(0, 2).map(a => AB_NAME[a]).join(" & ")}${d.cast ? ` · ${d.cast[0] === "half" ? "half caster" : d.cast[0] === "pact" ? "pact magic" : "full caster"}` : ""}</small><small>${esc(CLASS_DESC[x] || (d.hbx && d.hbx.desc) || "Homebrew class")}</small></button>`; }).join("")}</div>`;
@@ -143,9 +143,10 @@ function cbCreate() {
     if (t.closest("[data-cbcreate]")) { cbCreate(); return; }
     if (b = t.closest("[data-cbrace]")) {
       const race = b.dataset.cbrace;
-      const lineages = Object.keys(PC_RACES[CB.ed][race].subs || {});
+      const lineages = campaignLineageChoices(CB.ed, race);
       if (CB.race !== race || !lineages.includes(CB.sub)) CB.sub = lineages[0] || "";
       CB.race = race;
+      if (cbR().flexible) CB.bonus = "flex";
       renderCB();
       const card = $(".pick.on", out);
       openProgression(CB.ed, "species", race, CB.sub, card, {
@@ -183,7 +184,7 @@ function cbCreate() {
   out.addEventListener("keydown", e => { if (CB.on && (e.key === "Enter" || e.key === " ") && e.target.matches("[data-cbgo]")) { e.preventDefault(); e.target.click(); } });
   out.addEventListener("change", e => {
     if (!CB.on) return; const t = e.target;
-    if (t.name === "cbEd") { CB.ed = currentSourceRules()?.edition || t.value; if (!campaignRaceChoices(CB.ed).includes(CB.race)) { CB.race = ""; CB.sub = ""; } else { const B = PC_RACES[CB.ed][CB.race]; if (!(B.subs && B.subs[CB.sub])) CB.sub = B.subs ? Object.keys(B.subs)[0] : ""; } if (CB.ed === "2024") CB.bonus = "flex"; renderCB(); }
+    if (t.name === "cbEd") { CB.ed = currentSourceRules()?.edition || t.value; if (!campaignRaceChoices(CB.ed).includes(CB.race)) { CB.race = ""; CB.sub = ""; } else { if (!campaignLineageChoices(CB.ed, CB.race).includes(CB.sub)) CB.sub = campaignLineageChoices(CB.ed, CB.race)[0] || ""; } if (CB.ed === "2024") CB.bonus = "flex"; renderCB(); }
     else if (t.name === "cbMethod") { CB.method = t.value; if (CB.method === "array") { CB.pool = [15, 14, 13, 12, 10, 8]; CB.assignIdx = {}; CB.rolls = null; } else if (CB.method === "roll") { CB.pool = null; CB.assignIdx = {}; CB.rolls = null; } renderCB(); }
     else if (t.name === "cbBonus") { CB.bonus = t.value; renderCB(); }
     else if (t.name === "cbSpread") { CB.bgSpread = t.value; renderCB(); }

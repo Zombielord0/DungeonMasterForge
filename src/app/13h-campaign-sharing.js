@@ -15,6 +15,11 @@ function campaignRaceChoices(ed) {
   const rules = currentSourceRules();
   return raceList(ed).filter(n => sourceAllowed(rules, PC_RACES[ed][n].src, PC_RACES[ed][n].hb));
 }
+function campaignLineageChoices(ed, race) {
+  const rules = currentSourceRules();
+  return Object.entries(PC_RACES[ed]?.[race]?.subs || {})
+    .filter(([, lineage]) => sourceAllowed(rules, lineage.src, false)).map(([name]) => name);
+}
 function campaignClassChoices(ed) {
   const rules = currentSourceRules();
   return classList(ed).filter(n => sourceAllowed(rules, null, CLASS_DATA[n].hb));
@@ -33,6 +38,8 @@ function characterSourceIssues(pc, rules) {
   const check = (name, src, hb) => { if (name && !sourceAllowed(rules, src, hb)) issues.push(name); };
   const species = PC_RACES[ed]?.[pc.race], background = HB_BG[pc.bg];
   check(pc.race, species?.src, species?.hb);
+  const lineage = species?.subs?.[pc.sub];
+  if (lineage?.src && lineage.src !== species?.src) check(pc.sub, lineage.src, false);
   check(pc.bg, background?.src, !!background);
   for (const entry of [pc, ...(pc.multi || [])]) {
     check(entry.cls, null, CLASS_DATA[entry.cls]?.hb);

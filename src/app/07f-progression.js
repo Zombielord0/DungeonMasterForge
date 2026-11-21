@@ -225,7 +225,7 @@ function openProgression(ed, kind, name, option, trigger, { setLineage, requireL
     return;
   }
   const choices = kind === "class" ? (campaign ? campaignSubclassChoices(ed, name) : subclassList(ed, name))
-    : kind === "species" ? Object.keys(PC_RACES[ed][name].subs || {}).map(key => [key, subLabel(ed, name, key)]) : [];
+    : kind === "species" ? (setLineage ? campaignLineageChoices(ed, name) : Object.keys(PC_RACES[ed][name].subs || {})).map(key => [key, subLabel(ed, name, key)]) : [];
   const builtIn = kind === "class" && !CLASS_DATA[name].hb;
   const source = ed === "2024" ? "5.2.1" : "5.1";
   const species = kind === "species" ? PC_RACES[ed][name] : null;

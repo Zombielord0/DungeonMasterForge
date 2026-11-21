@@ -411,7 +411,19 @@ const SUB_FEATS = {
 const subFeatsOf = (ed, name) => SUB_FEATS[`${ed}|${name}`] || [];
 // a built-in subclass's features up to this level, as feature-list entries
 const subFeatList = (ed, name, lv) => subFeatsOf(ed, name).filter(x => x[0] <= lv).map(x => ({ l: x[0], f: x[1], sub: true }));
-function subFeatDesc(f, c) { if (!c) return ""; for (const sc2 of [c.subclass, ...(c.multi || []).map(m => m.subclass)].filter(Boolean)) { const x = subFeatsOf(edOf(c), sc2).find(y => y[1] === f); if (x) return x[2]; } return ""; }
+function subFeatDesc(f, c) {
+  if (!c) return "";
+  const ed = edOf(c);
+  for (const { cls, subclass } of [c, ...(c.multi || [])]) {
+    if (!subclass) continue;
+    const native = subFeatsOf(ed, subclass).find(row => row[1] === f);
+    if (native) return native[2];
+    const entry = hbAny("subclass").find(x => x.cls === cls && x.name === subclass && hbEdOk(x, ed));
+    const feature = entry?.features?.find(x => x.n === f);
+    if (feature) return (feature.d || "") + fxNote(feature.fx);
+  }
+  return "";
+}
 // keep a saved character's subclass features in step with its subclass and level
 function pcSubSync(c) {
   const keep = (c.feats || []).filter(f => !f.sub), add = c.subclass ? subFeatList(edOf(c), c.subclass, c.level) : [];

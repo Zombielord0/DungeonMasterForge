@@ -13,11 +13,11 @@ function generateCharacter(o) {
   const lv = clamp(o.level, 1, 20), C = CLASS_DATA[cls], RB = PC_RACES[ed][race];
   // a separate rng for the subrace, so older characters re-level to the same results
   let sub = o.sub === "none" ? null : o.sub || (race === "Dragonborn" && o.ancestry) || null;
-  if (o.sub !== "none" && !sub && RB && RB.subs) sub = makeRng("sub", o.seed).pick(Object.keys(RB.subs));
+  if (o.sub !== "none" && !sub && RB && RB.subs) sub = makeRng("sub", o.seed).pick(o.campaign ? campaignLineageChoices(ed, race) : Object.keys(RB.subs));
   if (sub && !(RB && RB.subs && RB.subs[sub])) sub = null;
   const R = raceInfo(ed, race, sub);
   const anc = race === "Dragonborn" ? (sub || o.ancestry || r.pick(Object.keys(DRAGON_ANCESTRY))) : null;
-  if (ed === "2024" && o.bonus === "fixed") o = { ...o, bonus: "flex" };
+  if ((ed === "2024" || R.flexible) && o.bonus === "fixed") o = { ...o, bonus: "flex" };
   // Subclass: a random forge picks one (own rng, so other rolls stay the same); custom builds and level-ups ask the player.
   const subLv = subclassLevel(ed, cls);
   let subclass = o.subclass && o.subclass !== "none" ? String(o.subclass) : null;
@@ -161,7 +161,11 @@ function generateCharacter(o) {
   MC.forEach(x => {
     const C2 = CLASS_DATA[x.cls]; Object.entries(C2.f).forEach(([l, L]) => { if (+l <= x.lv) L.forEach(f => feats.push({ l: +l, f, mc: x.cls })); });
     const sl2 = subclassLevel(ed, x.cls);
-    if (x.lv >= sl2) { feats.push({ l: sl2, f: x.subclass ? `Subclass: ${x.subclass}` : `Subclass: not chosen yet (${x.cls})`, mc: x.cls }); if (x.subclass) subFeatList(ed, x.subclass, x.lv).forEach(sf => feats.push({ l: sf.l, f: sf.f, mc: x.cls, mcsub: x.subclass })); }
+    if (x.lv >= sl2) { feats.push({ l: sl2, f: x.subclass ? `Subclass: ${x.subclass}` : `Subclass: not chosen yet (${x.cls})`, mc: x.cls }); if (x.subclass) {
+      const entry = hbAny("subclass").find(sub => sub.cls === x.cls && sub.name === x.subclass && hbEdOk(sub, ed));
+      const features = entry ? (entry.features || []).filter(f => f.n && +f.l <= x.lv).map(f => ({ l: +f.l, f: f.n })) : subFeatList(ed, x.subclass, x.lv);
+      features.forEach(sf => feats.push({ l: sf.l, f: sf.f, mc: x.cls, mcsub: x.subclass }));
+    } }
   });
   bonusFeats.forEach(b => feats.push({ l: +b.l || 1, f: `Feat: ${b.n}${b.a ? ` (+1 ${AB_NAME[b.a]})` : ""}`, bonus: true }));
   if (asiAuto.length) feats.push({ l: asiAuto[0], f: `Ability Score Improvement ×${asiAuto.length} (applied)` });
@@ -283,7 +287,7 @@ function setForgeLineage(value) {
   };
   const ancHint = () => {
     const ed = curEd(), B = PC_RACES[ed][$("#pcRace").value], v = $("#pcAnc").value, S = B && B.subs && B.subs[v];
-    $("#pcAncHint").textContent = S ? S.d : B && B.subs ? `Leave on Random, or pick one of ${Object.keys(B.subs).length} options.` : "";
+    $("#pcAncHint").textContent = S ? S.d : B && B.subs ? `Leave on Random, or pick one of ${campaignLineageChoices(curEd(), $("#pcRace").value).length} options.` : "";
   };
   const syncRace = () => {
     if (($("input[name=pcMode]:checked") || {}).value === "custom") return;
@@ -291,7 +295,7 @@ function setForgeLineage(value) {
     $("#pcAncWrap").classList.toggle("hidden", !(B && B.subs));
     if (B && B.subs) {
       $("#pcAncLbl").textContent = B.term || "Subrace";
-      $("#pcAnc").innerHTML = `<option value="">Random</option>` + Object.keys(B.subs).map(k => `<option value="${esc(k)}">${esc(subLabel(curEd(), $("#pcRace").value, k))}</option>`).join("");
+      $("#pcAnc").innerHTML = `<option value="">Random</option>` + campaignLineageChoices(curEd(), $("#pcRace").value).map(k => `<option value="${esc(k)}">${esc(subLabel(curEd(), $("#pcRace").value, k))}</option>`).join("");
       if (B.subs[keep]) $("#pcAnc").value = keep;
     }
     ancHint();
@@ -333,7 +337,7 @@ function setForgeLineage(value) {
   }));
   const run = () => {
     const lv = clamp(parseInt($("#pcLevel").value) || 1, 1, 20); $("#pcLevel").value = lv;
-    currentPC = pcEnsure(generateCharacter({ seed: newSeed(), name: $("#pcName").value.trim().slice(0, 60), gender: $("#pcGender").value || undefined, bgGold50: curEd() === "2024" && $("#pcGold50").checked, race: $("#pcRace").value, ed: curEd(), sub: $("#pcAncWrap").classList.contains("hidden") ? undefined : ($("#pcAnc").value || undefined), cls: $("#pcClass").value, bg: $("#pcBg").value, level: lv, method: $("input[name=pcMethod]:checked").value, bonus: $("input[name=pcBonus]:checked").value }));
+    currentPC = pcEnsure(generateCharacter({ seed: newSeed(), campaign: true, name: $("#pcName").value.trim().slice(0, 60), gender: $("#pcGender").value || undefined, bgGold50: curEd() === "2024" && $("#pcGold50").checked, race: $("#pcRace").value, ed: curEd(), sub: $("#pcAncWrap").classList.contains("hidden") ? undefined : ($("#pcAnc").value || undefined), cls: $("#pcClass").value, bg: $("#pcBg").value, level: lv, method: $("input[name=pcMethod]:checked").value, bonus: $("input[name=pcBonus]:checked").value }));
     renderPC(); pcPersist(); forgeOpen(false); showResult("#rosterMain");
   };
   window.pcReroll = run; /* the draft bar's ↻ Reroll forges again from the same form */

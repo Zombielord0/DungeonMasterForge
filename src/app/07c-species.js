@@ -54,6 +54,73 @@ const PC_RACES = {
   }
 };
 Object.assign(RACE_DESC, { Aasimar: "Touched by the heavens: healing hands and a radiant transformation.", Goliath: "Giant-blooded: a giant's boon, and grows Large in battle.", Orc: "Relentless and tireless: bursts of speed, hard to put down." });
+// 2014 sourcebook lineages. Keep a separate trait description for each lineage.
+const BOOK_LINEAGES_2014 = {
+  Dwarf: [
+    ["Duergar", "scag", { str: 1 }, "120 ft darkvision, advantage against illusions and against being charmed or paralyzed, and sunlight sensitivity. Gain Enlarge on yourself at level 3 and Invisibility on yourself at level 5."],
+    ["Mark of Warding", "erlw", { int: 1 }, "Add 1d4 to Investigation checks and thieves’ tools checks. Gain Alarm and Mage Armor, and Arcane Lock at level 3. The mark expands your class spell list if you can cast spells."]
+  ],
+  Elf: [
+    ["Eladrin", "mtf", { cha: 1 }, "Fey Step teleports you up to 30 ft as a bonus action once per short or long rest. Choose a season. Starting at level 3, your season determines an additional effect."],
+    ["Sea Elf", "mtf", { con: 1 }, "Swim 30 ft, breathe air and water, and communicate simple ideas to creatures with a swimming speed. Gain Aquan and training with spear, trident, light crossbow, and net."],
+    ["Shadar-kai", "mtf", { con: 1 }, "Resist necrotic damage. Teleport 30 ft as a bonus action once per long rest. From level 3, gain resistance to all damage briefly after teleporting."],
+    ["Mark of Shadow", "erlw", { cha: 1 }, "Add 1d4 to Performance and Stealth checks. Learn Minor Illusion and gain Invisibility at level 3. The mark expands your class spell list if you can cast spells."]
+  ],
+  Gnome: [
+    ["Deep Gnome", "scag", { dex: 1 }, "See in darkness out to 120 ft. Gain advantage on Dexterity (Stealth) checks to hide in rocky terrain and learn Undercommon."],
+    ["Mark of Scribing", "erlw", { cha: 1 }, "Add 1d4 to History checks and calligrapher’s supplies checks. Gain Message, Comprehend Languages, and Magic Mouth at level 3. The mark expands your class spell list if you can cast spells."]
+  ],
+  Halfling: [
+    ["Ghostwise Halfling", "scag", { wis: 1 }, "Speak telepathically to one creature within 30 ft at a time if it shares a language with you."],
+    ["Mark of Healing", "erlw", { wis: 1 }, "Add 1d4 to Medicine and herbalism kit checks. Gain Cure Wounds and gain Lesser Restoration at level 3. The mark expands your class spell list if you can cast spells."],
+    ["Mark of Hospitality", "erlw", { cha: 1 }, "Add 1d4 to Persuasion, brewer’s supplies, and cook’s utensils checks. Gain Prestidigitation, Purify Food and Drink, and Unseen Servant. The mark expands your class spell list if you can cast spells."]
+  ]
+};
+Object.assign(PC_RACES["2014"], {
+  Aasimar: { src: "vgm", asi: { cha: 2 }, speed: 30, term: "Subrace", subs: {}, traits: ["Darkvision 60 ft", "Celestial Resistance (2014)", "Healing Hands (2014)", "Light Bearer (2014)"] },
+  Gith: { src: "mtf", asi: { int: 1 }, speed: 30, term: "Subrace", subs: {}, traits: [] },
+  Genasi: { src: "mpmm", asi: {}, speed: 30, term: "Elemental lineage", subs: {}, traits: ["Darkvision 60 ft"] },
+  Shifter: { src: "erlw", asi: {}, speed: 30, term: "Subrace", subs: {}, traits: ["Darkvision 60 ft", "Shifting (Eberron)"] }
+});
+Object.assign(BOOK_LINEAGES_2014, {
+  Aasimar: [
+    ["Protector Aasimar", "vgm", { wis: 1 }, "From level 3, use an action once per long rest to fly for 1 minute and deal extra radiant damage equal to your level once per turn."],
+    ["Scourge Aasimar", "vgm", { con: 1 }, "From level 3, use an action once per long rest to radiate damaging light for 1 minute. Nearby creatures and you take radiant damage, and you can add radiant damage to a target once per turn."],
+    ["Fallen Aasimar", "vgm", { str: 1 }, "From level 3, use an action once per long rest to manifest a frightening shroud for 1 minute and deal extra necrotic damage once per turn."]
+  ],
+  Gith: [
+    ["Githyanki", "mtf", { str: 2 }, "Gain light and medium armor and training with shortswords, longswords, and greatswords. Choose one skill or tool and a language. Gain invisible Mage Hand, Jump at level 3, and Misty Step at level 5."],
+    ["Githzerai", "mtf", { wis: 2 }, "Gain advantage against being charmed or frightened. Gain invisible Mage Hand, Shield at level 3, and Detect Thoughts at level 5."]
+  ],
+  Genasi: [
+    ["Air Genasi", "mpmm", {}, "Choose Intelligence, Wisdom, or Charisma as your innate spellcasting ability. Walk 35 ft, resist lightning, and hold your breath indefinitely while conscious. Learn Shocking Grasp. Gain Feather Fall at level 3 and Levitate at level 5."],
+    ["Earth Genasi", "mpmm", {}, "Choose Intelligence, Wisdom, or Charisma as your innate spellcasting ability. Ignore difficult terrain from ground or floors. Learn Blade Ward and cast it as a bonus action a limited number of times. Gain Pass without Trace at level 5."],
+    ["Fire Genasi", "mpmm", {}, "Choose Intelligence, Wisdom, or Charisma as your innate spellcasting ability. Resist fire and learn Produce Flame. Gain Burning Hands at level 3 and Flame Blade at level 5."],
+    ["Water Genasi", "mpmm", {}, "Choose Intelligence, Wisdom, or Charisma as your innate spellcasting ability. Swim at walking speed, breathe air and water, and resist acid. Learn Acid Splash. Gain Create or Destroy Water at level 3 and Water Walk at level 5."]
+  ],
+  Shifter: [
+    ["Beasthide Shifter", "erlw", { con: 2, str: 1 }, "Gain Athletics proficiency. While shifted, gain an extra 1d6 temporary HP and +1 AC."],
+    ["Longtooth Shifter", "erlw", { str: 2, dex: 1 }, "Gain Intimidation proficiency. While shifted, you can bite as a bonus action for 1d6 + Strength modifier piercing damage."],
+    ["Swiftstride Shifter", "erlw", { dex: 2, cha: 1 }, "Gain Acrobatics proficiency. While shifted, gain 10 ft speed and can use your reaction to move away without opportunity attacks when an enemy ends its turn nearby."],
+    ["Wildhunt Shifter", "erlw", { wis: 2, dex: 1 }, "Gain Survival proficiency. While shifted, gain advantage on Wisdom checks and prevent nearby creatures from making attacks against you with advantage unless you are incapacitated."]
+  ]
+});
+const BOOK_LINEAGE_TRAITS = {
+  "Celestial Resistance (2014)": "You resist necrotic and radiant damage.",
+  "Healing Hands (2014)": "As an action once per long rest, touch a creature and restore hit points equal to your level.",
+  "Light Bearer (2014)": "You know the Light cantrip. Charisma is your spellcasting ability for it.",
+  "Shifting (Eberron)": "Once per short or long rest, use a bonus action to shift for up to one minute and gain temporary hit points equal to your level plus Constitution modifier."
+};
+for (const [race, lineages] of Object.entries(BOOK_LINEAGES_2014)) {
+  for (const [name, src, asi, d] of lineages) {
+    PC_RACES["2014"][race].subs[name] = {
+      src, asi, d, traits: [name],
+      ...(name === "Air Genasi" ? { speed: 35 } : {}),
+      ...(race === "Genasi" ? { flexible: true } : {}),
+      ...(["Duergar", "Deep Gnome"].includes(name) ? { replace: { "Darkvision 60 ft": "Superior Darkvision 120 ft" } } : {})
+    };
+  }
+}
 const edOf = c => (c && c.ed) || "2014";
 const raceList = ed => { const R = PC_RACES[ed] || PC_RACES["2014"]; return Object.keys(R).filter(x => !R[x].pend); };
 function raceInfo(ed, race, sub) {
@@ -65,6 +132,9 @@ function raceInfo(ed, race, sub) {
     Object.entries(S.asi || {}).forEach(([a, v]) => R.asi[a] = (R.asi[a] || 0) + v);
     if (S.plus1) { R.plus1 = S.plus1; R.plus1Any = !!S.plus1Any; }
     if (S.speed) R.speed = S.speed;
+    if (S.flexible) R.flexible = true;
+    const shifterSkill = { "Beasthide Shifter": "Athletics", "Longtooth Shifter": "Intimidation", "Swiftstride Shifter": "Acrobatics", "Wildhunt Shifter": "Survival" }[sub];
+    if (shifterSkill) R.skills.push(shifterSkill);
     if (S.extraSkills) R.extraSkills += S.extraSkills;
     if (S.hpLv) R.hpLv += S.hpLv;
     if (S.traitsOverride) R.traits = [...S.traitsOverride];
@@ -273,6 +343,9 @@ function featDesc(f, c) {
   if (f === "Breath Weapon") return edOf(c) === "2024" ? (A ? `Replace one attack: exhale ${A.type} in a 15 ft cone or 30 ft line (DEX save) — damage and DC under Attacks.` : "Replace one attack with a cone or line of energy; damage and DC under Attacks.") : A ? `Exhale ${A.type} in a ${A.shape} (${A.save} save) — damage and DC under Attacks.` : "Exhale destructive energy; damage and DC under Attacks.";
   const sd = subFeatDesc(f, c); if (sd) return sd;
   const td = hbTraitDesc(f, c); if (td) return td;
+  const lineage = c && PC_RACES[edOf(c)]?.[c.race]?.subs?.[c.sub || c.ancestry];
+  if (lineage?.src && lineage.traits.includes(f)) return lineage.d;
+  if (Object.hasOwn(BOOK_LINEAGE_TRAITS, f)) return BOOK_LINEAGE_TRAITS[f];
   if (edOf(c) === "2024" && FEAT_DESC_2024[f]) return FEAT_DESC_2024[f];
   if (f === "Damage Resistance") return A ? `Resistance to ${A.type} damage.` : "Resistance to your ancestry's damage type.";
   return FEAT_DESC[f] || HB_DESC[f] || "";
@@ -283,10 +356,10 @@ function featDesc(f, c) {
 const featTagOf = (c, f) => { const l = +f.l || 1; /* a number, never markup: sheets can come from another player */ return f.sub ? `${esc(c.subclass)}, lv ${l}` : f.mcsub ? `${esc(f.mcsub)}, ${esc(f.mc)} lv ${l}` : f.mc ? `${esc(f.mc)} lv ${l}` : (f.race ? esc(raceLabel(c)) + ", " : "") + "lv " + l; };
 function featuresListHTML(c, edit) {
   const feats = (c.feats || []).filter(f => !edit || !String(f.f).startsWith("Feat: "));
-  return `<ul class="plain">${feats.map(f => featLi(f.f, featTagOf(c, f), c, edit || undefined)).join("")}${(c.traits || []).map(t => featLi(t, esc(raceLabel(c)), c)).join("")}</ul>`;
+  return `<ul class="plain">${feats.map(f => featLi(f.f, featTagOf(c, f), c, edit || undefined)).join("")}${(c.traits || []).map(t => featLi(t, esc(raceLabel(c)), c, edit || undefined)).join("")}</ul>`;
 }
 function featLi(f, tag, c, edit) {
   const d = featDesc(f, c), full = subFeatDesc(f, c) ? "" : FEAT_FULL[f];
-  const head = `<b>${esc(f)}</b> <span class="muted" style="font-size:13px">(${tag})</span>${d ? `<div class="ft-desc">${esc(d)}</div>` : ""}${edit && CHOICES[f] ? choiceHTML(c, f) : ""}`;
+  const head = `<b>${esc(f)}</b> <span class="muted" style="font-size:13px">(${tag})</span>${d ? `<div class="ft-desc">${esc(d)}</div>` : ""}${edit ? featureChoiceHTML(c, f) : ""}`;
   return full ? `<li class="ft-li"><details><summary title="Show the full description">${head}</summary><div class="ft-full">${esc(full)}</div></details></li>` : `<li>${head}</li>`;
 }
