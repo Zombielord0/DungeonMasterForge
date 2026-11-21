@@ -3251,5 +3251,19 @@
   {"kind":"Subclass","name":"Way of the Kensei","src":"xge","page":34,"details":[["Parent class","Monk"],["Level 3","Way of the Kensei"],["Level 6","One with the Blade"],["Level 11","Sharpen the Blade"],["Level 17","Unerring Accuracy"]]},
   {"kind":"Subclass","name":"Way of the Open Hand","src":"phb-2014","page":79,"details":[["Parent class","Monk"],["Level 3","Way of the Open Hand"],["Level 6","Wholeness of Body"],["Level 11","Tranquility"],["Level 17","Quivering Palm"]]},
   {"kind":"Subclass","name":"Way of the Sun Soul","src":"xge","page":35,"details":[["Parent class","Monk"],["Level 3","Way of the Sun Soul"],["Level 6","Searing Arc Strike"],["Level 11","Searing Sunburst"],["Level 17","Sun Shield"]]},
-  {"kind":"Subclass","name":"Wild Magic","src":"phb-2014","page":103,"details":[["Parent class","Sorcerer"],["Level 1","Wild Magic"],["Level 6","Bend Luck"],["Level 14","Controlled Chaos"],["Level 18","Spell Bombardment"]]}
+  {"kind":"Subclass","name":"Wild Magic","src":"phb-2014","page":103,"details":[["Parent class","Sorcerer"],["Level 1","Wild Magic"],["Level 6","Bend Luck"],["Level 14","Controlled Chaos"],["Level 18","Spell Bombardment"]]},
+{"kind": "Other rules", "name": "Bastions", "src": "dmg-2024", "ed": "2024", "details": [["Overview", "A party stronghold with facilities, orders, and events resolved during Bastion turns."]]},
+{"kind": "Other rules", "name": "Crafting magic items", "src": "dmg-2024", "ed": "2024", "details": [["Overview", "Check the intended rarity, required time and gold, any applicable tool proficiency, and any spells or components."]]},
+{"kind": "Other rules", "name": "Circle Magic", "src": "hof", "ed": "2024", "details": [["Overview", "Spellcasters can cooperate on eligible castings, with specific rules for the lead caster and secondary participants."]]},
+{"kind": "Other rules", "name": "Mobile Bastions", "src": "efota", "ed": "2024", "details": [["Overview", "Eberron rules let a Bastion travel, including facilities and vessels tied to the setting."]]},
+{"kind": "Other rules", "name": "Dragonmarks", "src": "efota", "ed": "2024", "details": [["Overview", "Character feats represent marks tied to houses and provide related magic."]]},
+{"kind": "Other rules", "name": "Domains of Dread", "src": "rthw", "ed": "2024", "details": [["Overview", "The book supplies domains, Darklords, and campaign tools for running horror adventures."]]},
+{"kind": "Other rules", "name": "Evolving Magic Items", "src": "au", "ed": "2024", "details": [["Overview", "Magic items can change as a campaign progresses, with rules and examples for gaining new properties."]]},
+{"kind": "Other rules", "name": "Azeroth specializations", "src": "wow", "ed": "2024", "details": [["Overview", "The book maps Warcraft classes and specializations to D&D character options and includes setting-specific rules."]]},
+{"kind": "Other rules", "name": "Dragon Delves adventures", "src": "drde", "ed": "2024", "details": [["Overview", "Dragon lairs with encounters and distinct approaches for characters at different levels."]]},
+{"kind": "Other rules", "name": "Adventures in Faerûn", "src": "aif", "ed": "2024", "details": [["Overview", "A DM source for regional adventures, setting information, monsters, and treasure."]]},
+{"kind": "Other rules", "name": "Heroes of the Borderlands adventures", "src": "hotb", "ed": "2024", "details": [["Overview", "Starter adventures centered on the Keep, the wilderness, and the Caves of Chaos."]]},
+{"kind": "Other rules", "name": "Hellfire Club adventures", "src": "wthc", "ed": "2024", "details": [["Overview", "A boxed set of linked adventures presented as Eddie Munson’s campaign."]]},
+{"kind": "Other rules", "name": "Deadfall adventure", "src": "deadfall", "ed": "2024", "details": [["Overview", "A high-level adventure in Thay involving Szass Tam and the realm’s magical factions."]]},
+{"kind":"Other rules","name":"Lorwyn: First Light","src":"lfl","ed":"2024","details":[["Overview","An adventure set in Lorwyn and Shadowmoor with setting-specific species options."]]}
 ]

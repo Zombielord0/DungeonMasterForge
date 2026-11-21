@@ -22,7 +22,7 @@ function campaignLineageChoices(ed, race) {
 }
 function campaignClassChoices(ed) {
   const rules = currentSourceRules();
-  return classList(ed).filter(n => sourceAllowed(rules, CLASS_DATA[n].hbx?.src, CLASS_DATA[n].hb));
+  return classList(ed).filter(n => sourceAllowed(rules, classData(ed, n).hbx?.book ? classData(ed, n).hbx.src : null, classData(ed, n).hb));
 }
 function campaignBackgroundChoices(ed) {
   const rules = currentSourceRules();
@@ -30,7 +30,7 @@ function campaignBackgroundChoices(ed) {
 }
 function campaignSubclassChoices(ed, name) {
   const rules = currentSourceRules();
-  return subclassList(ed, name).filter(([, , hb, src]) => sourceAllowed(rules, src, hb));
+  return subclassList(ed, name, (src, hb) => sourceAllowed(rules, src, hb));
 }
 function characterSourceIssues(pc, rules) {
   if (!rules) return [];
@@ -42,9 +42,10 @@ function characterSourceIssues(pc, rules) {
   if (lineage?.src && lineage.src !== species?.src) check(pc.sub, lineage.src, false);
   check(pc.bg, background?.src, !!background);
   for (const entry of [pc, ...(pc.multi || [])]) {
-    check(entry.cls, CLASS_DATA[entry.cls]?.hbx?.src, CLASS_DATA[entry.cls]?.hb);
+    const classEntry = classData(ed, entry.cls)?.hbx;
+    check(entry.cls, classEntry?.book ? classEntry.src : null, classData(ed, entry.cls)?.hb);
     const sub = subclassList(ed, entry.cls).find(([name]) => name === entry.subclass);
-    if (sub) check(sub[0], sub[3], sub[2]);
+    if (sub && !subclassList(ed, entry.cls, (src, hb) => sourceAllowed(rules, src, hb)).some(([name]) => name === entry.subclass)) issues.push(sub[0]);
   }
   for (const name of pcFeatNames(pc)) {
     const feat = featInfo(ed, name);

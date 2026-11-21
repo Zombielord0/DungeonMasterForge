@@ -11,22 +11,52 @@ function spTimeCat(t) {
   if (x.startsWith("action") || x.startsWith("1 action")) return "Action";
   return "Longer";
 }
+// Tasha's 2014 base class list. Names here match existing catalog entries.
+const ARTIFICER_SPELLS = new Set([
+  "Acid Splash", "Booming Blade", "Create Bonfire", "Dancing Lights", "Fire Bolt", "Frostbite", "Green-Flame Blade",
+  "Guidance", "Light", "Lightning Lure", "Mage Hand", "Magic Stone", "Mending", "Message", "Poison Spray",
+  "Prestidigitation", "Ray of Frost", "Resistance", "Shocking Grasp", "Spare the Dying", "Sword Burst", "Thorn Whip", "Thunderclap",
+  "Absorb Elements", "Alarm", "Catapult", "Cure Wounds", "Detect Magic", "Disguise Self", "Expeditious Retreat",
+  "Faerie Fire", "False Life", "Feather Fall", "Grease", "Identify", "Jump", "Longstrider", "Purify Food and Drink", "Sanctuary", "Snare", "Tasha's Caustic Brew", "Caustic Brew",
+  "Aid", "Alter Self", "Arcane Lock", "Blur", "Continual Flame", "Darkvision", "Enhance Ability", "Enlarge/Reduce",
+  "Heat Metal", "Invisibility", "Lesser Restoration", "Levitate", "Magic Mouth", "Magic Weapon", "Protection from Poison",
+  "Pyrotechnics", "Rope Trick", "See Invisibility", "Skywrite", "Spider Climb", "Web",
+  "Blink", "Catnap", "Create Food and Water", "Dispel Magic", "Elemental Weapon", "Flame Arrows", "Fly", "Glyph of Warding",
+  "Haste", "Intellect Fortress", "Protection from Energy", "Revivify", "Tiny Servant", "Water Breathing", "Water Walk",
+  "Arcane Eye", "Elemental Bane", "Fabricate", "Freedom of Movement", "Leomund's Secret Chest", "Secret Chest", "Mordenkainen's Faithful Hound",
+  "Faithful Hound", "Mordenkainen's Private Sanctum", "Private Sanctum", "Otiluke's Resilient Sphere", "Resilient Sphere",
+  "Stone Shape", "Stoneskin", "Summon Construct", "Animate Objects", "Bigby's Hand", "Arcane Hand", "Creation", "Greater Restoration",
+  "Skill Empowerment", "Transmute Rock", "Wall of Stone"
+].map(name => name.toLowerCase()));
+const REVISED_ARTIFICER_SPELLS = new Set([
+  "acid splash", "guidance", "mage hand", "mending", "prestidigitation", "ray of frost", "thunderclap",
+  "cure wounds", "detect magic", "expeditious retreat", "faerie fire", "feather fall", "grease", "identify",
+  "alarm", "disguise self", "false life", "jump", "longstrider", "purify food and drink", "sanctuary",
+  "aid", "alter self", "arcane lock", "arcane vigor", "blur", "darkvision", "enhance ability", "enlarge/reduce",
+  "heat metal", "invisibility", "lesser restoration", "levitate", "magic mouth", "magic weapon", "protection from poison",
+  "rope trick", "see invisibility", "spider climb", "web", "blink", "dispel magic", "fly", "glyph of warding",
+  "haste", "protection from energy", "revivify", "water breathing", "water walk", "arcane eye", "fabricate",
+  "freedom of movement", "stone shape", "stoneskin", "summon construct", "animate objects", "arcane hand",
+  "creation", "greater restoration", "wall of stone"
+]);
 function spPrep(s, ed, i) {
   s.id = ed + "-" + i;
+  const artificerSpells = ed === "2014" ? ARTIFICER_SPELLS : REVISED_ARTIFICER_SPELLS;
+  if (!s.hb && artificerSpells.has(s.n.toLowerCase().replaceAll("’", "'")) && !s.c.includes("Artificer")) {
+    s.c.push("Artificer");
+  }
   s.tc = spTimeCat(s.t);
   s.ts = s.tc === "Longer" ? s.t : s.tc;
   if (s.sv) s.save = SAVE_ABBR[s.sv] || s.sv;
   else { const m = s.d.match(/(Strength|Dexterity|Constitution|Intelligence|Wisdom|Charisma) saving throw/i); s.save = m ? cap1(m[1].toLowerCase()) : ""; }
   if (!s.at && /(melee|ranged) spell attack/i.test(s.d)) s.at = /ranged spell attack/i.test(s.d) ? "ranged" : "melee";
-  s.hay = s.n.toLowerCase(); s.hayD = (s.n + " " + s.d + " " + s.h).toLowerCase();
+  s.hay = [s.n, ...(s.aliases || [])].join(" ").toLowerCase();
+  s.hayD = s.hay + " " + (s.d + " " + s.h).toLowerCase();
   return s;
 }
 function spLoad() {
   if (SP.data) return;
   const raw = dmData("spellData");
-  for (const s of raw["2014"]) {
-    if (ARTIFICER_SPELL_NAMES.has(s.n.toLowerCase()) && !s.c.includes("Artificer")) s.c = [...s.c, "Artificer"];
-  }
   for (const ed of Object.keys(raw)) raw[ed].forEach((s, i) => spPrep(s, ed, i));
   SP.data = raw;
   hbSpellsApply();
@@ -79,6 +109,7 @@ function spDetail(s, { edition = SP.ed, actions = true } = {}) {
     <div class="sp-stats"><div><span>Casting time</span>${esc(s.t)}${s.ri ? " or ritual" : ""}</div><div><span>Range</span>${esc(s.r)}</div><div><span>Components</span>${esc(comps)}</div><div><span>Duration</span>${s.co && !/concentration/i.test(s.du) ? "Concentration, " : ""}${esc(s.du)}</div></div>
     ${spFormat(s.d)}
     ${s.h ? `<p><b><i>${edition === "2024" ? "Using a Higher-Level Spell Slot." : "At Higher Levels."}</i></b> ${spFormat(s.h).replace(/^<p>|<\/p>$/g, "")}</p>` : ""}
+    ${summonSpiritHTML(s, edition)}
     ${bookLine(s)}
     ${actions ? `<div class="actions"><button class="btn sm" data-sp="copy" data-id="${s.id}">Copy spell</button><button class="btn sm" data-sp="fav" data-id="${s.id}">${favs.has(favKey(s)) ? "★ Remove favorite" : "☆ Add favorite"}</button>${spPrepBtn(s)}</div>` : ""}
   </div>`;

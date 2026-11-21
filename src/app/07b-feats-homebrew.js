@@ -114,22 +114,59 @@ const FEATS = {
     ["Boon of Truesight", "any", "lv19", "Truesight out to 60 ft.", "b"]
   ]
 };
-const FEAT_GROUPS = { o: "Origin", g: "General", b: "Epic boon" };
+const FEAT_GROUPS = { o: "Origin", g: "General", b: "Epic boon", f: "Fighting style" };
 const FEAT_REPEAT = new Set(["Elemental Adept", "Magic Initiate", "Skilled"]);
-/* a feat row: [name, abilities, prerequisite, text, 2024 group, homebrew?, book code] */
+/* a feat row: [name, abilities, prerequisite, text, 2024 group, homebrew?, book code, source prerequisites, source category] */
 const featList = ed => { const L = [...(FEATS[ed] || FEATS["2014"]), ...hbOf("feat").filter(x => hbEdOk(x, ed)).map(x => [x.name, x.ab || "", x.req || "", (x.desc || "") + fxNote(x.fx), ed === "2024" ? (x.group || "g") : undefined, true])];
-  hbBook("feat").filter(x => hbEdOk(x, ed) && !L.some(F => F[0] === x.name)).forEach(x => L.push([x.name, x.ab || "", x.req || "", (x.desc || "") + fxNote(x.fx), ed === "2024" ? (x.group || "g") : undefined, false, x.src]));
+  hbBook("feat").filter(x => hbEdOk(x, ed) && !L.some(F => F[0] === x.name)).forEach(x => L.push([x.name, x.ab || "", x.req || "", (x.desc || "") + fxNote(x.fx), ed === "2024" ? (x.group || "g") : undefined, false, x.src, x.prerequisites, x.rulesCategory]));
   return L; };
 const featInfo = (ed, name) => featList(ed).find(f => f[0] === name) || null;
 const featAbs = F => !F || !F[1] ? [] : F[1] === "any" ? [...AB] : F[1].split(" ");
 // Why a character can't take a feat right now ("" if they can). scores are their scores before this level's points.
 function featBlock(F, c, scores, lv) {
+  if (F[4] === "f") return "Choose this through a Fighting Style class feature";
+  if (F[4] === "g" && F[6] === "phb-2024" && lv < 4) return "Requires level 4";
+  if (F[7]?.length) {
+    const owned = new Set(pcFeatNames(c).map(name => name.toLowerCase()));
+    const passes = row => {
+      if (row.level && lv < row.level) return false;
+      if (row.spellcasting2020 && !c.spell) return false;
+      if (row.ability?.length && !row.ability.some(set => Object.entries(set).every(([ab, min]) => (+scores[ab] || 0) >= min))) return false;
+      if (row.feat?.length && !row.feat.some(name => owned.has(name.split("|")[0].toLowerCase()))) return false;
+      const armor = (row.proficiency || []).filter(p => p.armor && !p.tool && !p.weapon && !p.weaponGroup);
+      if (armor.length && armor.length === row.proficiency.length && !armor.some(p => armorTraining(c).has(p.armor))) return false;
+      if (row.race?.length && !row.race.some(r => r.name?.toLowerCase() === String(c.race).toLowerCase())) return false;
+      if (row.featCategory?.length && !hbBook("feat").some(x => owned.has(x.name.toLowerCase()) && row.featCategory.includes(x.rulesCategory))) return false;
+      if (row.exclusiveFeatCategory?.length && hbBook("feat").some(x => owned.has(x.name.toLowerCase()) && row.exclusiveFeatCategory.includes(x.rulesCategory))) return false;
+      return true;
+    };
+    return F[7].some(passes) ? "" : "Requires " + featReqText(F);
+  }
   const req = F[2]; if (!req || req[0] === "@") return "";
   const ok = req.split("|").some(t => t === "cast" ? !!c.spell : t === "lv19" ? lv >= 19 : (scores[t.slice(0, 3)] || 0) >= +t.slice(3));
   if (ok) return "";
   return req === "cast" ? "Requires spellcasting" : req === "lv19" ? "Requires level 19" : "Requires " + req.split("|").map(t => `${AB_NAME[t.slice(0, 3)]} ${t.slice(3)}`).join(" or ");
 }
-const featReqText = F => !F[2] ? "" : F[2][0] === "@" ? F[2].slice(1) : F[2] === "cast" ? "Spellcasting" : F[2] === "lv19" ? "Level 19" : F[2].split("|").map(t => `${AB_NAME[t.slice(0, 3)]} ${t.slice(3)}+`).join(" or ");
+function featReqText(F) {
+  if (F[7]?.length) return F[7].map(row => {
+    const abilities = (row.ability || []).map(set => Object.entries(set).map(([ab, score]) => `${AB_NAME[ab]} ${score}+`).join(" and "));
+    return [
+      row.level && `Level ${row.level}`, row.spellcasting2020 && "Spellcasting or Pact Magic",
+      abilities.join(" or "), (row.feat || []).map(name => cap1(name.split("|")[0])).join(" or "),
+      (row.campaign || []).join(" or "), (row.feature || []).join(" or "),
+      (row.proficiency || []).map(p => p.armor ? `${p.armor} armor training` : (p.tool || []).join(", ") || (p.weaponGroup ? `${p.weaponGroup} weapon proficiency` : "")).filter(Boolean).join(" or "),
+      (row.race || []).map(r => cap1(r.name || "")).join(" or "),
+      row.featCategory?.includes("D") && "a Dragonmark feat",
+      row.exclusiveFeatCategory?.includes("D") && "no other Dragonmark feat",
+      row.otherSummary?.entry,
+    ].filter(Boolean).join(" · ");
+  }).filter(Boolean).join(" or ");
+  if (!F[2]) return "";
+  if (F[2][0] === "@") return F[2].slice(1);
+  if (F[2] === "cast") return "Spellcasting";
+  if (F[2] === "lv19") return "Level 19";
+  return F[2].split("|").map(t => `${AB_NAME[t.slice(0, 3)]} ${t.slice(3)}+`).join(" or ");
+}
 /* ---- homebrew: subclasses, backgrounds, feats and species added by the DM ----
    Signed in to a campaign they come from the campaign database (Portal); otherwise from this browser.
    Backgrounds and species are merged into BACKGROUNDS / PC_RACES so every picker and the generator see them. */
@@ -178,9 +215,9 @@ function hbEffects(ed, race, sub, bg, cls, subclass, lv, featNames) {
   const sp = hbAny("species").find(x => x.name === race && hbEdOk(x, ed) && PC_RACES[ed][race] && PC_RACES[ed][race].hb);
   if (sp) { (sp.traits || []).filter(t => (+t.l || 1) <= lv).forEach(t => add(t.n, t.fx)); const su = (sp.subs || []).find(t => t.n === sub); if (su) add(su.n, su.fx); }
   if (HB_BG[bg]) add(`${bg} background`, HB_BG[bg].fx);
-  const sc = subclass && hbAny("subclass").find(x => x.name === subclass && x.cls === cls && hbEdOk(x, ed));
+  const sc = subclass && subclassEntry(ed, cls, subclass);
   if (sc) (sc.features || []).filter(f => f.n && +f.l <= lv).forEach(f => add(f.n, f.fx));
-  const hc = CLASS_DATA[cls] && CLASS_DATA[cls].hb && CLASS_DATA[cls].hbx;
+  const hc = classData(ed, cls)?.hbx;
   if (hc) (hc.features || []).filter(f => f.n && +f.l <= lv).forEach(f => add(f.n, f.fx));
   featNames.forEach(nm => { const f = hbAny("feat").find(x => x.name === nm && hbEdOk(x, ed)); if (f) add(nm, f.fx); });
   return out;
@@ -196,7 +233,7 @@ const pendKey = x => `${x.kind}|${x.kind === "subclass" ? String(x.cls || "").to
 let HB_BOOK = null;
 function hbBook(kind) {
   if (!HB_BOOK) { try { HB_BOOK = JSON.parse((window.DMDATA && window.DMDATA.optionExtra) || "[]"); } catch { HB_BOOK = []; } if (window.DMDATA) delete window.DMDATA.optionExtra; }
-  return HB_BOOK.concat(ARTIFICER_BOOK_OPTIONS).filter(x => x.kind === kind);
+  return HB_BOOK.filter(x => x.kind === kind);
 }
 const hbAny = kind => [...hbOf(kind), ...HB.pend.filter(x => x.kind === kind), ...hbBook(kind)];
 function hbPendSync() {
@@ -261,8 +298,15 @@ function hbApply() {
   (A.classes || []).forEach(n => { if (CLASS_DATA[n] && CLASS_DATA[n].hb) delete CLASS_DATA[n]; });
   Object.keys(HB_DESC).forEach(k => delete HB_DESC[k]);
   const N = HB.applied = { bg: [], races: [], raceDesc: [], classes: [] };
+  Object.keys(BOOK_CLASS_VARIANTS).forEach(ed => delete BOOK_CLASS_VARIANTS[ed]);
   hbAny("class").forEach(x => {
-    if (CLASS_DATA[x.name]) return; // never replace a built-in
+    const current = CLASS_DATA[x.name];
+    if (current) {
+      if (current.hbx?.book && x.book && ["2014", "2024"].includes(x.ed) && !hbEdOk(current.hbx, x.ed)) {
+        (BOOK_CLASS_VARIANTS[x.ed] ||= {})[x.name] = hbClassData(x);
+      }
+      return;
+    }
     CLASS_DATA[x.name] = hbClassData(x); N.classes.push(x.name);
     (x.features || []).forEach(f => { if (f.n) hbDescSet(x, f.n, (f.d || "") + fxNote(f.fx)); });
   });

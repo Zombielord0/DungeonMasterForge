@@ -123,7 +123,8 @@ const server = http.createServer((req, res) => {
   check("compendium opens spell details", await p.locator("#characterReference").getByText("Casting time").isVisible());
   await p.locator("#characterReference").getByRole("button", { name: "Close" }).click();
   await p.locator("#compendiumEdition").selectOption("2014");
-  check("compendium respects the edition filter", /2014/.test(await results.innerText()));
+  await results.getByRole("button", { name: /Fireball.*2014/ }).first().waitFor();
+  check("compendium respects the edition filter", !/2024/.test(await results.innerText()));
   await p.locator("#compendiumQuery").fill("Test campaign spell");
   await p.evaluate(() => hbSet([{ id: "compendium-test", kind: "spell", name: "Test campaign spell", desc: "A campaign spell.", ed: "2014" }]));
   check("compendium updates when campaign homebrew arrives", /Homebrew/.test(await results.innerText()));

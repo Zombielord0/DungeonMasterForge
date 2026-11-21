@@ -114,7 +114,8 @@ function spellLimits(c) {
     if (sc) { n += THIRD_KNOWN[lv - 1] || 0; if (list.length === 1 && edOf(c) === "2014") word = "known"; cant += sc.cantrips + (lv >= 10 ? 1 : 0); return; } /* Eldritch Knight, Arcane Trickster */
     const ab = CLASS_DATA[cls].cast[1];
     if (CLASS_DATA[cls].cast[0] === "artificer") {
-      n += Math.max(1, m[ab] + Math.floor(lv / 2));
+      const revised = [0, 2, 3, 4, 5, 6, 6, 7, 7, 9, 9, 10, 10, 11, 11, 12, 12, 14, 14, 15, 15];
+      n += edOf(c) === "2024" ? revised[lv] : Math.max(1, m[ab] + Math.floor(lv / 2));
       cant += 2 + (lv >= 10 ? 1 : 0) + (lv >= 14 ? 1 : 0);
       return;
     }
@@ -154,7 +155,7 @@ function pcCastClasses(c) {
   return list.map(({ cls, lv, subclass }) => {
     const k = castOf(cls, subclass)[0];
     if (k === "third") return { cls, lv, list: castListOf(cls, subclass), max: thirdSlots(lv).length, cantrips: true };
-    if (k === "artificer") return { cls, lv, max: FULL_SLOTS[Math.ceil(lv / 2)].length, cantrips: true };
+    if (k === "artificer") return { cls, lv, max: ARTIFICER_SLOTS[lv].length, cantrips: true };
     const max = k === "pact" ? Math.min(5, Math.ceil(lv / 2)) : k === "full" ? (FULL_SLOTS[lv] || []).length : (lv >= 2 || ed === "2024" ? (FULL_SLOTS[Math.ceil(lv / 2)] || []).length : 0);
     return { cls, lv, max: Math.max(k === "half" && !max ? 0 : 1, max), cantrips: k !== "half" };
   });

@@ -19,13 +19,17 @@ const X = { sp: data("extra-spells"), mon: data("extra-monsters"), it: data("ext
   // the data files themselves
   const lc = s => s.toLowerCase();
   const srdNames = (o, f) => new Set(["2014", "2024"].flatMap(ed => f(o[ed]).map(x => lc(x.n))));
-  check("no extra spell has an SRD spell's name", !X.sp.some(s => srdNames(SRD.sp, l => l).has(lc(s.n))));
-  check("no extra monster has an SRD monster's name", !X.mon.some(m => srdNames(SRD.mon, l => l).has(lc(m.n))));
+  check("no extra spell duplicates a base spell in its edition", ["2014", "2024"].every(ed =>
+    !X.sp.some(s => (!s.ed || s.ed === ed) && SRD.sp[ed].some(base => lc(base.n) === lc(s.n)))));
+  check("open-book monster names do not duplicate the SRD",
+    !X.mon.some(m => srdNames(Object.fromEntries(Object.entries(SRD.mon).map(([ed, monsters]) =>
+      [ed, monsters.filter(x => !x.src)])), l => l).has(lc(m.n))));
   check("no extra magic item has an SRD item's name", !X.it.some(m => srdNames(SRD.it, l => l.mi).has(lc(m.n))));
   check("no name appears twice in an extras list", [X.sp, X.mon, X.it].every(L => new Set(L.map(x => lc(x.n))).size === L.length));
   check("every extra entry names a known book", [...X.sp, ...X.mon, ...X.it].every(x => X.books[x.src]));
   check("book metadata distinguishes licensed sources and reference summaries",
-    Object.entries(X.books).every(([key, b]) => ["phb-2014", "dmg-2014"].includes(key) ? b.lic === "reference" : ["ogl-10a", "cc-by-40"].includes(b.lic)) &&
+    Object.values(X.books).every(b => ["reference", "ogl-10a", "cc-by-40"].includes(b.lic)) &&
+    ["phb-2014", "dmg-2014", "tce", "xge"].every(key => X.books[key]?.lic === "reference") &&
     [...X.sp, ...X.mon, ...X.it].every(x => ["ogl-10a", "cc-by-40"].includes(X.books[x.src]?.lic)));
   check("every extra monster has a habitat", X.mon.every(m => (m.env || []).length));
   check("no extra monster lives everywhere", X.mon.every(m => m.env.length <= 8), JSON.stringify(X.mon.filter(m => m.env.length > 8).map(m => m.n).slice(0, 5)));
@@ -35,20 +39,25 @@ const X = { sp: data("extra-spells"), mon: data("extra-monsters"), it: data("ext
   // species, subclasses, feats and backgrounds (homebrew-shaped)
   const kinds = {}; X.opt.forEach(x => kinds[x.kind] = (kinds[x.kind] || 0) + 1);
   check("options: species, subclasses, feats and backgrounds", kinds.species >= 10 && kinds.subclass >= 90 && kinds.feat >= 10 && kinds.background >= 20, JSON.stringify(kinds));
-  check("options: each is marked as a book entry with a known book", X.opt.every(x => x.book === true && X.books[x.src] && /^book-/.test(x.id)));
+  check("options: each is marked as a book entry with a known book", X.opt.every(x => x.book === true && X.books[x.src] && /^(book|reference)-/.test(x.id)));
   check("options: ids are unique", new Set(X.opt.map(x => x.id)).size === X.opt.length);
-  const featNames = X.opt.filter(x => x.kind === "subclass").flatMap(x => x.features.map(f => f.n));
-  check("options: no two subclass features share a name", new Set(featNames).size === featNames.length);
-  check("options: no Black Flag classes (another rules system)", !X.opt.some(x => x.kind === "class" || /^book-bfrd/.test(x.id)));
+  check("options: subclass feature names are unique within each level", X.opt.filter(x => x.kind === "subclass")
+    .every(x => new Set(x.features.map(f => f.l + "|" + f.n)).size === x.features.length));
+  check("options: Artificer is the only additional class, with one entry per edition",
+    X.opt.filter(x => x.kind === "class").length === 2 &&
+    X.opt.some(x => x.kind === "class" && x.name === "Artificer" && x.ed === "2024" && x.src === "efota") &&
+    X.opt.some(x => x.kind === "class" && x.name === "Artificer" && x.ed === "2014" && x.src === "tce") &&
+    !X.opt.some(x => /^book-bfrd/.test(x.id)));
   check("lots of each kind", X.sp.length > 800 && X.mon.length > 1500 && X.it.length > 1000, `${X.sp.length} spells, ${X.mon.length} monsters, ${X.it.length} items`);
 
-  await new Promise(r => server.listen(0, r));
-  const URL = `http://localhost:${server.address().port}/`;
+  await new Promise(r => server.listen(0, "127.0.0.1", r));
+  const URL = `http://127.0.0.1:${server.address().port}/`;
   const browser = await chromium.launch();
   const ctx = await browser.newContext({ viewport: { width: 1300, height: 900 }, serviceWorkers: "block" });
   await ctx.addInitScript(() => localStorage.setItem("dmforge.offline", "1"));
   const errs = [];
   const p = await ctx.newPage(); p.on("pageerror", e => errs.push(e.message));
+  p.setDefaultTimeout(8000);
   await p.goto(URL + "#spells"); await p.waitForFunction(() => typeof spLoad === "function" && $("#storeBadge").textContent !== "Connecting…", null, { timeout: 15000 });
 
   // ---- spells ----
@@ -60,8 +69,9 @@ const X = { sp: data("extra-spells"), mon: data("extra-monsters"), it: data("ext
       first: spFind("2014-0").n, a: a && { id: a.id, t: a.t, src: a.src, save: a.save }, b: b && { t: b.t },
       sameObj: a === b, books: [...$("#spBook").options].map(o => o.value) };
   });
-  check("spells: every open-book bonus spell is in both editions", sp.x14 === X.sp.length && sp.x24 === X.sp.length, JSON.stringify(sp));
-  check("spells: the SRD spells keep their places", sp.first === SRD.sp["2014"][0].n && sp.n14 === SRD.sp["2014"].length + X.sp.length);
+  const spellExtras = ed => X.sp.filter(s => !s.ed || s.ed === ed);
+  check("spells: open-book bonus spells appear in their supported editions", sp.x14 === spellExtras("2014").length && sp.x24 === spellExtras("2024").length, JSON.stringify(sp));
+  check("spells: the SRD spells keep their places", sp.first === SRD.sp["2014"][0].n && sp.n14 === SRD.sp["2014"].length + spellExtras("2014").length);
   check("spells: each edition has its own copy", sp.a && sp.b && !sp.sameObj);
   check("spells: 2014 and 2024 wording for casting time", sp.a.t === "1 action" && sp.b.t === "Action", JSON.stringify([sp.a, sp.b]));
   check("spells: saving throw is read", sp.a.save === "Wisdom", sp.a.save);
@@ -69,7 +79,7 @@ const X = { sp: data("extra-spells"), mon: data("extra-monsters"), it: data("ext
   await p.click("#spFiltersBtn").catch(() => { });
   await p.selectOption("#spBook", "deepm"); await p.waitForTimeout(300);
   const spList = await p.evaluate(() => ({ shown: spFiltered().length, all: spFiltered().every(s => s.src === "deepm"), badge: $("#spFiltersBtn").textContent }));
-  check("spells: Book filter shows only that book", spList.all && spList.shown === X.sp.filter(s => s.src === "deepm").length, JSON.stringify(spList));
+  check("spells: Book filter shows only that book", spList.all && spList.shown === spellExtras("2024").filter(s => s.src === "deepm").length, JSON.stringify(spList));
   await p.selectOption("#spBook", "srd"); await p.waitForTimeout(300);
   check("spells: Official rules shows only SRD spells", await p.evaluate(() => spFiltered().every(s => !s.src) && spFiltered().length === SP.data[SP.ed].filter(s => !s.src && !s.pend).length));
   await p.selectOption("#spBook", ""); await p.fill("#spQ", "abhorrent apparition"); await p.waitForTimeout(400);
@@ -139,7 +149,9 @@ const X = { sp: data("extra-spells"), mon: data("extra-monsters"), it: data("ext
   // ---- monsters ----
   await p.goto(URL + "#monsters"); await p.waitForTimeout(400);
   await p.evaluate(() => { const r = $('input[name="monMode"][value="srd"]'); if (r) { r.checked = true; r.dispatchEvent(new Event("change", { bubbles: true })); } });
-  await p.waitForFunction(() => extraMonstersReady && $("#bsBook").options.length > 1);
+  await p.waitForFunction(() => extraMonstersReady && $("#bsBook").options.length > 1).catch(err => {
+    throw new Error([...errs, err.message].join("\n"), { cause: err });
+  });
   const mon = await p.evaluate(() => {
     bsLoad();
     const f = BS.data["2014"].find(m => m.src === "tob2");

@@ -2,6 +2,9 @@
    When a change ships, add an entry to the top of NEWS with a new id, in plain words for players and DMs. */
 
 const NEWS = [
+  { id: "2026-11-21-tasha-xanathar-subclasses", date: "2026-11-21", title: "Build with Tasha’s and Xanathar’s subclasses", go: "roster", items: [
+    "Use the 2014 builder to select Artificer or browse subclasses from both books. The level-by-level view now describes their features.",
+    "Save choices such as an Armorer model, Rune Knight runes, and a Genie patron in Features & Traits."] },
   { id: "2026-11-20-2014-book-catalogs", date: "2026-11-20", title: "Search more 2014 sourcebooks", go: "compendium", items: [
     "Search by book or entry name to see source pages, spell parameters, monster statistics, and character options.",
     "Book references point to the full rules. Mind Sliver, Absorb Elements, and Zephyr Strike are also available in the 2014 spell catalog."] },

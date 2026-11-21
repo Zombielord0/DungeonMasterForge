@@ -56,7 +56,7 @@ async function compendiumSearch() {
   const reference = (name, body, trigger) => characterReference(name, body, trigger);
   if (wants("Spell")) {
     spLoad();
-    for (const s of SP.data[ed].filter(spell => !spell.pend)) add("Spell", s.n, s.src, s.hb, b => reference(s.n, spDetail(s, { edition: ed, actions: false }), b));
+    for (const s of SP.data[ed].filter(spell => !spell.pend)) add("Spell", s.n, s.src, s.hb, b => reference(s.n, spDetail(s, { edition: ed, actions: false }), b), s.aliases?.join(" · "));
   }
   if (wants("Item")) {
     itLoad();
@@ -67,10 +67,11 @@ async function compendiumSearch() {
     for (const m of [...BS.data[ed], ...(BS.data.custom || [])]) add("Monster", m.n, m.src, !!m.key, b => reference(m.n, bsSbHTML(m, ed) + bookLine(m), b));
   }
   if (wants("Class") || wants("Subclass")) {
-    for (const name of classList(ed)) {
-      if (wants("Class")) add("Class", name, CLASS_DATA[name].hbx?.src, CLASS_DATA[name].hb, b => openProgression(ed, "class", name, "", b, { campaign: true }));
-      if (wants("Subclass")) for (const [sub, , hb, src] of subclassList(ed, name)) {
-        add("Subclass", sub, src, hb, b => openProgression(ed, "subclass", name, sub, b), name);
+    for (const name of campaignClassChoices(ed)) {
+      const entry = classData(ed, name).hbx;
+      if (wants("Class")) add("Class", name, entry?.book ? entry.src : null, classData(ed, name).hb, b => openProgression(ed, "class", name, "", b, { campaign: true }));
+      if (wants("Subclass")) for (const [sub, , hb, src] of campaignSubclassChoices(ed, name)) {
+        add("Subclass", sub, src, hb, b => openProgression(ed, "subclass", name, sub, b, { campaign: true }), name);
       }
     }
   }
@@ -85,12 +86,12 @@ async function compendiumSearch() {
     add("Feat", feat[0], feat[6], feat[5], b => reference(feat[0], `<p>${esc(featReqText(feat))}</p>${spFormat(feat[3])}${bookLine({ src: feat[6] })}`, b));
   }
   let bookReferencesUnavailable = false;
-  if (ed === "2014" && (type !== "Monster" || canBrowseMonsters)) {
+  if (type !== "Monster" || canBrowseMonsters) {
     const rows = await compendiumBookRows();
     if (request !== compendium.request) return;
     bookReferencesUnavailable = !rows;
     for (const entry of rows || []) {
-      if (!wants(entry.kind) || (entry.kind === "Monster" && !canBrowseMonsters)) continue;
+      if ((entry.ed || "2014") !== ed || !wants(entry.kind) || (entry.kind === "Monster" && !canBrowseMonsters)) continue;
       add(entry.kind, entry.name, entry.src, false,
         button => reference(entry.name, compendiumBookDetail(entry), button), "Book reference");
     }

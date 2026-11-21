@@ -150,10 +150,16 @@ function rcStatusHTML(c) {
 }
 /* ---- casting spells from the sheet: pick a slot, spend it, then roll what the spell does ---- */
 const AB_WORD = { strength: "str", dexterity: "dex", constitution: "con", intelligence: "int", wisdom: "wis", charisma: "cha" };
-function spellOf(ed, name) { spLoad(); return (SP.data[ed] || []).find(x => x.n === name) || Object.values(SP.data).flat().find(x => x.n === name) || null; }
+function spellOf(ed, name) {
+  spLoad();
+  const local = SP.data[ed] || [];
+  return local.find(x => x.n === name) || local.find(x => x.aliases?.includes(name))
+    || Object.values(SP.data).flat().find(x => x.n === name) || null;
+}
 // what a spell does, read from its text: damage or healing dice, upcasting, cantrip growth, attack or save, area, number of rays or darts
 function spellPlan(sp) {
   const d = String(sp.d || ""), h = String(sp.h || "") + " " + d, P = { heal: false, dice: "", flat: 0, type: sp.dt || "", per: "", count: 1, countPer: 0, save: "", half: false, attack: sp.at || "", area: false, mod: false };
+  if (sp.rulesSummary) return P;
   const heal = d.match(/regains?\s+(?:a number of\s+)?hit points equal to\s+(\d+d\d+)(\s*(?:\+|plus)\s*your spellcasting ability modifier)?/i);
   if (heal) { P.heal = true; P.dice = heal[1]; P.mod = !!heal[2]; }
   else {
@@ -216,6 +222,7 @@ function castPreview(c, sp, how) {
   if (P.attack) parts.push(`Spell attack ${sgn(K.atk)}`); else if (P.save) parts.push(`${P.save.toUpperCase()} save against DC ${K.dc}`);
   if (P.dice) parts.push(`${P.heal ? "heals" : "deals"} ${spellDice(c, sp, P, slot)}${P.type && !P.heal ? " " + P.type.toLowerCase() : ""}${count > 1 ? ` × ${count}` : ""}`);
   if (sp.l && up && (P.per || P.countPer)) parts.push(`upcast +${up} level${up === 1 ? "" : "s"}`);
+  if (sp.rulesSummary) parts.push("Resolve the spell’s effects using its sourcebook");
   if (sp.co) parts.push(`needs concentration${c.conc ? ` (ends ${c.conc.spell})` : ""}`);
   return (sp.l ? `At ${ordinal(slot)}: ` : "") + (parts.join(" · ") || "No dice to roll.");
 }
@@ -258,6 +265,18 @@ function castGo() {
   rollLog(c, { label: `Cast ${sp.n}`, total: sp.l ? `L${slot}` : "✦", note: how === "free" ? "no slot" : how === "ritual" ? "ritual" : "" });
   pcPersist();
   const dice = spellDice(c, sp, P, slot), count = P.count + (P.countPer ? Math.max(0, slot - sp.l) : 0), type = P.type ? ` ${P.type.toLowerCase()}` : "";
+  const summoned = summonSpiritHTML(sp, ed, slot, K);
+  if (summoned) {
+    actDialog(`<h3 id="actTitle">${esc(sp.n)}</h3><p>${esc(notes.join(" "))}</p>${summoned}<button class="btn" type="button" data-actclose>Close</button>`);
+    return;
+  }
+  if (sp.rulesSummary) {
+    actDialog(`<h3 id="actTitle">${esc(sp.n)}</h3><p>${esc(notes.join(" "))}</p>
+      <p class="hint">Resolve the remaining effects using the sourcebook.</p>
+      ${spDetail(sp, { edition: ed, actions: false })}
+      <button class="btn" type="button" data-actclose>Close</button>`);
+    return;
+  }
   if (!dice) { actClose(); toast(notes.join(" ")); return; }
   if (P.heal) { const r = rollDice(dice); actResultDialog(c, { title: sp.n, msg: `${notes.join(" ")} Healing ${r.text}.`, amount: r.total, kind: "heal" }); return; }
   if (P.attack) {

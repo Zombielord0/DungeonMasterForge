@@ -39,8 +39,44 @@ const ARTISAN = ["Alchemist's supplies", "Brewer's supplies", "Calligrapher's su
 const INSTRUMENTS = ["Bagpipes", "Drum", "Dulcimer", "Flute", "Horn", "Lute", "Lyre", "Pan flute", "Shawm", "Viol"];
 const byEd = (c, L) => L.filter(x => !x[3] || typeof x[3] !== "string" || x[3] === edOf(c));
 const opt3 = L => L.map(x => typeof x === "string" ? [x, x, ""] : [x[0], x[1], x[2] || ""]);
+// Use the owning class level, including when the subclass belongs to a multiclass.
+function expansionSubclassLevel(c, cls, subclass, ed) {
+  if (ed && edOf(c) !== ed) return 0;
+  if (c.cls === cls && c.subclass === subclass) return +c.level;
+  return +(c.multi || []).find(entry => entry.cls === cls && entry.subclass === subclass)?.lv || 0;
+}
+function expansionChoice(cls, subclass, label, options, limit = () => 1, ed = "2014") {
+  return {
+    label,
+    n: c => {
+      const level = expansionSubclassLevel(c, cls, subclass, ed);
+      return level >= subclassLevel(edOf(c), cls) ? limit(level) : 0;
+    },
+    opts: c => opt3(typeof options === "function" ? options(expansionSubclassLevel(c, cls, subclass, ed), c) : options),
+  };
+}
 /* key: the feature (or "Feat: X") the choice belongs to. n(c): how many to choose. opts(c): [[id, label, description]] */
 const CHOICES = {
+  "Armor Model": expansionChoice("Artificer", "Armorer", "Armor model", (_, c) =>
+    edOf(c) === "2024" ? ["Dreadnaught", "Guardian", "Infiltrator"] : ["Guardian", "Infiltrator"], () => 1, null),
+  "Eldritch Cannon": expansionChoice("Artificer", "Artillerist", "Cannon type", ["Flamethrower", "Force Ballista", "Protector"], () => 1, null),
+  "Vestige Companion": expansionChoice("Warlock", "Vestige Patron", "Companion type", ["Celestial", "Fiend", "Undead"], () => 1, "2024"),
+  "Vestige Spells": expansionChoice("Warlock", "Vestige Patron", "Vestige domain", ["Life", "Light", "Trickery", "War"], () => 1, "2024"),
+  "Arcane Archer Lore": expansionChoice("Fighter", "Arcane Archer", "Cantrip", ["Druidcraft", "Prestidigitation"], () => 1, "2024"),
+  "Runeforging": expansionChoice("Paladin", "Oath of the Ebon Blade", "Weapon rune", ["Blood", "Frost", "Unholy"], () => 1, "2024"),
+  "Storm Aura": expansionChoice("Barbarian", "Path of the Storm Herald", "Storm environment", ["Desert", "Sea", "Tundra"]),
+  "Divine Fury": expansionChoice("Barbarian", "Path of the Zealot", "Divine Fury damage", ["Radiant", "Necrotic"]),
+  "Form of the Beast": expansionChoice("Barbarian", "Path of the Beast", "Natural weapon for this rage", ["Bite", "Claws", "Tail"]),
+  "Bestial Soul": expansionChoice("Barbarian", "Path of the Beast", "Bestial adaptation", ["Swimming", "Climbing", "Jumping"], level => level >= 6 ? 1 : 0),
+  "Fighting Style": expansionChoice("Bard", "College of Swords", "College of Swords fighting style", ["Dueling", "Two-Weapon Fighting"]),
+  "Implement of Peace": expansionChoice("Cleric", "Peace Domain", "Skill proficiency", ["Insight", "Performance", "Persuasion"]),
+  "Rune Carver": expansionChoice("Fighter", "Rune Knight", "Runes", level => ["Cloud", "Fire", "Frost", "Stone", ...(level >= 7 ? ["Hill", "Storm"] : [])],
+    level => level >= 15 ? 5 : level >= 10 ? 4 : level >= 7 ? 3 : 2),
+  "Arcane Shot Options": expansionChoice("Fighter", "Arcane Archer", "Arcane Shot options", ["Banishing Arrow", "Beguiling Arrow", "Bursting Arrow", "Enfeebling Arrow", "Grasping Arrow", "Piercing Arrow", "Seeking Arrow", "Shadow Arrow"],
+    level => level >= 18 ? 6 : level >= 15 ? 5 : level >= 10 ? 4 : level >= 7 ? 3 : 2),
+  "Otherworldly Glamour": expansionChoice("Ranger", "Fey Wanderer", "Skill proficiency", ["Deception", "Performance", "Persuasion"]),
+  "Divine Magic": expansionChoice("Sorcerer", "Divine Soul", "Divine affinity", [["Good", "Good", "Cure Wounds"], ["Evil", "Evil", "Inflict Wounds"], ["Law", "Law", "Bless"], ["Chaos", "Chaos", "Bane"], ["Neutrality", "Neutrality", "Protection from Evil and Good"]]),
+  "Genie's Vessel": expansionChoice("Warlock", "The Genie", "Genie patron", [["Dao", "Dao", "Bludgeoning"], ["Djinni", "Djinni", "Thunder"], ["Efreeti", "Efreeti", "Fire"], ["Marid", "Marid", "Cold"]]),
   "Combat Superiority": { label: "Maneuvers", n: c => { const l = c.subclass === "Battle Master" ? c.level : 0; return l >= 15 ? 9 : l >= 10 ? 7 : l >= 7 ? 5 : l >= 3 ? 3 : 0; }, opts: c => MANEUVERS.filter(m => !m[3] || m[3] === edOf(c)).map(m => [m[0], m[1], m[2]]) },
   "Eldritch Invocations": { label: "Invocations", n: c => { const l = clsLv(c, "Warlock"); return edOf(c) === "2024" ? [0, 1, 3, 3, 3, 5, 5, 6, 6, 7, 7, 7, 8, 8, 8, 9, 9, 9, 10, 10, 10][l] : [0, 0, 2, 2, 2, 3, 3, 4, 4, 5, 5, 5, 6, 6, 6, 7, 7, 7, 8, 8, 8][l]; }, opts: c => INVOCATIONS.filter(v => (!v[4] || v[4] === edOf(c)) && clsLv(c, "Warlock") >= v[3]).map(v => [v[0], v[1] + (v[3] > 1 ? ` (lv ${v[3]})` : ""), v[2]]) },
   Metamagic: { label: "Metamagic options", n: c => { const l = clsLv(c, "Sorcerer"); return l >= 17 ? 4 : l >= 10 ? 3 : l >= (edOf(c) === "2024" ? 2 : 3) ? 2 : 0; }, opts: c => METAMAGIC.filter(m => !m[2] || m[2] === edOf(c)).map(m => [m[0], m[1], ""]) },
@@ -50,13 +86,15 @@ const CHOICES = {
   "Superior Hunter's Defense": { label: "Superior Hunter's Defense", n: c => edOf(c) === "2014" ? 1 : 0, opts: () => opt3([["evasion", "Evasion", "No damage on a successful DEX save for half, half on a failure."], ["tide", "Stand Against the Tide", "Redirect a missed melee attack to another creature."], ["uncanny", "Uncanny Dodge", "Reaction: halve an attack's damage."]]) },
   "Favored Enemy": { label: "Favored enemies", n: c => { if (edOf(c) === "2024") return 0; const l = clsLv(c, "Ranger"); return l >= 14 ? 3 : l >= 6 ? 2 : 1; }, opts: () => opt3(["Aberrations", "Beasts", "Celestials", "Constructs", "Dragons", "Elementals", "Fey", "Fiends", "Giants", "Monstrosities", "Oozes", "Plants", "Undead", "Two humanoid races"]) },
   "Natural Explorer": { label: "Favored terrains", n: c => { if (edOf(c) === "2024") return 0; const l = clsLv(c, "Ranger"); return l >= 10 ? 3 : l >= 6 ? 2 : 1; }, opts: () => opt3(["Arctic", "Coast", "Desert", "Forest", "Grassland", "Mountain", "Swamp", "Underdark"]) },
-  "Circle Spells": { label: "Your land", n: () => 1, opts: () => opt3(["Arctic", "Coast", "Desert", "Forest", "Grassland", "Mountain", "Swamp", "Underdark"]) },
+  "Circle Spells": { label: "Your land", n: c => c.subclass === "Circle of the Land" || (c.multi || []).some(x => x.subclass === "Circle of the Land") ? 1 : 0, opts: () => opt3(["Arctic", "Coast", "Desert", "Forest", "Grassland", "Mountain", "Swamp", "Underdark"]) },
   "Circle of the Land Spells": { label: "Your land (change after a long rest)", n: () => 1, opts: () => opt3(["Arid", "Polar", "Temperate", "Tropical"]) },
   "Dragon Ancestor": { label: "Dragon ancestor", n: () => 1, opts: () => DRAGONS.map(d => [d, `${d} (${DRAGON_ANCESTRY[d] ? DRAGON_ANCESTRY[d].type : ""})`, ""]) },
   "Pact Boon": { label: "Pact boon", n: c => edOf(c) === "2014" ? 1 : 0, opts: () => opt3([["chain", "Pact of the Chain", "Find Familiar with special forms."], ["blade", "Pact of the Blade", "Conjure a pact weapon."], ["tome", "Pact of the Tome", "A Book of Shadows with three cantrips."]]) },
   "Feat: Crafter": { label: "Artisan's tools", n: () => 3, opts: () => opt3(ARTISAN) },
   "Feat: Musician": { label: "Instruments", n: () => 3, opts: () => opt3(INSTRUMENTS) }
 };
+const choiceOf = (c, k) => ((c.choices || {})[k]) || [];
+const hasChoice = (c, k, id) => choiceOf(c, k).includes(id);
 const DRAGON_FEATURE_ELEMENTS = ["Acid", "Cold", "Fire", "Lightning", "Poison"];
 const FEATURE_CHOICE_LANGUAGES = ["Common", "Dwarvish", "Elvish", "Giant", "Gnomish", "Goblin", "Halfling", "Orc", "Abyssal", "Celestial", "Draconic", "Deep Speech", "Infernal", "Primordial", "Sylvan", "Undercommon"];
 const choiceList = (label, options, n = 1) => ({ label, n: () => n, opts: () => opt3(options) });
@@ -65,8 +103,6 @@ const choiceSpellOptions = (c, filter) => {
   return opt3([...new Set((SP.data[edOf(c)] || []).filter(s => !s.pend && filter(s)).map(s => s.n))].sort());
 };
 Object.assign(CHOICES, {
-  "Armor Model": choiceList("Arcane armor model", ["Guardian", "Infiltrator"]),
-  "Eldritch Cannon": choiceList("Cannon mode", ["Flamethrower", "Force Ballista", "Protector"]),
   "Giant Power": choiceList("Cantrip", ["Thaumaturgy", "Druidcraft"]),
   "Giant Power language": choiceList("Language", FEATURE_CHOICE_LANGUAGES),
   "Draconic Gift": choiceList("Language", FEATURE_CHOICE_LANGUAGES),
@@ -100,8 +136,6 @@ function featureChoiceHTML(c, k) {
   const keys = CHOICES[k] ? [k] : [];
   return keys.concat(additionalFeatureChoices[k] || []).map(key => choiceHTML(c, key)).join("");
 }
-const choiceOf = (c, k) => ((c.choices || {})[k]) || [];
-const hasChoice = (c, k, id) => choiceOf(c, k).includes(id);
 function choiceHTML(c, k) {
   const S = CHOICES[k]; if (!S) return "";
   const n = S.n(c); if (!n) return "";

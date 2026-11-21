@@ -38,7 +38,9 @@ function clearUnsupportedAttunement(item, edition) {
 }
 function inventoryAttunementCount(c) {
   const count = c.inv.filter(i => i.attuned && inventoryNeedsAttunement(i, inventoryCatalogItem(i, edOf(c)))).length;
-  return `<b id="rcAttunementCount" class="${count > 3 ? "over" : ""}">${count} / 3</b>`;
+  const level = clsLv(c, "Artificer");
+  const limit = level >= 18 ? 6 : level >= 14 ? 5 : level >= 10 ? 4 : 3;
+  return `<b id="rcAttunementCount" class="${count > limit ? "over" : ""}">${count} / ${limit}</b>`;
 }
 function rosterHTML(c) {
   const isb = itemSaveBonus(c), sv = a => c.mods[a] + (c.saves.includes(a) ? c.prof : 0) + isb;

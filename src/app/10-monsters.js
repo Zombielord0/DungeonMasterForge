@@ -523,9 +523,11 @@ const bsPB = cr => cr < 5 ? 2 : cr < 9 ? 3 : cr < 13 ? 4 : cr < 17 ? 5 : cr < 21
 const bsFmt = t => esc(t).replace(/\*\*(.+?)\*\*/g, "<b>$1</b>").replace(/(^|[^\w])[_*]([^_*]+?)[_*](?=[^\w]|$)/g, "$1<i>$2</i>").replace(/\n+/g, "<br>");
 const bsSub = m => `${cap1(m.size)} ${m.type}${m.sub ? ` (${m.sub})` : ""}${m.al ? `, ${m.al}` : ""}`;
 function bsName(c, m, ed) {
-  // the same monster from both editions can sit side by side in one campaign
-  const clash = (c.bestiary || []).find(b => b.name === m.n && b.ed && b.ed !== ed);
-  return clash ? `${m.n} (${ed})` : m.n;
+  // Keep different editions and books when they publish creatures with the same name.
+  const clash = (c.bestiary || []).find(b => b.name === m.n);
+  if (!clash) return m.n;
+  if (clash.ed && clash.ed !== ed) return `${m.n} (${ed})`;
+  return `${m.n} (${m.src ? dmBook(m.src).short : ed === "custom" ? "Homebrew" : "SRD"})`;
 }
 function bsInCamp(m, ed) {
   const c = Store.get($("#bsCamp").value);
@@ -537,7 +539,7 @@ function bsSbHTML(m, ed) {
   const the = "the " + m.n.toLowerCase();
   const legIntro = ed !== "2024"
     ? `<p>${esc(cap1(the))} can take ${m.legN || 3} legendary actions, choosing from the options below. Only one legendary action option can be used at a time and only at the end of another creature's turn. ${esc(cap1(the))} regains spent legendary actions at the start of its turn.</p>`
-    : `<p>Immediately after another creature's turn, ${esc(the)} can expend a use to take one of the following actions. ${esc(cap1(the))} regains all expended uses at the start of each of its turns.</p>`;
+    : `<p><b>Legendary action uses:</b> ${m.legN || 3}${m.legLair ? ` (${m.legLair} in its lair)` : ""}. Immediately after another creature's turn, ${esc(the)} can expend a use to take one of the following actions. ${esc(cap1(the))} regains all expended uses at the start of each of its turns.</p>`;
   return `<div class="statblock">
     <div class="sb-name">${esc(m.n)}</div>
     <div class="sb-sub">${esc(bsSub(m))}</div>
@@ -564,7 +566,10 @@ function bsText(m, ed) {
   L.push(`Challenge ${crLabel(m.cr)} (${(xpOf(m.cr) || 0).toLocaleString()} XP)`, "");
   const block = (h, arr) => { if (arr && arr.length) { if (h) L.push(h.toUpperCase()); arr.forEach(([n, t]) => L.push(`${n}. ${t.replace(/[*_]/g, "")}`)); L.push(""); } };
   block("", m.traits); block("Actions", m.actions); block("Bonus Actions", m.bonus); block("Reactions", m.reacts); block("Legendary Actions", m.legend);
-  if (ed !== "custom") L.push(`Source: ${ed === "2024" ? "SRD 5.2 (2024)" : "SRD 5.1 (2014)"}, CC BY 4.0`);
+  if (m.src) {
+    const book = dmBook(m.src);
+    L.push(`Source: ${book.name}${m.page ? `, p. ${m.page}` : ""} · ${book.lic === "reference" ? "Rules summary" : book.lic === "cc-by-40" ? "CC BY 4.0" : "Open content"}`);
+  } else if (ed !== "custom") L.push(`Source: ${ed === "2024" ? "SRD 5.2 (2024)" : "SRD 5.1 (2014)"}, CC BY 4.0`);
   return L.join("\n");
 }
 function bsEntry(m, ed, name) {

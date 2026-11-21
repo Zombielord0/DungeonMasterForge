@@ -33,7 +33,7 @@ function pcRefresh(c) {
 }
 const LV = { c: null, to: 0, pick: "", onlySub: false, back: null, asi: null };
 const lvBuild = (c, to, picks) => generateCharacter({ seed: c.seed || c.id, name: c.name, race: c.race, ed: edOf(c), sub: c.sub || (c.race === "Dragonborn" && c.ancestry) || "none", ancestry: c.ancestry || undefined, cls: c.cls, bg: c.bg, level: to, subclass: c.subclass || "none", asiPicks: picks, bonusFeats: c.bonusFeats || undefined, bgAsiLegacy: c.bgAsiLegacy || undefined, ...pcKeep(c), method: c.method || "array", bonus: c.bonus || "flex", custom: c.customData || undefined });
-const lvHasAsi = (c, to) => (CLASS_DATA[c.cls].asi || [4, 8, 12, 16, 19]).includes(to);
+const lvHasAsi = (c, to) => (classData(edOf(c), c.cls).asi || [4, 8, 12, 16, 19]).includes(to);
 // The choice as stored on the character: { str: 2 }, { str: 1, con: 1 } or { feat: "Alert" }; null while incomplete.
 function lvAsiPick() {
   const A = LV.asi; if (!A) return null;
@@ -53,7 +53,7 @@ function lvGains(c, to) {
   const n = lvBuild(sub ? { ...c, subclass: sub } : c, to, lvPicks(c, to, lvAsiPick() || (lvHasAsi(c, to) ? { feat: "-" } : null)));
   const g = [`Hit points ${c.hp} → <b>${n.hp}</b> (+${n.hp - c.hp})`];
   if (n.prof !== c.prof) g.push(`Proficiency bonus ${sgn(c.prof)} → <b>${sgn(n.prof)}</b>`);
-  const C = CLASS_DATA[c.cls];
+  const C = classData(edOf(c), c.cls);
   n.feats.filter(f => f.l === to && !f.f.startsWith("Subclass: ") && !f.f.startsWith("Ability Score") && !f.f.startsWith("Feat: ")).forEach(f => { const d = featDesc(f.f, n); g.push(`<b>${esc(f.f)}</b>${d ? ` — ${esc(d)}` : ""}`); });
   if (n.spell && c.spell) {
     if (n.spell.note && n.spell.note !== c.spell.note) g.push(esc(cap1(n.spell.note)));
@@ -231,7 +231,7 @@ function lvRender(focusSel) {
     ${LV.asi ? lvAsiHTML(c, to) : ""}
     ${ask ? `<div class="sec-h" style="margin-top:14px"><h3>Choose your subclass</h3></div>
       <p class="hint" style="margin:4px 0 0">${esc(c.cls)}s choose a subclass at level ${sl} (${ed} rules). This is required to ${onlySub ? "finish the sheet" : "level up"}.</p>
-      <div class="pick-grid" role="group" aria-label="Subclass">${list.map(([n, d]) => `<div class="progression-choice"><button type="button" class="pick ${LV.pick === n ? "on" : ""}" data-lvsub="${esc(n)}" aria-pressed="${LV.pick === n}"><b>${esc(n)}</b><small>${esc(d)}</small></button>${progressionButton(ed, "subclass", c.cls, n)}</div>`).join("")}</div>` : ""}
+      ${searchableChoices("Search subclasses", list.map(([n, d, hb, src]) => `<div class="progression-choice"><button type="button" class="pick ${LV.pick === n ? "on" : ""}" data-lvsub="${esc(n)}" aria-pressed="${LV.pick === n}"><b>${esc(n)}</b><small>${esc(d)}</small>${src || hb ? `<small class="req">${esc(src ? dmBook(src).name : "Homebrew")}</small>` : ""}</button>${progressionButton(ed, "subclass", c.cls, n)}</div>`).join(""))}` : ""}
     <div class="row" style="justify-content:flex-end;margin-top:14px"><button class="btn" type="button" data-lvno style="flex:0">Cancel</button>
       <button class="btn primary" type="button" data-lvyes style="flex:0 0 auto">${yes}</button></div>
     <p class="hint" id="lvMiss" style="text-align:right;margin:6px 0 0" aria-live="polite"></p>`;
@@ -602,7 +602,7 @@ const RACE_LANG_PICK = { Human: 1, "Half-Elf": 1 };
 function profInfo(c) {
   const ed = edOf(c), B = bgInfo(ed, c.bg) || {}, T = armorTraining(c);
   const armor = [T.has("light") && "Light armor", T.has("medium") && "Medium armor", T.has("heavy") && "Heavy armor", T.has("shield") && "Shields"].filter(Boolean);
-  const HC = CLASS_DATA[c.cls] && CLASS_DATA[c.cls].hb ? CLASS_DATA[c.cls] : null;
+  const HC = classData(edOf(c), c.cls) && classData(edOf(c), c.cls).hb ? classData(edOf(c), c.cls) : null;
   const weapons = [(CLASS_WEAPONS[ed] || CLASS_WEAPONS["2014"])[c.cls] || (HC && HC.weapons) || "", ...(c.multi || []).filter(x => MC_MARTIAL.includes(x.cls)).length ? ["Martial weapons (multiclass)"] : [], ...(c.multi || []).some(x => x.cls === "Monk") ? ["Shortswords (multiclass)"] : []].filter(Boolean);
   const tools = [CLASS_TOOLS[c.cls] || (HC && HC.tools), ...(c.multi || []).map(x => MC_TOOLS[x.cls]), B.tools && `${B.tools} (background)`, ...choiceOf(c, "Feat: Crafter"), ...choiceOf(c, "Feat: Musician"), (c.subclass === "Battle Master" && "One artisan's tool (Student of War)")].filter(Boolean);
   const langs = ["Common"], picks = [];

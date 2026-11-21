@@ -329,9 +329,21 @@ function raceLevelFeats(ed, race, traits, lv) {
   if (hb) (hb.traits || []).filter(t => t.n && (+t.l || 1) > 1).forEach(t => { hidden.add(t.n); if (lv >= +t.l) feats.push({ l: +t.l, f: t.n, race: true }); });
   return { feats, hidden };
 }
-function featDesc(f, c) {
+function chosenSubclassFeature(f, c, feature) {
+  const cls = feature?.mc || c?.cls;
+  const subclass = feature?.mcsub || c?.subclass;
+  if (!subclass || (feature && !feature.bookSub && !feature.mcsub && !feature.sub)) return null;
+  return subclassEntry(edOf(c), cls, subclass)?.features?.find(x => x.n === f && (!feature || +x.l === +feature.l));
+}
+function featDesc(f, c, feature) {
+  const ed = edOf(c);
+  const cls = feature?.mc || c?.cls;
+  const row = chosenSubclassFeature(f, c, feature);
+  if (row) return (row.d || "") + fxNote(row.fx);
+  const classRow = classData(ed, cls)?.hbx?.features?.find(x => x.n === f);
+  if (classRow) return classRow.d || "";
   if (f === "Subclass: not chosen yet") return "Pick your subclass with the Choose subclass button on this sheet.";
-  if (f.startsWith("Subclass: ")) return subclassDesc(f.slice(10));
+  if (f.startsWith("Subclass: ")) return subclassDesc(f.slice(10), ed, cls);
   if (f.startsWith("Background: ")) return bgSummary(edOf(c), f.slice(12));
   { const bf = Object.values(BG_DATA["2014"]).find(B => B.feature[0] === f); if (bf) return `${bf.feature[1]} (From your background.)`; }
   if (f.startsWith("Ability Score Improvement: ")) return "Your choice at this level — already applied to the scores above.";
@@ -353,13 +365,13 @@ function featDesc(f, c) {
 /* The Features & Traits list, shared by both sheets (the Characters tab and My Characters): each feature with where it
    comes from (subclass, multiclass, species, level), then the species traits. My Characters passes edit (features can
    be opened to make choices) and leaves out "Feat: …" entries, which it lists in its own Feats section. */
-const featTagOf = (c, f) => { const l = +f.l || 1; /* a number, never markup: sheets can come from another player */ return f.sub ? `${esc(c.subclass)}, lv ${l}` : f.mcsub ? `${esc(f.mcsub)}, ${esc(f.mc)} lv ${l}` : f.mc ? `${esc(f.mc)} lv ${l}` : (f.race ? esc(raceLabel(c)) + ", " : "") + "lv " + l; };
+const featTagOf = (c, f) => { const l = +f.l || 1; /* a number, never markup: sheets can come from another player */ return (f.sub || f.bookSub) ? `${esc(c.subclass)}, lv ${l}` : f.mcsub ? `${esc(f.mcsub)}, ${esc(f.mc)} lv ${l}` : f.mc ? `${esc(f.mc)} lv ${l}` : (f.race ? esc(raceLabel(c)) + ", " : "") + "lv " + l; };
 function featuresListHTML(c, edit) {
   const feats = (c.feats || []).filter(f => !edit || !String(f.f).startsWith("Feat: "));
-  return `<ul class="plain">${feats.map(f => featLi(f.f, featTagOf(c, f), c, edit || undefined)).join("")}${(c.traits || []).map(t => featLi(t, esc(raceLabel(c)), c, edit || undefined)).join("")}</ul>`;
+  return `<ul class="plain">${feats.map(f => featLi(f.f, featTagOf(c, f), c, edit || undefined, f)).join("")}${(c.traits || []).map(t => featLi(t, esc(raceLabel(c)), c, edit)).join("")}</ul>`;
 }
-function featLi(f, tag, c, edit) {
-  const d = featDesc(f, c), full = subFeatDesc(f, c) ? "" : FEAT_FULL[f];
+function featLi(f, tag, c, edit, feature) {
+  const d = featDesc(f, c, feature), full = subFeatDesc(f, c) || chosenSubclassFeature(f, c, feature) ? "" : FEAT_FULL[f];
   const head = `<b>${esc(f)}</b> <span class="muted" style="font-size:13px">(${tag})</span>${d ? `<div class="ft-desc">${esc(d)}</div>` : ""}${edit ? featureChoiceHTML(c, f) : ""}`;
   return full ? `<li class="ft-li"><details><summary title="Show the full description">${head}</summary><div class="ft-full">${esc(full)}</div></details></li>` : `<li>${head}</li>`;
 }
