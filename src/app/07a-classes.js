@@ -551,10 +551,10 @@ function hbClassData(x) {
   const pri = [...new Set((x.pri || []).map(ab).filter(Boolean))]; if (!pri.length) pri.push("str");
   const f = {}; (x.features || []).filter(t => t && t.n).forEach(t => { const l = clamp(+t.l || 1, 1, 20); (f[l] = f[l] || []).push(t.n); });
   const sk = x.skills || {}, from = sk.any || !(sk.from || []).length ? ALL_SKILLS : sk.from.filter(k => SKILLS[k]);
-  const cast = ["full", "half", "pact"].includes(x.cast) ? [x.cast, ab(x.castAb) || "int"] : undefined;
+  const cast = (["full", "half", "pact"].includes(x.cast) || (x.book && x.cast === "artificer")) ? [x.cast, ab(x.castAb) || "int"] : undefined;
   const w = x.wpn || {}, asi = (Array.isArray(x.asi) ? x.asi : [4, 8, 12, 16, 19]).map(Number).filter(l => l >= 1 && l <= 20);
   return { hb: true, hbx: x, ...(x.pend ? { pend: true } : {}), hd: [6, 8, 10, 12].includes(+x.hd) ? +x.hd : 8, pri, saves: (x.saves || []).filter(ab).slice(0, 2),
-    skills: [from, clamp(parseInt(sk.n) || 0, 0, 8)], ac: m => [10 + m.dex, "No armor"],
+    skills: [from, clamp(parseInt(sk.n) || 0, 0, 8)], ac: cast?.[0] === "artificer" ? m => [14 + Math.min(2, m.dex), "Scale mail"] : m => [10 + m.dex, "No armor"],
     kit: String(x.kit || "").split(",").map(t => t.trim()).filter(Boolean).slice(0, 20),
     wpn: [String(w.n || "Club").slice(0, 40), /^\d+d\d+$/.test(String(w.d || "")) ? w.d : "1d4", ab(w.ab) || pri[0]],
     f, sub: [String(x.subName || "Subclass").slice(0, 60), clamp(parseInt(x.subLv) || 3, 1, 20)], asi,

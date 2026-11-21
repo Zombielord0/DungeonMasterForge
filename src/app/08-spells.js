@@ -24,6 +24,9 @@ function spPrep(s, ed, i) {
 function spLoad() {
   if (SP.data) return;
   const raw = dmData("spellData");
+  for (const s of raw["2014"]) {
+    if (ARTIFICER_SPELL_NAMES.has(s.n.toLowerCase()) && !s.c.includes("Artificer")) s.c = [...s.c, "Artificer"];
+  }
   for (const ed of Object.keys(raw)) raw[ed].forEach((s, i) => spPrep(s, ed, i));
   SP.data = raw;
   hbSpellsApply();

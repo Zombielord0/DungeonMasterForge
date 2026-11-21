@@ -22,7 +22,7 @@ function campaignLineageChoices(ed, race) {
 }
 function campaignClassChoices(ed) {
   const rules = currentSourceRules();
-  return classList(ed).filter(n => sourceAllowed(rules, null, CLASS_DATA[n].hb));
+  return classList(ed).filter(n => sourceAllowed(rules, CLASS_DATA[n].hbx?.src, CLASS_DATA[n].hb));
 }
 function campaignBackgroundChoices(ed) {
   const rules = currentSourceRules();
@@ -42,7 +42,7 @@ function characterSourceIssues(pc, rules) {
   if (lineage?.src && lineage.src !== species?.src) check(pc.sub, lineage.src, false);
   check(pc.bg, background?.src, !!background);
   for (const entry of [pc, ...(pc.multi || [])]) {
-    check(entry.cls, null, CLASS_DATA[entry.cls]?.hb);
+    check(entry.cls, CLASS_DATA[entry.cls]?.hbx?.src, CLASS_DATA[entry.cls]?.hb);
     const sub = subclassList(ed, entry.cls).find(([name]) => name === entry.subclass);
     if (sub) check(sub[0], sub[3], sub[2]);
   }

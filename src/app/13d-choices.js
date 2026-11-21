@@ -65,6 +65,8 @@ const choiceSpellOptions = (c, filter) => {
   return opt3([...new Set((SP.data[edOf(c)] || []).filter(s => !s.pend && filter(s)).map(s => s.n))].sort());
 };
 Object.assign(CHOICES, {
+  "Armor Model": choiceList("Arcane armor model", ["Guardian", "Infiltrator"]),
+  "Eldritch Cannon": choiceList("Cannon mode", ["Flamethrower", "Force Ballista", "Protector"]),
   "Giant Power": choiceList("Cantrip", ["Thaumaturgy", "Druidcraft"]),
   "Giant Power language": choiceList("Language", FEATURE_CHOICE_LANGUAGES),
   "Draconic Gift": choiceList("Language", FEATURE_CHOICE_LANGUAGES),

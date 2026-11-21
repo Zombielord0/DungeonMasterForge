@@ -153,8 +153,8 @@ function progressionRows(ed, kind, name, option = "") {
       if (casting === "pact") {
         const slots = pactSlots(level);
         add(level, "Pact Magic slots", slots.n + " × level " + slots.lvl);
-      } else if (casting === "full" || (casting === "half" && level >= (ed === "2024" ? 1 : 2))) {
-        const slots = FULL_SLOTS[casting === "half" ? Math.ceil(level / 2) : level];
+      } else if (casting === "full" || casting === "artificer" || (casting === "half" && level >= (ed === "2024" ? 1 : 2))) {
+        const slots = FULL_SLOTS[casting === "full" ? level : Math.ceil(level / 2)];
         add(level, "Spell slots by spell level", slots.join(" / "));
       }
     }
@@ -230,7 +230,7 @@ function openProgression(ed, kind, name, option, trigger, { setLineage, requireL
   const source = ed === "2024" ? "5.2.1" : "5.1";
   const species = kind === "species" ? PC_RACES[ed][name] : null;
   const subclass = kind === "subclass" ? subclassList(ed, name).find(([key]) => key === option) : null;
-  const sourceName = species?.src || subclass?.[3];
+  const sourceName = species?.src || subclass?.[3] || (kind === "class" ? CLASS_DATA[name]?.hbx?.src : undefined);
   const attribution = sourceName ? dmBook(sourceName).name : species?.hb || subclass?.[2] ? "Homebrew" : "";
   const lineageLabel = species?.term || (ed === "2024" ? "Lineage" : "Subrace");
   const options = choices.map(([key, label, custom, book]) => {

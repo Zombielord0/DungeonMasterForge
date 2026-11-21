@@ -196,7 +196,7 @@ const pendKey = x => `${x.kind}|${x.kind === "subclass" ? String(x.cls || "").to
 let HB_BOOK = null;
 function hbBook(kind) {
   if (!HB_BOOK) { try { HB_BOOK = JSON.parse((window.DMDATA && window.DMDATA.optionExtra) || "[]"); } catch { HB_BOOK = []; } if (window.DMDATA) delete window.DMDATA.optionExtra; }
-  return HB_BOOK.filter(x => x.kind === kind);
+  return HB_BOOK.concat(ARTIFICER_BOOK_OPTIONS).filter(x => x.kind === kind);
 }
 const hbAny = kind => [...hbOf(kind), ...HB.pend.filter(x => x.kind === kind), ...hbBook(kind)];
 function hbPendSync() {

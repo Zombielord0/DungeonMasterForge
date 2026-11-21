@@ -68,7 +68,7 @@ async function compendiumSearch() {
   }
   if (wants("Class") || wants("Subclass")) {
     for (const name of classList(ed)) {
-      if (wants("Class")) add("Class", name, null, CLASS_DATA[name].hb, b => openProgression(ed, "class", name, "", b, { campaign: true }));
+      if (wants("Class")) add("Class", name, CLASS_DATA[name].hbx?.src, CLASS_DATA[name].hb, b => openProgression(ed, "class", name, "", b, { campaign: true }));
       if (wants("Subclass")) for (const [sub, , hb, src] of subclassList(ed, name)) {
         add("Subclass", sub, src, hb, b => openProgression(ed, "subclass", name, sub, b), name);
       }
