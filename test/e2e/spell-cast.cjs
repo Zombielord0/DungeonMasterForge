@@ -85,8 +85,12 @@ const server = http.createServer((req, res) => {
     await setup(p); await p.evaluate(() => renderRosterTab()); await p.waitForTimeout(300);
     const h = await p.evaluate(s => Math.round(document.querySelector(s).getBoundingClientRect().height), bubble("Cure Wounds"));
     check("phone: bubbles are at least 44px tall", h >= 44, `${h}px`);
-    await p.locator(bubble("Cure Wounds")).scrollIntoViewIfNeeded(); await p.click(bubble("Cure Wounds")); await p.waitForTimeout(200);
+    await p.locator('.mobile-sheet-quick [data-jump="spells"]').tap();
+    await p.locator(bubble("Cure Wounds")).tap();
+    await p.waitForSelector("#actModal.open");
     check("phone: the spell window fits the screen width", await p.evaluate(() => { const b = document.querySelector("#actModal.open .box"); return !!b && b.getBoundingClientRect().right <= innerWidth + 1 && document.documentElement.scrollWidth <= innerWidth; }));
+    await p.locator("#actModal [data-castgo]").tap();
+    check("phone: casting after the spell shortcut spends the slot", await p.evaluate(() => rosterCur().used.slot1 === 1));
     await ctx.close();
   }
   // multiclass into a caster (owner's bug, 2026-11-18): a Fighter/Wizard prepares Wizard spells

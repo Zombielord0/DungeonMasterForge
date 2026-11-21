@@ -10,7 +10,8 @@ const server = http.createServer((req, res) => {
   if (!f.startsWith(ROOT)) { res.writeHead(403); return res.end(); }
   fs.readFile(f, (e, b) => { if (e) { res.writeHead(404); return res.end(); } res.writeHead(200, { "content-type": TYPES[path.extname(f)] || "application/octet-stream" }); res.end(b); });
 });
-const ZOOK = fs.readFileSync(path.join(FIX, "companion-zook.json"), "utf8");
+// Use a fictional spell to exercise homebrew import even as the catalog grows.
+const ZOOK = fs.readFileSync(path.join(FIX, "companion-zook.json"), "utf8").replaceAll("Blade Ward", "Glimmershell Aegis");
 
 (async () => {
   await new Promise(r => server.listen(0, r));
@@ -40,8 +41,8 @@ const ZOOK = fs.readFileSync(path.join(FIX, "companion-zook.json"), "utf8");
   check("the species becomes homebrew with its bonus and speed", sp && sp.name === "Mark of Sentinel Human" && JSON.stringify(sp.asi) === '{"str":1,"wis":1}' && sp.speed === 30 && sp.traits.length >= 2, JSON.stringify(sp && [sp.name, sp.asi, sp.speed, sp.traits.map(t => t.n)]));
   check("homebrew entries carry who made them and the rules set", r.homebrew.every(x => x.src === "5e Companion App" && x.ed === "2014" && x.id));
   check("known spells match the built-ins", ["Shield", "Mage Hand", "Faerie Fire", "Web"].every(n => c.prepared.some(s => s.n === n && !r.homebrew.some(x => x.name === n))), JSON.stringify(c.prepared.map(s => s.n)));
-  const bw = r.homebrew.find(x => x.kind === "spell" && x.name === "Blade Ward");
-  check("a spell the Forge lacks becomes a homebrew spell with its details", bw && bw.l === 0 && /resistance against bludgeoning/i.test(bw.desc) && bw.cp === "VS" && bw.c.includes("Wizard") && c.prepared.some(s => s.n === "Blade Ward"), JSON.stringify(bw));
+  const bw = r.homebrew.find(x => x.kind === "spell" && x.name === "Glimmershell Aegis");
+  check("a spell the Forge lacks becomes a homebrew spell with its details", bw && bw.l === 0 && /resistance against bludgeoning/i.test(bw.desc) && bw.cp === "VS" && bw.c.includes("Wizard") && c.prepared.some(s => s.n === "Glimmershell Aegis"), JSON.stringify(bw));
   const inv = n => c.inv.find(i => i.n === n);
   check("armour is matched to the Items list", inv("Scale Mail") && inv("Scale Mail").ref && inv("Scale Mail").qty === 1, JSON.stringify(c.inv.map(i => [i.n, i.qty, !!i.ref])));
   check("counts come across", inv("Shortsword") && inv("Shortsword").qty === 2 && c.inv.some(i => /^Arrows?$/i.test(i.n) && i.qty === 20), JSON.stringify(c.inv.map(i => [i.n, i.qty])));
@@ -161,7 +162,7 @@ const ZOOK = fs.readFileSync(path.join(FIX, "companion-zook.json"), "utf8");
   check("5e Character Sheet: the homebrew hint fits this app's files", /names only/.test(fx.hint) && !/A PDF/.test(fx.hint), fx.hint.slice(0, 200));
 
   const UI = path.join(__dirname, "char-import-ui.cjs"); // the dialog checks (added with the dialog)
-  if (fs.existsSync(UI)) await require(UI)(p, { URL, check, FIX, errs, ctx });
+  if (fs.existsSync(UI)) await require(UI)(p, { URL, check, zook: { name: "companion-zook.json", mimeType: "application/json", buffer: Buffer.from(ZOOK) } });
   await require("./char-import-pdf.cjs")(p, { URL, check, FIX, errs, ctx });
   check("no page errors", errs.length === 0, errs.join(" | "));
   await browser.close(); server.close();
