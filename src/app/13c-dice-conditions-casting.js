@@ -150,13 +150,13 @@ function rcStatusHTML(c) {
 }
 /* ---- casting spells from the sheet: pick a slot, spend it, then roll what the spell does ---- */
 const AB_WORD = { strength: "str", dexterity: "dex", constitution: "con", intelligence: "int", wisdom: "wis", charisma: "cha" };
-function spellOf(ed, name) {
+function spellOf(ed, name, { editionOnly = false } = {}) {
   spLoad();
   const local = SP.data[ed] || [];
   const normalized = String(name).toLowerCase().replaceAll("’", "'");
   const match = x => [x.n, ...(x.aliases || [])].some(n => n.toLowerCase().replaceAll("’", "'") === normalized);
   return local.find(x => x.n === name) || local.find(match)
-    || Object.values(SP.data).flat().find(match) || null;
+    || (!editionOnly && Object.values(SP.data).flat().find(match)) || null;
 }
 // what a spell does, read from its text: damage or healing dice, upcasting, cantrip growth, attack or save, area, number of rays or darts
 function spellPlan(sp) {
@@ -206,7 +206,8 @@ function spellCaster(c, sp, how, ed = edOf(c)) {
     const ab = source.ab || (source.name === "Aasimar" ? "cha" : speciesSpellAbility(c));
     return { cls: source.name, ab, dc: 8 + c.prof + c.mods[ab], atk: c.prof + c.mods[ab] };
   }
-  return own.find(x => x.cls === source?.cls) || own.find(x => (sp.c || []).includes(x.cls) || (x.list && (sp.c || []).includes(x.list))) || mi || own[0] || miCaster(c) || { cls: "", ab: "int", dc: 8 + c.prof, atk: c.prof };
+  const caster = own.find(x => x.cls === source?.cls) || own.find(x => (sp.c || []).includes(x.cls) || (x.list && (sp.c || []).includes(x.list))) || mi || own[0] || miCaster(c) || { cls: "", ab: "int", dc: 8 + c.prof, atk: c.prof };
+  return inventorySpellStats(c, caster.cls, caster);
 }
 /* The spell window: the full rules, then (on My Characters) "Cast at level" buttons and Cast. `o.view`: rules only (the
    Characters tab, where slots aren't tracked). The picked choice is kept in the hidden #castSlot that castGo reads. */
@@ -218,9 +219,9 @@ function freeSpellResources(c, sp, ed, resources) {
 }
 function castOpts(c, sp, ed = edOf(c)) {
   const R = pcResources(c), opts = [];
-  if (sp.l === 0) { opts.push(["free", "Cantrip", "no slot needed"]); return opts; }
   const sources = spellPreparationSources(c, sp.n, ed);
   const grants = freeSpellResources(c, sp, ed, R).map(r => [r.key, r.name, r.max === Infinity ? "no slot needed" : `${resLeft(c, r)} left per ${r.recharge === "short" ? "short or long" : "long"} rest`, !resLeft(c, r)]);
+  if (sp.l === 0) return [["free", "Cantrip", "no slot needed"], ...grants];
   if (sources.length && sources.every(g => g.innate) && !c.prepared.some(p => !p.bookGrant && p.n === sp.n && p.ed === ed)) return grants;
   R.filter(r => /^slot\d$/.test(r.key) && +r.key.slice(4) >= sp.l).forEach(r => { const L = +r.key.slice(4), left = resLeft(c, r); opts.push([r.key, ordinal(L), `${left} left`, !left]); });
   const pact = R.find(r => r.key === "pact"); if (pact) { const L = +(pact.name.match(/level (\d)/) || [])[1]; if (L >= sp.l) opts.push(["pact", `Pact slot (${ordinal(L)})`, `${resLeft(c, pact)} left`, !resLeft(c, pact)]); }
@@ -237,6 +238,8 @@ function castSlotLevel(c, sp, how, ed = edOf(c)) {
 function castPreview(c, sp, how, ed = edOf(c)) {
   const P = spellTweak(c, sp, spellPlan(sp)), K = spellCaster(c, sp, how, ed), slot = castSlotLevel(c, sp, how, ed), up = Math.max(0, slot - sp.l);
   const count = P.count + (P.countPer ? up : 0), parts = [];
+  const castAs = spellPreparationSources(c, sp.n, ed).find(g => g.free === how)?.castAs;
+  if (castAs) parts.push(castAs);
   if (sp.manualRoll && sp.sv) parts.push(`${sp.sv.toUpperCase()} save DC ${K.dc}`);
   if (sp.manualRoll && sp.at) parts.push(`Spell attack ${sgn(K.atk)}`);
   if (P.attack) parts.push(`Spell attack ${sgn(K.atk)}`); else if (P.save) parts.push(`${P.save.toUpperCase()} save against DC ${K.dc}`);
@@ -274,7 +277,7 @@ function castDialog(c, ed, name, o = {}) {
     /* start on a real slot (or the cantrip); with none left, nothing is picked, so a free casting is always a choice */
     const opts = castOpts(c, sp, ed), first = opts.find(x => !x[3] && (sp.l === 0 || /^slot\d$|^pact$/.test(x[0])));
     cast = `<div class="cast-box"><div class="cast-h">${sp.l ? "Cast at level" : "Cast"}</div>
-      ${sp.l ? `<div class="cast-lvs" role="group" aria-label="Cast at level">${opts.map(([v, l, sub, dis]) => `<button type="button" class="cast-lv" data-castlv="${esc(v)}" aria-pressed="${!!(first && first[0] === v)}" ${dis ? "disabled" : ""}><b>${esc(l)}</b><span>${esc(sub)}</span></button>`).join("")}</div>` : ""}
+      ${sp.l || opts.length > 1 ? `<div class="cast-lvs" role="group" aria-label="${sp.l ? "Cast at level" : "Casting options"}">${opts.map(([v, l, sub, dis]) => `<button type="button" class="cast-lv" data-castlv="${esc(v)}" aria-pressed="${!!(first && first[0] === v)}" ${dis ? "disabled" : ""}><b>${esc(l)}</b><span>${esc(sub)}</span></button>`).join("")}</div>` : ""}
       <input type="hidden" id="castSlot" value="${first ? esc(first[0]) : ""}">
       <p id="castFx" class="cast-fx">${esc(first ? castPreview(c, sp, first[0], ed) : "No slots left for this spell. Take a rest, or cast it without a slot.")}</p></div>
       <div class="row" style="justify-content:flex-end;margin-top:12px"><button class="btn" type="button" data-actclose style="flex:0 0 auto">Close</button><button class="btn primary" type="button" data-castgo style="flex:0 0 auto" ${first ? "" : "disabled"}>✦ Cast</button></div>`;

@@ -248,7 +248,7 @@ function syncGrantedSpells(c) {
     for (const [minimum, names] of Object.entries(track || {})) {
       if (!Array.isArray(names) || +minimum > level) continue;
       for (const name of names) {
-        const catalogSpell = spellOf(ed, name);
+        const catalogSpell = spellOf(ed, name, { editionOnly: true });
         const spell = catalogSpell || SPELL_GRANT_REFERENCES[name.toLowerCase()];
         if (!spell) continue;
         const key = spellKey(ed, spell.n);
@@ -350,7 +350,10 @@ function syncGrantedSpells(c) {
   }
   if (c.race === "Genasi" && lineage && Object.hasOwn(GENASI_SPELL_GRANTS, c.sub)) {
     const ability = choiceOf(c, c.sub)[0];
-    add(GENASI_SPELL_GRANTS[c.sub], level, { ...subSpecies, ab: AB_WORD[ability?.toLowerCase()] || "int" }, freeCast);
+    add(GENASI_SPELL_GRANTS[c.sub], level, { ...subSpecies, ab: AB_WORD[ability?.toLowerCase()] || "int" }, spell =>
+      c.sub === "Earth Genasi" && spell.n === "Blade Ward"
+        ? { free: "speciesSpell:EarthGenasi:BladeWard", uses: "proficiency", castAs: "Bonus action" }
+        : freeCast(spell));
   }
   const khoravarChoice = c.race === "Khoravar" && choiceOf(c, "Fey Gift Cantrip")[0];
   const validFeyGift = khoravarChoice && CHOICES["Fey Gift Cantrip"].opts(c).some(([id]) => id === khoravarChoice);

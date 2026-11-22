@@ -22,6 +22,7 @@
 import { createHash } from "node:crypto";
 import { readFileSync, writeFileSync, readdirSync, unlinkSync, mkdirSync } from "node:fs";
 import vm from "node:vm";
+import { transformSync } from "esbuild";
 
 if (process.env.DMFORGE_BUILT === "1") process.exit(0); // npm run test:all builds once, then skips this in each check
 
@@ -55,6 +56,11 @@ function emit(name, ext, text) { // text: a string, or a Buffer for pictures
   writeFileSync(at(`public/assets/${file}`), text);
   if (!quiet) console.log(`public/assets/${file}  ${(Buffer.byteLength(text) / 1024).toFixed(0)} KB`);
 }
+function emitCatalog(name, key, data, source = name) {
+  const text = JSON.stringify(data);
+  const literal = JSON.stringify(text).replaceAll("\u2028", "\\u2028").replaceAll("\u2029", "\\u2029");
+  emit(name, "js", `/* Built from data/${source}.json by tools/build.mjs. */\n(window.DMDATA = window.DMDATA || {}).${key} = ${literal};\n`);
+}
 mkdirSync(at("public/assets/"), { recursive: true });
 const spellGrants = JSON.parse(read("data/spell-grants.json"));
 for (const [name, key] of [["spells", "spellData"], ["monsters", "monsterData"], ["items", "itemData"],
@@ -78,9 +84,16 @@ for (const [name, key] of [["spells", "spellData"], ["monsters", "monsterData"],
       return entry;
     });
   }
-  const text = JSON.stringify(data);
-  const lit = JSON.stringify(text).split(String.fromCharCode(0x2028)).join("\\u2028").split(String.fromCharCode(0x2029)).join("\\u2029");
-  emit(name, "js", `/* Built from data/${name}.json by tools/build.mjs. */\n(window.DMDATA = window.DMDATA || {}).${key} = ${lit};\n`);
+  if (name === "book-references") {
+    for (const ed of ["2014", "2024"]) {
+      emitCatalog(`book-references-${ed}`, `bookReferences${ed}`, data.filter(row => (row.ed || "2014") === ed), name);
+    }
+  } else {
+    emitCatalog(name, key, data);
+  }
+  if (name === "extra-monsters") {
+    emitCatalog("monster-index", "monsterIndex", data.map(({ n, src }) => [n, src]), name);
+  }
 }
 // the credits page for the extra books (each book's notice and licence, and the Open Game License text)
 {
@@ -128,10 +141,14 @@ for (const [src, built] of Object.entries(pics)) css = css.split(src).join(built
 const unknown = css.match(/\/assets\/backdrop-[\w-]+\.webp/);
 if (unknown) throw new Error(`src/app.css names ${unknown[0]}, but there's no src/backdrop/${unknown[0].slice(8).replace("backdrop-", "corridor-")}`);
 emit("app", "css", css);
-emit("app", "js", code);
+emit("app", "js", transformSync(code, { minifyWhitespace: true, target: "es2022" }).code);
 
 // 3. the page and the service worker point at them
 let html = read("src/index.html");
+const revision = process.env.COMMIT_REF;
+if (/^[0-9a-f]{40}$/.test(revision || "")) {
+  html = html.replace("</head>", `<meta name="forge-revision" content="${revision}">\n</head>`);
+}
 for (const [src, built] of Object.entries(out)) {
   if (src in pics) continue; // named in the styling, not the page
   if (!html.includes(`"${src}"`)) throw new Error(`src/index.html doesn't load ${src}`);
@@ -142,8 +159,7 @@ html = html.replace(/^(<!DOCTYPE html>\n?)/i, "$1<!-- Built by tools/build.mjs f
 if (!/^<!DOCTYPE html>/i.test(html)) throw new Error("src/index.html must start with <!DOCTYPE html>");
 writeFileSync(at("public/index.html"), html);
 const files = Object.values(out).filter(f => !f.endsWith(".webp"));
-const lazyFiles = [out["/assets/extra-monsters.js"], out["/assets/book-references.js"]];
-const coreFiles = files.filter(f => !lazyFiles.includes(f));
+const coreFiles = files.filter(f => !/^\/assets\/(extra-monsters|monster-index|book-references-(2014|2024))\./.test(f));
 const sw = read("src/sw.js").replace(/^const ASSETS = .*$/m, `const ASSETS = ${JSON.stringify(coreFiles)};`)
   .replace(/^const CACHE = "([\w-]+?)";/m, (_, name) => `const CACHE = "${name}-${fp(files.join())}";`);
 writeFileSync(at("public/sw.js"), "/* Built by tools/build.mjs from src/sw.js. */\n" + sw);

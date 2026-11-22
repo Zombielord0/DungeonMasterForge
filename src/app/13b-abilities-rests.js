@@ -15,7 +15,7 @@ function pcResources(c) {
     for (const source of spell.sources || []) {
       if (source.free && source.uses) {
         const uses = source.uses === "proficiency" ? prof : source.uses === "atWill" ? Infinity : source.uses;
-        add(source.free, `${source.feature || source.name} · ${spell.n}`, uses, source.recharge || "long");
+        add(source.free, `${source.feature || source.name} · ${spell.n}${source.castAs ? ` (${source.castAs.toLowerCase()})` : ""}`, uses, source.recharge || "long");
       }
     }
   }

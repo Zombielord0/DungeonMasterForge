@@ -156,6 +156,8 @@ Signed-in accounts don't need this, because their data is saved on the server.
 
 Signed-in players and DMs can open the **Requests** tab and ask for a new feature, a change, or a fix. The form asks what they're trying to do, how it should work, step by step, who it's for, how often they'd use it, any rules involved and on which devices, plus an optional screenshot (requests with one are more likely to be approved). Everyone sees their own requests with a status (New, Planned, Being built, Done, Not this time) and the owner's reply. The owner (see step 4 above) sees all requests, sets the status, replies, and can press **📋 Copy as a brief** to paste a request into a Claude chat.
 
+The production smoke workflow checks the live home page and the assets it references. When a production deployment status provides a commit, it also verifies the commit recorded in the served page. Run the check directly with `node tools/check-live.mjs`. The failure output includes Netlify's request ID when the homepage returns an error.
+
 ## Development
 
 ```bash

@@ -3,6 +3,7 @@
 /* ======================= Spell browser (SRD 5.1 / 5.2) ======================= */
 const SP = { data: null, ed: "2024", levels: new Set(), open: new Set(), expandAll: false };
 const SAVE_ABBR = { STR: "Strength", DEX: "Dexterity", CON: "Constitution", INT: "Intelligence", WIS: "Wisdom", CHA: "Charisma" };
+const spellDamageTypes = s => (s.dt || "").split(",").map(type => type.trim()).filter(Boolean);
 const ordinal = n => n === 0 ? "Cantrip" : n + (n === 1 ? "st" : n === 2 ? "nd" : n === 3 ? "rd" : "th") + " level";
 function spTimeCat(t) {
   const x = t.toLowerCase();
@@ -47,7 +48,7 @@ function spPrep(s, ed, i) {
   }
   s.tc = spTimeCat(s.t);
   s.ts = s.tc === "Longer" ? s.t : s.tc;
-  if (s.sv) s.save = SAVE_ABBR[s.sv] || s.sv;
+  if (s.sv) s.save = s.sv.split(",").map(stat => SAVE_ABBR[stat.trim()] || stat.trim()).join(", ");
   else { const m = s.d.match(/(Strength|Dexterity|Constitution|Intelligence|Wisdom|Charisma) saving throw/i); s.save = m ? cap1(m[1].toLowerCase()) : ""; }
   if (!s.at && /(melee|ranged) spell attack/i.test(s.d)) s.at = /ranged spell attack/i.test(s.d) ? "ranged" : "melee";
   s.hay = [s.n, ...(s.aliases || [])].join(" ").toLowerCase();
@@ -64,7 +65,7 @@ function spLoad() {
   const fillSel = (id, vals) => vals.forEach(v => $(id).insertAdjacentHTML("beforeend", `<option>${esc(v)}</option>`));
   fillSel("#spClass", [...new Set(all.flatMap(s => s.c))].sort());
   fillSel("#spSchool", [...new Set(all.map(s => s.s))].sort());
-  fillSel("#spDmg", [...new Set(all.map(s => s.dt).filter(Boolean))].sort());
+  fillSel("#spDmg", [...new Set(all.flatMap(spellDamageTypes))].sort());
   $("#spBook").innerHTML = bookOptions(all);
 }
 const FAV_KEY = "dmforge.favspells";
@@ -80,8 +81,8 @@ function spFiltered() {
   let list = SP.data[SP.ed].filter(s => !s.pend &&
     (!words.length || words.every(w => (inD ? s.hayD : s.hay).includes(w))) &&
     (!SP.levels.size || SP.levels.has(s.l)) && (!cls || s.c.includes(cls)) && (!sch || s.s === sch) &&
-    (!tm || s.tc === tm) && (conc === "" || s.co === +conc) && (!dmg || s.dt === dmg) &&
-    (!sv || (sv === "attack" ? !!s.at : s.save === sv)) && (!rit || s.ri) && (!noM || !s.cp.includes("M")) && (!fav || favs.has(favKey(s))) && bookOk(s, book));
+    (!tm || s.tc === tm) && (conc === "" || s.co === +conc) && (!dmg || spellDamageTypes(s).includes(dmg)) &&
+    (!sv || (sv === "attack" ? !!s.at : (s.save || "").split(", ").includes(sv))) && (!rit || s.ri) && (!noM || !s.cp.includes("M")) && (!fav || favs.has(favKey(s))) && bookOk(s, book));
   const byName = (a, b) => a.n.localeCompare(b.n);
   list.sort($("#spSort").value === "name" ? byName : (a, b) => a.l - b.l || byName(a, b));
   return list;

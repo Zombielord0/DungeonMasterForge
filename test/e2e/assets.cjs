@@ -4,6 +4,7 @@
 // Starts its own static server for public/ that sends the same cache headers as netlify.toml.
 const http = require("http"), fs = require("fs"), path = require("path"), crypto = require("crypto");
 const { chromium } = require("playwright");
+const { transformSync } = require("esbuild");
 const ROOT = path.join(__dirname, "..", "..", "public"), DATA = path.join(__dirname, "..", "..", "data");
 const TYPES = { ".html": "text/html", ".js": "text/javascript", ".json": "application/json", ".css": "text/css", ".png": "image/png", ".webp": "image/webp", ".webmanifest": "application/manifest+json" };
 let fails = 0;
@@ -26,7 +27,7 @@ const server = http.createServer((req, res) => {
   // the files are up to date with data/*.json
   const html = fs.readFileSync(path.join(ROOT, "index.html"), "utf8"), sw = fs.readFileSync(path.join(ROOT, "sw.js"), "utf8");
   const files = [...html.matchAll(/(?:src|href)="(\/assets\/[\w.]+)"/g)].map(m => m[1]);
-  check("the page loads five fingerprinted files (data, code, styling)", files.length === 5, files.join(", "));
+  check("the page loads fingerprinted files (data, code, styling)", files.length > 0 && files.every(file => /\.[a-f0-9]{10}\./.test(file)), files.join(", "));
   const extraMonsters = html.match(/name="forge-extra-monsters" content="([^"]+)"/)?.[1];
   check("the extra monster catalog is lazy", !!extraMonsters && !files.includes(extraMonsters) && !sw.includes(extraMonsters));
   const { legacySpells } = JSON.parse(fs.readFileSync(path.join(DATA, "spell-grants.json"), "utf8"));
@@ -44,9 +45,8 @@ const server = http.createServer((req, res) => {
   const appJs = files.find(x => /^\/assets\/app\.\w+\.js$/.test(x)), appCss = files.find(x => /^\/assets\/app\.\w+\.css$/.test(x));
   const js = appJs ? fs.readFileSync(path.join(ROOT, appJs), "utf8") : "", css = appCss ? fs.readFileSync(path.join(ROOT, appCss), "utf8") : "";
   const srcFiles = fs.readdirSync(path.join(SRC, "app")).filter(f => f.endsWith(".js")).sort();
-  let pos = 0, inOrder = true;
-  for (const f of srcFiles) { const i = js.indexOf(fs.readFileSync(path.join(SRC, "app", f), "utf8"), pos); if (i < 0) inOrder = false; else pos = i; }
-  check(`app code: has every src/app file, in order (${srcFiles.length} files)`, !!js && inOrder);
+  const joined = '"use strict";\n' + srcFiles.map(f => `\n/* ======== src/app/${f} ======== */\n` + fs.readFileSync(path.join(SRC, "app", f), "utf8")).join("");
+  check(`app code includes all ${srcFiles.length} source files, in order`, js === transformSync(joined, { minifyWhitespace: true, target: "es2022" }).code);
   // background pictures: src/backdrop/corridor-<name>.webp -> /assets/backdrop-<name>.<fingerprint>.webp, named in the styling
   const pics = fs.readdirSync(path.join(SRC, "backdrop")).filter(f => f.endsWith(".webp"));
   const built = fs.readdirSync(path.join(ROOT, "assets")).filter(f => /^backdrop-[\w-]+\.\w+\.webp$/.test(f));
@@ -97,7 +97,7 @@ const server = http.createServer((req, res) => {
       !subclassList("2024", "Paladin").some(([n]) => n === "Oathbreaker"),
     credit: bookLine(IT.data["2014"].find(x => x.n === "Sending Stones"))
   }));
-  check("2014 handbook spells and items stay in their edition", handbook.spells === 28 + legacySpells.length && handbook.items === 20 && !handbook.revised, JSON.stringify(handbook));
+  check("2014 handbook spells and items stay in their edition", handbook.spells === 28 + legacySpells.filter(x => x.src === "phb-2014").length && handbook.items === 20 && !handbook.revised, JSON.stringify(handbook));
   check("2014 DMG subclasses show in the builder and progression", handbook.death && handbook.oath);
   check("handbook summaries show printed page attribution", /p. 199.*Rules summary/.test(handbook.credit));
   check("the styling is applied (served as text/css)", await p.evaluate(() => [...document.styleSheets].some(s => /\/assets\/app\.\w+\.css$/.test(s.href || "") && s.cssRules.length > 100) && getComputedStyle(document.body).fontFamily.includes("Crimson")));
@@ -119,24 +119,45 @@ const server = http.createServer((req, res) => {
 
   check("the extra catalog has stayed off the startup path", !hits[extraMonsters]);
   await p.goto(URL + "#compendium");
-  await p.locator("#compendiumType").selectOption("Spell");
   await p.locator("#compendiumQuery").fill("Fireball");
   const results = p.locator("#compendiumResults");
   await results.getByRole("button", { name: /Fireball.*Spell/ }).first().click();
   check("compendium opens spell details", await p.locator("#characterReference").getByText("Casting time").isVisible());
+  const monsterIndex = html.match(/name="forge-monster-index" content="([^"]+)"/)?.[1];
+  const legacyReferences = html.match(/name="forge-book-references-2014" content="([^"]+)"/)?.[1];
+  check("an all-types spell search uses the small monster index", !!hits[monsterIndex] && !hits[extraMonsters]);
+  check("a revised-edition search does not fetch 2014 references", !hits[legacyReferences]);
   await p.locator("#characterReference").getByRole("button", { name: "Close" }).click();
   await p.locator("#compendiumEdition").selectOption("2014");
   await results.getByRole("button", { name: /Fireball.*2014/ }).first().waitFor();
-  check("compendium respects the edition filter", !/2024/.test(await results.innerText()));
+  check("compendium respects the edition filter", !/2024/.test(await results.innerText()) && !!hits[legacyReferences]);
+  await p.locator("#compendiumQuery").fill("Abi-Dalzim");
+  await results.getByRole("button", { name: /Abi-Dalzim/ }).first().click();
+  await p.locator("#characterReference").getByRole("button", { name: "Start homebrew draft" }).click();
+  await p.waitForURL("**/#homebrew");
+  const draft = await p.evaluate(() => ({
+    name: HBE.draft?.name, ed: HBE.draft?.ed, level: HBE.draft?.l,
+    school: HBE.draft?.s, saved: hbOf("spell").length
+  }));
+  check("reference metadata starts an unsaved, edition-specific spell draft",
+    draft.ed === "2014" && draft.level === 8 && draft.school === "Necromancy" && draft.saved === 0, JSON.stringify(draft));
+  await p.goto(URL + "#compendium");
   await p.locator("#compendiumQuery").fill("Test campaign spell");
   await p.evaluate(() => hbSet([{ id: "compendium-test", kind: "spell", name: "Test campaign spell", desc: "A campaign spell.", ed: "2014" }]));
+  await results.getByRole("button", { name: /Test campaign spell/ }).waitFor();
   check("compendium updates when campaign homebrew arrives", /Homebrew/.test(await results.innerText()));
   await p.evaluate(() => hbSet([]));
+  await p.waitForFunction(() => $("#compendiumCount").textContent === "0 matches");
   check("compendium drops removed campaign homebrew", !/Test campaign spell/.test(await results.innerText()));
   await p.locator("#compendiumType").selectOption("Monster");
   await p.locator("#compendiumQuery").fill("Tome of Beasts 3");
-  await p.waitForFunction(() => extraMonstersReady && $("#compendiumResults").textContent.includes("Tome of Beasts 3"));
-  check("search loads the extra monster catalog once", hits[extraMonsters] === 1);
+  const monster = results.getByRole("button", { name: /Tome of Beasts 3/ }).first();
+  await monster.waitFor();
+  check("search lists extra monsters before loading their stat blocks", !hits[extraMonsters]);
+  await monster.click();
+  await p.locator("#characterReference[open]").waitFor();
+  check("opening an extra monster loads the full catalog once", hits[extraMonsters] === 1);
+  await p.locator("#characterReference").getByRole("button", { name: "Close" }).click();
   await p.waitForFunction(url => caches.match(url).then(Boolean), extraMonsters);
 
   if (picUrl) await p.evaluate(u => fetch(u).then(r => r.blob()), picUrl);

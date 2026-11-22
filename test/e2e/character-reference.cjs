@@ -428,6 +428,78 @@ const { chromium } = require("playwright");
     await page.locator('#actModal [data-castlv^="speciesSpell:"]').click();
     await page.locator("#actModal [data-castgo]").click();
     assert.equal(await page.evaluate(() => Object.entries(rosterCur().used).find(([key]) => key.startsWith("speciesSpell:"))?.[1]), 1);
+    const grantCoverage = await page.evaluate(() => {
+      const missing = [];
+      const check = (ed, label, track) => {
+        for (const name of Object.values(track || {}).flat()) {
+          if (!spellOf(ed, name, { editionOnly: true }) && !Object.hasOwn(SPELL_GRANT_REFERENCES, name.toLowerCase())) {
+            missing.push(`${ed} ${label}: ${name}`);
+          }
+        }
+      };
+      for (const ed of ["2014", "2024"]) {
+        for (const [label, track] of Object.entries(SUBCLASS_SPELL_GRANTS[ed])) check(ed, label, track);
+        for (const [label, track] of Object.entries(ed === "2014" ? ARTIFICER_SPELL_GRANTS : REVISED_ARTIFICER_SPELL_GRANTS)) check(ed, label, track);
+        for (const [label, track] of Object.entries(ed === "2014" ? LEGACY_LAND_SPELL_GRANTS : LAND_SPELL_GRANTS)) check(ed, label, track);
+        for (const [label, track] of Object.entries(GENASI_SPELL_GRANTS)) check(ed, label, track);
+        const species = ed === "2014"
+          ? Object.entries(LEGACY_SPECIES_SPELL_GRANTS).map(([key, [, , track]]) => [key, track])
+          : Object.entries(SPECIES_SPELL_GRANTS);
+        for (const [label, track] of species) check(ed, label, track);
+        if (ed === "2024") {
+          for (const [cls, features] of Object.entries(CLASS_SPELL_GRANTS)) check(ed, cls, { 1: features.map(([, , spell]) => spell) });
+        }
+        for (const kind of ["class", "subclass", "species"]) {
+          for (const entry of hbBook(kind).filter(option => hbEdOk(option, ed))) {
+            for (const option of [entry, ...(entry.subs || [])]) {
+              for (const track of [option.alwaysPrepared, option.bonusSpells, option.innateSpells, ...Object.values(option.spellTracks || {})]) {
+                check(ed, entry.name, track);
+              }
+            }
+          }
+        }
+      }
+      return missing;
+    });
+    assert.deepEqual(grantCoverage, [], "all configured built-in spell grants resolve in their own edition");
+
+    const legacyGear = await page.evaluate(() => {
+      const c = pcEnsure(generateCharacter({ seed: "GEAR", ed: "2014", cls: "Artificer", level: 5, subclass: "Artillerist" }));
+      const spell = spellOf("2014", "Fireball");
+      const tool = itFind("2014-tce_all-purpose-tool-2");
+      const before = spellCaster(c, spell).dc;
+      const item = { id: "test-tool", ref: tool.id, n: tool.n, qty: 1, eq: true, attuned: false };
+      c.inv ||= [];
+      c.inv.push(item);
+      const unattuned = spellCaster(c, spell).dc;
+      item.attuned = true;
+      const attuned = spellCaster(c, spell).dc;
+      const exportBonus = sheetText(c).includes(`Spellcasting: DC ${attuned},`) && sheetDoc(c).includes(`Save DC ${attuned}</td>`);
+      item.eq = false;
+      const unequipped = spellCaster(c, spell).dc;
+      return { unattuned: unattuned - before, attuned: attuned - before, unequipped: unequipped - before, exportBonus,
+        options: pcSpellPool(c, "2014").some(sp => sp.n === "Booming Blade"),
+        spell: spellOf("2014", "Silvery Barbs", { editionOnly: true })?.src,
+        revised: !!spellOf("2024", "Silvery Barbs", { editionOnly: true }) };
+    });
+    assert.deepEqual(legacyGear, { unattuned: 0, attuned: 2, unequipped: 0, exportBonus: true, options: true, spell: "scc", revised: false });
+
+    await page.evaluate(() => {
+      actClose();
+      const earth = pcEnsure(generateCharacter({ seed: "EARTH", ed: "2014", cls: "Fighter", level: 5, race: "Genasi", sub: "Earth Genasi" }));
+      PCS.roster = [earth]; RC.id = earth.id; renderRosterTab();
+    });
+    await page.locator('#rcPrepared [data-spell="2014|Blade Ward"]').click();
+    assert.match(await page.locator("#actModal").textContent(), /Earth Genasi.*Blade Ward \(bonus action\)/s);
+    const earthCast = '#actModal [data-castlv="speciesSpell:EarthGenasi:BladeWard"]';
+    await page.locator(earthCast).click();
+    await page.locator("#actModal [data-castgo]").click();
+    const spend = () => page.evaluate(() => rosterCur().used?.["speciesSpell:EarthGenasi:BladeWard"] || 0);
+    assert.equal(await spend(), 1);
+    await page.locator("#actModal [data-actclose]").click();
+    await page.locator('[data-rest="long"]').click();
+    assert.equal(await spend(), 0);
+
     const example = await page.evaluate(() => {
       actClose();
       const legacy = pcEnsure(generateCharacter({ seed: "LEGACY", ed: "2014", cls: "Cleric", level: 3, subclass: "Light Domain", race: "Tiefling" }));

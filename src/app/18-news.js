@@ -2,6 +2,11 @@
    When a change ships, add an entry to the top of NEWS with a new id, in plain words for players and DMs. */
 
 const NEWS = [
+  { id: "2026-11-21-catalog-loading-and-grants", date: "2026-11-21", title: "Search faster and use more 2014 gear and spells", go: "compendium", items: [
+    "Compendium searches load a small monster index. Full stat blocks load when you open an extra monster.",
+    "Silvery Barbs and more legacy Artificer spells are available in the 2014 spell list. Species and subclass spell grants use their sheet’s edition.",
+    "All three All-Purpose Tool variants are in Items. Equip and attune one on an artificer to see its bonus on the sheet."
+  ] },
   { id: "2026-11-21-granted-spell-sources", date: "2026-11-21", title: "See what grants your spells", go: "roster", items: [
     "The character sheet labels always-prepared spells and granted cantrips with their class, subclass, or species.",
     "Granted spells stay prepared and leave room for your own spell choices. An innate spell shows its free-use option when you open it.",

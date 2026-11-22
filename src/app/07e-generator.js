@@ -234,13 +234,14 @@ const defList = c => [["Resistant", c.res], ["Immune", c.imm], ["Vulnerable", c.
 const defHTML = c => { const L = defList(c); return L.length ? `<div class="chips" style="margin:8px 0 0">${L.map(([k, l]) => `<span class="tag ${k === "Vulnerable" ? "" : "gold"}">${k}: ${l.map(esc).join(", ")}</span>`).join("")}</div>` : ""; };
 const defText = c => defList(c).map(([k, l]) => `${k}: ${l.join(", ")}`).join(" | ");
 function sheetText(c) {
+  const spell = inventorySpellStats(c);
   return `${c.name} — Level ${c.level} ${raceLabel(c)} ${c.cls} [${edOf(c)} rules] (${c.bg}, ${c.align})
 ${AB.map(a => `${AB_NAME[a]} ${c.scores[a]} (${sgn(c.mods[a])})`).join(" | ")}
 HP ${c.hp} | AC ${c.ac} (${c.acSrc}) | Init ${sgn(c.init)} | Speed ${c.speed} ft | Prof ${sgn(c.prof)} | Passive Perception ${c.passive}
 ${defText(c) ? defText(c) + "\n" : ""}Saves: ${c.saves.map(a => `${AB_NAME[a]} ${sgn(c.mods[a] + c.prof)}`).join(", ")}
 Skills: ${c.skills.filter(s => s.p).map(s => `${s.s} ${sgn(s.v)}${s.x ? "*" : ""}`).join(", ")}
 Attacks: ${c.attacks.map(a => `${a.name} ${sgn(a.hit)} (${a.dmg}${a.type ? " " + a.type : ""})`).join("; ")}
-${c.spell ? `Spellcasting: DC ${c.spell.dc}, attack ${sgn(c.spell.atk)}; ${c.spell.note || c.spell.slots.map((n, i) => `L${i + 1}×${n}`).join(" ") || "no slots yet"}\n` : ""}${(c.prepared || []).length ? `Spells: ${[...c.prepared].sort((a, b) => a.l - b.l || a.n.localeCompare(b.n)).map(p => p.l ? `${p.n} (${p.l})` : `${p.n} (cantrip)`).join(", ")}\n` : ""}Features: ${c.feats.map(f => f.f).concat(c.extras).join(", ")}
+${spell ? `Spellcasting: DC ${spell.dc}, attack ${sgn(spell.atk)}; ${c.spell.note || c.spell.slots.map((n, i) => `L${i + 1}×${n}`).join(" ") || "no slots yet"}\n` : ""}${(c.prepared || []).length ? `Spells: ${[...c.prepared].sort((a, b) => a.l - b.l || a.n.localeCompare(b.n)).map(p => p.l ? `${p.n} (${p.l})` : `${p.n} (cantrip)`).join(", ")}\n` : ""}Features: ${c.feats.map(f => f.f).concat(c.extras).join(", ")}
 Racial traits: ${c.traits.join(", ")}
 Equipment: ${c.kit.concat((c.inv || []).filter(i => i.n).map(i => (+i.qty > 1 ? i.qty + " × " : "") + i.n)).join(", ")}
 Trait: ${c.trait} Ideal: ${c.ideal}. Bond: ${c.bond}. Flaw: ${c.flaw}.

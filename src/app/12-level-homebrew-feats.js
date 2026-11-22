@@ -369,10 +369,11 @@ function hbProblem(x) {
   if (x.kind === "feat" && HBE.draft.abType === "some" && !x.ab) return "Tick at least one ability the feat can raise, or choose None";
   return "";
 }
-async function hbOpen(id, kind) {
+async function hbOpen(id, kind, fields) {
   if (hbDirty() && !(await confirmBox("Discard changes?", `Your changes to “${HBE.draft.name || "this entry"}” aren't saved.`, "Discard"))) return;
   const x = id && HB.list.find(y => y.id === id);
-  HBE.draft = x ? hbDraftOf(x) : hbNew(kind); HBE.id = HBE.draft.id; HBE.saved = x ? JSON.stringify(hbItemOf(HBE.draft)) : "";
+  HBE.draft = x ? hbDraftOf(x) : Object.assign(hbNew(kind), fields); HBE.id = HBE.draft.id; HBE.saved = x ? JSON.stringify(hbItemOf(HBE.draft)) : "";
+  if (fields) location.hash = "homebrew";
   renderHomebrew(); const n = $('#hbMain [data-hbf="name"]'); if (n) n.focus();
 }
 function renderHomebrew() {

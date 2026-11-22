@@ -18,6 +18,13 @@ About 3,700 open-licensed monsters, spells and magic items from books other than
 - **Everything that reads the rules data uses them:** random encounters (`randMonsters`), shops, hoards, spell scrolls, `pcSpellPool`, Wild Shape and companions.
 - **The Adventure and Dungeon Map generators don't** (`MON` in `01-core.js`): saved dungeon maps are rebuilt from their seed, so changing that table would change them.
 
+## Compendium and spell grants
+
+- Compendium loads the selected edition's reference index. Monster searches use an index of extra monster names and sources, then fetch full stat blocks when the reader opens a result. The monster index and reference catalogs are cached on first use.
+- Book references with enough information to start a class, subclass, species, background, feat, or spell can prefill a homebrew draft for the DM. The draft is saved only through the regular Homebrew editor.
+- `data/spell-grants.json` adds source-attributed 2014 spell summaries and sets the grants for book options. Grants resolve against the character's edition. Keep reference-only grants explicit until their spell data has been verified.
+- The 2014 All-Purpose Tool variants have fixed item keys. The highest equipped, attuned variant modifies the artificer's spell attack and save DC. The table tracks the tool form and borrowed cantrip.
+
 ## Species, subclasses, feats and backgrounds
 
 - `data/extra-options.json`: a list of **homebrew-shaped entries** (the Homebrew tab's saved format, `docs/features/homebrew-classes.md`) with `id: "book-<Open5e key>"`, `book: true` and `src`. 11 species (Tome of Heroes, with subraces), 97 subclasses (Tome of Heroes, Tal'Dorei, Open5e; one 2024 Wizard subclass), 14 feats and 25 backgrounds.

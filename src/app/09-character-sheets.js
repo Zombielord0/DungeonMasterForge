@@ -313,6 +313,7 @@ const SHEET_CSS = `
 .dsheet .foot{font-family:Arial,Helvetica,sans-serif;font-size:7px;color:#777;text-align:center;position:absolute;left:0;right:0;bottom:.18in}
 @media print{.dsheet{overflow:visible}.dsheet .page{box-shadow:none;margin:0}}`;
 function sheetDoc(c) {
+  const spell = inventorySpellStats(c);
   const sv = a => c.mods[a] + (c.saves.includes(a) ? c.prof : 0);
   const field = (v, l) => `<div><div class="v">${esc(v)}</div><div class="lab">${l}</div></div>`;
   const dots = n => Array.from({ length: n }, () => `<span class="dot"></span>`).join("");
@@ -343,7 +344,7 @@ function sheetDoc(c) {
         <div class="stat"><div class="line" style="justify-content:flex-end"><span class="lab">Successes</span>${dots(3)}</div><div class="line" style="justify-content:flex-end"><span class="lab">Failures</span>${dots(3)}</div><div class="lab">Death saves</div></div></div>
       <div class="box"><table><tr><th>Name</th><th>Atk bonus</th><th>Damage / type</th></tr>
         ${c.attacks.map(a => `<tr><td>${esc(a.name)}</td><td>${sgn(a.hit)}</td><td>${esc(a.dmg)} ${a.type || DMG_TYPE[a.name] || ""}</td></tr>`).join("")}
-        ${c.spell ? `<tr><td>Spell attack</td><td>${esc(sgn(c.spell.atk))}</td><td>Save DC ${esc(c.spell.dc)}</td></tr>` : ""}<tr><td>&nbsp;</td><td></td><td></td></tr></table>
+        ${c.spell ? `<tr><td>Spell attack</td><td>${esc(sgn(spell.atk))}</td><td>Save DC ${esc(spell.dc)}</td></tr>` : ""}<tr><td>&nbsp;</td><td></td><td></td></tr></table>
         ${c.extras.length ? `<div style="margin-top:5px">${c.extras.map(esc).join("<br>")}</div>` : ""}${defText(c) ? `<div style="margin-top:5px"><b>${esc(defText(c))}</b></div>` : ""}<div class="boxt">Attacks &amp; spellcasting</div></div>
       <div class="box"><ul>${c.kit.map(k => `<li>${esc(k)}</li>`).join("")}${c.bgV >= 2 ? (+c.startGold ? `<li>${+c.startGold} gp</li>` : "") : `<li>${esc(c.bg)} background gear</li>`}${(c.inv || []).filter(i => i.n).map(i => `<li>${+i.qty > 1 ? i.qty + " × " : ""}${esc(i.n)}${i.attuned ? " (attuned)" : ""}</li>`).join("")}</ul><div style="margin-top:6px" class="lab">${["cp", "sp", "ep", "gp", "pp"].map(k => `${k.toUpperCase()} ${c.coins && +c.coins[k] ? c.coins[k] : "____"}`).join(" ")}</div><div class="boxt">Equipment</div></div>
     </div>
@@ -374,7 +375,7 @@ function sheetDoc(c) {
   };
   const cols = [[0, 1, 2], [3, 4, 5], [6, 7, 8, 9]];
   const p3 = `<div class="page"><div class="shdr"><div class="namebox" style="border:2px solid #111;border-radius:10px 0 0 10px;padding:8px 10px"><div class="v" style="font-size:16px;font-weight:bold;border-bottom:1px solid #999">${esc(c.cls)}</div><div class="lab">Spellcasting class</div></div>
-    <div class="hgrid" style="border:2px solid #111;border-radius:0 10px 10px 0;padding:6px 10px">${field(AB_FULL[c.spell.ab], "Spellcasting ability")}${field(c.spell.dc, "Spell save DC")}${field(sgn(c.spell.atk), "Spell attack bonus")}</div></div>
+    <div class="hgrid" style="border:2px solid #111;border-radius:0 10px 10px 0;padding:6px 10px">${field(AB_FULL[spell.ab], "Spellcasting ability")}${field(spell.dc, "Spell save DC")}${field(sgn(spell.atk), "Spell attack bonus")}</div></div>
     ${pact ? `<p style="margin:0 0 8px"><b>Pact Magic:</b> ${esc(c.spell.note)}.</p>` : ""}
     <div class="sgrid">${cols.map(col => `<div>${col.map(l => `<div style="margin-bottom:8px">${box(l)}</div>`).join("")}</div>`).join("")}</div>${foot(3)}</div>`;
   return p1 + p2 + p3;

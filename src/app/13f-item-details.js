@@ -30,6 +30,17 @@ function inventoryEffectActive(i, ref) {
   return +i.qty > 0 && i.eq && (!inventoryNeedsAttunement(i, ref) || i.attuned);
 }
 
+function inventorySpellStats(c, cls = c.spell?.cls || c.cls, stats = c.spell) {
+  if (!stats || cls !== "Artificer") return stats;
+  let bonus = 0;
+  for (const item of c.inv || []) {
+    if (!item.eq || !item.attuned || +item.qty <= 0) continue;
+    const ref = inventoryCatalogItem(item, edOf(c));
+    bonus = Math.max(bonus, ref?.artificerSpellBonus || 0);
+  }
+  return { ...stats, dc: stats.dc + bonus, atk: stats.atk + bonus };
+}
+
 function inventoryEnhancement(i, ref, target) {
   const rules = String(ref?.d || "");
   const match = target === "weapon"

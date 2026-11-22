@@ -1,0 +1,26 @@
+name: Production smoke test
+on:
+  deployment_status:
+  schedule:
+    - cron: '17 15 * * *'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  live:
+    if: >-
+      github.event_name != 'deployment_status' ||
+      (github.event.deployment_status.state == 'success' &&
+       (github.event.deployment.production_environment || github.event.deployment.environment == 'production'))
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.repository.default_branch }}
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - run: node tools/check-live.mjs https://dungeonmasterforge.netlify.app/ 3
+        env:
+          FORGE_EXPECTED_REVISION: ${{ github.event.deployment.sha }}

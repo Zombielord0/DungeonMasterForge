@@ -70,6 +70,14 @@ function quickSheetHTML(c) {
   </section>`;
 }
 
+function rosterSpellStats(c) {
+  const main = inventorySpellStats(c);
+  const others = c.spell.others || [];
+  return `<p style="margin:0 0 4px"><b>Spell save DC ${esc(main.dc)}</b> · spell attack ${esc(sgn(main.atk))} · ability ${AB_NAME[main.ab]}${others.length ? ` <span class="muted">(${esc(c.spell.cls || c.cls)})</span>` : ""}</p>${others.map(o => {
+    const stats = inventorySpellStats(c, o.cls, o);
+    return `<p style="margin:0 0 4px"><b>${esc(o.cls)}: DC ${esc(stats.dc)}</b> · spell attack ${esc(sgn(stats.atk))} · ${AB_NAME[o.ab]}</p>`;
+  }).join("")}`;
+}
 const armorCastingWarningHTML = c => `<div id="rcArmorCastingWarning" class="enc" style="margin-top:10px" ${c.armorUntrained ? "" : "hidden"}>${esc(ARMOR_CASTING_WARNING)}</div>`;
 function rosterHTML(c) {
   const isb = itemSaveBonus(c), sv = a => c.mods[a] + (c.saves.includes(a) ? c.prof : 0) + isb;
@@ -115,7 +123,7 @@ function rosterHTML(c) {
   </div>
   <div class="sec"><div class="sec-h"><h3>Abilities</h3><span class="sp"></span><span class="muted" style="font-size:13px">Actions, reactions and boosts from your features · − spends a use, + gives one back</span></div><div id="rcAbl">${rcAbilitiesHTML(c)}</div></div>
   ${c.spell ? `<div class="sec" id="sec-spells"><div class="sec-h"><h3>Spells</h3><span class="sp"></span><button class="btn sm" type="button" data-ra="prep">✦ Prepare spells</button></div>
-    <div class="spell-top">${armorCastingWarningHTML(c)}<p style="margin:0 0 4px"><b>Spell save DC ${esc(c.spell.dc)}</b> · spell attack ${esc(sgn(c.spell.atk))} · ability ${AB_NAME[c.spell.ab]}${(c.spell.others || []).length ? ` <span class="muted">(${esc(c.spell.cls || c.cls)})</span>` : ""}</p>${(c.spell.others || []).map(o => `<p style="margin:0 0 4px"><b>${esc(o.cls)}: DC ${esc(o.dc)}</b> · spell attack ${esc(sgn(o.atk))} · ${AB_NAME[o.ab]}</p>`).join("")}
+    <div class="spell-top">${armorCastingWarningHTML(c)}<div id="rcSpellStats">${rosterSpellStats(c)}</div>
         ${rcSlotsHTML(c)}
         <button class="btn sm" type="button" style="margin-top:10px" data-spells="${esc(c.spell.list || c.spell.cls || c.cls)}|${esc(c.spell.max)}|${c.spell.cantrips ? 1 : 0}">✦ Browse ${esc(c.spell.cls || c.cls)} spells</button></div>
     ${speciesSpellChoicesHTML(c)}${wizardSpellChoicesHTML(c)}
@@ -287,6 +295,7 @@ spFiltersSync();
         });
         $("[data-quick-vital=ac]", main).textContent = c.ac;
         $(".mobile-quick-actions", main).innerHTML = quickSheetActions(c);
+        const spellStats = $("#rcSpellStats"); if (spellStats) spellStats.innerHTML = rosterSpellStats(c);
         $("#rcItemFeatures").innerHTML = inventoryEffectsHTML(c); $("#rcAtk").innerHTML = rcAttacksHTML(c); $("#rcEquipped").innerHTML = rcEquippedHTML(c); $("#rcACLine").innerHTML = rcACLine(c); $("#rcSpeedLine").innerHTML = rcSpeedLine(c); const a = $('[data-rf="ac"]', main); if (a && !c.acManual) a.value = c.ac; const sp = $('[data-rf="speed"]', main); if (sp && !c.speedManual) sp.value = c.speed;
       }
     }

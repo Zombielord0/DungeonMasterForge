@@ -71,6 +71,18 @@ const X = { sp: data("extra-spells"), mon: data("extra-monsters"), it: data("ext
       sameObj: a === b, books: [...$("#spBook").options].map(o => o.value) };
   });
   const spellExtras = ed => X.sp.filter(s => !s.ed || s.ed === ed);
+  const legacyFilters = await p.evaluate(() => {
+    SP.ed = "2014";
+    $("#spDmg").value = "Fire";
+    $("#spSave").value = "Dexterity";
+    const dexFire = spFiltered().some(s => s.n === "Create Bonfire");
+    $("#spSave").value = "Constitution";
+    const conFire = spFiltered().some(s => s.n === "Elemental Bane");
+    $("#spDmg").value = $("#spSave").value = "";
+    SP.ed = "2024";
+    return { dexFire, conFire };
+  });
+  check("legacy damage and save combinations are searchable", legacyFilters.dexFire && legacyFilters.conFire);
   check("spells: open-book bonus spells appear in their supported editions", sp.x14 === spellExtras("2014").length && sp.x24 === spellExtras("2024").length, JSON.stringify(sp));
   check("spells: the SRD spells keep their places", sp.first === SRD.sp["2014"][0].n && sp.n14 === SRD.sp["2014"].length + legacySpells.length + spellExtras("2014").length);
   check("spells: each edition has its own copy", sp.a && sp.b && !sp.sameObj);

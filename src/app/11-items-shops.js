@@ -29,7 +29,7 @@ function itLoad() {
   for (const ed of Object.keys(raw)) {
     const L = [];
     raw[ed].eq.forEach((e, i) => L.push({ id: `${ed}-g${i}`, kind: "gear", n: e.n, cat: e.cat, g: e.g, c: e.c, gp: e.gp, w: e.w, st: e.st, d: e.d, rk: -2 }));
-    raw[ed].mi.forEach((m, i) => { const p = magicPrice(m); L.push({ id: m.k ? `${ed}-${m.k}` : `${ed}-m${i}`, src: m.src, page: m.page, kind: "magic", n: m.n, cat: m.cat, type: m.type, r: m.r, rk: m.rk, att: m.att, cons: m.cons, base: m.base, c: p.text, gp: p.gp, st: [], d: m.d }); });
+    raw[ed].mi.forEach((m, i) => { const p = magicPrice(m); L.push({ id: m.k ? `${ed}-${m.k}` : `${ed}-m${i}`, src: m.src, page: m.page, artificerSpellBonus: m.artificerSpellBonus, kind: "magic", n: m.n, cat: m.cat, type: m.type, r: m.r, rk: m.rk, att: m.att, cons: m.cons, base: m.base, c: p.text, gp: p.gp, st: [], d: m.d }); });
     L.forEach(x => { x.hay = x.n.toLowerCase(); x.hayD = (x.n + " " + x.cat + " " + (x.type || "") + " " + x.d).toLowerCase(); });
     IT.data[ed] = L;
   }
