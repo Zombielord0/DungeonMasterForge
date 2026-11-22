@@ -203,7 +203,7 @@ function spellCaster(c, sp, how, ed = edOf(c)) {
   const sources = spellPreparationSources(c, sp.n, ed);
   const source = sources.find(g => how && g.free === how) || sources.find(g => own.some(x => x.cls === g.cls)) || sources[0];
   if (source?.kind === "species") {
-    const ab = source.innate || source.name === "Aasimar" ? "cha" : speciesSpellAbility(c);
+    const ab = source.ab || (source.name === "Aasimar" ? "cha" : speciesSpellAbility(c));
     return { cls: source.name, ab, dc: 8 + c.prof + c.mods[ab], atk: c.prof + c.mods[ab] };
   }
   return own.find(x => x.cls === source?.cls) || own.find(x => (sp.c || []).includes(x.cls) || (x.list && (sp.c || []).includes(x.list))) || mi || own[0] || miCaster(c) || { cls: "", ab: "int", dc: 8 + c.prof, atk: c.prof };
@@ -220,7 +220,7 @@ function castOpts(c, sp, ed = edOf(c)) {
   const R = pcResources(c), opts = [];
   if (sp.l === 0) { opts.push(["free", "Cantrip", "no slot needed"]); return opts; }
   const sources = spellPreparationSources(c, sp.n, ed);
-  const grants = freeSpellResources(c, sp, ed, R).map(r => [r.key, r.name, `${resLeft(c, r)} left per long rest`, !resLeft(c, r)]);
+  const grants = freeSpellResources(c, sp, ed, R).map(r => [r.key, r.name, r.max === Infinity ? "no slot needed" : `${resLeft(c, r)} left per ${r.recharge === "short" ? "short or long" : "long"} rest`, !resLeft(c, r)]);
   if (sources.length && sources.every(g => g.innate) && !c.prepared.some(p => !p.bookGrant && p.n === sp.n && p.ed === ed)) return grants;
   R.filter(r => /^slot\d$/.test(r.key) && +r.key.slice(4) >= sp.l).forEach(r => { const L = +r.key.slice(4), left = resLeft(c, r); opts.push([r.key, ordinal(L), `${left} left`, !left]); });
   const pact = R.find(r => r.key === "pact"); if (pact) { const L = +(pact.name.match(/level (\d)/) || [])[1]; if (L >= sp.l) opts.push(["pact", `Pact slot (${ordinal(L)})`, `${resLeft(c, pact)} left`, !resLeft(c, pact)]); }
@@ -259,7 +259,7 @@ function castDialog(c, ed, name, o = {}) {
   const reference = c.prepared?.find(p => p.bookGrant && p.ed === ed && p.n === name && p.reference);
   if (reference) {
     characterReference(name, `<p>Always prepared · ${esc(reference.sources.map(spellGrantLabel).join(" / "))}</p>
-      <p>See your 2014 sourcebook for the spell rules.</p>`, document.activeElement);
+      <p>See the sourcebook for the spell rules.</p>`, document.activeElement);
     return;
   }
   const sp = spellOf(ed, name); if (!sp) { toast("That spell isn't in the spell list"); return; }
@@ -294,8 +294,8 @@ function castGo() {
   else if (how === "pact") { const r = R.find(x => x.key === "pact"); if (!r || resLeft(c, r) < 1) { toast("No pact slot left"); return; } c.used.pact = (+c.used.pact || 0) + 1; slot = +(r.name.match(/level (\d)/) || [])[1] || sp.l; }
   const grant = freeSpellResources(c, sp, ed, R).find(r => r.key === how);
   if (grant) {
-    if (!resLeft(c, grant)) { toast("No free uses left until a long rest"); return; }
-    c.used[how] = (+c.used[how] || 0) + 1;
+    if (!resLeft(c, grant)) { toast("No free uses left until a rest"); return; }
+    if (grant.max !== Infinity) c.used[how] = (+c.used[how] || 0) + 1;
   }
   const notes = [`${c.name} casts ${sp.n}${sp.l ? ` at level ${slot}` : ""}${how === "ritual" ? " as a ritual" : ""}.`];
   if (sp.co) { const ended = concStart(c, sp.n); if (ended) notes.push(ended); notes.push(`Concentrating on ${sp.n}.`); }

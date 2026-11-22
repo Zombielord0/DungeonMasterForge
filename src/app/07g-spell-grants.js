@@ -1,7 +1,8 @@
 /* Fixed spell grants by the level that unlocks them. Choice-dependent book grants
-   use the same track format in extra-options.json. Core tracks follow the 2014 and 2024 Player’s Handbooks and
+   use the same track format in spell-grants.json and extra-options.json. Core tracks follow the 2014 and 2024 Player’s Handbooks and
    the corresponding System Reference Documents. */
 const CLASS_SPELL_GRANTS = {
+  Artificer: [[1, "Tinker’s Magic", "Mending"]],
   Druid: [[1, "Druidic", "Speak with Animals"]],
   Ranger: [[1, "Favored Enemy", "Hunter's Mark", "hmark"]],
   Paladin: [[2, "Paladin's Smite", "Divine Smite", "freeDivineSmite"], [5, "Faithful Steed", "Find Steed", "freePaladinSteed"]],
@@ -123,7 +124,6 @@ const SUBCLASS_SPELL_GRANTS = {
       3: ["Fog Cloud", "Gust of Wind", "Ray of Frost", "Shatter", "Thunderwave"],
       5: ["Lightning Bolt", "Water Breathing"], 7: ["Control Water", "Ice Storm"], 9: ["Conjure Elemental", "Hold Monster"],
     },
-    "Druid|Circle of Stars": { 2: ["Guiding Bolt"] },
   },
 };
 
@@ -175,11 +175,51 @@ const SPECIES_SPELL_GRANTS = {
   "Aasimar": { 1: ["Light"] },
 };
 
-// These legacy grants have a newer catalog entry, but no 2014 spell text in Forge.
-const LEGACY_GRANT_REFERENCES = { "Crusader's Mantle": 3, "Grasping Vine": 4 };
+const LEGACY_LAND_SPELL_GRANTS = {
+  Arctic: { 3: ["Hold Person", "Spike Growth"], 5: ["Sleet Storm", "Slow"], 7: ["Freedom of Movement", "Ice Storm"], 9: ["Commune with Nature", "Cone of Cold"] },
+  Coast: { 3: ["Mirror Image", "Misty Step"], 5: ["Water Breathing", "Water Walk"], 7: ["Control Water", "Freedom of Movement"], 9: ["Conjure Elemental", "Scrying"] },
+  Desert: { 3: ["Blur", "Silence"], 5: ["Create Food and Water", "Protection from Energy"], 7: ["Blight", "Hallucinatory Terrain"], 9: ["Insect Plague", "Wall of Stone"] },
+  Forest: { 3: ["Barkskin", "Spider Climb"], 5: ["Call Lightning", "Plant Growth"], 7: ["Divination", "Freedom of Movement"], 9: ["Commune with Nature", "Tree Stride"] },
+  Grassland: { 3: ["Invisibility", "Pass without Trace"], 5: ["Daylight", "Haste"], 7: ["Divination", "Freedom of Movement"], 9: ["Dream", "Insect Plague"] },
+  Mountain: { 3: ["Spider Climb", "Spike Growth"], 5: ["Lightning Bolt", "Meld into Stone"], 7: ["Stone Shape", "Stoneskin"], 9: ["Passwall", "Wall of Stone"] },
+  Swamp: { 3: ["Darkness", "Acid Arrow"], 5: ["Water Walk", "Stinking Cloud"], 7: ["Freedom of Movement", "Locate Creature"], 9: ["Insect Plague", "Scrying"] },
+  Underdark: { 3: ["Spider Climb", "Web"], 5: ["Gaseous Form", "Stinking Cloud"], 7: ["Greater Invisibility", "Stone Shape"], 9: ["Cloudkill", "Insect Plague"] },
+};
 
-const LEGACY_TIEFLING_SPELLS = { 1: ["Thaumaturgy"], 3: ["Hellish Rebuke"], 5: ["Darkness"] };
-const grantedSpellStatus = (level, sources) => !level ? "Granted cantrip" : sources.every(g => g.innate) ? "Innate spell" : "Always prepared";
+const LEGACY_SPECIES_SPELL_GRANTS = {
+  Tiefling: ["Infernal Legacy", "cha", { 1: ["Thaumaturgy"], 3: ["Hellish Rebuke"], 5: ["Darkness"] }],
+  Aasimar: ["Light Bearer", "cha", { 1: ["Light"] }],
+  "Elf|High Elf": ["High Elf", "int", {}],
+  "Elf|Drow": ["Drow Magic", "cha", { 1: ["Dancing Lights"], 3: ["Faerie Fire"], 5: ["Darkness"] }],
+  "Gnome|Forest Gnome": ["Natural Illusionist", "int", { 1: ["Minor Illusion"] }],
+  "Gith|Githyanki": ["Githyanki Psionics", "int", { 1: ["Mage Hand"], 3: ["Jump"], 5: ["Misty Step"] }],
+  "Gith|Githzerai": ["Githzerai Psionics", "wis", { 1: ["Mage Hand"], 3: ["Shield"], 5: ["Detect Thoughts"] }],
+  "Dwarf|Duergar": ["Duergar Magic", "int", { 3: ["Enlarge/Reduce"], 5: ["Invisibility"] }],
+  "Dwarf|Mark of Warding": ["Wards and Seals", "int", { 1: ["Alarm", "Mage Armor"], 3: ["Arcane Lock"] }],
+  "Elf|Mark of Shadow": ["Shape Shadows", "cha", { 1: ["Minor Illusion"], 3: ["Invisibility"] }],
+  "Gnome|Mark of Scribing": ["Scribe’s Insight", "int", { 1: ["Message", "Comprehend Languages"], 3: ["Magic Mouth"] }],
+  "Halfling|Mark of Healing": ["Healing Touch", "wis", { 1: ["Cure Wounds"], 3: ["Lesser Restoration"] }],
+  "Halfling|Mark of Hospitality": ["Innkeeper’s Magic", "cha", { 1: ["Prestidigitation", "Purify Food and Drink", "Unseen Servant"] }],
+};
+
+const WIZARD_SPELL_CHOICES = [
+  { choice: "Spell Mastery (1st level)", feature: "Spell Mastery", level: 18, uses: "atWill" },
+  { choice: "Spell Mastery (2nd level)", feature: "Spell Mastery", level: 18, uses: "atWill" },
+  { choice: "Signature Spells", feature: "Signature Spells", level: 20, uses: 1, recharge: "short" },
+];
+
+const GENASI_SPELL_GRANTS = {
+  "Air Genasi": { 1: ["Shocking Grasp"], 3: ["Feather Fall"], 5: ["Levitate"] },
+  "Earth Genasi": { 1: ["Blade Ward"], 5: ["Pass without Trace"] },
+  "Fire Genasi": { 1: ["Produce Flame"], 3: ["Burning Hands"], 5: ["Flame Blade"] },
+  "Water Genasi": { 1: ["Acid Splash"], 3: ["Create or Destroy Water"], 5: ["Water Walk"] },
+};
+
+const SPELL_GRANT_REFERENCES = { bloodbound: { n: "Bloodbound", l: 1 } };
+
+const grantedSpellStatus = (level, sources) => !level ? "Granted cantrip"
+  : sources.some(g => !g.innate && !g.known) ? "Always prepared"
+  : sources.some(g => g.known) ? "Granted spell" : "Innate spell";
 const spellKey = (ed, name) => ed + "|" + name;
 function spellPreparationSources(c, name, ed = edOf(c)) {
   return c.prepared?.find(p => p.bookGrant && p.n === name && p.ed === ed)?.sources || [];
@@ -194,9 +234,12 @@ function speciesSpellAbility(c) {
   return selected === "Wisdom" ? "wis" : selected === "Charisma" ? "cha" : "int";
 }
 function speciesSpellChoicesHTML(c) {
-  if (!(c.prepared || []).some(p => p.bookGrant && Array.isArray(p.sources) && p.sources.some(g => g.kind === "species" && !g.innate && g.name !== "Aasimar"))) return "";
+  if (edOf(c) === "2014") return c.race === "Elf" && c.sub === "High Elf" ? choiceHTML(c, "High Elf Cantrip") : "";
+  if (!(c.prepared || []).some(p => p.bookGrant && p.sources?.some(g => g.kind === "species" && !g.ab && g.name !== "Aasimar"))) return "";
   const current = AB_FULL[speciesSpellAbility(c)];
-  return `<p class="hint">Species spellcasting ability · ${esc(current)}</p>${choiceHTML(c, "Species Spellcasting")}${c.race === "Elf" && c.sub === "High Elf" ? choiceHTML(c, "Elven Lineage Cantrip") : ""}`;
+  const cantripChoice = c.race === "Elf" && c.sub === "High Elf" ? choiceHTML(c, "Elven Lineage Cantrip")
+    : c.race === "Khoravar" ? choiceHTML(c, "Fey Gift Cantrip") : "";
+  return `<p class="hint">Species spellcasting ability · ${esc(current)}</p>${choiceHTML(c, "Species Spellcasting")}${cantripChoice}`;
 }
 
 function syncGrantedSpells(c) {
@@ -205,11 +248,13 @@ function syncGrantedSpells(c) {
     for (const [minimum, names] of Object.entries(track || {})) {
       if (!Array.isArray(names) || +minimum > level) continue;
       for (const name of names) {
-        const spell = spellOf(ed, name);
+        const catalogSpell = spellOf(ed, name);
+        const spell = catalogSpell || SPELL_GRANT_REFERENCES[name.toLowerCase()];
         if (!spell) continue;
-        const reference = ed === "2014" && spell.id.startsWith("2024-") && Object.hasOwn(LEGACY_GRANT_REFERENCES, name);
         const key = spellKey(ed, spell.n);
-        if (!grants.has(key)) grants.set(key, { n: spell.n, l: reference ? LEGACY_GRANT_REFERENCES[name] : spell.l, ed, src: source.name, bookGrant: true, sources: [], ...(reference ? { reference: true } : {}) });
+        if (!grants.has(key)) grants.set(key, {
+          n: spell.n, l: spell.l, ed, src: source.name, bookGrant: true, sources: [], ...(!catalogSpell ? { reference: true } : {}),
+        });
         const sources = grants.get(key).sources;
         if (!sources.some(item => item.kind === source.kind && item.name === source.name && item.feature === source.feature && item.cls === source.cls)) {
           sources.push({ ...source, ...details(spell) });
@@ -225,6 +270,16 @@ function syncGrantedSpells(c) {
         add({ [level]: [spell] }, lv, { ...classSource, feature }, () => free ? { free } : {});
       }
     }
+    if (cls === "Wizard") {
+      for (const { choice, feature, level, uses, recharge } of WIZARD_SPELL_CHOICES) {
+        if (lv < level || !choiceOf(c, choice).length || (feature === "Spell Mastery" && ed !== "2024")) continue;
+        const candidates = CHOICES[choice].opts(c);
+        const names = choiceOf(c, choice).filter(name => candidates.some(([id]) => id === name)).slice(0, CHOICES[choice].n(c));
+        add({ [level]: names }, lv, { ...classSource, feature }, spell => ({
+          free: "wizardSpell:" + encodeURIComponent(feature + "|" + spell.n), uses, recharge,
+        }));
+      }
+    }
     const data = classData(ed, cls)?.hbx;
     add(data?.alwaysPrepared, lv, { ...classSource, book: data?.src });
     if (!subclass || lv < subclassLevel(ed, cls)) continue;
@@ -234,35 +289,74 @@ function syncGrantedSpells(c) {
     add(SUBCLASS_SPELL_GRANTS[ed]?.[cls + "|" + subclass], lv, source);
     if (cls === "Artificer" && Object.hasOwn(artificer, subclass)) add(artificer[subclass], lv, source);
     add(entry?.alwaysPrepared, lv, source);
+    add(entry?.bonusSpells, lv, { ...source, known: true });
+    if (cls === "Rogue" && ["Arcane Trickster", "Eldritch Trickster"].includes(subclass)) {
+      add({ 3: ["Mage Hand"] }, lv, { ...source, feature: "Spellcasting", known: true });
+    }
+    if (cls === "Cleric" && subclass === "Arcana Domain" && choiceOf(c, "Arcane Initiate").length) {
+      const candidates = CHOICES["Arcane Initiate"].opts(c);
+      const choices = choiceOf(c, "Arcane Initiate").filter(name => candidates.some(([id]) => id === name)).slice(0, 2);
+      add({ [subclassLevel(ed, cls)]: choices }, lv, { ...source, feature: "Arcane Initiate", known: true });
+    }
+    if (cls === "Sorcerer" && subclass === "Divine Soul") {
+      const affinity = CHOICES["Divine Magic"].opts(c).find(([id]) => id === choiceOf(c, "Divine Magic")[0]);
+      if (affinity) add({ [subclassLevel(ed, cls)]: [affinity[2]] }, lv, { ...source, feature: "Divine Magic", known: true });
+    }
     if (entry?.spellTracks) {
       add(entry.spellTracks.All, lv, source);
       const choice = choiceOf(c, entry.spellTrackChoice)[0];
       if (choice && choice !== "All" && Object.hasOwn(entry.spellTracks, choice)) add(entry.spellTracks[choice], lv, { ...source, feature: choice });
     }
-    if (ed === "2024" && cls === "Druid" && subclass === "Circle of the Land") {
-      const land = choiceOf(c, "Circle of the Land Spells")[0];
-      if (land && Object.hasOwn(LAND_SPELL_GRANTS, land)) add(LAND_SPELL_GRANTS[land], lv, { ...source, feature: land });
+    if (cls === "Druid" && subclass === "Circle of Stars") {
+      add({ 2: ["Guidance", "Guiding Bolt"] }, lv, { ...source, feature: "Star Map" }, spell => spell.l ? {
+        free: "starMapGuidingBolt", uses: ed === "2014" ? "proficiency" : Math.max(1, c.mods?.wis || 0),
+      } : {});
+    }
+    if (cls === "Wizard" && ["School of Illusion", "Illusionist"].includes(subclass)) {
+      add({ [subclassLevel(ed, cls)]: ["Minor Illusion"] }, lv, { ...source, feature: "Improved Illusions" });
+    }
+    if (cls === "Druid" && subclass === "Circle of the Land") {
+      const tracks = ed === "2024" ? LAND_SPELL_GRANTS : LEGACY_LAND_SPELL_GRANTS;
+      const land = choiceOf(c, ed === "2024" ? "Circle of the Land Spells" : "Circle Spells")[0];
+      if (land && Object.hasOwn(tracks, land)) add(tracks[land], lv, { ...source, feature: land });
     }
   }
-  if (ed === "2014" && c.race === "Tiefling") {
-    add(LEGACY_TIEFLING_SPELLS, totalLv(c), { kind: "species", name: "Tiefling", feature: "Infernal Legacy", innate: true }, spell => spell.l ? {
-      free: "speciesSpell:2014:" + encodeURIComponent(spell.n), uses: 1, castLevel: 2,
-    } : {});
+
+  const race = PC_RACES[ed]?.[c.race], lineage = race?.subs?.[c.sub];
+  const species = { kind: "species", name: c.race, book: race?.src };
+  const subSpecies = { ...species, feature: c.sub, book: lineage?.src || race?.src };
+  const level = totalLv(c);
+  const freeCast = (spell, uses = 1, key = c.sub || "") => spell.l ? {
+    free: "speciesSpell:" + encodeURIComponent(c.race + "|" + key + "|" + spell.n), uses,
+  } : {};
+
+  if (ed === "2014") {
+    for (const [key, source] of [[c.race, species], [c.race + "|" + c.sub, subSpecies]]) {
+      const legacy = LEGACY_SPECIES_SPELL_GRANTS[key];
+      if (!legacy) continue;
+      const [feature, ab, track] = legacy;
+      const cantrip = key === "Elf|High Elf" && choiceOf(c, "High Elf Cantrip")[0];
+      const spells = cantrip && CHOICES["High Elf Cantrip"].opts(c).some(([id]) => id === cantrip) ? { 1: [cantrip] } : track;
+      add(spells, level, { ...source, feature, ab, innate: true }, spell => c.race === "Tiefling" && spell.l ? {
+        free: "speciesSpell:2014:" + encodeURIComponent(spell.n), uses: 1, castLevel: 2,
+      } : freeCast(spell));
+    }
+  } else {
+    add(SPECIES_SPELL_GRANTS[c.race], level, species);
+    const track = lineage && SPECIES_SPELL_GRANTS[c.race + "|" + c.sub];
+    const choice = c.race === "Elf" && c.sub === "High Elf" && choiceOf(c, "Elven Lineage Cantrip")[0];
+    const cantrip = choice && CHOICES["Elven Lineage Cantrip"].opts(c).some(([id]) => id === choice);
+    add(cantrip ? { ...track, 1: [choice] } : track, level, subSpecies, spell => freeCast(spell, c.race === "Gnome" ? "proficiency" : 1));
   }
-  if (ed === "2024") {
-    const race = PC_RACES[ed][c.race], lineage = race?.subs?.[c.sub];
-    const source = { kind: "species", name: c.race };
-    const subSource = { ...source, feature: c.sub };
-    const innate = spell => spell.l ? {
-      free: "speciesSpell:" + encodeURIComponent(c.race + "|" + c.sub + "|" + spell.n),
-      uses: c.race === "Gnome" ? "proficiency" : 1,
-    } : {};
-    add(SPECIES_SPELL_GRANTS[c.race], totalLv(c), source);
-    const lineageTrack = lineage && SPECIES_SPELL_GRANTS[c.race + "|" + c.sub];
-    const cantrip = c.race === "Elf" && c.sub === "High Elf" && choiceOf(c, "Elven Lineage Cantrip")[0];
-    add(cantrip ? { ...lineageTrack, 1: [cantrip] } : lineageTrack, totalLv(c), subSource, innate);
-    add(race?.alwaysPrepared, totalLv(c), source);
-    add(lineage?.alwaysPrepared, totalLv(c), subSource);
+  if (c.race === "Genasi" && lineage && Object.hasOwn(GENASI_SPELL_GRANTS, c.sub)) {
+    const ability = choiceOf(c, c.sub)[0];
+    add(GENASI_SPELL_GRANTS[c.sub], level, { ...subSpecies, ab: AB_WORD[ability?.toLowerCase()] || "int" }, freeCast);
   }
+  const khoravarChoice = c.race === "Khoravar" && choiceOf(c, "Fey Gift Cantrip")[0];
+  const validFeyGift = khoravarChoice && CHOICES["Fey Gift Cantrip"].opts(c).some(([id]) => id === khoravarChoice);
+  add(validFeyGift ? { 1: [khoravarChoice] } : race?.alwaysPrepared, level, species);
+  add(lineage?.alwaysPrepared, level, subSpecies);
+  add(race?.innateSpells, level, { ...species, innate: !race?.spellSlots, ab: race?.spellAbility }, spell => freeCast(spell, 1, ""));
+  add(lineage?.innateSpells, level, { ...subSpecies, innate: !lineage?.spellSlots, ab: lineage?.spellAbility }, freeCast);
   c.prepared = c.prepared.filter(p => !p.bookGrant).concat([...grants.values()]);
 }

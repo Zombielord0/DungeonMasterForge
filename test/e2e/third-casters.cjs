@@ -22,7 +22,7 @@ const server = http.createServer((req, res) => {
   const p = await ctx.newPage(); p.on("pageerror", e => errs.push(e.message));
   await p.goto(URL + "#roster"); await p.waitForFunction(() => typeof generateCharacter === "function" && $("#storeBadge").textContent !== "Connecting…", null, { timeout: 15000 });
 
-  const info = (o) => p.evaluate(o => { const c = pcEnsure(generateCharacter({ seed: "T3", ...o })); const L = spellLimits(c); return { spell: c.spell && { ab: c.spell.ab, slots: c.spell.slots, max: c.spell.max, cantrips: c.spell.cantrips, list: c.spell.list }, L, sub: c.subclass }; }, o);
+  const info = (o) => p.evaluate(o => { const c = pcEnsure(generateCharacter({ seed: "T3", ...o })); const L = spellLimits(c); return { spell: c.spell && { ab: c.spell.ab, slots: c.spell.slots, max: c.spell.max, cantrips: c.spell.cantrips, list: c.spell.list }, L, sub: c.subclass, mageHand: isPrep(c, "Mage Hand", o.ed) }; }, o);
   for (const ed of ["2014", "2024"]) {
     const ek3 = await info({ cls: "Fighter", level: 3, ed, subclass: "Eldritch Knight" });
     check(`${ed} Eldritch Knight 3: Intelligence, the wizard list, two 1st-level slots`, ek3.spell && ek3.spell.ab === "int" && JSON.stringify(ek3.spell.slots) === "[2]" && ek3.spell.max === 1 && ek3.spell.cantrips && ek3.spell.list === "Wizard", JSON.stringify(ek3));
@@ -34,9 +34,9 @@ const server = http.createServer((req, res) => {
     const ek20 = await info({ cls: "Fighter", level: 20, ed, subclass: "Eldritch Knight" });
     check(`${ed} Eldritch Knight 20: 13 spells and 3 cantrips`, ek20.L && ek20.L.n === 13 && ek20.L.cantrips === 3, JSON.stringify(ek20.L));
     const at3 = await info({ cls: "Rogue", level: 3, ed, subclass: "Arcane Trickster" });
-    check(`${ed} Arcane Trickster 3: Intelligence, wizard list, 3 spells and 3 cantrips`, at3.spell && at3.spell.ab === "int" && at3.spell.list === "Wizard" && at3.L.n === 3 && at3.L.cantrips === 3, JSON.stringify(at3));
+    check(`${ed} Arcane Trickster 3: Intelligence, wizard list, 3 spells, Mage Hand and 2 cantrip choices`, at3.spell && at3.spell.ab === "int" && at3.spell.list === "Wizard" && at3.L.n === 3 && at3.L.cantrips === 2 && at3.mageHand, JSON.stringify(at3));
     const at10 = await info({ cls: "Rogue", level: 10, ed, subclass: "Arcane Trickster" });
-    check(`${ed} Arcane Trickster 10: 7 spells, 4 cantrips, slots 4 and 3`, at10.L.n === 7 && at10.L.cantrips === 4 && JSON.stringify(at10.spell.slots) === "[4,3]", JSON.stringify(at10));
+    check(`${ed} Arcane Trickster 10: 7 spells, Mage Hand and 3 cantrip choices, slots 4 and 3`, at10.L.n === 7 && at10.L.cantrips === 3 && at10.mageHand && JSON.stringify(at10.spell.slots) === "[4,3]", JSON.stringify(at10));
     const champ = await info({ cls: "Fighter", level: 7, ed, subclass: "Champion" });
     check(`${ed} a Champion still has no spellcasting`, !champ.spell, JSON.stringify(champ.spell));
     const f2 = await info({ cls: "Fighter", level: 2, ed });

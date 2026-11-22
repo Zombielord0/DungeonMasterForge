@@ -52,7 +52,8 @@ function quickSheetActions(c) {
     ${hasSheetSpells(c) ? '<button type="button" class="btn sm" data-jump="spells">Spells</button>' : ""}
     <button type="button" class="btn sm" data-jump="conditions">Conditions</button>`;
 }
-const hasSheetSpells = c => !!c.spell || (c.prepared || []).some(p => p.src);
+const hasSheetSpells = c => !!c.spell || (c.prepared || []).some(p => p.src) ||
+  (edOf(c) === "2014" && c.race === "Elf" && c.sub === "High Elf");
 function quickSheetHTML(c) {
   const conditions = CONDS.filter(([key]) => condOn(c, key)).map(([, label]) => label);
   if (exhOf(c)) conditions.push(`Exhaustion ${exhOf(c)}`);
@@ -117,7 +118,7 @@ function rosterHTML(c) {
     <div class="spell-top">${armorCastingWarningHTML(c)}<p style="margin:0 0 4px"><b>Spell save DC ${esc(c.spell.dc)}</b> · spell attack ${esc(sgn(c.spell.atk))} · ability ${AB_NAME[c.spell.ab]}${(c.spell.others || []).length ? ` <span class="muted">(${esc(c.spell.cls || c.cls)})</span>` : ""}</p>${(c.spell.others || []).map(o => `<p style="margin:0 0 4px"><b>${esc(o.cls)}: DC ${esc(o.dc)}</b> · spell attack ${esc(sgn(o.atk))} · ${AB_NAME[o.ab]}</p>`).join("")}
         ${rcSlotsHTML(c)}
         <button class="btn sm" type="button" style="margin-top:10px" data-spells="${esc(c.spell.list || c.spell.cls || c.cls)}|${esc(c.spell.max)}|${c.spell.cantrips ? 1 : 0}">✦ Browse ${esc(c.spell.cls || c.cls)} spells</button></div>
-    ${speciesSpellChoicesHTML(c)}
+    ${speciesSpellChoicesHTML(c)}${wizardSpellChoicesHTML(c)}
     <div class="prep-h">${L.word === "known" ? "Spells known" : "Prepared spells"}</div>
     <div id="rcPrepared">${preparedHTML(c, true)}</div>${prepPanelHTML(c, "rc")}</div>` : hasSheetSpells(c) ? `<div class="sec" id="sec-spells"><div class="sec-h"><h3>Spells</h3><span class="sp"></span></div>${armorCastingWarningHTML(c)}${speciesSpellChoicesHTML(c)}<div id="rcPrepared">${preparedHTML(c, true)}</div></div>` : ""}
   ${profSecHTML(c)}

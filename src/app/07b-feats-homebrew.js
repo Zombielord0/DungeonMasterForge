@@ -290,6 +290,10 @@ function hbTraitDesc(f, c) {
   const t = [...(sp.traits || []), ...(sp.subs || [])].find(y => y.n === f);
   return t ? (t.d || "") + fxNote(t.fx) : "";
 }
+function speciesGrantData(entry) {
+  return Object.fromEntries(["alwaysPrepared", "innateSpells", "spellAbility", "spellSlots"]
+    .filter(key => Object.hasOwn(entry, key)).map(key => [key, entry[key]]));
+}
 function hbApply() {
   const A = HB.applied;
   A.bg.forEach(n => { delete BACKGROUNDS[n]; delete HB_BG[n]; });
@@ -321,8 +325,8 @@ function hbApply() {
     ["2014", "2024"].filter(ed => hbEdOk(x, ed) && !PC_RACES[ed][x.name]).forEach(ed => {
       PC_RACES[ed][x.name] = { hb: true, ...(x.pend ? { pend: true } : {}), asi: ed === "2014" ? Object.fromEntries(AB.filter(a => +(x.asi || {})[a]).map(a => [a, +x.asi[a]])) : {}, speed: +x.speed || 30,
         traits: traits.map(t => t.n), skills: (x.skills || []).filter(k => SKILLS[k]), term: x.term || (ed === "2024" ? "Lineage" : "Subrace"),
-        ...(subs.length ? { subs: Object.fromEntries(subs.map(t => [t.n, { label: `${t.n}`, traits: [t.n], d: t.d || "", ...(ed === "2014" && t.asi ? { asi: Object.fromEntries(AB.filter(a => +t.asi[a]).map(a => [a, +t.asi[a]])) } : {}) }])) } : {}),
-        ...(x.src ? { src: x.src } : {}) };
+        ...(subs.length ? { subs: Object.fromEntries(subs.map(t => [t.n, { label: `${t.n}`, traits: [t.n], d: t.d || "", ...speciesGrantData(t), ...(ed === "2014" && t.asi ? { asi: Object.fromEntries(AB.filter(a => +t.asi[a]).map(a => [a, +t.asi[a]])) } : {}) }])) } : {}),
+        ...speciesGrantData(x), ...(x.src ? { src: x.src } : {}) };
       N.races.push([ed, x.name]);
     });
     if (!RACE_DESC[x.name]) { RACE_DESC[x.name] = x.desc || ""; N.raceDesc.push(x.name); }

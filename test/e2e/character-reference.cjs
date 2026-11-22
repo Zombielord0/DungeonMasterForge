@@ -481,6 +481,71 @@ const { chromium } = require("playwright");
     await spellChip("Hellish Rebuke").getByRole("button").click();
     assert.match(await page.locator('#actModal [data-castlv^="speciesSpell:"]').textContent(), /Infernal.*1 left per long rest/s);
     assert.equal(await page.locator("#actModal [data-castgo]").isEnabled(), true);
+    const expandedGrants = await page.evaluate(() => {
+      actClose();
+      const make = (ed, cls, subclass, level, race = "Human", sub = "", choices = {}) => {
+        const c = pcEnsure(generateCharacter({ seed: "SPELL-AUDIT", ed, cls, subclass, level, race, sub }));
+        c.choices = choices;
+        syncGrantedSpells(c);
+        return c;
+      };
+      const spellsFrom = (c, kind) => c.prepared.filter(p => p.sources?.some(s => s.kind === kind)).map(p => p.n);
+      const land = make("2014", "Druid", "Circle of the Land", 5, "Elf", "Drow", { "Circle Spells": ["Forest"] });
+      const drow = spellOf("2014", "Faerie Fire");
+      const drowResource = freeSpellResources(land, drow, "2014", pcResources(land))[0];
+      const grantBeforeSwap = spellsFrom(land, "subclass");
+      land.choices["Circle Spells"] = ["Arctic"];
+      syncGrantedSpells(land);
+      const gnome = make("2014", "Fighter", "Champion", 1, "Gnome", "Forest Gnome");
+      const highElf = make("2014", "Fighter", "", 1, "Elf", "High Elf", { "High Elf Cantrip": ["Mage Hand"] });
+      const rimekin = make("2024", "Fighter", "", 5, "Rimekin");
+      const draenei = make("2024", "Fighter", "", 5, "Draenei", "Lightforged");
+      const reanimator = make("2024", "Artificer", "Reanimator", 5);
+      const death = make("2014", "Cleric", "Death Domain", 5);
+      const oathbreaker = make("2014", "Paladin", "Oathbreaker", 3);
+      const ranger = make("2014", "Ranger", "Gloom Stalker", 5);
+      const wizard = make("2024", "Wizard", "", 20, "Human", "", {
+        "Spell Mastery (1st level)": ["Magic Missile"], "Spell Mastery (2nd level)": ["Misty Step"],
+        "Signature Spells": ["Fireball", "Fly"],
+      });
+      const mastery = freeSpellResources(wizard, spellOf("2024", "Magic Missile"), "2024", pcResources(wizard))[0];
+      const signature = freeSpellResources(wizard, spellOf("2024", "Fireball"), "2024", pcResources(wizard))[0];
+      wizard.used = { [signature.key]: 1 };
+      pcRest(wizard, "short");
+      const legacy = spellOf("2014", "Grasping Vine");
+      PCS.roster = [wizard]; RC.id = wizard.id;
+      renderRosterTab();
+      return {
+        grantBeforeSwap, grantAfterSwap: spellsFrom(land, "subclass"), drowUses: drowResource.max,
+        drowAbility: spellCaster(land, drow, drowResource.key).ab,
+        gnome: spellsFrom(gnome, "species"), highElf: spellsFrom(highElf, "species"),
+        rimekin: spellsFrom(rimekin, "species"), draenei: spellsFrom(draenei, "species"),
+        reanimator: spellsFrom(reanimator, "subclass"), artificer: spellsFrom(reanimator, "class"),
+        death: spellsFrom(death, "subclass"), oathbreaker: spellsFrom(oathbreaker, "subclass"),
+        ranger: spellPreparationSources(ranger, "Rope Trick")[0]?.known,
+        mastery: mastery.max === Infinity, signature: resLeft(wizard, signature),
+        invalidMastery: isPrep(wizard, "Misty Step", "2024"), legacy: [legacy.src, legacy.sv]
+      };
+    });
+    assert.deepEqual(expandedGrants.grantBeforeSwap, ["Barkskin", "Spider Climb", "Call Lightning", "Plant Growth"]);
+    assert.deepEqual(expandedGrants.grantAfterSwap, ["Hold Person", "Spike Growth", "Sleet Storm", "Slow"]);
+    assert.equal(expandedGrants.drowUses, 1);
+    assert.equal(expandedGrants.drowAbility, "cha");
+    assert.deepEqual(expandedGrants.gnome, ["Minor Illusion"]);
+    assert.deepEqual(expandedGrants.highElf, ["Mage Hand"]);
+    assert.deepEqual(expandedGrants.rimekin, ["Ray of Frost", "Ice Knife", "Flame Blade"]);
+    assert.deepEqual(expandedGrants.draenei, ["Sacred Flame", "Guiding Bolt", "Aid"]);
+    assert.ok(expandedGrants.reanimator.includes("Enhance Ability"));
+    assert.deepEqual(expandedGrants.artificer, ["Mending"]);
+    assert.ok(expandedGrants.death.includes("Vampiric Touch"));
+    assert.deepEqual(expandedGrants.oathbreaker, ["Hellish Rebuke", "Inflict Wounds"]);
+    assert.equal(expandedGrants.ranger, true);
+    assert.equal(expandedGrants.mastery, true);
+    assert.equal(expandedGrants.signature, 1);
+    assert.equal(expandedGrants.invalidMastery, false);
+    assert.deepEqual(expandedGrants.legacy, ["phb-2014", "DEX"]);
+    await page.locator('[data-choice="Spell Mastery (2nd level)"]').selectOption("Scorching Ray");
+    assert.match(await spellChip("Scorching Ray").textContent(), /Always prepared.*Spell Mastery/s);
     assert.deepEqual(errors, []);
     console.log("PASS edition-aware progression, expansion subclass choices, item stats and attunement");
   } finally {

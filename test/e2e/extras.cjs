@@ -12,6 +12,7 @@ const server = http.createServer((req, res) => {
   fs.readFile(f, (e, b) => { if (e) { res.writeHead(404); return res.end(); } res.writeHead(200, { "content-type": TYPES[path.extname(f)] || "application/octet-stream" }); res.end(b); });
 });
 const data = n => JSON.parse(fs.readFileSync(path.join(__dirname, "..", "..", "data", n + ".json"), "utf8"));
+const { legacySpells } = data("spell-grants");
 const SRD = { sp: data("spells"), mon: data("monsters"), it: data("items") };
 const X = { sp: data("extra-spells"), mon: data("extra-monsters"), it: data("extra-items"), opt: data("extra-options"), books: data("extra-books").books };
 
@@ -71,7 +72,7 @@ const X = { sp: data("extra-spells"), mon: data("extra-monsters"), it: data("ext
   });
   const spellExtras = ed => X.sp.filter(s => !s.ed || s.ed === ed);
   check("spells: open-book bonus spells appear in their supported editions", sp.x14 === spellExtras("2014").length && sp.x24 === spellExtras("2024").length, JSON.stringify(sp));
-  check("spells: the SRD spells keep their places", sp.first === SRD.sp["2014"][0].n && sp.n14 === SRD.sp["2014"].length + spellExtras("2014").length);
+  check("spells: the SRD spells keep their places", sp.first === SRD.sp["2014"][0].n && sp.n14 === SRD.sp["2014"].length + legacySpells.length + spellExtras("2014").length);
   check("spells: each edition has its own copy", sp.a && sp.b && !sp.sameObj);
   check("spells: 2014 and 2024 wording for casting time", sp.a.t === "1 action" && sp.b.t === "Action", JSON.stringify([sp.a, sp.b]));
   check("spells: saving throw is read", sp.a.save === "Wisdom", sp.a.save);

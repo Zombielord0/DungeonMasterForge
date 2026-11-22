@@ -115,7 +115,7 @@ function spellLimits(c) {
   let n = 0, cant = 0, word = "prepared";
   list.forEach(({ cls, lv, subclass }) => {
     const sc = subCaster(cls, subclass);
-    if (sc) { n += THIRD_KNOWN[lv - 1] || 0; if (list.length === 1 && edOf(c) === "2014") word = "known"; cant += sc.cantrips + (lv >= 10 ? 1 : 0); return; } /* Eldritch Knight, Arcane Trickster */
+    if (sc) { n += THIRD_KNOWN[lv - 1] || 0; if (list.length === 1 && edOf(c) === "2014") word = "known"; cant += sc.cantrips + (lv >= 10 ? 1 : 0) - (cls === "Rogue" && lv >= 3 ? 1 : 0); return; } /* Eldritch Knight, Arcane Trickster */
     const book = classData(edOf(c), cls).hbx;
     if (book?.preparedAt) {
       n += Number(book.preparedAt[lv - 1]) || 0;

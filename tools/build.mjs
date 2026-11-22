@@ -56,10 +56,29 @@ function emit(name, ext, text) { // text: a string, or a Buffer for pictures
   if (!quiet) console.log(`public/assets/${file}  ${(Buffer.byteLength(text) / 1024).toFixed(0)} KB`);
 }
 mkdirSync(at("public/assets/"), { recursive: true });
+const spellGrants = JSON.parse(read("data/spell-grants.json"));
 for (const [name, key] of [["spells", "spellData"], ["monsters", "monsterData"], ["items", "itemData"],
   ["extra-spells", "spellExtra"], ["extra-monsters", "monsterExtra"], ["extra-items", "itemExtra"], ["extra-options", "optionExtra"], ["extra-books", "bookData"], ["book-references", "bookReferences"]]) {
   // stored as text, so the app turns it into objects only when a tab needs it (dmData in src/app/01-core.js)
-  const text = JSON.stringify(JSON.parse(read(`data/${name}.json`)));
+  let data = JSON.parse(read(`data/${name}.json`));
+  if (name === "spells") data["2014"].push(...spellGrants.legacySpells);
+  if (name === "extra-options") {
+    const ids = new Set(data.map(option => option.id));
+    for (const id of Object.keys(spellGrants.options)) {
+      if (!ids.has(id)) throw new Error(`Unknown spell-grant option: ${id}`);
+    }
+    data = data.map(option => {
+      const grants = spellGrants.options[option.id];
+      if (!grants) return option;
+      const { lineages, ...fields } = grants;
+      const entry = { ...option, ...fields };
+      if (lineages) {
+        entry.subs = entry.subs.map(lineage => ({ ...lineage, ...lineages[lineage.n] }));
+      }
+      return entry;
+    });
+  }
+  const text = JSON.stringify(data);
   const lit = JSON.stringify(text).split(String.fromCharCode(0x2028)).join("\\u2028").split(String.fromCharCode(0x2029)).join("\\u2029");
   emit(name, "js", `/* Built from data/${name}.json by tools/build.mjs. */\n(window.DMDATA = window.DMDATA || {}).${key} = ${lit};\n`);
 }

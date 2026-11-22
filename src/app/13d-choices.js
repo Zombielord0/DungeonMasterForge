@@ -139,6 +139,23 @@ CHOICES["Species Spellcasting"] = choiceList("Species spellcasting ability", ["I
 CHOICES["Elven Lineage Cantrip"] = { label: "High Elf cantrip (change after a long rest)", n: () => 1,
   opts: c => choiceSpellOptions(c, s => s.l === 0 && s.c.includes("Wizard")) };
 
+CHOICES["Fey Gift Cantrip"] = { label: "Fey Gift cantrip (change after a long rest)", n: () => 1,
+  opts: c => choiceSpellOptions(c, s => s.l === 0 && ["Cleric", "Druid", "Wizard"].some(cls => s.c.includes(cls))) };
+CHOICES["High Elf Cantrip"] = { label: "High Elf wizard cantrip", n: () => 1,
+  opts: c => choiceSpellOptions(c, s => s.l === 0 && s.c.includes("Wizard")) };
+for (const [index, { choice, feature, level }] of WIZARD_SPELL_CHOICES.entries()) {
+  const mastery = feature === "Spell Mastery";
+  CHOICES[choice] = {
+    label: choice,
+    n: c => clsLv(c, "Wizard") >= level && (!mastery || edOf(c) === "2024") ? (mastery ? 1 : 2) : 0,
+    opts: c => choiceSpellOptions(c, s => s.l === index + 1 && s.c.includes("Wizard") && (!mastery || /^(?:1 )?action$/i.test(s.t))),
+  };
+}
+function wizardSpellChoicesHTML(c) {
+  const choices = WIZARD_SPELL_CHOICES.map(({ choice }) => choiceHTML(c, choice)).join("");
+  return choices && `<p class="hint">Choose these spells from your spellbook.</p>${choices}`;
+}
+
 const additionalFeatureChoices = {
   "Demon Hunter Spells": ["Demon Hunter specialization"],
   "Evoker Spells": ["Evoker specialization"],

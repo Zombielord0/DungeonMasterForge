@@ -13,8 +13,9 @@ function pcResources(c) {
   for (const spell of c.prepared || []) {
     if (!spell.bookGrant) continue;
     for (const source of spell.sources || []) {
-      if (source.kind === "species" && source.free) {
-        add(source.free, `${source.feature || source.name} · ${spell.n}`, source.uses === "proficiency" ? prof : source.uses, "long");
+      if (source.free && source.uses) {
+        const uses = source.uses === "proficiency" ? prof : source.uses === "atWill" ? Infinity : source.uses;
+        add(source.free, `${source.feature || source.name} · ${spell.n}`, uses, source.recharge || "long");
       }
     }
   }
