@@ -4,7 +4,7 @@
 const NEWS = [
   { id: "2026-11-21-feats-and-parchment", date: "2026-11-21", title: "Feat spells and parchment previews", go: "roster", items: [
     "Feat benefits now appear under Abilities. Supported feat spells appear under Spells with their source and tracked free casts.",
-    "Generated adventures and monster stat blocks have warmer parchment, ink headings, and roomier layouts on phones."
+    "Adventure and monster previews use classic handbook-style parchment, with weathered edges and blue ink headings."
   ] },
   { id: "2026-11-21-browse-compendium", date: "2026-11-21", title: "Browse the Compendium", go: "compendium", items: [
     "Open the Compendium to see entries right away. Use Edition, Type, or the page buttons to browse.",
