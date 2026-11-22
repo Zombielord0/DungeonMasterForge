@@ -96,7 +96,7 @@ function featOpen() {
   if (!m) {
     document.body.insertAdjacentHTML("beforeend", `<div id="featModal" role="dialog" aria-modal="true" aria-labelledby="featTitle"><div class="box">
       <div class="row" style="align-items:center"><h3 id="featTitle" style="flex:1;margin:0">Choose a feat</h3><button class="btn sm" type="button" data-featclose style="flex:0 0 auto">✕ Close</button></div>
-      <div class="row" style="margin-top:10px;flex-wrap:wrap"><input type="search" id="featQ" placeholder="Search feats, e.g. armor, spell, speed" aria-label="Search feats" style="flex:2 1 240px"><div id="featGrp" class="row" style="flex:1 1 auto;gap:6px;flex-wrap:wrap"></div></div>
+      <div class="row" style="margin-top:10px;flex-wrap:wrap"><input type="search" id="featQ" autocomplete="off" placeholder="Search feats, e.g. armor, spell, speed" aria-label="Search feats" style="flex:2 1 240px"><div id="featGrp" class="row" style="flex:1 1 auto;gap:6px;flex-wrap:wrap"></div></div>
       <div id="featList"></div>
       <div class="row" style="margin-top:10px;flex-wrap:wrap;align-items:flex-end"><label class="lbl" style="margin:0;flex:1 1 240px">Not listed? Type your own feat<input type="text" id="featOwn" maxlength="80" placeholder="Feat name"></label><button class="btn" type="button" data-featown style="flex:0 0 auto">Use this feat</button></div>
     </div></div>`);

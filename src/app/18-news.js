@@ -2,6 +2,9 @@
    When a change ships, add an entry to the top of NEWS with a new id, in plain words for players and DMs. */
 
 const NEWS = [
+  { id: "2026-11-21-matching-search-fields", date: "2026-11-21", title: "Matching search fields", go: "compendium", items: [
+    "Search boxes across the Forge use the same dark style, including popups and fields filled by the browser."
+  ] },
   { id: "2026-11-21-granted-spell-sources", date: "2026-11-21", title: "See what grants your spells", go: "roster", items: [
     "The character sheet labels always-prepared spells and granted cantrips with their class, subclass, or species.",
     "Granted spells stay prepared and leave room for your own spell choices. An innate spell shows its free-use option when you open it.",

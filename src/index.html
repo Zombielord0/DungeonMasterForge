@@ -142,7 +142,7 @@ if (location.protocol !== "file:" && localStorage.getItem("dmforge.offline") !==
   <div class="card">
     <h2>Compendium</h2>
     <form id="compendiumForm" class="compendium-filters">
-      <label>Search<input type="search" id="compendiumQuery" placeholder="Search names or sources"></label>
+      <label>Search<input type="search" id="compendiumQuery" autocomplete="off" placeholder="Search names or sources"></label>
       <label>Edition<select id="compendiumEdition"><option>2024</option><option>2014</option></select></label>
       <label>Type<select id="compendiumType"><option value="">All types</option></select></label>
     </form>
@@ -444,7 +444,7 @@ if (location.protocol !== "file:" && localStorage.getItem("dmforge.offline") !==
       <div class="field"><label>Rules edition</label>
         <div class="seg"><label class="opt"><input type="radio" name="bsEd" value="2024" checked><span>2024 (5.5e)</span></label><label class="opt"><input type="radio" name="bsEd" value="2014"><span>2014 (5e)</span></label><label class="opt"><input type="radio" name="bsEd" value="custom"><span>My monsters</span></label></div>
       </div>
-      <div class="field"><label for="bsQ">Search</label><input type="text" id="bsQ" placeholder="Monster name, e.g. owlbear">
+      <div class="field"><label for="bsQ">Search</label><input type="search" id="bsQ" autocomplete="off" placeholder="Monster name, e.g. owlbear">
         <label class="check" style="margin:6px 0 0"><input type="checkbox" id="bsInText"><span>Also search traits and actions</span></label></div>
       <div class="field row">
         <div><label for="bsCrMin">CR from</label><select id="bsCrMin"></select></div>
@@ -514,7 +514,7 @@ if (location.protocol !== "file:" && localStorage.getItem("dmforge.offline") !==
       <div class="field"><label>Rules edition</label>
         <div class="seg"><label class="opt"><input type="radio" name="spEd" value="2024" checked><span>2024 (5.5e)</span></label><label class="opt"><input type="radio" name="spEd" value="2014"><span>2014 (5e)</span></label></div>
       </div>
-      <div class="field"><label>Search</label><input type="text" id="spQ" placeholder="Spell name, e.g. fireball">
+      <div class="field"><label for="spQ">Search</label><input type="search" id="spQ" autocomplete="off" placeholder="Spell name, e.g. fireball">
         <label class="check" style="margin:6px 0 0"><input type="checkbox" id="spInDesc"><span>Also search descriptions</span></label></div>
       <button class="btn wide" type="button" id="spFiltersBtn" aria-expanded="false" aria-controls="spFilters">Filters</button>
       <div id="spFilters">
@@ -559,7 +559,7 @@ if (location.protocol !== "file:" && localStorage.getItem("dmforge.offline") !==
       <div class="field"><label>Rules edition</label>
         <div class="seg"><label class="opt"><input type="radio" name="ftEd" value="2024" checked><span>2024 (5.5e)</span></label><label class="opt"><input type="radio" name="ftEd" value="2014"><span>2014 (5e)</span></label></div>
       </div>
-      <div class="field"><label for="ftQ">Search</label><input type="search" id="ftQ" placeholder="Name or effect, e.g. armor, spell"></div>
+      <div class="field"><label for="ftQ">Search</label><input type="search" id="ftQ" autocomplete="off" placeholder="Name or effect, e.g. armor, spell"></div>
       <div class="field" id="ftGrpWrap"><label for="ftGrp">Type</label><select id="ftGrp"></select></div>
       <div class="field"><label class="check"><input type="checkbox" id="ftOk"><span>Only feats the chosen character can take</span></label></div>
       <p class="hint">Feats added here are extra to the ones chosen at level-ups, for example a DM's reward or a background's origin feat. Remove them from the character's Feats section on the Characters tab.</p>
@@ -579,7 +579,7 @@ if (location.protocol !== "file:" && localStorage.getItem("dmforge.offline") !==
       <div class="field"><label>Rules edition</label>
         <div class="seg"><label class="opt"><input type="radio" name="itEd" value="2024" checked><span>2024 (5.5e)</span></label><label class="opt"><input type="radio" name="itEd" value="2014"><span>2014 (5e)</span></label></div>
       </div>
-      <div class="field"><label>Search</label><input type="text" id="itQ" placeholder="Item name, e.g. longsword">
+      <div class="field"><label for="itQ">Search</label><input type="search" id="itQ" autocomplete="off" placeholder="Item name, e.g. longsword">
         <label class="check" style="margin:6px 0 0"><input type="checkbox" id="itInDesc"><span>Also search descriptions</span></label></div>
       <button class="btn wide" type="button" id="itFiltersBtn" aria-expanded="false" aria-controls="itFilters">▾ Filters</button>
       <div id="itFilters">

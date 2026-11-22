@@ -21,6 +21,7 @@ Moved here from `CLAUDE.md` on 2026-11-17, unchanged except that `public/index.h
   - The toast sits at `76px` + safe area and is hidden with opacity. `viewport-fit=cover` is on in `index.html` and `player.html`.
 - **Touch (`pointer:coarse`):** `.btn.sm`, `.icon-btn`, `.cond`, `.chip` and `.ctr-b` are at least 40 × 40, `label.check` rows are 40 px, and the sheet labels are 12.5 px.
 - **Jump bar:** `sheetJumpHTML(c)` makes `#sheetJump` (a div, not a `nav`, because the header's `nav a` styles would apply) at the top of the My Characters sheet. It's shown at 600 px and under and sticky under the header. Links are `[data-jump]` to `#sec-hp`, `#sec-attacks`, `#sec-spells`, `#sec-gear` and `#sec-notes`, with `scroll-margin-top`.
+- **Search fields:** Catalogs, trackers and pickers use `type="search"` and the shared field theme in `src/app.css`. Search controls request autocomplete off and use the same dark palette when the browser applies autofill.
 - **Spells on phones:** the filters sit inside `#spFilters`, closed unless `#spForm.filters-open`. `#spFiltersBtn` shows "▾ Filters · N on" (`spFilterCount`, `spFiltersSync`).
 - **Grid columns** (`.layout>*`, `.tlayout>*`) have `min-width:0`, so wide content scrolls inside instead of widening the page.
 - **Tests:** `npm run test:layout` (`test/e2e/layout.cjs`) runs at 390 × 640 touch, 768 × 1024 touch, 1366 × 768 mouse and 844 × 390 touch. `MOUSE_H` holds the mouse heights of the small controls, which must not change.

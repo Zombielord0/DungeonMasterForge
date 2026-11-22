@@ -215,7 +215,7 @@ function preparedHTML(c, cast) {
 function prepPanelHTML(c, pre = "pc") {
   const lvOpts = (c.spell.cantrips ? `<option value="0">Cantrips</option>` : "") + Array.from({ length: c.spell.max }, (_, i) => `<option value="${i + 1}">Level ${i + 1}</option>`).join("");
   return `<div class="prep-panel hidden" id="${pre}PrepPanel">
-    <div class="row" style="flex-wrap:wrap"><input type="text" id="${pre}PrepQ" placeholder="Search ${esc(pcCastNames(c))} spells, e.g. cure" style="flex:2 1 200px" aria-label="Search spells">
+    <div class="row" style="flex-wrap:wrap"><input type="search" id="${pre}PrepQ" autocomplete="off" placeholder="Search ${esc(pcCastNames(c))} spells, e.g. cure" style="flex:2 1 200px" aria-label="Search spells">
       <select id="${pre}PrepLv" style="flex:1 1 110px" aria-label="Spell level"><option value="">All levels</option>${lvOpts}</select>
       <select id="${pre}PrepEd" style="flex:1 1 110px" aria-label="Rules edition"><option value="2024">2024 rules</option><option value="2014">2014 rules</option></select></div>
     <div class="prep-res" id="${pre}PrepList"></div></div>`;

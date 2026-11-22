@@ -57,7 +57,6 @@ section.view.active{display:block;animation:rise .25s ease-out}
 .field{margin-bottom:14px}
 .field label:not(.check):not(.opt),.lbl{display:block;font-family:Cinzel,serif;font-size:12px;letter-spacing:.1em;text-transform:uppercase;color:#b8ad9a;margin-bottom:6px;text-shadow:0 -1px 0 #000}
 input[type=text],input[type=number],input[type=date],input[type=search],select,textarea{width:100%;background:var(--well);border:1px solid #0d0c0b;border-radius:4px;padding:7px 10px;outline:none;box-shadow:inset 0 2px 5px rgba(0,0,0,.7),0 1px 0 rgba(255,255,255,.06)}
-input[type=search]{appearance:none;min-width:0}
 select option{background:#24221f}
 input:focus,select:focus,textarea:focus{border-color:#a8682a;box-shadow:inset 0 2px 5px rgba(0,0,0,.7),0 0 0 2px rgba(227,154,59,.25)}
 textarea{resize:vertical;min-height:70px}
@@ -546,7 +545,14 @@ nav a.active{color:var(--ink)!important}
 .badge{border-color:#090a12}
 .mini,.item,.chapter,.encard,.camp-item,.check,.chip,.ab,.vit,.sp-detail{border-color:#080910!important}
 input[type=text],input[type=number],input[type=date],input[type=search],select,textarea{border-color:#080910}
-input[type=search]{appearance:none;min-width:0}
+/* Keep native search controls and autofill in the same dark palette as the field. */
+input[type=search]{-webkit-appearance:none;appearance:none;color-scheme:dark;min-width:0}
+input[type=search]::placeholder{color:var(--muted);opacity:1}
+input[type=search]:is(:autofill, :-webkit-autofill){
+  -webkit-text-fill-color:var(--text);
+  box-shadow:inset 0 2px 5px rgba(0,0,0,.7),inset 0 0 0 100vmax #151725,0 1px 0 rgba(255,255,255,.06);
+}
+input[type=search]:is(:autofill, :-webkit-autofill):focus{outline:2px solid rgba(227,154,59,.25)}
 select option{background:#171a2a}
 .subtabs{border-bottom-color:rgba(0,0,0,.6)}
 #toast{background:var(--noise),linear-gradient(rgba(30,33,50,.96),rgba(18,20,32,.96))}

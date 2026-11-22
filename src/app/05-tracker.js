@@ -417,7 +417,7 @@ function loreHTML(c) {
     </div>`;
   };
   return `<div class="sec-h"><h3>Lore</h3><span class="sp"></span><button class="btn sm primary" type="button" data-lore="add">+ Add entry</button></div>
-    <div class="lore-tools"><input type="search" id="loreQ" placeholder="Search names, tags and text…" value="${esc(LORE.q)}" aria-label="Search lore">
+    <div class="lore-tools"><input type="search" id="loreQ" autocomplete="off" placeholder="Search names, tags and text…" value="${esc(LORE.q)}" aria-label="Search lore">
       <div class="lore-chips">${[["", "All"], ...Object.entries(LORE_TYPES)].map(([k, l]) => `<button type="button" class="chip ${LORE.type === k ? "on" : ""}" data-lt="${k}">${l} <span class="n">${n(k)}</span></button>`).join("")}</div></div>
     ${LORE.edit === "new" ? `<div class="lore-newbox">${loreFormHTML(LORE.draft)}</div>` : ""}
     <div class="lore-list">${shown.length ? shown.map(card).join("") : `<p class="muted">${L.length ? "Nothing matches." : "No lore yet. Add places, items, monsters and notes, or import a MythWeaver campaign."}</p>`}</div>`;
