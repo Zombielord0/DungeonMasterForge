@@ -2,6 +2,10 @@
    When a change ships, add an entry to the top of NEWS with a new id, in plain words for players and DMs. */
 
 const NEWS = [
+  { id: "2026-11-21-browse-compendium", date: "2026-11-21", title: "Browse the Compendium", go: "compendium", items: [
+    "Open the Compendium to see entries right away. Use Edition, Type, or the page buttons to browse.",
+    "Type part of a name or source to narrow the list. Clear the search to browse again."
+  ] },
   { id: "2026-11-21-catalog-loading-and-grants", date: "2026-11-21", title: "Search faster and use more 2014 gear and spells", go: "compendium", items: [
     "Compendium searches load a small monster index. Full stat blocks load when you open an extra monster.",
     "Silvery Barbs and more legacy Artificer spells are available in the 2014 spell list. Species and subclass spell grants use their sheet’s edition.",

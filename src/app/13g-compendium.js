@@ -1,5 +1,6 @@
 /* Cross-catalog search and read-only references. */
-const compendium = { rows: [], request: 0 };
+const compendium = { rows: [], page: 0, request: 0, notice: "" };
+const COMPENDIUM_PAGE_SIZE = 60;
 const compendiumTypes = ["Class", "Subclass", "Species", "Background", "Feat", "Spell", "Item", "Monster", "Other rules"];
 const compendiumCatalogs = new Map();
 function compendiumCatalog(meta, key) {
@@ -60,19 +61,41 @@ function compendiumOpenBook(entry, ed, trigger) {
     hbOpen(null, kind, initial);
   };
 }
+const compendiumText = value => value.normalize("NFKD").toLowerCase()
+  .replace(/[\p{M}'’]/gu, "").replace(/[^\p{L}\p{N}]+/gu, " ").trim();
+
+function renderCompendiumPage() {
+  const { rows, page, notice } = compendium;
+  const start = page * COMPENDIUM_PAGE_SIZE;
+  const end = Math.min(start + COMPENDIUM_PAGE_SIZE, rows.length);
+  const prev = $("#compendiumPrevious"), next = $("#compendiumNext");
+  const active = document.activeElement;
+  $("#compendiumPages").hidden = rows.length <= COMPENDIUM_PAGE_SIZE;
+  prev.disabled = page === 0;
+  next.disabled = end >= rows.length;
+  if (active === prev && prev.disabled && !next.disabled) next.focus();
+  if (active === next && next.disabled && !prev.disabled) prev.focus();
+  const count = rows.length ? `Showing ${(start + 1).toLocaleString()}–${end.toLocaleString()} of ${rows.length.toLocaleString()} entries` : "0 matches";
+  $("#compendiumCount").textContent = count + notice;
+  $("#compendiumResults").innerHTML = rows.slice(start, end).map(({ kind, name, source, group, ed }, i) =>
+    `<button class="camp-item" type="button" data-compendium-result="${start + i}">
+      <b>${esc(name)}</b><small>${esc([kind, group, ed, source].filter(Boolean).join(" · "))}</small></button>`).join("");
+}
+
 async function compendiumSearch() {
   const request = ++compendium.request;
   const rules = currentSourceRules(), edition = $("#compendiumEdition");
   edition.disabled = !!rules;
   if (rules) edition.value = rules.edition;
-  const query = $("#compendiumQuery").value.trim().toLowerCase();
+  const query = compendiumText($("#compendiumQuery").value);
   const typeSelect = $("#compendiumType");
   const canBrowseMonsters = !window.Portal?.views || Portal.views.includes("monsters");
   typeSelect.querySelector('option[value="Monster"]').hidden = !canBrowseMonsters;
   if (!canBrowseMonsters && typeSelect.value === "Monster") typeSelect.value = "";
   const results = $("#compendiumResults");
   compendium.rows = [];
-  if (!query) { results.innerHTML = ""; $("#compendiumCount").textContent = ""; return; }
+  compendium.page = 0;
+  $("#compendiumPages").hidden = true;
 
   const ed = edition.value, type = typeSelect.value;
   const showMonsters = (!type || type === "Monster") && canBrowseMonsters;
@@ -80,10 +103,10 @@ async function compendiumSearch() {
   const getMonsterIndex = showMonsters && !extraMonstersReady
     ? compendiumCatalog("forge-monster-index", "monsterIndex") : null;
   results.innerHTML = "";
-  $("#compendiumCount").textContent = "Searching…";
+  $("#compendiumCount").textContent = query ? "Searching…" : "Loading catalog…";
   const [references, monsterIndex] = await Promise.all([getReferences, getMonsterIndex]);
   if (request !== compendium.request) return;
-  const words = query.split(/\s+/), matches = [], playable = new Set();
+  const words = query ? query.split(" ") : [], matches = [], playable = new Set();
   const wants = kind => !type || type === kind;
   const add = (kind, name, src, homebrew, open, group = "") => {
     if (!sourceAllowed(rules, src, homebrew)) return;
@@ -91,8 +114,13 @@ async function compendiumSearch() {
     if (group === "Book reference" && playable.has(entryKey)) return;
     if (group !== "Book reference") playable.add(entryKey);
     const source = src ? dmBook(src).name : homebrew ? "Homebrew" : ed === "2024" ? "SRD 5.2" : "SRD 5.1";
-    const label = [name, group, kind, source].join(" ").toLowerCase();
-    if (words.every(word => label.includes(word))) matches.push({ kind, name, source, group, open });
+    if (query) {
+      const label = compendiumText([name, group, kind, source].join(" "));
+      if (!words.every(word => label.includes(word))) return;
+    }
+    const normalizedName = query ? compendiumText(name) : "";
+    const rank = !query ? 0 : normalizedName === query ? 2 : Number(normalizedName.startsWith(query));
+    matches.push({ kind, name, source, group, open, ed, rank });
   };
   const reference = (name, body, trigger) => characterReference(name, body, trigger);
   if (wants("Spell")) {
@@ -146,17 +174,23 @@ async function compendiumSearch() {
         button => compendiumOpenBook(entry, ed, button), "Book reference");
     }
   }
-  matches.sort((a, b) => Number(b.name.toLowerCase().startsWith(query)) - Number(a.name.toLowerCase().startsWith(query)) || a.name.localeCompare(b.name));
-  compendium.rows = matches.slice(0, 60);
-  const count = matches.length > 60 ? `Showing 60 of ${matches.length} matches` : `${matches.length} matches`;
-  $("#compendiumCount").textContent = count + (!references ? " · Book references unavailable" : "")
+  matches.sort((a, b) => b.rank - a.rank || a.name.localeCompare(b.name));
+  compendium.rows = matches;
+  compendium.notice = (!references ? " · Book references unavailable" : "")
     + (getMonsterIndex && !monsterIndex && !extraMonstersReady ? " · Extra monster search unavailable" : "");
-  results.innerHTML = compendium.rows.map(({ kind, name, source, group }, i) => `<button class="camp-item" type="button" data-compendium-result="${i}">
-    <b>${esc(name)}</b><small>${esc([kind, group, ed, source].filter(Boolean).join(" · "))}</small></button>`).join("");
+  renderCompendiumPage();
 }
 $("#compendiumType").insertAdjacentHTML("beforeend", compendiumTypes.map(type => `<option value="${type}">${type}</option>`).join(""));
 $("#compendiumForm").addEventListener("submit", e => { e.preventDefault(); compendiumSearch(); });
 $("#compendiumForm").addEventListener("input", compendiumSearch);
+$("#compendiumPrevious").addEventListener("click", () => {
+  compendium.page--;
+  renderCompendiumPage();
+});
+$("#compendiumNext").addEventListener("click", () => {
+  compendium.page++;
+  renderCompendiumPage();
+});
 $("#compendiumResults").addEventListener("click", e => {
   const button = e.target.closest("[data-compendium-result]");
   if (button) compendium.rows[button.dataset.compendiumResult]?.open(button);

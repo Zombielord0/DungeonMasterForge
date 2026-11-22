@@ -20,6 +20,7 @@ About 3,700 open-licensed monsters, spells and magic items from books other than
 
 ## Compendium and spell grants
 
+- The Compendium lists entries as soon as it opens, 60 per page. Edition and type work with a blank search, and partial names and sources filter the same list.
 - Compendium loads the selected edition's reference index. Monster searches use an index of extra monster names and sources, then fetch full stat blocks when the reader opens a result. The monster index and reference catalogs are cached on first use.
 - Book references with enough information to start a class, subclass, species, background, feat, or spell can prefill a homebrew draft for the DM. The draft is saved only through the regular Homebrew editor.
 - `data/spell-grants.json` adds source-attributed 2014 spell summaries and sets the grants for book options. Grants resolve against the character's edition. Keep reference-only grants explicit until their spell data has been verified.

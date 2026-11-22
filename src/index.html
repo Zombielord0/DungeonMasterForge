@@ -144,11 +144,17 @@ if (location.protocol !== "file:" && localStorage.getItem("dmforge.offline") !==
   <div class="card">
     <h2>Compendium</h2>
     <form id="compendiumForm" class="compendium-filters">
-      <label>Search<input type="search" id="compendiumQuery" placeholder="Search names or sources"></label>
+      <label>Search<input type="search" id="compendiumQuery" autocomplete="off" placeholder="Search names or sources"></label>
       <label>Edition<select id="compendiumEdition"><option>2024</option><option>2014</option></select></label>
       <label>Type<select id="compendiumType"><option value="">All types</option></select></label>
     </form>
-    <p class="muted" id="compendiumCount" aria-live="polite"></p>
+    <div class="compendium-list-controls">
+      <p class="muted" id="compendiumCount" aria-live="polite"></p>
+      <div id="compendiumPages" class="compendium-pages" role="group" aria-label="Compendium pages" hidden>
+        <button type="button" class="btn sm" id="compendiumPrevious" aria-controls="compendiumResults">Previous page</button>
+        <button type="button" class="btn sm" id="compendiumNext" aria-controls="compendiumResults">Next page</button>
+      </div>
+    </div>
     <div id="compendiumResults" class="compendium-results"></div>
   </div>
 </section>
