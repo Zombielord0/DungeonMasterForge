@@ -180,7 +180,12 @@ function miState(c) {
   const choices = choiceOf(c, "Feat: Magic Initiate");
   const lists = miLists(c), selected = (choices.find(x => x.startsWith("list:")) || "").slice(5);
   const list = lists.length === 1 ? lists[0] : lists.includes(selected) ? selected : "";
-  return { list, can: choices.filter(x => x.startsWith("c:")).map(x => x.slice(2)), one: choices.filter(x => x.startsWith("s:")).map(x => x.slice(2)) };
+  const picked = (prefix, level) => {
+    if (!list) return [];
+    const options = new Set(miSpellOptions(c, list, level).map(spell => spell.n));
+    return [...new Set(choices.filter(x => x.startsWith(prefix)).map(x => x.slice(2)))].filter(name => options.has(name));
+  };
+  return { list, can: picked("c:", 0), one: picked("s:", 1) };
 }
 const LEGACY_FEAT_LISTS = ["Bard", "Cleric", "Druid", "Sorcerer", "Warlock", "Wizard"];
 const featListAbility = list => ["Cleric", "Druid"].includes(list) ? "wis" : list === "Wizard" ? "int" : "cha";
@@ -216,18 +221,57 @@ CHOICES["Feat spells: Spell Sniper"] = {
   label: "Attack cantrip", n: c => edOf(c) === "2014" ? 1 : 0,
   opts: c => choiceSpellOptions(c, s => s.l === 0 && s.at && s.c.includes(choiceOf(c, "Feat spell list: Spell Sniper")[0])),
 };
-function featSpellChoicesHTML(c, name) {
+function featSpellChoiceKeys(c, name) {
   const key = featSpellKey(name);
-  if (key === "Magic Initiate") return miHTML(c);
-  if (!Object.hasOwn(FEAT_SPELLS, key)) return "";
+  if (!Object.hasOwn(FEAT_SPELLS, key)) return [];
   const listKey = "Feat spell list: " + key;
   if (edOf(c) === "2014" && CHOICES[listKey]) {
-    return choiceHTML(c, listKey) + (choiceOf(c, listKey).length ? choiceHTML(c, "Feat spells: " + key) : "");
+    return [listKey, ...(choiceOf(c, listKey).length ? ["Feat spells: " + key] : [])];
   }
   const selected = (c.bonusFeats || []).some(f => f.n === name && f.a)
     || Object.entries(c.asiPicks || {}).some(([level, f]) => +level <= c.level && f?.feat === name && ["int", "wis", "cha"].some(a => f[a]));
-  return (selected || key === "Spell Sniper" ? "" : choiceHTML(c, "Feat casting ability: " + key))
-    + choiceHTML(c, "Feat spells: " + key);
+  return [...(selected || key === "Spell Sniper" ? [] : ["Feat casting ability: " + key]), "Feat spells: " + key];
+}
+function featSpellChoicesHTML(c, name) {
+  return name === "Magic Initiate" ? miHTML(c) : featSpellChoiceKeys(c, name).map(key => choiceHTML(c, key)).join("");
+}
+function characterReadiness(c) {
+  const checks = [];
+  const addChoice = (feat, key) => {
+    const rule = CHOICES[key], options = rule?.opts(c) || [];
+    if (options.length && new Set(choiceOf(c, key).filter(id => options.some(([value]) => id === value))).size < rule.n(c)) {
+      checks.push([feat + " · " + rule.label, `[data-choice="${CSS.escape(key)}"]`]);
+    }
+  };
+  if (needsSubclass(c)) checks.push(["Choose a subclass", "[data-subpick]"]);
+  const styles = fightStyleOptions(c);
+  for (let index = 0; index < fightSlots(c); index++) {
+    if (!styles.includes(c.fightStyles?.[index])) checks.push(["Choose fighting style " + (index + 1), `[data-fstyle="${index}"]`]);
+  }
+  for (const feat of activeCharacterFeats(c)) {
+    if (feat === "Magic Initiate") {
+      const { list, can, one } = miState(c);
+      if (!list) checks.push(["Magic Initiate · Choose a spell list", '[data-mi="list"]']);
+      else {
+        if (edOf(c) === "2024") addChoice(feat, "Feat casting ability: Magic Initiate");
+        if (can.length < 2) checks.push(["Magic Initiate · Choose cantrips", '[data-mi="c"]']);
+        if (!one.length) checks.push(["Magic Initiate · Choose a 1st-level spell", '[data-mi="s"]']);
+      }
+    } else for (const key of featSpellChoiceKeys(c, feat)) addChoice(feat, key);
+  }
+  return checks;
+}
+function readinessFollowUp(c) {
+  const checks = characterReadiness(c);
+  return checks.length ? `<details class="readiness-follow-up"><summary>Choices to finish on the character sheet</summary><ul class="plain">${checks.map(([label]) => `<li>${esc(label)}</li>`).join("")}</ul></details>` : "";
+}
+function readinessHTML(c) {
+  const checks = characterReadiness(c);
+  const imported = Array.isArray(c.importReview) ? c.importReview.filter(value => typeof value === "string") : [];
+  if (!checks.length && !imported.length) return "";
+  return `<section class="sec"><div class="sec-h"><h3>Character readiness</h3></div>
+    ${checks.length ? `<ul class="plain">${checks.map(([label, selector]) => `<li><button class="btn sm" type="button" data-readiness="${esc(selector)}">${esc(label)}</button></li>`).join("")}</ul>` : ""}
+    ${imported.length ? `<details><summary>Review import differences</summary><ul>${imported.map(value => `<li>${esc(value)}</li>`).join("")}</ul><button class="btn sm" type="button" data-readiness-reviewed>Mark import reviewed</button></details>` : ""}</section>`;
 }
 function miHTML(c) {
   const M = miState(c), lists = miLists(c);

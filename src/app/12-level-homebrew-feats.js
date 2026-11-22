@@ -224,11 +224,16 @@ function lvRender(focusSel) {
   const ask = !c.subclass && to >= sl, list = campaignSubclassChoices(ed, c.cls);
   const gains = onlySub ? [] : lvGains(c, to), ch = LV.chain;
   const step = ch ? ch.steps.indexOf(to) + 1 : 0, more = ch && step < ch.steps.length;
+  const asiPicks = lvPicks(c, to, lvAsiPick());
+  const preview = !more && !lvMissing().length
+    ? { ...c, ...lvBuild({ ...c, subclass: LV.pick || c.subclass }, to, asiPicks), asiPicks }
+    : null;
   const yes = more ? "Next →" : ch && ch.target > ch.start ? `⬆ Level up to ${ch.target}` : onlySub ? "Choose subclass" : `⬆ Level up to ${to}`;
   $("#lvBox").innerHTML = `<h3 id="lvTitle">${ch && ch.target > ch.start ? `Level ${esc(c.name)} up to ${ch.target}` : onlySub ? `Choose a subclass for ${esc(c.name)}` : `Level up ${esc(c.name)}`}</h3>
     ${ch && ch.steps.length > 1 ? `<p class="hint" style="margin:4px 0 0">Choice ${step} of ${ch.steps.length}. Levels with nothing to choose are applied automatically.</p>` : ""}
     ${onlySub ? "" : `<p style="margin:6px 0 4px"><span class="tag gold">Level ${c.level} → ${to} ${esc(c.cls)}</span></p><ul class="plain lv-gains">${gains.map(x => `<li>${x}</li>`).join("")}</ul>`}
     ${LV.asi ? lvAsiHTML(c, to) : ""}
+    ${preview ? readinessFollowUp(preview) : ""}
     ${ask ? `<div class="sec-h" style="margin-top:14px"><h3>Choose your subclass</h3></div>
       <p class="hint" style="margin:4px 0 0">${esc(c.cls)}s choose a subclass at level ${sl} (${ed} rules). This is required to ${onlySub ? "finish the sheet" : "level up"}.</p>
       ${searchableChoices("Search subclasses", list.map(([n, d, hb, src]) => `<div class="progression-choice"><button type="button" class="pick ${LV.pick === n ? "on" : ""}" data-lvsub="${esc(n)}" aria-pressed="${LV.pick === n}"><b>${esc(n)}</b><small>${esc(d)}</small>${src || hb ? `<small class="req">${esc(src ? dmBook(src).name : "Homebrew")}</small>` : ""}</button>${progressionButton(ed, "subclass", c.cls, n)}</div>`).join(""))}` : ""}

@@ -1360,3 +1360,13 @@ nav a[data-view=requests]{--ic:url("data:image/svg+xml,%3Csvg xmlns='http://www.
   .progression-table td,.progression-table th{padding:.45rem .3rem}
   html:has(.character-reference[open]){overflow:hidden}
 }
+
+
+.next-session { margin-bottom: 12px; }
+.next-session .row { flex-wrap: wrap; gap: 6px; }
+.next-session .row > select, .next-session .row > span:first-child { flex: 1 1 180px; min-width: 0; }
+.next-session .row > button { flex: 0 0 auto; }
+.next-session li { margin-block: 6px; }
+.compendium-entry { display: grid; align-content: start; gap: 4px; min-width: 0; }
+.compendium-entry > .btn { justify-self: start; }
+.combat-history { margin-block: 8px; }

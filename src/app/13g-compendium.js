@@ -41,9 +41,10 @@ function renderCompendiumPage() {
   if (active === next && next.disabled && !prev.disabled) prev.focus();
   const count = rows.length ? `Showing ${(start + 1).toLocaleString()}–${end.toLocaleString()} of ${rows.length.toLocaleString()} entries` : "0 matches";
   $("#compendiumCount").textContent = count + notice;
+  const canQueue = (!window.Portal?.views || Portal.views.includes("tracker")) && Store.list().length;
   $("#compendiumResults").innerHTML = rows.slice(start, end).map(({ kind, name, source, group, ed }, i) =>
-    `<button class="camp-item" type="button" data-compendium-result="${start + i}">
-      <b>${esc(name)}</b><small>${esc([kind, group, ed, source].filter(Boolean).join(" · "))}</small></button>`).join("");
+    `<div class="compendium-entry"><button class="camp-item" type="button" data-compendium-result="${start + i}">
+      <b>${esc(name)}</b><small>${esc([kind, group, ed, source].filter(Boolean).join(" · "))}</small></button>${canQueue ? `<button class="btn sm" type="button" data-compendium-queue="${start + i}" aria-label="Queue ${esc(name)} for next session">+ Next Session</button>` : ""}</div>`).join("");
 }
 
 async function compendiumSearch() {
@@ -142,7 +143,13 @@ async function compendiumSearch() {
   compendium.rows = matches;
   compendium.notice = (!references ? " · Book references unavailable" : "")
     + (getMonsterIndex && !monsterIndex && !extraMonstersReady ? " · Extra monster search unavailable" : "");
+  const queued = compendium.sessionEntry;
+  compendium.sessionEntry = null;
+  const index = queued ? matches.findIndex(row => row.kind === queued.kind && row.ed === queued.ed && row.name === queued.name && row.source === queued.source) : -1;
+  if (index >= 0) compendium.page = Math.floor(index / COMPENDIUM_PAGE_SIZE);
   renderCompendiumPage();
+  if (index >= 0 && location.hash === "#compendium") matches[index].open($(`[data-compendium-result="${index}"]`));
+  else if (queued) toast("The queued reference is unavailable in this campaign.");
 }
 $("#compendiumType").insertAdjacentHTML("beforeend", compendiumTypes.map(type => `<option value="${type}">${type}</option>`).join(""));
 $("#compendiumForm").addEventListener("submit", e => { e.preventDefault(); compendiumSearch(); });
@@ -155,7 +162,20 @@ $("#compendiumNext").addEventListener("click", () => {
   compendium.page++;
   renderCompendiumPage();
 });
-$("#compendiumResults").addEventListener("click", e => {
+$("#compendiumResults").addEventListener("click", async e => {
+  const queue = e.target.closest("[data-compendium-queue]");
+  if (queue) {
+    const row = compendium.rows[queue.dataset.compendiumQueue], campaigns = Store.list();
+    if (!row || (window.Portal?.views && !Portal.views.includes("tracker"))) return;
+    const id = campaigns.length === 1 ? campaigns[0].id
+      : await choiceBox("Add to Next Session", row.name, campaigns.map(c => [c.id, c.name]), "Queue entry");
+    const campaign = Store.get(id);
+    if (campaign) {
+      const { kind, name, ed, source } = row;
+      enqueueSession(campaign, { type: "compendium", ref: JSON.stringify([kind, name, ed, source]), kind, name, ed, source });
+    }
+    return;
+  }
   const button = e.target.closest("[data-compendium-result]");
   if (button) compendium.rows[button.dataset.compendiumResult]?.open(button);
 });

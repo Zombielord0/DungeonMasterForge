@@ -68,6 +68,71 @@ function renderTracker() {
   main.innerHTML = h;
   $$("textarea.ch-note", main).forEach(autoGrow);
 }
+const SESSION_TYPES = { encounters: "Encounter", maps: "Map", npcs: "NPC", loot: "Loot", handouts: "Handout" };
+function sessionEntries(c, type) {
+  return type === "handouts" ? journalHandouts(c) : (c[type] || []);
+}
+function sessionQueue(c) {
+  return Array.isArray(c.sessionQueue) ? c.sessionQueue.filter(x => x && typeof x.id === "string" && (x.type === "compendium" || Object.hasOwn(SESSION_TYPES, x.type))) : [];
+}
+function sessionName(entry) {
+  return entry?.name || entry?.title || entry?.item || "Untitled";
+}
+function enqueueSession(c, entry) {
+  const queue = sessionQueue(c);
+  if (queue.some(x => x.type === entry.type && x.ref === entry.ref)) { toast("Already in Next Session"); return; }
+  c.sessionQueue = [...queue, { ...entry, id: uid("queue") }];
+  Store.save(c);
+  toast("Added to Next Session");
+}
+function sessionQueueButton(type, entry) {
+  return `<button class="btn sm" type="button" data-session-add="${type}" data-id="${esc(entry.id)}" aria-label="Queue ${esc(sessionName(entry))} for next session">+ Next Session</button>`;
+}
+function nextSessionHTML(c) {
+  const queue = sessionQueue(c);
+  const options = Object.entries(SESSION_TYPES).map(([type, label]) =>
+    `<optgroup label="${label}">${sessionEntries(c, type).map(entry =>
+      `<option value="${esc(type + "|" + entry.id)}">${esc(sessionName(entry))}</option>`).join("")}</optgroup>`).join("");
+  return `<section class="card next-session"><h3>Next Session</h3>
+    <form id="nextSessionForm" class="row">
+      <select name="entry" required aria-label="Campaign entry to queue"><option value="">Choose a campaign entry…</option>${options}</select>
+      <button class="btn sm" type="submit">Add to queue</button>
+    </form>
+    ${queue.length ? `<ol class="plain">${queue.map((entry, index) => {
+      const linked = entry.type === "compendium" ? entry : sessionEntries(c, entry.type).find(x => x.id === entry.ref);
+      const title = sessionName(linked || entry);
+      return `<li><div class="row"><span><b>${esc(title)}</b> <small class="muted">${esc(entry.type === "compendium" ? entry.kind : SESSION_TYPES[entry.type])}</small></span>
+        ${linked ? `<button class="btn sm" type="button" data-session-queue="open" data-id="${esc(entry.id)}">Open</button>` : '<span class="muted">Entry removed</span>'}
+        <button class="btn sm" type="button" data-session-queue="up" data-id="${esc(entry.id)}" aria-label="Move ${esc(title)} up" ${index === 0 ? "disabled" : ""}>↑</button>
+        <button class="btn sm" type="button" data-session-queue="down" data-id="${esc(entry.id)}" aria-label="Move ${esc(title)} down" ${index === queue.length - 1 ? "disabled" : ""}>↓</button>
+        <button class="btn sm" type="button" data-session-queue="remove" data-id="${esc(entry.id)}" aria-label="Remove ${esc(title)} from queue">Remove</button>
+      </div></li>`;
+    }).join("")}</ol>` : '<p class="muted">The queue is empty.</p>'}</section>`;
+}
+function openSessionEntry(c, entry) {
+  if (entry.type === "compendium") {
+    compendium.sessionEntry = entry;
+    $("#compendiumEdition").value = entry.ed;
+    $("#compendiumType").value = entry.kind;
+    $("#compendiumQuery").value = entry.name;
+    location.hash = "compendium";
+    return;
+  }
+  const linked = sessionEntries(c, entry.type).find(x => x.id === entry.ref);
+  if (!linked) return;
+  if (entry.type === "maps") { mapOpenSaved(linked); return; }
+  if (entry.type === "npcs") {
+    worldAdopt();
+    TN.tab = npcPlaceTabs(c.npcs, linked.placeId).cur;
+  }
+  subTab = entry.type;
+  renderTracker();
+  const target = entry.type === "encounters" ? document.getElementById("enc-" + linked.id)
+    : Array.from(campMain.querySelectorAll("[data-session-add]")).find(button => button.dataset.id === linked.id)?.closest(".item, details");
+  if (target?.tagName === "DETAILS") target.open = true;
+  target?.scrollIntoView({ block: "start" });
+  target?.querySelector("input, summary, button")?.focus({ preventScroll: true });
+}
 function sessionDashboardHTML(c) {
   const recap = [...c.sessions].sort((a, b) => String(b.date || "").localeCompare(String(a.date || "")) || (+b.num || 0) - (+a.num || 0))[0];
   const encounters = (c.encounters || []).filter(e => e.status === "Active");
@@ -78,7 +143,7 @@ function sessionDashboardHTML(c) {
   const picker = (key, label, entries, selected) => `<label>${label}<select data-session-pin="${key}">
     <option value="">Choose…</option>${entries.map(x => `<option value="${esc(x.id)}" ${x === selected ? "selected" : ""}>${esc(x.name || "Untitled")}</option>`).join("")}
     </select></label>`;
-  return `<div class="session-dashboard">
+  return `${nextSessionHTML(c)}<div class="session-dashboard">
     <section class="card"><h3>Active encounters</h3>
       ${encounters.length ? encounters.map(e => `<p><b>${esc(e.name || "Encounter")}</b>${e.round ? ` · Round ${esc(e.round)}` : ""}
         <button type="button" class="btn sm" data-resume-encounter="${esc(e.id)}">Resume encounter</button></p>`).join("") : '<p class="muted">No active encounters.</p><button type="button" class="btn sm" data-sub="encounters">Open Encounters</button>'}
@@ -118,7 +183,7 @@ function renderSub(c) {
   }
   if (subTab === "maps") {
     const ms = c.maps || [];
-    return ms.length ? ms.map(m => `<div class="item"><div class="item-h"><b style="flex:1">${esc(m.name)}</b><span class="muted" style="font-size:14px">${m.kind === "image" ? "Imported map" : `${esc(m.theme)} · ${esc(m.size)}`} · Lv ${m.level}${m.fog ? " · fog saved" : ""}</span><button class="btn sm" data-openmap="${m.id}">Open</button><button class="icon-btn" data-del="maps" data-id="${m.id}" title="Remove">✕</button></div></div>`).join("")
+    return ms.length ? ms.map(m => `<div class="item"><div class="item-h"><b style="flex:1">${esc(m.name)}</b><span class="muted" style="font-size:14px">${m.kind === "image" ? "Imported map" : `${esc(m.theme)} · ${esc(m.size)}`} · Lv ${m.level}${m.fog ? " · fog saved" : ""}</span>${sessionQueueButton("maps", m)}<button class="btn sm" data-openmap="${m.id}">Open</button><button class="icon-btn" data-del="maps" data-id="${m.id}" title="Remove">✕</button></div></div>`).join("")
       : `<p class="muted">No maps yet. Generate one on the Dungeon Map tab and press “Save”. Saved maps redraw exactly the same every time.</p>`;
   }
   const L = LISTS[subTab]; let items = c[subTab], tabsHTML = "";
@@ -127,7 +192,7 @@ function renderSub(c) {
     (subTab === "loot" && HOARD.T && HOARD.T.camp === c.id ? `<div class="card hoard" style="margin:0 0 12px">${hoardHTML(HOARD.T, "tracker")}</div>` : "") +
     (items.length ? items.map(it => `<div class="item${subTab === "npcs" ? " npc-row" : ""}">` + (subTab === "npcs" ? npcPicHTML(it) + `<div class="npc-body">` : "") + (() => {
       const [first, ...rest] = L.fields; const inline = rest.filter(f => f[1] !== "textarea"), areas = rest.filter(f => f[1] === "textarea");
-      return `<div class="item-h">${fieldHTML(subTab, it, first)}${subTab === "loot" ? lootGiveHTML(c, it) : ""}<button class="icon-btn" data-del="${subTab}" data-id="${it.id}" title="Delete">✕</button></div>
+      return `<div class="item-h">${fieldHTML(subTab, it, first)}${subTab === "loot" ? lootGiveHTML(c, it) : ""}${["npcs", "loot"].includes(subTab) ? sessionQueueButton(subTab, it) : ""}<button class="icon-btn" data-del="${subTab}" data-id="${it.id}" title="Delete">✕</button></div>
         ${inline.length ? `<div class="row" style="margin-top:6px">${inline.map(f => fieldHTML(subTab, it, f)).join("")}${subTab === "npcs" ? `<select class="npc-move" data-npcplace="${esc(it.id)}" aria-label="Place for ${esc(it.name || "this NPC")}" title="Place">${wpOptionsHTML(it.placeId, "📍 Place…")}</select>` : ""}</div>` : ""}
         ${areas.map(f => fieldHTML(subTab, it, f)).join("")}`;
     })() + (subTab === "npcs" ? `</div>` : "") + `</div>`).join("") : `<p class="muted">Nothing here yet.</p>`);
@@ -640,9 +705,41 @@ campMain.addEventListener("change", ev => {
   if (id === "calClimate") cal.climate = ev.target.value; else if (id === "calSeason") cal.season = ev.target.value; else cal.day = Math.max(1, parseInt(ev.target.value) || 1);
   cal.weather = calWeather(c.id, cal.day, cal.climate, calSeason(cal)); Store.save(c); renderTracker();
 });
+campMain.addEventListener("submit", event => {
+  if (event.target.id !== "nextSessionForm") return;
+  event.preventDefault();
+  const c = curCamp(), [type, ...parts] = event.target.elements.entry.value.split("|");
+  if (!c || !Object.hasOwn(SESSION_TYPES, type)) return;
+  const entry = sessionEntries(c, type).find(x => x.id === parts.join("|"));
+  if (entry) { enqueueSession(c, { type, ref: entry.id, name: sessionName(entry) }); renderTracker(); }
+});
 campMain.addEventListener("click", async e => {
   const c = curCamp(); if (!c) return;
   const t = e.target;
+  const add = t.closest("[data-session-add]");
+  if (add && Object.hasOwn(SESSION_TYPES, add.dataset.sessionAdd)) {
+    const type = add.dataset.sessionAdd;
+    const entry = sessionEntries(c, type).find(x => x.id === add.dataset.id);
+    if (entry) enqueueSession(c, { type, ref: entry.id, name: sessionName(entry) });
+    return;
+  }
+  const queueButton = t.closest("[data-session-queue]");
+  if (queueButton) {
+    const queue = sessionQueue(c), index = queue.findIndex(x => x.id === queueButton.dataset.id);
+    if (index < 0) return;
+    const action = queueButton.dataset.sessionQueue;
+    if (action === "open") { openSessionEntry(c, queue[index]); return; }
+    if (action === "remove") queue.splice(index, 1);
+    else {
+      const other = index + (action === "up" ? -1 : 1);
+      if (other < 0 || other >= queue.length) return;
+      [queue[index], queue[other]] = [queue[other], queue[index]];
+    }
+    c.sessionQueue = queue; Store.save(c); renderTracker();
+    const moved = campMain.querySelector(`[data-session-queue="${action}"][data-id="${CSS.escape(queueButton.dataset.id)}"]:enabled`);
+    (moved || $("#nextSessionForm select"))?.focus();
+    return;
+  }
   const sb = t.closest("[data-sub]"); if (sb) { subTab = sb.dataset.sub; renderTracker(); return; }
   const resume = t.closest("[data-resume-encounter]");
   if (resume) {
@@ -1004,15 +1101,18 @@ function encCard(c, e) {
         <option value="">No map</option>${(c.maps || []).map(m => `<option value="${esc(m.id)}" ${m.id === e.mapId ? "selected" : ""}>${esc(m.name)}</option>`).join("")}
         </select></label>` : ""}
       ${(c.maps || []).some(m => m.id === e.mapId) ? `<button class="btn sm" type="button" data-openmap="${esc(e.mapId)}">Open encounter map</button>` : ""}
+      ${sessionQueueButton("encounters", e)}
       <button class="btn sm" type="button" data-ea="saveTemplate" data-eid="${esc(e.id)}">Save as template</button>
       <button class="btn sm primary" data-ea="roll" data-eid="${e.id}">🎲 Roll enemy initiative</button>
       <button class="btn sm" data-ea="next" data-eid="${e.id}" ${order.length ? "" : "disabled"}>Next turn ▶</button>
+      ${combatHistory(e).some(row => !row.undone) ? `<button class="btn sm" type="button" data-ea="undo" data-eid="${esc(e.id)}">Undo combat action</button>` : ""}
       <button class="btn sm" data-ea="reset" data-eid="${e.id}">Reset</button>
       <button class="btn sm" data-ea="tv" data-eid="${e.id}" title="Show the turn order on the player screen (TV). Monsters show as Bloodied or Down, never their HP.">${HOST.enc && HOST.enc.eid === e.id ? "📺 Off TV" : "📺 Show on TV"}</button>
       ${window.Portal?.linkedTrackerId?.() === c.id ? `<button class="btn sm" data-ea="players" data-eid="${e.id}" title="Show the turn order on your players' phones. Monsters show as Bloodied or Down, never their HP.">${playersFight(c.id, e.id) ? "📱 Off players' phones" : "📱 Show players"}</button>` : ""}
       <span class="muted" style="font-size:14px">${e.round ? `Round <b>${e.round}</b>` : "Not started"}</span>
     </div>
     ${order.length ? `<div class="init-strip">${order.map(o => `<span class="init-chip ${o.foe ? "foe" : "pc"} ${o.down ? "down" : ""} ${e.turn === o.key ? "cur" : ""}">${e.turn === o.key ? "▶ " : ""}${esc(o.name)} <b>${o.init}</b></span>`).join("")}</div>` : ""}
+    ${combatHistoryHTML(e)}
     <table class="foes"><thead><tr><th>Enemy</th><th>AC</th><th>HP</th><th>Damage / heal</th><th>Init</th><th>Conditions</th><th></th></tr></thead><tbody>
       ${e.enemies.map(m => `<tr class="${m.hp <= 0 ? "down" : ""} ${e.turn === m.id ? "cur" : ""}">
         <td><input type="text" data-ef="mname" data-eid="${e.id}" data-mid="${m.id}" value="${esc(m.name)}" aria-label="Enemy name">${m.boss ? `<div class="k">${esc(m.stat)} stat block · CR ${crLabel(m.cr)}</div>` : `<div class="k">CR ${crLabel(m.cr)}</div>`}</td>
@@ -1078,6 +1178,58 @@ function renderEncounters(c) {
   const orphans = encs.filter(e => !chIds.has(e.chId));
   if (orphans.length || !c.chapters.length) h += group(null, orphans, 0) + (c.chapters.length ? "" : `<button class="btn sm" data-ea="addEnc" data-ch="">+ Add encounter</button>`);
   return h;
+}
+const COMBAT_FIELDS = ["hp", "init", "cond"];
+const ENCOUNTER_STATE_FIELDS = ["status", "round", "turn", "pcInit"];
+function combatSnapshot(e) {
+  return {
+    state: Object.fromEntries(ENCOUNTER_STATE_FIELDS.map(key => [key, key === "pcInit" ? { ...e.pcInit } : e[key] ?? null])),
+    enemies: e.enemies.map(m => ({ id: m.id, hp: m.hp, init: m.init ?? "", cond: m.cond ?? "" }))
+  };
+}
+function combatHistory(e) {
+  return Array.isArray(e.combatHistory) ? e.combatHistory.filter(row => row && typeof row.label === "string" && Array.isArray(row.changes)) : [];
+}
+function combatRecord(e, before, label) {
+  const after = combatSnapshot(e), changes = [];
+  const compare = (old, next, keys, id) => {
+    for (const key of keys) {
+      if (JSON.stringify(old[key]) !== JSON.stringify(next[key])) changes.push({ id, key, before: old[key], after: next[key] });
+    }
+  };
+  compare(before.state, after.state, ENCOUNTER_STATE_FIELDS, null);
+  for (const old of before.enemies) {
+    const next = after.enemies.find(m => m.id === old.id);
+    if (next) compare(old, next, COMBAT_FIELDS, old.id);
+  }
+  if (changes.length) e.combatHistory = [{ label, changes }, ...combatHistory(e)].slice(0, 25);
+}
+function combatUndo(c, e) {
+  const action = combatHistory(e).find(row => !row.undone);
+  if (!action) return;
+  const snap = combatSnapshot(e);
+  const valid = action.changes.every(({ id, key, after }) => {
+    const current = id === null ? snap.state : snap.enemies.find(m => m.id === id);
+    return (id === null ? ENCOUNTER_STATE_FIELDS : COMBAT_FIELDS).includes(key) &&
+      current && JSON.stringify(current[key]) === JSON.stringify(after);
+  });
+  if (!valid) { toast("Combat changed since that action. Undo is unavailable."); return; }
+  for (const { id, key, before } of action.changes) {
+    const record = id === null ? e : e.enemies.find(m => m.id === id);
+    record[key] = key === "pcInit" ? { ...before } : before;
+  }
+  if (e.turn && !encOrder(c, e).some(row => row.key === e.turn)) e.turn = null;
+  action.undone = true;
+  toast(`Undid ${action.label}`);
+}
+const openCombatHistory = new Set();
+function combatHistoryHTML(e) {
+  const rows = combatHistory(e);
+  if (!rows.length) return "";
+  return `<details class="combat-history" data-combat-history="${esc(e.id)}" ${openCombatHistory.has(e.id) ? "open" : ""}>
+    <summary>Combat history (${rows.length})</summary>
+    <ol class="plain">${rows.map(row => `<li>${esc(row.label)}${row.undone ? ' <span class="muted">· Undone</span>' : ""}</li>`).join("")}</ol>
+  </details>`;
 }
 const encPending = new Set();
 function rerenderEnc(c, e) {
@@ -1167,6 +1319,8 @@ campMain.addEventListener("click", async ev => {
     c.encounters = c.encounters.filter(x => x !== e); Store.save(c); renderTracker(); return;
   }
   const m = e.enemies.find(x => x.id === b.dataset.mid);
+  let before = ["dmg", "heal", "roll", "next"].includes(a) ? combatSnapshot(e) : null;
+  if (a === "undo") { combatUndo(c, e); Store.save(c); rerenderEnc(c, e); return; }
   if (a === "dmg" || a === "heal") {
     const inp = document.querySelector(`[data-amt="${b.dataset.mid}"]`); const v = Math.abs(parseInt(inp && inp.value) || 0); if (!m || !v) return;
     m.hp = a === "dmg" ? Math.max(0, m.hp - v) : Math.min(m.max, m.hp + v);
@@ -1195,7 +1349,15 @@ campMain.addEventListener("click", async ev => {
     if (e.status === "Planned") e.status = "Active";
   } else if (a === "reset") {
     if (!(await confirmBox("Reset encounter?", "Restore all enemies to full HP and clear initiative and conditions?", "Reset"))) return;
+    before = combatSnapshot(e);
     e.enemies.forEach(x => { x.hp = x.max; x.init = ""; x.cond = ""; }); e.round = 0; e.turn = null; e.pcInit = {}; e.status = "Planned";
+  }
+  if (before) {
+    const hpBefore = before.enemies.find(x => x.id === m?.id)?.hp;
+    const label = a === "dmg" ? `${m.name} took ${hpBefore - m.hp} damage`
+      : a === "heal" ? `${m.name} regained ${m.hp - hpBefore} HP`
+      : a === "roll" ? "Rolled enemy initiative" : a === "next" ? `Advanced turn · Round ${e.round}` : "Reset encounter";
+    combatRecord(e, before, label);
   }
   Store.save(c); rerenderEnc(c, e);
 });
@@ -1203,6 +1365,9 @@ function onEncField(ev, commit) {
   const t = ev.target; if (!t.dataset || !t.dataset.ef) return;
   const c = curCamp(); if (!c) return; const e = findEnc(c, t.dataset.eid); if (!e) return;
   const f = t.dataset.ef, m = t.dataset.mid ? e.enemies.find(x => x.id === t.dataset.mid) : null;
+  const tracked = ["status", "pcinit", "init", "hp", "cond"].includes(f);
+  if (tracked && !commit) return;
+  const before = tracked ? combatSnapshot(e) : null;
   if (f === "name" || f === "notes") e[f] = t.value;
   else if (f === "status") e.status = t.value;
   else if (f === "map") e.mapId = (c.maps || []).find(m => m.id === t.value)?.id || "";
@@ -1214,12 +1379,20 @@ function onEncField(ev, commit) {
     else if (f === "init") m.init = t.value === "" ? "" : +t.value;
     else if (f === "hp") m.hp = clamp(parseInt(t.value) || 0, 0, 9999);
   }
+  if (before) {
+    const hero = (c.party || []).find(p => p.id === t.dataset.pid);
+    const label = f === "status" ? `Changed encounter status to ${e.status}`
+      : f === "pcinit" ? `Changed initiative for ${hero?.name || "hero"}`
+      : f === "init" ? `Changed initiative for ${m?.name || "enemy"}`
+      : f === "hp" ? `Set ${m?.name || "enemy"} HP to ${m?.hp}` : `Changed conditions for ${m?.name || "enemy"}`;
+    combatRecord(e, before, label);
+  }
   Store.save(c);
-  if (commit && ["status", "level", "map", "pcinit", "init", "hp"].includes(f)) rerenderEnc(c, e);
+  if (commit && (tracked || f === "level" || f === "map")) rerenderEnc(c, e);
 }
 campMain.addEventListener("input", ev => onEncField(ev, false));
 campMain.addEventListener("change", ev => onEncField(ev, true));
-campMain.addEventListener("toggle", ev => { const d = ev.target; if (d.dataset && d.dataset.guide) { d.open ? openGuides.add(d.dataset.guide) : openGuides.delete(d.dataset.guide); } }, true);
+campMain.addEventListener("toggle", ev => { const d = ev.target; if (d.dataset?.combatHistory) d.open ? openCombatHistory.add(d.dataset.combatHistory) : openCombatHistory.delete(d.dataset.combatHistory); if (d.dataset && d.dataset.guide) { d.open ? openGuides.add(d.dataset.guide) : openGuides.delete(d.dataset.guide); } }, true);
 
 /* ======================= Shared with players (signed-in campaigns) =======================
    The DM's browser publishes two things the whole campaign can read (src/portal.js, publishShared):

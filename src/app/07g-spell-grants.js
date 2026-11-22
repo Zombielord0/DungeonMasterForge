@@ -387,9 +387,8 @@ function syncGrantedSpells(c) {
     if (key === "Magic Initiate") {
       const { list, can, one } = miState(c);
       if (!list) continue;
-      const names = (level, selected, count) => selected.filter(n => miSpellOptions(c, list, level).some(s => s.n === n)).slice(0, count);
       const ability = miCastingAbility(c, list);
-      add({ 1: [...names(0, can, 2), ...names(1, one, 1)] }, 1, { ...source, feature: list, ab: ability,
+      add({ 1: [...can.slice(0, 2), ...one.slice(0, 1)] }, 1, { ...source, feature: list, ab: ability,
         ...(ed === "2014" ? { known: true, slotClass: list } : {}),
       }, spell => spell.l ? { free: "featMagicInitiate", uses: 1 } : {});
       continue;

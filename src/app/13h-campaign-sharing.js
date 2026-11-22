@@ -107,7 +107,7 @@ function campaignHandoutsHTML(c) {
     ${rows.map(x => `<details class="lore-card"><summary>${esc(x.title)}</summary>
       ${journalPictureOK(x.picture) || npcUrlOk(x.url) ? `<img class="journal-handout-picture" src="${esc(journalPictureOK(x.picture) ? x.picture : x.url)}" alt="" loading="lazy" referrerpolicy="no-referrer">` : ""}
       ${mdHTML(String(x.notes || ""))}
-      <div class="item-h"><span>${x.revealed ? "Revealed" : "Hidden"}</span>
+      <div class="item-h"><span>${x.revealed ? "Revealed" : "Hidden"}</span>${sessionQueueButton("handouts", x)}
       <button class="btn sm" data-journal-reveal="${esc(x.id)}">${x.revealed ? "Hide" : "Reveal"}</button>
       <button class="btn sm danger" data-journal-delete="${esc(x.id)}">Delete</button></div></details>`).join("")}
     ${rows.length >= JOURNAL_HANDOUT_MAX ? "<p>Delete a handout to add another.</p>" : `<form id="journalHandoutForm">

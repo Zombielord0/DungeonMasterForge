@@ -2,6 +2,11 @@
    When a change ships, add an entry to the top of NEWS with a new id, in plain words for players and DMs. */
 
 const NEWS = [
+  { id: "2026-11-22-session-workflows", date: "2026-11-22", title: "Prepare your character and next session", go: "tracker", items: [
+    "Character sheets show missing spell, subclass, and fighting style choices and flag differences from imported files.",
+    "Queue campaign entries and Compendium references in Next Session, then put them in the order you plan to use them.",
+    "Combat history records turn, initiative, condition, and hit point changes. Undo the last recorded change from the encounter."
+  ] },
   { id: "2026-11-21-feats-and-parchment", date: "2026-11-21", title: "Feat spells and parchment previews", go: "roster", items: [
     "Feat benefits now appear under Abilities. Supported feat spells appear under Spells with their source and tracked free casts.",
     "Adventure and monster previews use classic handbook-style parchment, with weathered edges and blue ink headings."

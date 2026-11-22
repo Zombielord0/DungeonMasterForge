@@ -96,6 +96,7 @@ function rosterHTML(c) {
     <p class="hint">Changes save automatically. Level up, or changing the level, rebuilds hit points, proficiency, features, spell slots and ability scores for the new level; your notes, inventory and spells stay.</p>
     <div class="pc-actions"><select class="campSelect" id="rcCamp" aria-label="Campaign"></select><button class="btn primary sm" type="button" data-ra="camp">+ Add to campaign party</button></div>
   </div>
+  ${readinessHTML(c)}
   <div class="card"><div class="sec-h"><h3>Ability Scores & Vitals</h3><span class="sp"></span><div class="rest-btns"><button class="btn primary" type="button" data-rest="short" title="One hour: spend hit dice to heal and regain short-rest abilities">☾ Short rest</button><button class="btn primary" type="button" data-rest="long" title="Eight hours: full hit points, spell slots and abilities, and hit dice back">✦ Long rest</button></div></div>
     <p class="hint" style="margin:-4px 0 10px">Edit a score and everything that uses it updates.</p>
     <div class="abil">${AB.map(a => `<div class="ab"><div class="n">${AB_NAME[a]}</div><button type="button" class="m roll-b" data-roll="check:${a}" title="Roll a ${AB_FULL[a]} check">${rollMark(c, "check", a)}${sgn(c.mods[a])}</button><input type="number" min="1" max="30" class="ab-in" data-rs="${a}" value="${c.scores[a]}" aria-label="${AB_FULL[a]} score"><button type="button" class="sv roll-b ${c.saves.includes(a) ? "p" : ""}" data-roll="save:${a}" title="Roll a ${AB_FULL[a]} saving throw">save ${sgn(sv(a))}${c.saves.includes(a) ? " ●" : ""}${rollMark(c, "save", a)}</button></div>`).join("")}</div>
@@ -175,6 +176,18 @@ spFiltersSync();
   const resSet = (c, key, left) => { const r = pcResources(c).find(x => x.key === key); if (!r || r.max === Infinity) return; c.used = c.used || {}; c.used[key] = r.max - clamp(left, 0, r.max); pcPersist(); renderRosterMain(); };
   main.addEventListener("click", e => {
     const c = rosterCur(); if (!c) return;
+    const review = e.target.closest("[data-readiness], [data-readiness-reviewed]");
+    if (review) {
+      if (review.hasAttribute("data-readiness-reviewed")) {
+        delete c.importReview; pcPersist(); renderRosterMain();
+      } else {
+        const target = main.querySelector(review.dataset.readiness);
+        const fold = target?.closest(".folded");
+        fold?.querySelector(".fold-btn")?.click();
+        target?.focus();
+      }
+      return;
+    }
     const cr = e.target.closest("[data-choicerm]");
     if (cr) { const [k, ...id] = cr.dataset.choicerm.split("|"); c.choices = { ...(c.choices || {}) }; c.choices[k] = choiceOf(c, k).filter(x => x !== id.join("|")); syncGrantedSpells(c); pcRecompute(c); pcPersist(); renderRosterMain(); return; }
     const mr = e.target.closest("[data-mirm]");
