@@ -92,6 +92,11 @@ const check = (name, ok, extra = "") => { console.log((ok ? "PASS " : "FAIL ") +
     await pl.goto(URL + "#compendium");
     await pl.waitForFunction(() => document.querySelector("#compendiumEdition").disabled);
     check("the player gets the campaign's edition and source filters", await pl.evaluate(() => currentSourceRules()?.edition === "2014" && !currentSourceRules().books.length && !currentSourceRules().homebrew));
+    await pl.waitForFunction(() => compendium.rows[0]?.ed === "2014");
+    check("the player can browse without typing and sees only allowed entries", await pl.evaluate(() =>
+      document.getElementById("compendiumQuery").value === ""
+      && document.querySelector('#compendiumType option[value="Monster"]').hidden
+      && compendium.rows.every(row => row.ed === "2014" && row.kind !== "Monster" && row.source === "SRD 5.1")));
     await pl.goto(URL + "#roster");
     check("the player's character builder uses the campaign edition", await pl.locator('input[name="pcEd"][value="2014"]').isChecked() && await pl.locator('input[name="pcEd"][value="2024"]').isDisabled());
     await dm.locator("details.lore-card summary", { hasText: "A sealed letter" }).click();

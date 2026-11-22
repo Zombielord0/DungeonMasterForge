@@ -119,24 +119,62 @@ const server = http.createServer((req, res) => {
 
   check("the extra catalog has stayed off the startup path", !hits[extraMonsters]);
   await p.goto(URL + "#compendium");
-  await p.locator("#compendiumType").selectOption("Spell");
-  await p.locator("#compendiumQuery").fill("Fireball");
   const results = p.locator("#compendiumResults");
+  const query = p.locator("#compendiumQuery");
+  const count = p.locator("#compendiumCount");
+  await results.getByRole("button").first().waitFor();
+  const firstPage = await results.getByRole("button").allTextContents();
+  check("the Compendium lists its first page before typing", firstPage.length === 60
+    && await query.inputValue() === "" && /^Showing 1–60 of /.test(await count.textContent()));
+  await p.getByRole("button", { name: "Next page" }).click();
+  check("Compendium can browse beyond the first page", /^Showing 61–120 of /.test(await count.textContent())
+    && (await results.getByRole("button").allTextContents())[0] !== firstPage[0]);
+  await p.getByRole("button", { name: "Previous page" }).click();
+  check("returning to the first page restores its entries", (await results.getByRole("button").allTextContents())[0] === firstPage[0]);
+  await p.locator("#compendiumType").selectOption("Spell");
+  await results.getByRole("button").first().waitFor();
+  check("type filters work before typing", (await results.locator("small").allTextContents()).every(label => label.startsWith("Spell")));
+  await p.getByRole("button", { name: "Next page" }).click();
+  await query.fill("fireb");
+  await results.getByRole("button", { name: /Fireball.*Spell/ }).first().waitFor();
+  check("a partial name searches all pages and resets pagination", /^Showing 1–/.test(await count.textContent()));
+  await p.locator("#compendiumType").selectOption("");
+  await query.fill("Fireball");
   await results.getByRole("button", { name: /Fireball.*Spell/ }).first().click();
   check("compendium opens spell details", await p.locator("#characterReference").getByText("Casting time").isVisible());
+  const monsterIndex = html.match(/name="forge-monster-index" content="([^"]+)"/)?.[1];
+  const legacyReferences = html.match(/name="forge-book-references-2014" content="([^"]+)"/)?.[1];
+  check("an all-types spell search uses the small monster index", !!hits[monsterIndex] && !hits[extraMonsters]);
+  check("a revised-edition search does not fetch 2014 references", !hits[legacyReferences]);
   await p.locator("#characterReference").getByRole("button", { name: "Close" }).click();
   await p.locator("#compendiumEdition").selectOption("2014");
   await results.getByRole("button", { name: /Fireball.*2014/ }).first().waitFor();
-  check("compendium respects the edition filter", !/2024/.test(await results.innerText()));
+  check("compendium respects the edition filter", !/2024/.test(await results.innerText()) && !!hits[legacyReferences]);
+  await query.clear();
+  await results.getByRole("button").first().waitFor();
+  check("clearing the search restores the selected edition's catalog", /^Showing 1–60 of /.test(await count.textContent())
+    && (await results.locator("small").allTextContents()).every(label => label.includes("2014")));
+
+  await query.fill("abi dalz");
+  await results.getByRole("button", { name: /Abi-Dalzim/ }).first().click();
+  check("punctuation-insensitive search opens the book reference", await p.locator("#characterReference").getByText(/Reference only/).isVisible());
+  await p.locator("#characterReference").getByRole("button", { name: "Close" }).click();
   await p.locator("#compendiumQuery").fill("Test campaign spell");
   await p.evaluate(() => hbSet([{ id: "compendium-test", kind: "spell", name: "Test campaign spell", desc: "A campaign spell.", ed: "2014" }]));
+  await results.getByRole("button", { name: /Test campaign spell/ }).waitFor();
   check("compendium updates when campaign homebrew arrives", /Homebrew/.test(await results.innerText()));
   await p.evaluate(() => hbSet([]));
+  await p.waitForFunction(() => $("#compendiumCount").textContent === "0 matches");
   check("compendium drops removed campaign homebrew", !/Test campaign spell/.test(await results.innerText()));
   await p.locator("#compendiumType").selectOption("Monster");
-  await p.locator("#compendiumQuery").fill("Tome of Beasts 3");
-  await p.waitForFunction(() => extraMonstersReady && $("#compendiumResults").textContent.includes("Tome of Beasts 3"));
-  check("search loads the extra monster catalog once", hits[extraMonsters] === 1);
+  await query.fill("tome bea 3");
+  const monster = results.getByRole("button", { name: /Tome of Beasts 3/ }).first();
+  await monster.waitFor();
+  check("search lists extra monsters before loading their stat blocks", !hits[extraMonsters]);
+  await monster.click();
+  await p.locator("#characterReference[open]").waitFor();
+  check("opening an extra monster loads the full catalog once", hits[extraMonsters] === 1);
+  await p.locator("#characterReference").getByRole("button", { name: "Close" }).click();
   await p.waitForFunction(url => caches.match(url).then(Boolean), extraMonsters);
 
   if (picUrl) await p.evaluate(u => fetch(u).then(r => r.blob()), picUrl);

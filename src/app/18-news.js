@@ -2,6 +2,10 @@
    When a change ships, add an entry to the top of NEWS with a new id, in plain words for players and DMs. */
 
 const NEWS = [
+  { id: "2026-11-21-browse-compendium", date: "2026-11-21", title: "Browse the Compendium", go: "compendium", items: [
+    "Open the Compendium to see entries right away. Use Edition, Type, or the page buttons to browse.",
+    "Type part of a name or source to narrow the list. Clear the search to browse again."
+  ] },
   { id: "2026-11-21-matching-search-fields", date: "2026-11-21", title: "Matching search fields", go: "compendium", items: [
     "Search boxes across the Forge use the same dark style, including popups and fields filled by the browser."
   ] },
