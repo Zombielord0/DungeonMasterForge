@@ -32,6 +32,7 @@ const { chromium } = require("playwright");
     await page.selectOption("#pcClass", "Fighter");
     const dialog = page.locator("#characterReference");
     const rows = dialog.locator("tbody tr");
+    const next = dialog.getByRole("button", { name: /^Next/ });
     assert.equal(await rows.count(), 20);
     assert.match(await rows.nth(1).textContent(), /Tactical Mind/);
     await dialog.locator("select").selectOption("Champion");
@@ -50,7 +51,8 @@ const { chromium } = require("playwright");
     await dialog.locator("select").selectOption("Drow");
     assert.equal(await page.locator("#pcAnc").inputValue(), "Drow");
     assert.match(await rows.nth(2).textContent(), /Faerie Fire/);
-    await dialog.getByRole("button", { name: "Close" }).click();
+    await next.click();
+    assert.equal(await page.evaluate(() => document.activeElement.id), "pcClass");
 
     await page.evaluate(() => hbSet([
       ...HB.list,
@@ -77,26 +79,31 @@ const { chromium } = require("playwright");
     }), true);
 
     await page.evaluate(() => { CB.ed = "2014"; cbStart(); });
+    assert.equal(await page.evaluate(() => {
+      const pickerSearch = getComputedStyle(document.querySelector("[data-choice-query]"));
+      const spellSearch = getComputedStyle(document.querySelector("#spQ"));
+      return ["backgroundImage", "borderRadius", "boxShadow"].every(key => pickerSearch[key] === spellSearch[key]) &&
+        pickerSearch.backgroundImage !== "none";
+    }), true);
     await page.getByLabel("Search races").fill("no such species");
     assert.equal(await page.getByText("No matching choices.").isVisible(), true);
     await page.getByLabel("Search races").fill("alseid tome");
     assert.equal(await page.locator("[data-cbrace]:visible").count(), 1);
     await page.locator('[data-cbrace="Alseid"]').click();
     assert.match(await dialog.textContent(), /Alseid.*Tome of Heroes/s);
-    await dialog.getByRole("button", { name: "Close" }).click();
-    await page.locator("[data-cbnext]").click();
+    await next.click();
     await page.getByLabel("Search classes").fill("druid");
     assert.equal(await page.locator("[data-cbcls]:visible").count(), 1);
     await page.locator('[data-cbcls="Druid"]').click();
     await dialog.locator("select").selectOption("Circle of Bees");
     assert.match(await rows.nth(1).textContent(), /Bee Bond/);
-    await dialog.getByRole("button", { name: "Close" }).click();
-    await page.locator("[data-cbnext]").click();
+    await next.click();
     await page.getByLabel("Search backgrounds").fill("court servant");
     assert.equal(await page.locator("[data-cbbg]:visible").count(), 1);
     await page.locator('[data-cbbg="Court Servant"]').click();
     assert.match(await dialog.textContent(), /Court Servant.*Tome of Heroes.*Insight/s);
-    await dialog.getByRole("button", { name: "Close" }).click();
+    await next.click();
+    assert.match(await page.locator("#pcOut [aria-current=step]").textContent(), /Abilities/);
     await page.locator("[data-cbquit]").click();
 
     await page.evaluate(() => {
@@ -139,6 +146,7 @@ const { chromium } = require("playwright");
     await dialog.locator("select").selectOption("Champion");
     assert.match(await rows.nth(2).textContent(), /Improved Critical/);
     assert.equal(await page.evaluate(() => rosterCur().subclass), null);
+    assert.equal(await next.isVisible(), false);
     await dialog.getByRole("button", { name: "Close" }).click();
     await page.locator('#sec-gear [data-item-details="test-sword"]').click();
     assert.match(await dialog.textContent(), /bonus to attack rolls and damage rolls/);
@@ -337,14 +345,14 @@ const { chromium } = require("playwright");
       });
       const dk = pcEnsure(generateCharacter({ seed: "DK", ed: "2024", cls: "Death Knight", subclass: "Oath of the Ebon Blade", level: 17 }));
       dk.choices = { Runeforging: ["Blood"] };
-      syncBookSpells(dk);
+      syncGrantedSpells(dk);
       const blood = dk.prepared.some(x => x.n === "Bonestorm" && x.bookGrant);
       dk.choices.Runeforging = ["Frost"];
-      syncBookSpells(dk);
+      syncGrantedSpells(dk);
       const frost = dk.prepared.some(x => x.n === "Chains of Ice") && !dk.prepared.some(x => x.n === "Bonestorm");
       const dh = pcEnsure(generateCharacter({ seed: "DH", ed: "2024", cls: "Demon Hunter", subclass: "Demon Hunter", level: 5 }));
       dh.choices = { "Demon Hunter specialization": ["Havoc"] };
-      syncBookSpells(dh);
+      syncGrantedSpells(dh);
       const pool = pcSpellPool(dh, "2024");
       const eye = spellPlan(spellOf("2024", "Eye Beam"));
       castDialog(dk, "2024", "Rune Strike");
@@ -365,6 +373,179 @@ const { chromium } = require("playwright");
     assert.match(await page.locator("#actModal").textContent(), /2d8 Necrotic/);
     await page.getByRole("button", { name: "Roll 2d8", exact: true }).click();
     assert.match(await page.locator("[data-spell-roll]").textContent(), /=/);
+    await page.evaluate(() => actClose());
+    await page.goto(`http://127.0.0.1:${server.address().port}/#roster`);
+    await page.waitForSelector("#view-roster.active");
+    await page.evaluate(() => {
+      const c = pcEnsure(generateCharacter({ seed: "NEXT", ed: "2024", cls: "Fighter", level: 2 }));
+      PCS.roster = [c];
+      RC.id = c.id;
+      renderRosterTab();
+    });
+    await page.locator("#rosterMain [data-lvup]").click();
+    await page.locator('#lvModal [data-progression-option="Champion"]').click();
+    await next.click();
+    assert.equal(await page.evaluate(() => rosterCur().subclass), "Champion");
+    assert.equal(await page.evaluate(() => rosterCur().level), 3);
+    const granted = await page.evaluate(() => {
+      const c = pcEnsure(generateCharacter({ seed: "GRANTS", ed: "2024", cls: "Druid", level: 1, race: "Gnome", sub: "Forest Gnome" }));
+      c.prepared.push({ n: "Speak with Animals", ed: "2024", l: 1 });
+      syncGrantedSpells(c);
+      const speak = spellOf("2024", "Speak with Animals");
+      const sources = spellPreparationSources(c, speak.n);
+      const resource = freeSpellResources(c, speak, "2024", pcResources(c)).find(r => r.key.startsWith("speciesSpell:"));
+      c.choices = { "Species Spellcasting": ["Charisma"] };
+      const caster = spellCaster(c, speak, resource.key);
+      const manualLimit = manualPreparedSpells(c).length;
+      togglePrep(c, speak, "2024");
+      const old = pcEnsure(generateCharacter({ seed: "GRANTS14", ed: "2014", cls: "Cleric", level: 1, subclass: "Life Domain" }));
+      const sub = pcEnsure(generateCharacter({ seed: "GRANTSUB", ed: "2024", cls: "Cleric", level: 3, subclass: "Life Domain" }));
+      const subclassGrant = spellPreparationSources(sub, "Bless")[0]?.name;
+      pcLevelTo(sub, 2);
+      pcEnsure(sub);
+
+      PCS.roster = [c];
+      RC.id = c.id;
+      renderRosterTab();
+      return { sources, uses: resource.max, ab: caster.ab, manualLimit, staysPrepared: isPrep(c, speak.n, "2024"),
+        old: spellPreparationSources(old, "Cure Wounds")[0]?.name,
+        subclassGrant, losesGrant: !isPrep(sub, "Bless", "2024") };
+    });
+    assert.deepEqual(granted.sources.map(s => s.kind), ["class", "species"]);
+    assert.equal(granted.uses, 2);
+    assert.equal(granted.ab, "cha");
+    assert.equal(granted.manualLimit, 0);
+    assert.equal(granted.staysPrepared, true);
+    assert.equal(granted.old, "Life Domain");
+    assert.equal(granted.subclassGrant, "Life Domain");
+    assert.equal(granted.losesGrant, true);
+    const speakChip = page.locator('#rcPrepared .prep-chip:has([data-spell="2024|Speak with Animals"])');
+    assert.equal(await speakChip.count(), 1);
+    assert.match(await speakChip.textContent(), /Always prepared.*Druidic.*Forest Gnome/s);
+    assert.equal(await speakChip.locator("[data-unprep]").count(), 0);
+    await speakChip.getByRole("button", { name: /^Speak with Animals/ }).click();
+    assert.match(await page.locator("#actModal").textContent(), /Always prepared.*Forest Gnome/s);
+    await page.locator('#actModal [data-castlv^="speciesSpell:"]').click();
+    await page.locator("#actModal [data-castgo]").click();
+    assert.equal(await page.evaluate(() => Object.entries(rosterCur().used).find(([key]) => key.startsWith("speciesSpell:"))?.[1]), 1);
+    const example = await page.evaluate(() => {
+      actClose();
+      const legacy = pcEnsure(generateCharacter({ seed: "LEGACY", ed: "2014", cls: "Cleric", level: 3, subclass: "Light Domain", race: "Tiefling" }));
+      const rebuke = spellOf("2014", "Hellish Rebuke");
+      const use = castOpts(legacy, rebuke);
+      const c = pcEnsure(generateCharacter({ seed: "LIGHT", ed: "2024", cls: "Cleric", level: 5, subclass: "Light Domain", race: "Tiefling", sub: "Infernal" }));
+      PCS.roster = [c]; RC.id = c.id;
+      renderRosterTab();
+      c.inv.push({ id: "untrained-plate", n: "Plate Armor", qty: 1, eq: true });
+      renderRosterTab();
+      return {
+        light: spellPreparationSources(legacy, "Burning Hands")[0]?.name,
+        innate: spellPreparationSources(legacy, rebuke.n)[0]?.innate,
+        innateOnly: use.length === 1 && use[0][0].startsWith("speciesSpell:2014:"),
+        castLevel: castSlotLevel(legacy, rebuke, use[0][0]),
+      };
+    });
+    assert.deepEqual(example, { light: "Light Domain", innate: true, innateOnly: true, castLevel: 2 });
+    const spellChip = name => page.locator(`#rcPrepared .prep-chip:has([data-spell="2024|${name}"])`);
+    for (const name of ["Burning Hands", "Faerie Fire", "Scorching Ray", "See Invisibility", "Daylight", "Fireball"]) {
+      assert.match(await spellChip(name).textContent(), /Always prepared.*Subclass · Light Domain/s);
+    }
+    for (const name of ["Hellish Rebuke", "Darkness"]) {
+      assert.match(await spellChip(name).textContent(), /Always prepared.*Species · Tiefling \(Infernal\)/s);
+    }
+    assert.match(await spellChip("Fire Bolt").textContent(), /Granted cantrip.*Tiefling/);
+    const armorWarning = page.locator("#rcArmorCastingWarning");
+    const rollMarks = page.locator('#rosterMain [data-roll] .dis[title*="armor you aren"]');
+    assert.equal(await armorWarning.isVisible(), true);
+    assert.ok(await rollMarks.count() > 0);
+    await spellChip("Hellish Rebuke").getByRole("button").click();
+    assert.match(await page.locator("#actModal.open").textContent(), /can't cast spells while wearing armor/);
+    assert.equal(await page.locator("#actModal [data-castgo]").count(), 0);
+    await page.locator("#actModal.open [data-actclose]").click();
+
+    const quantity = page.locator('[data-iid="untrained-plate"][data-rinv="qty"]');
+    const equip = page.locator('[data-iid="untrained-plate"][data-rinv="eq"]');
+    await quantity.fill("0");
+    assert.equal(await armorWarning.isVisible(), false);
+    assert.equal(await rollMarks.count(), 0);
+    await quantity.fill("1");
+    assert.equal(await armorWarning.isVisible(), true);
+    await equip.uncheck();
+    assert.equal(await armorWarning.isVisible(), false);
+    assert.equal(await rollMarks.count(), 0);
+    await equip.check();
+    await page.locator('[data-rdel="untrained-plate"]').click();
+    assert.equal(await armorWarning.isVisible(), false);
+    assert.equal(await rollMarks.count(), 0);
+
+    await spellChip("Hellish Rebuke").getByRole("button").click();
+    assert.match(await page.locator('#actModal [data-castlv^="speciesSpell:"]').textContent(), /Infernal.*1 left per long rest/s);
+    assert.equal(await page.locator("#actModal [data-castgo]").isEnabled(), true);
+    const expandedGrants = await page.evaluate(() => {
+      actClose();
+      const make = (ed, cls, subclass, level, race = "Human", sub = "", choices = {}) => {
+        const c = pcEnsure(generateCharacter({ seed: "SPELL-AUDIT", ed, cls, subclass, level, race, sub }));
+        c.choices = choices;
+        syncGrantedSpells(c);
+        return c;
+      };
+      const spellsFrom = (c, kind) => c.prepared.filter(p => p.sources?.some(s => s.kind === kind)).map(p => p.n);
+      const land = make("2014", "Druid", "Circle of the Land", 5, "Elf", "Drow", { "Circle Spells": ["Forest"] });
+      const drow = spellOf("2014", "Faerie Fire");
+      const drowResource = freeSpellResources(land, drow, "2014", pcResources(land))[0];
+      const grantBeforeSwap = spellsFrom(land, "subclass");
+      land.choices["Circle Spells"] = ["Arctic"];
+      syncGrantedSpells(land);
+      const gnome = make("2014", "Fighter", "Champion", 1, "Gnome", "Forest Gnome");
+      const highElf = make("2014", "Fighter", "", 1, "Elf", "High Elf", { "High Elf Cantrip": ["Mage Hand"] });
+      const rimekin = make("2024", "Fighter", "", 5, "Rimekin");
+      const draenei = make("2024", "Fighter", "", 5, "Draenei", "Lightforged");
+      const reanimator = make("2024", "Artificer", "Reanimator", 5);
+      const death = make("2014", "Cleric", "Death Domain", 5);
+      const oathbreaker = make("2014", "Paladin", "Oathbreaker", 3);
+      const ranger = make("2014", "Ranger", "Gloom Stalker", 5);
+      const wizard = make("2024", "Wizard", "", 20, "Human", "", {
+        "Spell Mastery (1st level)": ["Magic Missile"], "Spell Mastery (2nd level)": ["Misty Step"],
+        "Signature Spells": ["Fireball", "Fly"],
+      });
+      const mastery = freeSpellResources(wizard, spellOf("2024", "Magic Missile"), "2024", pcResources(wizard))[0];
+      const signature = freeSpellResources(wizard, spellOf("2024", "Fireball"), "2024", pcResources(wizard))[0];
+      wizard.used = { [signature.key]: 1 };
+      pcRest(wizard, "short");
+      const legacy = spellOf("2014", "Grasping Vine");
+      PCS.roster = [wizard]; RC.id = wizard.id;
+      renderRosterTab();
+      return {
+        grantBeforeSwap, grantAfterSwap: spellsFrom(land, "subclass"), drowUses: drowResource.max,
+        drowAbility: spellCaster(land, drow, drowResource.key).ab,
+        gnome: spellsFrom(gnome, "species"), highElf: spellsFrom(highElf, "species"),
+        rimekin: spellsFrom(rimekin, "species"), draenei: spellsFrom(draenei, "species"),
+        reanimator: spellsFrom(reanimator, "subclass"), artificer: spellsFrom(reanimator, "class"),
+        death: spellsFrom(death, "subclass"), oathbreaker: spellsFrom(oathbreaker, "subclass"),
+        ranger: spellPreparationSources(ranger, "Rope Trick")[0]?.known,
+        mastery: mastery.max === Infinity, signature: resLeft(wizard, signature),
+        invalidMastery: isPrep(wizard, "Misty Step", "2024"), legacy: [legacy.src, legacy.sv]
+      };
+    });
+    assert.deepEqual(expandedGrants.grantBeforeSwap, ["Barkskin", "Spider Climb", "Call Lightning", "Plant Growth"]);
+    assert.deepEqual(expandedGrants.grantAfterSwap, ["Hold Person", "Spike Growth", "Sleet Storm", "Slow"]);
+    assert.equal(expandedGrants.drowUses, 1);
+    assert.equal(expandedGrants.drowAbility, "cha");
+    assert.deepEqual(expandedGrants.gnome, ["Minor Illusion"]);
+    assert.deepEqual(expandedGrants.highElf, ["Mage Hand"]);
+    assert.deepEqual(expandedGrants.rimekin, ["Ray of Frost", "Ice Knife", "Flame Blade"]);
+    assert.deepEqual(expandedGrants.draenei, ["Sacred Flame", "Guiding Bolt", "Aid"]);
+    assert.ok(expandedGrants.reanimator.includes("Enhance Ability"));
+    assert.deepEqual(expandedGrants.artificer, ["Mending"]);
+    assert.ok(expandedGrants.death.includes("Vampiric Touch"));
+    assert.deepEqual(expandedGrants.oathbreaker, ["Hellish Rebuke", "Inflict Wounds"]);
+    assert.equal(expandedGrants.ranger, true);
+    assert.equal(expandedGrants.mastery, true);
+    assert.equal(expandedGrants.signature, 1);
+    assert.equal(expandedGrants.invalidMastery, false);
+    assert.deepEqual(expandedGrants.legacy, ["phb-2014", "DEX"]);
+    await page.locator('[data-choice="Spell Mastery (2nd level)"]').selectOption("Scorching Ray");
+    assert.match(await spellChip("Scorching Ray").textContent(), /Always prepared.*Spell Mastery/s);
     assert.deepEqual(errors, []);
     console.log("PASS edition-aware progression, expansion subclass choices, item stats and attunement");
   } finally {

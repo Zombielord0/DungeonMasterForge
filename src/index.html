@@ -624,9 +624,11 @@ if (location.protocol !== "file:" && localStorage.getItem("dmforge.offline") !==
 <section class="view" id="view-roster">
   <div class="layout">
     <div class="card side" id="pcSide">
-      <div class="sec-h"><h3>Your characters</h3></div>
-      <div id="rosterList"></div>
-      <details class="forge-box" id="forgeBox">
+      <details id="rosterBox" name="character-tools" open>
+        <summary>Your characters</summary>
+        <div id="rosterList"></div>
+      </details>
+      <details class="forge-box" id="forgeBox" name="character-tools">
         <summary class="btn wide">⚒ Forge a new character</summary>
         <form id="pcForm" autocomplete="off">
           <div class="field"><label>Creation mode</label>

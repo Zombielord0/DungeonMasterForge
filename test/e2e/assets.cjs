@@ -29,10 +29,13 @@ const server = http.createServer((req, res) => {
   check("the page loads five fingerprinted files (data, code, styling)", files.length === 5, files.join(", "));
   const extraMonsters = html.match(/name="forge-extra-monsters" content="([^"]+)"/)?.[1];
   check("the extra monster catalog is lazy", !!extraMonsters && !files.includes(extraMonsters) && !sw.includes(extraMonsters));
+  const { legacySpells } = JSON.parse(fs.readFileSync(path.join(DATA, "spell-grants.json"), "utf8"));
   for (const [name, key] of [["spells", "spellData"], ["monsters", "monsterData"], ["items", "itemData"]]) {
     const f = files.find(x => x.startsWith(`/assets/${name}.`)), js = f && fs.existsSync(path.join(ROOT, f)) ? fs.readFileSync(path.join(ROOT, f), "utf8") : "";
     const w = {}; try { new Function("window", js)(w); } catch { }
-    const same = w.DMDATA && JSON.stringify(JSON.parse(w.DMDATA[key])) === JSON.stringify(JSON.parse(fs.readFileSync(path.join(DATA, name + ".json"), "utf8")));
+    const expected = JSON.parse(fs.readFileSync(path.join(DATA, name + ".json"), "utf8"));
+    if (name === "spells") expected["2014"].push(...legacySpells);
+    const same = w.DMDATA && JSON.stringify(JSON.parse(w.DMDATA[key])) === JSON.stringify(expected);
     check(`${name}: public${f} matches data/${name}.json`, !!same);
     check(`${name}: the file name's fingerprint matches its contents`, !!f && f.includes("." + crypto.createHash("sha256").update(js).digest("hex").slice(0, 10) + "."));
     check(`${name}: the service worker keeps it for offline use`, !!f && sw.includes(`"${f}"`));
@@ -94,7 +97,7 @@ const server = http.createServer((req, res) => {
       !subclassList("2024", "Paladin").some(([n]) => n === "Oathbreaker"),
     credit: bookLine(IT.data["2014"].find(x => x.n === "Sending Stones"))
   }));
-  check("2014 handbook spells and items stay in their edition", handbook.spells === 28 && handbook.items === 20 && !handbook.revised, JSON.stringify(handbook));
+  check("2014 handbook spells and items stay in their edition", handbook.spells === 28 + legacySpells.length && handbook.items === 20 && !handbook.revised, JSON.stringify(handbook));
   check("2014 DMG subclasses show in the builder and progression", handbook.death && handbook.oath);
   check("handbook summaries show printed page attribution", /p. 199.*Rules summary/.test(handbook.credit));
   check("the styling is applied (served as text/css)", await p.evaluate(() => [...document.styleSheets].some(s => /\/assets\/app\.\w+\.css$/.test(s.href || "") && s.cssRules.length > 100) && getComputedStyle(document.body).fontFamily.includes("Crimson")));

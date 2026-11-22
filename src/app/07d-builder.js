@@ -7,7 +7,11 @@ function cbStart() { CB.on = true; CB.step = 0; CB.ed = currentSourceRules()?.ed
   if (!campaignRaceChoices(CB.ed).includes(CB.race)) { CB.race = ""; CB.sub = ""; }
   else if (!campaignLineageChoices(CB.ed, CB.race).includes(CB.sub)) CB.sub = "";
   if (!campaignClassChoices(CB.ed).includes(CB.cls)) CB.cls = "";
-  if (!campaignBackgroundChoices(CB.ed).includes(CB.bg)) CB.bg = ""; if (CB.ed === "2024") CB.bonus = "flex"; renderCB(); }
+  if (!campaignBackgroundChoices(CB.ed).includes(CB.bg)) CB.bg = ""; if (CB.ed === "2024") CB.bonus = "flex";
+  renderCB();
+  $("#pcOut .sheet-h").focus({ preventScroll: true });
+  showResult("#pcOut");
+}
 const cbR = () => raceInfo(CB.ed, CB.race, CB.sub);
 function cbAllowed() { const C = classData(CB.ed, CB.cls), R = cbR(); return new Set(R && R.extraSkills ? ALL_SKILLS : C.skills[0]); }
 function cbLocked() { const R = cbR(); return new Set([...bgSkills(CB.ed, CB.bg), ...((R && R.skills) || [])]); }
@@ -56,9 +60,16 @@ function cbEnter() {
   }
   if (CB.step === 4) { const al = cbAllowed(), lk = cbLocked(); [...CB.skills].forEach(s => { if (!al.has(s) || lk.has(s)) CB.skills.delete(s); }); }
 }
+function cbAdvance() {
+  if (!CB.on || !cbCanNext()) return;
+  CB.step++;
+  cbEnter();
+  renderCB();
+  $("#pcOut .cb-step.cur").focus();
+}
 function searchableChoices(label, cards) {
   return `<div data-choice-search>
-    <label class="field">${esc(label)}<input type="search" data-choice-query autocomplete="off"></label>
+    <label class="field choice-search-label"><span class="lbl">${esc(label)}</span><input type="search" data-choice-query autocomplete="off"></label>
     <div class="pick-grid" data-choice-results>${cards}</div>
     <p class="hint" data-choice-empty hidden>No matching choices.</p>
   </div>`;
@@ -128,10 +139,10 @@ function cbBody() {
     <p class="hint">Levels past 4 apply ability score increases to your main abilities automatically. You can fine-tune every score, skill and detail afterwards on the sheet.</p></div>`;
 }
 function renderCB() {
-  pcShow("build"); forgeOpen(false);
+  forgeOpen(false); pcShow("build");
   $("#pcOut").innerHTML = `<div class="card">
-    <div class="row" style="align-items:flex-start"><div class="sheet-h" style="font-size:24px;flex:1">Create a custom character</div><button class="btn sm" type="button" data-cbquit style="flex:0 0 auto">✕ Cancel</button></div>
-    <div class="cb-steps">${CB_STEPS.map((s, i) => `<span class="cb-step ${i === CB.step ? "cur" : ""} ${i < CB.step ? "done" : ""}" ${i < CB.step ? `data-cbgo="${i}" role="button" tabindex="0"` : ""}>${i + 1}. ${s}</span>`).join("")}</div>
+    <div class="row" style="align-items:flex-start"><div class="sheet-h" tabindex="-1" style="font-size:24px;flex:1">Create a custom character</div><button class="btn sm" type="button" data-cbquit style="flex:0 0 auto">✕ Cancel</button></div>
+    <div class="cb-steps">${CB_STEPS.map((s, i) => `<span class="cb-step ${i === CB.step ? "cur" : ""} ${i < CB.step ? "done" : ""}" ${i < CB.step ? `data-cbgo="${i}" role="button" tabindex="0"` : i === CB.step ? 'aria-current="step" tabindex="-1"' : ""}>${i + 1}. ${s}</span>`).join("")}</div>
     ${cbBody()}
     <div class="row" style="margin-top:16px">
       ${CB.step ? `<button class="btn" type="button" data-cbback style="flex:0 0 auto">← Back</button>` : ""}<span style="flex:1"></span>
@@ -160,7 +171,7 @@ function cbCreate() {
     if (b = t.closest("[data-cbquit]")) { CB.on = false; pcShow("sheet"); renderRosterTab(); return; }
     if (b = t.closest("[data-cbgo]")) { CB.step = +b.dataset.cbgo; renderCB(); return; }
     if (b = t.closest("[data-cbback]")) { CB.step--; renderCB(); return; }
-    if (b = t.closest("[data-cbnext]")) { if (cbCanNext()) { CB.step++; cbEnter(); renderCB(); } return; }
+    if (t.closest("[data-cbnext]")) { cbAdvance(); return; }
     if (t.closest("[data-cbcreate]")) { cbCreate(); return; }
     if (b = t.closest("[data-cbrace]")) {
       const race = b.dataset.cbrace;
@@ -172,6 +183,7 @@ function cbCreate() {
       const card = $(".pick.on", out);
       openProgression(CB.ed, "species", race, CB.sub, card, {
         requireLineage: true,
+        onNext: cbAdvance,
         setLineage: value => {
           CB.sub = value;
           if (cbR().flexible) CB.bonus = "flex";
@@ -183,7 +195,7 @@ function cbCreate() {
     if (b = t.closest("[data-cbcls]")) {
       CB.cls = b.dataset.cbcls;
       renderCB();
-      openProgression(CB.ed, "class", CB.cls, "", $(".pick.on", out), { campaign: true });
+      openProgression(CB.ed, "class", CB.cls, "", $(".pick.on", out), { campaign: true, onNext: cbAdvance });
       return;
     }
     if (b = t.closest("[data-cbbg]")) {
@@ -191,6 +203,7 @@ function cbCreate() {
       renderCB();
       openBackgroundReference(CB.ed, CB.bg, $(".pick.on", out), {
         gold: CB.bgGold50,
+        onNext: cbAdvance,
         setGold: value => { CB.bgGold50 = value; },
       });
       return;

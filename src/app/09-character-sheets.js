@@ -52,7 +52,7 @@ function pcIncoming(d) {
   pcNums(d);
   return d;
 }
-function pcEnsure(c) { if (c) { pcNums(c); if (c.bgV === undefined && c.cls) { c.bgV = 1; if (c.ed === "2024") c.bgAsiLegacy = true; } if (!c.id) c.id = uid("pc"); if (c.subclass === undefined) { const f = (c.feats || []).find(x => String(x.f).startsWith("Subclass: ") && x.f !== "Subclass: not chosen yet"); c.subclass = f ? f.f.slice(10) : null; } if (!Array.isArray(c.prepared)) c.prepared = []; syncBookSpells(c); if (c.race === "Dragonborn" && !c.ancestry) c.ancestry = makeRng("anc", c.seed || c.id).pick(Object.keys(DRAGON_ANCESTRY)); if (c.race === "Dragonborn" && !c.sub) c.sub = c.ancestry; withTraitRes(c); raceLvUpgrade(c); hookUpgrade(c); } return c; }
+function pcEnsure(c) { if (c) { pcNums(c); if (c.bgV === undefined && c.cls) { c.bgV = 1; if (c.ed === "2024") c.bgAsiLegacy = true; } if (!c.id) c.id = uid("pc"); if (c.subclass === undefined) { const f = (c.feats || []).find(x => String(x.f).startsWith("Subclass: ") && x.f !== "Subclass: not chosen yet"); c.subclass = f ? f.f.slice(10) : null; } if (!Array.isArray(c.prepared)) c.prepared = []; syncGrantedSpells(c); if (c.race === "Dragonborn" && !c.ancestry) c.ancestry = makeRng("anc", c.seed || c.id).pick(Object.keys(DRAGON_ANCESTRY)); if (c.race === "Dragonborn" && !c.sub) c.sub = c.ancestry; withTraitRes(c); raceLvUpgrade(c); hookUpgrade(c); } return c; }
 function pcPersist() {
   PCS.cur = currentPC; PCS.updated = Date.now();
   if (currentPC) { const i = PCS.roster.findIndex(x => x.id === currentPC.id); if (i >= 0) PCS.roster[i] = currentPC; }
@@ -81,12 +81,12 @@ function pcAdoptRemote() {
 }
 function renderPC() {
   if (!currentPC) return;
-  RC.id = currentPC.id; pcShow("sheet"); renderRosterTab();
+  RC.id = currentPC.id; forgeOpen(false); pcShow("sheet"); renderRosterTab();
 }
 function keepPC() {
   const c = currentPC; if (!c) return;
   if (!PCS.roster.some(x => x.id === c.id)) PCS.roster.unshift(c);
-  currentPC = null; RC.id = c.id; pcPersist(); renderRosterTab();
+  currentPC = null; RC.id = c.id; forgeOpen(false); pcPersist(); renderRosterTab();
   toast(`${c.name} saved to your characters`);
 }
 function addPCToCampaign(id, p = currentPC) {
@@ -115,7 +115,7 @@ function spellLimits(c) {
   let n = 0, cant = 0, word = "prepared";
   list.forEach(({ cls, lv, subclass }) => {
     const sc = subCaster(cls, subclass);
-    if (sc) { n += THIRD_KNOWN[lv - 1] || 0; if (list.length === 1 && edOf(c) === "2014") word = "known"; cant += sc.cantrips + (lv >= 10 ? 1 : 0); return; } /* Eldritch Knight, Arcane Trickster */
+    if (sc) { n += THIRD_KNOWN[lv - 1] || 0; if (list.length === 1 && edOf(c) === "2014") word = "known"; cant += sc.cantrips + (lv >= 10 ? 1 : 0) - (cls === "Rogue" && lv >= 3 ? 1 : 0); return; } /* Eldritch Knight, Arcane Trickster */
     const book = classData(edOf(c), cls).hbx;
     if (book?.preparedAt) {
       n += Number(book.preparedAt[lv - 1]) || 0;
@@ -140,12 +140,14 @@ function spellLimits(c) {
 const isPrep = (c, name, ed) => !!(c && c.prepared && c.prepared.some(p => p.n === name && p.ed === ed));
 function togglePrep(c, s, ed) {
   pcEnsure(c);
+  if (c.prepared.some(p => p.n === s.n && p.ed === ed && p.src)) return true;
   const i = c.prepared.findIndex(p => p.n === s.n && p.ed === ed);
   if (i >= 0) { c.prepared.splice(i, 1); toast(`${s.n} removed from ${c.name}`); return false; }
   c.prepared.push({ n: s.n, l: s.l, ed });
   const L = spellLimits(c);
   if (L) {
-    const can = c.prepared.filter(p => p.l === 0).length, lev = c.prepared.length - can;
+    const selections = manualPreparedSpells(c);
+    const can = selections.filter(p => p.l === 0).length, lev = selections.length - can;
     const over = s.l === 0 ? can > L.cantrips : lev > L.n;
     toast(over ? `${s.n} added, but that's over ${c.name}'s usual limit` : `${s.n} ${L.word === "known" ? "learned" : "prepared"} for ${c.name}`);
   } else toast(`${s.n} added to ${c.name}`);
@@ -176,11 +178,24 @@ function pcSpellPool(c, ed) {
   const K = pcCastClasses(c); if (!K.length) return [];
   return SP.data[ed].filter(s => !s.pend && K.some(k => (s.c.includes(k.cls) || s.c.includes(k.list || clsSpellList(k.cls))) && (s.l === 0 ? k.cantrips : s.l <= k.max)));
 }
+function manualPreparedSpells(c) {
+  const granted = new Set((c.prepared || []).filter(p => p.src).map(p => spellKey(p.ed, p.n)));
+  return (c.prepared || []).filter(p => !p.src && !granted.has(spellKey(p.ed, p.n)));
+}
+function sheetPreparedSpells(c, manual = manualPreparedSpells(c)) {
+  const granted = (c.prepared || []).filter(p => p.src);
+  const automatic = new Set(granted.filter(p => p.bookGrant).map(p => spellKey(p.ed, p.n)));
+  return [...manual, ...granted.filter(p => p.bookGrant || !automatic.has(spellKey(p.ed, p.n)))];
+}
+function preparedGrantBadge(p) {
+  if (!p.bookGrant || !Array.isArray(p.sources) || !p.sources.length) return p.src ? `<span class="prep-source">From ${esc(p.src)}</span>` : "";
+  return `<span class="prep-source"><strong>${grantedSpellStatus(p.l, p.sources)}</strong> · ${esc(p.sources.map(spellGrantLabel).join(" / "))}${p.reference ? " · Rules reference" : ""}</span>`;
+}
 /* Prepared spells as bubbles: tap one for the spell window (castDialog). `cast` (My Characters) adds slots left per level. */
 function prepBubble(p, canRemove = true) {
   const sp = spellOf(p.ed, p.n) || {};
   const marks = `${sp.co ? `<span class="prep-mk" title="Concentration">C</span>` : ""}${sp.ri ? `<span class="prep-mk" title="Ritual">R</span>` : ""}`;
-  return `<span class="prep-chip"><button type="button" class="prep-b" data-spell="${esc(p.ed + "|" + p.n)}" title="Open ${esc(p.n)}">${esc(p.n)}${marks}${p.ed === "2014" ? ` <span class="muted" style="font-size:11px">2014</span>` : ""}</button>${p.src ? `<span class="muted" style="font-size:11px" title="From ${esc(p.src)}; doesn't count against your limit">${p.src === "Magic Initiate" ? "MI" : esc(p.src)}</span>` : ""}${canRemove ? `<button type="button" class="prep-x" data-unprep="${esc(p.ed + "|" + p.n)}" title="Remove ${esc(p.n)}" aria-label="Remove ${esc(p.n)}">✕</button>` : ""}</span>`;
+  return `<span class="prep-chip"><button type="button" class="prep-b" data-spell="${esc(p.ed + "|" + p.n)}" title="Open ${esc(p.n)}">${esc(p.n)}${marks}${p.ed === "2014" ? ` <span class="muted" style="font-size:11px">2014</span>` : ""}</button>${preparedGrantBadge(p)}${canRemove && !p.src ? `<button type="button" class="prep-x" data-unprep="${esc(p.ed + "|" + p.n)}" title="Remove ${esc(p.n)}" aria-label="Remove ${esc(p.n)}">✕</button>` : ""}</span>`;
 }
 function prepSlotsText(c, l) {
   let R; try { R = pcResources(c); } catch { return ""; }
@@ -188,14 +203,13 @@ function prepSlotsText(c, l) {
   return ` <span class="prep-slots">· ${resLeft(c, r)} of ${r.max} slot${r.max === 1 ? "" : "s"} left</span>`;
 }
 function preparedHTML(c, cast) {
-  const L = spellLimits(c), P = c.prepared || [], PC = P.filter(p => !p.src);
+  const L = spellLimits(c), PC = manualPreparedSpells(c), P = sheetPreparedSpells(c, PC);
   const can = PC.filter(p => p.l === 0).length, lev = PC.length - can;
   const byL = {}; P.forEach(p => (byL[p.l] = byL[p.l] || []).push(p));
   const lvls = Object.keys(byL).map(Number).sort((a, b) => a - b);
-  if (!L) return P.length ? `<div class="prep-row">${P.map(p => prepBubble(p, false)).join("")}</div>` : ""; /* a non-caster's spells come from feats: the feat would bring them back */
-  const counts = `<div class="prep-count">${L.cantrips ? `<span>Cantrips <b class="${can > L.cantrips ? "over" : ""}">${can} / ${L.cantrips}</b></span>` : ""}<span>Spells ${L.word} <b class="${lev > L.n ? "over" : ""}">${lev} / ${L.n}</b></span>${c.cls === "Wizard" ? `<span class="muted">Wizards prepare from their spellbook.</span>` : ""}</div>`;
+  const counts = L ? `<div class="prep-count">${L.cantrips ? `<span>Cantrips <b class="${can > L.cantrips ? "over" : ""}">${can} / ${L.cantrips}</b></span>` : ""}<span>Spells ${L.word} <b class="${lev > L.n ? "over" : ""}">${lev} / ${L.n}</b></span>${c.cls === "Wizard" ? `<span class="muted">Wizards prepare from their spellbook.</span>` : ""}</div>` : "";
   const list = P.length ? lvls.map(l => `<div class="prep-lv">${l === 0 ? "Cantrips" : ordinal(l)}${cast && l ? prepSlotsText(c, l) : ""}</div><div class="prep-row">${byL[l].slice().sort((a, b) => a.n.localeCompare(b.n)).map(p => prepBubble(p)).join("")}</div>`).join("")
-    : `<p class="muted" style="margin:8px 0 0">No spells ${L.word} yet. Use Prepare spells to search the ${esc(pcCastNames(c))} list, or pick spells from the Spells tab.</p>`;
+    : L ? `<p class="muted" style="margin:8px 0 0">No spells ${L.word} yet. Use Prepare spells to search the ${esc(pcCastNames(c))} list, or pick spells from the Spells tab.</p>` : "";
   return counts + list;
 }
 function prepPanelHTML(c, pre = "pc") {
@@ -211,10 +225,10 @@ function renderPrepList(c = currentPC, pre = "pc") {
   const ed = $(`#${pre}PrepEd`).value, lv = $(`#${pre}PrepLv`).value, words = $(`#${pre}PrepQ`).value.trim().toLowerCase().split(/\s+/).filter(Boolean);
   const list = pcSpellPool(c, ed).filter(s => (!words.length || words.every(w => s.hay.includes(w))) && (lv === "" || s.l === +lv)).sort((a, b) => a.l - b.l || a.n.localeCompare(b.n));
   box.innerHTML = list.length ? list.slice(0, 150).map(s => {
-    const on = isPrep(c, s.n, ed);
+    const on = isPrep(c, s.n, ed), locked = c.prepared.some(p => p.n === s.n && p.ed === ed && p.src);
     return `<div class="prep-row"><details><summary><b>${esc(s.n)}</b> <span class="muted">${s.l ? "Lv " + s.l : "Cantrip"} · ${esc(s.s)}${s.co ? " · Concentration" : ""}${s.ri ? " · Ritual" : ""}</span></summary>
       <div class="sp-desc"><div class="muted" style="font-size:13.5px">${esc(s.t)} · ${esc(s.r)} · ${esc(s.du)}</div>${spFormat(s.d)}</div></details>
-      <button type="button" class="btn sm ${on ? "" : "primary"}" data-prep="${s.id}" style="flex:0 0 auto">${on ? "✓ Prepared" : "+ Prepare"}</button></div>`;
+      <button type="button" class="btn sm ${on ? "" : "primary"}" data-prep="${s.id}" style="flex:0 0 auto" ${locked ? "disabled" : ""}>${locked ? "✓ Granted" : on ? "✓ Prepared" : "+ Prepare"}</button></div>`;
   }).join("") + (list.length > 150 ? `<p class="hint">Showing 150 of ${list.length}. Narrow the search to see more.</p>` : "")
     : `<p class="muted" style="margin:8px 0">No ${esc(pcCastNames(c))} spells match.</p>`;
 }
@@ -231,8 +245,8 @@ function renderSpTargets() {
 }
 function spPrepBtn(s) {
   const t = spTargetPC(); if (!t) return "";
-  const on = isPrep(t, s.n, SP.ed);
-  return `<button class="btn sm ${on ? "" : "primary"}" data-sp="prep" data-id="${s.id}">${on ? `✓ Prepared for ${esc(t.name)}` : `✦ Prepare for ${esc(t.name)}`}</button>`;
+  const on = isPrep(t, s.n, SP.ed), locked = t.prepared.some(p => p.n === s.n && p.ed === SP.ed && p.src);
+  return `<button class="btn sm ${on ? "" : "primary"}" data-sp="prep" data-id="${s.id}" ${locked ? "disabled" : ""}>${locked ? "✓ Granted" : on ? `✓ Prepared for ${esc(t.name)}` : `✦ Prepare for ${esc(t.name)}`}</button>`;
 }
 function spPrepToggle(s) {
   const t = spTargetPC(); if (!t) { toast("Pick a character to prepare spells for"); return; }
@@ -351,7 +365,7 @@ function sheetDoc(c) {
   // page 3: spellcasting
   const lv = c.level, pact = !!c.spell.note, pn = lv >= 17 ? 4 : lv >= 11 ? 3 : lv >= 2 ? 2 : 1, psl = Math.min(5, Math.ceil(lv / 2));
   const slotsFor = l => pact ? (l === psl ? pn : 0) : (c.spell.slots[l - 1] || 0);
-  const P = c.prepared || [];
+  const P = sheetPreparedSpells(c);
   const box = l => {
     const sp = P.filter(p => p.l === l).sort((a, b) => a.n.localeCompare(b.n));
     const rows = Math.max(l === 0 ? 8 : l <= 3 ? 12 : l <= 6 ? 9 : 7, sp.length);

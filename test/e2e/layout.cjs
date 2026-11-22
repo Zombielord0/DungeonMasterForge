@@ -91,6 +91,8 @@ const away = p => p.evaluate(() => document.documentElement.classList.contains("
       check("phone: quick attack uses the sheet's roll log", await p.evaluate(() => /attack$/i.test(rosterCur().rollLog[0].label)));
 
       await p.locator("#forgeBox > summary").tap();
+      const form = await p.locator("#pcForm").boundingBox();
+      check("phone: opening Forge brings its form into view and folds the saved list", form && form.y >= 0 && form.y < 280 && !(await p.locator("#rosterList").isVisible()));
       await p.selectOption("#pcClass", "Fighter");
       const dialog = p.locator("#characterReference");
       const close = dialog.getByRole("button", { name: "Close" });
@@ -99,6 +101,9 @@ const away = p => p.evaluate(() => document.documentElement.classList.contains("
       await dialog.evaluate(el => { el.scrollTop = el.scrollHeight; });
       const button = await close.boundingBox();
       check("phone: progression Close stays visible after scrolling", button && button.y >= 0 && button.y + button.height <= 640);
+      const next = dialog.getByRole("button", { name: /^Next/ });
+      const nextBox = await next.boundingBox();
+      check("phone: progression Next stays visible after scrolling", nextBox && nextBox.y >= 0 && nextBox.y + nextBox.height <= 640);
       await close.tap();
       check("phone: closing progression restores focus to the class picker", await p.evaluate(() => document.activeElement.id === "pcClass"));
       await p.locator("#forgeBox > summary").tap();

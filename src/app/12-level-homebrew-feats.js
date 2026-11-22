@@ -271,6 +271,13 @@ function lvNext(c) {
   LV.c = c; lvClose(false); pcRefresh(c);
   toast(ch.done ? ch.done(c) : `${c.name} is now level ${c.level}${c.subclass && ch.steps.length ? ` — ${c.subclass}` : ""}`);
 }
+function lvAdvanceSubclass(name) {
+  const { c } = LV;
+  if (!c || !campaignSubclassChoices(edOf(c), c.cls).some(([option]) => option === name)) return;
+  LV.pick = name;
+  if (lvMissing().length) lvRender('input[name="lvAsiMode"]:checked');
+  else lvConfirm();
+}
 function lvConfirm() {
   const { c, to } = LV; if (!c || lvMissing().length) return;
   if (LV.pick) c.subclass = LV.pick;

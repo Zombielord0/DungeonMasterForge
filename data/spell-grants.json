@@ -1,0 +1,759 @@
+{
+  "options": {
+    "book-toh_circle-of-bees": {
+      "alwaysPrepared": {
+        "2": ["True Strike"],
+        "3": ["Blur", "Bombardment of Stings"],
+        "5": ["Fly", "Haste"],
+        "7": ["Giant Insect", "Locate Creature"],
+        "9": ["Insect Plague", "Telepathic Bond"]
+      }
+    },
+    "book-toh_circle-of-the-green": {
+      "alwaysPrepared": {
+        "2": ["Entangle", "Goodberry"],
+        "3": ["Barkskin", "Spike Growth"],
+        "5": ["Speak with Plants", "Vine Carpet"],
+        "7": ["Dreamwine", "Hallucinatory Terrain"],
+        "9": ["Enchanted Bloom", "Tree Stride"]
+      }
+    },
+    "book-toh_circle-of-the-shapeless": {
+      "alwaysPrepared": {
+        "2": ["Acid Splash"],
+        "3": ["Enlarge/Reduce", "Spider Climb"],
+        "5": ["Iron Gut", "Meld Into Stone"],
+        "7": ["Blight", "Freedom of Movement"],
+        "9": ["Contagion", "Seeming"]
+      }
+    },
+    "book-toh_circle-of-wind": {
+      "alwaysPrepared": {
+        "3": ["Blur", "Gust of Wind"],
+        "5": ["Fly", "Lightning Bolt"],
+        "7": ["Conjure Minor Elementals", "Freedom of Movement"],
+        "9": ["Cloudkill", "Conjure Elemental"]
+      }
+    },
+    "book-toh_gravebinding": {
+      "alwaysPrepared": {
+        "2": ["Heart to Heart"],
+        "3": ["Dead Walking", "Gird the Spirit"],
+        "5": ["Life from Death"],
+        "9": ["Lay to Rest"]
+      }
+    },
+    "book-toh_grove-warden": {
+      "bonusSpells": {
+        "3": ["Entangle"],
+        "5": ["Branding Smite"],
+        "9": ["Speak with Plants"],
+        "13": ["Hallucinatory Terrain"],
+        "17": ["Animate Objects"]
+      }
+    },
+    "book-toh_haunted-warden": {
+      "bonusSpells": {
+        "3": ["False Life"],
+        "5": ["Invisibility"],
+        "9": ["Speak with Dead"],
+        "13": ["Death Ward"],
+        "17": ["Dispel Evil and Good"]
+      }
+    },
+    "book-toh_shadow-domain": {
+      "alwaysPrepared": {
+        "1": ["bane", "false life"],
+        "3": ["blindness/deafness", "darkness"],
+        "5": ["blink", "fear"],
+        "7": ["black tentacles", "greater invisibility"],
+        "9": ["cone of cold", "dream"]
+      }
+    },
+    "book-toh_snake-speaker": {
+      "bonusSpells": {
+        "3": ["Charm Person"],
+        "5": ["Suggestion"],
+        "9": ["Tongues"],
+        "13": ["Confusion"],
+        "17": ["Dominate Person"]
+      }
+    },
+    "book-toh_wasteland-strider": {
+      "bonusSpells": {
+        "3": ["Protection from the Void"],
+        "5": ["Calm Emotions"],
+        "9": ["Dispel Magic"],
+        "13": ["Banishment"],
+        "17": ["Hold Monster"]
+      }
+    },
+    "book-open5e_abjurationist": {
+      "alwaysPrepared": {
+        "10": ["Dispel Magic", "Counterspell"]
+      }
+    },
+    "book-dmg14-death-domain": {
+      "alwaysPrepared": {
+        "1": ["False Life", "Ray of Sickness"],
+        "3": ["Blindness/Deafness", "Ray of Enfeeblement"],
+        "5": ["Animate Dead", "Vampiric Touch"],
+        "7": ["Blight", "Death Ward"],
+        "9": ["Antilife Shell", "Cloudkill"]
+      }
+    },
+    "book-dmg14-oathbreaker": {
+      "alwaysPrepared": {
+        "3": ["Hellish Rebuke", "Inflict Wounds"],
+        "5": ["Crown of Madness", "Darkness"],
+        "9": ["Animate Dead", "Bestow Curse"],
+        "13": ["Blight", "Confusion"],
+        "17": ["Contagion", "Dominate Person"]
+      }
+    },
+    "reference-ftd-ranger-drakewarden": {
+      "bonusSpells": {
+        "3": ["Thaumaturgy"]
+      }
+    },
+    "reference-ggr-cleric-order-domain": {
+      "alwaysPrepared": {
+        "1": ["Command", "Heroism"],
+        "3": ["Hold Person", "Zone of Truth"],
+        "5": ["Mass Healing Word", "Slow"],
+        "7": ["Compulsion", "Locate Creature"],
+        "9": ["Commune", "Dominate Person"]
+      }
+    },
+    "reference-ggr-druid-circle-of-spores": {
+      "alwaysPrepared": {
+        "2": ["Chill Touch"],
+        "3": ["Blindness/Deafness", "Gentle Repose"],
+        "5": ["Animate Dead", "Gaseous Form"],
+        "7": ["Blight", "Confusion"],
+        "9": ["Cloudkill", "Contagion"]
+      }
+    },
+    "reference-mot-paladin-oath-of-glory": {
+      "alwaysPrepared": {
+        "3": ["Guiding Bolt", "Heroism"],
+        "5": ["Enhance Ability", "Magic Weapon"],
+        "9": ["Haste", "Protection From Energy"],
+        "13": ["Compulsion", "Freedom of Movement"],
+        "17": ["Commune", "Flame Strike"]
+      }
+    },
+    "reference-scag-cleric-arcana-domain": {
+      "alwaysPrepared": {
+        "1": ["Detect Magic", "Magic Missile"],
+        "3": ["Magic Weapon", "Arcanist's Magic Aura"],
+        "5": ["Dispel Magic", "Magic Circle"],
+        "7": ["Arcane Eye", "Secret Chest"],
+        "9": ["Planar Binding", "Teleportation Circle"]
+      }
+    },
+    "reference-scag-paladin-oath-of-the-crown": {
+      "alwaysPrepared": {
+        "3": ["Command", "Compelled Duel"],
+        "5": ["Warding Bond", "Zone of Truth"],
+        "9": ["Aura of Vitality", "Spirit Guardians"],
+        "13": ["Banishment", "Guardian of Faith"],
+        "17": ["Circle of Power", "Geas"]
+      }
+    },
+    "reference-xge-cleric-forge-domain": {
+      "alwaysPrepared": {
+        "1": ["Identify", "Searing Smite"],
+        "3": ["Heat Metal", "Magic Weapon"],
+        "5": ["Elemental Weapon", "Protection From Energy"],
+        "7": ["Fabricate", "Wall of Fire"],
+        "9": ["Animate Objects", "Creation"]
+      }
+    },
+    "reference-xge-cleric-grave-domain": {
+      "alwaysPrepared": {
+        "1": ["Bane", "False Life"],
+        "3": ["Gentle Repose", "Ray of Enfeeblement"],
+        "5": ["Revivify", "Vampiric Touch"],
+        "7": ["Blight", "Death Ward"],
+        "9": ["Antilife Shell", "Raise Dead"]
+      }
+    },
+    "reference-tce-cleric-order-domain": {
+      "alwaysPrepared": {
+        "1": ["Command", "Heroism"],
+        "3": ["Hold Person", "Zone of Truth"],
+        "5": ["Mass Healing Word", "Slow"],
+        "7": ["Compulsion", "Locate Creature"],
+        "9": ["Commune", "Dominate Person"]
+      }
+    },
+    "reference-tce-cleric-peace-domain": {
+      "alwaysPrepared": {
+        "1": ["Heroism", "Sanctuary"],
+        "3": ["Aid", "Warding Bond"],
+        "5": ["Beacon of Hope", "Sending"],
+        "7": ["Aura of Purity", "Resilient Sphere"],
+        "9": ["Greater Restoration", "Telepathic Bond"]
+      }
+    },
+    "reference-tce-cleric-twilight-domain": {
+      "alwaysPrepared": {
+        "1": ["Faerie Fire", "Sleep"],
+        "3": ["Moonbeam", "See Invisibility"],
+        "5": ["Aura of Vitality", "Tiny Hut"],
+        "7": ["Aura of Life", "Greater Invisibility"],
+        "9": ["Circle of Power", "Mislead"]
+      }
+    },
+    "reference-tce-druid-circle-of-spores": {
+      "alwaysPrepared": {
+        "2": ["Chill Touch"],
+        "3": ["Blindness/Deafness", "Gentle Repose"],
+        "5": ["Animate Dead", "Gaseous Form"],
+        "7": ["Blight", "Confusion"],
+        "9": ["Cloudkill", "Contagion"]
+      }
+    },
+    "reference-tce-druid-circle-of-wildfire": {
+      "alwaysPrepared": {
+        "2": ["Burning Hands", "Cure Wounds"],
+        "3": ["Flaming Sphere", "Scorching Ray"],
+        "5": ["Plant Growth", "Revivify"],
+        "7": ["Aura of Life", "Fire Shield"],
+        "9": ["Flame Strike", "Mass Cure Wounds"]
+      }
+    },
+    "reference-xge-paladin-oath-of-conquest": {
+      "alwaysPrepared": {
+        "3": ["Armor of Agathys", "Command"],
+        "5": ["Hold Person", "Spiritual Weapon"],
+        "9": ["Bestow Curse", "Fear"],
+        "13": ["Dominate Beast", "Stoneskin"],
+        "17": ["Cloudkill", "Dominate Person"]
+      }
+    },
+    "reference-xge-paladin-oath-of-redemption": {
+      "alwaysPrepared": {
+        "3": ["Sanctuary", "Sleep"],
+        "5": ["Calm Emotions", "Hold Person"],
+        "9": ["Counterspell", "Hypnotic Pattern"],
+        "13": ["Resilient Sphere", "Stoneskin"],
+        "17": ["Hold Monster", "Wall of Force"]
+      }
+    },
+    "reference-tce-paladin-oath-of-glory": {
+      "alwaysPrepared": {
+        "3": ["Guiding Bolt", "Heroism"],
+        "5": ["Enhance Ability", "Magic Weapon"],
+        "9": ["Haste", "Protection From Energy"],
+        "13": ["Compulsion", "Freedom of Movement"],
+        "17": ["Commune", "Flame Strike"]
+      }
+    },
+    "reference-tce-paladin-oath-of-the-watchers": {
+      "alwaysPrepared": {
+        "3": ["Alarm", "Detect Magic"],
+        "5": ["Moonbeam", "See Invisibility"],
+        "9": ["Counterspell", "Nondetection"],
+        "13": ["Aura of Purity", "Banishment"],
+        "17": ["Hold Monster", "Scrying"]
+      }
+    },
+    "reference-xge-ranger-gloom-stalker": {
+      "bonusSpells": {
+        "3": ["Disguise Self"],
+        "5": ["Rope Trick"],
+        "9": ["Fear"],
+        "13": ["Greater Invisibility"],
+        "17": ["Seeming"]
+      }
+    },
+    "reference-xge-ranger-horizon-walker": {
+      "bonusSpells": {
+        "3": ["Protection from Evil and Good"],
+        "5": ["Misty Step"],
+        "9": ["Haste"],
+        "13": ["Banishment"],
+        "17": ["Teleportation Circle"]
+      }
+    },
+    "reference-xge-ranger-monster-slayer": {
+      "bonusSpells": {
+        "3": ["Protection from Evil and Good"],
+        "5": ["Zone of Truth"],
+        "9": ["Magic Circle"],
+        "13": ["Banishment"],
+        "17": ["Hold Monster"]
+      }
+    },
+    "reference-tce-ranger-fey-wanderer": {
+      "bonusSpells": {
+        "3": ["Charm Person"],
+        "5": ["Misty Step"],
+        "9": ["Dispel Magic"],
+        "13": ["Dimension Door"],
+        "17": ["Mislead"]
+      }
+    },
+    "reference-tce-ranger-swarmkeeper": {
+      "bonusSpells": {
+        "3": ["Mage Hand", "Faerie Fire"],
+        "5": ["Web"],
+        "9": ["Gaseous Form"],
+        "13": ["Arcane Eye"],
+        "17": ["Insect Plague"]
+      }
+    },
+    "reference-tce-sorcerer-aberrant-mind": {
+      "bonusSpells": {
+        "1": ["Arms of Hadar", "Dissonant Whispers", "Mind Sliver"],
+        "3": ["Calm Emotions", "Detect Thoughts"],
+        "5": ["Hunger of Hadar", "Sending"],
+        "7": ["Black Tentacles", "Summon Aberration"],
+        "9": ["Telepathic Bond", "Telekinesis"]
+      }
+    },
+    "reference-tce-sorcerer-clockwork-soul": {
+      "bonusSpells": {
+        "1": ["Alarm", "Protection from Evil and Good"],
+        "3": ["Aid", "Lesser Restoration"],
+        "5": ["Dispel Magic", "Protection From Energy"],
+        "7": ["Freedom of Movement", "Summon Construct"],
+        "9": ["Greater Restoration", "Wall of Force"]
+      }
+    },
+    "reference-xge-warlock-the-celestial": {
+      "bonusSpells": {
+        "1": ["Light", "Sacred Flame"]
+      }
+    },
+    "reference-hof-oath-of-the-noble-genies": {
+      "alwaysPrepared": {
+        "3": ["Chromatic Orb", "Elementalism", "Thunderous Smite"],
+        "5": ["Mirror Image", "Phantasmal Force"],
+        "9": ["Fly", "Gaseous Form"],
+        "13": ["Conjure Minor Elementals", "Summon Elemental"],
+        "17": ["Banishing Smite", "Contact Other Plane"]
+      }
+    },
+    "reference-hof-winter-walker": {
+      "alwaysPrepared": {
+        "3": ["Ice Knife"],
+        "5": ["Hold Person"],
+        "9": ["Remove Curse"],
+        "13": ["Ice Storm"],
+        "17": ["Cone of Cold"]
+      }
+    },
+    "reference-hof-spellfire-sorcery": {
+      "alwaysPrepared": {
+        "3": ["Cure Wounds", "Guiding Bolt", "Lesser Restoration", "Scorching Ray"],
+        "5": ["Aura of Vitality", "Dispel Magic"],
+        "6": ["Counterspell"],
+        "7": ["Fire Shield", "Wall of Fire"],
+        "9": ["Greater Restoration", "Flame Strike"]
+      }
+    },
+    "reference-rthw-grave-domain": {
+      "alwaysPrepared": {
+        "1": ["Bane", "False Life"],
+        "3": ["Gentle Repose", "Ray of Enfeeblement"],
+        "5": ["Revivify", "Vampiric Touch"],
+        "7": ["Blight", "Death Ward"],
+        "9": ["Antilife Shell", "Raise Dead"]
+      }
+    },
+    "reference-rthw-hollow-warden": {
+      "alwaysPrepared": {
+        "3": ["Wrathful Smite"],
+        "5": ["Alter Self"],
+        "9": ["Phantom Steed"],
+        "13": ["Dominate Beast"],
+        "17": ["Steel Wind Strike"]
+      }
+    },
+    "reference-rthw-shadow-sorcery": {
+      "alwaysPrepared": {
+        "3": ["Bane", "Darkness", "Inflict Wounds", "Pass Without Trace"],
+        "5": ["Hunger of Hadar", "Nondetection"],
+        "7": ["Greater Invisibility", "Phantasmal Killer"],
+        "9": ["Contagion", "Creation"]
+      }
+    },
+    "reference-rthw-undead-patron": {
+      "alwaysPrepared": {
+        "3": ["Bane", "Blindness/Deafness", "Phantasmal Force", "Ray of Sickness"],
+        "5": ["Speak with Dead", "Summon Undead"],
+        "7": ["Greater Invisibility", "Phantasmal Killer"],
+        "9": ["Antilife Shell", "Cloudkill"]
+      }
+    },
+    "reference-au-arcana-domain": {
+      "alwaysPrepared": {
+        "1": ["Detect Magic", "Magic Missile"],
+        "3": ["Magic Weapon", "Arcanist's Magic Aura"],
+        "5": ["Dispel Magic", "Magic Circle"],
+        "7": ["Arcane Eye", "Secret Chest"],
+        "9": ["Planar Binding", "Teleportation Circle"]
+      }
+    },
+    "reference-wow-oath-of-the-holy": {
+      "alwaysPrepared": {
+        "3": ["Cure Wounds", "Healing Word"],
+        "5": ["Lesser Restoration", "Prayer of Healing"],
+        "9": ["Dispel Magic", "Mass Healing Word"],
+        "13": ["Aura of Life", "Death Ward"],
+        "17": ["Greater Restoration", "Mass Cure Wounds"]
+      }
+    },
+    "reference-wow-discipline-domain": {
+      "alwaysPrepared": {
+        "3": ["Arcane Vigor", "Guiding Bolt", "Magic Weapon", "Shield of Faith"],
+        "5": ["Prayer of Mending", "Protection From Energy"],
+        "7": ["Guardian of Faith", "Stoneskin"],
+        "9": ["Circle of Power", "Destructive Wave"]
+      }
+    },
+    "reference-wow-shadow-domain": {
+      "alwaysPrepared": {
+        "3": ["Crown of Madness", "Dissonant Whispers", "Mind Spike", "Shadow Word: Pain"],
+        "5": ["Summon Undead", "Vampiric Touch"],
+        "7": ["Black Tentacles", "Psychic Horror"],
+        "9": ["Dominate Person", "Void Eruption"]
+      }
+    },
+    "reference-rthw-reanimator": {
+      "alwaysPrepared": {
+        "3": ["False Life", "Spare the Dying", "Witch Bolt"],
+        "5": ["Blindness/Deafness", "Enhance Ability"],
+        "9": ["Animate Dead", "Lightning Bolt"],
+        "13": ["Blight", "Death Ward"],
+        "17": ["Antilife Shell", "Raise Dead"]
+      }
+    },
+    "reference-efota-khoravar": {
+      "alwaysPrepared": {
+        "1": ["Friends"]
+      }
+    },
+    "reference-wow-species-draenei": {
+      "term": "Eredar lineage",
+      "subs": [
+        {
+          "n": "Draenei",
+          "d": "You gain Spare the Dying, Healing Word, Prayer of Healing at character levels 1, 3 and 5.",
+          "innateSpells": {
+            "1": ["Spare the Dying"],
+            "3": ["Healing Word"],
+            "5": ["Prayer of Healing"]
+          },
+          "spellSlots": true
+        },
+        {
+          "n": "Krokul",
+          "d": "You gain Poison Spray, Ray of Sickness, Hold Person at character levels 1, 3 and 5.",
+          "innateSpells": {
+            "1": ["Poison Spray"],
+            "3": ["Ray of Sickness"],
+            "5": ["Hold Person"]
+          },
+          "spellSlots": true
+        },
+        {
+          "n": "Lightforged",
+          "d": "You gain Sacred Flame, Guiding Bolt, Aid at character levels 1, 3 and 5.",
+          "innateSpells": {
+            "1": ["Sacred Flame"],
+            "3": ["Guiding Bolt"],
+            "5": ["Aid"]
+          },
+          "spellSlots": true
+        },
+        {
+          "n": "Man’ari",
+          "d": "You gain Fire Bolt, Hellish Rebuke, Darkness at character levels 1, 3 and 5.",
+          "innateSpells": {
+            "1": ["Fire Bolt"],
+            "3": ["Hellish Rebuke"],
+            "5": ["Darkness"]
+          },
+          "spellSlots": true
+        }
+      ]
+    },
+    "reference-wow-species-haranir": {
+      "innateSpells": {
+        "1": ["Druidcraft", "Thorn Whip"],
+        "3": ["Entangle"],
+        "5": ["Spike Growth"]
+      },
+      "spellSlots": true
+    },
+    "reference-rthw-species-hexblood": {
+      "innateSpells": {
+        "1": ["Disguise Self", "Hex"]
+      },
+      "spellSlots": true
+    },
+    "reference-lfl-species-rimekin": {
+      "innateSpells": {
+        "1": ["Ray of Frost"],
+        "3": ["Ice Knife"],
+        "5": ["Flame Blade"]
+      },
+      "spellSlots": true
+    },
+    "book-wow-subclass-priest-discipline-domain": {
+      "alwaysPrepared": {
+        "3": ["Arcane Vigor", "Guiding Bolt", "Magic Weapon", "Shield of Faith"],
+        "5": ["Prayer of Mending", "Protection From Energy"],
+        "7": ["Guardian of Faith", "Stoneskin"],
+        "9": ["Circle of Power", "Destructive Wave"]
+      }
+    },
+    "book-wow-subclass-priest-shadow-domain": {
+      "alwaysPrepared": {
+        "3": ["Crown of Madness", "Dissonant Whispers", "Mind Spike", "Shadow Word: Pain"],
+        "5": ["Summon Undead", "Vampiric Touch"],
+        "7": ["Black Tentacles", "Psychic Horror"],
+        "9": ["Dominate Person", "Void Eruption"]
+      }
+    },
+    "book-toh_hunt-domain": {
+      "alwaysPrepared": {
+        "1": ["bloodbound", "illuminate spoor"],
+        "3": ["instant snare", "mark prey"],
+        "5": ["going in circles", "tracer"],
+        "7": ["heart-seeking arrow", "hunting stand"],
+        "9": ["harrying hounds", "maim"]
+      }
+    },
+    "book-toh_mercy-domain": {
+      "alwaysPrepared": {
+        "1": ["divine favor", "healing word"],
+        "3": ["aid", "ray of enfeeblement"],
+        "5": ["bardo", "revivify"],
+        "7": ["death ward", "sacrificial healing"],
+        "9": ["antilife shell", "raise dead"]
+      }
+    },
+    "book-toh_oath-of-safeguarding": {
+      "alwaysPrepared": {
+        "3": ["longstrider", "shield of faith"],
+        "5": ["hold person", "spike growth"],
+        "9": ["beacon of hope", "spirit guardians"],
+        "13": ["dimension door", "stoneskin"],
+        "17": ["greater restoration", "wall of stone"]
+      }
+    },
+    "book-toh_oath-of-the-elements": {
+      "alwaysPrepared": {
+        "3": ["burning hands", "thunderwave"],
+        "5": ["acid arrow", "flaming sphere"],
+        "9": ["call lightning", "protection from energy"],
+        "13": ["conjure minor elementals", "ice storm"],
+        "17": ["conjure elemental", "wall of stone"]
+      }
+    },
+    "book-toh_oath-of-the-guardian": {
+      "alwaysPrepared": {
+        "3": ["litany of sure hands", "shield of faith"],
+        "5": ["mantle of the brave", "spiritual weapon"],
+        "9": ["beacon of hope", "invested champion"],
+        "13": ["banishment", "inspiring speech"],
+        "17": ["creation", "hallow"]
+      }
+    },
+    "book-toh_oath-of-the-hearth": {
+      "alwaysPrepared": {
+        "3": ["burning hands", "sanctuary"],
+        "5": ["calm emotions", "flame blade"],
+        "9": ["protection from energy", "tiny hut"],
+        "13": ["guardian of faith", "wall of fire"],
+        "17": ["flame strike", "hallow"]
+      }
+    },
+    "book-toh_oath-of-the-plaguetouched": {
+      "alwaysPrepared": {
+        "3": ["bane", "protection from evil and good"],
+        "5": ["enhance ability", "lesser restoration"],
+        "9": ["life from death", "remove curse"],
+        "13": ["blight", "freedom of movement"],
+        "17": ["greater restoration", "hold monster"]
+      }
+    },
+    "book-toh_portal-domain": {
+      "alwaysPrepared": {
+        "1": ["adjust position", "expeditious retreat"],
+        "3": ["glyph of shifting", "misty step"],
+        "5": ["dimensional shove", "portal jaunt"],
+        "7": ["dimension door", "reposition"],
+        "9": ["pierce the veil", "teleportation circle"]
+      }
+    },
+    "book-toh_serpent-domain": {
+      "alwaysPrepared": {
+        "1": ["charm person", "find familiar"],
+        "3": ["enthrall", "protection from poison"],
+        "5": ["conjure animals", "hypnotic pattern"],
+        "7": ["freedom of movement", "polymorph"],
+        "9": ["dominate person", "mislead"]
+      }
+    },
+    "book-toh_vermin-domain": {
+      "alwaysPrepared": {
+        "1": ["detect poison and disease", "speak with animals"],
+        "3": ["spider climb", "web"],
+        "5": ["conjure animals", "fear"],
+        "7": ["dominate beast", "giant insect"],
+        "9": ["contagion", "insect plague"]
+      }
+    },
+    "book-toh_wind-domain": {
+      "alwaysPrepared": {
+        "1": ["feather fall", "thunderwave"],
+        "3": ["gust of wind", "misty step"],
+        "5": ["fly", "wind wall"],
+        "7": ["conjure minor elementals", "freedom of movement"],
+        "9": ["cloudkill", "conjure elemental"]
+      }
+    },
+    "book-tdcs_blood-domain": {
+      "alwaysPrepared": {
+        "1": ["sleep", "ray of sickness"],
+        "3": ["ray of enfeeblement", "crown of madness"],
+        "5": ["haste", "slow"],
+        "7": ["blight", "stoneskin"],
+        "9": ["dominate person", "hold monster"]
+      }
+    },
+    "book-open5e_demise-domain": {
+      "alwaysPrepared": {
+        "1": ["false life", "ray of sickness"],
+        "3": ["blindness/deafness", "ray of enfeeblement"],
+        "5": ["animate dead", "vampiric touch"],
+        "7": ["blight", "death ward"],
+        "9": ["antilife shell", "cloudkill"]
+      }
+    },
+    "book-open5e_mischief-domain": {
+      "alwaysPrepared": {
+        "1": ["charm person", "disguise self"],
+        "3": ["mirror image", "pass without trace"],
+        "5": ["blink", "dispel magic"],
+        "7": ["dimension door", "polymorph"],
+        "9": ["dominate person", "modify memory"]
+      }
+    },
+    "book-open5e_oathless-betrayer": {
+      "alwaysPrepared": {
+        "3": ["hellish rebuke", "inflict wounds"],
+        "5": ["crown of madness", "darkness"],
+        "9": ["animate dead", "bestow curse"],
+        "13": ["blight", "confusion"],
+        "17": ["contagion", "dominate person"]
+      }
+    },
+    "book-open5e_storm-domain": {
+      "alwaysPrepared": {
+        "1": ["fog cloud", "thunderwave"],
+        "3": ["gust of wind", "shatter"],
+        "5": ["call lightning", "sleet storm"],
+        "7": ["control water", "ice storm"],
+        "9": ["destructive wave", "insect plague"]
+      }
+    },
+    "book-toh_darakhul": {
+      "lineages": {
+        "Derro Heritage": {
+          "innateSpells": {
+            "1": ["True Strike"]
+          },
+          "spellAbility": "cha"
+        }
+      }
+    },
+    "book-toh_derro": {
+      "lineages": {
+        "Far-Touched": {
+          "innateSpells": {
+            "1": ["Vicious Mockery"],
+            "3": ["Enthrall"],
+            "5": ["Fear"]
+          },
+          "spellAbility": "cha"
+        }
+      }
+    },
+    "book-toh_drow": {
+      "lineages": {
+        "Purified": {
+          "innateSpells": {
+            "1": ["Poison Spray"],
+            "3": ["Suggestion"],
+            "5": ["Tongues"]
+          },
+          "spellAbility": "int"
+        }
+      }
+    },
+    "book-toh_mushroomfolk": {
+      "lineages": {
+        "Favored": {
+          "innateSpells": {
+            "1": ["Spare the Dying"],
+            "3": ["Bless"]
+          },
+          "spellAbility": "cha"
+        }
+      }
+    }
+  },
+  "legacySpells": [
+    {
+      "n": "Crusader's Mantle",
+      "l": 3,
+      "s": "Evocation",
+      "c": [
+        "Paladin"
+      ],
+      "t": "1 action",
+      "r": "Self (30-foot radius)",
+      "cp": "V",
+      "d": "A 30-foot aura follows you. Weapon hits by nonhostile creatures inside it, including you, deal an extra 1d4 radiant damage.",
+      "page": 230,
+      "dt": "Radiant",
+      "manualEffects": true,
+      "manualRoll": true,
+      "m": "",
+      "du": "Concentration, up to 1 minute",
+      "co": 1,
+      "ri": 0,
+      "h": "",
+      "src": "phb-2014"
+    },
+    {
+      "n": "Grasping Vine",
+      "l": 4,
+      "s": "Conjuration",
+      "c": [
+        "Druid",
+        "Ranger"
+      ],
+      "t": "1 bonus action",
+      "r": "30 feet",
+      "cp": "VS",
+      "d": "A vine appears in a visible unoccupied space on the ground. Choose a visible creature within 30 feet of the vine. On a failed Dexterity save, the vine pulls it 20 feet toward itself. Repeat against a creature as a bonus action on later turns.",
+      "page": 246,
+      "sv": "DEX",
+      "manualEffects": true,
+      "m": "",
+      "du": "Concentration, up to 1 minute",
+      "co": 1,
+      "ri": 0,
+      "h": "",
+      "src": "phb-2014"
+    }
+  ]
+}
