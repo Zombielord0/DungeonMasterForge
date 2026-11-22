@@ -2,6 +2,10 @@
    When a change ships, add an entry to the top of NEWS with a new id, in plain words for players and DMs. */
 
 const NEWS = [
+  { id: "2026-11-21-feats-and-parchment", date: "2026-11-21", title: "Feat spells and parchment previews", go: "roster", items: [
+    "Feat benefits now appear under Abilities. Supported feat spells appear under Spells with their source and tracked free casts.",
+    "Generated adventures and monster stat blocks have warmer parchment, ink headings, and roomier layouts on phones."
+  ] },
   { id: "2026-11-21-browse-compendium", date: "2026-11-21", title: "Browse the Compendium", go: "compendium", items: [
     "Open the Compendium to see entries right away. Use Edition, Type, or the page buttons to browse.",
     "Type part of a name or source to narrow the list. Clear the search to browse again."

@@ -176,9 +176,9 @@ spFiltersSync();
   main.addEventListener("click", e => {
     const c = rosterCur(); if (!c) return;
     const cr = e.target.closest("[data-choicerm]");
-    if (cr) { const [k, ...id] = cr.dataset.choicerm.split("|"); c.choices = { ...(c.choices || {}) }; c.choices[k] = choiceOf(c, k).filter(x => x !== id.join("|")); pcRecompute(c); pcPersist(); renderRosterMain(); return; }
+    if (cr) { const [k, ...id] = cr.dataset.choicerm.split("|"); c.choices = { ...(c.choices || {}) }; c.choices[k] = choiceOf(c, k).filter(x => x !== id.join("|")); syncGrantedSpells(c); pcRecompute(c); pcPersist(); renderRosterMain(); return; }
     const mr = e.target.closest("[data-mirm]");
-    if (mr) { const k = "Feat: Magic Initiate"; c.choices = { ...(c.choices || {}) }; c.choices[k] = choiceOf(c, k).filter(x => x !== mr.dataset.mirm); miSync(c); pcPersist(); renderRosterMain(); return; }
+    if (mr) { const k = "Feat: Magic Initiate"; c.choices = { ...(c.choices || {}) }; c.choices[k] = choiceOf(c, k).filter(x => x !== mr.dataset.mirm); syncGrantedSpells(c); pcRecompute(c); pcPersist(); renderRosterMain(); return; }
     const cb = e.target.closest("[data-spell]");
     if (cb && cb.closest("#rcPrepared")) { const [ed, ...n] = cb.dataset.spell.split("|"); castDialog(c, ed, n.join("|")); return; }
     const rb = e.target.closest("[data-roll], [data-quick-roll]");
@@ -223,8 +223,8 @@ spFiltersSync();
     else if (t.dataset.fstyle !== undefined) { c.fightStyles = c.fightStyles || []; c.fightStyles[+t.dataset.fstyle] = t.value; pcRecompute(c); pcPersist(); renderRosterMain(); }
     else if (t.name === "rollMode") { ROLL.mode = t.value; }
     else if (t.dataset.varenc !== undefined) { c.varEnc = t.checked; pcRecompute(c); pcPersist(); renderRosterMain(); }
-    else if (t.dataset.choice) { if (t.value) { const k = t.dataset.choice; c.choices = { ...(c.choices || {}) }; c.choices[k] = [...choiceOf(c, k), t.value]; pcRecompute(c); pcPersist(); renderRosterMain(); const f = $(`[data-choice="${CSS.escape(k)}"]`, main); if (f) f.focus(); } }
-    else if (t.dataset.mi) { if (t.value) { const k = "Feat: Magic Initiate"; c.choices = { ...(c.choices || {}) }; let L = choiceOf(c, k); if (t.dataset.mi === "list") L = [`list:${t.value}`]; else L = [...L.filter(x => !x.startsWith("list:")), ...(miState(c).list ? [] : [`list:${miLists(c)[0]}`]), `${t.dataset.mi}:${t.value}`, ...L.filter(x => x.startsWith("list:"))]; c.choices[k] = [...new Set(L)]; miSync(c); pcPersist(); renderRosterMain(); } }
+    else if (t.dataset.choice) { if (t.value) { const k = t.dataset.choice; c.choices = { ...(c.choices || {}) }; c.choices[k] = [...choiceOf(c, k), t.value]; syncGrantedSpells(c); pcRecompute(c); pcPersist(); renderRosterMain(); const f = $(`[data-choice="${CSS.escape(k)}"]`, main); if (f) f.focus(); } }
+    else if (t.dataset.mi) { if (t.value) { const k = "Feat: Magic Initiate"; c.choices = { ...(c.choices || {}) }; let L = choiceOf(c, k); if (t.dataset.mi === "list") L = [`list:${t.value}`]; else L = [...L, `${t.dataset.mi}:${t.value}`]; c.choices[k] = [...new Set(L)]; syncGrantedSpells(c); pcRecompute(c); pcPersist(); renderRosterMain(); } }
     else if (t.dataset.concset !== undefined) { const v = t.value.trim().slice(0, 60); if (v) { concStart(c, v); pcPersist(); renderRosterMain(); } }
     else if (t.dataset.rf === "hpCur" || t.hasAttribute("data-quick-hp")) {
       const quick = t.hasAttribute("data-quick-hp");

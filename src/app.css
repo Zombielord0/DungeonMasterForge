@@ -634,24 +634,24 @@ html{scrollbar-color:#6b4a26 #0a0b14}
   --ink-d:#2b1d0e;--ink-m:#6b5236;--oxblood:#7e2316;--ink-h:#5a1a0e;
 }
 /* parchment surfaces */
-#genOut>.card:first-child:not(.empty),#npcOut .npc-card,#fgOut.fg-monster .card,#fgOut.fg-monster .sec{
+#genOut>.card:not(.empty),#genOut>.sec,#npcOut .npc-card,#fgOut.fg-monster .card,#fgOut.fg-monster .sec,#mbPreview{
   background:var(--parch)!important;color:var(--ink-d);border-color:#6b4a22!important;border-radius:3px 7px 4px 6px;
   box-shadow:inset 0 0 38px rgba(120,66,18,.55),inset 0 0 6px rgba(60,30,5,.75),0 10px 28px rgba(0,0,0,.7)!important;backdrop-filter:none;-webkit-backdrop-filter:none}
 details.brief>div{background:var(--parch);color:var(--ink-d);border-radius:3px 6px 4px 5px;padding:12px 16px!important;margin-top:8px!important;
   box-shadow:inset 0 0 26px rgba(120,66,18,.5),inset 0 0 4px rgba(60,30,5,.7),0 4px 12px rgba(0,0,0,.55)}
-:is(#genOut>.card:first-child:not(.empty),#npcOut .npc-card,#fgOut.fg-monster .card,#fgOut.fg-monster .sec,details.brief>div) :is(h1,h2,h3,h4,.gen-title,.sb-name,.sb-h,.sec-h h3){color:var(--ink-h)!important;text-shadow:0 1px 0 rgba(255,245,220,.5)!important}
-:is(#genOut>.card:first-child:not(.empty),#npcOut .npc-card,#fgOut.fg-monster .card,#fgOut.fg-monster .sec,details.brief>div) :is(.muted,.k,.sb-sub,.hint){color:var(--ink-m)!important}
-:is(#genOut>.card:first-child:not(.empty),#npcOut .npc-card,#fgOut.fg-monster .card,#fgOut.fg-monster .sec,details.brief>div) b{color:#3d230c}
-:is(#genOut>.card:first-child:not(.empty),#npcOut .npc-card,#fgOut.fg-monster .card,#fgOut.fg-monster .sec) .tag{background:rgba(110,70,20,.12);border-color:#a8875a;box-shadow:none;color:#4a3418}
-:is(#genOut>.card:first-child:not(.empty),#npcOut .npc-card,#fgOut.fg-monster .card,#fgOut.fg-monster .sec) .tag.gold{color:var(--oxblood);border-color:#9a5a2a;font-weight:600}
-:is(#genOut>.card:first-child:not(.empty),#fgOut.fg-monster .card) .premise::first-letter{color:var(--oxblood);text-shadow:0 1px 0 rgba(255,245,220,.6)}
+:is(#genOut>.card:not(.empty),#genOut>.sec,#npcOut .npc-card,#fgOut.fg-monster .card,#fgOut.fg-monster .sec,#mbPreview,details.brief>div) :is(h1,h2,h3,h4,.gen-title,.sb-name,.sb-h,.sec-h h3){color:var(--ink-h)!important;text-shadow:0 1px 0 rgba(255,245,220,.5)!important}
+:is(#genOut>.card:not(.empty),#genOut>.sec,#npcOut .npc-card,#fgOut.fg-monster .card,#fgOut.fg-monster .sec,#mbPreview,details.brief>div) :is(.muted,.k,.sb-sub,.hint){color:var(--ink-m)!important}
+:is(#genOut>.card:not(.empty),#genOut>.sec,#npcOut .npc-card,#fgOut.fg-monster .card,#fgOut.fg-monster .sec,#mbPreview,details.brief>div) b:not(.btn b){color:#3d230c}
+:is(#genOut>.card:not(.empty),#genOut>.sec,#npcOut .npc-card,#fgOut.fg-monster .card,#fgOut.fg-monster .sec,#mbPreview) .tag{background:rgba(110,70,20,.12);border-color:#a8875a;box-shadow:none;color:#4a3418}
+:is(#genOut>.card:not(.empty),#genOut>.sec,#npcOut .npc-card,#fgOut.fg-monster .card,#fgOut.fg-monster .sec,#mbPreview) .tag.gold{color:var(--oxblood);border-color:#9a5a2a;font-weight:600}
+:is(#genOut>.card:not(.empty),#fgOut.fg-monster .card) .premise::first-letter{color:var(--oxblood);text-shadow:0 1px 0 rgba(255,245,220,.6)}
 :is(#npcOut .npc-card,#fgOut.fg-monster .card) .quote{color:#3d230c;background:rgba(110,70,20,.1);border-left-color:var(--oxblood)}
 :is(#npcOut .npc-card,#fgOut.fg-monster .card,#fgOut.fg-monster .sec) dt{color:var(--oxblood)!important;text-shadow:none!important}
-:is(#genOut>.card:first-child:not(.empty),#npcOut .npc-card,#fgOut.fg-monster .card,#fgOut.fg-monster .sec) .icon-btn{color:var(--ink-m)}
-:is(#genOut>.card:first-child:not(.empty),#npcOut .npc-card,#fgOut.fg-monster .card,#fgOut.fg-monster .sec) .icon-btn:hover{color:var(--oxblood);border-color:#a8875a}
-:is(#genOut>.card:first-child:not(.empty),#npcOut .npc-card,#fgOut.fg-monster .card,#fgOut.fg-monster .sec) a{color:var(--oxblood)}
-:is(#genOut>.card:first-child:not(.empty),#npcOut .npc-card,#fgOut.fg-monster .card,#fgOut.fg-monster .sec) .sec-h{border-image:linear-gradient(90deg,rgba(126,35,22,.55),rgba(126,35,22,0) 70%) 1}
-:is(#genOut>.card:first-child:not(.empty),#npcOut .npc-card,#fgOut.fg-monster .card,#fgOut.fg-monster .sec)::after{opacity:.3!important}
+:is(#genOut>.card:not(.empty),#genOut>.sec,#npcOut .npc-card,#fgOut.fg-monster .card,#fgOut.fg-monster .sec,#mbPreview) .icon-btn{color:var(--ink-m)}
+:is(#genOut>.card:not(.empty),#genOut>.sec,#npcOut .npc-card,#fgOut.fg-monster .card,#fgOut.fg-monster .sec,#mbPreview) .icon-btn:hover{color:var(--oxblood);border-color:#a8875a}
+:is(#genOut>.card:not(.empty),#genOut>.sec,#npcOut .npc-card,#fgOut.fg-monster .card,#fgOut.fg-monster .sec,#mbPreview) a{color:var(--oxblood)}
+:is(#genOut>.card:not(.empty),#genOut>.sec,#npcOut .npc-card,#fgOut.fg-monster .card,#fgOut.fg-monster .sec,#mbPreview) .sec-h{border-image:linear-gradient(90deg,rgba(126,35,22,.55),rgba(126,35,22,0) 70%) 1}
+:is(#genOut>.card:not(.empty),#genOut>.sec,#npcOut .npc-card,#fgOut.fg-monster .card,#fgOut.fg-monster .sec,#mbPreview)::after{opacity:.3!important}
 /* wax seal on the adventure page */
 #genOut>.card:first-child:not(.empty){padding-bottom:62px;background:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 60 60'%3E%3Cdefs%3E%3CradialGradient id='w' cx='38%25' cy='32%25' r='70%25'%3E%3Cstop offset='0' stop-color='%23d2443a'/%3E%3Cstop offset='.6' stop-color='%23941e18'/%3E%3Cstop offset='1' stop-color='%235a0e0b'/%3E%3C/radialGradient%3E%3C/defs%3E%3Cpath d='M30 3c5 0 7 3 11 4s8 1 10 5 0 7 2 11 4 7 2 11-5 5-6 9-1 8-5 10-7 0-11 2-6 4-10 2-6-4-10-4-8-1-10-5 0-7-2-11-4-7-2-11 5-5 6-9 1-8 5-10 7 0 11-2 5-2 9-2z' fill='url(%23w)'/%3E%3Ccircle cx='30' cy='31' r='15' fill='none' stroke='%235a0e0b' stroke-width='2'/%3E%3Ccircle cx='30' cy='31' r='15' fill='none' stroke='%23e46a5a' stroke-width='.6' opacity='.6' transform='translate(-.7 -.7)'/%3E%3Cpath d='M30 20l9.5 5.5v11L30 42l-9.5-5.5v-11z' fill='none' stroke='%235a0e0b' stroke-width='1.8'/%3E%3Cpath d='M30 20l9.5 16.5h-19z' fill='none' stroke='%235a0e0b' stroke-width='1.4'/%3E%3C/svg%3E") right 16px bottom 12px/50px 50px no-repeat,var(--parch)!important}
 /* NPC portrait medallion */
@@ -669,14 +669,69 @@ details.brief>div{background:var(--parch);color:var(--ink-d);border-radius:3px 6
 #fgOut.fg-villain .ab,#fgOut.fg-villain .mini{background:linear-gradient(rgba(20,4,6,.75),rgba(34,8,10,.75))}
 #fgOut.fg-villain .ab .m{color:#ffb08f}
 /* monster: bestiary page stat block */
-#fgOut.fg-monster .sb-rule{background:linear-gradient(90deg,var(--oxblood),rgba(126,35,22,0))}
-#fgOut.fg-monster .sb-l b{color:var(--oxblood)}
-#fgOut.fg-monster .sb-h{border-bottom-color:rgba(126,35,22,.45)}
-#fgOut.fg-monster :is(.ab,.mini,.vit){background:rgba(110,70,20,.12)!important;border-color:#a8875a!important;box-shadow:inset 0 1px 3px rgba(80,40,10,.3)!important;color:var(--ink-d)}
-#fgOut.fg-monster .ab .n{color:var(--ink-m)}
-#fgOut.fg-monster .ab .m{color:var(--oxblood);text-shadow:none}
-#fgOut.fg-monster .ab .s{background:rgba(110,70,20,.15)}
-#fgOut.fg-monster table :is(th,td){border-color:#a8875a}
+:is(#fgOut.fg-monster,#mbPreview) .sb-rule{background:linear-gradient(90deg,var(--oxblood),rgba(126,35,22,0))}
+:is(#fgOut.fg-monster,#mbPreview) .sb-l b{color:var(--oxblood)}
+:is(#fgOut.fg-monster,#mbPreview) .sb-h{border-bottom-color:rgba(126,35,22,.45)}
+:is(#fgOut.fg-monster,#mbPreview) :is(.ab,.mini,.vit){background:rgba(110,70,20,.12)!important;border-color:#a8875a!important;box-shadow:inset 0 1px 3px rgba(80,40,10,.3)!important;color:var(--ink-d)}
+:is(#fgOut.fg-monster,#mbPreview) .ab .n{color:var(--ink-m)}
+:is(#fgOut.fg-monster,#mbPreview) .ab .m{color:var(--oxblood);text-shadow:none}
+:is(#fgOut.fg-monster,#mbPreview) .ab .s{background:rgba(110,70,20,.15)}
+:is(#fgOut.fg-monster,#mbPreview) table :is(th,td){border-color:#a8875a}
+/* Printed-page styling for generated adventures and the bestiary preview. */
+:is(#genOut,#fgOut.fg-monster,#mbPreview){
+  --grit:none;
+  --parch:var(--noise),
+    radial-gradient(ellipse at 16% 6%,rgba(255,250,228,.9),transparent 58%),
+    radial-gradient(ellipse at 93% 94%,rgba(131,77,29,.24),transparent 38%),
+    linear-gradient(112deg,#f4e5c1,#ebd6ab 62%,#dbc08c);
+}
+:is(#genOut>.card:not(.empty),#genOut>.sec,#fgOut.fg-monster .card,#fgOut.fg-monster .sec,#mbPreview){
+  border-color:#886138!important;
+  padding-inline:clamp(16px,3vw,30px);
+  box-shadow:inset 0 0 0 4px rgba(120,77,40,.23),inset 0 0 26px rgba(119,63,18,.27),0 8px 24px rgba(0,0,0,.53)!important;
+  overflow-wrap:anywhere;
+}
+:is(#genOut>.card:not(.empty),#genOut>.sec,#fgOut.fg-monster .card,#fgOut.fg-monster .sec,#mbPreview)::before{
+  inset:7px;
+  border:1px solid rgba(114,67,33,.36);
+  border-radius:2px 5px 3px 4px;
+  background:none;
+}
+:is(#genOut,#fgOut.fg-monster,#mbPreview) :is(.gen-title,.sb-name){line-height:1.2}
+:is(#genOut>.sec,#fgOut.fg-monster) .grid2{grid-template-columns:repeat(auto-fit,minmax(min(100%,240px),1fr))}
+:is(#genOut>.sec,#fgOut.fg-monster) .mini{
+  background:rgba(255,249,228,.35);
+  border-color:#b99b70!important;
+  box-shadow:inset 0 0 0 2px rgba(255,248,228,.3);
+}
+#genOut :is(.scene-t,.act,details.brief>summary){color:var(--ink-h);text-shadow:none}
+#genOut .enc{
+  background:rgba(118,72,35,.1);
+  border-left-color:var(--oxblood);
+}
+#genOut ol.scenes>li{border-color:rgba(111,72,41,.25);box-shadow:none}
+#genOut ol.scenes>li::before{
+  color:var(--ink-h);
+  border:1px solid #a5794d;
+  background:rgba(135,82,39,.12);
+  box-shadow:none;
+}
+#genOut details.brief>div{
+  background:rgba(255,249,228,.42);
+  border:1px solid #b99b70;
+  border-left:3px solid var(--oxblood);
+  box-shadow:none;
+}
+#mbPreview .mb-desc{
+  color:var(--ink-m);
+  margin:12px 0 0;
+  padding-top:8px;
+  border-top:1px solid rgba(126,35,22,.36);
+}
+@media (max-width:560px){
+  :is(#fgOut.fg-monster,#mbPreview) .statblock .abil{grid-template-columns:repeat(3,minmax(0,1fr))}
+  #genOut .sec-h{flex-wrap:wrap}
+}
 /* spell schools */
 .sp-row.sch-abjuration{--sch:#74aaff}.sp-row.sch-conjuration{--sch:#f2c14e}.sp-row.sch-divination{--sch:#8fe3e0}.sp-row.sch-enchantment{--sch:#ff8fd2}
 .sp-row.sch-evocation{--sch:#ff7a3d}.sp-row.sch-illusion{--sch:#b48cff}.sp-row.sch-necromancy{--sch:#9ccf5a}.sp-row.sch-transmutation{--sch:#5fd3b0}
@@ -739,7 +794,7 @@ details.brief>div{background:var(--parch);color:var(--ink-d);border-radius:3px 6
 .mb-li textarea{grid-column:1/-1;min-height:60px}
 .mb-li .mb-tools{display:flex;gap:4px}
 .mb-atk{margin-bottom:6px}.mb-atk summary{cursor:pointer;color:var(--gold2)}
-#mbPreview .mb-desc{font-style:italic;margin:0 0 10px}
+#mbPreview .mb-desc{font-style:italic}
 .mb-libitem{display:flex;gap:6px;align-items:center;margin-bottom:6px}.mb-libitem .camp-item{margin:0;flex:1}
 /* ======================= Player & DM portals ======================= */
 .gate-wait main,.gate-wait nav{visibility:hidden}

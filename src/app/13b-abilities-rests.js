@@ -40,6 +40,8 @@ function pcResources(c) {
   if (has("Favored Enemy") && ed === "2024") add("hmark", "Free Hunter's Mark", CLV("Ranger") >= 17 ? 6 : CLV("Ranger") >= 13 ? 5 : CLV("Ranger") >= 9 ? 4 : CLV("Ranger") >= 5 ? 3 : 2, "long");
   if (has("Arcane Recovery")) add("arcrec", "Arcane Recovery", 1, "long");
   if (has("Stroke of Luck")) add("luck", "Stroke of Luck", 1, "short");
+  if (ed === "2024" && featTaken(c, "Ritual Caster")) add("featQuickRitual", "Quick Ritual", 1, "long");
+  if (ed === "2024" && featTaken(c, "Mage Slayer")) add("featGuardedMind", "Guarded Mind", 1, "short");
   if (featTaken(c, "Lucky")) add("luckfeat", "Luck points", ed === "2024" ? prof : 3, "long");
   if (c.race === "Dragonborn") add("breath", "Breath Weapon", ed === "2024" ? prof : 1, ed === "2024" ? "long" : "short");
   if (tr("Healing Hands")) add("hhands", "Healing Hands", 1, "long");
@@ -100,7 +102,16 @@ function pcAbilities(c) {
   if (has("Font of Magic")) add("Font of Magic", "Bonus action", "Turn a spell slot into sorcery points, or spend 2/3/5/6/7 points for a level 1–5 slot.", "sorc");
   if (has("Metamagic")) add("Metamagic", "When casting", "Spend sorcery points to change a spell: Quickened (2), Twinned (spell level), Subtle, Careful, Distant, Empowered, Extended (1).", "sorc");
   if (has("Arcane Recovery")) add("Arcane Recovery", "Short rest", `Recover spell slots with a combined level up to ${Math.ceil(CLV("Wizard") / 2)} (none above 5th).`, "arcrec");
-  if (featTaken(c, "Lucky")) add("Lucky (feat)", "On a roll", ed === "2024" ? "Spend a luck point: advantage on a d20 test, or disadvantage on an attack roll against you." : "Spend a luck point: roll an extra d20 for an attack, check or save (or an attack against you) and choose which to use.", "luckfeat");
+  for (const feat of activeCharacterFeats(c)) {
+    if (feat === "Telekinetic") {
+      const dc = 8 + prof + m[featCastingAbility(c, feat)];
+      add("Telekinetic Shove", "Bonus action", `Choose a creature you can see within 30 ft. It makes a Strength save (DC ${dc}) or moves 5 ft toward or away from you. It can choose to fail.`, null, "Feat · Telekinetic");
+    } else if (feat === "Mage Slayer" && ed === "2024") {
+      add("Guarded Mind", "On a failed save", "Turn a failed Intelligence, Wisdom, or Charisma saving throw into a success.", "featGuardedMind", "Feat · Mage Slayer");
+    }
+    const text = featDesc("Feat: " + feat, c);
+    if (text) add(feat === "Lucky" ? "Lucky (feat)" : feat, feat === "Lucky" ? "On a roll" : "Feat", text, feat === "Lucky" ? "luckfeat" : null);
+  }
   if (has("Stroke of Luck")) add("Stroke of Luck", "Free", "Turn a missed attack into a hit, or treat a failed ability check's d20 as a 20.", "luck");
   if (c.race === "Dragonborn") { const x = (c.extras || []).find(e => e.startsWith("Breath Weapon")); if (x) add("Breath Weapon", ed === "2024" ? "Replaces an attack" : "Action", x.replace(/^Breath Weapon \([^)]*\):\s*/, "").replace(/, (\d+ uses per long rest|once per short or long rest)$/, ""), "breath"); }
   if (tr("Healing Hands")) add("Healing Hands", "Action", `Touch a creature and heal ${prof}d4 hit points.`, "hhands");
@@ -134,6 +145,7 @@ const DMG_LIST = ["acid", "cold", "fire", "lightning", "necrotic", "poison", "ps
    choices: [[id, label]] or (c) => [...]. cost: uses spent (default 1). fx(c, choice): effects while on.
    start(c, choice) / use(c, choice): what happens when activated or used; returns the message to show. */
 const ACT = {
+  "Telekinetic Shove": { kind: "instant", use: c => `Telekinetic Shove: Strength save DC ${8 + c.prof + c.mods[featCastingAbility(c, "Telekinetic")]}. On a failure, pull or push 5 ft.` },
   // ---------- Barbarian
   Rage: { kind: "toggle", fx: c => ({ atk: [{ f: "strMelee", dmg: rageDmg(c), label: `Rage +${rageDmg(c)}` }], res: ["bludgeoning", "piercing", "slashing"], notes: ["Advantage on Strength checks and Strength saving throws", "You can't cast spells or concentrate while raging"] }),
     start: c => { const tree = c.subclass === "Path of the World Tree" && c.level >= 3 && giveTemp(c, c.level); if (c.conc) { toast(`Rage ends your concentration on ${c.conc.spell}.`); delete c.conc; } return `${c.name} rages: +${rageDmg(c)} damage on Strength melee attacks, resistance to bludgeoning, piercing and slashing.${tree ? ` Vitality of the Tree: ${c.level} temporary hit points.` : ""}`; } },

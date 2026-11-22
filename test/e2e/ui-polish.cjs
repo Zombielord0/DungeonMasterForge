@@ -130,6 +130,21 @@ const EMOJI = /\p{Extended_Pictographic}/u;
     check("phone: Forge Adventure brings the adventure into view", gt >= -5 && gt < 250, `${Math.round(gt)}px`);
     const lv = await p.evaluate(() => [...document.querySelectorAll("#genOut .scene-t .lvl")].every(x => getComputedStyle(x).whiteSpace === "nowrap"));
     check("phone: chapter level tags stay on one line", lv);
+    check("phone: adventure chapters render as parchment with dark ink",
+      await p.locator("#genOut > .sec").first().evaluate(el => {
+        const css = getComputedStyle(el);
+        return css.backgroundImage.includes("radial-gradient") && css.color === "rgb(43, 29, 14)"
+          && el.scrollWidth <= el.clientWidth + 2;
+      }));
+    await p.goto(URL + "#monsters");
+    await p.locator('label:has(input[name="monMode"][value="build"])').click();
+    await p.locator("#mbPreview .statblock").waitFor();
+    check("phone: the monster editor preview uses parchment and three ability columns",
+      await p.locator("#mbPreview").evaluate(el => {
+        const css = getComputedStyle(el);
+        return css.backgroundImage.includes("radial-gradient") && css.color === "rgb(43, 29, 14)"
+          && getComputedStyle(el.querySelector(".abil")).gridTemplateColumns.split(" ").length === 3;
+      }));
     await p.goto(URL + "#character"); await p.waitForTimeout(400);
     await p.click("#pcForgeBtn"); await p.waitForTimeout(900);
     const ct = await p.evaluate(() => document.querySelector("#rosterMain").getBoundingClientRect().top);

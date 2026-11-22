@@ -635,6 +635,6 @@ function featsSecHTML(c) {
   const all = [...bgf, ...lv, ...bonus];
   return `<div class="sec"><div class="sec-h"><h3>Feats</h3><span class="sp"></span><button class="btn sm primary" type="button" data-ra="addFeat">+ Add feat</button></div>
     ${all.length ? `<ul class="plain">${all.map(x => { const d = featDesc("Feat: " + x.n, c); return `<li><b>${esc(x.n)}</b>${x.a ? ` <span class="tag">+1 ${AB_NAME[x.a]}</span>` : ""} <span class="muted" style="font-size:13px">(${esc(x.src)})</span>
-      ${x.i !== undefined ? `<button class="icon-btn" type="button" data-rmfeat="${x.i}" title="Remove ${esc(x.n)}" aria-label="Remove ${esc(x.n)}">✕</button>` : ""}${d ? `<div class="ft-desc">${esc(d)}</div>` : ""}${x.n === "Magic Initiate" ? miHTML(c) : CHOICES["Feat: " + x.n] ? choiceHTML(c, "Feat: " + x.n) : ""}</li>`; }).join("")}</ul>`
+      ${x.i !== undefined ? `<button class="icon-btn" type="button" data-rmfeat="${x.i}" title="Remove ${esc(x.n)}" aria-label="Remove ${esc(x.n)}">✕</button>` : ""}${d ? `<div class="ft-desc">${esc(d)}</div>` : ""}${choiceHTML(c, "Feat: " + x.n)}${featSpellChoicesHTML(c, x.n)}</li>`; }).join("")}</ul>`
       : `<p class="muted" style="margin:6px 0 0">No feats yet. Take one instead of an Ability Score Improvement when levelling up, or add one with + Add feat.</p>`}</div>`;
 }

@@ -361,20 +361,20 @@ function sheetDoc(c) {
       <div class="box"><div class="free" style="min-height:2in">${esc(c.featNotes || "")}</div><div class="boxt">Additional features &amp; traits</div></div>
       <div class="box"><div class="blank"></div><div class="boxt">Treasure</div></div></div>
   </div>${foot(2)}</div>`;
-  if (!c.spell) return p1 + p2;
-  // page 3: spellcasting
-  const lv = c.level, pact = !!c.spell.note, pn = lv >= 17 ? 4 : lv >= 11 ? 3 : lv >= 2 ? 2 : 1, psl = Math.min(5, Math.ceil(lv / 2));
-  const slotsFor = l => pact ? (l === psl ? pn : 0) : (c.spell.slots[l - 1] || 0);
   const P = sheetPreparedSpells(c);
+  if (!c.spell && !P.length) return p1 + p2;
+  // page 3: spellcasting
+  const lv = c.level, pact = !!c.spell?.note, pn = lv >= 17 ? 4 : lv >= 11 ? 3 : lv >= 2 ? 2 : 1, psl = Math.min(5, Math.ceil(lv / 2));
+  const slotsFor = l => pact ? (l === psl ? pn : 0) : (c.spell?.slots[l - 1] || 0);
   const box = l => {
     const sp = P.filter(p => p.l === l).sort((a, b) => a.n.localeCompare(b.n));
     const rows = Math.max(l === 0 ? 8 : l <= 3 ? 12 : l <= 6 ? 9 : 7, sp.length);
     return `<div class="slv"><div class="slvh"><b>${l}</b>${l === 0 ? `<span class="lab">Cantrips</span>` : `<span class="lab">Slots total</span><span class="sl">${slotsFor(l) || "&nbsp;"}</span><span class="lab">Expended</span><span class="sl">&nbsp;</span>`}</div>
-      ${Array.from({ length: rows }, (_, i) => `<div class="sline">${l ? `<span class="dot ${sp[i] ? "f" : ""}"></span>` : ""}${sp[i] ? esc(sp[i].n) : ""}</div>`).join("")}</div>`;
+      ${Array.from({ length: rows }, (_, i) => `<div class="sline">${l ? `<span class="dot ${sp[i] ? "f" : ""}"></span>` : ""}${sp[i] ? esc(sp[i].n) : ""}${sp[i]?.sources?.some(g => g.kind === "feat") ? `<span class="lab">${esc(sp[i].sources.filter(g => g.kind === "feat").map(g => g.name).join(", "))}</span>` : ""}</div>`).join("")}</div>`;
   };
   const cols = [[0, 1, 2], [3, 4, 5], [6, 7, 8, 9]];
-  const p3 = `<div class="page"><div class="shdr"><div class="namebox" style="border:2px solid #111;border-radius:10px 0 0 10px;padding:8px 10px"><div class="v" style="font-size:16px;font-weight:bold;border-bottom:1px solid #999">${esc(c.cls)}</div><div class="lab">Spellcasting class</div></div>
-    <div class="hgrid" style="border:2px solid #111;border-radius:0 10px 10px 0;padding:6px 10px">${field(AB_FULL[c.spell.ab], "Spellcasting ability")}${field(c.spell.dc, "Spell save DC")}${field(sgn(c.spell.atk), "Spell attack bonus")}</div></div>
+  const p3 = `<div class="page"><div class="shdr"><div class="namebox" style="border:2px solid #111;border-radius:10px 0 0 10px;padding:8px 10px"><div class="v" style="font-size:16px;font-weight:bold;border-bottom:1px solid #999">${esc(c.spell ? c.cls : "Granted spells")}</div><div class="lab">Spellcasting</div></div>
+    <div class="hgrid" style="border:2px solid #111;border-radius:0 10px 10px 0;padding:6px 10px">${c.spell ? field(AB_FULL[c.spell.ab], "Spellcasting ability") + field(c.spell.dc, "Spell save DC") + field(sgn(c.spell.atk), "Spell attack bonus") : ""}</div></div>
     ${pact ? `<p style="margin:0 0 8px"><b>Pact Magic:</b> ${esc(c.spell.note)}.</p>` : ""}
     <div class="sgrid">${cols.map(col => `<div>${col.map(l => `<div style="margin-bottom:8px">${box(l)}</div>`).join("")}</div>`).join("")}</div>${foot(3)}</div>`;
   return p1 + p2 + p3;

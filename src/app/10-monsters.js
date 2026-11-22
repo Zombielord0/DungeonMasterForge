@@ -800,7 +800,7 @@ function mbPreview() {
     const m = mbCompile(MB.f), pb = bsPB(m.cr);
     $("#mbCRHint").textContent = `Proficiency bonus ${sgn(pb)} · ${(xpOf(m.cr) || 0).toLocaleString()} XP · ${m.hp} hit points`;
     $("#mbHP").placeholder = `Average: ${mbCompile({ ...MB.f, hp: "" }).hp}`;
-    $("#mbPreview").innerHTML = `${m.desc ? `<p class="mb-desc">${esc(m.desc)}</p>` : ""}${bsSbHTML(m, "custom")}`;
+    $("#mbPreview").innerHTML = `${bsSbHTML(m, "custom")}${m.desc ? `<p class="mb-desc">${esc(m.desc)}</p>` : ""}`;
   }, 80);
 }
 function mbRenderLib() {
