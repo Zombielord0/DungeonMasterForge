@@ -37,12 +37,19 @@ const server = http.createServer((req, res) => {
     check(`${size}: the picker lists built-in, book and homebrew subclasses`, ["Oath of Devotion", "Oathbreaker", "OathBreaker"].every(n => listed.includes(n)), JSON.stringify(listed.slice(0, 12)));
     await p.click("#lvModal [data-lvno]");
     check(`${size}: Cancel keeps the subclass`, await p.evaluate(() => pcById("pc-subchange").subclass) === "OathBreaker");
-    // pick the real Oathbreaker
+    // pick the real Oathbreaker (with the character hurt: 10 HP down, which a subclass change must not heal)
+    await p.evaluate(() => { const c = pcById("pc-subchange"); c.hpCur = c.hp - 10; c.hpWas = c.hpCur; pcPersist(); });
     await btn.first().click(); await p.locator("#lvModal.open").waitFor();
     await p.click('#lvModal [data-lvsub="Oathbreaker"]'); await p.click("#lvModal [data-lvyes]");
     await p.waitForTimeout(300);
-    const after = await p.evaluate(() => { const c = pcById("pc-subchange"); return { sub: c.subclass, scores: JSON.stringify(Object.keys(c.scores).sort().map(k => [k, c.scores[k]])), lv: c.level, name: c.name, feats: c.feats.map(f => f.f), shown: document.querySelector("#rosterMain").textContent.includes("Aura of Hate"), saved: (JSON.parse(localStorage.getItem("dmforge.pcs.v1") || "{}").roster || JSON.parse(localStorage.getItem("dmforge.pcs.v1") || "[]")).some?.(x => x.id === "pc-subchange" && x.subclass === "Oathbreaker") }; });
+    const after = await p.evaluate(() => { const c = pcById("pc-subchange"); return { hpCur: c.hpCur, hpWas: c.hpWas, sub: c.subclass, scores: JSON.stringify(Object.keys(c.scores).sort().map(k => [k, c.scores[k]])), lv: c.level, name: c.name, feats: c.feats.map(f => f.f), shown: document.querySelector("#rosterMain").textContent.includes("Aura of Hate"), saved: (JSON.parse(localStorage.getItem("dmforge.pcs.v1") || "{}").roster || JSON.parse(localStorage.getItem("dmforge.pcs.v1") || "[]")).some?.(x => x.id === "pc-subchange" && x.subclass === "Oathbreaker") }; });
     check(`${size}: changing to the book Oathbreaker gives its features (Aura of Hate) and drops the old copy's`, after.sub === "Oathbreaker" && after.feats.includes("Aura of Hate") && !after.feats.includes("Old Copy Feature") && after.shown, JSON.stringify(after.feats));
+    check(`${size}: changing the subclass doesn't heal the character`, after.hpCur === after.hpWas, JSON.stringify([after.hpCur, after.hpWas]));
+    // keeping the same subclass just closes the window: no rebuild, HP untouched
+    const same = await p.evaluate(() => { const c = pcById("pc-subchange"); c.hpCur = 7; c.feats.push({ l: 1, f: "Marker Kept" }); return true; });
+    await btn.first().click(); await p.locator("#lvModal.open").waitFor(); await p.click("#lvModal [data-lvyes]"); await p.waitForTimeout(200);
+    const kept = await p.evaluate(() => { const c = pcById("pc-subchange"); return { hp: c.hpCur, marker: c.feats.some(f => f.f === "Marker Kept"), open: document.querySelector("#lvModal").classList.contains("open") }; });
+    check(`${size}: keeping the same subclass closes the window without rebuilding`, same && kept.hp === 7 && kept.marker && !kept.open, JSON.stringify(kept));
     check(`${size}: level, scores and name stay the same`, after.lv === before.lv && after.scores === before.scores && after.name === "Buster", JSON.stringify([after.lv, after.scores, after.name]));
 
     // an imported character (its scores come from the file) keeps them when its subclass changes

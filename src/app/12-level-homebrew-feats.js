@@ -286,6 +286,14 @@ function lvAdvanceSubclass(name) {
 }
 function lvConfirm() {
   const { c, to } = LV; if (!c || lvMissing().length) return;
+  if (LV.change) {
+    /* changing the subclass: the same one just closes; a new one rebuilds at this level without healing the character */
+    if (!LV.pick || LV.pick === c.subclass) { lvClose(false); return; }
+    const cur = c.hpCur; c.subclass = LV.pick; pcLevelTo(c, to);
+    if (cur !== undefined && cur !== "") c.hpCur = Math.min(+cur, c.hp);
+    lvClose(false); LV.back = null; pcRefresh(c); toast(`${c.name} follows the ${LV.pick}`);
+    return;
+  }
   if (LV.pick) c.subclass = LV.pick;
   const pk = lvAsiPick(); if (pk) c.asiPicks = lvPicks(c, to, pk);
   if (LV.chain) { pcLevelTo(c, to); lvNext(c); return; }
