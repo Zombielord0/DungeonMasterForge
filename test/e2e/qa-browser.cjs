@@ -1,5 +1,5 @@
 // Fixes from the browser QA pass of 2026-11-23. Run with:  npm run test:qabrowser
-// Shop wording, lone monsters in random encounters, the Compendium's start hint and icon, phone layout of the Forge form
+// Shop wording, lone monsters in random encounters, the Compendium's icon, phone layout of the Forge form
 // and the bottom bar, and the Characters tab coming back to the open character after a refresh.
 // (A new DM's campaign appearing in the Tracker is checked in setup-screen.cjs, which needs sign-in.)
 const http = require("http"), fs = require("fs"), path = require("path");
@@ -43,14 +43,8 @@ const server = http.createServer((req, res) => {
     check("lone monsters get hooks for one creature", lone.seen.lone > 20 && !lone.bad.length, JSON.stringify(lone.seen) + " " + lone.bad.slice(0, 3).join(" / "));
     check("groups still get the group hooks, one for one", lone.seen.group > 20 && lone.same);
 
-    // 3. the Compendium: a hint and searches to try before anything is typed; and an icon like every other tab
-    await p.goto(URL + "#compendium"); await p.waitForSelector("[data-compendium-try]");
-    check("an empty Compendium says what it holds", /spells, items/.test(await p.innerText("#compendiumResults")));
-    await p.click('[data-compendium-try="Fireball"]');
-    await p.waitForSelector("[data-compendium-result]");
-    check("a Try button searches for it", await p.inputValue("#compendiumQuery") === "Fireball" && /Fireball/.test(await p.innerText("#compendiumResults")));
-    await p.fill("#compendiumQuery", ""); await p.waitForSelector("[data-compendium-try]");
-    check("clearing the search brings the hint back", true);
+    // 3. every header tab has an icon (the Compendium had none)
+    await p.goto(URL + "#compendium"); await p.waitForTimeout(300);
     const noIcon = await p.evaluate(() => [...document.querySelectorAll("header nav a[data-view]")].filter(a => !getComputedStyle(a).getPropertyValue("--ic").trim()).map(a => a.dataset.view));
     check("every header tab has its own icon", !noIcon.length, noIcon.join());
 

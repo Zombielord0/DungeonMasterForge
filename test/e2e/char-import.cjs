@@ -106,6 +106,53 @@ const ZOOK = fs.readFileSync(path.join(FIX, "companion-zook.json"), "utf8").repl
   const junk = await p.evaluate(() => compImport({ foo: 1 }, "2014"));
   check("a file that isn't a character is refused", /isn't a 5e Companion App character/.test(junk.error || ""), JSON.stringify(junk.error));
 
+  // spelling mistakes, subclass names the Forge spells differently, book subclasses, and older imported homebrew (2026-11-23)
+  const sp2 = await p.evaluate(txt => {
+    const base = JSON.parse(txt);
+    const mk = (cls, archId, archName, extra = {}) => { const j = JSON.parse(JSON.stringify(base)); j.jobs = [{ ...j.jobs[0], jobId: "paladin", archetypeId: archId, subtypeId: null, level: 5 }];
+      j.allRequiredClasses = { jobs: [JSON.stringify({ id: "paladin", name: cls, archetypes: archName ? [{ id: archId, name: archName, features: [{ level: 3, feat: { name: "Old App Text" } }] }] : [] })] }; return Object.assign(j, extra); };
+    const run = (j, ed) => { const d = compImport(j, ed); if (d.error) return { error: d.error }; const { c, report } = importBuild(d);
+      return { cls: c.cls, sub: c.subclass, race: c.race, bg: c.bg, feats: c.feats.map(f => f.f), hb: d.homebrew.map(x => `${x.kind}:${x.name}`), matched: report.matched, differ: report.differ }; };
+    const out = {
+      ob14: run(mk("Paladin", "paladin_oathbreaker", "Oathbreaker"), "2014"),
+      ob24: run(mk("Paladin", "paladin_oathbreaker", "Oathbreaker"), "2024"),
+      idOnly: run(mk("Paladin", "paladin_oathbreaker", ""), "2014"),
+      typo: run(mk("Paladn", "paladin_devotion", "Oath of Devoton"), "2014"),
+      short: run(mk("Paladin", "paladin_devotion", "Devotion"), "2014"),
+      other: run(mk("Paladin", "paladin_ashes", "Oath of Ashes"), "2014"),
+      spelt: run(mk("Paladin", "paladin_devotion", "Oath of Devotion", { requiredRace: JSON.stringify({ name: "Tieflng" }), requiredBackground: JSON.stringify({ name: "Folk Heroo" }), feats: [{ feat: { name: "Grapler" } }] }), "2014"),
+    };
+    // homebrew an earlier import made (before the Forge had the book version, or a copy of a built-in) never hides the real one
+    const old = [{ id: "hbT1", kind: "subclass", src: "5e Companion App", ed: "2014", cls: "Paladin", name: "Oathbreaker", desc: "", features: [{ l: 3, n: "Old App Text", d: "" }] },
+      { id: "hbT2", kind: "subclass", src: "5e Companion App", ed: "2014", cls: "Paladin", name: "Oath of Devotion", desc: "", features: [{ l: 3, n: "Old Devotion Text", d: "" }] }];
+    HB.list.push(...old); hbApply();
+    out.hadOb = run(mk("Paladin", "paladin_oathbreaker", "Oathbreaker"), "2014");
+    out.hadDev = run(mk("Paladin", "paladin_devotion", "Oath of Devotion"), "2014");
+    HB.list = HB.list.filter(x => !old.includes(x));
+    // a DM's own homebrew of the same name still wins, as before
+    const mine = { id: "hbT3", kind: "subclass", src: "", ed: "2014", cls: "Paladin", name: "Oath of Devotion", desc: "", features: [{ l: 3, n: "My Devotion Rule", d: "" }] };
+    HB.list.push(mine); hbApply();
+    out.dm = run(mk("Paladin", "paladin_devotion", "Oath of Devotion"), "2014");
+    HB.list = HB.list.filter(x => x !== mine); hbApply();
+    return out;
+  }, ZOOK);
+  const S = sp2;
+  check("Oathbreaker (2014) applies its book features without new homebrew", S.ob14.sub === "Oathbreaker" && S.ob14.feats.includes("Channel Divinity: Dreadful Aspect") && !S.ob14.hb.some(h => /^subclass/.test(h)), JSON.stringify(S.ob14));
+  check("Oathbreaker with 2024 rules still applies its features", S.ob24.sub === "Oathbreaker" && S.ob24.feats.includes("Channel Divinity: Dreadful Aspect") && !S.ob24.hb.some(h => /^subclass/.test(h)) && !S.ob24.matched.some(t => /Oathbreaker \(homebrew\)/.test(t)), JSON.stringify(S.ob24));
+  check("a subclass named only by its id loses the class prefix (paladin_oathbreaker)", S.idOnly.sub === "Oathbreaker" && S.idOnly.feats.includes("Channel Divinity: Dreadful Aspect") && !S.idOnly.hb.some(h => /^subclass/.test(h)), JSON.stringify(S.idOnly));
+  check("misspelled class and subclass are matched (Paladn, Oath of Devoton)", S.typo.cls === "Paladin" && S.typo.sub === "Oath of Devotion" && S.typo.feats.includes("Channel Divinity: Sacred Weapon") && !S.typo.hb.some(h => /^(class|subclass)/.test(h)) && S.typo.differ.some(t => /Paladn/.test(t) && /Paladin/.test(t)), JSON.stringify(S.typo));
+  const near = await p.evaluate(() => [impFuzzy([["Gearforged"]], "Warforged"), impFuzzy([["Child of the Sea"]], "Child of the Sun"), impFuzzy([["Gnome"]], "Gnoll"), impFuzzy([["Oath of Devotion"]], "Oath of Devotoin"), impFuzzy([["Paladin"]], "Paladn")].map(m => m && m.name));
+  check("a different real name is never swapped in (Warforged, Child of the Sun, Gnoll); typos and swapped letters still match", JSON.stringify(near) === '[null,null,null,"Oath of Devotion","Paladin"]', JSON.stringify(near));
+  const mwT = await p.evaluate(() => { const d = mwChar({ name: "Typo", mwId: "t1", sheet: { level: 2, abilityScores: { str: 10, dex: 10, con: 10, int: 10, wis: 10, cha: 10 }, selectionsBySlot: { class: "wizzard", species: "tieflng", background: "acolite" } } }, "2014");
+    return d.error ? { error: d.error } : { cls: d.opts.cls, race: d.opts.race, bg: d.opts.bg, made: d.report.made }; });
+  check("MythWeaver: misspelled class, species and background are matched", mwT.cls === "Wizard" && mwT.race === "Tiefling" && mwT.bg === "Acolyte" && !mwT.made.length, JSON.stringify(mwT));
+  check("a short subclass name is matched (Devotion -> Oath of Devotion)", S.short.sub === "Oath of Devotion" && !S.short.hb.some(h => /^subclass/.test(h)), JSON.stringify(S.short));
+  check("a subclass the Forge really lacks still becomes homebrew", S.other.sub === "Oath of Ashes" && S.other.hb.includes("subclass:Oath of Ashes"), JSON.stringify(S.other));
+  check("misspelled species, background and feat are matched", S.spelt.race === "Tiefling" && S.spelt.bg === "Folk Hero" && S.spelt.feats.some(f => /Feat: Grappler/.test(f)) && !S.spelt.hb.some(h => !/^spell:/.test(h)), JSON.stringify(S.spelt));
+  check("older imported homebrew doesn't hide the book subclass", S.hadOb.sub === "Oathbreaker" && S.hadOb.feats.includes("Channel Divinity: Dreadful Aspect") && !S.hadOb.feats.includes("Old App Text"), JSON.stringify(S.hadOb));
+  check("older imported homebrew doesn't hide the built-in subclass", S.hadDev.sub === "Oath of Devotion" && S.hadDev.feats.includes("Channel Divinity: Sacred Weapon") && !S.hadDev.feats.includes("Old Devotion Text"), JSON.stringify(S.hadDev));
+  check("a DM's own homebrew of the same name still wins", S.dm.feats.includes("My Devotion Rule"), JSON.stringify(S.dm));
+
   // the Fifth Edition Character Sheet app's XML (2026-11-18); the fixture is an invented character
   const FECS = fs.readFileSync(path.join(FIX, "fecs-sample.xml"), "utf8");
   const fe = await p.evaluate(txt => {

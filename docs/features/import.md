@@ -41,6 +41,26 @@ Moved here from `CLAUDE.md` on 2026-11-17, unchanged except that `public/index.h
   - The fixtures are `test/e2e/fixtures/companion-zook.json` and `sheet-wizard.pdf`. The PDF is made by `python tools/make-test-sheet.py` (needs pypdf) with the official sheet's names and spell positions.
   - Players' own PDFs aren't committed.
 
+### Spelling and matching (2026-11-23)
+
+- **Spelling mistakes:** `impFuzzy(tiers, raw, part)` matches a name from a file: the same letters first, then (subclasses only, `part`) a name that starts or ends with it ("Devotion" -> "Oath of Devotion"), then, for names of 5+ letters with the same first letter, one letter wrong, missing or extra, or two letters swapped. Never more: near-misses like Warforged/Gearforged or Child of the Sun/Sea are different things. Two names equally close is no match; `[UA]` names are matched exactly only. A corrected name is listed under "Different from the file" (`impReport`) so the user checks it. Used for classes (`impClassMatch`), subclasses (`impSubclass`), species (`impSpeciesMatch`), backgrounds and feats (`impListMatch`) in the Companion App, Fifth Edition Character Sheet and MythWeaver imports.
+- **Order:** built-in, then the extra books, then the DM's homebrew, then a book subclass printed for the other rules set (Oathbreaker with 2024 rules), and last homebrew an earlier import made (`hbFromImport`: `src` is an import app).
+- **A Companion App subclass known only by its id** (`paladin_oathbreaker`) drops the class name.
+- **Import-made homebrew never hides the real one:** `subclassEntry` skips a homebrew subclass with an import `src` when a built-in or book subclass has its name, and `hbApply` applies import-made classes after the book classes. A DM's own homebrew of the same name still wins. `subclassEntry` also finds a book subclass from the other rules set when nothing else has the name.
+
+### Changing a subclass after import (2026-11-23)
+
+- **Change** next to the subclass on the sheet (`data-subchange` in `lvBarHTML`) opens the subclass picker (`lvOpen(c, true, true)`, `LV.change`) with the current subclass picked.
+- **Confirming** sets `c.subclass` and rebuilds at the same level (`pcLevelTo`), so scores, skills and choices stay (`pcKeep`) and the new subclass's features replace the old ones.
+- **Why:** it fixes characters that an earlier import tied to a homebrew copy (for example "OathBreaker" with no features) when the book version now exists.
+- **The check:** `npm run test:subchange`.
+- **Only the main class** can be changed this way. A second class's subclass is still chosen through levelling.
+
+### Book subclass abilities (2026-11-23)
+
+- **Book subclass features** (`bookSub` on `c.feats`) now join the Abilities list when `SUB_ABL` or `ACT` knows them.
+- **Our own short summaries** sit in `SUB_ABL[...].text`: Aura of Hate, Channel Divinity: Control Undead and Dreadful Aspect, the last two spending the `channel` counter.
+
 ## Lore tab and MythWeaver import (2026-11-17)
 
 - **Design and plan:** `docs/superpowers/specs/2026-11-17-mythweaver-import-design.md` and `docs/superpowers/plans/2026-11-17-mythweaver-import.md`.

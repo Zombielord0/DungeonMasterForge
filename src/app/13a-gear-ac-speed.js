@@ -332,7 +332,7 @@ function pcAttacks(c) {
     F.attacks.forEach(a => out.push({ prof: true, ...a }));
     out.forEach(a => { a.tags = ["beast form"]; a.extra = []; a.dmgB = 0; });
     F.atk.forEach(x => out.filter(ATK_F[x.f] || ATK_F.all).forEach(a => { if (x.hit) a.hit += x.hit; if (x.dmg) a.dmgB += x.dmg; if (x.extra) a.extra.push(x.extra); if (x.adv || x.label) a.tags.push(x.adv || x.label); }));
-    out.forEach(a => { const t = a.mod + a.dmgB; a.dmg = a.die + (t ? sgn(t) : ""); a.alt = a.altNote || ""; });
+    out.forEach(a => { const t = a.mod + a.dmgB; a.dmg = a.die ? a.die + (t ? sgn(t) : "") : String(Math.max(1, t)); a.alt = a.altNote || ""; });
     return out;
   }
   (c.inv || []).filter(i => i.eq && (+i.qty || 0) > 0).forEach(i => { const w = eqWeaponOf(i, ed), a = w && eqAttack(c, i, w); if (a) out.push(a); });

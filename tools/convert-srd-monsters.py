@@ -31,7 +31,17 @@ def role(m, traits, acts):
     return "brute"
 
 # Corrections where the SRD source data is wrong or incomplete (missing walking speeds, HP that doesn't match the hit dice)
-FIXES = {"2014": {"Donkey": {"speed": "40 ft."}, "Elf, Drow": {"speed": "30 ft."}, "Gnome, Deep (Svirfneblin)": {"speed": "20 ft."},
+# (2026-11-23, QA-2) Three thin 2014 entries: the Donkey gets hit dice and a hooves attack like the Mule's; the Drow and the
+# Deep Gnome get their challenge rating, hit dice and traits, summed up in our own words.
+DROW_TRAITS = [["Fey Ancestry", "Advantage on saving throws against being charmed, and magic can't put it to sleep."],
+               ["Innate Spellcasting", "Charisma (spell save DC 11), no material components. At will: dancing lights. 1/day each: darkness, faerie fire."],
+               ["Sunlight Sensitivity", "In sunlight it has disadvantage on attack rolls, and on Wisdom (Perception) checks that rely on sight."]]
+DEEP_GNOME_TRAITS = [["Stone Camouflage", "Advantage on Dexterity (Stealth) checks made to hide in rocky terrain."],
+                     ["Gnome Cunning", "Advantage on Intelligence, Wisdom and Charisma saving throws against magic."],
+                     ["Innate Spellcasting", "Intelligence (spell save DC 11), no material components. At will: nondetection (self only). 1/day each: blindness/deafness, blur, disguise self."]]
+FIXES = {"2014": {"Donkey": {"speed": "40 ft.", "cr": 0.125, "hd": "2d8+2", "actions": [["Hooves", "Melee Weapon Attack: +2 to hit, reach 5 ft., one target. Hit: 4 (1d4 + 2) bludgeoning damage."]]},
+                  "Elf, Drow": {"speed": "30 ft.", "cr": 0.25, "hd": "3d8", "senses": "darkvision 120 ft., passive Perception 12", "traits": DROW_TRAITS},
+                  "Gnome, Deep (Svirfneblin)": {"speed": "20 ft.", "cr": 0.5, "hd": "3d6+6", "senses": "darkvision 120 ft., passive Perception 12", "traits": DEEP_GNOME_TRAITS},
                   "Cult Fanatic": {"hp": 33}, "Reef Shark": {"hd": "4d8+4"}}}
 def convert(folder, fixes=None):
     """Turns one Open5e document folder (Creature, CreatureAction, CreatureTrait) into the app's monster list."""
@@ -47,6 +57,9 @@ def convert(folder, fixes=None):
         saves = [f"{ABS[i]} {sgn(f[f'saving_throw_{a}'])}" for i, a in enumerate(AB)
                  if f.get(f"saving_throw_{a}") is not None and f[f"saving_throw_{a}"] != mod(scores[i])]
         skills = [f"{s.replace('_', ' ').title()} {sgn(f['skill_bonus_' + s])}" for s in SKILLS if f.get("skill_bonus_" + s) is not None]
+        # (QA-1) a few animals have 0 for every save and skill in the source: that means "none", not +0
+        if len(skills) >= 10 and all(x.endswith(" +0") for x in skills): skills = []
+        if len(saves) >= 3 and all(x.endswith(" +0") for x in saves): saves = []
         sp = [f"{num(f['walk'])} ft." if f.get("walk") is not None else "0 ft."]
         for k in ["burrow", "climb", "fly", "swim"]:
             if f.get(k): sp.append(f"{k} {num(f[k])} ft." + (" (hover)" if k == "fly" and f.get("hover") else ""))

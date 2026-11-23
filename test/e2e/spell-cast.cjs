@@ -93,6 +93,55 @@ const server = http.createServer((req, res) => {
     check("phone: casting after the spell shortcut spends the slot", await p.evaluate(() => rosterCur().used.slot1 === 1));
     await ctx.close();
   }
+  {
+    const { ctx, p } = await open(1300, 900);
+    await p.goto(URL + "#roster");
+    await p.evaluate(() => {
+      const bonusFeats = [{ n: "Fey Touched", a: "wis" }, { n: "Telekinetic", a: "int" }];
+      const c = generateCharacter({ seed: "FEATCAST", cls: "Fighter", subclass: "none", race: "Dwarf", bg: "Acolyte", level: 4, ed: "2024", bonusFeats });
+      c.bonusFeats = bonusFeats;
+      c.choices = { "Feat: Magic Initiate": ["c:Guidance", "s:Bless"] };
+      c.prepared = [{ n: "Bless", l: 1, ed: "2024", src: "Magic Initiate" }];
+      PCS.roster.push(pcEnsure(c)); RC.id = c.id; pcPersist(); renderRosterTab();
+    });
+    const spell = n => p.locator(`#rcPrepared [data-spell="2024|${n}"]`);
+    await spell("Bless").waitFor();
+    check("saved Magic Initiate choices rebuild the spell list without duplicate entries",
+      await spell("Bless").count() === 1 && await spell("Guidance").count() === 1
+      && /Feat · Magic Initiate/.test(await spell("Bless").locator("..").textContent()));
+    check("feat spells and abilities reach a noncaster's sheet and print export",
+      await spell("Mage Hand").count() === 1 && await p.getByText("Telekinetic Shove", { exact: true }).count() === 1
+      && await p.evaluate(() => /Granted spells/.test(sheetDoc(rosterCur())) && /Misty Step/.test(sheetDoc(rosterCur()))));
+    await p.locator('[data-choice="Feat spells: Fey Touched"]').selectOption("Bless");
+    check("spells granted by two feats keep both sources on one row",
+      await spell("Bless").count() === 1 && /Fey Touched/.test(await spell("Bless").locator("..").textContent()));
+    await spell("Misty Step").click();
+    const free = p.locator('#actModal [data-castlv^="featSpell:"]');
+    await free.click();
+    check("the feat casts with the ASI ability",
+      await p.evaluate(() => spellCaster(rosterCur(), spellOf("2024", "Misty Step"), document.querySelector("#castSlot").value).ab === "wis"));
+    await p.locator("#actModal [data-castgo]").click();
+    await p.evaluate(() => actClose());
+    await spell("Misty Step").click();
+    check("the free cast is spent and the feat-only spell has no untracked cast",
+      await free.isDisabled() && await p.locator('#actModal [data-castlv="free"]').count() === 0);
+    await p.evaluate(() => actClose());
+    await p.reload();
+    await spell("Misty Step").click();
+    check("the tracked free cast is still spent after reloading", await free.isDisabled());
+    await p.evaluate(() => actClose());
+    await p.evaluate(() => { pcRest(rosterCur(), "long"); pcPersist(); renderRosterMain(); });
+    await spell("Misty Step").click();
+    check("a long rest restores the feat cast", await free.isEnabled());
+    await p.evaluate(() => actClose());
+    await p.getByRole("button", { name: "Remove Fey Touched" }).click();
+    await p.getByRole("button", { name: "Remove", exact: true }).click();
+    await spell("Misty Step").waitFor({ state: "detached" });
+    check("removing a feat removes only that feat's spell grants",
+      await spell("Misty Step").count() === 0 && await spell("Bless").count() === 1
+      && !/Fey Touched/.test(await spell("Bless").locator("..").textContent()));
+    await ctx.close();
+  }
   // multiclass into a caster (owner's bug, 2026-11-18): a Fighter/Wizard prepares Wizard spells
   {
     const { ctx, p } = await open(1300, 900);

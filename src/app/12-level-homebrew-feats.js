@@ -10,7 +10,7 @@ function lvBarHTML(c, plain) {
     ${(() => { const nx = xpNext(c), xp = +c.xp || 0; return nx === null ? "" : xp >= nx ? `<span class="tag gold lv-ready">✨ Enough XP for level ${totalLv(c) + 1}</span>` : xp ? `<span class="muted" style="font-size:13px">XP ${xp.toLocaleString()} / ${nx.toLocaleString()}</span>` : ""; })()}
     ${(c.multi || []).filter(x => +x.lv > 0).map(x => `<span class="tag">${esc(x.cls)} ${x.lv}${x.subclass ? ` · ${esc(x.subclass)}` : ""}<button type="button" class="icon-btn" data-mcdown="${id}|${esc(x.cls)}" title="Remove a ${esc(x.cls)} level" aria-label="Remove a ${esc(x.cls)} level">−</button></span>`).join("")}
     ${needsSubclass(c) ? `<span class="lv-need">⚠ ${esc(c.cls)} subclass not chosen</span><button class="btn sm" type="button" data-subpick="${id}">Choose subclass</button>`
-      : c.subclass ? `<span class="tag gold" title="${esc(subclassDesc(c.subclass))}">${esc(c.subclass)}</span>`
+      : c.subclass ? `<span class="tag gold" title="${esc(subclassDesc(c.subclass))}">${esc(c.subclass)}</span><button class="btn sm" type="button" data-subchange="${id}" title="Pick a different ${esc(c.cls)} subclass, for example the book version instead of a homebrew copy">Change</button>`
       : `<span class="muted" style="font-size:14px">Subclass at level ${sl}</span>`}
   </div>`;
 }
@@ -31,7 +31,7 @@ function pcRefresh(c) {
   pcPersist(); renderRoster();
   if (location.hash === "#roster" && RC.id === c.id) renderRosterMain();
 }
-const LV = { c: null, to: 0, pick: "", onlySub: false, back: null, asi: null };
+const LV = { c: null, to: 0, pick: "", onlySub: false, change: false, back: null, asi: null };
 const lvBuild = (c, to, picks) => generateCharacter({ seed: c.seed || c.id, name: c.name, race: c.race, ed: edOf(c), sub: c.sub || (c.race === "Dragonborn" && c.ancestry) || "none", ancestry: c.ancestry || undefined, cls: c.cls, bg: c.bg, level: to, subclass: c.subclass || "none", asiPicks: picks, bonusFeats: c.bonusFeats || undefined, bgAsiLegacy: c.bgAsiLegacy || undefined, ...pcKeep(c), method: c.method || "array", bonus: c.bonus || "flex", custom: c.customData || undefined });
 const lvHasAsi = (c, to) => (classData(edOf(c), c.cls).asi || [4, 8, 12, 16, 19]).includes(to);
 // The choice as stored on the character: { str: 2 }, { str: 1, con: 1 } or { feat: "Alert" }; null while incomplete.
@@ -96,7 +96,7 @@ function featOpen() {
   if (!m) {
     document.body.insertAdjacentHTML("beforeend", `<div id="featModal" role="dialog" aria-modal="true" aria-labelledby="featTitle"><div class="box">
       <div class="row" style="align-items:center"><h3 id="featTitle" style="flex:1;margin:0">Choose a feat</h3><button class="btn sm" type="button" data-featclose style="flex:0 0 auto">✕ Close</button></div>
-      <div class="row" style="margin-top:10px;flex-wrap:wrap"><input type="search" id="featQ" placeholder="Search feats, e.g. armor, spell, speed" aria-label="Search feats" style="flex:2 1 240px"><div id="featGrp" class="row" style="flex:1 1 auto;gap:6px;flex-wrap:wrap"></div></div>
+      <div class="row" style="margin-top:10px;flex-wrap:wrap"><input type="search" id="featQ" autocomplete="off" placeholder="Search feats, e.g. armor, spell, speed" aria-label="Search feats" style="flex:2 1 240px"><div id="featGrp" class="row" style="flex:1 1 auto;gap:6px;flex-wrap:wrap"></div></div>
       <div id="featList"></div>
       <div class="row" style="margin-top:10px;flex-wrap:wrap;align-items:flex-end"><label class="lbl" style="margin:0;flex:1 1 240px">Not listed? Type your own feat<input type="text" id="featOwn" maxlength="80" placeholder="Feat name"></label><button class="btn" type="button" data-featown style="flex:0 0 auto">Use this feat</button></div>
     </div></div>`);
@@ -192,10 +192,11 @@ function lvFoot() {
   if (y) y.disabled = miss.length > 0;
   if (h) h.textContent = miss.length ? cap1(miss.join(" and ")) + " to continue." : "";
 }
-function lvOpen(c, onlySub) {
+/* change: swap the subclass the character already has (2026-11-23), e.g. from a homebrew copy to the book version */
+function lvOpen(c, onlySub, change) {
   pcEnsure(c);
   const to = onlySub ? c.level : c.level + 1;
-  Object.assign(LV, { c, to, pick: "", onlySub: !!onlySub, back: LV.chain ? LV.chain.back : document.activeElement, asi: !onlySub && lvHasAsi(c, to) ? { mode: "one", a: "", b: "", feat: "", featAb: "" } : null });
+  Object.assign(LV, { c, to, pick: change ? c.subclass || "" : "", onlySub: !!onlySub, change: !!change, back: LV.chain ? LV.chain.back : document.activeElement, asi: !onlySub && lvHasAsi(c, to) ? { mode: "one", a: "", b: "", feat: "", featAb: "" } : null });
   LV.cur = lvBuild(c, to, lvPicks(c, to, { feat: "-" })).scores;
   let m = $("#lvModal");
   if (!m) {
@@ -221,16 +222,21 @@ function lvOpen(c, onlySub) {
 }
 function lvRender(focusSel) {
   const { c, to, onlySub } = LV, ed = edOf(c), sl = subclassLevel(ed, c.cls);
-  const ask = !c.subclass && to >= sl, list = campaignSubclassChoices(ed, c.cls);
+  const ask = (!c.subclass || LV.change) && to >= sl, list = campaignSubclassChoices(ed, c.cls);
   const gains = onlySub ? [] : lvGains(c, to), ch = LV.chain;
   const step = ch ? ch.steps.indexOf(to) + 1 : 0, more = ch && step < ch.steps.length;
-  const yes = more ? "Next →" : ch && ch.target > ch.start ? `⬆ Level up to ${ch.target}` : onlySub ? "Choose subclass" : `⬆ Level up to ${to}`;
-  $("#lvBox").innerHTML = `<h3 id="lvTitle">${ch && ch.target > ch.start ? `Level ${esc(c.name)} up to ${ch.target}` : onlySub ? `Choose a subclass for ${esc(c.name)}` : `Level up ${esc(c.name)}`}</h3>
+  const asiPicks = lvPicks(c, to, lvAsiPick());
+  const preview = !more && !lvMissing().length
+    ? { ...c, ...lvBuild({ ...c, subclass: LV.pick || c.subclass }, to, asiPicks), asiPicks }
+    : null;
+  const yes = more ? "Next →" : ch && ch.target > ch.start ? `⬆ Level up to ${ch.target}` : LV.change ? "Change subclass" : onlySub ? "Choose subclass" : `⬆ Level up to ${to}`;
+  $("#lvBox").innerHTML = `<h3 id="lvTitle">${ch && ch.target > ch.start ? `Level ${esc(c.name)} up to ${ch.target}` : LV.change ? `Change the subclass for ${esc(c.name)}` : onlySub ? `Choose a subclass for ${esc(c.name)}` : `Level up ${esc(c.name)}`}</h3>
     ${ch && ch.steps.length > 1 ? `<p class="hint" style="margin:4px 0 0">Choice ${step} of ${ch.steps.length}. Levels with nothing to choose are applied automatically.</p>` : ""}
     ${onlySub ? "" : `<p style="margin:6px 0 4px"><span class="tag gold">Level ${c.level} → ${to} ${esc(c.cls)}</span></p><ul class="plain lv-gains">${gains.map(x => `<li>${x}</li>`).join("")}</ul>`}
     ${LV.asi ? lvAsiHTML(c, to) : ""}
+    ${preview ? readinessFollowUp(preview) : ""}
     ${ask ? `<div class="sec-h" style="margin-top:14px"><h3>Choose your subclass</h3></div>
-      <p class="hint" style="margin:4px 0 0">${esc(c.cls)}s choose a subclass at level ${sl} (${ed} rules). This is required to ${onlySub ? "finish the sheet" : "level up"}.</p>
+      <p class="hint" style="margin:4px 0 0">${esc(c.cls)}s choose a subclass at level ${sl} (${ed} rules). ${LV.change ? `Now: <b>${esc(c.subclass)}</b>. The sheet keeps its level, scores and choices, and swaps in the new subclass's features.` : `This is required to ${onlySub ? "finish the sheet" : "level up"}.`}</p>
       ${searchableChoices("Search subclasses", list.map(([n, d, hb, src]) => `<div class="progression-choice"><button type="button" class="pick ${LV.pick === n ? "on" : ""}" data-lvsub="${esc(n)}" aria-pressed="${LV.pick === n}"><b>${esc(n)}</b><small>${esc(d)}</small>${src || hb ? `<small class="req">${esc(src ? dmBook(src).name : "Homebrew")}</small>` : ""}</button>${progressionButton(ed, "subclass", c.cls, n)}</div>`).join(""))}` : ""}
     <div class="row" style="justify-content:flex-end;margin-top:14px"><button class="btn" type="button" data-lvno style="flex:0">Cancel</button>
       <button class="btn primary" type="button" data-lvyes style="flex:0 0 auto">${yes}</button></div>
@@ -280,6 +286,14 @@ function lvAdvanceSubclass(name) {
 }
 function lvConfirm() {
   const { c, to } = LV; if (!c || lvMissing().length) return;
+  if (LV.change) {
+    /* changing the subclass: the same one just closes; a new one rebuilds at this level without healing the character */
+    if (!LV.pick || LV.pick === c.subclass) { lvClose(false); return; }
+    const cur = c.hpCur; c.subclass = LV.pick; pcLevelTo(c, to);
+    if (cur !== undefined && cur !== "") c.hpCur = Math.min(+cur, c.hp);
+    lvClose(false); LV.back = null; pcRefresh(c); toast(`${c.name} follows the ${LV.pick}`);
+    return;
+  }
   if (LV.pick) c.subclass = LV.pick;
   const pk = lvAsiPick(); if (pk) c.asiPicks = lvPicks(c, to, pk);
   if (LV.chain) { pcLevelTo(c, to); lvNext(c); return; }
@@ -287,9 +301,9 @@ function lvConfirm() {
   toast(up ? `${c.name} is now level ${to}${LV.pick ? ` — ${LV.pick}` : ""}` : `${c.name} follows the ${LV.pick}`);
 }
 document.addEventListener("click", e => {
-  const b = e.target.closest("[data-lvup], [data-subpick]"); if (!b) return;
-  const c = pcById(b.dataset.lvup || b.dataset.subpick); if (!c) return;
-  lvOpen(c, !!b.dataset.subpick);
+  const b = e.target.closest("[data-lvup], [data-subpick], [data-subchange]"); if (!b) return;
+  const c = pcById(b.dataset.lvup || b.dataset.subpick || b.dataset.subchange); if (!c) return;
+  lvOpen(c, !!(b.dataset.subpick || b.dataset.subchange), !!b.dataset.subchange);
 });
 
 /* ======================= Homebrew editor (DM) ======================= */
@@ -298,7 +312,7 @@ const hbBuiltIn = (kind, name, cls, edition) => {
   const editions = edition === "2014" || edition === "2024" ? [edition] : ["2014", "2024"];
   const n = name.toLowerCase(), has = l => l.some(x => x.toLowerCase() === n);
   if (kind === "background") return has(Object.keys(BACKGROUNDS).filter(x => !HB_BG[x]));
-  if (kind === "spell") { spLoad(); return has(editions.flatMap(ed => SP.data[ed]).filter(x => !x.hb).map(x => x.n)); }
+  if (kind === "spell") { spLoad(); return has(editions.flatMap(ed => SP.data[ed]).filter(x => !x.hb && !x.ref).map(x => x.n)); } /* a book reference spell has no rules text: a DM may write their own */
   if (kind === "species") return ["2014", "2024"].some(ed => has(Object.keys(PC_RACES[ed]).filter(x => !PC_RACES[ed][x].hb)));
   if (kind === "class") return has(builtInClasses());
   if (kind === "feat") return has(editions.flatMap(ed => FEATS[ed]).map(F => F[0]));
@@ -635,6 +649,6 @@ function featsSecHTML(c) {
   const all = [...bgf, ...lv, ...bonus];
   return `<div class="sec"><div class="sec-h"><h3>Feats</h3><span class="sp"></span><button class="btn sm primary" type="button" data-ra="addFeat">+ Add feat</button></div>
     ${all.length ? `<ul class="plain">${all.map(x => { const d = featDesc("Feat: " + x.n, c); return `<li><b>${esc(x.n)}</b>${x.a ? ` <span class="tag">+1 ${AB_NAME[x.a]}</span>` : ""} <span class="muted" style="font-size:13px">(${esc(x.src)})</span>
-      ${x.i !== undefined ? `<button class="icon-btn" type="button" data-rmfeat="${x.i}" title="Remove ${esc(x.n)}" aria-label="Remove ${esc(x.n)}">✕</button>` : ""}${d ? `<div class="ft-desc">${esc(d)}</div>` : ""}${x.n === "Magic Initiate" ? miHTML(c) : CHOICES["Feat: " + x.n] ? choiceHTML(c, "Feat: " + x.n) : ""}</li>`; }).join("")}</ul>`
+      ${x.i !== undefined ? `<button class="icon-btn" type="button" data-rmfeat="${x.i}" title="Remove ${esc(x.n)}" aria-label="Remove ${esc(x.n)}">✕</button>` : ""}${d ? `<div class="ft-desc">${esc(d)}</div>` : ""}${choiceHTML(c, "Feat: " + x.n)}${featSpellChoicesHTML(c, x.n)}</li>`; }).join("")}</ul>`
       : `<p class="muted" style="margin:6px 0 0">No feats yet. Take one instead of an Ability Score Improvement when levelling up, or add one with + Add feat.</p>`}</div>`;
 }

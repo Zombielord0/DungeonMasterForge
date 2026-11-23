@@ -176,20 +176,110 @@ function choiceHTML(c, k) {
     ${have.length ? `<ul class="plain choice-notes">${have.map(id => { const o = O.find(x => x[0] === id); return o[2] ? `<li><b>${esc(o[1])}:</b> ${esc(o[2])}</li>` : ""; }).join("")}</ul>` : ""}</div>`;
 }
 /* Magic Initiate: a spell list, two cantrips and a 1st-level spell, added to the character's spells */
-function miState(c) { const L = choiceOf(c, "Feat: Magic Initiate"); return { list: (L.find(x => x.startsWith("list:")) || "").slice(5), can: L.filter(x => x.startsWith("c:")).map(x => x.slice(2)), one: L.filter(x => x.startsWith("s:")).map(x => x.slice(2)) }; }
-function miLists(c) { const bg = (c.feats || []).find(f => f.bgFeat && f.f === "Feat: Magic Initiate"); if (bg && bg.note) return [bg.note]; return edOf(c) === "2024" ? ["Cleric", "Druid", "Wizard"] : ["Bard", "Cleric", "Druid", "Sorcerer", "Warlock", "Wizard"]; }
-function miHTML(c) {
-  spLoad(); const ed = edOf(c), M = miState(c), lists = miLists(c), list = M.list || (lists.length === 1 ? lists[0] : "");
-  const pool = l => (SP.data[ed] || []).filter(s => !s.pend && s.l === l && (s.c || []).includes(list)).map(s => s.n).sort();
-  const pick = (kind, l, n, have) => `${have.map(x => `<span class="tag gold">${esc(x)}<button type="button" class="icon-btn" data-mirm="${kind}:${esc(x)}" aria-label="Remove ${esc(x)}">✕</button></span>`).join("")}${have.length < n ? `<select data-mi="${kind}" aria-label="${l ? "1st-level spell" : "Cantrip"}"><option value="">${l ? "Choose a 1st-level spell…" : "Choose a cantrip…"}</option>${pool(l).filter(x => !have.includes(x)).map(x => `<option>${esc(x)}</option>`).join("")}</select>` : ""}`;
-  return `<div class="choice"><span class="lbl" style="margin:0">Spell list</span>${lists.length > 1 ? `<select data-mi="list" aria-label="Spell list"><option value="">Choose…</option>${lists.map(l => `<option ${list === l ? "selected" : ""}>${esc(l)}</option>`).join("")}</select>` : `<span class="tag">${esc(list)}</span>`}
-    ${list ? `<span class="lbl" style="margin:0">Cantrips ${M.can.length}/2</span>${pick("c", 0, 2, M.can)}<span class="lbl" style="margin:0">1st level ${M.one.length}/1</span>${pick("s", 1, 1, M.one)}
-    <p class="hint" style="margin:4px 0 0">These are added to your spells. Cast the 1st-level spell once per long rest without a slot ("Without a slot"), or with your slots.</p>` : ""}</div>`;
+function miState(c) {
+  const choices = choiceOf(c, "Feat: Magic Initiate");
+  const lists = miLists(c), selected = (choices.find(x => x.startsWith("list:")) || "").slice(5);
+  const list = lists.length === 1 ? lists[0] : lists.includes(selected) ? selected : "";
+  const picked = (prefix, level) => {
+    if (!list) return [];
+    const options = new Set(miSpellOptions(c, list, level).map(spell => spell.n));
+    return [...new Set(choices.filter(x => x.startsWith(prefix)).map(x => x.slice(2)))].filter(name => options.has(name));
+  };
+  return { list, can: picked("c:", 0), one: picked("s:", 1) };
 }
-function miSync(c) {
-  const M = miState(c), ed = edOf(c);
-  c.prepared = (c.prepared || []).filter(p => p.src !== "Magic Initiate");
-  [...M.can, ...M.one].forEach(n => { const s = spellOf(ed, n); if (s) c.prepared.push({ n: s.n, l: s.l, ed, src: "Magic Initiate" }); });
+const LEGACY_FEAT_LISTS = ["Bard", "Cleric", "Druid", "Sorcerer", "Warlock", "Wizard"];
+const featListAbility = list => ["Cleric", "Druid"].includes(list) ? "wis" : list === "Wizard" ? "int" : "cha";
+function miLists(c) {
+  const bg = (c.feats || []).find(f => f.bgFeat && f.f === "Feat: Magic Initiate");
+  if (bg?.note) return [bg.note];
+  return edOf(c) === "2024" ? ["Cleric", "Druid", "Wizard"] : LEGACY_FEAT_LISTS;
+}
+function miCastingAbility(c, list) {
+  const selected = choiceOf(c, "Feat casting ability: Magic Initiate")[0];
+  return edOf(c) === "2024" && ["int", "wis", "cha"].includes(selected) ? selected : featListAbility(list);
+}
+function miSpellOptions(c, list, level) {
+  spLoad();
+  return (SP.data[edOf(c)] || []).filter(s => !s.pend && s.l === level && s.c.includes(list));
+}
+for (const name of ["Magic Initiate", ...Object.keys(FEAT_SPELLS)]) {
+  CHOICES["Feat casting ability: " + name] = choiceList("Spellcasting ability", ["int", "wis", "cha"].map(ab => [ab, AB_FULL[ab], ""]));
+}
+for (const [name, { schools }] of Object.entries(FEAT_SPELLS)) {
+  if (!schools) continue;
+  CHOICES["Feat spells: " + name] = { label: "1st-level " + schools.join(" or ") + " spell", n: () => 1,
+    opts: c => choiceSpellOptions(c, s => s.l === 1 && schools.includes(s.s)) };
+}
+for (const name of ["Ritual Caster", "Spell Sniper"]) {
+  CHOICES["Feat spell list: " + name] = choiceList("Spell list", LEGACY_FEAT_LISTS);
+}
+CHOICES["Feat spells: Ritual Caster"] = {
+  label: "1st-level ritual spells", n: c => edOf(c) === "2014" ? 2 : c.prof,
+  opts: c => choiceSpellOptions(c, s => s.l === 1 && s.ri && (edOf(c) === "2024" || s.c.includes(choiceOf(c, "Feat spell list: Ritual Caster")[0]))),
+};
+CHOICES["Feat spells: Spell Sniper"] = {
+  label: "Attack cantrip", n: c => edOf(c) === "2014" ? 1 : 0,
+  opts: c => choiceSpellOptions(c, s => s.l === 0 && s.at && s.c.includes(choiceOf(c, "Feat spell list: Spell Sniper")[0])),
+};
+function featSpellChoiceKeys(c, name) {
+  const key = featSpellKey(name);
+  if (!Object.hasOwn(FEAT_SPELLS, key)) return [];
+  const listKey = "Feat spell list: " + key;
+  if (edOf(c) === "2014" && CHOICES[listKey]) {
+    return [listKey, ...(choiceOf(c, listKey).length ? ["Feat spells: " + key] : [])];
+  }
+  const selected = (c.bonusFeats || []).some(f => f.n === name && f.a)
+    || Object.entries(c.asiPicks || {}).some(([level, f]) => +level <= c.level && f?.feat === name && ["int", "wis", "cha"].some(a => f[a]));
+  return [...(selected || key === "Spell Sniper" ? [] : ["Feat casting ability: " + key]), "Feat spells: " + key];
+}
+function featSpellChoicesHTML(c, name) {
+  return name === "Magic Initiate" ? miHTML(c) : featSpellChoiceKeys(c, name).map(key => choiceHTML(c, key)).join("");
+}
+function characterReadiness(c) {
+  const checks = [];
+  const addChoice = (feat, key) => {
+    const rule = CHOICES[key], options = rule?.opts(c) || [];
+    if (options.length && new Set(choiceOf(c, key).filter(id => options.some(([value]) => id === value))).size < rule.n(c)) {
+      checks.push([feat + " · " + rule.label, `[data-choice="${CSS.escape(key)}"]`]);
+    }
+  };
+  if (needsSubclass(c)) checks.push(["Choose a subclass", "[data-subpick]"]);
+  const styles = fightStyleOptions(c);
+  for (let index = 0; index < fightSlots(c); index++) {
+    if (!styles.includes(c.fightStyles?.[index])) checks.push(["Choose fighting style " + (index + 1), `[data-fstyle="${index}"]`]);
+  }
+  for (const feat of activeCharacterFeats(c)) {
+    if (feat === "Magic Initiate") {
+      const { list, can, one } = miState(c);
+      if (!list) checks.push(["Magic Initiate · Choose a spell list", '[data-mi="list"]']);
+      else {
+        if (edOf(c) === "2024") addChoice(feat, "Feat casting ability: Magic Initiate");
+        if (can.length < 2) checks.push(["Magic Initiate · Choose cantrips", '[data-mi="c"]']);
+        if (!one.length) checks.push(["Magic Initiate · Choose a 1st-level spell", '[data-mi="s"]']);
+      }
+    } else for (const key of featSpellChoiceKeys(c, feat)) addChoice(feat, key);
+  }
+  return checks;
+}
+function readinessFollowUp(c) {
+  const checks = characterReadiness(c);
+  return checks.length ? `<details class="readiness-follow-up"><summary>Choices to finish on the character sheet</summary><ul class="plain">${checks.map(([label]) => `<li>${esc(label)}</li>`).join("")}</ul></details>` : "";
+}
+function readinessHTML(c) {
+  const checks = characterReadiness(c);
+  const imported = Array.isArray(c.importReview) ? c.importReview.filter(value => typeof value === "string") : [];
+  if (!checks.length && !imported.length) return "";
+  return `<section class="sec"><div class="sec-h"><h3>Character readiness</h3></div>
+    ${checks.length ? `<ul class="plain">${checks.map(([label, selector]) => `<li><button class="btn sm" type="button" data-readiness="${esc(selector)}">${esc(label)}</button></li>`).join("")}</ul>` : ""}
+    ${imported.length ? `<details><summary>Review import differences</summary><ul>${imported.map(value => `<li>${esc(value)}</li>`).join("")}</ul><button class="btn sm" type="button" data-readiness-reviewed>Mark import reviewed</button></details>` : ""}</section>`;
+}
+function miHTML(c) {
+  const M = miState(c), lists = miLists(c);
+  const pick = (kind, l, n, have) => `${have.map(x => `<span class="tag gold">${esc(x)}<button type="button" class="icon-btn" data-mirm="${kind}:${esc(x)}" aria-label="Remove ${esc(x)}">✕</button></span>`).join("")}${have.length < n ? `<select data-mi="${kind}" aria-label="${l ? "1st-level spell" : "Cantrip"}"><option value="">${l ? "Choose a 1st-level spell…" : "Choose a cantrip…"}</option>${miSpellOptions(c, M.list, l).map(s => s.n).filter(x => !have.includes(x)).sort().map(x => `<option>${esc(x)}</option>`).join("")}</select>` : ""}`;
+  return `<div class="choice"><span class="lbl" style="margin:0">Spell list</span>${lists.length > 1 ? `<select data-mi="list" aria-label="Spell list"><option value="">Choose…</option>${lists.map(l => `<option ${M.list === l ? "selected" : ""}>${esc(l)}</option>`).join("")}</select>` : `<span class="tag">${esc(M.list)}</span>`}
+    ${M.list ? `${edOf(c) === "2024" ? choiceHTML(c, "Feat casting ability: Magic Initiate") : ""}
+    <span class="lbl" style="margin:0">Cantrips ${M.can.length}/2</span>${pick("c", 0, 2, M.can)}<span class="lbl" style="margin:0">1st level ${M.one.length}/1</span>${pick("s", 1, 1, M.one)}
+    <p class="hint">Cast the 1st-level spell once per long rest without spending a slot.</p>` : ""}</div>`;
 }
 function actRun(c, name, choice) {
   const a = pcAbilities(c).find(x => x.name === name), S = a && actSpec(a); if (!S) return "";

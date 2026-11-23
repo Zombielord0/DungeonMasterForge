@@ -6,7 +6,10 @@ let hdrHold = 0, hdrPinned = false; // hdrPinned: "Show tabs" pressed while the 
 function hdrSync() {
   const H = document.documentElement, mini = hdrPhone.matches ? !H.classList.contains("hdr-full") : H.classList.contains("hdr-mini") || H.classList.contains("hdr-auto"), btn = document.getElementById("hdrToggle");
   const label = hdrPhone.matches ? "toolbar" : "tabs";
-  btn.textContent = mini ? `▾ Show ${label}` : `▴ Hide ${label}`;
+  /* the words sit in their own span so narrow phones can show just the arrow (QA-7); the full label stays for screen readers */
+  const words = mini ? `Show ${label}` : `Hide ${label}`, arrow = document.createElement("span"), word = document.createElement("span");
+  arrow.textContent = mini ? "▾" : "▴"; word.className = "hdr-word"; word.textContent = " " + words;
+  btn.replaceChildren(arrow, word); btn.setAttribute("aria-label", words);
   btn.setAttribute("aria-expanded", String(!mini));
   btn.title = mini ? `Show the ${label}` : "Hide the toolbar to give this tab more room";
   const sel = document.getElementById("hdrTabSel"), tabs = $$("nav a").filter(a => !a.hidden);

@@ -40,6 +40,8 @@ function pcResources(c) {
   if (has("Favored Enemy") && ed === "2024") add("hmark", "Free Hunter's Mark", CLV("Ranger") >= 17 ? 6 : CLV("Ranger") >= 13 ? 5 : CLV("Ranger") >= 9 ? 4 : CLV("Ranger") >= 5 ? 3 : 2, "long");
   if (has("Arcane Recovery")) add("arcrec", "Arcane Recovery", 1, "long");
   if (has("Stroke of Luck")) add("luck", "Stroke of Luck", 1, "short");
+  if (ed === "2024" && featTaken(c, "Ritual Caster")) add("featQuickRitual", "Quick Ritual", 1, "long");
+  if (ed === "2024" && featTaken(c, "Mage Slayer")) add("featGuardedMind", "Guarded Mind", 1, "short");
   if (featTaken(c, "Lucky")) add("luckfeat", "Luck points", ed === "2024" ? prof : 3, "long");
   if (c.race === "Dragonborn") add("breath", "Breath Weapon", ed === "2024" ? prof : 1, ed === "2024" ? "long" : "short");
   if (tr("Healing Hands")) add("hhands", "Healing Hands", 1, "long");
@@ -100,12 +102,21 @@ function pcAbilities(c) {
   if (has("Font of Magic")) add("Font of Magic", "Bonus action", "Turn a spell slot into sorcery points, or spend 2/3/5/6/7 points for a level 1–5 slot.", "sorc");
   if (has("Metamagic")) add("Metamagic", "When casting", "Spend sorcery points to change a spell: Quickened (2), Twinned (spell level), Subtle, Careful, Distant, Empowered, Extended (1).", "sorc");
   if (has("Arcane Recovery")) add("Arcane Recovery", "Short rest", `Recover spell slots with a combined level up to ${Math.ceil(CLV("Wizard") / 2)} (none above 5th).`, "arcrec");
-  if (featTaken(c, "Lucky")) add("Lucky (feat)", "On a roll", ed === "2024" ? "Spend a luck point: advantage on a d20 test, or disadvantage on an attack roll against you." : "Spend a luck point: roll an extra d20 for an attack, check or save (or an attack against you) and choose which to use.", "luckfeat");
+  for (const feat of activeCharacterFeats(c)) {
+    if (feat === "Telekinetic") {
+      const dc = 8 + prof + m[featCastingAbility(c, feat)];
+      add("Telekinetic Shove", "Bonus action", `Choose a creature you can see within 30 ft. It makes a Strength save (DC ${dc}) or moves 5 ft toward or away from you. It can choose to fail.`, null, "Feat · Telekinetic");
+    } else if (feat === "Mage Slayer" && ed === "2024") {
+      add("Guarded Mind", "On a failed save", "Turn a failed Intelligence, Wisdom, or Charisma saving throw into a success.", "featGuardedMind", "Feat · Mage Slayer");
+    }
+    const text = featDesc("Feat: " + feat, c);
+    if (text) add(feat === "Lucky" ? "Lucky (feat)" : feat, feat === "Lucky" ? "On a roll" : "Feat", text, feat === "Lucky" ? "luckfeat" : null);
+  }
   if (has("Stroke of Luck")) add("Stroke of Luck", "Free", "Turn a missed attack into a hit, or treat a failed ability check's d20 as a 20.", "luck");
   if (c.race === "Dragonborn") { const x = (c.extras || []).find(e => e.startsWith("Breath Weapon")); if (x) add("Breath Weapon", ed === "2024" ? "Replaces an attack" : "Action", x.replace(/^Breath Weapon \([^)]*\):\s*/, "").replace(/, (\d+ uses per long rest|once per short or long rest)$/, ""), "breath"); }
   if (tr("Healing Hands")) add("Healing Hands", "Action", `Touch a creature and heal ${prof}d4 hit points.`, "hhands");
   if (tr("Relentless Endurance")) add("Relentless Endurance", "When reduced to 0 HP", "Drop to 1 hit point instead.", "relent");
-  (c.feats || []).filter(f => (f.sub || f.mcsub) && (SUB_ABL[f.f] || (ACT[f.f] && ACT[f.f].kind !== "none"))).forEach(f => { const S = SUB_ABL[f.f] || { when: ACT[f.f].kind === "persist" ? "Your choice" : ACT[f.f].kind === "toggle" ? "Activated" : "Use" }; add(f.f, S.when, subFeatDesc(f.f, c), S.res ? subAblKey(f.f) : S.uses, f.mcsub || c.subclass); });
+  (c.feats || []).filter(f => f.bookSub ? !!(SUB_ABL[f.f] && SUB_ABL[f.f].text) : (f.sub || f.mcsub) && (SUB_ABL[f.f] || (ACT[f.f] && ACT[f.f].kind !== "none"))).forEach(f => { const S = SUB_ABL[f.f] || { when: ACT[f.f].kind === "persist" ? "Your choice" : ACT[f.f].kind === "toggle" ? "Activated" : "Use" }; add(f.f, S.when, S.text ? S.text(c) : subFeatDesc(f.f, c), S.res ? subAblKey(f.f) : S.uses, f.mcsub || c.subclass); });
   if (tr("Large Form") && TLV >= 5) add("Large Form", "Bonus action", "Become Large for 10 minutes: advantage on Strength checks and +10 ft speed.", "large");
   if (tr("Draconic Flight") && TLV >= 5) add("Draconic Flight", "Bonus action", "Spectral wings for 10 minutes: fly at your walking speed.", "dflight");
   if (tr("Adrenaline Rush")) add("Adrenaline Rush", "Bonus action", `Dash, and gain ${prof} temporary hit points.`, "adren");
@@ -134,6 +145,7 @@ const DMG_LIST = ["acid", "cold", "fire", "lightning", "necrotic", "poison", "ps
    choices: [[id, label]] or (c) => [...]. cost: uses spent (default 1). fx(c, choice): effects while on.
    start(c, choice) / use(c, choice): what happens when activated or used; returns the message to show. */
 const ACT = {
+  "Telekinetic Shove": { kind: "instant", use: c => `Telekinetic Shove: Strength save DC ${8 + c.prof + c.mods[featCastingAbility(c, "Telekinetic")]}. On a failure, pull or push 5 ft.` },
   // ---------- Barbarian
   Rage: { kind: "toggle", fx: c => ({ atk: [{ f: "strMelee", dmg: rageDmg(c), label: `Rage +${rageDmg(c)}` }], res: ["bludgeoning", "piercing", "slashing"], notes: ["Advantage on Strength checks and Strength saving throws", "You can't cast spells or concentrate while raging"] }),
     start: c => { const tree = c.subclass === "Path of the World Tree" && c.level >= 3 && giveTemp(c, c.level); if (c.conc) { toast(`Rage ends your concentration on ${c.conc.spell}.`); delete c.conc; } return `${c.name} rages: +${rageDmg(c)} damage on Strength melee attacks, resistance to bludgeoning, piercing and slashing.${tree ? ` Vitality of the Tree: ${c.level} temporary hit points.` : ""}`; } },
@@ -489,7 +501,10 @@ function beastForm(id) {
   const sp = {}; String(m.speed).split(",").forEach(p => { const mm = p.trim().match(/^(?:(fly|swim|climb|burrow)\s+)?(\d+)\s*ft/i); if (mm) sp[(mm[1] || "walk").toLowerCase()] = +mm[2]; });
   const attacks = (m.actions || []).map(([n, t]) => {
     const hit = (t.match(/Attack(?: Roll)?:\s*\+(\d+)/) || [])[1], d = t.match(/(\d+)\s*\((\d+d\d+)\s*(?:([+\-−])\s*(\d+))?\)\s*([A-Za-z]+) damage/);
-    if (hit === undefined || !d) return null;
+    /* a tiny beast's flat damage, "Hit: 1 piercing damage" or "1 Piercing damage" (QA-4, 2026-11-23) */
+    const flat = !d && t.match(/(?:Hit:\s*|ft\.\s+|\.\s+)(\d+)\s+([A-Za-z]+) damage/);
+    if (hit === undefined || (!d && !flat)) return null;
+    if (flat) return { name: n, hit: +hit, die: "", mod: +flat[1], type: flat[2].toLowerCase(), melee: /Melee/.test(t), prof: true, beast: true, ab: "beast" };
     return { name: n, hit: +hit, die: d[2], mod: d[3] ? (d[3] === "+" ? 1 : -1) * +d[4] : 0, type: d[5].toLowerCase(), melee: /Melee/.test(t), prof: true, beast: true, ab: "beast" };
   }).filter(Boolean);
   return { m, sp, attacks };

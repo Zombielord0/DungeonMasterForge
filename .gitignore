@@ -8,3 +8,5 @@ public/sw.js
 public/credits.html
 public/assets/
 __pycache__/
+# Scratch space for build sessions and the QA agent
+.superpowers/

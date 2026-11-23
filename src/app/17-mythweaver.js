@@ -205,7 +205,7 @@ function mwChar(ch, ed) {
   const sh = ch.sheet || {}, sel = sh.selectionsBySlot || {}, A = sh.abilityScores || {};
   const D = { src: MW_SRC, mwId: ch.mwId, opts: {}, extras: {}, homebrew: [], report: { matched: [], made: [], differ: [], dropped: [] }, base: {} };
   const cName = impTitle(String(sel.class || ch.cls || "").replace(/-/g, " "));
-  const cls = classList(ed).find(k => impSame(k, cName)) || impClass(ed, cName, null, D, MW_SRC);
+  const cls = impClassMatch(ed, cName, D) || impClass(ed, cName, null, D, MW_SRC);
   if (!cls) return { error: `${ch.name} has no class in the file.` };
   for (const a of AB) { const v = +A[a] || +A[{ int: "intelligence" }[a]]; if (!(v > 0)) return { error: `${ch.name} has no ability scores in the file.` }; D.base[a] = v; }
   const lv = clamp(+sh.level || ch.level || 1, 1, 20);
@@ -213,13 +213,16 @@ function mwChar(ch, ed) {
   const sName = impTitle(String(sel.species || ch.ancestry || "").replace(/-/g, " ")), R = PC_RACES[ed];
   let race = Object.keys(R).find(k => !R[k].pend && impSame(k, sName)) || null, sub = "none";
   if (!race) for (const k of Object.keys(R)) { const S = R[k].subs || {}; const sk = Object.keys(S).find(s => impSame(s, sName) || impSame(S[s].label, sName)); if (sk) { race = k; sub = sk; break; } }
+  const fixedSp = !race && sName && impSpeciesMatch(ed, sName, D); /* a misspelled species (reported by impSpeciesMatch) */
+  if (fixedSp) race = fixedSp;
   if (race && sub === "none" && R[race].subs) { sub = Object.keys(R[race].subs)[0]; D.report.differ.push(`MythWeaver doesn't say which kind of ${race}: the Forge chose ${sub}. Change it on the sheet if needed`); }
-  if (race) D.report.matched.push(`Species: ${sub !== "none" ? sub : race}`);
+  if (race && !fixedSp) D.report.matched.push(`Species: ${sub !== "none" ? sub : race}`);
+  else if (race) { /* already reported */ }
   else if (sName) { const have = impHave("species", sName); race = have ? have.name : impCut(sName, 60); if (!have) { D.homebrew.push({ id: uid("hb"), kind: "species", src: MW_SRC, ed, name: race, desc: "Imported from MythWeaver; add its traits here.", asi: {}, speed: 30, skills: [], term: "", traits: [], subs: [] }); D.report.made.push(`${race} (species, name only)`); } }
   else return { error: `${ch.name} has no species in the file.` };
   const bName = impTitle(String(sel.background || "").replace(/-/g, " "));
-  let bg = bName ? bgList(ed).find(k => impSame(k, bName)) || (impHave("background", bName) || {}).name || null : null;
-  if (bg) D.report.matched.push(`Background: ${bg}`);
+  let bg = bName ? impListMatch("Background", bgList(ed), bName, D) || (impHave("background", bName) || {}).name || null : null;
+  if (bg) { if (![...D.report.matched, ...D.report.differ].some(t => t.startsWith("Background: "))) D.report.matched.push(`Background: ${bg}`); }
   else if (bName) { bg = impCut(bName, 60); D.homebrew.push({ id: uid("hb"), kind: "background", src: MW_SRC, ed, name: bg, desc: "Imported from MythWeaver; add its feature here.", skills: [], feat: "", gear: "", fx: [] }); D.report.made.push(`${bg} (background, name only)`); }
   const keepSkills = (sel.class_skills || []).map(s => ALL_SKILLS.find(k => impSame(k, String(s).replace(/^skill-/, "").replace(/-/g, " ")))).filter(Boolean);
   const gearIds = Object.entries(sel).filter(([k]) => /equipment/i.test(k)).flatMap(([, v]) => Array.isArray(v) ? v : [v]).filter(v => typeof v === "string");

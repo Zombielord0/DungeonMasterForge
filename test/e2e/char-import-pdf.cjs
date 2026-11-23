@@ -22,7 +22,9 @@ module.exports = async (p, { URL, check, FIX }) => {
   check("PDF: fuzzy matches are listed", r.report.matched.some(t => /Firebolt → Fire Bolt/.test(t)) && r.report.matched.some(t => /Magic Missle → Magic Missile/.test(t)), JSON.stringify(r.report.matched));
   const bs = r.homebrew.find(x => x.kind === "spell" && x.name === "Bone Shard"), mm = r.homebrew.find(x => x.kind === "spell" && /Melf/.test(x.name));
   check("PDF: an unknown spell becomes a name-only homebrew spell at its line's level", bs && bs.l === 2 && bs.desc === "" && prep.includes("Bone Shard"), JSON.stringify(bs));
-  check("PDF: a spell in the 3rd-level column gets level 3", mm && mm.l === 3, JSON.stringify(mm));
+  /* Melf's Minute Meteors is a book reference spell since 2026-11-23 (owner's choice), so it matches instead of becoming homebrew */
+  const mmRef = c.prepared.find(s => /Melf/.test(s.n));
+  check("PDF: a spell in the 3rd-level column gets level 3 (a book reference spell now)", !mm && mmRef && mmRef.l === 3, JSON.stringify([mm, mmRef]));
   check("PDF: the first line under level 2 is a level 2 spell", c.prepared.find(s => s.n === "Mirror Image").l === 2);
   check("PDF: a missing subclass is pointed out", r.report.differ.some(t => /Wizard subclass/.test(t)), JSON.stringify(r.report.differ));
   check("PDF: the portrait isn't imported, and says so", r.report.dropped.some(t => /Portrait not imported/.test(t)));

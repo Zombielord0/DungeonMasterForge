@@ -129,6 +129,7 @@ function cbBody() {
   }
   const base = cbFinal(cbBase());
   if (!CB.gender) CB.gender = "male";
+  const preview = generateCharacter({ ...cbCharacterOptions(), seed: "builder-preview", level: CB.level, subclass: "none" });
   return `<div class="field"><label>Gender</label><div class="seg" role="radiogroup" aria-label="Gender">${GENDERS.map(([v, l]) => `<label class="opt"><input type="radio" name="cbGender" value="${v}" ${CB.gender === v ? "checked" : ""}><span>${l}</span></label>`).join("")}</div></div>
   <div class="field"><label>Name</label><div class="row"><input type="text" data-cbname value="${esc(CB.name)}" placeholder="Random"><button class="btn" type="button" data-cbnamerand style="flex:0 0 auto" title="Random name">🎲</button></div></div>
   <div class="field row"><div><label>Level</label><input type="number" min="1" max="20" data-cblevel value="${CB.level}"></div><div><label>Alignment</label><select data-cbalign>${ALIGN.map(a => `<option ${CB.align === a ? "selected" : ""}>${a}</option>`).join("")}</select></div></div>
@@ -136,6 +137,7 @@ function cbBody() {
     <p>${esc(subLabel(CB.ed, CB.race, CB.sub))} ${esc(CB.cls)} (${esc(CB.bg)}), level ${CB.level}, ${CB.ed} rules.<br>
     ${AB.map(a => `${AB_NAME[a]} ${base[a]}`).join(" · ")}<br>
     Skills: ${[...cbLocked(), ...CB.skills].join(", ")}</p>
+    ${readinessFollowUp(preview)}
     <p class="hint">Levels past 4 apply ability score increases to your main abilities automatically. You can fine-tune every score, skill and detail afterwards on the sheet.</p></div>`;
 }
 function renderCB() {
@@ -150,6 +152,16 @@ function renderCB() {
     </div>
   </div>`;
 }
+function cbCharacterOptions() {
+  return {
+    name: CB.name.trim().slice(0, 60), race: CB.race, ed: CB.ed, sub: CB.sub || "none", cls: CB.cls, bg: CB.bg,
+    gender: CB.gender, method: "custom", bonus: CB.ed === "2024" ? "flex" : CB.bonus,
+    custom: { base: cbBase(), skills: [...CB.skills], align: CB.align,
+      plus2: CB.bonus === "flex" || CB.ed === "2024" ? CB.plus2 : null,
+      plus1: CB.bonus === "flex" || CB.ed === "2024" ? CB.plus1 : null,
+      tri: CB.ed === "2024" && CB.bgSpread === "111", bgGold50: CB.ed === "2024" && !!CB.bgGold50 }
+  };
+}
 function cbCreate() {
   const edition = currentSourceRules()?.edition;
   if ((edition && edition !== CB.ed) || !campaignRaceChoices(CB.ed).includes(CB.race) ||
@@ -158,10 +170,9 @@ function cbCreate() {
     toast("Review your choices against the campaign sourcebooks.");
     return;
   }
-  const custom = { base: cbBase(), skills: [...CB.skills], align: CB.align, plus2: CB.bonus === "flex" || CB.ed === "2024" ? CB.plus2 : null, plus1: CB.bonus === "flex" || CB.ed === "2024" ? CB.plus1 : null, tri: CB.ed === "2024" && CB.bgSpread === "111", bgGold50: CB.ed === "2024" && !!CB.bgGold50 };
-  currentPC = pcEnsure(generateCharacter({ seed: newSeed(), name: CB.name.trim().slice(0, 60), race: CB.race, ed: CB.ed, sub: CB.sub || "none", cls: CB.cls, bg: CB.bg, level: 1, gender: CB.gender, method: "custom", bonus: CB.ed === "2024" ? "flex" : CB.bonus, custom }));
+  currentPC = pcEnsure(generateCharacter({ ...cbCharacterOptions(), seed: newSeed(), level: 1 }));
   CB.on = false; renderPC(); pcPersist();
-  const target = clamp(CB.level, 1, 20), ready = c => `${c.name} is ready: tweak anything on the sheet, then save them`;
+  const target = clamp(CB.level, 1, 20), ready = c => characterReadiness(c).length ? `Review ${c.name}’s remaining choices on the sheet` : `${c.name} is ready to save`;
   if (target > 1 || needsSubclass(currentPC)) lvChain(currentPC, target, ready); else toast(ready(currentPC));
 }
 (function initCB() {

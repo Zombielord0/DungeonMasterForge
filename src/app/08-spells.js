@@ -77,7 +77,7 @@ function spFiltered() {
   const cls = $("#spClass").value, sch = $("#spSchool").value, tm = $("#spTime").value, conc = $("#spConc").value;
   const dmg = $("#spDmg").value, sv = $("#spSave").value, book = $("#spBook").value, rit = $("#spRitual").checked, noM = $("#spNoM").checked, fav = $("#spFav").checked;
   const words = q.split(/\s+/).filter(Boolean);
-  let list = SP.data[SP.ed].filter(s => !s.pend &&
+  let list = SP.data[SP.ed].filter(s => !s.pend && !s.shadow &&
     (!words.length || words.every(w => (inD ? s.hayD : s.hay).includes(w))) &&
     (!SP.levels.size || SP.levels.has(s.l)) && (!cls || s.c.includes(cls)) && (!sch || s.s === sch) &&
     (!tm || s.tc === tm) && (conc === "" || s.co === +conc) && (!dmg || s.dt === dmg) &&
@@ -105,7 +105,7 @@ function spFormat(text) {
 function spDetail(s, { edition = SP.ed, actions = true } = {}) {
   const comps = s.cp.split("").join(", ") + (s.m ? ` (${s.m})` : "");
   return `<div class="sp-detail">
-    <div class="muted"><i>${s.l ? `Level ${s.l} ${esc(s.s)}` : `${esc(s.s)} cantrip`}${s.ri ? " (ritual)" : ""} · ${esc(s.c.join(", "))}</i></div>
+    <div class="muted"><i>${s.l ? `Level ${s.l} ${esc(s.s)}` : `${esc(s.s)} cantrip`}${s.ri ? " (ritual)" : ""}${s.c.length ? ` · ${esc(s.c.join(", "))}` : ""}</i></div>
     <div class="sp-stats"><div><span>Casting time</span>${esc(s.t)}${s.ri ? " or ritual" : ""}</div><div><span>Range</span>${esc(s.r)}</div><div><span>Components</span>${esc(comps)}</div><div><span>Duration</span>${s.co && !/concentration/i.test(s.du) ? "Concentration, " : ""}${esc(s.du)}</div></div>
     ${spFormat(s.d)}
     ${s.h ? `<p><b><i>${edition === "2024" ? "Using a Higher-Level Spell Slot." : "At Higher Levels."}</i></b> ${spFormat(s.h).replace(/^<p>|<\/p>$/g, "")}</p>` : ""}
@@ -143,7 +143,7 @@ function renderSpells() {
   $("#spList").innerHTML = h;
 }
 function spText(s) {
-  return `${s.n}\n${s.l ? `Level ${s.l} ${s.s}` : `${s.s} cantrip`} (${s.c.join(", ")})\nCasting Time: ${s.t}${s.ri ? " or Ritual" : ""}\nRange: ${s.r}\nComponents: ${s.cp.split("").join(", ")}${s.m ? ` (${s.m})` : ""}\nDuration: ${s.co && !/concentration/i.test(s.du) ? "Concentration, " : ""}${s.du}\n\n${s.d.replace(/\*\*/g, "")}${s.h ? `\n\n${edition === "2024" ? "Using a Higher-Level Spell Slot" : "At Higher Levels"}: ${s.h}` : ""}`;
+  return `${s.n}\n${s.l ? `Level ${s.l} ${s.s}` : `${s.s} cantrip`}${s.c.length ? ` (${s.c.join(", ")})` : ""}\nCasting Time: ${s.t}${s.ri ? " or Ritual" : ""}\nRange: ${s.r}\nComponents: ${s.cp.split("").join(", ")}${s.m ? ` (${s.m})` : ""}\nDuration: ${s.co && !/concentration/i.test(s.du) ? "Concentration, " : ""}${s.du}\n\n${s.d.replace(/\*\*/g, "")}${s.h ? `\n\n${edition === "2024" ? "Using a Higher-Level Spell Slot" : "At Higher Levels"}: ${s.h}` : ""}`;
 }
 const spFind = id => SP.data[id.split("-")[0]][+id.split("-")[1]];
 let spTimer = null;
