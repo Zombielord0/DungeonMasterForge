@@ -1445,3 +1445,16 @@ nav a[data-view=requests]{--ic:url("data:image/svg+xml,%3Csvg xmlns='http://www.
 #spList .sp-row.sch-evocation,#rosterMain .sch-evocation{--sch:#9a3a0e}
 /* the earlier parchment previews (Adventure, NPCs, forged monsters) use the same paper */
 :root,:is(#genOut,#fgOut.fg-monster,#mbPreview){--parch:var(--book-paper)}
+/* fixes after review: inks a little darker, and the stone look's pale pink, white and dark tints made readable on paper */
+:is(#spList>.sec,#itList>.sec,#bsList>.sec,#rosterMain>.card:not(.empty):not(.mobile-sheet-quick),#rosterMain>.sec,#rosterMain>.grid2>.sec,#journalMain){--muted:#5c432c}
+:is(#spList,#itList,#bsList) .sp-star{color:var(--muted)}
+#spList .sp-row.sch-evocation,#rosterMain .sch-evocation{--sch:#8a320b}
+:is(#spList,#itList,#bsList,#rosterMain,#journalMain) :is(.lv-need,.warn,.dis,b.over,.prep-count b.over,.cb-count.over,.mb-needs,.ft-why,.pick .why,.imp-err){color:#8a1f12!important}
+#rosterMain .dis{border-color:#8a1f12}
+#rosterMain .cond.on{color:#fbeedb;background:#8a2f1d;border-color:#5e1a0f}
+#rosterMain .cond:not(.on):hover{color:var(--book-band)}
+:is(#rosterMain,#journalMain) .enc{background:rgba(130,80,30,.12);border-color:var(--book-trim)}
+:is(#rosterMain,#journalMain) .lore-name{color:var(--text)}
+:is(#rosterMain,#journalMain) :is(.prep-chip .prep-b:hover,.cast-b:hover,.linkish:hover){color:var(--book-band)}
+#rosterMain .prep-mk{background:rgba(130,80,30,.14);color:var(--book-band)}
+#rosterMain .cast-lv[aria-pressed=true]{color:#fbeedb;background:#8a2f1d}
