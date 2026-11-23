@@ -217,15 +217,36 @@ const GENASI_SPELL_GRANTS = {
 
 const SPELL_GRANT_REFERENCES = { bloodbound: { n: "Bloodbound", l: 1 } };
 
+const FEAT_SPELLS = {
+  "Fey Touched": { fixed: ["Misty Step"], schools: ["Divination", "Enchantment"] },
+  "Shadow Touched": { fixed: ["Invisibility"], schools: ["Illusion", "Necromancy"] },
+  Telekinetic: { fixed: ["Mage Hand"] },
+  Telepathic: { fixed: ["Detect Thoughts"] },
+  "Ritual Caster": {},
+  "Spell Sniper": {},
+};
+const featSpellKey = name => name.replace(/^(Fey|Shadow)-Touched$/, "$1 Touched");
+function activeCharacterFeats(c) {
+  return [...new Set((c.feats || []).filter(f => f.f.startsWith("Feat: "))
+    .map(f => f.f.slice(6).replace(/ \(\+.*\)$/, "")))];
+}
+function featCastingAbility(c, name) {
+  const pick = Object.entries(c.asiPicks || {}).find(([level, feat]) => +level <= c.level && feat?.feat === name)?.[1];
+  return (c.bonusFeats || []).find(feat => feat.n === name && feat.a)?.a
+    || ["int", "wis", "cha"].find(ab => pick?.[ab])
+    || ["int", "wis", "cha"].find(ab => choiceOf(c, "Feat casting ability: " + featSpellKey(name)).includes(ab))
+    || "int";
+}
+
 const grantedSpellStatus = (level, sources) => !level ? "Granted cantrip"
   : sources.some(g => !g.innate && !g.known) ? "Always prepared"
-  : sources.some(g => g.known) ? "Granted spell" : "Innate spell";
+  : sources.some(g => g.known) ? "Granted spell" : sources.every(g => g.ritualOnly) ? "Ritual spell" : "Innate spell";
 const spellKey = (ed, name) => ed + "|" + name;
 function spellPreparationSources(c, name, ed = edOf(c)) {
   return c.prepared?.find(p => p.bookGrant && p.n === name && p.ed === ed)?.sources || [];
 }
 function spellGrantLabel(source) {
-  const type = { class: "Class", subclass: "Subclass", species: "Species" }[source.kind];
+  const type = { class: "Class", subclass: "Subclass", species: "Species", feat: "Feat" }[source.kind];
   return type + " · " + source.name + (source.feature ? " (" + source.feature + ")" : "") + (source.book ? " · " + dmBook(source.book).name : "");
 }
 
@@ -358,5 +379,31 @@ function syncGrantedSpells(c) {
   add(lineage?.alwaysPrepared, level, subSpecies);
   add(race?.innateSpells, level, { ...species, innate: !race?.spellSlots, ab: race?.spellAbility }, spell => freeCast(spell, 1, ""));
   add(lineage?.innateSpells, level, { ...subSpecies, innate: !lineage?.spellSlots, ab: lineage?.spellAbility }, freeCast);
-  c.prepared = c.prepared.filter(p => !p.bookGrant).concat([...grants.values()]);
+  for (const name of activeCharacterFeats(c)) {
+    const key = featSpellKey(name);
+    if (key !== "Magic Initiate" && !Object.hasOwn(FEAT_SPELLS, key)) continue;
+    const source = { kind: "feat", name, book: featInfo(ed, name)?.[6] };
+    const free = spell => spell.l ? { free: "featSpell:" + encodeURIComponent(name + "|" + spell.n), uses: 1 } : {};
+    if (key === "Magic Initiate") {
+      const { list, can, one } = miState(c);
+      if (!list) continue;
+      const ability = miCastingAbility(c, list);
+      add({ 1: [...can.slice(0, 2), ...one.slice(0, 1)] }, 1, { ...source, feature: list, ab: ability,
+        ...(ed === "2014" ? { known: true, slotClass: list } : {}),
+      }, spell => spell.l ? { free: "featMagicInitiate", uses: 1 } : {});
+      continue;
+    }
+    const { fixed = [] } = FEAT_SPELLS[key];
+    const choice = "Feat spells: " + key;
+    const rule = CHOICES[choice];
+    const candidates = rule ? rule.opts(c) : [];
+    const selected = choiceOf(c, choice).filter(n => candidates.some(([id]) => id === n)).slice(0, rule?.n(c) || 0);
+    const legacyRitual = key === "Ritual Caster" && ed === "2014";
+    const innate = legacyRitual || (key === "Telepathic" && ed === "2014");
+    const list = choiceOf(c, "Feat spell list: " + key)[0];
+    add({ 1: [...fixed, ...selected] }, 1, { ...source, innate, ritualOnly: legacyRitual,
+      ab: ed === "2014" && list ? featListAbility(list) : featCastingAbility(c, name),
+    }, key === "Ritual Caster" ? undefined : free);
+  }
+  c.prepared = c.prepared.filter(p => !p.bookGrant && p.src !== "Magic Initiate").concat([...grants.values()]);
 }

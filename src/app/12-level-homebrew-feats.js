@@ -96,7 +96,7 @@ function featOpen() {
   if (!m) {
     document.body.insertAdjacentHTML("beforeend", `<div id="featModal" role="dialog" aria-modal="true" aria-labelledby="featTitle"><div class="box">
       <div class="row" style="align-items:center"><h3 id="featTitle" style="flex:1;margin:0">Choose a feat</h3><button class="btn sm" type="button" data-featclose style="flex:0 0 auto">✕ Close</button></div>
-      <div class="row" style="margin-top:10px;flex-wrap:wrap"><input type="search" id="featQ" placeholder="Search feats, e.g. armor, spell, speed" aria-label="Search feats" style="flex:2 1 240px"><div id="featGrp" class="row" style="flex:1 1 auto;gap:6px;flex-wrap:wrap"></div></div>
+      <div class="row" style="margin-top:10px;flex-wrap:wrap"><input type="search" id="featQ" autocomplete="off" placeholder="Search feats, e.g. armor, spell, speed" aria-label="Search feats" style="flex:2 1 240px"><div id="featGrp" class="row" style="flex:1 1 auto;gap:6px;flex-wrap:wrap"></div></div>
       <div id="featList"></div>
       <div class="row" style="margin-top:10px;flex-wrap:wrap;align-items:flex-end"><label class="lbl" style="margin:0;flex:1 1 240px">Not listed? Type your own feat<input type="text" id="featOwn" maxlength="80" placeholder="Feat name"></label><button class="btn" type="button" data-featown style="flex:0 0 auto">Use this feat</button></div>
     </div></div>`);
@@ -224,11 +224,16 @@ function lvRender(focusSel) {
   const ask = !c.subclass && to >= sl, list = campaignSubclassChoices(ed, c.cls);
   const gains = onlySub ? [] : lvGains(c, to), ch = LV.chain;
   const step = ch ? ch.steps.indexOf(to) + 1 : 0, more = ch && step < ch.steps.length;
+  const asiPicks = lvPicks(c, to, lvAsiPick());
+  const preview = !more && !lvMissing().length
+    ? { ...c, ...lvBuild({ ...c, subclass: LV.pick || c.subclass }, to, asiPicks), asiPicks }
+    : null;
   const yes = more ? "Next →" : ch && ch.target > ch.start ? `⬆ Level up to ${ch.target}` : onlySub ? "Choose subclass" : `⬆ Level up to ${to}`;
   $("#lvBox").innerHTML = `<h3 id="lvTitle">${ch && ch.target > ch.start ? `Level ${esc(c.name)} up to ${ch.target}` : onlySub ? `Choose a subclass for ${esc(c.name)}` : `Level up ${esc(c.name)}`}</h3>
     ${ch && ch.steps.length > 1 ? `<p class="hint" style="margin:4px 0 0">Choice ${step} of ${ch.steps.length}. Levels with nothing to choose are applied automatically.</p>` : ""}
     ${onlySub ? "" : `<p style="margin:6px 0 4px"><span class="tag gold">Level ${c.level} → ${to} ${esc(c.cls)}</span></p><ul class="plain lv-gains">${gains.map(x => `<li>${x}</li>`).join("")}</ul>`}
     ${LV.asi ? lvAsiHTML(c, to) : ""}
+    ${preview ? readinessFollowUp(preview) : ""}
     ${ask ? `<div class="sec-h" style="margin-top:14px"><h3>Choose your subclass</h3></div>
       <p class="hint" style="margin:4px 0 0">${esc(c.cls)}s choose a subclass at level ${sl} (${ed} rules). This is required to ${onlySub ? "finish the sheet" : "level up"}.</p>
       ${searchableChoices("Search subclasses", list.map(([n, d, hb, src]) => `<div class="progression-choice"><button type="button" class="pick ${LV.pick === n ? "on" : ""}" data-lvsub="${esc(n)}" aria-pressed="${LV.pick === n}"><b>${esc(n)}</b><small>${esc(d)}</small>${src || hb ? `<small class="req">${esc(src ? dmBook(src).name : "Homebrew")}</small>` : ""}</button>${progressionButton(ed, "subclass", c.cls, n)}</div>`).join(""))}` : ""}
@@ -635,6 +640,6 @@ function featsSecHTML(c) {
   const all = [...bgf, ...lv, ...bonus];
   return `<div class="sec"><div class="sec-h"><h3>Feats</h3><span class="sp"></span><button class="btn sm primary" type="button" data-ra="addFeat">+ Add feat</button></div>
     ${all.length ? `<ul class="plain">${all.map(x => { const d = featDesc("Feat: " + x.n, c); return `<li><b>${esc(x.n)}</b>${x.a ? ` <span class="tag">+1 ${AB_NAME[x.a]}</span>` : ""} <span class="muted" style="font-size:13px">(${esc(x.src)})</span>
-      ${x.i !== undefined ? `<button class="icon-btn" type="button" data-rmfeat="${x.i}" title="Remove ${esc(x.n)}" aria-label="Remove ${esc(x.n)}">✕</button>` : ""}${d ? `<div class="ft-desc">${esc(d)}</div>` : ""}${x.n === "Magic Initiate" ? miHTML(c) : CHOICES["Feat: " + x.n] ? choiceHTML(c, "Feat: " + x.n) : ""}</li>`; }).join("")}</ul>`
+      ${x.i !== undefined ? `<button class="icon-btn" type="button" data-rmfeat="${x.i}" title="Remove ${esc(x.n)}" aria-label="Remove ${esc(x.n)}">✕</button>` : ""}${d ? `<div class="ft-desc">${esc(d)}</div>` : ""}${choiceHTML(c, "Feat: " + x.n)}${featSpellChoicesHTML(c, x.n)}</li>`; }).join("")}</ul>`
       : `<p class="muted" style="margin:6px 0 0">No feats yet. Take one instead of an Ability Score Improvement when levelling up, or add one with + Add feat.</p>`}</div>`;
 }

@@ -607,7 +607,8 @@ function impSummaryHTML(D, built) {
     ${R.matched.length ? `<h4>Matched</h4>${li(R.matched)}` : ""}
     ${R.made.length ? `<h4>New homebrew${impPlayer() ? " (your DM will be asked to approve)" : ""}</h4>${li(R.made)}<p class="hint" style="margin:4px 0 0">${D.src === IMP_SRC ? "Their rules text comes from the file." : `${D.src === FECS_SRC ? "This app's file" : "A PDF"} has names only: add their rules text in the Homebrew tab.`} Sheet effects (bonuses to numbers) aren't added; set them in the Homebrew tab if you need them.</p>` : ""}
     ${R.differ.length ? `<h4>Different from the file</h4>${li(R.differ)}` : ""}
-    ${R.dropped.length ? `<h4>Not brought across</h4>${li(R.dropped)}` : ""}`;
+    ${R.dropped.length ? `<h4>Not brought across</h4>${li(R.dropped)}` : ""}
+    ${characterReadiness(c).length ? `<h4>Choices to finish on the sheet</h4>${li(characterReadiness(c).map(([label]) => label))}` : ""}`;
 }
 async function impCharRefresh() {
   const out = document.getElementById("impCharOut"), go = document.getElementById("impCharGo"); go.disabled = true; IMPC.draft = IMPC.built = null;
@@ -639,6 +640,7 @@ document.querySelectorAll('#impCharModal input[name="impEd"]').forEach(r => r.ad
 document.getElementById("impCharGo").addEventListener("click", async () => {
   const D = IMPC.draft, B = IMPC.built; if (!D || D.error || !B) return;
   document.getElementById("impCharGo").disabled = true;
+  B.c.importReview = [...B.report.differ, ...B.report.dropped];
   if (await importCommit(D, B.c)) { const n = B.c.name; impCharClose(); location.hash = "roster"; toast(`${n} imported${B.c.hbPending ? ". Your DM will be asked to approve the new homebrew." : ""}`); }
   else document.getElementById("impCharGo").disabled = false;
 });

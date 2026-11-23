@@ -55,6 +55,11 @@ function emit(name, ext, text) { // text: a string, or a Buffer for pictures
   writeFileSync(at(`public/assets/${file}`), text);
   if (!quiet) console.log(`public/assets/${file}  ${(Buffer.byteLength(text) / 1024).toFixed(0)} KB`);
 }
+function emitCatalog(name, key, data, source = name) {
+  const text = JSON.stringify(data);
+  const literal = JSON.stringify(text).replaceAll("\u2028", "\\u2028").replaceAll("\u2029", "\\u2029");
+  emit(name, "js", `/* Built from data/${source}.json by tools/build.mjs. */\n(window.DMDATA = window.DMDATA || {}).${key} = ${literal};\n`);
+}
 mkdirSync(at("public/assets/"), { recursive: true });
 const spellGrants = JSON.parse(read("data/spell-grants.json"));
 for (const [name, key] of [["spells", "spellData"], ["monsters", "monsterData"], ["items", "itemData"],
@@ -78,9 +83,16 @@ for (const [name, key] of [["spells", "spellData"], ["monsters", "monsterData"],
       return entry;
     });
   }
-  const text = JSON.stringify(data);
-  const lit = JSON.stringify(text).split(String.fromCharCode(0x2028)).join("\\u2028").split(String.fromCharCode(0x2029)).join("\\u2029");
-  emit(name, "js", `/* Built from data/${name}.json by tools/build.mjs. */\n(window.DMDATA = window.DMDATA || {}).${key} = ${lit};\n`);
+  if (name === "book-references") {
+    for (const ed of ["2014", "2024"]) {
+      emitCatalog(`book-references-${ed}`, `bookReferences${ed}`, data.filter(row => (row.ed || "2014") === ed), name);
+    }
+  } else {
+    emitCatalog(name, key, data);
+  }
+  if (name === "extra-monsters") {
+    emitCatalog("monster-index", "monsterIndex", data.map(({ n, src }) => [n, src]), name);
+  }
 }
 // the credits page for the extra books (each book's notice and licence, and the Open Game License text)
 {
@@ -142,8 +154,7 @@ html = html.replace(/^(<!DOCTYPE html>\n?)/i, "$1<!-- Built by tools/build.mjs f
 if (!/^<!DOCTYPE html>/i.test(html)) throw new Error("src/index.html must start with <!DOCTYPE html>");
 writeFileSync(at("public/index.html"), html);
 const files = Object.values(out).filter(f => !f.endsWith(".webp"));
-const lazyFiles = [out["/assets/extra-monsters.js"], out["/assets/book-references.js"]];
-const coreFiles = files.filter(f => !lazyFiles.includes(f));
+const coreFiles = files.filter(f => !/^\/assets\/(extra-monsters|monster-index|book-references-(2014|2024))\./.test(f));
 const sw = read("src/sw.js").replace(/^const ASSETS = .*$/m, `const ASSETS = ${JSON.stringify(coreFiles)};`)
   .replace(/^const CACHE = "([\w-]+?)";/m, (_, name) => `const CACHE = "${name}-${fp(files.join())}";`);
 writeFileSync(at("public/sw.js"), "/* Built by tools/build.mjs from src/sw.js. */\n" + sw);

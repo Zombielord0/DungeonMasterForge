@@ -7,6 +7,22 @@ const NEWS = [
     "Subclasses like Oathbreaker now apply their features when imported, including with the 2024 rules, and a short name like \"Devotion\" finds Oath of Devotion.",
     "When the Forge has its own version of a class or subclass, it's used instead of a homebrew copy an earlier import made. Homebrew you wrote yourself still comes first."
   ] },
+  { id: "2026-11-22-session-workflows", date: "2026-11-22", title: "Prepare your character and next session", go: "tracker", items: [
+    "Character sheets show missing spell, subclass, and fighting style choices and flag differences from imported files.",
+    "Queue campaign entries and Compendium references in Next Session, then put them in the order you plan to use them.",
+    "Combat history records turn, initiative, condition, and hit point changes. Undo the last recorded change from the encounter."
+  ] },
+  { id: "2026-11-21-feats-and-parchment", date: "2026-11-21", title: "Feat spells and parchment previews", go: "roster", items: [
+    "Feat benefits now appear under Abilities. Supported feat spells appear under Spells with their source and tracked free casts.",
+    "Adventure and monster previews use classic handbook-style parchment, with weathered edges and blue ink headings."
+  ] },
+  { id: "2026-11-21-browse-compendium", date: "2026-11-21", title: "Browse the Compendium", go: "compendium", items: [
+    "Open the Compendium to see entries right away. Use Edition, Type, or the page buttons to browse.",
+    "Type part of a name or source to narrow the list. Clear the search to browse again."
+  ] },
+  { id: "2026-11-21-matching-search-fields", date: "2026-11-21", title: "Matching search fields", go: "compendium", items: [
+    "Search boxes across the Forge use the same dark style, including popups and fields filled by the browser."
+  ] },
   { id: "2026-11-21-granted-spell-sources", date: "2026-11-21", title: "See what grants your spells", go: "roster", items: [
     "The character sheet labels always-prepared spells and granted cantrips with their class, subclass, or species.",
     "Granted spells stay prepared and leave room for your own spell choices. An innate spell shows its free-use option when you open it.",
