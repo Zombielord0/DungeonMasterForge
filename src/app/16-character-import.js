@@ -151,12 +151,12 @@ function spellMatch(ed, name) {
 function spellMatch1(ed, name) {
   spLoad(); const k = impLetters(name); if (!k) return null;
   const eds = [ed, ed === "2014" ? "2024" : "2014"], fuzzy = s => s.n.toLowerCase() !== String(name).trim().toLowerCase();
-  for (const e of eds) { const s = (SP.data[e] || []).find(x => !x.pend && impLetters(x.n) === k); if (s) return { s, ed: e, fuzzy: fuzzy(s) }; }
+  for (const e of eds) { const s = (SP.data[e] || []).find(x => !x.pend && !x.shadow && impLetters(x.n) === k); if (s) return { s, ed: e, fuzzy: fuzzy(s) }; }
   if (k.length < 6) return null;
-  for (const e of eds) { const L = (SP.data[e] || []).filter(x => !x.pend && impLetters(x.n).startsWith(k)).sort((a, b) => a.n.length - b.n.length); if (L.length) return { s: L[0], ed: e, fuzzy: true }; }
+  for (const e of eds) { const L = (SP.data[e] || []).filter(x => !x.pend && !x.shadow && impLetters(x.n).startsWith(k)).sort((a, b) => a.n.length - b.n.length); if (L.length) return { s: L[0], ed: e, fuzzy: true }; }
   for (const e of eds) {
     let best = null;
-    for (const x of SP.data[e] || []) { if (x.pend) continue; const d = impDist(k, impLetters(x.n), 2); if (d <= 2 && (!best || d < best.d || d === best.d && x.n.length < best.s.n.length)) best = { s: x, d }; }
+    for (const x of SP.data[e] || []) { if (x.pend || x.shadow) continue; const d = impDist(k, impLetters(x.n), 2); if (d <= 2 && (!best || d < best.d || d === best.d && x.n.length < best.s.n.length)) best = { s: x, d }; }
     if (best) return { s: best.s, ed: e, fuzzy: true };
   }
   return null;

@@ -175,7 +175,7 @@ function biHave(kind, name, cls, edition = "both") {
     if (h) return h.book ? `already in the Forge (${dmBook(h.src).name})` : h.pend ? "already waiting for your approval" : "already in your homebrew";
   }
   const built = {
-    spell: () => { spLoad(); return editions.flatMap(ed => SP.data[ed]).some(s => !s.hb && lc(s.n) === n); },
+    spell: () => { spLoad(); return editions.flatMap(ed => SP.data[ed]).some(s => !s.hb && !s.ref && lc(s.n) === n); },
     feat: () => editions.flatMap(ed => FEATS[ed]).some(F => lc(F[0]) === n),
     species: () => editions.some(ed => Object.keys(PC_RACES[ed]).some(k => !PC_RACES[ed][k].hb && lc(k) === n)),
     background: () => editions.some(ed => Object.keys(BG_DATA[ed]).some(k => lc(k) === n)),

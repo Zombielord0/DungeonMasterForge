@@ -428,7 +428,7 @@ function spellCardHTML(s) {
 }
 function openSpellCards(c) {
   spLoad(); const seen = new Set();
-  const list = (c.prepared || []).map(x => (SP.data[x.ed || edOf(c)] || []).find(s => s.n === x.n)).filter(s => s && !seen.has(s.n) && seen.add(s.n)).sort((a, b) => a.l - b.l || a.n.localeCompare(b.n));
+  const list = (c.prepared || []).map(x => (SP.data[x.ed || edOf(c)] || []).find(s => !s.shadow && s.n === x.n)).filter(s => s && !seen.has(s.n) && seen.add(s.n)).sort((a, b) => a.l - b.l || a.n.localeCompare(b.n));
   if (!list.length) { toast("No prepared spells on this sheet yet. Add some in the Spells section first."); return; }
   const cards = list.map(spellCardHTML).join(""), file = c.name.replace(/[^\w\- ]+/g, "").trim().replace(/\s+/g, "-") + "-spell-cards.html";
   const html = `<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><title>${esc(c.name)} · Spell Cards</title><style>${ITEMCARD_CSS}

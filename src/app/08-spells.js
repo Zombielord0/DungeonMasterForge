@@ -77,7 +77,7 @@ function spFiltered() {
   const cls = $("#spClass").value, sch = $("#spSchool").value, tm = $("#spTime").value, conc = $("#spConc").value;
   const dmg = $("#spDmg").value, sv = $("#spSave").value, book = $("#spBook").value, rit = $("#spRitual").checked, noM = $("#spNoM").checked, fav = $("#spFav").checked;
   const words = q.split(/\s+/).filter(Boolean);
-  let list = SP.data[SP.ed].filter(s => !s.pend &&
+  let list = SP.data[SP.ed].filter(s => !s.pend && !s.shadow &&
     (!words.length || words.every(w => (inD ? s.hayD : s.hay).includes(w))) &&
     (!SP.levels.size || SP.levels.has(s.l)) && (!cls || s.c.includes(cls)) && (!sch || s.s === sch) &&
     (!tm || s.tc === tm) && (conc === "" || s.co === +conc) && (!dmg || s.dt === dmg) &&

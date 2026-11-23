@@ -312,7 +312,7 @@ const hbBuiltIn = (kind, name, cls, edition) => {
   const editions = edition === "2014" || edition === "2024" ? [edition] : ["2014", "2024"];
   const n = name.toLowerCase(), has = l => l.some(x => x.toLowerCase() === n);
   if (kind === "background") return has(Object.keys(BACKGROUNDS).filter(x => !HB_BG[x]));
-  if (kind === "spell") { spLoad(); return has(editions.flatMap(ed => SP.data[ed]).filter(x => !x.hb).map(x => x.n)); }
+  if (kind === "spell") { spLoad(); return has(editions.flatMap(ed => SP.data[ed]).filter(x => !x.hb && !x.ref).map(x => x.n)); } /* a book reference spell has no rules text: a DM may write their own */
   if (kind === "species") return ["2014", "2024"].some(ed => has(Object.keys(PC_RACES[ed]).filter(x => !PC_RACES[ed][x].hb)));
   if (kind === "class") return has(builtInClasses());
   if (kind === "feat") return has(editions.flatMap(ed => FEATS[ed]).map(F => F[0]));

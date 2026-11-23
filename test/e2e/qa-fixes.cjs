@@ -79,6 +79,15 @@ const ZOOK = fs.readFileSync(path.join(FIX, "companion-zook.json"), "utf8");
   check("Oathbreaker: Aura of Hate is in the Abilities list with the Charisma bonus", A("Aura of Hate") && /melee weapon damage/.test(A("Aura of Hate")[2]) && /\+\d/.test(A("Aura of Hate")[2]), JSON.stringify(abl.map(a => a[0])));
   check("Oathbreaker: Control Undead and Dreadful Aspect are abilities that spend Channel Divinity, with a save DC", ["Channel Divinity: Control Undead", "Channel Divinity: Dreadful Aspect"].every(n => A(n) && A(n)[3] === "channel" && /DC \d+/.test(A(n)[2])), JSON.stringify(abl.filter(a => /Control|Dreadful/.test(a[0]))));
 
+  // other book subclasses get no blank Abilities entries (review of the change above)
+  const blanks = await p.evaluate(() => { const out = [];
+    for (const [cls, sub] of [["Paladin", "Oath of Glory"], ["Cleric", "Twilight Domain"], ["Barbarian", "Path of the Zealot"], ["Bard", "College of Glamour"]]) {
+      if (!subclassList("2014", cls).some(x => x[0] === sub)) { out.push(`${sub}: not offered`); continue; }
+      const c = generateCharacter({ cls, level: 20, ed: "2014", seed: "blank-" + sub, subclass: sub, method: "array", bonus: "flex" }); pcEnsure(c);
+      pcAbilities(c).filter(a => !String(a.text || "").trim()).forEach(a => out.push(`${sub}: ${a.name}`));
+    } return out; });
+  check("book subclasses (Glory, Twilight, Zealot, Glamour) have no blank Abilities entries", !blanks.length, blanks.join(" | "));
+
   // Book reference spells (2026-11-23): spells from other books join the list with their stats and page, no rules text
   const refs = await p.evaluate(() => { const D = dmData("spellData"), out = {};
     for (const ed of ["2014", "2024"]) { const L = D[ed].filter(x => x.n === "Silvery Barbs"); out[ed] = L.map(x => ({ l: x.l, s: x.s, t: x.t, r: x.r, src: x.src, ref: x.ref, d: x.d })); out[ed + "fireball"] = D[ed].filter(x => x.n === "Fireball").length; }
@@ -90,6 +99,22 @@ const ZOOK = fs.readFileSync(path.join(FIX, "companion-zook.json"), "utf8");
     return { prep: D.extras.prepared.map(s => s.n), hb: D.homebrew.filter(x => x.kind === "spell").map(x => x.name) }; }, ZOOK);
   check("reference spells: importing a character with Silvery Barbs puts it on the sheet, not in homebrew or notes", sb.prep.includes("Silvery Barbs") && !sb.hb.includes("Silvery Barbs"), JSON.stringify(sb));
   await p.goto(p.url().replace(/#.*/, "#spells")); await p.waitForFunction(() => document.querySelector("#spList .sp-row"));
+  // a DM's own homebrew spell with a reference spell's name can be saved, and wins wherever the spell is looked up
+  const hbs = await p.evaluate(() => { spLoad();
+    const err = hbBuiltIn("spell", "Silvery Barbs", "", "2014") ? "built-in" : "";
+    const x = { id: "hb-sb", kind: "spell", src: "", ed: "2014", name: "Silvery Barbs", desc: "My own rules text.", l: 1, s: "Enchantment", c: ["Bard"], t: "1 reaction", r: "60 feet", cp: "V", m: "", du: "Instantaneous", co: false, ri: false, h: "" };
+    HB.list.push(x); hbApply();
+    const found = spellOf("2014", "Silvery Barbs");
+    const listed = SP.data["2014"].filter(s => s.n === "Silvery Barbs" && !s.shadow).map(s => !!s.hb);
+    const match = spellMatch("2014", "Silvery Barbs");
+    HB.list = HB.list.filter(y => y !== x); hbApply();
+    const back = SP.data["2014"].filter(s => s.n === "Silvery Barbs" && !s.shadow).map(s => !!s.ref);
+    return { err: String(err || ""), foundHb: !!(found && found.hb), listed, matchHb: !!(match && match.s.hb), back }; });
+  check("a homebrew spell named like a reference spell can be saved (it isn't 'built in')", !/built-in/.test(hbs.err), hbs.err);
+  check("…and it wins on lookup, in the list and on import; removing it brings the reference back", hbs.foundHb && JSON.stringify(hbs.listed) === "[true]" && hbs.matchHb && JSON.stringify(hbs.back) === "[true]", JSON.stringify(hbs));
+  const bulk = await p.evaluate(() => { spLoad(); return biHave("spell", "Silvery Barbs", "", "2014"); });
+  check("bulk import doesn't treat a reference spell as one the Forge already has", !bulk, String(bulk));
+
   await p.click('label.opt:has(input[name="spEd"][value="2014"])'); await p.fill("#spQ", "silvery barbs"); await p.waitForTimeout(500);
   const row = await p.evaluate(() => { const r = [...document.querySelectorAll("#spList .sp-row")].find(x => /Silvery Barbs/.test(x.textContent)); return r ? r.textContent.replace(/\s+/g, " ").slice(0, 200) : null; });
   check("reference spells: the Spells tab lists Silvery Barbs with its book", row && /SCC/.test(row), String(row));

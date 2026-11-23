@@ -154,8 +154,8 @@ function spellOf(ed, name) {
   spLoad();
   const local = SP.data[ed] || [];
   const normalized = String(name).toLowerCase().replaceAll("’", "'");
-  const match = x => [x.n, ...(x.aliases || [])].some(n => n.toLowerCase().replaceAll("’", "'") === normalized);
-  return local.find(x => x.n === name) || local.find(match)
+  const match = x => !x.shadow && [x.n, ...(x.aliases || [])].some(n => n.toLowerCase().replaceAll("’", "'") === normalized);
+  return local.find(x => !x.shadow && x.n === name) || local.find(match)
     || Object.values(SP.data).flat().find(match) || null;
 }
 // what a spell does, read from its text: damage or healing dice, upcasting, cantrip growth, attack or save, area, number of rays or darts

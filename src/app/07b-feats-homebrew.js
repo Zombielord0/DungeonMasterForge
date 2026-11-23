@@ -341,6 +341,9 @@ function hbSpellsApply() {
   if (!SP.data) return;
   for (const ed of ["2014", "2024"]) {
     const L = SP.data[ed] = SP.data[ed].filter(s => !s.hb);
+    /* a homebrew spell with a book reference spell's name replaces it (shadow); it comes back if the homebrew goes */
+    const own = new Set(hbAny("spell").filter(x => hbEdOk(x, ed)).map(x => String(x.name).toLowerCase()));
+    L.forEach(s => { if (s.ref) s.shadow = own.has(s.n.toLowerCase()); });
     hbAny("spell").filter(x => hbEdOk(x, ed)).forEach(x => { const s = { n: x.name, l: +x.l || 0, s: x.s || "", c: x.c || [], t: x.t || "", r: x.r || "", cp: x.cp || "", m: x.m || "", du: x.du || "", co: x.co ? 1 : 0, ri: x.ri ? 1 : 0, d: x.desc || "", h: x.h || "", dt: "", at: "", sv: "", hb: true, ...(x.pend ? { pend: true } : {}) }; spPrep(s, ed, L.length); L.push(s); });
   }
 }
