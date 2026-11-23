@@ -93,7 +93,10 @@ const ZOOK = fs.readFileSync(path.join(FIX, "companion-zook.json"), "utf8");
     for (const ed of ["2014", "2024"]) { const L = D[ed].filter(x => x.n === "Silvery Barbs"); out[ed] = L.map(x => ({ l: x.l, s: x.s, t: x.t, r: x.r, src: x.src, ref: x.ref, d: x.d })); out[ed + "fireball"] = D[ed].filter(x => x.n === "Fireball").length; }
     return out; });
   check("reference spells: Silvery Barbs is in the 2014 spell list once, level 1 enchantment from Strixhaven (a 2014 book, so not in 2024)", refs["2014"].length === 1 && refs["2014"][0].l === 1 && refs["2014"][0].s === "Enchantment" && refs["2014"][0].src === "scc" && refs["2014"][0].ref === true && refs["2024"].length === 0, JSON.stringify(refs));
-  check("reference spells: its description only points to the book page", refs["2014"][0] && /Strixhaven.*page 38/.test(refs["2014"][0].d) && refs["2014"][0].d.length < 200, JSON.stringify(refs["2014"]));
+  check("reference spells: Silvery Barbs shows its rules summary, then its book and page", refs["2014"][0] && /reroll the d20/.test(refs["2014"][0].d) && /From Strixhaven: A Curriculum of Chaos, page 38\.$/.test(refs["2014"][0].d), JSON.stringify(refs["2014"]));
+  const told = await p.evaluate(() => { const L = dmData("spellData")["2014"].filter(x => x.ref); const cb = L.find(x => x.n === "Chaos Bolt");
+    return { n: L.length, bare: L.filter(x => /see the book/.test(x.d)).map(x => x.n), upcast: L.filter(x => /Upcast:/.test(x.d)).map(x => x.n), cbH: cb && cb.h }; });
+  check("reference spells: all 97 have their rules summary (none says 'see the book'), and upcasting sits on its own line", told.n === 97 && !told.bare.length && !told.upcast.length && /\+1d6 damage per slot level above 1st/.test(told.cbH || ""), JSON.stringify(told).slice(0, 300));
   check("reference spells: a spell the Forge already has isn't added twice (Fireball)", refs["2014fireball"] === 1 && refs["2024fireball"] === 1, JSON.stringify([refs["2014fireball"], refs["2024fireball"]]));
   const sb = await p.evaluate(txt => { const j = JSON.parse(txt); j.spells = [...j.spells, { name: "Silvery Barbs", level: 1 }]; const D = compImport(j, "2014");
     return { prep: D.extras.prepared.map(s => s.n), hb: D.homebrew.filter(x => x.kind === "spell").map(x => x.name) }; }, ZOOK);
