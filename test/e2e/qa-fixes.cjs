@@ -57,6 +57,20 @@ const ZOOK = fs.readFileSync(path.join(FIX, "companion-zook.json"), "utf8");
   const note = await p.evaluate(() => { itLoad(); const x = [...IT.data["2024"], ...IT.data["2014"]].find(i => i.rk === 1); return itPriceNote(x); });
   check("QA-5: the price note says “an uncommon item”", /an uncommon item/.test(note) && !/a uncommon/.test(note), note);
 
+  // QA-6: every spell's "at higher levels" text is on its own line (the h field), not inside the description
+  const up = await p.evaluate(() => { const D = dmData("spellData"), bad = [];
+    for (const ed of ["2014", "2024"]) for (const x of D[ed] || []) if (!x.h && /(Using a Higher-Level Spell Slot|At Higher Levels)\./.test(x.d || "")) bad.push(`${ed} ${x.n}`);
+    const cw = D["2024"].find(x => x.n === "Cure Wounds"); return { bad, cw: cw && [cw.h, /Higher-Level/.test(cw.d)] }; });
+  check("QA-6: no spell keeps its higher-level text inside the description", !up.bad.length, up.bad.join(", "));
+  check("QA-6: Cure Wounds (2024) has its higher-level line on its own", up.cw && /2d8 for each spell slot level above 1/.test(up.cw[0]) && !up.cw[1], JSON.stringify(up.cw));
+
+  // QA-7: on phones the short header shows the Forge's whole name
+  for (const w of [320, 360, 390]) {
+    await p.setViewportSize({ width: w, height: 844 }); await p.goto(p.url().replace(/#.*/, "#spells")); await p.waitForTimeout(400);
+    const h = await p.evaluate(() => { const l = document.querySelector(".hdr-mini-label"), t = document.querySelector("#hdrToggle"); return { cut: l.scrollWidth > l.clientWidth + 1, shown: l.getClientRects().length > 0, label: t.getAttribute("aria-label") || t.textContent }; });
+    check(`QA-7: at ${w} px the header name isn't cut off, and the toolbar button still says what it does`, h.shown && !h.cut && /Show toolbar/.test(h.label), JSON.stringify(h));
+  }
+
   check("no page errors", !errs.length, errs.join(" | "));
   await browser.close(); server.close();
   console.log(fails ? `\n${fails} check(s) failed` : "\nAll QA fix checks passed");
