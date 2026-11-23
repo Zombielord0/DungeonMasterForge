@@ -39,7 +39,7 @@ DROW_TRAITS = [["Fey Ancestry", "Advantage on saving throws against being charme
 DEEP_GNOME_TRAITS = [["Stone Camouflage", "Advantage on Dexterity (Stealth) checks made to hide in rocky terrain."],
                      ["Gnome Cunning", "Advantage on Intelligence, Wisdom and Charisma saving throws against magic."],
                      ["Innate Spellcasting", "Intelligence (spell save DC 11), no material components. At will: nondetection (self only). 1/day each: blindness/deafness, blur, disguise self."]]
-FIXES = {"2014": {"Donkey": {"speed": "40 ft.", "hd": "2d8+2", "actions": [["Hooves", "Melee Weapon Attack: +4 to hit, reach 5 ft., one target. Hit: 4 (1d4 + 2) bludgeoning damage."]]},
+FIXES = {"2014": {"Donkey": {"speed": "40 ft.", "cr": 0.125, "hd": "2d8+2", "actions": [["Hooves", "Melee Weapon Attack: +2 to hit, reach 5 ft., one target. Hit: 4 (1d4 + 2) bludgeoning damage."]]},
                   "Elf, Drow": {"speed": "30 ft.", "cr": 0.25, "hd": "3d8", "senses": "darkvision 120 ft., passive Perception 12", "traits": DROW_TRAITS},
                   "Gnome, Deep (Svirfneblin)": {"speed": "20 ft.", "cr": 0.5, "hd": "3d6+6", "senses": "darkvision 120 ft., passive Perception 12", "traits": DEEP_GNOME_TRAITS},
                   "Cult Fanatic": {"hp": 33}, "Reef Shark": {"hd": "4d8+4"}}}

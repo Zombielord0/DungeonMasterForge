@@ -30,7 +30,7 @@ const ZOOK = fs.readFileSync(path.join(FIX, "companion-zook.json"), "utf8");
 
   // QA-2: three thin 2014 entries
   const D = mons["Donkey"], Dr = mons["Elf, Drow"], G = mons["Gnome, Deep (Svirfneblin)"], tn = m => (m.traits || []).map(t => t[0]).join(", ");
-  check("QA-2: the Donkey has hit dice and an attack", D.hd === "2d8+2" && (D.actions || []).some(a => /to hit/.test(a[1])), JSON.stringify([D.hd, D.actions]));
+  check("QA-2: the Donkey matches the Mule (hit dice, CR 1/8, Hooves +2 to hit)", D.hd === "2d8+2" && D.cr === mons["Mule"].cr && JSON.stringify(D.actions) === JSON.stringify(mons["Mule"].actions), JSON.stringify([D.cr, D.hd, D.actions]));
   check("QA-2: the Drow is CR 1/4 with Fey Ancestry, innate spells and sunlight sensitivity", Dr.cr === 0.25 && Dr.hd && /Fey Ancestry/.test(tn(Dr)) && /Innate Spellcasting/.test(tn(Dr)) && /Sunlight Sensitivity/.test(tn(Dr)), JSON.stringify([Dr.cr, Dr.hd, tn(Dr)]));
   check("QA-2: the Deep Gnome is CR 1/2 with its traits", G.cr === 0.5 && G.hd && /Stone Camouflage/.test(tn(G)) && /Gnome Cunning/.test(tn(G)) && /Innate Spellcasting/.test(tn(G)), JSON.stringify([G.cr, G.hd, tn(G)]));
 
@@ -49,9 +49,9 @@ const ZOOK = fs.readFileSync(path.join(FIX, "companion-zook.json"), "utf8");
   const wild = await p.evaluate(() => { bsLoad(); const find = (ed, n) => BS.data[ed].find(x => x.n === n);
     return ["2014|Bat", "2014|Cat", "2024|Bat", "2024|Cat"].map(k => { const [ed, n] = k.split("|"), m = find(ed, n), f = m && beastForm(m.id); return { k, atk: f ? f.attacks.map(a => [a.name, a.hit, a.die, a.mod, a.type]) : null }; }); });
   check("QA-4: Bat and Cat forms have their 1-damage attack (both rule sets)", wild.every(w => w.atk && w.atk.length === 1 && w.atk[0][2] === "" && w.atk[0][3] === 1), JSON.stringify(wild));
-  const dmg = await p.evaluate(() => { bsLoad(); const m = BS.data["2014"].find(x => x.n === "Bat"); const c = generateCharacter({ cls: "Druid", level: 4, ed: "2014", seed: "qa4" }); pcEnsure(c); c.form = { id: m.id }; c.wild = m.id;
-    try { const f = beastForm(m.id); const a = { ...f.attacks[0], dmgB: 0 }; const t = a.mod + a.dmgB; return a.die ? a.die + (t ? "+" + t : "") : String(Math.max(1, t)); } catch (e) { return "error " + e.message; } });
-  check("QA-4: the bat's bite shows 1 damage", dmg === "1", dmg);
+  const dmg = await p.evaluate(() => { bsLoad(); const m = BS.data["2014"].find(x => x.n === "Bat"); const c = generateCharacter({ cls: "Druid", level: 4, ed: "2014", seed: "qa4" }); pcEnsure(c);
+    c.active = { "Wild Shape": m.id }; const A = pcAttacks(c); return A.map(a => [a.name, a.dmg]); });
+  check("QA-4: in Wild Shape, the sheet's attack list shows the bat's bite for 1 damage", dmg.length === 1 && dmg[0][0] === "Bite" && dmg[0][1] === "1", JSON.stringify(dmg));
 
   // QA-5: "an uncommon item"
   const note = await p.evaluate(() => { itLoad(); const x = [...IT.data["2024"], ...IT.data["2014"]].find(i => i.rk === 1); return itPriceNote(x); });
