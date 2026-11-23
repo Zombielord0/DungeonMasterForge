@@ -14,18 +14,71 @@ const impCut = (s, n) => String(s ?? "").trim().slice(0, n);
 const impJSON = s => { if (s && typeof s === "object") return s; try { return JSON.parse(s); } catch { return null; } };
 const impDesc = f => impCut((f && (f.descriptionModels || f.descriptions) || []).map(d => d.description).filter(Boolean).join("\n\n") || (f && f.description) || "", 4000);
 const impFeat = x => (x && x.feat) || x || {};
-// a homebrew entry of this kind and name that already exists (campaign or pending), or null
+// a homebrew entry of this kind and name that already exists (campaign, pending or an extra book), or null
 const impHave = (kind, name, cls) => hbAny(kind).find(x => impSame(x.name, name) && (kind !== "subclass" || x.cls === cls)) || null;
+const impKind = x => x && x.book ? "extra book" : "homebrew";
+/* Names from a file, allowing for spelling mistakes (2026-11-23). `tiers` are lists of names, best first (built-in, then
+   the books, then homebrew). Each pass tries every tier before the next, looser pass: the same letters (case, spaces,
+   punctuation and a source tag aside); then, with `part`, a name that starts or ends with the file's ("Devotion" ->
+   "Oath of Devotion", 5+ letters); then up to 1 letter different (5 to 7 letters) or 2 (8 or more). Two different
+   names equally close is no match. -> { name, tier, fixed (the file spelled it differently) } or null */
+function impFuzzy(tiers, raw, part) {
+  const nm = impStrip(raw), k = impLetters(nm); if (!k) return null;
+  const T = tiers.map(L => [...new Set((L || []).filter(Boolean))].map(n => [n, impLetters(n)]));
+  const done = (n, tier) => ({ name: n, tier, fixed: impNorm(n) !== impNorm(nm) });
+  for (let t = 0; t < T.length; t++) { const h = T[t].find(([, x]) => x === k); if (h) return done(h[0], t); }
+  if (/\[ua\]/i.test(nm)) return null; /* an Unearthed Arcana version is its own thing */
+  if (part && k.length >= 5) for (let t = 0; t < T.length; t++) {
+    const h = T[t].filter(([, x]) => x.endsWith(k) || x.startsWith(k));
+    if (h.length === 1) return done(h[0][0], t); if (h.length > 1) return null;
+  }
+  const max = k.length >= 8 ? 2 : k.length >= 5 ? 1 : 0; if (!max) return null;
+  for (let t = 0; t < T.length; t++) {
+    let best = max + 1, hits = [];
+    for (const [n, x] of T[t]) { const d = impDist(k, x, max); if (d < best) { best = d; hits = [n]; } else if (d === best) hits.push(n); }
+    if (best <= max) return hits.length === 1 ? done(hits[0], t) : null;
+  }
+  return null;
+}
+/* imported homebrew (made from an earlier file) is tried last, so a misspelled copy never beats the real name */
+const impFuzzyFirst = (tiers, imported, raw, part) => impFuzzy(tiers, raw, part) || impFuzzy([imported], raw, part);
+const impSaid = (m, raw) => m && m.fixed ? ` (the file says “${impCut(impStrip(raw), 60)}”)` : "";
+/* a class in this rules set: built-in, then the books, then homebrew; a misspelled name is matched and reported */
+function impClassMatch(ed, name, D) {
+  const L = classList(ed), hx = k => classData(ed, k).hbx;
+  const m = impFuzzyFirst([L.filter(k => !hx(k)), L.filter(k => hx(k) && hx(k).book), L.filter(k => hx(k) && !hx(k).book && !hbFromImport(hx(k)))],
+    L.filter(k => hbFromImport(hx(k))), name, false);
+  if (m && m.fixed) D.report.matched.push(`Class: ${m.name}${impSaid(m, name)}`);
+  return m ? m.name : null;
+}
 function impSubclass(ed, cls, name, arch, D) {
-  const nm = impStrip(name); if (!nm) return null;
-  const built = subclassList(ed, cls).find(x => impSame(x[0], nm));
-  if (built) { D.report.matched.push(`${cls} subclass: ${built[0]}`); return built[0]; }
-  const have = impHave("subclass", nm, cls) || D.homebrew.find(x => x.kind === "subclass" && x.cls === cls && impSame(x.name, nm));
-  if (have) { D.report.matched.push(`${cls} subclass: ${have.name} (homebrew)`); return have.name; }
+  let nm = impStrip(name); if (!nm) return null;
+  /* an id like paladin_oathbreaker names the class first */
+  const bare = nm.replace(new RegExp("^" + cls.replace(/[.*+?^${}()|[\]\\]/g, "\\$&") + "[\\s_:-]+", "i"), "").trim(); if (bare) nm = bare;
+  const sub = x => x.kind === "subclass" && x.cls === cls && hbEdOk(x, ed), names = L => L.map(x => x.name);
+  const home = [...hbAny("subclass").filter(x => !x.book && sub(x)), ...D.homebrew.filter(sub)];
+  const books = bookSubclassEntries(ed, cls), other = bookSubclassEntries(ed === "2014" ? "2024" : "2014", cls);
+  const tiers = [(((SUBCLASSES[ed] || SUBCLASSES["2014"])[cls]) || []).map(x => x[0]), names(books), names(home.filter(x => !hbFromImport(x))), names(other)];
+  const m = impFuzzyFirst(tiers, names(home.filter(hbFromImport)), nm, true);
+  if (m) {
+    const tag = m.tier === 1 || m.tier === 3 ? " (extra book)" : m.tier === 0 ? "" : " (homebrew)";
+    D.report.matched.push(`${cls} subclass: ${m.name}${tag}${impSaid(m, nm)}`); return m.name;
+  }
   D.homebrew.push({ id: uid("hb"), kind: "subclass", src: IMP_SRC, ed, cls, name: impCut(nm, 60), desc: "",
     features: ((arch && arch.features) || []).map(f => ({ l: clamp(+f.level || +impFeat(f).level || 1, 1, 20), n: impCut(impFeat(f).name, 60), d: impDesc(impFeat(f)), fx: [] })).filter(f => f.n) });
   D.report.made.push(`${impCut(nm, 60)} (${cls} subclass)`);
   return impCut(nm, 60);
+}
+/* species, background and feat names, with spelling mistakes allowed (built-in and book names before homebrew) */
+function impSpeciesMatch(ed, name, D) {
+  const R = PC_RACES[ed], L = Object.keys(R).filter(k => !R[k].pend), hb = n => hbAny("species").find(x => x.name === n);
+  const m = impFuzzyFirst([L.filter(n => !hb(n)), L.filter(n => hb(n) && hb(n).book), L.filter(n => hb(n) && !hb(n).book && !hbFromImport(hb(n)))], L.filter(n => hbFromImport(hb(n))), name, false);
+  if (m) D.report.matched.push(`Species: ${m.name}${impSaid(m, name)}`);
+  return m ? m.name : null;
+}
+function impListMatch(what, list, name, D) {
+  const m = impFuzzy([list], name, false); if (!m) return null;
+  D.report.matched.push(`${what}: ${m.name}${impSaid(m, name)}`); return m.name;
 }
 /* A class the Forge doesn't have -> a homebrew class (a matching homebrew class is used if there is one). `def` is the
    Companion App's class (hit die, saves, skills, proficiencies, equipment, caster type, features with their text);
@@ -139,7 +192,7 @@ function compImport(j, ed) {
   const classes = [];
   for (const jb of j.jobs) {
     const def = defs[jb.jobId] || {}, nm = impStrip(def.name || impTitle(jb.jobId));
-    const cls = classList(ed).find(k => impSame(k, nm)) || impClass(ed, nm, defs[jb.jobId], D, IMP_SRC);
+    const cls = impClassMatch(ed, nm, D) || impClass(ed, nm, defs[jb.jobId], D, IMP_SRC);
     if (!cls) return { error: "This character's class has no name in the file, so it can't be imported." };
     const lv = clamp(+jb.level || 1, 1, 20);
     let subclass = null;
@@ -157,9 +210,10 @@ function compImport(j, ed) {
   race = Object.keys(R).find(k => !R[k].pend && impSame(k, rName)) || null;
   if (!race) for (const k of Object.keys(R)) { const subs = R[k].subs || {}; const sk = Object.keys(subs).find(s => impSame(s, rName) || impSame(subs[s].label, rName)); if (sk) { race = k; sub = sk; break; } }
   if (race) D.report.matched.push(`Species: ${sub !== "none" ? sub : race}`);
-  else {
+  else race = impSpeciesMatch(ed, rName, D);
+  if (!race) {
     const have = impHave("species", rName) || null;
-    if (have) { race = have.name; D.report.matched.push(`Species: ${have.name} (homebrew)`); }
+    if (have) { race = have.name; D.report.matched.push(`Species: ${have.name} (${impKind(have)})`); }
     else {
       const A = rr.abilityScores || {}, map = { str: "str", dex: "dex", con: "con", int: "int", intelligence: "int", wis: "wis", cha: "cha" };
       const asi = {}; Object.entries(A).forEach(([k, v]) => { if (map[k] && +v) asi[map[k]] = clamp(+v, -2, 3); });
@@ -171,8 +225,8 @@ function compImport(j, ed) {
   }
   // background
   const bb = impJSON(j.requiredBackground) || {}, bName = impStrip(bb.name || impTitle(j.background && j.background.backgroundId));
-  let bg = bgList(ed).find(k => impSame(k, bName)) || (impHave("background", bName) || {}).name || null;
-  if (bg) D.report.matched.push(`Background: ${bg}`);
+  let bg = impListMatch("Background", bgList(ed), bName, D) || (impHave("background", bName) || {}).name || null;
+  if (bg) { if (!D.report.matched.some(t => t.startsWith("Background: "))) D.report.matched.push(`Background: ${bg}`); }
   else if (bName) {
     bg = impCut(bName, 60);
     const sk = [...new Set(((j.background && j.background.skillProficiencies) || []).map(x => IMP_SKILL[x.name]).filter(Boolean))].slice(0, 2);
@@ -183,8 +237,8 @@ function compImport(j, ed) {
   const bonusFeats = [];
   (j.feats || []).forEach(f => {
     const F = impFeat(f), nm = impStrip(F.name); if (!nm) return;
-    const built = featList(ed).find(x => impSame(x[0], nm)), have = impHave("feat", nm);
-    if (built || have) { bonusFeats.push({ n: (built || [have.name])[0] || have.name, l: 1 }); D.report.matched.push(`Feat: ${nm}`); return; }
+    const built = impListMatch("Feat", featList(ed).map(x => x[0]), nm, D), have = !built && impHave("feat", nm);
+    if (built || have) { bonusFeats.push({ n: built || have.name, l: 1 }); if (!built) D.report.matched.push(`Feat: ${have.name}`); return; }
     D.homebrew.push({ id: uid("hb"), kind: "feat", src: IMP_SRC, ed, name: impCut(nm, 60), desc: impDesc(F), group: "g", req: "", ab: "", fx: [] });
     bonusFeats.push({ n: impCut(nm, 60), l: 1 }); D.report.made.push(`${nm} (feat)`);
   });
@@ -268,7 +322,7 @@ function fecsImport(text, ed) {
   const CD = tag("classData").split(FECS_M), classes = [];
   for (const part of String(CD[0] || "").split(FECS_X)) {
     const [nm, arch, lvS] = part.split(FECS_D).map(x => String(x || "").trim()); if (!nm) continue;
-    const cls = classList(ed).find(k => impSame(k, nm)) || impClass(ed, nm, null, D, FECS_SRC);
+    const cls = impClassMatch(ed, nm, D) || impClass(ed, nm, null, D, FECS_SRC);
     if (!cls) return { error: "This character's class has no name in the file, so it can't be imported." };
     const lv = clamp(+lvS || 1, 1, 20);
     let subclass = null;
@@ -286,16 +340,17 @@ function fecsImport(text, ed) {
   race = Object.keys(R).find(k => !R[k].pend && impSame(k, rName)) || null;
   if (!race) for (const k of Object.keys(R)) { const subs = R[k].subs || {}; const sk = Object.keys(subs).find(s => impSame(s, rName) || impSame(subs[s].label, rName)); if (sk) { race = k; sub = sk; break; } }
   if (race) D.report.matched.push(`Species: ${sub !== "none" ? sub : race}`);
+  else if (rName && !/^custom$/i.test(rName) && (race = impSpeciesMatch(ed, rName, D))) { /* matched despite its spelling */ }
   else if (rName && !/^custom$/i.test(rName)) {
     const have = impHave("species", rName);
-    if (have) { race = have.name; D.report.matched.push(`Species: ${have.name} (homebrew)`); }
+    if (have) { race = have.name; D.report.matched.push(`Species: ${have.name} (${impKind(have)})`); }
     else { race = impCut(rName, 60); hb({ id: uid("hb"), kind: "species", ed, name: race, desc: "", asi: {}, speed: clamp(+tag("baseSpeed") || 30, 0, 120), skills: [], term: "", traits: [], subs: [] }); D.report.made.push(`${race} (species)`); }
   } else { race = Object.keys(R).find(k => /human/i.test(k)) || Object.keys(R)[0]; D.report.differ.push(`The file's species is "${rName || "none"}": the Forge used ${race}. Change it on the sheet if needed`); }
   const bName = note(9);
   let bg = null;
   if (bName && !/^custom$/i.test(bName)) {
-    bg = bgList(ed).find(k => impSame(k, bName)) || (impHave("background", bName) || {}).name || null;
-    if (bg) D.report.matched.push(`Background: ${bg}`);
+    bg = impListMatch("Background", bgList(ed), bName, D) || (impHave("background", bName) || {}).name || null;
+    if (bg) { if (!D.report.matched.some(t => t.startsWith("Background: "))) D.report.matched.push(`Background: ${bg}`); }
     else { bg = impCut(bName, 60); hb({ id: uid("hb"), kind: "background", ed, name: bg, desc: "", skills: [], feat: "", gear: "", fx: [] }); D.report.made.push(`${bg} (background)`); }
   } else { bg = bName ? impCut(bName, 60) : "Custom"; D.report.dropped.push(`Background: ${bg} (kept as a name only, with no background features; the skills are kept)`); }
   // scores and saves: abilityScores 1-6, then 6 save flags

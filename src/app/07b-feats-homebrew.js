@@ -303,7 +303,9 @@ function hbApply() {
   Object.keys(HB_DESC).forEach(k => delete HB_DESC[k]);
   const N = HB.applied = { bg: [], races: [], raceDesc: [], classes: [] };
   Object.keys(BOOK_CLASS_VARIANTS).forEach(ed => delete BOOK_CLASS_VARIANTS[ed]);
-  hbAny("class").forEach(x => {
+  /* a class an import made goes after the books, so it never hides a book class of the same name */
+  const classes = hbAny("class");
+  [...classes.filter(x => !hbFromImport(x)), ...classes.filter(hbFromImport)].forEach(x => {
     const current = CLASS_DATA[x.name];
     if (current) {
       if (current.hbx?.book && x.book && ["2014", "2024"].includes(x.ed) && !hbEdOk(current.hbx, x.ed)) {

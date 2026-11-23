@@ -532,10 +532,18 @@ function bookSubclassEntries(ed, cls) {
   const entries = hbBook("subclass").filter(x => x.cls === cls && hbEdOk(x, ed));
   return [...entries.filter(x => x.src === "tce" || x.src === "xge"), ...entries.filter(x => x.src !== "tce" && x.src !== "xge")];
 }
+/* Homebrew made by a character import (it carries the app's name as src). Such a copy was only made because the Forge
+   didn't know the name then, so it never hides a built-in or book entry of the same name (2026-11-23). A DM's own
+   homebrew of the same name still wins. */
+const HB_IMPORT_SRCS = new Set(["5e Companion App", "Fifth Edition Character Sheet", "PDF character sheet", "MythWeaver"]);
+const hbFromImport = x => !!x && HB_IMPORT_SRCS.has(x.src);
 function subclassEntry(ed, cls, name, includePending = true) {
-  const custom = includePending ? [...hbOf("subclass"), ...HB.pend.filter(x => x.kind === "subclass")] : hbOf("subclass");
-  const entry = custom.find(x => x.cls === cls && x.name === name && hbEdOk(x, ed))
-    || bookSubclassEntries(ed, cls).find(x => x.name === name);
+  const custom = (includePending ? [...hbOf("subclass"), ...HB.pend.filter(x => x.kind === "subclass")] : hbOf("subclass")).filter(x => x.cls === cls && x.name === name && hbEdOk(x, ed));
+  const book = bookSubclassEntries(ed, cls).find(x => x.name === name);
+  const builtIn = (((SUBCLASSES[ed] || SUBCLASSES["2014"])[cls]) || []).some(x => x[0] === name);
+  /* a book subclass only printed for the other rules set (Oathbreaker with 2024 rules) still brings its features */
+  const other = !book && !builtIn ? bookSubclassEntries(ed === "2014" ? "2024" : "2014", cls).find(x => x.name === name) : null;
+  const entry = custom.find(x => !(hbFromImport(x) && (book || builtIn || other))) || book || (builtIn ? undefined : other || undefined);
   if (!entry?.baseSubclass) return entry;
   const features = subFeatsOf(ed, entry.baseSubclass)
     .filter(([level, name]) => !entry.features.some(f => +f.l === level && f.n === name))

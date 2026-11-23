@@ -2,6 +2,11 @@
    When a change ships, add an entry to the top of NEWS with a new id, in plain words for players and DMs. */
 
 const NEWS = [
+  { id: "2026-11-23-import-spelling", date: "2026-11-23", title: "Character import fixes spelling and finds subclasses", go: "roster", items: [
+    "Importing a character now copes with spelling mistakes in class, subclass, species, background and feat names (\"Paladn\" becomes Paladin). The import summary shows what the file said.",
+    "Subclasses like Oathbreaker now apply their features when imported, including with the 2024 rules, and a short name like \"Devotion\" finds Oath of Devotion.",
+    "When the Forge has its own version of a class or subclass, it's used instead of a homebrew copy an earlier import made. Homebrew you wrote yourself still comes first."
+  ] },
   { id: "2026-11-21-granted-spell-sources", date: "2026-11-21", title: "See what grants your spells", go: "roster", items: [
     "The character sheet labels always-prepared spells and granted cantrips with their class, subclass, or species.",
     "Granted spells stay prepared and leave room for your own spell choices. An innate spell shows its free-use option when you open it.",
