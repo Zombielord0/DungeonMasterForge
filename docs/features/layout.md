@@ -58,3 +58,14 @@ From a review of the Adventure, Characters and Items tabs. Checks: `npm run test
 - **Title widths (CSS):** a list title stays on one line and is cut with … only if it would leave less than 104px for the count and buttons. A sheet title keeps its full width (the hint text in its bar wraps instead) and wraps only when it's longer than the bar. `test:lorelink` checks this on a 360px phone.
 - `sheetJump` calls `foldOpen` so jumping to a folded section opens it.
 - Check: `npm run test:lorelink` (the folding part).
+
+## Book pages (2026-11-23)
+
+- **What it covers:** spells (`#spList`), items (`#itList`), the Monster Manual (`#bsList`), the character sheet (`#rosterMain` cards and sections, but not `.mobile-sheet-quick`) and the Journal (`#journalMain`).
+- **How it works:** these are drawn as rulebook pages by one block at the end of `src/app.css`. It recolours them through the colour settings (`--text`, `--muted`, `--gold`, `--well`) and makes each `.sec-h` a red band (blue on every second sheet section).
+- **The paper** is `--book-paper`, drawn with SVG noise and gradients and no picture files. The Adventure, NPC and monster previews use it too (`--parch`).
+- **School and rarity colours** have darker inks inside the pages.
+- **Stays stone:** side panels and buttons.
+- **The check:** `npm run test:book` checks that every page is on paper and that its text is at least 4.5:1 against it.
+- **Adding a new kind of text inside a page:** run that check. Text styled for the stone look (pale gold or grey) will be too light.
+- **To undo it all,** delete that block. Design: `docs/superpowers/specs/2026-11-23-book-pages-design.md`.

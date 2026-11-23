@@ -1370,3 +1370,78 @@ nav a[data-view=requests]{--ic:url("data:image/svg+xml,%3Csvg xmlns='http://www.
 .compendium-entry { display: grid; align-content: start; gap: 4px; min-width: 0; }
 .compendium-entry > .btn { justify-self: start; }
 .combat-history { margin-block: 8px; }
+
+/* ==== Book pages (2026-11-23) ====
+   What you read looks like a page of a rulebook: spells, items, the Monster Manual, the character sheet and the
+   players' Journal. Paper, stains and borders are drawn here (no pictures from any book). The header, tabs, side
+   panels and buttons stay dark stone. Page parts: the page itself (a .sec or .card), .sec-h as a coloured band,
+   paper-coloured fields, tags and chips, and darker inks for school and rarity colours. See docs/features/layout.md. */
+:root{
+  --book-paper:
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='1200' height='1200'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.012' numOctaves='4' seed='7' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 .45  0 0 0 0 .28  0 0 0 0 .1  0 0 0 .5 0'/%3E%3C/filter%3E%3Crect width='1200' height='1200' filter='url(%23n)'/%3E%3C/svg%3E"),
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='g'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='2' seed='3' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 .3  0 0 0 0 .2  0 0 0 0 .1  0 0 0 .16 0'/%3E%3C/filter%3E%3Crect width='160' height='160' filter='url(%23g)'/%3E%3C/svg%3E"),
+    radial-gradient(ellipse at 15% 8%,rgba(150,90,30,.2),transparent 28%),
+    radial-gradient(ellipse at 88% 92%,rgba(130,70,25,.22),transparent 32%),
+    radial-gradient(ellipse at 50% 45%,#f6e7c1 0%,#ecd6a4 62%,#d6b37c 100%);
+}
+:is(#spList>.sec,#itList>.sec,#bsList>.sec,#rosterMain>.card:not(.empty):not(.mobile-sheet-quick),#rosterMain>.sec,#rosterMain>.grid2>.sec,#journalMain){
+  --text:#2a1c0f;--muted:#6a5038;--gold:#7a2e1d;--gold2:#8c3a22;--line:rgba(125,95,60,.4);
+  --well:rgba(255,250,234,.5);--slab:transparent;--book-band:#7a2e1d;--book-band2:#3f4f58;--book-trim:#9a7449;
+  background:var(--book-paper)!important;color:var(--text);
+  border:1px solid #5c3d1f!important;border-radius:3px 6px 4px 7px;
+  box-shadow:inset 0 0 50px rgba(110,60,15,.42),inset 0 0 8px rgba(70,35,5,.5),0 12px 30px rgba(0,0,0,.6)!important;
+  backdrop-filter:none!important;-webkit-backdrop-filter:none!important;
+}
+/* the thin inner rule of a printed page, and no stone grit */
+:is(#spList>.sec,#itList>.sec,#bsList>.sec,#rosterMain>.card:not(.empty):not(.mobile-sheet-quick),#rosterMain>.sec,#rosterMain>.grid2>.sec,#journalMain)::before{
+  inset:6px;border:1px solid rgba(120,80,40,.4);border-radius:2px;background:none;z-index:0}
+:is(#spList>.sec,#itList>.sec,#bsList>.sec,#rosterMain>.card:not(.empty):not(.mobile-sheet-quick),#rosterMain>.sec,#rosterMain>.grid2>.sec,#journalMain)::after{display:none}
+:is(#spList>.sec,#itList>.sec,#bsList>.sec,#rosterMain>.card:not(.empty):not(.mobile-sheet-quick),#rosterMain>.sec,#rosterMain>.grid2>.sec,#journalMain) :is(.sec,.card){background:transparent!important;box-shadow:none!important;border-color:var(--line)!important;backdrop-filter:none!important}
+:is(#spList>.sec,#itList>.sec,#bsList>.sec,#rosterMain>.card:not(.empty):not(.mobile-sheet-quick),#rosterMain>.sec,#rosterMain>.grid2>.sec,#journalMain) :is(.sec,.card)::before,:is(#spList>.sec,#itList>.sec,#bsList>.sec,#rosterMain>.card:not(.empty):not(.mobile-sheet-quick),#rosterMain>.sec,#rosterMain>.grid2>.sec,#journalMain) :is(.sec,.card)::after{display:none}
+/* ink */
+:is(#spList>.sec,#itList>.sec,#bsList>.sec,#rosterMain>.card:not(.empty):not(.mobile-sheet-quick),#rosterMain>.sec,#rosterMain>.grid2>.sec,#journalMain) :is(*:not(.btn):not(.btn *)){text-shadow:none!important}
+:is(#spList>.sec,#itList>.sec,#bsList>.sec,#rosterMain>.card:not(.empty):not(.mobile-sheet-quick),#rosterMain>.sec,#rosterMain>.grid2>.sec,#journalMain) :is(h1,h2,h3,h4){color:var(--book-band);font-family:Georgia,"Times New Roman",serif;font-variant-caps:small-caps;letter-spacing:.03em}
+:is(#spList>.sec,#itList>.sec,#bsList>.sec,#rosterMain>.card:not(.empty):not(.mobile-sheet-quick),#rosterMain>.sec,#rosterMain>.grid2>.sec,#journalMain) :is(.muted,.hint,.k,.gen-sub){color:var(--muted)!important}
+:is(#spList>.sec,#itList>.sec,#bsList>.sec,#rosterMain>.card:not(.empty):not(.mobile-sheet-quick),#rosterMain>.sec,#rosterMain>.grid2>.sec,#journalMain) a:not(.btn){color:var(--book-band)}
+:is(#spList,#itList,#bsList,#rosterMain,#journalMain) :is(label,.lbl,.field>label){color:var(--muted)}
+/* section headers: a coloured band across the page, like a rulebook's chapter headings */
+:is(#spList>.sec,#itList>.sec,#bsList>.sec,#rosterMain>.card:not(.empty):not(.mobile-sheet-quick),#rosterMain>.sec,#rosterMain>.grid2>.sec,#journalMain) .sec-h{
+  position:relative;z-index:1;border:0!important;border-image:none!important;margin:-4px -6px 10px;padding:4px 10px 3px;border-radius:1px;
+  background:linear-gradient(90deg,var(--book-band) 0%,#94412b 70%,rgba(148,65,43,.15) 100%)}
+:is(#spList>.sec,#itList>.sec,#bsList>.sec,#rosterMain>.card:not(.empty):not(.mobile-sheet-quick),#rosterMain>.sec,#rosterMain>.grid2>.sec,#journalMain) .sec-h :is(h3,h4,.muted,.sp,span:not(.btn *)){color:#fbeedb!important}
+:is(#spList,#itList,#bsList,#rosterMain,#journalMain) .sec-h h3::before{content:none}
+:is(#rosterMain .sec:nth-of-type(even),#rosterMain>.grid2>.sec:nth-child(2),#journalMain .sec) .sec-h{background:linear-gradient(90deg,var(--book-band2) 0%,#55707c 70%,rgba(85,112,124,.15) 100%)}
+/* fields, chips and tags on paper */
+:is(#spList,#itList,#bsList,#rosterMain,#journalMain) :is(input[type=text],input[type=number],input[type=date],input[type=search],select,textarea){
+  background-color:rgba(255,250,234,.55);color:var(--text);border-color:var(--book-trim)!important;box-shadow:inset 0 1px 3px rgba(90,50,10,.25)!important;color-scheme:light}
+:is(#spList,#itList,#bsList,#rosterMain,#journalMain) :is(input,textarea)::placeholder{color:#8a7258;opacity:1}
+:is(#spList,#itList,#bsList,#rosterMain,#journalMain) select option{background:#f4e4bd;color:#2a1c0f}
+:is(#spList,#itList,#bsList,#rosterMain,#journalMain) :is(.tag,.chip){background:rgba(255,250,234,.45);border-color:var(--book-trim);box-shadow:none;color:#4a3418}
+:is(#spList,#itList,#bsList,#rosterMain,#journalMain) table :is(th,td){border-color:rgba(125,95,60,.35)}
+:is(#spList,#itList,#bsList,#rosterMain,#journalMain) table th{color:var(--book-band)}
+:is(#spList,#itList,#bsList,#rosterMain,#journalMain) table tbody tr:nth-child(even) td{background:rgba(130,90,45,.1)}
+/* list rows and opened entries */
+:is(#spList,#itList,#bsList) .sp-row{border-bottom-color:rgba(125,95,60,.3);box-shadow:none}
+:is(#spList,#itList,#bsList) .sp-head:hover,:is(#spList,#itList,#bsList) .sp-head:focus-visible,:is(#spList,#itList,#bsList) .sp-row.open>.sp-head{background:rgba(130,80,30,.12)}
+:is(#spList,#itList,#bsList) .sp-row.open .sp-name{color:var(--book-band)}
+:is(#spList,#itList,#bsList) .sp-detail{background:rgba(255,250,234,.4)!important;border-color:var(--book-trim);box-shadow:inset 0 0 14px rgba(140,90,40,.16)!important;color:var(--text)}
+:is(#spList,#itList,#bsList,#rosterMain) :is(.ab,.mini,.vit,.abil>div,.vitals>div){background:rgba(255,250,234,.4)!important;border-color:var(--book-trim)!important;box-shadow:none!important;color:var(--text)}
+/* school and rarity colours, inked darker so they read on paper */
+#spList .sp-row.sch-abjuration,#rosterMain .sch-abjuration{--sch:#2e5f9e}#spList .sp-row.sch-conjuration,#rosterMain .sch-conjuration{--sch:#8a6410}
+#spList .sp-row.sch-divination,#rosterMain .sch-divination{--sch:#1f7470}#spList .sp-row.sch-enchantment,#rosterMain .sch-enchantment{--sch:#9a2f72}
+#spList .sp-row.sch-evocation,#rosterMain .sch-evocation{--sch:#b04512}#spList .sp-row.sch-illusion,#rosterMain .sch-illusion{--sch:#5d3a9e}
+#spList .sp-row.sch-necromancy,#rosterMain .sch-necromancy{--sch:#4e6b1c}#spList .sp-row.sch-transmutation,#rosterMain .sch-transmutation{--sch:#1d7a5c}
+#spList .sp-row[class*=sch-] .sp-detail{background:linear-gradient(90deg,color-mix(in srgb,var(--sch) 8%,transparent),transparent 45%),rgba(255,250,234,.4)!important}
+#spList .sp-row[class*=sch-]>.sp-head>span.sp-meta:first-of-type::before{box-shadow:none}
+#itList .it-row.it-r-c{--rar:#6d6455}#itList .it-row.it-r-u{--rar:#2f7a22}#itList .it-row.it-r-r{--rar:#2459a8}#itList .it-row.it-r-vr{--rar:#6a3aa8}
+#itList .it-row.it-r-l{--rar:#a5600c}#itList .it-row.it-r-a{--rar:#a8321f}#itList .it-row.it-r-v{--rar:#7a5a2a}
+#itList .it-row:is(.it-r-u,.it-r-r,.it-r-vr,.it-r-v)>.sp-head .sp-name{color:var(--rar)}
+#itList .it-row[class*=it-r-] .sp-tags .tag[class*=rar-]{background:rgba(255,250,234,.45);box-shadow:none;color:var(--rar)}
+#journalMain{padding:22px clamp(16px,3vw,32px)}
+/* labels that were pale gold or grey for the stone look */
+:is(#spList,#itList,#bsList,#rosterMain) :is(.sp-stats>div>span,.abil .ab .n,.vitals .vit>span,.ctr-max,.prep-lv){color:var(--muted)!important}
+:is(#bsList,#rosterMain) .statblock .sb-l>b,#rosterMain .prof-row>b{color:var(--book-band)!important}
+#itList .it-row.it-r-u{--rar:#24601a}#itList .it-row.it-r-l{--rar:#8a4f08}
+#spList .sp-row.sch-evocation,#rosterMain .sch-evocation{--sch:#9a3a0e}
+/* the earlier parchment previews (Adventure, NPCs, forged monsters) use the same paper */
+:root,:is(#genOut,#fgOut.fg-monster,#mbPreview){--parch:var(--book-paper)}

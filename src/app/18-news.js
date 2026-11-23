@@ -2,6 +2,10 @@
    When a change ships, add an entry to the top of NEWS with a new id, in plain words for players and DMs. */
 
 const NEWS = [
+  { id: "2026-11-23-book-pages", date: "2026-11-23", title: "Pages like a rulebook", go: "spells", items: [
+    "Spells, items, the Monster Manual, character sheets and the players' Journal now sit on aged parchment pages, with coloured section bands and small-caps titles, like a D&D book at the table.",
+    "Menus, side panels and buttons keep the dark stone look, so they're easy to find."
+  ] },
   { id: "2026-11-23-import-spelling", date: "2026-11-23", title: "Character import fixes spelling and finds subclasses", go: "roster", items: [
     "Importing a character now copes with spelling mistakes in class, subclass, species, background and feat names (\"Paladn\" becomes Paladin). The import summary shows what the file said.",
     "Subclasses like Oathbreaker now apply their features when imported, including with the 2024 rules, and a short name like \"Devotion\" finds Oath of Devotion.",
