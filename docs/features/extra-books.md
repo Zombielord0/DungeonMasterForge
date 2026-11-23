@@ -32,3 +32,11 @@ About 3,700 open-licensed monsters, spells and magic items from books other than
 ## Licences
 
 Only OGL 1.0a and CC BY 4.0 books. `public/credits.html` lists each book, its licence, the OGL text and its section 15 notices, and is linked from every extra entry's details and from the licence notes under the lists. Never add a book without a licence from that list, and never add Wizards of the Coast's non-SRD books.
+
+## Book reference spells (2026-11-23, owner's choice)
+
+- **What:** `tools/build.mjs` adds every `kind: "Spell"` row of `data/book-references.json` that the Forge doesn't already have to the extra-spells list. It checks the free rules' names and aliases, so Tenser's Floating Disk stays the SRD Floating Disk.
+- **Edition:** they keep their reference's edition (`ed`, all 2014 today), so 2014 handbook spells stay in the 2014 rules. The Compendium lists them once, as book references (`!spell.ref`).
+- **Each one** carries `ref: true`, `src` and `page`, its stats from the reference (level, school, casting time, range, components, duration, first damage type and save), and an empty class list. Its description only points to the book page. The references hold no rules text, and none is added.
+- **Where they show:** the Spells tab, the Compendium and spell search. Imports match them (`spellMatch`), so a character's Silvery Barbs stays on the sheet. Class filters and random picks don't use them, because no class list is known.
+- **The check:** `npm run test:qafix`.

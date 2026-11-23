@@ -435,6 +435,10 @@ function pcSubSync(c) {
 }
 /* Subclass features you use in play. when: how it is used. res: a limited-use pool [label, max(c), recharge]. */
 const SUB_ABL = {
+  /* Book subclasses (2026-11-23): `text` is our own short summary, used in the Abilities list; "channel" spends Channel Divinity */
+  "Aura of Hate": { when: "Aura", text: c => `You, and fiends and undead you choose within ${classFeatureLevel(c, "Paladin") >= 18 ? 30 : 10} ft, add ${sgn(c.mods.cha)} (your Charisma modifier) to melee weapon damage.` },
+  "Channel Divinity: Control Undead": { when: "Action", uses: "channel", text: c => `One undead within 30 ft makes a WIS save (DC ${8 + c.prof + c.mods.cha}) or obeys your commands for 24 hours. Undead with a challenge rating of your paladin level or higher aren't affected.` },
+  "Channel Divinity: Dreadful Aspect": { when: "Action", uses: "channel", text: c => `Creatures you choose within 30 ft make a WIS save (DC ${8 + c.prof + c.mods.cha}) or are frightened of you for 1 minute. One that ends its turn more than 30 ft from you can try the save again.` },
   // Barbarian
   Frenzy: { when: "While raging" }, Retaliation: { when: "Reaction" }, "Intimidating Presence": { when: "Action" },
   "Rage of the Wilds": { when: "When you rage" }, "Power of the Wilds": { when: "When you rage" }, "Totem Spirit": { when: "While raging" }, "Totemic Attunement": { when: "While raging" },

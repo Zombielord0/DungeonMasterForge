@@ -90,7 +90,7 @@ async function compendiumSearch() {
   const reference = (name, body, trigger) => characterReference(name, body, trigger);
   if (wants("Spell")) {
     spLoad();
-    for (const s of SP.data[ed].filter(spell => !spell.pend)) add("Spell", s.n, s.src, s.hb, b => reference(s.n, spDetail(s, { edition: ed, actions: false }), b), s.aliases?.join(" · "));
+    for (const s of SP.data[ed].filter(spell => !spell.pend && !spell.ref)) /* reference spells are listed once, as book references */ add("Spell", s.n, s.src, s.hb, b => reference(s.n, spDetail(s, { edition: ed, actions: false }), b), s.aliases?.join(" · "));
   }
   if (wants("Item")) {
     itLoad();

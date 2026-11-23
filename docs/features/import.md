@@ -56,6 +56,11 @@ Moved here from `CLAUDE.md` on 2026-11-17, unchanged except that `public/index.h
 - **The check:** `npm run test:subchange`.
 - **Only the main class** can be changed this way. A second class's subclass is still chosen through levelling.
 
+### Book subclass abilities (2026-11-23)
+
+- **Book subclass features** (`bookSub` on `c.feats`) now join the Abilities list when `SUB_ABL` or `ACT` knows them.
+- **Our own short summaries** sit in `SUB_ABL[...].text`: Aura of Hate, Channel Divinity: Control Undead and Dreadful Aspect, the last two spending the `channel` counter.
+
 ## Lore tab and MythWeaver import (2026-11-17)
 
 - **Design and plan:** `docs/superpowers/specs/2026-11-17-mythweaver-import-design.md` and `docs/superpowers/plans/2026-11-17-mythweaver-import.md`.

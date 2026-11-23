@@ -71,6 +71,29 @@ const ZOOK = fs.readFileSync(path.join(FIX, "companion-zook.json"), "utf8");
     check(`QA-7: at ${w} px the header name isn't cut off, and the toolbar button still says what it does`, h.shown && !h.cut && /Show toolbar/.test(h.label), JSON.stringify(h));
   }
 
+  // Book subclass abilities (2026-11-23): an Oathbreaker's Aura of Hate and Channel Divinity options are in the Abilities list
+  await p.setViewportSize({ width: 1400, height: 1000 });
+  const abl = await p.evaluate(() => { const c = generateCharacter({ cls: "Paladin", level: 8, ed: "2014", seed: "obabl", subclass: "Oathbreaker", method: "array", bonus: "flex" }); pcEnsure(c);
+    return pcAbilities(c).map(a => [a.name, a.when, a.text, a.res]); });
+  const A = n => abl.find(a => a[0] === n);
+  check("Oathbreaker: Aura of Hate is in the Abilities list with the Charisma bonus", A("Aura of Hate") && /melee weapon damage/.test(A("Aura of Hate")[2]) && /\+\d/.test(A("Aura of Hate")[2]), JSON.stringify(abl.map(a => a[0])));
+  check("Oathbreaker: Control Undead and Dreadful Aspect are abilities that spend Channel Divinity, with a save DC", ["Channel Divinity: Control Undead", "Channel Divinity: Dreadful Aspect"].every(n => A(n) && A(n)[3] === "channel" && /DC \d+/.test(A(n)[2])), JSON.stringify(abl.filter(a => /Control|Dreadful/.test(a[0]))));
+
+  // Book reference spells (2026-11-23): spells from other books join the list with their stats and page, no rules text
+  const refs = await p.evaluate(() => { const D = dmData("spellData"), out = {};
+    for (const ed of ["2014", "2024"]) { const L = D[ed].filter(x => x.n === "Silvery Barbs"); out[ed] = L.map(x => ({ l: x.l, s: x.s, t: x.t, r: x.r, src: x.src, ref: x.ref, d: x.d })); out[ed + "fireball"] = D[ed].filter(x => x.n === "Fireball").length; }
+    return out; });
+  check("reference spells: Silvery Barbs is in the 2014 spell list once, level 1 enchantment from Strixhaven (a 2014 book, so not in 2024)", refs["2014"].length === 1 && refs["2014"][0].l === 1 && refs["2014"][0].s === "Enchantment" && refs["2014"][0].src === "scc" && refs["2014"][0].ref === true && refs["2024"].length === 0, JSON.stringify(refs));
+  check("reference spells: its description only points to the book page", refs["2014"][0] && /Strixhaven.*page 38/.test(refs["2014"][0].d) && refs["2014"][0].d.length < 200, JSON.stringify(refs["2014"]));
+  check("reference spells: a spell the Forge already has isn't added twice (Fireball)", refs["2014fireball"] === 1 && refs["2024fireball"] === 1, JSON.stringify([refs["2014fireball"], refs["2024fireball"]]));
+  const sb = await p.evaluate(txt => { const j = JSON.parse(txt); j.spells = [...j.spells, { name: "Silvery Barbs", level: 1 }]; const D = compImport(j, "2014");
+    return { prep: D.extras.prepared.map(s => s.n), hb: D.homebrew.filter(x => x.kind === "spell").map(x => x.name) }; }, ZOOK);
+  check("reference spells: importing a character with Silvery Barbs puts it on the sheet, not in homebrew or notes", sb.prep.includes("Silvery Barbs") && !sb.hb.includes("Silvery Barbs"), JSON.stringify(sb));
+  await p.goto(p.url().replace(/#.*/, "#spells")); await p.waitForFunction(() => document.querySelector("#spList .sp-row"));
+  await p.click('label.opt:has(input[name="spEd"][value="2014"])'); await p.fill("#spQ", "silvery barbs"); await p.waitForTimeout(500);
+  const row = await p.evaluate(() => { const r = [...document.querySelectorAll("#spList .sp-row")].find(x => /Silvery Barbs/.test(x.textContent)); return r ? r.textContent.replace(/\s+/g, " ").slice(0, 200) : null; });
+  check("reference spells: the Spells tab lists Silvery Barbs with its book", row && /SCC/.test(row), String(row));
+
   check("no page errors", !errs.length, errs.join(" | "));
   await browser.close(); server.close();
   console.log(fails ? `\n${fails} check(s) failed` : "\nAll QA fix checks passed");

@@ -67,6 +67,24 @@ for (const [name, key] of [["spells", "spellData"], ["monsters", "monsterData"],
   // stored as text, so the app turns it into objects only when a tab needs it (dmData in src/app/01-core.js)
   let data = JSON.parse(read(`data/${name}.json`));
   if (name === "spells") data["2014"].push(...spellGrants.legacySpells);
+  /* Book reference spells (owner, 2026-11-23): spells from other books join the list with their stats and book page only
+     (data/book-references.json has no rules text). A spell the Forge already has is not added again. */
+  if (name === "extra-spells") {
+    const core = JSON.parse(read("data/spells.json")), books = JSON.parse(read("data/extra-books.json")).books;
+    const have = new Set([...core["2014"], ...core["2024"], ...data].flatMap(s => [s.n, ...(s.aliases || [])]).map(n => n.toLowerCase())); /* aliases too: Tenser's Floating Disk is the free rules' Floating Disk */
+    const AB = { strength: "STR", dexterity: "DEX", constitution: "CON", intelligence: "INT", wisdom: "WIS", charisma: "CHA" };
+    for (const row of JSON.parse(read("data/book-references.json"))) {
+      if (row.kind !== "Spell" || have.has(row.name.toLowerCase())) continue;
+      const f = Object.fromEntries(row.details || []), cap = t => String(t || "").replace(/\b\w/g, ch => ch.toUpperCase());
+      const book = (books[row.src] && books[row.src].name) || row.src;
+      data.push({ n: row.name, l: f.Level === "Cantrip" ? 0 : +f.Level || 0, s: f.School || "", c: [], t: f["Casting time"] || "", r: f.Range || "",
+        cp: String(f.Components || "").replace(/[^VSM]/g, ""), m: "", du: cap(f.Duration), co: /concentration/i.test(f.Duration || "") ? 1 : 0, ri: f.Ritual ? 1 : 0,
+        d: `From ${book}, page ${row.page}. The Forge lists this spell's details but not its rules text: see the book.`, h: "",
+        dt: cap(String(f["Damage types"] || "").split(/,\s*/)[0]), at: "", sv: AB[String(f["Saving throws"] || "").split(/,\s*/)[0].toLowerCase()] || "",
+        src: row.src, ref: true, page: row.page, ed: row.ed || "2014" }); /* a 2014 handbook's spell stays in the 2014 rules */
+      have.add(row.name.toLowerCase());
+    }
+  }
   if (name === "extra-options") {
     const ids = new Set(data.map(option => option.id));
     for (const id of Object.keys(spellGrants.options)) {

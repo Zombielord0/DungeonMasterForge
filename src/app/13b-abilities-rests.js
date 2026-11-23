@@ -116,7 +116,7 @@ function pcAbilities(c) {
   if (c.race === "Dragonborn") { const x = (c.extras || []).find(e => e.startsWith("Breath Weapon")); if (x) add("Breath Weapon", ed === "2024" ? "Replaces an attack" : "Action", x.replace(/^Breath Weapon \([^)]*\):\s*/, "").replace(/, (\d+ uses per long rest|once per short or long rest)$/, ""), "breath"); }
   if (tr("Healing Hands")) add("Healing Hands", "Action", `Touch a creature and heal ${prof}d4 hit points.`, "hhands");
   if (tr("Relentless Endurance")) add("Relentless Endurance", "When reduced to 0 HP", "Drop to 1 hit point instead.", "relent");
-  (c.feats || []).filter(f => (f.sub || f.mcsub) && (SUB_ABL[f.f] || (ACT[f.f] && ACT[f.f].kind !== "none"))).forEach(f => { const S = SUB_ABL[f.f] || { when: ACT[f.f].kind === "persist" ? "Your choice" : ACT[f.f].kind === "toggle" ? "Activated" : "Use" }; add(f.f, S.when, subFeatDesc(f.f, c), S.res ? subAblKey(f.f) : S.uses, f.mcsub || c.subclass); });
+  (c.feats || []).filter(f => (f.sub || f.mcsub || f.bookSub) && (SUB_ABL[f.f] || (ACT[f.f] && ACT[f.f].kind !== "none"))).forEach(f => { const S = SUB_ABL[f.f] || { when: ACT[f.f].kind === "persist" ? "Your choice" : ACT[f.f].kind === "toggle" ? "Activated" : "Use" }; add(f.f, S.when, S.text ? S.text(c) : subFeatDesc(f.f, c), S.res ? subAblKey(f.f) : S.uses, f.mcsub || c.subclass); });
   if (tr("Large Form") && TLV >= 5) add("Large Form", "Bonus action", "Become Large for 10 minutes: advantage on Strength checks and +10 ft speed.", "large");
   if (tr("Draconic Flight") && TLV >= 5) add("Draconic Flight", "Bonus action", "Spectral wings for 10 minutes: fly at your walking speed.", "dflight");
   if (tr("Adrenaline Rush")) add("Adrenaline Rush", "Bonus action", `Dash, and gain ${prof} temporary hit points.`, "adren");
