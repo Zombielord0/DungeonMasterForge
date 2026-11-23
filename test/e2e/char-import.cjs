@@ -112,7 +112,7 @@ const ZOOK = fs.readFileSync(path.join(FIX, "companion-zook.json"), "utf8").repl
     const mk = (cls, archId, archName, extra = {}) => { const j = JSON.parse(JSON.stringify(base)); j.jobs = [{ ...j.jobs[0], jobId: "paladin", archetypeId: archId, subtypeId: null, level: 5 }];
       j.allRequiredClasses = { jobs: [JSON.stringify({ id: "paladin", name: cls, archetypes: archName ? [{ id: archId, name: archName, features: [{ level: 3, feat: { name: "Old App Text" } }] }] : [] })] }; return Object.assign(j, extra); };
     const run = (j, ed) => { const d = compImport(j, ed); if (d.error) return { error: d.error }; const { c, report } = importBuild(d);
-      return { cls: c.cls, sub: c.subclass, race: c.race, bg: c.bg, feats: c.feats.map(f => f.f), hb: d.homebrew.map(x => `${x.kind}:${x.name}`), matched: report.matched }; };
+      return { cls: c.cls, sub: c.subclass, race: c.race, bg: c.bg, feats: c.feats.map(f => f.f), hb: d.homebrew.map(x => `${x.kind}:${x.name}`), matched: report.matched, differ: report.differ }; };
     const out = {
       ob14: run(mk("Paladin", "paladin_oathbreaker", "Oathbreaker"), "2014"),
       ob24: run(mk("Paladin", "paladin_oathbreaker", "Oathbreaker"), "2024"),
@@ -140,7 +140,9 @@ const ZOOK = fs.readFileSync(path.join(FIX, "companion-zook.json"), "utf8").repl
   check("Oathbreaker (2014) applies its book features without new homebrew", S.ob14.sub === "Oathbreaker" && S.ob14.feats.includes("Channel Divinity: Dreadful Aspect") && !S.ob14.hb.some(h => /^subclass/.test(h)), JSON.stringify(S.ob14));
   check("Oathbreaker with 2024 rules still applies its features", S.ob24.sub === "Oathbreaker" && S.ob24.feats.includes("Channel Divinity: Dreadful Aspect") && !S.ob24.hb.some(h => /^subclass/.test(h)) && !S.ob24.matched.some(t => /Oathbreaker \(homebrew\)/.test(t)), JSON.stringify(S.ob24));
   check("a subclass named only by its id loses the class prefix (paladin_oathbreaker)", S.idOnly.sub === "Oathbreaker" && S.idOnly.feats.includes("Channel Divinity: Dreadful Aspect") && !S.idOnly.hb.some(h => /^subclass/.test(h)), JSON.stringify(S.idOnly));
-  check("misspelled class and subclass are matched (Paladn, Oath of Devoton)", S.typo.cls === "Paladin" && S.typo.sub === "Oath of Devotion" && S.typo.feats.includes("Channel Divinity: Sacred Weapon") && !S.typo.hb.some(h => /^(class|subclass)/.test(h)) && S.typo.matched.some(t => /Paladn/.test(t)), JSON.stringify(S.typo));
+  check("misspelled class and subclass are matched (Paladn, Oath of Devoton)", S.typo.cls === "Paladin" && S.typo.sub === "Oath of Devotion" && S.typo.feats.includes("Channel Divinity: Sacred Weapon") && !S.typo.hb.some(h => /^(class|subclass)/.test(h)) && S.typo.differ.some(t => /Paladn/.test(t) && /Paladin/.test(t)), JSON.stringify(S.typo));
+  const near = await p.evaluate(() => [impFuzzy([["Gearforged"]], "Warforged"), impFuzzy([["Child of the Sea"]], "Child of the Sun"), impFuzzy([["Gnome"]], "Gnoll"), impFuzzy([["Oath of Devotion"]], "Oath of Devotoin"), impFuzzy([["Paladin"]], "Paladn")].map(m => m && m.name));
+  check("a different real name is never swapped in (Warforged, Child of the Sun, Gnoll); typos and swapped letters still match", JSON.stringify(near) === '[null,null,null,"Oath of Devotion","Paladin"]', JSON.stringify(near));
   const mwT = await p.evaluate(() => { const d = mwChar({ name: "Typo", mwId: "t1", sheet: { level: 2, abilityScores: { str: 10, dex: 10, con: 10, int: 10, wis: 10, cha: 10 }, selectionsBySlot: { class: "wizzard", species: "tieflng", background: "acolite" } } }, "2014");
     return d.error ? { error: d.error } : { cls: d.opts.cls, race: d.opts.race, bg: d.opts.bg, made: d.report.made }; });
   check("MythWeaver: misspelled class, species and background are matched", mwT.cls === "Wizard" && mwT.race === "Tiefling" && mwT.bg === "Acolyte" && !mwT.made.length, JSON.stringify(mwT));

@@ -20,8 +20,9 @@ const impKind = x => x && x.book ? "extra book" : "homebrew";
 /* Names from a file, allowing for spelling mistakes (2026-11-23). `tiers` are lists of names, best first (built-in, then
    the books, then homebrew). Each pass tries every tier before the next, looser pass: the same letters (case, spaces,
    punctuation and a source tag aside); then, with `part`, a name that starts or ends with the file's ("Devotion" ->
-   "Oath of Devotion", 5+ letters); then up to 1 letter different (5 to 7 letters) or 2 (8 or more). Two different
-   names equally close is no match. -> { name, tier, fixed (the file spelled it differently) } or null */
+   "Oath of Devotion", 5+ letters); then, for 5+ letters with the same first letter, one letter wrong, missing or extra,
+   or two letters swapped. Never more: a near-miss like Warforged/Gearforged or Child of the Sun/Sea is a different
+   thing. Two different names equally close is no match. -> { name, tier, fixed (the file spelled it differently) } or null */
 function impFuzzy(tiers, raw, part) {
   const nm = impStrip(raw), k = impLetters(nm); if (!k) return null;
   const T = tiers.map(L => [...new Set((L || []).filter(Boolean))].map(n => [n, impLetters(n)]));
@@ -32,23 +33,27 @@ function impFuzzy(tiers, raw, part) {
     const h = T[t].filter(([, x]) => x.endsWith(k) || x.startsWith(k));
     if (h.length === 1) return done(h[0][0], t); if (h.length > 1) return null;
   }
-  const max = k.length >= 8 ? 2 : k.length >= 5 ? 1 : 0; if (!max) return null;
+  if (k.length < 5) return null;
+  const swap = x => x.length === k.length && [...k].some((ch, i) => i + 1 < k.length && ch !== x[i] && k.slice(0, i) === x.slice(0, i) && k[i] === x[i + 1] && k[i + 1] === x[i] && k.slice(i + 2) === x.slice(i + 2));
   for (let t = 0; t < T.length; t++) {
-    let best = max + 1, hits = [];
-    for (const [n, x] of T[t]) { const d = impDist(k, x, max); if (d < best) { best = d; hits = [n]; } else if (d === best) hits.push(n); }
-    if (best <= max) return hits.length === 1 ? done(hits[0], t) : null;
+    const hits = T[t].filter(([, x]) => x[0] === k[0] && (impDist(k, x, 1) <= 1 || swap(x)));
+    if (hits.length) return hits.length === 1 ? done(hits[0][0], t) : null;
   }
   return null;
 }
 /* imported homebrew (made from an earlier file) is tried last, so a misspelled copy never beats the real name */
 const impFuzzyFirst = (tiers, imported, raw, part) => impFuzzy(tiers, raw, part) || impFuzzy([imported], raw, part);
-const impSaid = (m, raw) => m && m.fixed ? ` (the file says “${impCut(impStrip(raw), 60)}”)` : "";
+/* reports a match: a corrected spelling goes under "Different from the file", so the user checks it */
+function impReport(D, what, m, raw, tag = "") {
+  if (m.fixed) D.report.differ.push(`${what}: the file says “${impCut(impStrip(raw), 60)}”, so the Forge used ${m.name}${tag}. Change it on the sheet if that's wrong`);
+  else D.report.matched.push(`${what}: ${m.name}${tag}`);
+}
 /* a class in this rules set: built-in, then the books, then homebrew; a misspelled name is matched and reported */
 function impClassMatch(ed, name, D) {
   const L = classList(ed), hx = k => classData(ed, k).hbx;
   const m = impFuzzyFirst([L.filter(k => !hx(k)), L.filter(k => hx(k) && hx(k).book), L.filter(k => hx(k) && !hx(k).book && !hbFromImport(hx(k)))],
     L.filter(k => hbFromImport(hx(k))), name, false);
-  if (m && m.fixed) D.report.matched.push(`Class: ${m.name}${impSaid(m, name)}`);
+  if (m && m.fixed) impReport(D, "Class", m, name);
   return m ? m.name : null;
 }
 function impSubclass(ed, cls, name, arch, D) {
@@ -62,7 +67,7 @@ function impSubclass(ed, cls, name, arch, D) {
   const m = impFuzzyFirst(tiers, names(home.filter(hbFromImport)), nm, true);
   if (m) {
     const tag = m.tier === 1 || m.tier === 3 ? " (extra book)" : m.tier === 0 ? "" : " (homebrew)";
-    D.report.matched.push(`${cls} subclass: ${m.name}${tag}${impSaid(m, nm)}`); return m.name;
+    impReport(D, `${cls} subclass`, m, nm, tag); return m.name;
   }
   D.homebrew.push({ id: uid("hb"), kind: "subclass", src: IMP_SRC, ed, cls, name: impCut(nm, 60), desc: "",
     features: ((arch && arch.features) || []).map(f => ({ l: clamp(+f.level || +impFeat(f).level || 1, 1, 20), n: impCut(impFeat(f).name, 60), d: impDesc(impFeat(f)), fx: [] })).filter(f => f.n) });
@@ -73,12 +78,12 @@ function impSubclass(ed, cls, name, arch, D) {
 function impSpeciesMatch(ed, name, D) {
   const R = PC_RACES[ed], L = Object.keys(R).filter(k => !R[k].pend), hb = n => hbAny("species").find(x => x.name === n);
   const m = impFuzzyFirst([L.filter(n => !hb(n)), L.filter(n => hb(n) && hb(n).book), L.filter(n => hb(n) && !hb(n).book && !hbFromImport(hb(n)))], L.filter(n => hbFromImport(hb(n))), name, false);
-  if (m) D.report.matched.push(`Species: ${m.name}${impSaid(m, name)}`);
+  if (m) impReport(D, "Species", m, name);
   return m ? m.name : null;
 }
 function impListMatch(what, list, name, D) {
   const m = impFuzzy([list], name, false); if (!m) return null;
-  D.report.matched.push(`${what}: ${m.name}${impSaid(m, name)}`); return m.name;
+  impReport(D, what, m, name); return m.name;
 }
 /* A class the Forge doesn't have -> a homebrew class (a matching homebrew class is used if there is one). `def` is the
    Companion App's class (hit die, saves, skills, proficiencies, equipment, caster type, features with their text);
@@ -226,7 +231,7 @@ function compImport(j, ed) {
   // background
   const bb = impJSON(j.requiredBackground) || {}, bName = impStrip(bb.name || impTitle(j.background && j.background.backgroundId));
   let bg = impListMatch("Background", bgList(ed), bName, D) || (impHave("background", bName) || {}).name || null;
-  if (bg) { if (!D.report.matched.some(t => t.startsWith("Background: "))) D.report.matched.push(`Background: ${bg}`); }
+  if (bg) { if (![...D.report.matched, ...D.report.differ].some(t => t.startsWith("Background: "))) D.report.matched.push(`Background: ${bg}`); }
   else if (bName) {
     bg = impCut(bName, 60);
     const sk = [...new Set(((j.background && j.background.skillProficiencies) || []).map(x => IMP_SKILL[x.name]).filter(Boolean))].slice(0, 2);
@@ -350,7 +355,7 @@ function fecsImport(text, ed) {
   let bg = null;
   if (bName && !/^custom$/i.test(bName)) {
     bg = impListMatch("Background", bgList(ed), bName, D) || (impHave("background", bName) || {}).name || null;
-    if (bg) { if (!D.report.matched.some(t => t.startsWith("Background: "))) D.report.matched.push(`Background: ${bg}`); }
+    if (bg) { if (![...D.report.matched, ...D.report.differ].some(t => t.startsWith("Background: "))) D.report.matched.push(`Background: ${bg}`); }
     else { bg = impCut(bName, 60); hb({ id: uid("hb"), kind: "background", ed, name: bg, desc: "", skills: [], feat: "", gear: "", fx: [] }); D.report.made.push(`${bg} (background)`); }
   } else { bg = bName ? impCut(bName, 60) : "Custom"; D.report.dropped.push(`Background: ${bg} (kept as a name only, with no background features; the skills are kept)`); }
   // scores and saves: abilityScores 1-6, then 6 save flags

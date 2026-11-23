@@ -222,7 +222,7 @@ function mwChar(ch, ed) {
   else return { error: `${ch.name} has no species in the file.` };
   const bName = impTitle(String(sel.background || "").replace(/-/g, " "));
   let bg = bName ? impListMatch("Background", bgList(ed), bName, D) || (impHave("background", bName) || {}).name || null : null;
-  if (bg) { if (!D.report.matched.some(t => t.startsWith("Background: "))) D.report.matched.push(`Background: ${bg}`); }
+  if (bg) { if (![...D.report.matched, ...D.report.differ].some(t => t.startsWith("Background: "))) D.report.matched.push(`Background: ${bg}`); }
   else if (bName) { bg = impCut(bName, 60); D.homebrew.push({ id: uid("hb"), kind: "background", src: MW_SRC, ed, name: bg, desc: "Imported from MythWeaver; add its feature here.", skills: [], feat: "", gear: "", fx: [] }); D.report.made.push(`${bg} (background, name only)`); }
   const keepSkills = (sel.class_skills || []).map(s => ALL_SKILLS.find(k => impSame(k, String(s).replace(/^skill-/, "").replace(/-/g, " ")))).filter(Boolean);
   const gearIds = Object.entries(sel).filter(([k]) => /equipment/i.test(k)).flatMap(([, v]) => Array.isArray(v) ? v : [v]).filter(v => typeof v === "string");
