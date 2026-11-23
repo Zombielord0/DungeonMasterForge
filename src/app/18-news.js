@@ -9,6 +9,9 @@ const NEWS = [
     "The Compendium tab has its own icon.",
     "On phones, the Forge form fits the screen, and the bottom bar no longer splits “Compendium” in two."
   ] },
+  { id: "2026-11-23-reference-spell-text", date: "2026-11-23", title: "Rules for the book spells", go: "spells", items: [
+    "Silvery Barbs and the 96 other spells from other D&D books now show a short summary of what they do, their damage and how they scale, with the book and page underneath."
+  ] },
   { id: "2026-11-23-reference-spells", date: "2026-11-23", title: "More spells, and Oathbreaker abilities", go: "spells", items: [
     "Spells from other D&D books, like Silvery Barbs, are now in the 2014 spell list with their level, casting time, range, components, duration and the book page to look them up. Imported characters keep them.",
     "Oathbreaker paladins see Aura of Hate, Control Undead and Dreadful Aspect in their Abilities list, with their save DCs. The Channel Divinity options use the Channel Divinity counter."
