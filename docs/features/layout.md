@@ -62,8 +62,8 @@ From a review of the Adventure, Characters and Items tabs. Checks: `npm run test
 ## Book pages (2026-11-23)
 
 - **What it covers:** spells (`#spList`), items (`#itList`), the Monster Manual (`#bsList`), the character sheet (`#rosterMain` cards and sections, but not `.mobile-sheet-quick`) and the Journal (`#journalMain`).
-- **How it works:** these are drawn as rulebook pages by one block at the end of `src/app.css`. It recolours them through the colour settings (`--text`, `--muted`, `--gold`, `--well`) and makes each `.sec-h` a red band (blue on every second sheet section).
-- **The paper** is `--book-paper`: darker aged parchment with wrinkles (an SVG crumple lit from one side), stains and darkened edges, drawn with SVG noise and gradients and no picture files. The check measures ink against the paper on a crease (`PAPER` in `test/e2e/book-pages.cjs`), not its lighter middle. The Adventure, NPC and monster previews use it too (`--parch`).
+- **How it works:** these are drawn as rulebook pages by one block at the end of `src/app.css`. It recolours them through the colour settings (`--text`, `--muted`, `--gold`, `--well`) It makes each `.sec-h` a steel-blue capital heading over a thin rule. The owner chose this look from a picture of a 3.5-era rulebook page. Body text is EB Garamond (open licence, from Google Fonts), and the ink is near black.
+- **The paper** is `--book-paper`: yellowed parchment with soft brown mottling (`baseFrequency='.007'`, which the check looks for), faint creases and darker edges, drawn with SVG noise and gradients and no picture files. The check measures ink against the paper on a crease (`PAPER` in `test/e2e/book-pages.cjs`), not its lighter middle. The Adventure, NPC and monster previews use it too (`--parch`).
 - **School and rarity colours** have darker inks inside the pages.
 - **Stays stone:** side panels and buttons.
 - **The check:** `npm run test:book` checks that every page is on paper and that its text is at least 4.5:1 against it.

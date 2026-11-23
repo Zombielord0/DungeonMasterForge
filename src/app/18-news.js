@@ -3,7 +3,7 @@
 
 const NEWS = [
   { id: "2026-11-23-book-pages", date: "2026-11-23", title: "Pages like a rulebook", go: "spells", items: [
-    "Spells, items, the Monster Manual, character sheets and the players' Journal now sit on aged parchment pages, with coloured section bands and small-caps titles, like a D&D book at the table.",
+    "Spells, items, the Monster Manual, character sheets and the players' Journal now sit on yellowed, aged parchment pages, in a classic book typeface with steel-blue headings, like a D&D book at the table.",
     "Menus, side panels and buttons keep the dark stone look, so they're easy to find."
   ] },
   { id: "2026-11-23-import-spelling", date: "2026-11-23", title: "Character import fixes spelling and finds subclasses", go: "roster", items: [

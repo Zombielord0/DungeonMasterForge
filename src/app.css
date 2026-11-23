@@ -1378,20 +1378,19 @@ nav a[data-view=requests]{--ic:url("data:image/svg+xml,%3Csvg xmlns='http://www.
    paper-coloured fields, tags and chips, and darker inks for school and rarity colours. See docs/features/layout.md. */
 :root{
   --book-paper:
-    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='900' height='900'%3E%3Cfilter id='w' x='0' y='0' width='100%' height='100%'%3E%3CfeTurbulence type='turbulence' baseFrequency='.004 .011' numOctaves='4' seed='11' stitchTiles='stitch'/%3E%3CfeDiffuseLighting surfaceScale='6' lighting-color='%23fff'%3E%3CfeDistantLight azimuth='35' elevation='52'/%3E%3C/feDiffuseLighting%3E%3CfeColorMatrix values='0 0 0 0 .3  0 0 0 0 .18  0 0 0 0 .06  -1 0 0 0 .86'/%3E%3C/filter%3E%3Crect width='900' height='900' filter='url(%23w)'/%3E%3C/svg%3E"),
-    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='1200' height='1200'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.012' numOctaves='4' seed='7' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 .45  0 0 0 0 .28  0 0 0 0 .1  0 0 0 .62 0'/%3E%3C/filter%3E%3Crect width='1200' height='1200' filter='url(%23n)'/%3E%3C/svg%3E"),
-    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='g'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='2' seed='3' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 .3  0 0 0 0 .2  0 0 0 0 .1  0 0 0 .16 0'/%3E%3C/filter%3E%3Crect width='160' height='160' filter='url(%23g)'/%3E%3C/svg%3E"),
-    radial-gradient(ellipse at 15% 8%,rgba(120,65,20,.32),transparent 30%),
-    radial-gradient(ellipse at 88% 92%,rgba(110,55,18,.36),transparent 34%),
-    radial-gradient(ellipse at 70% 20%,rgba(120,70,25,.18),transparent 22%),
-    radial-gradient(ellipse at 50% 45%,#e8d1a0 0%,#d9bb84 58%,#b38d57 100%);
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='1000' height='1000'%3E%3Cfilter id='m'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.007' numOctaves='4' seed='23' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 .55  0 0 0 0 .36  0 0 0 0 .12  0 0 -2.2 0 1.25'/%3E%3C/filter%3E%3Crect width='1000' height='1000' filter='url(%23m)'/%3E%3C/svg%3E"),
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='900' height='900'%3E%3Cfilter id='w' x='0' y='0' width='100%' height='100%'%3E%3CfeTurbulence type='turbulence' baseFrequency='.004 .011' numOctaves='4' seed='11' stitchTiles='stitch'/%3E%3CfeDiffuseLighting surfaceScale='4' lighting-color='%23fff'%3E%3CfeDistantLight azimuth='35' elevation='55'/%3E%3C/feDiffuseLighting%3E%3CfeColorMatrix values='0 0 0 0 .4  0 0 0 0 .26  0 0 0 0 .08  -.45 0 0 0 .4'/%3E%3C/filter%3E%3Crect width='900' height='900' filter='url(%23w)'/%3E%3C/svg%3E"),
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='g'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='2' seed='3' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 .3  0 0 0 0 .2  0 0 0 0 .1  0 0 0 .14 0'/%3E%3C/filter%3E%3Crect width='160' height='160' filter='url(%23g)'/%3E%3C/svg%3E"),
+    radial-gradient(ellipse at 6% 6%,rgba(150,95,35,.35),transparent 26%),
+    radial-gradient(ellipse at 96% 94%,rgba(140,85,30,.38),transparent 30%),
+    radial-gradient(ellipse at 50% 45%,#f5e8c4 0%,#ecd9a8 55%,#d4b070 100%);
 }
 :is(#spList>.sec,#itList>.sec,#bsList>.sec,#rosterMain>.card:not(.empty):not(.mobile-sheet-quick),#rosterMain>.sec,#rosterMain>.grid2>.sec,#journalMain){
   --text:#2a1c0f;--muted:#6a5038;--gold:#7a2e1d;--gold2:#8c3a22;--line:rgba(125,95,60,.4);
   --well:rgba(255,250,234,.5);--slab:transparent;--book-band:#7a2e1d;--book-band2:#3f4f58;--book-trim:#9a7449;
   background:var(--book-paper)!important;color:var(--text);
   border:1px solid #5c3d1f!important;border-radius:3px 6px 4px 7px;
-  box-shadow:inset 0 0 60px rgba(90,45,10,.62),inset 0 0 12px rgba(60,28,4,.65),0 12px 30px rgba(0,0,0,.6)!important;
+  box-shadow:inset 0 0 70px rgba(140,85,25,.55),inset 0 0 14px rgba(110,60,15,.5),0 12px 30px rgba(0,0,0,.6)!important;
   backdrop-filter:none!important;-webkit-backdrop-filter:none!important;
 }
 /* the thin inner rule of a printed page, and no stone grit */
@@ -1410,7 +1409,6 @@ nav a[data-view=requests]{--ic:url("data:image/svg+xml,%3Csvg xmlns='http://www.
 :is(#spList>.sec,#itList>.sec,#bsList>.sec,#rosterMain>.card:not(.empty):not(.mobile-sheet-quick),#rosterMain>.sec,#rosterMain>.grid2>.sec,#journalMain) .sec-h{
   position:relative;z-index:1;border:0!important;border-image:none!important;margin:-4px -6px 10px;padding:4px 10px 3px;border-radius:1px;
   background:linear-gradient(90deg,var(--book-band) 0%,#94412b 70%,rgba(148,65,43,.15) 100%)}
-:is(#spList>.sec,#itList>.sec,#bsList>.sec,#rosterMain>.card:not(.empty):not(.mobile-sheet-quick),#rosterMain>.sec,#rosterMain>.grid2>.sec,#journalMain) .sec-h :is(h3,h4,.muted,.sp,span:not(.btn *)){color:#fbeedb!important}
 :is(#spList,#itList,#bsList,#rosterMain,#journalMain) .sec-h h3::before{content:none}
 :is(#rosterMain .sec:nth-of-type(even),#rosterMain>.grid2>.sec:nth-child(2),#journalMain .sec) .sec-h{background:linear-gradient(90deg,var(--book-band2) 0%,#55707c 70%,rgba(85,112,124,.15) 100%)}
 /* fields, chips and tags on paper */
@@ -1471,3 +1469,18 @@ nav a[data-view=requests]{--ic:url("data:image/svg+xml,%3Csvg xmlns='http://www.
 #itList .it-row.it-r-c{--rar:#4d463b}#itList .it-row.it-r-u{--rar:#1a4712}#itList .it-row.it-r-r{--rar:#1b4380}#itList .it-row.it-r-vr{--rar:#4e2c80}
 #itList .it-row.it-r-l{--rar:#633905}#itList .it-row.it-r-a{--rar:#7a2315}#itList .it-row.it-r-v{--rar:#55401d}
 #rosterMain .ft-full{background:rgba(130,80,30,.12)}
+/* Reference look (owner's picture of a 3.5-era rulebook page, 2026-11-23): yellowed, mottled parchment (above), near-black
+   book text in EB Garamond (open licence), and steel-blue capital headings over a thin rule instead of red bands. */
+:is(#spList>.sec,#itList>.sec,#bsList>.sec,#rosterMain>.card:not(.empty):not(.mobile-sheet-quick),#rosterMain>.sec,#rosterMain>.grid2>.sec,#journalMain){
+  --text:#1c140c;--muted:#3f3022;--book-band:#1d3b5b;--book-band2:#1d3b5b;--gold:#1d3b5b;--gold2:#1d3b5b;--oxblood:#1d3b5b;
+  font-family:"EB Garamond",Georgia,"Times New Roman",serif}
+:is(#spList>.sec,#itList>.sec,#bsList>.sec,#rosterMain>.card:not(.empty):not(.mobile-sheet-quick),#rosterMain>.sec,#rosterMain>.grid2>.sec,#journalMain) :is(h1,h2,h3,h4){
+  font-family:Cinzel,Georgia,serif;font-weight:500;font-variant-caps:normal;text-transform:uppercase;letter-spacing:.04em;color:var(--book-band)}
+:is(#spList>.sec,#itList>.sec,#bsList>.sec,#rosterMain>.card:not(.empty):not(.mobile-sheet-quick),#rosterMain>.sec,#rosterMain>.grid2>.sec,#journalMain) .sec-h,
+:is(#rosterMain .sec:nth-of-type(even),#rosterMain>.grid2>.sec:nth-child(2),#journalMain .sec) .sec-h{
+  background:none!important;margin:0 0 10px;padding:2px 0 4px;border-bottom:1.5px solid var(--book-band)!important}
+:is(#spList>.sec,#itList>.sec,#bsList>.sec,#rosterMain>.card:not(.empty):not(.mobile-sheet-quick),#rosterMain>.sec,#rosterMain>.grid2>.sec,#journalMain) .sec-h h3{color:var(--book-band)!important;font-size:18px}
+:is(#spList>.sec,#itList>.sec,#bsList>.sec,#rosterMain>.card:not(.empty):not(.mobile-sheet-quick),#rosterMain>.sec,#rosterMain>.grid2>.sec,#journalMain) .sec-h :is(.muted,.sp,span:not(.btn *)){color:var(--muted)!important}
+:is(#spList,#itList,#bsList,#rosterMain,#journalMain) :is(.sp-name,.sb-name,.lore-name,b,strong){color:var(--text)}
+:is(#spList,#itList,#bsList) .sp-row.open .sp-name,:is(#bsList,#rosterMain) .statblock .sb-l>b,#rosterMain .prof-row>b{color:var(--text)!important}
+:is(#spList,#itList,#bsList,#rosterMain,#journalMain) :is(.lv-need,.warn,.dis,b.over,.prep-count b.over,.cb-count.over,.mb-needs,.ft-why,.pick .why,.imp-err){color:#7a1a0e!important}

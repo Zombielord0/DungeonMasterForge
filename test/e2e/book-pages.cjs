@@ -23,7 +23,7 @@ const probe = pages => {
     let col = PAPER; const tints = [];
     for (let a = el; a && a !== root; a = a.parentElement) {
       const st = getComputedStyle(a), [r, g, b, al = 1] = rgb(st.backgroundColor);
-      if (st.backgroundImage !== "none" && /gradient/.test(st.backgroundImage) && !/baseFrequency='\.012'/.test(st.backgroundImage)) return null; /* its own picture: can't tell */
+      if (st.backgroundImage !== "none" && /gradient/.test(st.backgroundImage) && !/baseFrequency='\.007'/.test(st.backgroundImage)) return null; /* its own picture: can't tell */
       if (al >= .9) { col = [r, g, b]; break; }
       if (al > 0) tints.unshift([r, g, b, al]);
     }
@@ -39,7 +39,7 @@ const probe = pages => {
     const L1 = lumOf(fg), L2 = lumOf(bg), ratio = (Math.max(L1, L2) + .05) / (Math.min(L1, L2) + .05);
     if (ratio < 4.5) faint.push(`${el.className || el.tagName} «${el.textContent.trim().slice(0, 24)}» ${st.color} ${ratio.toFixed(1)}`);
   }
-  const onPaper = roots.filter(r => /baseFrequency='\.012'/.test(getComputedStyle(r).backgroundImage)).length;
+  const onPaper = roots.filter(r => /baseFrequency='\.007'/.test(getComputedStyle(r).backgroundImage)).length;
   return { roots: roots.length, onPaper, faint: [...new Set(faint)].slice(0, 8) };
 };
 
@@ -60,7 +60,7 @@ const probe = pages => {
     check(`${size}: spell groups are book pages`, r.roots > 0 && r.onPaper === r.roots, JSON.stringify(r));
     check(`${size}: an open spell's text is dark enough to read on the paper`, !r.faint.length, r.faint.join(" | "));
     const stone = await p.evaluate(() => ({ side: getComputedStyle(document.querySelector("#spForm")).backgroundImage, btn: getComputedStyle(document.querySelector("#spList .sp-detail .btn")).backgroundImage }));
-    check(`${size}: the search panel and the buttons on the page stay stone`, !/feTurbulence\.\d|baseFrequency='\.012'/.test(stone.side) && !/baseFrequency='\.012'/.test(stone.btn) && /gradient/.test(stone.btn), JSON.stringify(stone).slice(0, 200));
+    check(`${size}: the search panel and the buttons on the page stay stone`, !/feTurbulence\.\d|baseFrequency='\.007'/.test(stone.side) && !/baseFrequency='\.007'/.test(stone.btn) && /gradient/.test(stone.btn), JSON.stringify(stone).slice(0, 200));
 
     await p.goto(URL + "#items"); await p.waitForFunction(() => document.querySelector("#itList .sp-row"));
     await p.fill("#itQ", "bag of holding"); await p.waitForTimeout(500);

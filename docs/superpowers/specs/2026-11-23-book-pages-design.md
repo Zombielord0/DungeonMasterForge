@@ -24,3 +24,11 @@
 - exact inks;
 - which section gets a blue band (every second sheet section, and the Journal's inner sections);
 - the readability check (`npm run test:book`: text inside the pages at least 4.5:1 against the paper).
+
+**Later the same day (owner):**
+1. The owner asked for darker, aged, wrinkled paper.
+2. They then sent a picture of a 3.5-era Player's Handbook page and asked for that parchment and that text font. The final look:
+   - yellowed, mottled parchment, lighter than step 1, with only faint creases;
+   - EB Garamond body text, near black;
+   - steel-blue capital headings over a thin rule, in place of the red bands.
+3. Nothing is copied from the book: not its art, its red marbled frame or its fonts.
