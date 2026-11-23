@@ -18,7 +18,7 @@ const PAGES = "#spList>.sec,#itList>.sec,#bsList>.sec,#rosterMain>.card:not(.emp
 const probe = pages => {
   const rgb = c => (c.match(/[\d.]+/g) || []).map(Number);
   const lumOf = ([r, g, b]) => [r, g, b].map(v => v / 255).map(v => v <= .03928 ? v / 12.92 : ((v + .055) / 1.055) ** 2.4).reduce((s, v, i) => s + v * [.2126, .7152, .0722][i], 0);
-  const PAPER = [236, 214, 164], roots = [...document.querySelectorAll(pages)], faint = [];
+  const PAPER = [205, 175, 122] /* the paper with a crease or stain on it, darker than its middle */, roots = [...document.querySelectorAll(pages)], faint = [];
   const behind = (el, root) => {
     let col = PAPER; const tints = [];
     for (let a = el; a && a !== root; a = a.parentElement) {
