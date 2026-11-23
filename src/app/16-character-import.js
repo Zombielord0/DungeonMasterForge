@@ -138,6 +138,10 @@ function impDist(a, b, max) {
   for (let i = 1; i <= a.length; i++) { const cur = [i]; let low = i; for (let j = 1; j <= b.length; j++) { cur[j] = Math.min(prev[j] + 1, cur[j - 1] + 1, prev[j - 1] + (a[i - 1] === b[j - 1] ? 0 : 1)); low = Math.min(low, cur[j]); } if (low > max) return max + 1; prev = cur; }
   return prev[b.length];
 }
+/* a spell matched despite its spelling goes under "Different from the file", like classes (QA-3, 2026-11-23) */
+function impSpellSaid(D, raw, m) {
+  if (impNorm(impStrip(raw)) !== impNorm(m.s.n)) D.report.differ.push(`Spell: the file says “${impCut(raw, 60)}”, so the Forge used ${m.s.n}. Change it on the sheet if that's wrong`);
+}
 function spellMatch(ed, name) {
   const m = spellMatch1(ed, name); if (m) return m;
   const rest = String(name || "").replace(/^\s*[A-Z][a-z]+(?:[’']s|s)\s+/, "");
@@ -202,7 +206,7 @@ function compImport(j, ed) {
     const lv = clamp(+jb.level || 1, 1, 20);
     let subclass = null;
     const arch = (def.archetypes || []).find(a => a.id === jb.archetypeId);
-    if (jb.archetypeId) subclass = impSubclass(ed, cls, arch ? arch.name : impTitle(jb.archetypeId), arch, D);
+    if (jb.archetypeId) subclass = impSubclass(ed, cls, arch ? arch.name : impTitle(jb.archetypeId) + (/\[ua\]$/i.test(jb.archetypeId) ? " [UA]" : ""), arch, D); /* an id-only Unearthed Arcana subclass keeps its [UA] */
     const st = (def.subtypes || []).find(a => a.id === jb.subtypeId);
     classes.push({ cls, lv, subclass, style: st ? impStrip(st.name) : jb.subtypeId ? impTitle(jb.subtypeId.replace(/^[a-z]+_/, "")) : "" });
   }
@@ -257,7 +261,7 @@ function compImport(j, ed) {
   const prepared = [];
   (j.spells || []).forEach(sp => {
     const m = spellMatch(ed, sp.name);
-    if (m) { if (!prepared.some(x => x.n === m.s.n)) prepared.push({ n: m.s.n, l: m.s.l, ed: m.ed }); return; }
+    if (m) { if (!prepared.some(x => x.n === m.s.n)) prepared.push({ n: m.s.n, l: m.s.l, ed: m.ed }); impSpellSaid(D, sp.name, m); return; }
     const nm = impCut(sp.name, 60); if (!nm) return;
     const have = impHave("spell", nm) || D.homebrew.find(x => x.kind === "spell" && impSame(x.name, nm));
     if (!have) {
@@ -371,7 +375,7 @@ function fecsImport(text, ed) {
     const f = rec.split(FECS_M), nm = String(f[1] || "").trim(); if (!nm) return;
     if (f[7] !== undefined && /^false$/i.test(String(f[7]).trim())) return;
     const m = spellMatch(ed, nm);
-    if (m) { if (!prepared.some(x => x.n === m.s.n)) prepared.push({ n: m.s.n, l: m.s.l, ed: m.ed }); if (m.fuzzy) D.report.matched.push(`Spell: ${impCut(nm, 60)} → ${m.s.n}`); return; }
+    if (m) { if (!prepared.some(x => x.n === m.s.n)) prepared.push({ n: m.s.n, l: m.s.l, ed: m.ed }); impSpellSaid(D, nm, m); return; }
     notSpells.push(impCut(nm, 80)); D.report.dropped.push(`${impCut(nm, 60)} (not a known spell; saved in notes)`);
   });
   if (notSpells.length) notes.push("From the spell list (not spells in the Forge):\n" + notSpells.map(x => "- " + x).join("\n"));

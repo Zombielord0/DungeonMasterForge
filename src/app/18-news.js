@@ -2,6 +2,12 @@
    When a change ships, add an entry to the top of NEWS with a new id, in plain words for players and DMs. */
 
 const NEWS = [
+  { id: "2026-11-23-qa-fixes", date: "2026-11-23", title: "Monster and import fixes", go: "monsters", items: [
+    "Horses, mules, camels, the elephant and other 2014 animals no longer show a long list of +0 saves and skills.",
+    "The 2014 Donkey now has its hit dice and an attack, and the Drow and Deep Gnome have their proper challenge rating and traits.",
+    "Wild Shape into a bat, cat, rat or other tiny beast now gives you its 1-damage attack.",
+    "Character import lists misspelled spells it fixed, and keeps a file's Unearthed Arcana subclass even when the class name is misspelled."
+  ] },
   { id: "2026-11-23-book-pages", date: "2026-11-23", title: "Rulebook parchment and a book typeface", go: "generate", items: [
     "Generated adventures, NPC cards and forged monsters now sit on yellowed, mottled parchment with steel-blue headings, like a D&D book at the table.",
     "Spells, items, the Monster Manual, character sheets and the Journal use the same classic book typeface."
