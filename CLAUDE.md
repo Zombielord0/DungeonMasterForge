@@ -39,6 +39,13 @@ Run the agents side by side. If any check fails:
 
 Only then push, and tell the owner what the reviewers found and what was fixed. Minor findings can wait; list them for the owner. If an agent can't run (for example a usage limit), say so and don't call the work reviewed.
 
+## The QA agent (owner, 2026-11-23)
+
+- **`qa-tester`** (`.claude/agents/qa-tester.md`, on Sonnet) goes through the site in a local browser like a player and a DM, looking for bugs and missing features. Examples: spells that don't show on a character sheet automatically, wrong monster stat blocks, broken lists.
+- The owner calls it by asking, for example "run the QA agent on character spells" or "do a QA pass on monsters". Give it the area to test. With no area it does a broad pass and stops at about 15 findings.
+- It only reports (`QA-1`… bugs, `IDEA-1`… feature ideas). It never changes code, and it keeps its scripts in `.superpowers/qa/` (gitignored).
+- **Relay its report to the owner in plain words and wait.** Fix nothing until the owner says which findings to fix. Each approved fix then goes through the usual tests and reviews above.
+
 - **Agent files load when a session starts.** If `code-reviewer` or `security-reviewer` isn't offered as an agent type, start a general agent that reads the file and follows it, and pass `model: sonnet` for the code reviewer.
 
 ## What the app is
@@ -75,7 +82,7 @@ Live site: https://dungeonmasterforge.netlify.app (Netlify; production branch `m
 | `tools/test-all.mjs` | `npm run test:all`. |
 | `.github/workflows/checks.yml` | GitHub runs `npm run build` and `npm run test:all` on every pull request (GitHub minutes, not Netlify credits; notes-only pushes skipped). It installs Playwright 1.63 for the run, because `package.json` doesn't list it. |
 | `tools/netlify-skip.mjs` | Netlify's `ignore` step: skips a build when a push only changes notes, tests or tools (exit 0 = skip). |
-| `.claude/agents/` | The `code-reviewer` and `security-reviewer` agents, run on every finished piece of work (see "Finishing a piece of work"). |
+| `.claude/agents/` | The `code-reviewer` and `security-reviewer` agents, run on every finished piece of work (see "Finishing a piece of work"), and the `qa-tester` agent, run when the owner asks (see "The QA agent"). |
 | `docs/features/` | Notes on each feature: how it works and its function names (table below). |
 | `docs/superpowers/` | One design (`specs/`) and one plan (`plans/`) per piece of work, dated. Read the matching pair before changing a feature. |
 | `.superpowers/` | Scratch space for build sessions (gitignored). Nothing there is needed. |
