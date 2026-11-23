@@ -861,9 +861,12 @@ function makeEnemies(groups) {
 /* ---- random encounters: monsters from the Monster Manual's environments, sized with the same XP maths as the encounter builder ---- */
 const RAND_ENVS = [["forest", "Forest"], ["grassland", "Grassland & roads"], ["hills", "Hills"], ["mountain", "Mountains"], ["desert", "Desert"], ["swamp", "Swamp"], ["coast", "Coast"], ["ocean", "At sea"], ["arctic", "Arctic"], ["urban", "City streets"], ["ruins", "Ruins"], ["caves", "Caves"], ["underworld", "Underdark"], ["tomb", "Tomb"], ["sewer", "Sewers"], ["feywild", "Feywild"], ["shadowfell", "Shadowfell"]];
 const RAND_HOOKS = ["hunting for food", "fighting among themselves over a kill", "guarding their lair", "asleep, with one keeping a lazy watch", "on the move and in a hurry", "lying in ambush for travellers", "searching for something they lost", "fleeing from something worse", "feeding and distracted", "wounded and angry"];
+/* the same hooks for a single creature, in the same order (so a seed rolls the same pick) */
+const RAND_HOOKS_ONE = ["hunting for food", "tearing into a fresh kill", "guarding its lair", "asleep, but a light sleeper", "on the move and in a hurry", "lying in ambush for travellers", "searching for something it lost", "fleeing from something worse", "feeding and distracted", "wounded and angry"];
 const RAND = { env: "forest", diff: "medium" };
 let RAND_MON = null;
 function randMonsters() { if (!RAND_MON) { const d = dmData("monsterData"); RAND_MON = (d["2014"] || []).filter(m => (m.env || []).length && CR_XP[m.cr] !== undefined && m.hp > 0); } return RAND_MON; }
+function randHook(hook, n) { return n > 1 ? hook : RAND_HOOKS_ONE[RAND_HOOKS.indexOf(hook)]; }
 function randMonster(name) { return randMonsters().find(m => m.n === name) || null; }
 function randomEncounter(r, env, level, party, diff, poolForCampaign = randMonsters()) {
   level = clamp(level, 1, 20); const target = partyThr(level, party, diff), cap = target * 1.5, lo = level <= 3 ? 0 : level / 4, hi = level + (diff === "deadly" ? 4 : 2);
@@ -872,7 +875,7 @@ function randomEncounter(r, env, level, party, diff, poolForCampaign = randMonst
   let best = null;
   for (let a = 0; a < 40; a++) { const m = r.pick(pool); for (let n = 1; n <= 8; n++) { const adj = n * xpOf(m.cr) * mult(n); if (adj > cap) break; const score = Math.abs(adj - target); if (!best || score < best.score) best = { m, n, score }; } }
   if (!best) best = { m: pool.reduce((a, b) => (a.cr <= b.cr ? a : b)), n: 1 }; // nothing fits: the weakest thing that lives here
-  return { groups: [{ name: best.m.n, stat: best.m.n, cr: best.m.cr, count: best.n, boss: false }], monster: best.m, hook: `${best.n > 1 ? best.n + " × " + best.m.n : "A lone " + best.m.n}, ${r.pick(RAND_HOOKS)}.` };
+  return { groups: [{ name: best.m.n, stat: best.m.n, cr: best.m.cr, count: best.n, boss: false }], monster: best.m, hook: `${best.n > 1 ? best.n + " × " + best.m.n : "A lone " + best.m.n}, ${randHook(r.pick(RAND_HOOKS), best.n)}.` };
 }
 function randRoll(c) {
   const lv = c.currentLevel || 1, rules = normalizeSourceRules(c.sourceRules);

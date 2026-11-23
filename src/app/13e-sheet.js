@@ -12,7 +12,7 @@ function renderRosterTab() { renderRoster(); renderRosterMain(); }
 function renderRosterMain() {
   const c = rosterCur(), main = $("#rosterMain");
   if (!c) { main.innerHTML = `<div class="card empty"><h2>A hero steps from the dark</h2><p>Forge a character: leave anything on Random, or lock in a race, class and level, and get a full 5e sheet. Or build one step by step, or import one from another app.</p><button class="btn primary" type="button" data-draft="forge">⚒ Forge a new character</button></div>`; return; }
-  RC.id = c.id; pcEnsure(c);
+  RC.id = c.id; if (!pcIsDraft(c)) rcRemember(c.id); pcEnsure(c);
   c.inv = c.inv || []; c.coins = c.coins || { cp: 0, sp: 0, ep: 0, gp: 0, pp: 0 }; if (c.hpCur === undefined) c.hpCur = c.hp;
   if (c.bgV === 1 && CLASS_DATA[c.cls]) { const cur = c.hpCur; pcLevelTo(c, c.level); c.bgV = 2; if (cur !== undefined && cur !== "") c.hpCur = Math.min(+cur, c.hp); pcPersist(); }
   /* saved before 2026-11-19, when Eldritch Knights and Arcane Tricksters had no spellcasting: rebuild to add it, keeping current HP */

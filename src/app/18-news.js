@@ -2,6 +2,13 @@
    When a change ships, add an entry to the top of NEWS with a new id, in plain words for players and DMs. */
 
 const NEWS = [
+  { id: "2026-11-23-qa-fixes", date: "2026-11-23", title: "Small fixes all round", go: "tracker", items: [
+    "DMs: the campaign you start is in your Campaign Tracker straight away, so you can save NPCs, loot and treasure to it before any player joins.",
+    "Shop descriptions and random encounters read properly. A lone monster no longer has “one keeping watch”.",
+    "Refreshing the page keeps the character you had open on the Characters tab.",
+    "The Compendium has its own icon, and suggests a few searches before you type anything.",
+    "On phones, the Forge form fits the screen, and the bottom bar no longer splits “Compendium” in two."
+  ] },
   { id: "2026-11-21-granted-spell-sources", date: "2026-11-21", title: "See what grants your spells", go: "roster", items: [
     "The character sheet labels always-prepared spells and granted cantrips with their class, subclass, or species.",
     "Granted spells stay prepared and leave room for your own spell choices. An innate spell shows its free-use option when you open it.",

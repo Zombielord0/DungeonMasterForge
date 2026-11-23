@@ -149,7 +149,7 @@ const SHOPS = {
   temple: { label: "Temple & healer", nouns: ["Lamp", "Chalice", "Dove", "Candle", "Halo", "Bell"], gear: x => /holy|healer|incense|candle|vestment|amulet|emblem|reliquary|antitoxin|healing/i.test(x.n), magic: x => /Potion|Scroll/.test(x.cat) && /heal|protect|restor|bless|ward|cure|resist/i.test(x.n + " " + x.cat), count: [3, 6, 9] }
 };
 const SHOP_ADJ = ["Gilded", "Crooked", "Silver", "Rusty", "Laughing", "Copper", "Old", "Wandering", "Hidden", "Black", "Lucky", "Sleeping"];
-const SHOP_MOODS = [["haggles hard and loves every minute of it", 1.15], ["fair and friendly", 1], ["gruff but honest", 1.05], ["desperate to sell before the rent is due", .85], ["greedy, all smiles", 1.25], ["old and forgetful, so prices wander", 0]];
+const SHOP_MOODS = [["a hard haggler who loves every minute of it", 1.15], ["fair and friendly", 1], ["gruff but honest", 1.05], ["desperate to sell before the rent is due", .85], ["greedy, all smiles", 1.25], ["old and forgetful, so prices wander", 0]];
 function shopNiceGp(v) { return v >= 20 ? Math.round(v) : v >= 1 ? Math.round(v * 10) / 10 : Math.max(.01, Math.round(v * 100) / 100); }
 const SHOP_AMOUNT = { small: .5, normal: 1, large: 1.5 };
 /* rar: rarity ranks to stock (missing = Automatic); amount: small|normal|large; moodIx: index into SHOP_MOODS (missing = random).

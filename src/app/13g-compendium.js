@@ -23,6 +23,12 @@ function compendiumBookDetail(entry) {
     `<p><b>${esc(label)}</b> · ${esc(value)}</p>`).join("");
   return `${bookLine(entry)}<p class="hint">Reference only. See the sourcebook for the full rules.</p>${details}`;
 }
+/* before anything is typed: what the Compendium holds, and a few searches to try */
+function compendiumHint(monsters) {
+  const tries = ["Fireball", "Longsword", ...(monsters ? ["Goblin"] : []), "Elf"];
+  return `<div class="compendium-hint"><p class="muted">Type a name or a book to look it up: spells, items, ${monsters ? "monsters, " : ""}species, feats and more, all in one place.</p>
+    <p>Try: ${tries.map(t => `<button class="btn sm" type="button" data-compendium-try="${esc(t)}">${esc(t)}</button>`).join(" ")}</p></div>`;
+}
 async function compendiumSearch() {
   const request = ++compendium.request;
   const rules = currentSourceRules(), edition = $("#compendiumEdition");
@@ -35,7 +41,7 @@ async function compendiumSearch() {
   if (!canBrowseMonsters && typeSelect.value === "Monster") typeSelect.value = "";
   const results = $("#compendiumResults");
   compendium.rows = [];
-  if (!query) { results.innerHTML = ""; $("#compendiumCount").textContent = ""; return; }
+  if (!query) { results.innerHTML = compendiumHint(canBrowseMonsters); $("#compendiumCount").textContent = ""; return; }
 
   const ed = edition.value, type = typeSelect.value;
   const showMonsters = (!type || type === "Monster") && canBrowseMonsters;
@@ -107,6 +113,8 @@ $("#compendiumType").insertAdjacentHTML("beforeend", compendiumTypes.map(type =>
 $("#compendiumForm").addEventListener("submit", e => { e.preventDefault(); compendiumSearch(); });
 $("#compendiumForm").addEventListener("input", compendiumSearch);
 $("#compendiumResults").addEventListener("click", e => {
+  const tryIt = e.target.closest("[data-compendium-try]");
+  if (tryIt) { $("#compendiumQuery").value = tryIt.dataset.compendiumTry; compendiumSearch(); return; }
   const button = e.target.closest("[data-compendium-result]");
   if (button) compendium.rows[button.dataset.compendiumResult]?.open(button);
 });

@@ -4,7 +4,14 @@
 const RC = { id: null };
 /* the selected character: a saved one, or the newly forged draft (currentPC, not saved yet) */
 const pcIsDraft = c => !!c && c === currentPC && !PCS.roster.some(x => x.id === c.id);
-function rosterCur() { if (currentPC && RC.id === currentPC.id) return currentPC; return PCS.roster.find(c => c.id === RC.id) || PCS.roster[0] || currentPC || null; }
+/* the character last opened in this browser tab, so a refresh comes back to it (sessionStorage: per tab, gone when it closes) */
+const RC_LAST = "dmforge.rcLast";
+function rcRemember(id) { try { sessionStorage.setItem(RC_LAST, id); } catch { } }
+function rosterCur() {
+  if (currentPC && RC.id === currentPC.id) return currentPC;
+  let last = null; try { last = sessionStorage.getItem(RC_LAST); } catch { }
+  return PCS.roster.find(c => c.id === RC.id) || (last && PCS.roster.find(c => c.id === last)) || PCS.roster[0] || currentPC || null;
+}
 function pcRecompute(c) {
   const m = {}; AB.forEach(a => m[a] = mod(+c.scores[a] || 10)); c.mods = m; const SB = subBonusOf(c);
   c.init = m.dex + (c.initBonus ?? ((c.feats || []).some(f => f.f === "Feat: Alert") ? (edOf(c) === "2024" ? c.prof : 5) : 0)) + SB.init + (SB.athlete ? Math.ceil(c.prof / 2) : 0) + (c.cls === "Bard" && c.level >= 2 && edOf(c) === "2014" ? Math.floor(c.prof / 2) : 0);
