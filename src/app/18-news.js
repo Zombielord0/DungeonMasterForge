@@ -2,6 +2,9 @@
    When a change ships, add an entry to the top of NEWS with a new id, in plain words for players and DMs. */
 
 const NEWS = [
+  { id: "2026-11-23-change-subclass", date: "2026-11-23", title: "Change a character's subclass", go: "roster", items: [
+    "A Change button now sits next to the subclass on every character sheet. Pick a different subclass, such as the book's Oathbreaker instead of an old homebrew copy, and the sheet swaps in its features while keeping the level, scores and choices."
+  ] },
   { id: "2026-11-23-qa-fixes", date: "2026-11-23", title: "Monster and import fixes", go: "monsters", items: [
     "Horses, mules, camels, the elephant and other 2014 animals no longer show a long list of +0 saves and skills.",
     "The 2014 Donkey now has its hit dice and an attack, and the Drow and Deep Gnome have their proper challenge rating and traits.",

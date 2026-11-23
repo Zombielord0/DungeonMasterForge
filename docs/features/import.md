@@ -48,6 +48,14 @@ Moved here from `CLAUDE.md` on 2026-11-17, unchanged except that `public/index.h
 - **A Companion App subclass known only by its id** (`paladin_oathbreaker`) drops the class name.
 - **Import-made homebrew never hides the real one:** `subclassEntry` skips a homebrew subclass with an import `src` when a built-in or book subclass has its name, and `hbApply` applies import-made classes after the book classes. A DM's own homebrew of the same name still wins. `subclassEntry` also finds a book subclass from the other rules set when nothing else has the name.
 
+### Changing a subclass after import (2026-11-23)
+
+- **Change** next to the subclass on the sheet (`data-subchange` in `lvBarHTML`) opens the subclass picker (`lvOpen(c, true, true)`, `LV.change`) with the current subclass picked.
+- **Confirming** sets `c.subclass` and rebuilds at the same level (`pcLevelTo`), so scores, skills and choices stay (`pcKeep`) and the new subclass's features replace the old ones.
+- **Why:** it fixes characters that an earlier import tied to a homebrew copy (for example "OathBreaker" with no features) when the book version now exists.
+- **The check:** `npm run test:subchange`.
+- **Only the main class** can be changed this way. A second class's subclass is still chosen through levelling.
+
 ## Lore tab and MythWeaver import (2026-11-17)
 
 - **Design and plan:** `docs/superpowers/specs/2026-11-17-mythweaver-import-design.md` and `docs/superpowers/plans/2026-11-17-mythweaver-import.md`.
