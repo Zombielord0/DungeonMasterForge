@@ -169,7 +169,7 @@ function renderNpcLib(listOnly) {
   const camps = Store.list(), n = npcGroups().length;
   box.innerHTML = `<div class="sec-h"><h3>Your NPCs</h3><span class="sp"></span><button class="btn sm" type="button" data-nl="new">+ New NPC</button></div>
     <p class="hint" style="margin:0 0 8px">Every NPC from your campaigns. Tick a campaign to put an NPC in it; an NPC can be in several. Use 📍 Move to… to file NPCs under a place from the <a href="#world">World</a> tab, and the tabs to see one place at a time (a city's tab includes the places inside it). A change here or in the Campaign Tracker changes the NPC everywhere.</p>
-    <div class="row" style="gap:8px;flex-wrap:wrap;margin-bottom:6px"><input type="text" id="npcLibQ" placeholder="Search names, roles and notes…" aria-label="Search NPCs" value="${esc(NL.q)}" style="flex:2 1 180px">
+    <div class="row" style="gap:8px;flex-wrap:wrap;margin-bottom:6px"><input type="search" id="npcLibQ" autocomplete="off" placeholder="Search names, roles and notes…" aria-label="Search NPCs" value="${esc(NL.q)}" style="flex:2 1 180px">
       <select id="npcLibCamp" aria-label="Show NPCs from" style="flex:1 1 160px"><option value="">All campaigns (${n})</option><option value="-" ${NL.camp === "-" ? "selected" : ""}>Not in a campaign</option>${camps.map(c => `<option value="${esc(c.id)}" ${NL.camp === c.id ? "selected" : ""}>${esc(c.name)}</option>`).join("")}</select></div>
     <div id="npcLibList">${npcLibListHTML()}</div>`;
 }
@@ -416,7 +416,7 @@ function renderWorld(treeOnly) {
     <button class="btn wide" type="button" data-at="world" style="margin-bottom:10px">🌍 World map</button>
     <select id="worldCamp" aria-label="Show places from" style="margin-bottom:8px"></select>
     <div class="seg wview" role="radiogroup" aria-label="Show places"><label class="opt"><input type="radio" name="wview" value="type"><span>By type</span></label><label class="opt"><input type="radio" name="wview" value="tree"><span>Map</span></label></div>
-    <input type="text" id="worldQ" placeholder="Search places…" aria-label="Search places" style="margin:8px 0"><div id="worldTree" class="wtree"></div>
+    <input type="search" id="worldQ" autocomplete="off" placeholder="Search places…" aria-label="Search places" style="margin:8px 0"><div id="worldTree" class="wtree"></div>
     <p class="hint" style="margin-top:10px"><b>By type</b> groups your cities, towns, inns and so on; click a group to open it. <b>Map</b> shows what's inside what. Places in your campaigns' Lore appear here by themselves.</p>`;
   $("#worldCamp").innerHTML = `<option value="">All campaigns</option>${Store.list().map(c => `<option value="${esc(c.id)}" ${c.id === W.camp ? "selected" : ""}>${esc(c.name)}</option>`).join("")}`;
   side.querySelectorAll('input[name="wview"]').forEach(r => { r.checked = r.value === W.view; });

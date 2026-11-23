@@ -66,13 +66,14 @@ const X = { sp: data("extra-spells"), mon: data("extra-monsters"), it: data("ext
     spLoad();
     const ex = ed => SP.data[ed].filter(s => s.src && dmBook(s.src).lic !== "reference");
     const a = SP.data["2014"].find(s => s.n === "Abhorrent Apparition"), b = SP.data["2024"].find(s => s.n === "Abhorrent Apparition");
-    return { n14: SP.data["2014"].length, n24: SP.data["2024"].length, x14: ex("2014").length, x24: ex("2024").length,
+    return { refs14: SP.data["2014"].filter(s => s.ref).length, refs24: SP.data["2024"].filter(s => s.ref).length, n14: SP.data["2014"].length, n24: SP.data["2024"].length, x14: ex("2014").length, x24: ex("2024").length,
       first: spFind("2014-0").n, a: a && { id: a.id, t: a.t, src: a.src, save: a.save }, b: b && { t: b.t },
       sameObj: a === b, books: [...$("#spBook").options].map(o => o.value) };
   });
   const spellExtras = ed => X.sp.filter(s => !s.ed || s.ed === ed);
   check("spells: open-book bonus spells appear in their supported editions", sp.x14 === spellExtras("2014").length && sp.x24 === spellExtras("2024").length, JSON.stringify(sp));
-  check("spells: the SRD spells keep their places", sp.first === SRD.sp["2014"][0].n && sp.n14 === SRD.sp["2014"].length + legacySpells.length + spellExtras("2014").length);
+  /* plus the book reference spells the build adds (2026-11-23), which are 2014-only */
+  check("spells: the SRD spells keep their places", sp.first === SRD.sp["2014"][0].n && sp.n14 === SRD.sp["2014"].length + legacySpells.length + spellExtras("2014").length + sp.refs14 && sp.refs24 === 0, JSON.stringify([sp.n14, sp.refs14, sp.refs24]));
   check("spells: each edition has its own copy", sp.a && sp.b && !sp.sameObj);
   check("spells: 2014 and 2024 wording for casting time", sp.a.t === "1 action" && sp.b.t === "Action", JSON.stringify([sp.a, sp.b]));
   check("spells: saving throw is read", sp.a.save === "Wisdom", sp.a.save);

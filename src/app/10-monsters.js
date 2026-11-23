@@ -800,7 +800,7 @@ function mbPreview() {
     const m = mbCompile(MB.f), pb = bsPB(m.cr);
     $("#mbCRHint").textContent = `Proficiency bonus ${sgn(pb)} · ${(xpOf(m.cr) || 0).toLocaleString()} XP · ${m.hp} hit points`;
     $("#mbHP").placeholder = `Average: ${mbCompile({ ...MB.f, hp: "" }).hp}`;
-    $("#mbPreview").innerHTML = `${m.desc ? `<p class="mb-desc">${esc(m.desc)}</p>` : ""}${bsSbHTML(m, "custom")}`;
+    $("#mbPreview").innerHTML = `${bsSbHTML(m, "custom")}${m.desc ? `<p class="mb-desc">${esc(m.desc)}</p>` : ""}`;
   }, 80);
 }
 function mbRenderLib() {
@@ -951,7 +951,7 @@ function compSectionHTML(c) {
     <div class="prep-panel hidden" id="rcCompPanel">
       <div class="row" style="flex-wrap:wrap">
         <select id="rcCompKind" style="flex:1 1 160px" aria-label="What you're looking for">${kinds.map(k => `<option value="${k}">${COMP_KIND[k]}</option>`).join("")}</select>
-        <input type="text" id="rcCompQ" placeholder="Search beasts, e.g. wolf" style="flex:2 1 180px" aria-label="Search beasts">
+        <input type="search" id="rcCompQ" autocomplete="off" placeholder="Search beasts, e.g. wolf" style="flex:2 1 180px" aria-label="Search beasts">
         <select id="rcCompEd" style="flex:1 1 110px" aria-label="Rules edition"><option value="2024">2024 rules</option><option value="2014">2014 rules</option></select></div>
       <p class="hint" id="rcCompRule" style="margin:6px 0 0"></p>
       <label class="check" style="margin:4px 0 0"><input type="checkbox" id="rcCompAll"><span>Show every beast (the DM has allowed something else)</span></label>

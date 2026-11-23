@@ -55,6 +55,11 @@ function emit(name, ext, text) { // text: a string, or a Buffer for pictures
   writeFileSync(at(`public/assets/${file}`), text);
   if (!quiet) console.log(`public/assets/${file}  ${(Buffer.byteLength(text) / 1024).toFixed(0)} KB`);
 }
+function emitCatalog(name, key, data, source = name) {
+  const text = JSON.stringify(data);
+  const literal = JSON.stringify(text).replaceAll("\u2028", "\\u2028").replaceAll("\u2029", "\\u2029");
+  emit(name, "js", `/* Built from data/${source}.json by tools/build.mjs. */\n(window.DMDATA = window.DMDATA || {}).${key} = ${literal};\n`);
+}
 mkdirSync(at("public/assets/"), { recursive: true });
 const spellGrants = JSON.parse(read("data/spell-grants.json"));
 for (const [name, key] of [["spells", "spellData"], ["monsters", "monsterData"], ["items", "itemData"],
@@ -62,6 +67,24 @@ for (const [name, key] of [["spells", "spellData"], ["monsters", "monsterData"],
   // stored as text, so the app turns it into objects only when a tab needs it (dmData in src/app/01-core.js)
   let data = JSON.parse(read(`data/${name}.json`));
   if (name === "spells") data["2014"].push(...spellGrants.legacySpells);
+  /* Book reference spells (owner, 2026-11-23): spells from other books join the list with their stats and book page only
+     (data/book-references.json has no rules text). A spell the Forge already has is not added again. */
+  if (name === "extra-spells") {
+    const core = JSON.parse(read("data/spells.json")), books = JSON.parse(read("data/extra-books.json")).books;
+    const have = new Set([...core["2014"], ...core["2024"], ...data].flatMap(s => [s.n, ...(s.aliases || [])]).map(n => n.toLowerCase())); /* aliases too: Tenser's Floating Disk is the free rules' Floating Disk */
+    const AB = { strength: "STR", dexterity: "DEX", constitution: "CON", intelligence: "INT", wisdom: "WIS", charisma: "CHA" };
+    for (const row of JSON.parse(read("data/book-references.json"))) {
+      if (row.kind !== "Spell" || have.has(row.name.toLowerCase())) continue;
+      const f = Object.fromEntries(row.details || []), cap = t => String(t || "").replace(/\b\w/g, ch => ch.toUpperCase());
+      const book = (books[row.src] && books[row.src].name) || row.src;
+      data.push({ n: row.name, l: f.Level === "Cantrip" ? 0 : +f.Level || 0, s: f.School || "", c: [], t: f["Casting time"] || "", r: f.Range || "",
+        cp: String(f.Components || "").replace(/[^VSM]/g, ""), m: "", du: cap(f.Duration), co: /concentration/i.test(f.Duration || "") ? 1 : 0, ri: f.Ritual ? 1 : 0,
+        d: `From ${book}, page ${row.page}. The Forge lists this spell's details but not its rules text: see the book.`, h: "",
+        dt: cap(String(f["Damage types"] || "").split(/,\s*/)[0]), at: "", sv: AB[String(f["Saving throws"] || "").split(/,\s*/)[0].toLowerCase()] || "",
+        src: row.src, ref: true, page: row.page, ed: row.ed || "2014" }); /* a 2014 handbook's spell stays in the 2014 rules */
+      have.add(row.name.toLowerCase());
+    }
+  }
   if (name === "extra-options") {
     const ids = new Set(data.map(option => option.id));
     for (const id of Object.keys(spellGrants.options)) {
@@ -78,9 +101,16 @@ for (const [name, key] of [["spells", "spellData"], ["monsters", "monsterData"],
       return entry;
     });
   }
-  const text = JSON.stringify(data);
-  const lit = JSON.stringify(text).split(String.fromCharCode(0x2028)).join("\\u2028").split(String.fromCharCode(0x2029)).join("\\u2029");
-  emit(name, "js", `/* Built from data/${name}.json by tools/build.mjs. */\n(window.DMDATA = window.DMDATA || {}).${key} = ${lit};\n`);
+  if (name === "book-references") {
+    for (const ed of ["2014", "2024"]) {
+      emitCatalog(`book-references-${ed}`, `bookReferences${ed}`, data.filter(row => (row.ed || "2014") === ed), name);
+    }
+  } else {
+    emitCatalog(name, key, data);
+  }
+  if (name === "extra-monsters") {
+    emitCatalog("monster-index", "monsterIndex", data.map(({ n, src }) => [n, src]), name);
+  }
 }
 // the credits page for the extra books (each book's notice and licence, and the Open Game License text)
 {
@@ -142,8 +172,7 @@ html = html.replace(/^(<!DOCTYPE html>\n?)/i, "$1<!-- Built by tools/build.mjs f
 if (!/^<!DOCTYPE html>/i.test(html)) throw new Error("src/index.html must start with <!DOCTYPE html>");
 writeFileSync(at("public/index.html"), html);
 const files = Object.values(out).filter(f => !f.endsWith(".webp"));
-const lazyFiles = [out["/assets/extra-monsters.js"], out["/assets/book-references.js"]];
-const coreFiles = files.filter(f => !lazyFiles.includes(f));
+const coreFiles = files.filter(f => !/^\/assets\/(extra-monsters|monster-index|book-references-(2014|2024))\./.test(f));
 const sw = read("src/sw.js").replace(/^const ASSETS = .*$/m, `const ASSETS = ${JSON.stringify(coreFiles)};`)
   .replace(/^const CACHE = "([\w-]+?)";/m, (_, name) => `const CACHE = "${name}-${fp(files.join())}";`);
 writeFileSync(at("public/sw.js"), "/* Built by tools/build.mjs from src/sw.js. */\n" + sw);

@@ -39,6 +39,13 @@ Run the agents side by side. If any check fails:
 
 Only then push, and tell the owner what the reviewers found and what was fixed. Minor findings can wait; list them for the owner. If an agent can't run (for example a usage limit), say so and don't call the work reviewed.
 
+## The QA agent (owner, 2026-11-23)
+
+- **`qa-tester`** (`.claude/agents/qa-tester.md`, on Sonnet) goes through the site in a local browser like a player and a DM, looking for bugs and missing features. Examples: spells that don't show on a character sheet automatically, wrong monster stat blocks, broken lists.
+- The owner calls it by asking, for example "run the QA agent on character spells" or "do a QA pass on monsters". Give it the area to test. With no area it does a broad pass and stops at about 15 findings.
+- It only reports (`QA-1`… bugs, `IDEA-1`… feature ideas). It never changes code, and it keeps its scripts in `.superpowers/qa/` (gitignored).
+- **Relay its report to the owner in plain words and wait.** Fix nothing until the owner says which findings to fix. Each approved fix then goes through the usual tests and reviews above.
+
 - **Agent files load when a session starts.** If `code-reviewer` or `security-reviewer` isn't offered as an agent type, start a general agent that reads the file and follows it, and pass `model: sonnet` for the code reviewer.
 
 ## What the app is
@@ -75,7 +82,7 @@ Live site: https://dungeonmasterforge.netlify.app (Netlify; production branch `m
 | `tools/test-all.mjs` | `npm run test:all`. |
 | `.github/workflows/checks.yml` | GitHub runs `npm run build` and `npm run test:all` on every pull request (GitHub minutes, not Netlify credits; notes-only pushes skipped). It installs Playwright 1.63 for the run, because `package.json` doesn't list it. |
 | `tools/netlify-skip.mjs` | Netlify's `ignore` step: skips a build when a push only changes notes, tests or tools (exit 0 = skip). |
-| `.claude/agents/` | The `code-reviewer` and `security-reviewer` agents, run on every finished piece of work (see "Finishing a piece of work"). |
+| `.claude/agents/` | The `code-reviewer` and `security-reviewer` agents, run on every finished piece of work (see "Finishing a piece of work"), and the `qa-tester` agent, run when the owner asks (see "The QA agent"). |
 | `docs/features/` | Notes on each feature: how it works and its function names (table below). |
 | `docs/superpowers/` | One design (`specs/`) and one plan (`plans/`) per piece of work, dated. Read the matching pair before changing a feature. |
 | `.superpowers/` | Scratch space for build sessions (gitignored). Nothing there is needed. |
@@ -146,7 +153,7 @@ npm run build     # build the page and bundle the portal (what Netlify runs)
 npm run build:app # build the page only
 ```
 
-One check per feature (Playwright, any OS): `test:assets` (fingerprinted files, repeat visits, offline), `test:map`, `test:backup`, `test:tv`, `test:mapvis`, `test:mapio`, `test:shop`, `test:random`, `test:cards`, `test:mapenc`, `test:calendar`, `test:recap`, `test:sheet` (432 sheets vs the rules), `test:tokens`, `test:npcpic`, `test:hbspell`, `test:hbpend`, `test:import`, `test:layout`, `test:lore`, `test:mythweaver`, `test:campextras`, `test:npclib`, `test:world`, `test:setup` (builds the portal, port 8897), `test:sync` (the DM's data in their account, two devices, port 8896), `test:share` (the players' Journal, turn order on phones, shared rolls; port 8895), `test:hbclass` (homebrew classes), `test:atlas` (World and region maps), `test:polish` (the Adventure, Characters and Items tabs after the 2026-11-18 UI review), `test:cast` (spell bubbles and the spell window), `test:backdrop` (the background pictures and their live torches), `test:lorelink` (Lore items, monsters and encounters filling their tabs; folding lists), `test:chartab` (one Characters tab: forge, drafts, save, reroll, discard, the builder), `test:hoard` (treasure hoards), `test:third` (Eldritch Knight and Arcane Trickster spellcasting), `test:requests` (the Requests tab, port 8894), `test:extras` (the extra books), `test:bulk` (bulk import).
+One check per feature (Playwright, any OS): `test:assets` (fingerprinted files, repeat visits, offline), `test:map`, `test:backup`, `test:tv`, `test:mapvis`, `test:mapio`, `test:shop`, `test:random`, `test:cards`, `test:mapenc`, `test:calendar`, `test:recap`, `test:sheet` (432 sheets vs the rules), `test:tokens`, `test:npcpic`, `test:hbspell`, `test:hbpend`, `test:import`, `test:layout`, `test:lore`, `test:mythweaver`, `test:campextras`, `test:npclib`, `test:world`, `test:setup` (builds the portal, port 8897), `test:sync` (the DM's data in their account, two devices, port 8896), `test:share` (the players' Journal, turn order on phones, shared rolls; port 8895), `test:hbclass` (homebrew classes), `test:atlas` (World and region maps), `test:polish` (the Adventure, Characters and Items tabs after the 2026-11-18 UI review), `test:cast` (spell bubbles and the spell window), `test:backdrop` (the background pictures and their live torches), `test:lorelink` (Lore items, monsters and encounters filling their tabs; folding lists), `test:chartab` (one Characters tab: forge, drafts, save, reroll, discard, the builder), `test:hoard` (treasure hoards), `test:third` (Eldritch Knight and Arcane Trickster spellcasting), `test:requests` (the Requests tab, port 8894), `test:extras` (the extra books), `test:bulk` (bulk import), `test:book` (rulebook parchment and the book font), `test:qafix` (fixes from the 2026-11-23 QA pass: monster data, import reports, tiny Wild Shape attacks), `test:subchange` (changing a sheet's subclass).
 
 Playwright and Chromium are pre-installed in cloud sessions. To test offline mode (no sign-in screen), run `localStorage.setItem('dmforge.offline','1')` in an init script.
 

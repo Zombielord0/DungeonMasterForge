@@ -88,3 +88,10 @@ The owner chose one tab over two (Characters and My Characters).
 - **Older saves:** a character saved before this (no `c.spell`) whose class or a multiclass is an Eldritch Knight / Arcane Trickster at level 3+ is rebuilt with `pcLevelTo(c, c.level)` when its sheet opens (`renderRosterMain`), keeping current HP.
 - **Level-up window:** `lvGains` builds the preview with the subclass being picked (`LV.pick`) and lists "Spellcasting (…): spell slots …, N spells known/prepared and N cantrips" when spellcasting starts.
 - Check: `npm run test:third`.
+
+## Feat grants
+
+- `syncGrantedSpells` rebuilds feat spells from the feats and spell choices on the character. It removes the older Magic Initiate spell rows and combines feat, class, subclass, and species sources for each spell. These grants use no preparation allowance.
+- The feat picker handles Magic Initiate, Fey Touched, Shadow Touched, Telekinetic, Telepathic, Ritual Caster, and the 2014 Spell Sniper cantrip. Pick spells under Feats and open them under Spells. The cast dialog tracks the free uses through the same rest rules as other resources.
+- Feat rules appear in Abilities. Defined actions such as Telekinetic Shove and Guarded Mind also get their own entries. Feat entries with rules text alone remain playable as references.
+- Check: `npm run test:cast`.

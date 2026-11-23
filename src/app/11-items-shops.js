@@ -98,7 +98,8 @@ function itPriceNote(x) {
   if (x.kind === "gear") return "";
   if (x.rk === 5) return "Artifacts are priceless and can't be bought.";
   if (x.rk < 0) return "This entry covers several versions of the item. Price each version by its own rarity: common 100 gp, uncommon 400 gp, rare 4,000 gp, very rare 40,000 gp, legendary 200,000 gp (halved for consumables).";
-  let s = `Price is the 2024 Dungeon Master's Guide value for a ${RARITY[x.rk].toLowerCase()} item`;
+  const rar = RARITY[x.rk].toLowerCase();
+  let s = `Price is the 2024 Dungeon Master's Guide value for ${/^[aeiou]/.test(rar) ? "an" : "a"} ${rar} item`;
   if (x.cons) s += ", halved because the item is used up";
   if (x.base) s += ", plus the cost of the armor, weapon or ammunition it is made from";
   s += `. The 2014 guide gives a range of ${R_RANGE14[x.rk]}. Suitable for characters of ${R_LEVEL[x.rk]}.`;

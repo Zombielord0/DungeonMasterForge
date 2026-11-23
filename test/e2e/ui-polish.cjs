@@ -24,10 +24,61 @@ const EMOJI = /\p{Extended_Pictographic}/u;
     const p = await ctx.newPage(); p.on("pageerror", e => errs.push(e.message)); return { ctx, p };
   };
 
+  const searchFieldsMatch = p => p.evaluate(() => {
+    const character = generateCharacter({ seed: "SEARCH", ed: "2024", cls: "Druid", level: 5 });
+    renderNpcLib();
+    renderWorld();
+    const levelUp = { ...LV };
+    Object.assign(LV, { c: character, to: 8, cur: character.scores, asi: { feat: "" } });
+    featOpen();
+    document.getElementById("featQ").blur();
+    featClose();
+    Object.assign(LV, levelUp);
+    const fixture = document.createElement("div");
+    fixture.innerHTML = loreHTML(blankCampaign()) + prepPanelHTML(character, "rc")
+      + compSectionHTML(character) + searchableChoices("Search classes", "");
+    document.body.append(fixture);
+    const original = getComputedStyle(document.getElementById("pcName"));
+    const selectors = [
+      "#compendiumQuery", "#bsQ", "#spQ", "#ftQ", "#itQ", "#npcLibQ", "#worldQ",
+      "#featQ", "#loreQ", "#rcPrepQ", "#rcCompQ", "[data-choice-query]"
+    ];
+    const mismatches = selectors.filter(selector => {
+      const field = document.querySelector(selector);
+      if (!field || field.type !== "search" || field.autocomplete !== "off") return true;
+      const style = getComputedStyle(field);
+      return style.appearance !== "none" || style.colorScheme !== "dark"
+        || ["backgroundImage", "borderColor", "borderRadius", "boxShadow"].some(key => style[key] !== original[key]);
+    });
+    fixture.remove();
+    return mismatches;
+  });
+
+  const searchAutofillMatches = async (ctx, p) => {
+    const cdp = await ctx.newCDPSession(p);
+    try {
+      await cdp.send("DOM.enable");
+      await cdp.send("CSS.enable");
+      const { root } = await cdp.send("DOM.getDocument");
+      const { nodeId } = await cdp.send("DOM.querySelector", { nodeId: root.nodeId, selector: "#compendiumQuery" });
+      await cdp.send("CSS.forcePseudoState", { nodeId, forcedPseudoClasses: ["autofill"] });
+      return await p.locator("#compendiumQuery").evaluate(field => {
+        const style = getComputedStyle(field);
+        return field.matches(":autofill") && style.boxShadow.includes("rgb(21, 23, 37)") &&
+          style.webkitTextFillColor === getComputedStyle(document.body).color;
+      });
+    } finally {
+      await cdp.detach();
+    }
+  };
+
   // ---- laptop, 1440 x 900
   {
     const { ctx, p } = await open(1440, 900);
     await p.goto(URL + "#generate"); await p.waitForTimeout(500);
+    const searchMismatches = await searchFieldsMatch(p);
+    check("laptop: all catalog, sheet and picker searches match the original field", !searchMismatches.length, searchMismatches.join(", "));
+    check("laptop: autofill keeps the search field dark", await searchAutofillMatches(ctx, p));
     const vis = sel => p.evaluate(s => { const r = document.querySelector(s).getBoundingClientRect(); return r.top >= 0 && r.bottom <= innerHeight; }, sel);
     check("laptop: Forge Adventure is on screen without scrolling", await vis("#genForm button[type=submit]"));
     check("laptop: the empty Adventure heading is light, not dark ink", await p.evaluate(() => { const c = getComputedStyle(document.querySelector("#genOut .empty h2")).color.match(/\d+/g).map(Number); return c[0] + c[1] + c[2] > 450; }));
@@ -72,11 +123,28 @@ const EMOJI = /\p{Extended_Pictographic}/u;
   {
     const { ctx, p } = await open(375, 812, true);
     await p.goto(URL + "#generate"); await p.waitForTimeout(500);
+    const searchMismatches = await searchFieldsMatch(p);
+    check("phone: all catalog, sheet and picker searches match the original field", !searchMismatches.length, searchMismatches.join(", "));
     await p.click("#genForm button[type=submit]"); await p.waitForTimeout(900);
     const gt = await p.evaluate(() => document.querySelector("#genOut").getBoundingClientRect().top);
     check("phone: Forge Adventure brings the adventure into view", gt >= -5 && gt < 250, `${Math.round(gt)}px`);
     const lv = await p.evaluate(() => [...document.querySelectorAll("#genOut .scene-t .lvl")].every(x => getComputedStyle(x).whiteSpace === "nowrap"));
     check("phone: chapter level tags stay on one line", lv);
+    check("phone: adventure chapters render as parchment with dark ink",
+      await p.locator("#genOut > .sec").first().evaluate(el => {
+        const css = getComputedStyle(el);
+        return css.backgroundImage.includes("radial-gradient") && (c => c.length >= 3 && Math.max(...c.slice(0, 3)) <= 60)((css.color.match(/\d+/g) || []).map(Number))
+          && el.scrollWidth <= el.clientWidth + 2;
+      }));
+    await p.goto(URL + "#monsters");
+    await p.locator('label:has(input[name="monMode"][value="build"])').click();
+    await p.locator("#mbPreview .statblock").waitFor();
+    check("phone: the monster editor preview uses parchment and three ability columns",
+      await p.locator("#mbPreview").evaluate(el => {
+        const css = getComputedStyle(el);
+        return css.backgroundImage.includes("radial-gradient") && (c => c.length >= 3 && Math.max(...c.slice(0, 3)) <= 60)((css.color.match(/\d+/g) || []).map(Number))
+          && getComputedStyle(el.querySelector(".abil")).gridTemplateColumns.split(" ").length === 3;
+      }));
     await p.goto(URL + "#character"); await p.waitForTimeout(400);
     await p.click("#pcForgeBtn"); await p.waitForTimeout(900);
     const ct = await p.evaluate(() => document.querySelector("#rosterMain").getBoundingClientRect().top);

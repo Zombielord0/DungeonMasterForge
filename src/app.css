@@ -57,7 +57,6 @@ section.view.active{display:block;animation:rise .25s ease-out}
 .field{margin-bottom:14px}
 .field label:not(.check):not(.opt),.lbl{display:block;font-family:Cinzel,serif;font-size:12px;letter-spacing:.1em;text-transform:uppercase;color:#b8ad9a;margin-bottom:6px;text-shadow:0 -1px 0 #000}
 input[type=text],input[type=number],input[type=date],input[type=search],select,textarea{width:100%;background:var(--well);border:1px solid #0d0c0b;border-radius:4px;padding:7px 10px;outline:none;box-shadow:inset 0 2px 5px rgba(0,0,0,.7),0 1px 0 rgba(255,255,255,.06)}
-input[type=search]{appearance:none;min-width:0}
 select option{background:#24221f}
 input:focus,select:focus,textarea:focus{border-color:#a8682a;box-shadow:inset 0 2px 5px rgba(0,0,0,.7),0 0 0 2px rgba(227,154,59,.25)}
 textarea{resize:vertical;min-height:70px}
@@ -546,7 +545,14 @@ nav a.active{color:var(--ink)!important}
 .badge{border-color:#090a12}
 .mini,.item,.chapter,.encard,.camp-item,.check,.chip,.ab,.vit,.sp-detail{border-color:#080910!important}
 input[type=text],input[type=number],input[type=date],input[type=search],select,textarea{border-color:#080910}
-input[type=search]{appearance:none;min-width:0}
+/* Keep native search controls and autofill in the same dark palette as the field. */
+input[type=search]{-webkit-appearance:none;appearance:none;color-scheme:dark;min-width:0}
+input[type=search]::placeholder{color:var(--muted);opacity:1}
+input[type=search]:is(:autofill, :-webkit-autofill){
+  -webkit-text-fill-color:var(--text);
+  box-shadow:inset 0 2px 5px rgba(0,0,0,.7),inset 0 0 0 100vmax #151725,0 1px 0 rgba(255,255,255,.06);
+}
+input[type=search]:is(:autofill, :-webkit-autofill):focus{outline:2px solid rgba(227,154,59,.25)}
 select option{background:#171a2a}
 .subtabs{border-bottom-color:rgba(0,0,0,.6)}
 #toast{background:var(--noise),linear-gradient(rgba(30,33,50,.96),rgba(18,20,32,.96))}
@@ -628,26 +634,24 @@ html{scrollbar-color:#6b4a26 #0a0b14}
   --ink-d:#2b1d0e;--ink-m:#6b5236;--oxblood:#7e2316;--ink-h:#5a1a0e;
 }
 /* parchment surfaces */
-#genOut>.card:first-child:not(.empty),#npcOut .npc-card,#fgOut.fg-monster .card,#fgOut.fg-monster .sec{
+#genOut>.card:not(.empty),#genOut>.sec,#npcOut .npc-card,#fgOut.fg-monster .card,#fgOut.fg-monster .sec,#mbPreview{
   background:var(--parch)!important;color:var(--ink-d);border-color:#6b4a22!important;border-radius:3px 7px 4px 6px;
   box-shadow:inset 0 0 38px rgba(120,66,18,.55),inset 0 0 6px rgba(60,30,5,.75),0 10px 28px rgba(0,0,0,.7)!important;backdrop-filter:none;-webkit-backdrop-filter:none}
 details.brief>div{background:var(--parch);color:var(--ink-d);border-radius:3px 6px 4px 5px;padding:12px 16px!important;margin-top:8px!important;
   box-shadow:inset 0 0 26px rgba(120,66,18,.5),inset 0 0 4px rgba(60,30,5,.7),0 4px 12px rgba(0,0,0,.55)}
-:is(#genOut>.card:first-child:not(.empty),#npcOut .npc-card,#fgOut.fg-monster .card,#fgOut.fg-monster .sec,details.brief>div) :is(h1,h2,h3,h4,.gen-title,.sb-name,.sb-h,.sec-h h3){color:var(--ink-h)!important;text-shadow:0 1px 0 rgba(255,245,220,.5)!important}
-:is(#genOut>.card:first-child:not(.empty),#npcOut .npc-card,#fgOut.fg-monster .card,#fgOut.fg-monster .sec,details.brief>div) :is(.muted,.k,.sb-sub,.hint){color:var(--ink-m)!important}
-:is(#genOut>.card:first-child:not(.empty),#npcOut .npc-card,#fgOut.fg-monster .card,#fgOut.fg-monster .sec,details.brief>div) b{color:#3d230c}
-:is(#genOut>.card:first-child:not(.empty),#npcOut .npc-card,#fgOut.fg-monster .card,#fgOut.fg-monster .sec) .tag{background:rgba(110,70,20,.12);border-color:#a8875a;box-shadow:none;color:#4a3418}
-:is(#genOut>.card:first-child:not(.empty),#npcOut .npc-card,#fgOut.fg-monster .card,#fgOut.fg-monster .sec) .tag.gold{color:var(--oxblood);border-color:#9a5a2a;font-weight:600}
-:is(#genOut>.card:first-child:not(.empty),#fgOut.fg-monster .card) .premise::first-letter{color:var(--oxblood);text-shadow:0 1px 0 rgba(255,245,220,.6)}
+:is(#genOut>.card:not(.empty),#genOut>.sec,#npcOut .npc-card,#fgOut.fg-monster .card,#fgOut.fg-monster .sec,#mbPreview,details.brief>div) :is(h1,h2,h3,h4,.gen-title,.sb-name,.sb-h,.sec-h h3){color:var(--ink-h)!important;text-shadow:0 1px 0 rgba(255,245,220,.5)!important}
+:is(#genOut>.card:not(.empty),#genOut>.sec,#npcOut .npc-card,#fgOut.fg-monster .card,#fgOut.fg-monster .sec,#mbPreview,details.brief>div) :is(.muted,.k,.sb-sub,.hint){color:var(--ink-m)!important}
+:is(#genOut>.card:not(.empty),#genOut>.sec,#npcOut .npc-card,#fgOut.fg-monster .card,#fgOut.fg-monster .sec,#mbPreview,details.brief>div) b:not(.btn b){color:#3d230c}
+:is(#genOut>.card:not(.empty),#genOut>.sec,#npcOut .npc-card,#fgOut.fg-monster .card,#fgOut.fg-monster .sec,#mbPreview) .tag{background:rgba(110,70,20,.12);border-color:#a8875a;box-shadow:none;color:#4a3418}
+:is(#genOut>.card:not(.empty),#genOut>.sec,#npcOut .npc-card,#fgOut.fg-monster .card,#fgOut.fg-monster .sec,#mbPreview) .tag.gold{color:var(--oxblood);border-color:#9a5a2a;font-weight:600}
+:is(#genOut>.card:not(.empty),#fgOut.fg-monster .card) .premise::first-letter{color:var(--oxblood);text-shadow:0 1px 0 rgba(255,245,220,.6)}
 :is(#npcOut .npc-card,#fgOut.fg-monster .card) .quote{color:#3d230c;background:rgba(110,70,20,.1);border-left-color:var(--oxblood)}
 :is(#npcOut .npc-card,#fgOut.fg-monster .card,#fgOut.fg-monster .sec) dt{color:var(--oxblood)!important;text-shadow:none!important}
-:is(#genOut>.card:first-child:not(.empty),#npcOut .npc-card,#fgOut.fg-monster .card,#fgOut.fg-monster .sec) .icon-btn{color:var(--ink-m)}
-:is(#genOut>.card:first-child:not(.empty),#npcOut .npc-card,#fgOut.fg-monster .card,#fgOut.fg-monster .sec) .icon-btn:hover{color:var(--oxblood);border-color:#a8875a}
-:is(#genOut>.card:first-child:not(.empty),#npcOut .npc-card,#fgOut.fg-monster .card,#fgOut.fg-monster .sec) a{color:var(--oxblood)}
-:is(#genOut>.card:first-child:not(.empty),#npcOut .npc-card,#fgOut.fg-monster .card,#fgOut.fg-monster .sec) .sec-h{border-image:linear-gradient(90deg,rgba(126,35,22,.55),rgba(126,35,22,0) 70%) 1}
-:is(#genOut>.card:first-child:not(.empty),#npcOut .npc-card,#fgOut.fg-monster .card,#fgOut.fg-monster .sec)::after{opacity:.3!important}
-/* wax seal on the adventure page */
-#genOut>.card:first-child:not(.empty){padding-bottom:62px;background:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 60 60'%3E%3Cdefs%3E%3CradialGradient id='w' cx='38%25' cy='32%25' r='70%25'%3E%3Cstop offset='0' stop-color='%23d2443a'/%3E%3Cstop offset='.6' stop-color='%23941e18'/%3E%3Cstop offset='1' stop-color='%235a0e0b'/%3E%3C/radialGradient%3E%3C/defs%3E%3Cpath d='M30 3c5 0 7 3 11 4s8 1 10 5 0 7 2 11 4 7 2 11-5 5-6 9-1 8-5 10-7 0-11 2-6 4-10 2-6-4-10-4-8-1-10-5 0-7-2-11-4-7-2-11 5-5 6-9 1-8 5-10 7 0 11-2 5-2 9-2z' fill='url(%23w)'/%3E%3Ccircle cx='30' cy='31' r='15' fill='none' stroke='%235a0e0b' stroke-width='2'/%3E%3Ccircle cx='30' cy='31' r='15' fill='none' stroke='%23e46a5a' stroke-width='.6' opacity='.6' transform='translate(-.7 -.7)'/%3E%3Cpath d='M30 20l9.5 5.5v11L30 42l-9.5-5.5v-11z' fill='none' stroke='%235a0e0b' stroke-width='1.8'/%3E%3Cpath d='M30 20l9.5 16.5h-19z' fill='none' stroke='%235a0e0b' stroke-width='1.4'/%3E%3C/svg%3E") right 16px bottom 12px/50px 50px no-repeat,var(--parch)!important}
+:is(#genOut>.card:not(.empty),#genOut>.sec,#npcOut .npc-card,#fgOut.fg-monster .card,#fgOut.fg-monster .sec,#mbPreview) .icon-btn{color:var(--ink-m)}
+:is(#genOut>.card:not(.empty),#genOut>.sec,#npcOut .npc-card,#fgOut.fg-monster .card,#fgOut.fg-monster .sec,#mbPreview) .icon-btn:hover{color:var(--oxblood);border-color:#a8875a}
+:is(#genOut>.card:not(.empty),#genOut>.sec,#npcOut .npc-card,#fgOut.fg-monster .card,#fgOut.fg-monster .sec,#mbPreview) a{color:var(--oxblood)}
+:is(#genOut>.card:not(.empty),#genOut>.sec,#npcOut .npc-card,#fgOut.fg-monster .card,#fgOut.fg-monster .sec,#mbPreview) .sec-h{border-image:linear-gradient(90deg,rgba(126,35,22,.55),rgba(126,35,22,0) 70%) 1}
+:is(#genOut>.card:not(.empty),#genOut>.sec,#npcOut .npc-card,#fgOut.fg-monster .card,#fgOut.fg-monster .sec,#mbPreview)::after{opacity:.3!important}
 /* NPC portrait medallion */
 #npcOut .npc-card{background:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Ccircle cx='32' cy='32' r='30' fill='%23c9ab72' stroke='%236b4a22' stroke-width='3'/%3E%3Ccircle cx='32' cy='32' r='26' fill='%23ead9b0' stroke='%23a8875a' stroke-width='1'/%3E%3Cpath d='M32 13c-8 0-12 7-12 14 0 4 1 7 3 9-6 2-11 6-12 13a26 26 0 0 0 42 0c-1-7-6-11-12-13 2-2 3-5 3-9 0-7-4-14-12-14z' fill='%233a2814'/%3E%3Cpath d='M32 22c-4 0-6 4-6 8s3 7 6 7 6-3 6-7-2-8-6-8z' fill='%23140c05'/%3E%3C/svg%3E") right 14px top 14px/58px 58px no-repeat,var(--parch)!important}
 #npcOut .npc-card>h3,#npcOut .npc-card>.k{padding-right:70px}
@@ -663,14 +667,104 @@ details.brief>div{background:var(--parch);color:var(--ink-d);border-radius:3px 6
 #fgOut.fg-villain .ab,#fgOut.fg-villain .mini{background:linear-gradient(rgba(20,4,6,.75),rgba(34,8,10,.75))}
 #fgOut.fg-villain .ab .m{color:#ffb08f}
 /* monster: bestiary page stat block */
-#fgOut.fg-monster .sb-rule{background:linear-gradient(90deg,var(--oxblood),rgba(126,35,22,0))}
-#fgOut.fg-monster .sb-l b{color:var(--oxblood)}
-#fgOut.fg-monster .sb-h{border-bottom-color:rgba(126,35,22,.45)}
-#fgOut.fg-monster :is(.ab,.mini,.vit){background:rgba(110,70,20,.12)!important;border-color:#a8875a!important;box-shadow:inset 0 1px 3px rgba(80,40,10,.3)!important;color:var(--ink-d)}
-#fgOut.fg-monster .ab .n{color:var(--ink-m)}
-#fgOut.fg-monster .ab .m{color:var(--oxblood);text-shadow:none}
-#fgOut.fg-monster .ab .s{background:rgba(110,70,20,.15)}
-#fgOut.fg-monster table :is(th,td){border-color:#a8875a}
+:is(#fgOut.fg-monster,#mbPreview) .sb-l b{color:var(--oxblood)}
+:is(#fgOut.fg-monster,#mbPreview) :is(.ab,.mini,.vit){background:rgba(110,70,20,.12)!important;border-color:#a8875a!important;box-shadow:inset 0 1px 3px rgba(80,40,10,.3)!important;color:var(--ink-d)}
+:is(#fgOut.fg-monster,#mbPreview) .ab .n{color:var(--ink-m)}
+:is(#fgOut.fg-monster,#mbPreview) .ab .m{color:var(--oxblood);text-shadow:none}
+:is(#fgOut.fg-monster,#mbPreview) .ab .s{background:rgba(110,70,20,.15)}
+:is(#fgOut.fg-monster,#mbPreview) table :is(th,td){border-color:#a8875a}
+/* Book-style parchment for generated adventures and bestiary previews. */
+:is(#genOut,#fgOut.fg-monster,#mbPreview){
+  --ink-h:#263f4d;
+  --ink-m:#624a34;
+  --oxblood:#713523;
+  --page-rule:#66767a;
+  --page-trim:#8d6040;
+  --grit:none;
+  --parch:var(--noise),
+    radial-gradient(ellipse at 5% 1%,rgba(171,107,43,.23),transparent 38%),
+    radial-gradient(ellipse at 100% 97%,rgba(146,83,35,.3),transparent 46%),
+    radial-gradient(ellipse at 46% 38%,#fff5d8 12%,#f6e8bd 76%,#e3c18b 100%);
+}
+:is(#genOut>.card:not(.empty),#genOut>.sec,#fgOut.fg-monster .card,#fgOut.fg-monster .sec,#mbPreview){
+  border:3px solid #784131!important;
+  border-radius:5px 7px 6px 5px;
+  padding-inline:clamp(16px,3vw,30px);
+  box-shadow:inset 0 0 20px rgba(132,74,33,.25),0 7px 22px rgba(0,0,0,.5)!important;
+  overflow-wrap:anywhere;
+}
+:is(#genOut>.card:not(.empty),#genOut>.sec,#fgOut.fg-monster .card,#fgOut.fg-monster .sec,#mbPreview)::before{
+  inset:5px;
+  border:3px double var(--page-trim);
+  border-radius:2px 4px 3px 2px;
+  background:none;
+}
+:is(#genOut,#fgOut.fg-monster,#mbPreview) :is(.gen-title,.sb-name){
+  font-family:Georgia,"Times New Roman",serif;
+  font-variant-caps:small-caps;
+  line-height:1.15;
+  letter-spacing:.025em;
+}
+#genOut>.card:not(.empty) .gen-title::after,
+:is(#fgOut.fg-monster,#mbPreview) :is(.gen-title,.sb-name)::after{
+  height:4px;
+  background:none;
+  border-block:1px solid var(--page-rule);
+  opacity:.85;
+}
+:is(#genOut,#fgOut.fg-monster,#mbPreview) .sec-h{
+  border-image:none;
+  border-bottom-color:var(--page-rule);
+}
+:is(#genOut,#fgOut.fg-monster) .sec-h h3::before{content:none}
+:is(#fgOut.fg-monster,#mbPreview) .sb-rule{
+  height:1px;
+  background:var(--page-rule);
+}
+:is(#fgOut.fg-monster,#mbPreview) .sb-h{border-bottom-color:var(--page-rule)}
+:is(#fgOut.fg-monster,#mbPreview) .ab{
+  background:rgba(135,100,55,.09)!important;
+  border-color:var(--page-trim)!important;
+  box-shadow:none!important;
+}
+#genOut .premise::first-letter{
+  font-family:Georgia,"Times New Roman",serif;
+  color:var(--oxblood);
+}
+:is(#genOut>.sec,#fgOut.fg-monster) .grid2{grid-template-columns:repeat(auto-fit,minmax(min(100%,240px),1fr))}
+:is(#genOut>.sec,#fgOut.fg-monster) .mini{
+  background:rgba(255,249,228,.35);
+  border-color:#b99b70!important;
+  box-shadow:inset 0 0 0 2px rgba(255,248,228,.3);
+}
+#genOut :is(.scene-t,.act,details.brief>summary){color:var(--ink-h);text-shadow:none}
+#genOut .enc{
+  background:rgba(118,72,35,.1);
+  border-left-color:var(--oxblood);
+}
+#genOut ol.scenes>li{border-color:rgba(111,72,41,.25);box-shadow:none}
+#genOut ol.scenes>li::before{
+  color:var(--ink-h);
+  border:1px solid var(--page-trim);
+  background:rgba(135,82,39,.12);
+  box-shadow:none;
+}
+#genOut details.brief>div{
+  background:rgba(255,249,228,.42);
+  border:1px solid #b99b70;
+  border-left:3px solid var(--oxblood);
+  box-shadow:none;
+}
+#mbPreview .mb-desc{
+  color:var(--ink-m);
+  margin:12px 0 0;
+  padding-top:8px;
+  border-top:1px solid var(--page-rule);
+}
+@media (max-width:560px){
+  :is(#fgOut.fg-monster,#mbPreview) .statblock .abil{grid-template-columns:repeat(3,minmax(0,1fr))}
+  #genOut .sec-h{flex-wrap:wrap}
+}
 /* spell schools */
 .sp-row.sch-abjuration{--sch:#74aaff}.sp-row.sch-conjuration{--sch:#f2c14e}.sp-row.sch-divination{--sch:#8fe3e0}.sp-row.sch-enchantment{--sch:#ff8fd2}
 .sp-row.sch-evocation{--sch:#ff7a3d}.sp-row.sch-illusion{--sch:#b48cff}.sp-row.sch-necromancy{--sch:#9ccf5a}.sp-row.sch-transmutation{--sch:#5fd3b0}
@@ -733,7 +827,7 @@ details.brief>div{background:var(--parch);color:var(--ink-d);border-radius:3px 6
 .mb-li textarea{grid-column:1/-1;min-height:60px}
 .mb-li .mb-tools{display:flex;gap:4px}
 .mb-atk{margin-bottom:6px}.mb-atk summary{cursor:pointer;color:var(--gold2)}
-#mbPreview .mb-desc{font-style:italic;margin:0 0 10px}
+#mbPreview .mb-desc{font-style:italic}
 .mb-libitem{display:flex;gap:6px;align-items:center;margin-bottom:6px}.mb-libitem .camp-item{margin:0;flex:1}
 /* ======================= Player & DM portals ======================= */
 .gate-wait main,.gate-wait nav{visibility:hidden}
@@ -1205,6 +1299,10 @@ nav a[data-view=requests]{--ic:url("data:image/svg+xml,%3Csvg xmlns='http://www.
 .compendium-filters { display: flex; flex-wrap: wrap; gap: 12px; align-items: end; }
 .compendium-filters label:first-child { flex: 1 1 220px; }
 .compendium-filters label { display: grid; gap: 4px; }
+.compendium-list-controls { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px; margin: 12px 0; }
+.compendium-list-controls p { margin: 0; }
+.compendium-pages:not([hidden]) { display: flex; flex-wrap: wrap; gap: 6px; }
+.compendium-pages button:disabled { opacity: .5; cursor: default; }
 .compendium-results { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 245px), 1fr)); gap: 6px; }
 
 .journal-handout-picture { display: block; max-width: 100%; max-height: 70vh; object-fit: contain; }
@@ -1261,4 +1359,44 @@ nav a[data-view=requests]{--ic:url("data:image/svg+xml,%3Csvg xmlns='http://www.
   .character-reference select{font-size:1rem}
   .progression-table td,.progression-table th{padding:.45rem .3rem}
   html:has(.character-reference[open]){overflow:hidden}
+}
+
+
+.next-session { margin-bottom: 12px; }
+.next-session .row { flex-wrap: wrap; gap: 6px; }
+.next-session .row > select, .next-session .row > span:first-child { flex: 1 1 180px; min-width: 0; }
+.next-session .row > button { flex: 0 0 auto; }
+.next-session li { margin-block: 6px; }
+.compendium-entry { display: grid; align-content: start; gap: 4px; min-width: 0; }
+.compendium-entry > .btn { justify-self: start; }
+.combat-history { margin-block: 8px; }
+
+/* ==== Rulebook parchment (2026-11-23) ====
+   The owner's choice, from a picture of a 3.5-era rulebook page: yellowed, mottled parchment (drawn here as SVG, no
+   pictures from any book), near-black ink in EB Garamond (open licence, from Google Fonts) and steel-blue capital
+   headings over a thin rule. It goes only where the Forge already used parchment: generated adventures and briefs,
+   NPC cards, forged monsters and the monster builder preview. Spells, items, the Monster Manual, the character sheet
+   and the Journal stay stone, with the same book font. See docs/features/layout.md. */
+:root{
+  --book-paper:
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='1000' height='1000'%3E%3Cfilter id='m'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.007' numOctaves='4' seed='23' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 .55  0 0 0 0 .36  0 0 0 0 .12  0 0 -2.2 0 1.25'/%3E%3C/filter%3E%3Crect width='1000' height='1000' filter='url(%23m)'/%3E%3C/svg%3E"),
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='900' height='900'%3E%3Cfilter id='w' x='0' y='0' width='100%' height='100%'%3E%3CfeTurbulence type='turbulence' baseFrequency='.004 .011' numOctaves='4' seed='11' stitchTiles='stitch'/%3E%3CfeDiffuseLighting surfaceScale='4' lighting-color='%23fff'%3E%3CfeDistantLight azimuth='35' elevation='55'/%3E%3C/feDiffuseLighting%3E%3CfeColorMatrix values='0 0 0 0 .4  0 0 0 0 .26  0 0 0 0 .08  -.45 0 0 0 .4'/%3E%3C/filter%3E%3Crect width='900' height='900' filter='url(%23w)'/%3E%3C/svg%3E"),
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='g'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='2' seed='3' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 .3  0 0 0 0 .2  0 0 0 0 .1  0 0 0 .14 0'/%3E%3C/filter%3E%3Crect width='160' height='160' filter='url(%23g)'/%3E%3C/svg%3E"),
+    radial-gradient(ellipse at 6% 6%,rgba(150,95,35,.35),transparent 26%),
+    radial-gradient(ellipse at 96% 94%,rgba(140,85,30,.38),transparent 30%),
+    radial-gradient(ellipse at 50% 45%,#f5e8c4 0%,#ecd9a8 55%,#d4b070 100%);
+}
+:root,:is(#genOut,#fgOut.fg-monster,#mbPreview){--parch:var(--book-paper)}
+:is(#genOut>.card:not(.empty),#genOut>.sec,#npcOut .npc-card,#fgOut.fg-monster .card,#fgOut.fg-monster .sec,#mbPreview,details.brief>div){--ink-d:#1c140c;--ink-m:#33261a;--ink-h:#1d3b5b;--oxblood:#1d3b5b;--page-rule:#1d3b5b;--page-trim:#8a6a3e;
+  font-family:"EB Garamond",Georgia,"Times New Roman",serif}
+:is(#genOut>.card:not(.empty),#genOut>.sec,#npcOut .npc-card,#fgOut.fg-monster .card,#fgOut.fg-monster .sec,#mbPreview,details.brief>div) :is(h1,h2,h3,h4,.gen-title,.sb-name,.sb-h,.sec-h h3){font-family:Cinzel,Georgia,serif!important;font-weight:500;font-variant-caps:normal;text-transform:uppercase;letter-spacing:.04em;color:var(--ink-h)!important}
+:is(#genOut>.card:not(.empty),#genOut>.sec,#npcOut .npc-card,#fgOut.fg-monster .card,#fgOut.fg-monster .sec,#mbPreview,details.brief>div) .sec-h{border-bottom:1.5px solid var(--ink-h)!important;border-image:none!important}
+:is(#genOut>.card:not(.empty),#genOut>.sec,#npcOut .npc-card,#fgOut.fg-monster .card,#fgOut.fg-monster .sec,#mbPreview,details.brief>div) :is(b:not(.btn b),strong,.sb-l b,dt){color:var(--ink-d)!important}
+/* the book font for reading areas that stay stone */
+:is(#spList,#itList,#bsList,#rosterMain,#journalMain){font-family:"EB Garamond",Georgia,"Times New Roman",serif}
+/* QA-7 (2026-11-23): on narrow phones the toolbar button shows only its arrow, so the Forge's name in the short header fits */
+@media (max-width:430px){
+  .hdr-toggle .hdr-word{display:none}
+  .hdr-toggle{min-width:40px;padding-inline:10px}
+  .hdr-mini-label{font-size:14px;letter-spacing:.01em}
 }

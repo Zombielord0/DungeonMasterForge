@@ -2,6 +2,46 @@
    When a change ships, add an entry to the top of NEWS with a new id, in plain words for players and DMs. */
 
 const NEWS = [
+  { id: "2026-11-23-reference-spells", date: "2026-11-23", title: "More spells, and Oathbreaker abilities", go: "spells", items: [
+    "Spells from other D&D books, like Silvery Barbs, are now in the 2014 spell list with their level, casting time, range, components, duration and the book page to look them up. Imported characters keep them.",
+    "Oathbreaker paladins see Aura of Hate, Control Undead and Dreadful Aspect in their Abilities list, with their save DCs. The Channel Divinity options use the Channel Divinity counter."
+  ] },
+  { id: "2026-11-23-change-subclass", date: "2026-11-23", title: "Change a character's subclass", go: "roster", items: [
+    "A Change button now sits next to the subclass on every character sheet. Pick a different subclass, such as the book's Oathbreaker instead of an old homebrew copy, and the sheet swaps in its features while keeping the level, scores and choices."
+  ] },
+  { id: "2026-11-23-qa-fixes", date: "2026-11-23", title: "Monster and import fixes", go: "monsters", items: [
+    "Horses, mules, camels, the elephant and other 2014 animals no longer show a long list of +0 saves and skills.",
+    "The 2014 Donkey now has its hit dice and an attack, and the Drow and Deep Gnome have their proper challenge rating and traits.",
+    "Wild Shape into a bat, cat, rat or other tiny beast now gives you its 1-damage attack.",
+    "Character import lists misspelled spells it fixed, and keeps a file's Unearthed Arcana subclass even when the class name is misspelled.",
+    "Cure Wounds, Shatter, Thunderwave and a few other spells now show their higher-level text on its own line, like every other spell.",
+    "On phones, the Forge's full name fits in the header again."
+  ] },
+  { id: "2026-11-23-book-pages", date: "2026-11-23", title: "Rulebook parchment and a book typeface", go: "generate", items: [
+    "Generated adventures, NPC cards and forged monsters now sit on yellowed, mottled parchment with steel-blue headings, like a D&D book at the table.",
+    "Spells, items, the Monster Manual, character sheets and the Journal use the same classic book typeface."
+  ] },
+  { id: "2026-11-23-import-spelling", date: "2026-11-23", title: "Character import fixes spelling and finds subclasses", go: "roster", items: [
+    "Importing a character now copes with spelling mistakes in class, subclass, species, background and feat names (\"Paladn\" becomes Paladin). The import summary shows what the file said.",
+    "Subclasses like Oathbreaker now apply their features when imported, including with the 2024 rules, and a short name like \"Devotion\" finds Oath of Devotion.",
+    "When the Forge has its own version of a class or subclass, it's used instead of a homebrew copy an earlier import made. Homebrew you wrote yourself still comes first."
+  ] },
+  { id: "2026-11-22-session-workflows", date: "2026-11-22", title: "Prepare your character and next session", go: "tracker", items: [
+    "Character sheets show missing spell, subclass, and fighting style choices and flag differences from imported files.",
+    "Queue campaign entries and Compendium references in Next Session, then put them in the order you plan to use them.",
+    "Combat history records turn, initiative, condition, and hit point changes. Undo the last recorded change from the encounter."
+  ] },
+  { id: "2026-11-21-feats-and-parchment", date: "2026-11-21", title: "Feat spells and parchment previews", go: "roster", items: [
+    "Feat benefits now appear under Abilities. Supported feat spells appear under Spells with their source and tracked free casts.",
+    "Adventure and monster previews use classic handbook-style parchment, with weathered edges and blue ink headings."
+  ] },
+  { id: "2026-11-21-browse-compendium", date: "2026-11-21", title: "Browse the Compendium", go: "compendium", items: [
+    "Open the Compendium to see entries right away. Use Edition, Type, or the page buttons to browse.",
+    "Type part of a name or source to narrow the list. Clear the search to browse again."
+  ] },
+  { id: "2026-11-21-matching-search-fields", date: "2026-11-21", title: "Matching search fields", go: "compendium", items: [
+    "Search boxes across the Forge use the same dark style, including popups and fields filled by the browser."
+  ] },
   { id: "2026-11-21-granted-spell-sources", date: "2026-11-21", title: "See what grants your spells", go: "roster", items: [
     "The character sheet labels always-prepared spells and granted cantrips with their class, subclass, or species.",
     "Granted spells stay prepared and leave room for your own spell choices. An innate spell shows its free-use option when you open it.",
