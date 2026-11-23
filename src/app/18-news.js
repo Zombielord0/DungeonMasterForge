@@ -2,9 +2,9 @@
    When a change ships, add an entry to the top of NEWS with a new id, in plain words for players and DMs. */
 
 const NEWS = [
-  { id: "2026-11-23-book-pages", date: "2026-11-23", title: "Pages like a rulebook", go: "spells", items: [
-    "Spells, items, the Monster Manual, character sheets and the players' Journal now sit on yellowed, aged parchment pages, in a classic book typeface with steel-blue headings, like a D&D book at the table.",
-    "Menus, side panels and buttons keep the dark stone look, so they're easy to find."
+  { id: "2026-11-23-book-pages", date: "2026-11-23", title: "Rulebook parchment and a book typeface", go: "generate", items: [
+    "Generated adventures, NPC cards and forged monsters now sit on yellowed, mottled parchment with steel-blue headings, like a D&D book at the table.",
+    "Spells, items, the Monster Manual, character sheets and the Journal use the same classic book typeface."
   ] },
   { id: "2026-11-23-import-spelling", date: "2026-11-23", title: "Character import fixes spelling and finds subclasses", go: "roster", items: [
     "Importing a character now copes with spelling mistakes in class, subclass, species, background and feat names (\"Paladn\" becomes Paladin). The import summary shows what the file said.",

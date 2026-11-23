@@ -59,13 +59,12 @@ From a review of the Adventure, Characters and Items tabs. Checks: `npm run test
 - `sheetJump` calls `foldOpen` so jumping to a folded section opens it.
 - Check: `npm run test:lorelink` (the folding part).
 
-## Book pages (2026-11-23)
+## Rulebook parchment (2026-11-23)
 
-- **What it covers:** spells (`#spList`), items (`#itList`), the Monster Manual (`#bsList`), the character sheet (`#rosterMain` cards and sections, but not `.mobile-sheet-quick`) and the Journal (`#journalMain`).
-- **How it works:** these are drawn as rulebook pages by one block at the end of `src/app.css`. It recolours them through the colour settings (`--text`, `--muted`, `--gold`, `--well`) It makes each `.sec-h` a steel-blue capital heading over a thin rule. The owner chose this look from a picture of a 3.5-era rulebook page. Body text is EB Garamond (open licence, from Google Fonts), and the ink is near black.
-- **The paper** is `--book-paper`: yellowed parchment with soft brown mottling (`baseFrequency='.007'`, which the check looks for), faint creases and darker edges, drawn with SVG noise and gradients and no picture files. The check measures ink against the paper on a crease (`PAPER` in `test/e2e/book-pages.cjs`), not its lighter middle. The Adventure, NPC and monster previews use it too (`--parch`).
-- **School and rarity colours** have darker inks inside the pages.
-- **Stays stone:** side panels and buttons.
-- **The check:** `npm run test:book` checks that every page is on paper and that its text is at least 4.5:1 against it.
-- **Adding a new kind of text inside a page:** run that check. Text styled for the stone look (pale gold or grey) will be too light.
-- **To undo it all,** delete that block. Design: `docs/superpowers/specs/2026-11-23-book-pages-design.md`.
+- **Where:** the parchment areas from before, which are generated adventures and briefs (`#genOut`), NPC cards, forged monsters and the monster builder preview. Spells, items, the Monster Manual, the character sheet and the Journal stay stone.
+- **Why:** the owner chose the look from a picture of a 3.5-era rulebook page.
+- **The paper** is `--book-paper` (used through `--parch`): yellowed, with soft brown mottling (the layer with `baseFrequency='.007'`, which the check looks for), faint creases and darker edges. It's all SVG noise and gradients, with no picture files and nothing from the book.
+- **The ink and headings:** near-black ink in EB Garamond (open licence, loaded with the other Google Fonts), and steel-blue capital headings (Cinzel) over a thin rule.
+- **The book font on stone:** spells, items, the Monster Manual, the character sheet and the Journal use EB Garamond too, in their usual stone colours.
+- **The check:** `npm run test:book` checks that the parchment areas are on the paper with ink at least 4.5:1 against a stained spot, and that the other five areas stay stone in the book font.
+- **To undo it,** delete the "Rulebook parchment" block at the end of `src/app.css` and the EB Garamond family in `src/index.html`'s font link. Design: `docs/superpowers/specs/2026-11-23-book-pages-design.md`.

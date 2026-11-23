@@ -32,3 +32,5 @@
    - EB Garamond body text, near black;
    - steel-blue capital headings over a thin rule, in place of the red bands.
 3. Nothing is copied from the book: not its art, its red marbled frame or its fonts.
+
+**Final (owner):** the parchment look goes only where the Forge already had parchment (adventures, NPC cards, forged monsters, the monster builder preview). Everything else is rolled back to stone. The owner said to keep the text, so EB Garamond also stays on spells, items, the Monster Manual, the character sheet and the Journal.
