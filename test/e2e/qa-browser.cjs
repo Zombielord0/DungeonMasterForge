@@ -1,4 +1,4 @@
-// Fixes from the browser QA pass of 2026-11-23. Run with:  npm run test:qa
+// Fixes from the browser QA pass of 2026-11-23. Run with:  npm run test:qabrowser
 // Shop wording, lone monsters in random encounters, the Compendium's start hint and icon, phone layout of the Forge form
 // and the bottom bar, and the Characters tab coming back to the open character after a refresh.
 // (A new DM's campaign appearing in the Tracker is checked in setup-screen.cjs, which needs sign-in.)
