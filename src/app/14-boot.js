@@ -84,12 +84,15 @@ mobileMore.addEventListener("click", () => mobileMenu.showModal());
 function mobileNavigate(e) {
   const link = e.target.closest("a");
   if (!link || e.defaultPrevented || e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) return;
+  let jump = false;
   if (link.hasAttribute("data-mobile-encounters")) {
-    subTab = "encounters";
+    subTab = "encounters"; jump = true;
     if (location.hash === "#tracker") renderTracker();
   }
   if (mobileMenu.open) mobileMenu.close();
-  if (location.hash === link.hash) window.scrollTo({ top: 0, behavior: "instant" });
+  if (location.hash === link.hash && !(jump && fightJump())) window.scrollTo({ top: 0, behavior: "instant" });
+  /* the Encounter shortcut goes straight to a fight under way (2026-11-24); route() draws the Tracker first */
+  if (jump && location.hash !== link.hash) setTimeout(fightJump, 60);
 }
 $("#mobileNavLinks").addEventListener("click", mobileNavigate);
 mobileMenu.addEventListener("click", mobileNavigate);
@@ -97,6 +100,12 @@ mobileMenu.addEventListener("keydown", e => { if (e.key === "Escape") e.stopProp
 hdrPhone.addEventListener("change", () => { if (!hdrPhone.matches && mobileMenu.open) mobileMenu.close(); });
 
 /* ======================= Routing ======================= */
+/* phones: with a character open, fold "Your characters" so the sheet comes first (2026-11-24); it's one tap to open */
+let rosterFoldedFor = null; /* fold once per character opened, so a later sync or redraw never shuts a list the player opened */
+function rosterFoldPhone() { const c = rosterCur(); if (!hdrPhone.matches || !PCS.roster.length || !c || $("#forgeBox").open || CB.on || rosterFoldedFor === c.id) return; rosterFoldedFor = c.id; $("#rosterBox").open = false; }
+/* a list the player opens themselves stays open for that character */
+$("#rosterBox > summary").addEventListener("click", () => { const c = rosterCur(); if (c) rosterFoldedFor = c.id; });
+$("#skipLink").addEventListener("click", () => { const v = $("section.view.active"); if (!v) return; v.tabIndex = -1; v.focus(); v.scrollIntoView({ block: "start" }); });
 function route() {
   const views = (window.Portal && Portal.views) || ["generate", "npc", "world", "monsters", "character", "roster", "compendium", "spells", "feats", "items", "map", "tracker", "homebrew", "requests"];
   let v = views.includes(location.hash.slice(1)) ? location.hash.slice(1) : ((window.Portal && Portal.home) || "generate");
@@ -119,7 +128,8 @@ function route() {
   if (v === "compendium") compendiumSearch();
   if (v === "spells") renderSpells();
   if (v === "items") renderItems();
-  if (v === "roster") { pcSelectsRefresh(); if (!CB.on) pcShow("sheet"); renderRosterTab(); }
+  if (v === "roster") { pcSelectsRefresh(); if (!CB.on) pcShow("sheet"); renderRosterTab(); rosterFoldPhone(); }
+  if (typeof fightBarSync === "function") fightBarSync();
   if (v === "homebrew") renderHomebrew();
   if (v === "feats") renderFeats();
   if (v === "party" && window.Portal) Portal.renderParty();
@@ -136,4 +146,4 @@ hbLoadLocal(); // the campaign's homebrew replaces this once signed in
 pcRestore();
 route();
 renderCampList();
-Store.init().then(() => { try { worldAdopt(); } catch (e) { console.warn(e); } renderCampList(); pcAdoptRemote(); itemsAdopt(); pcSelectsRefresh(); if (location.hash === "#compendium") compendiumSearch(); if (location.hash === "#tracker") renderTracker(); if (location.hash === "#roster") renderRosterTab(); });
+Store.init().then(() => { try { worldAdopt(); } catch (e) { console.warn(e); } renderCampList(); pcAdoptRemote(); itemsAdopt(); pcSelectsRefresh(); if (location.hash === "#compendium") compendiumSearch(); if (location.hash === "#tracker") renderTracker(); if (location.hash === "#roster") { renderRosterTab(); rosterFoldPhone(); } });

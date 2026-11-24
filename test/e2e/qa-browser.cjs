@@ -176,6 +176,21 @@ const server = http.createServer((req, res) => {
       const v = tokenView().map(t => t.name + ":" + t.state); HOST.enc = null; HOST.tokens = []; return v;
     });
     check("IDEA: numbered tokens keep their monster's Bloodied/Down state on the TV", tokState.join() === "Goblin 1:Down,Goblin 2:Down", tokState.join());
+
+    // UI review (2026-11-24), laptop: Saved / Backup / bell share the title's row; Skip to content; Next turn leads a fight
+    await p.goto(URL + "#generate"); await p.reload(); await p.waitForFunction(() => typeof route === "function"); await p.waitForTimeout(800);
+    const hdr = await p.evaluate(() => { const mid = r => (r.top + r.bottom) / 2, b = document.querySelector("#storeBadge").getBoundingClientRect(), t = document.querySelector(".brand").getBoundingClientRect(), n = document.querySelector("header nav").getBoundingClientRect(); return { level: Math.round(Math.abs(mid(b) - mid(t))), above: b.bottom <= n.top + 2 }; });
+    check("UI: on laptops, Saved / Backup / the bell sit beside the title, above the tabs", hdr.level < 30 && hdr.above, JSON.stringify(hdr));
+    await p.keyboard.press("Tab"); /* the first Tab on a fresh page */
+    const skip = await p.evaluate(() => document.activeElement && document.activeElement.id);
+    await p.keyboard.press("Enter");
+    const skipped = await p.evaluate(() => document.activeElement && document.activeElement.matches("section.view.active"));
+    check("UI: the first Tab reaches Skip to content, and it jumps to the page", skip === "skipLink" && skipped, JSON.stringify([skip, skipped]));
+    await p.goto(URL + "#tracker"); await p.waitForFunction(() => typeof newEncounter === "function"); await p.waitForTimeout(300);
+    if (!(await p.evaluate(() => !!curCamp()))) { await p.click("#newCamp"); await p.waitForTimeout(200); } /* after the reload no campaign may be open */
+    const ctl = await p.evaluate(() => { const c = curCamp(); const e = newEncounter(null, "Ctl", 3, [{ name: "Goblin", stat: "Goblin", cr: 0.25, count: 2, boss: false }]); e.enemies.forEach((m, i) => m.init = 10 - i); e.status = "Active"; e.round = 1; e.turn = e.enemies[0].id; c.encounters.push(e); Store.save(c); subTab = "encounters"; renderTracker();
+      const card = document.getElementById("enc-" + e.id); return { next: card.querySelector('[data-ea="next"]').classList.contains("primary"), roll: card.querySelector('[data-ea="roll"]').classList.contains("primary"), more: !!card.querySelector('.enc-more [data-ea="saveTemplate"]'), bar: document.querySelector("#fightBar").offsetHeight }; });
+    check("UI: during a fight Next turn is the gold button; setup buttons fold under More; no fight bar on laptops", ctl.next && !ctl.roll && ctl.more && ctl.bar === 0, JSON.stringify(ctl));
     await p.context().close();
 
     // 5. phones: the Forge form stays inside its card, and the bottom bar keeps whole words
@@ -194,6 +209,43 @@ const server = http.createServer((req, res) => {
         mobileNavSync("roster");
         return [...document.querySelectorAll("#mobileNav a, #mobileNav .btn")].map(a => { const r = document.createRange(); r.selectNodeContents(a); return { t: a.textContent.trim(), lines: new Set([...r.getClientRects()].map(x => Math.round(x.top))).size, over: a.scrollWidth > a.clientWidth }; });
       });
+      if (width === 390) {
+        // UI review, phones: the sheet comes first; buttons are 44 px; the campaign comes before the list; the fight bar
+        await ph.evaluate(() => { const c = pcEnsure(generateCharacter({ seed: "UIP", name: "Pip", cls: "Fighter", level: 2, ed: "2024" })); PCS.roster.push(c); pcPersist(); });
+        await ph.goto(URL + "#tracker"); await ph.waitForTimeout(150); await ph.goto(URL + "#roster"); await ph.waitForSelector("#rosterMain .card", { state: "attached" }); await ph.waitForTimeout(200);
+        const sheet = await ph.evaluate(() => ({ listOpen: document.querySelector("#rosterBox").open, small: [...document.querySelectorAll("#rosterMain .btn.sm")].filter(b => b.offsetHeight && b.offsetHeight < 44).length }));
+        check("UI phone: with a character open the list folds, and sheet buttons are at least 44 px tall", !sheet.listOpen && !sheet.small, JSON.stringify(sheet));
+        await ph.goto(URL + "#tracker"); await ph.waitForFunction(() => typeof newEncounter === "function");
+        if (!(await ph.evaluate(() => !!curCamp()))) await ph.click("#newCamp");
+        const fb = await ph.evaluate(() => { const c = curCamp(); const e = newEncounter(null, "Bar fight", 3, [{ name: "Goblin", stat: "Goblin", cr: 0.25, count: 2, boss: false }]); e.enemies.forEach((m, i) => m.init = 12 - i); e.status = "Active"; e.round = 2; e.turn = e.enemies[0].id; c.encounters = [e]; Store.save(c); subTab = "overview"; renderTracker();
+          const bar = document.querySelector("#fightBar"), main = document.querySelector("#campMain").getBoundingClientRect(), side = document.querySelector("#view-tracker .side").getBoundingClientRect();
+          return { id: e.id, shown: !bar.hidden && bar.offsetHeight > 0, text: bar.textContent.replace(/\s+/g, " ").trim(), campFirst: main.top < side.top }; });
+        check("UI phone: the open campaign comes before the campaign list", fb.campFirst);
+        check("UI phone: a fight under way shows the fight bar with the round and whose turn it is", fb.shown && /Round 2/.test(fb.text) && /Goblin 1/.test(fb.text) && /next Goblin 2/.test(fb.text), fb.text);
+        await ph.click("[data-fight-next]"); await ph.waitForTimeout(250);
+        const moved = await ph.evaluate(id => { const e = curCamp().encounters.find(x => x.id === id); return { turn: e.enemies.findIndex(m => m.id === e.turn), bar: document.querySelector("#fightBar").textContent.replace(/\s+/g, " ") }; }, fb.id);
+        check("UI phone: the fight bar's Next turn moves to the next creature", moved.turn === 1 && /Goblin 2/.test(moved.bar), JSON.stringify(moved));
+        await ph.goto(URL + "#roster"); await ph.waitForTimeout(200);
+        const barGone = await ph.evaluate(() => document.querySelector("#fightBar").hidden);
+        await ph.click('#mobileNavLinks a[href="#tracker"]').catch(() => {}); await ph.waitForTimeout(400);
+        const inView = await ph.evaluate(() => { const r = document.querySelector("#view-tracker .encard.live"); if (!r) return "none"; const b = r.getBoundingClientRect(); return b.bottom > 0 && b.top < innerHeight; });
+        check("UI phone: the fight bar hides on other tabs, and the Encounter shortcut jumps to the fight", barGone && inView === true, JSON.stringify([barGone, inView]));
+        // two Active encounters: the bar and its jump follow the one with a turn under way
+        const two = await ph.evaluate(() => { const c = curCamp(); const a = newEncounter(null, "Planned ambush", 3, [{ name: "Wolf", stat: "Wolf", cr: 0.25, count: 1, boss: false }]); a.status = "Active";
+          const e = newEncounter(null, "Real fight", 3, [{ name: "Orc", stat: "Orc", cr: 0.5, count: 2, boss: false }]); e.enemies.forEach((m, i) => m.init = 9 - i); e.status = "Active"; e.round = 1; e.turn = e.enemies[0].id;
+          c.encounters = [a, e]; Store.save(c); subTab = "overview"; renderTracker(); return e.id; });
+        await ph.click("[data-fight-next]"); await ph.waitForTimeout(250);
+        const stay = await ph.evaluate(id => ({ sub: subTab, turn: (e => e.enemies.findIndex(m => m.id === e.turn))(curCamp().encounters.find(x => x.id === id)) }), two);
+        check("UI phone: Next turn on the bar works from another section without switching to it", stay.sub === "overview" && stay.turn === 1, JSON.stringify(stay));
+        await ph.click("[data-fight-go]"); await ph.waitForTimeout(250);
+        const jumped = await ph.evaluate(id => { const r = document.getElementById("enc-" + id).getBoundingClientRect(); return r.bottom > 0 && r.top < innerHeight; }, two);
+        check("UI phone: with two Active encounters, the bar jumps to the fight it shows", jumped);
+        await ph.evaluate(() => { const c = curCamp(); c.encounters = []; Store.save(c); });
+        // a character list the player opened stays open when they come back to the tab
+        await ph.goto(URL + "#roster"); await ph.waitForTimeout(200); if (!(await ph.evaluate(() => $("#rosterBox").open))) await ph.click("#rosterBox > summary"); /* the player opens the list */
+        await ph.evaluate(() => { location.hash = "#tracker"; }); await ph.waitForTimeout(200); await ph.evaluate(() => { location.hash = "#roster"; }); await ph.waitForTimeout(250); /* tab changes, as the app makes them */
+        check("UI phone: a character list the player opened stays open", await ph.evaluate(() => $("#rosterBox").open));
+      }
       // QA-7: the Tracker's encounter boxes are labelled, and the campaign name gets its own line
       await ph.goto(URL + "#tracker"); await ph.waitForFunction(() => typeof newEncounter === "function");
       await ph.click("#newCamp"); await ph.waitForTimeout(200);
