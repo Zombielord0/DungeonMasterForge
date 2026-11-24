@@ -492,17 +492,21 @@ function wildShapeLimit(c) {
   if (moon) cr = ed === "2024" ? Math.max(1, Math.floor(lv / 3)) : lv >= 6 ? Math.floor(lv / 3) : 1;
   return { cr, noFly: lv < 8, noSwim: ed === "2014" && lv < 4 };
 }
+/* the extra books' beasts join the list once their file has loaded (it loads on first need, then the sheet redraws once) */
+let wildExtraWait = false;
 function wildBeasts(c) {
+  if (!extraMonstersReady && !wildExtraWait) { wildExtraWait = true; dmLoadExtraMonsters().then(ok => { wildExtraWait = false; if (ok && location.hash === "#roster" && rosterCur()) renderRosterMain(); }); }
   bsLoad(); const L = wildShapeLimit(c);
   return BS.data[edOf(c) === "2014" ? "2014" : "2024"].filter(m => m.type === "beast" && m.cr <= L.cr && !(L.noFly && /fly/i.test(m.speed)) && !(L.noSwim && /swim/i.test(m.speed))).sort((a, b) => a.cr - b.cr || a.n.localeCompare(b.n));
 }
 function beastForm(id) {
   bsLoad(); const m = Object.values(BS.data).flat().find(x => x.id === id); if (!m) return null;
   const sp = {}; String(m.speed).split(",").forEach(p => { const mm = p.trim().match(/^(?:(fly|swim|climb|burrow)\s+)?(\d+)\s*ft/i); if (mm) sp[(mm[1] || "walk").toLowerCase()] = +mm[2]; });
-  const attacks = (m.actions || []).map(([n, t]) => {
+  const attacks = (m.actions || []).map(([n, t0]) => {
+    const t = String(t0 || "").replace(/[_*]/g, ""); /* Black Flag marks "_Melee Weapon Attack:_" in italics (QA-2, 2026-11-24) */
     const hit = (t.match(/Attack(?: Roll)?:\s*\+(\d+)/) || [])[1], d = t.match(/(\d+)\s*\((\d+d\d+)\s*(?:([+\-−])\s*(\d+))?\)\s*([A-Za-z]+) damage/);
     /* a tiny beast's flat damage, "Hit: 1 piercing damage" or "1 Piercing damage" (QA-4, 2026-11-23) */
-    const flat = !d && t.match(/(?:Hit:\s*|ft\.\s+|\.\s+)(\d+)\s+([A-Za-z]+) damage/);
+    const flat = !d && t.match(/(?:Hit:\s*|ft\.\s+|\.\s+)(\d+)\s+(acid|bludgeoning|cold|fire|force|lightning|necrotic|piercing|poison|psychic|radiant|slashing|thunder)(?: damage|\.|$)/i); /* ToB3 writes "1 piercing." */
     if (hit === undefined || (!d && !flat)) return null;
     if (flat) return { name: n, hit: +hit, die: "", mod: +flat[1], type: flat[2].toLowerCase(), melee: /Melee/.test(t), prof: true, beast: true, ab: "beast" };
     return { name: n, hit: +hit, die: d[2], mod: d[3] ? (d[3] === "+" ? 1 : -1) * +d[4] : 0, type: d[5].toLowerCase(), melee: /Melee/.test(t), prof: true, beast: true, ab: "beast" };

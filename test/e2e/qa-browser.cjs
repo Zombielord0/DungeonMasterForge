@@ -66,6 +66,39 @@ const server = http.createServer((req, res) => {
     await p.click(`#rosterList [data-rc="${second}"]`); await p.waitForTimeout(800);
     await p.reload(); await p.waitForSelector("#rosterList .camp-item.on");
     check("after a refresh the same character is open", await p.getAttribute("#rosterList .camp-item.on", "data-rc") === second);
+
+    // QA pass 2 (2026-11-24). Fresh page: the Wild Shape list grows by itself once the extra books load
+    await p.reload(); await p.waitForFunction(() => typeof wildBeasts === "function");
+    const ws = await p.evaluate(async () => {
+      const d = pcEnsure(generateCharacter({ seed: "QAWS", name: "Fern", cls: "Druid", level: 8, ed: "2014" }));
+      const before = wildBeasts(d).length;
+      await new Promise(r => { const t = setInterval(() => { if (extraMonstersReady) { clearInterval(t); r(); } }, 50); setTimeout(() => { clearInterval(t); r(); }, 15000); });
+      const after = wildBeasts(d).length;
+      const bear = wildBeasts(d).find(m => m.n === "Bear, Black" && m.src === "bfrd");
+      return { before, after, bear: bear ? beastForm(bear.id).attacks.map(a => a.name + " " + a.hit + " " + a.die) : null,
+        noAttacks: wildBeasts(d).filter(m => m.src && (m.actions || []).some(a => /Weapon Attack/.test(a[1])) && !beastForm(m.id).attacks.length).map(m => m.n) };
+    });
+    check("QA2: the Wild Shape list adds the extra books' beasts without opening the Monster Manual", ws.after > ws.before && ws.before > 0, JSON.stringify([ws.before, ws.after]));
+    check("QA2: Black Flag beasts have their attacks in Wild Shape", JSON.stringify(ws.bear) === JSON.stringify(["Bite 4 1d6", "Claws 4 1d4"]) && !ws.noAttacks.length, JSON.stringify(ws));
+    // the extra books' monsters: attacks for all but the Boomer (it has none in the book), and damage lines that only name damage
+    const mon = await p.evaluate(() => {
+      const L = dmData("monsterData")["2014"].filter(m => m.src), by = n => L.find(m => m.n === n) || {};
+      const CONDS = /^(blinded|charmed|deafened|exhaustion|frightened|grappled|incapacitated|invisible|paralyzed|petrified|poisoned|prone|restrained|stunned|unconscious)$/i;
+      const bad = L.filter(m => ["res", "imm", "vul"].some(k => String(m[k] || "").split(";").some(seg => !/\(conditions?\)/.test(seg) && seg.split(",").some(t => CONDS.test(t.trim())))) || /Condition Immunities/.test(m.imm || "") || /,\S/.test(m.lang || ""));
+      const hag = by("Ambush Hag");
+      return { noActs: L.filter(m => !(m.actions || []).length).map(m => m.n), akanka: (by("Akanka").actions || []).map(a => a[0]), bad: bad.map(m => m.n).slice(0, 5),
+        hag: [hag.res, hag.imm, hag.ci, hag.lang], ape: by("Ape, Giant").res };
+    });
+    check("QA2: Tome of Beasts 3 monsters have their Actions", mon.noActs.join() === "Boomer" && mon.akanka.includes("Bite"), JSON.stringify(mon.noActs.slice(0, 5)) + " " + mon.akanka);
+    check("QA2: damage lines name only damage; conditions and traits are labelled", !mon.bad.length && JSON.stringify(mon.hag) === JSON.stringify(["see Fey Resilience", "poison", "poisoned", "Common, Sylvan"]) && mon.ape === "stunned (condition)", JSON.stringify(mon));
+    // Unarmored Defense from a second class
+    const ac = await p.evaluate(() => [["Fighter", "Barbarian", "con"], ["Ranger", "Monk", "wis"], ["Monk", "Barbarian", "con"]].map(([a, b, ab]) => {
+      const c = pcEnsure(generateCharacter({ seed: "QAAC", name: "Ace", cls: a, level: 3, ed: "2014", subclass: "none", multi: [{ cls: b, lv: 3 }] }));
+      pcInvUpgrade(c); c.inv.forEach(i => { if (i.eq && eqArmorOf(i, "2014")) i.eq = false; }); pcRecompute(c);
+      const want = Math.max(10 + c.mods.dex + c.mods[ab], a === "Monk" ? 10 + c.mods.dex + c.mods.wis : 0);
+      return [a + "/" + b, pcAC(c).ac, want];
+    }));
+    check("QA2: Unarmored Defense counts from a second class (Barbarian or Monk)", ac.every(([, got, want]) => got === want), JSON.stringify(ac));
     await p.context().close();
 
     // 5. phones: the Forge form stays inside its card, and the bottom bar keeps whole words

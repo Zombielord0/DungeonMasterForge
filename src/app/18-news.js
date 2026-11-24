@@ -2,6 +2,12 @@
    When a change ships, add an entry to the top of NEWS with a new id, in plain words for players and DMs. */
 
 const NEWS = [
+  { id: "2026-11-24-monster-fixes", date: "2026-11-24", title: "Monsters that can fight back", go: "monsters", items: [
+    "About 400 Tome of Beasts 3 monsters now have their attacks and Multiattack. Before, their stat blocks only showed traits.",
+    "Black Flag monsters' resistance and immunity lines now only list damage. Conditions are labelled or moved to Condition Immunities, and a trait like Fey Resilience says \"see Fey Resilience\".",
+    "Druids: Wild Shape forms from the extra books now have their attacks, and the full list of forms shows without opening the Monster Manual first.",
+    "Multiclassing into Barbarian or Monk now gives you Unarmored Defense in your Armor Class."
+  ] },
   { id: "2026-11-24-new-icon", date: "2026-11-24", title: "A new look for the Forge's icon", go: "generate", items: [
     "The Forge has a new emblem: a golden d20 on a shield with crossed hammers. You'll see it in the header, above empty pages, on the browser tab and on your home screen if you installed the app."
   ] },
