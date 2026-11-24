@@ -1462,6 +1462,7 @@ nav a[data-view=requests]{--ic:url("data:image/svg+xml,%3Csvg xmlns='http://www.
   .icon-btn,.sk-roll,.m.roll-b{min-width:44px} /* fold arrows stay narrow (tall is enough) so long section titles still fit */
   section.view input:not([type=checkbox]):not([type=radio]),section.view select{min-height:44px}
   section.view input[type=checkbox]{width:24px!important;height:24px!important;flex:0 0 24px;min-width:24px}
+  section.view input[type=checkbox]:checked::after{left:8px;top:3px;width:6px;height:12px} /* the tick, centred in the bigger box */
   label.opt{min-height:44px}
   section.view .btn{min-height:44px}
   section.view .vit-roll{min-width:44px!important}

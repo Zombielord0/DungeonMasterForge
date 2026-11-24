@@ -101,7 +101,10 @@ hdrPhone.addEventListener("change", () => { if (!hdrPhone.matches && mobileMenu.
 
 /* ======================= Routing ======================= */
 /* phones: with a character open, fold "Your characters" so the sheet comes first (2026-11-24); it's one tap to open */
-function rosterFoldPhone() { if (hdrPhone.matches && PCS.roster.length && rosterCur() && !$("#forgeBox").open && !CB.on) $("#rosterBox").open = false; }
+let rosterFoldedFor = null; /* fold once per character opened, so a later sync or redraw never shuts a list the player opened */
+function rosterFoldPhone() { const c = rosterCur(); if (!hdrPhone.matches || !PCS.roster.length || !c || $("#forgeBox").open || CB.on || rosterFoldedFor === c.id) return; rosterFoldedFor = c.id; $("#rosterBox").open = false; }
+/* a list the player opens themselves stays open for that character */
+$("#rosterBox > summary").addEventListener("click", () => { const c = rosterCur(); if (c) rosterFoldedFor = c.id; });
 $("#skipLink").addEventListener("click", () => { const v = $("section.view.active"); if (!v) return; v.tabIndex = -1; v.focus(); v.scrollIntoView({ block: "start" }); });
 function route() {
   const views = (window.Portal && Portal.views) || ["generate", "npc", "world", "monsters", "character", "roster", "compendium", "spells", "feats", "items", "map", "tracker", "homebrew", "requests"];
@@ -143,4 +146,4 @@ hbLoadLocal(); // the campaign's homebrew replaces this once signed in
 pcRestore();
 route();
 renderCampList();
-Store.init().then(() => { try { worldAdopt(); } catch (e) { console.warn(e); } renderCampList(); pcAdoptRemote(); itemsAdopt(); pcSelectsRefresh(); if (location.hash === "#compendium") compendiumSearch(); if (location.hash === "#tracker") renderTracker(); if (location.hash === "#roster") renderRosterTab(); });
+Store.init().then(() => { try { worldAdopt(); } catch (e) { console.warn(e); } renderCampList(); pcAdoptRemote(); itemsAdopt(); pcSelectsRefresh(); if (location.hash === "#compendium") compendiumSearch(); if (location.hash === "#tracker") renderTracker(); if (location.hash === "#roster") { renderRosterTab(); rosterFoldPhone(); } });

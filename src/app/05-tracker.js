@@ -1256,7 +1256,8 @@ function findEnc(c, id) { return (c.encounters || []).find(x => x.id === id); }
 function liveFight(c) { return c ? (c.encounters || []).find(e => e.status === "Active" && e.turn && encOrder(c, e).length) : null; }
 function fightBarSync() {
   const bar = $("#fightBar"); if (!bar) return;
-  const c = location.hash === "#tracker" ? curCamp() : null, e = liveFight(c);
+  const onTracker = ($("section.view.active") || {}).id === "view-tracker"; /* the tab really showing, not just the address */
+  const c = onTracker ? curCamp() : null, e = liveFight(c);
   document.body.classList.toggle("fight-on", !!e);
   if (!e) { bar.hidden = true; bar.innerHTML = ""; return; }
   const o = encOrder(c, e).filter(x => !x.down), i = o.findIndex(x => x.key === e.turn), cur = o[i] || o[0], nxt = o.length > 1 ? o[(i + 1) % o.length] : null;
@@ -1265,14 +1266,27 @@ function fightBarSync() {
     <button type="button" class="btn primary" data-fight-next="${esc(e.id)}">Next turn ▶</button>`;
   bar.hidden = false;
 }
-function fightJump() {
-  const live = document.querySelector("#view-tracker .encard.live"); if (!live) return false;
+function fightJump(id) {
+  /* the fight the bar describes (an Active encounter with a turn), not just the first Active one */
+  if (!id) { const e = liveFight(curCamp()); id = e && e.id; } if (!id) return false;
+  const live = document.getElementById("enc-" + id); if (!live) return false;
   const row = live.querySelector("tr.cur") || live; row.scrollIntoView({ block: "center", behavior: "instant" }); return true;
 }
 $("#fightBar").addEventListener("click", ev => {
   const go = ev.target.closest("[data-fight-go]"), next = ev.target.closest("[data-fight-next]");
-  if (go) { if (subTab !== "encounters") { subTab = "encounters"; renderTracker(); } fightJump(); return; }
-  if (next) { if (subTab !== "encounters") { subTab = "encounters"; renderTracker(); } const b = document.querySelector(`#enc-${CSS.escape(next.dataset.fightNext)} [data-ea="next"]`); if (b) b.click(); }
+  const cardFor = id => document.getElementById("enc-" + id);
+  if (go) { if (!cardFor(go.dataset.fightGo)) { subTab = "encounters"; renderTracker(); } fightJump(go.dataset.fightGo); return; }
+  if (next) {
+    const id = next.dataset.fightNext;
+    if (!cardFor(id)) { /* the fight's card isn't on screen: take the turn without changing the section */
+      const c = curCamp(), e = c && findEnc(c, id); if (!e) return;
+      const before = combatSnapshot(e), o = encOrder(c, e).filter(x => !x.down); if (!o.length) return;
+      const i = o.findIndex(x => x.key === e.turn);
+      if (i === -1) e.turn = o[0].key; else if (i + 1 >= o.length) { e.turn = o[0].key; e.round = (e.round || 1) + 1; } else e.turn = o[i + 1].key;
+      combatRecord(e, before, `Advanced turn · Round ${e.round}`); Store.save(c); if (HOST.on && HOST.enc && HOST.enc.eid === e.id) hostSend(); fightBarSync(); return;
+    }
+    const b = cardFor(id).querySelector('[data-ea="next"]'); if (b) b.click();
+  }
 });
 campMain.addEventListener("change", ev => { if (ev.target.id === "randEnv") RAND.env = ev.target.value; if (ev.target.id === "randDiff") RAND.diff = ev.target.value; });
 campMain.addEventListener("click", async ev => {
