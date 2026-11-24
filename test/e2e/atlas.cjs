@@ -102,7 +102,10 @@ const server = http.createServer((req, res) => {
   check("atlas: a campaign file carries its region's map and the world map", cf.worldMap && cf.region, JSON.stringify(cf));
 
   // ---------- Task 3: the map view on the World tab ----------
-  const pinAt = id => p.evaluate(id => { const cv = $("#atlasCv"), m = atlasOf(W.atlasId), q = m.pins[id]; let r = cv.getBoundingClientRect(); window.scrollBy(0, r.top + q.y * r.height - innerHeight / 2); r = cv.getBoundingClientRect(); return { x: r.left + q.x * r.width, y: r.top + q.y * r.height }; }, id);
+  /* scroll the pin to the middle, then wait for the page to stop moving (the header slides away after a scroll) before measuring */
+  const pinAt = id => p.evaluate(async id => { const cv = $("#atlasCv"), m = atlasOf(W.atlasId), q = m.pins[id]; let r = cv.getBoundingClientRect(); window.scrollBy(0, r.top + q.y * r.height - innerHeight / 2);
+    const frame = () => new Promise(res => requestAnimationFrame(res)); let last = "", same = 0; for (let k = 0; k < 90 && same < 6; k++) { await frame(); const b = cv.getBoundingClientRect(), key = b.top.toFixed(1) + "," + b.left.toFixed(1); same = key === last ? same + 1 : 0; last = key; }
+    r = cv.getBoundingClientRect(); return { x: r.left + q.x * r.width, y: r.top + q.y * r.height }; }, id);
   await p.evaluate(ids => { const r = wp(ids.r); delete r.atlas; worldSave(); W.sel = ids.r; W.mode = "place"; location.hash = "world"; renderWorld(); }, ids);
   await p.waitForSelector('#worldMain [data-at="make"]');
   check("atlas view: a region's page offers Make a map", await p.locator('#worldMain [data-at="make"]').count() === 1);
@@ -211,8 +214,12 @@ const server = http.createServer((req, res) => {
   const vp = await pinAt(ids.velmor); await p.mouse.click(vp.x, vp.y); await p.waitForSelector('#atlasMenu:not([hidden]) [data-atp="reveal"]'); await p.click('#atlasMenu [data-atp="reveal"]');
   check("tv: revealing a place re-sends the picture with its name", await waitFrame(n) && await p.waitForFunction(() => atlasTvLabels().includes("Velmor"), null, { timeout: 8000 }).then(() => true, () => false));
   const nPing = await tv.evaluate(() => window.__msgs.filter(m => m.t === "ping").length);
-  const box = await p.evaluate(() => { const r = $("#atlasCv").getBoundingClientRect(); return { x: r.left + 8, y: r.top + r.height - 8 }; });
-  await p.mouse.click(box.x, box.y); await p.waitForTimeout(300);
+  /* a spot on the map that's on screen and not under anything (bars, the pin menu), away from the pins */
+  const box = await p.evaluate(() => { const cv = $("#atlasCv"); cv.scrollIntoView({ block: "center" }); const r = cv.getBoundingClientRect();
+    for (const [fx, fy] of [[.02, .96], [.98, .96], [.02, .08], [.98, .08], [.5, .97]]) { const x = r.left + r.width * fx, y = Math.min(innerHeight - 90, r.top + r.height * fy); if (y > 0 && document.elementFromPoint(x, y) === cv && !atlasPins(W.atlasId, false).some(q => Math.hypot((q.x * r.width + r.left) - x, (q.y * r.height + r.top) - y) < 60)) return { x, y }; }
+    return { x: r.left + 8, y: Math.min(innerHeight - 90, r.bottom - 8) }; });
+  await p.mouse.click(box.x, box.y);
+  await tv.waitForFunction(nn => window.__msgs.filter(m => m.t === "ping").length > nn, nPing, { timeout: 4000 }).catch(() => {});
   check("tv: a click on the DM's map while showing sends a ping", await tv.evaluate(nn => window.__msgs.filter(m => m.t === "ping").length > nn, nPing));
   check("tv: the TV only gets pictures and pings", await tv.evaluate(() => window.__msgs.every(m => ["frame", "ping", "bye"].includes(m.t) && Object.keys(m).every(k => ["t", "blob", "x", "y"].includes(k)))));
   n = await tv.evaluate(() => window.tvFrames || 0);
