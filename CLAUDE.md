@@ -71,7 +71,7 @@ Live site: https://dungeonmasterforge.netlify.app (Netlify; production branch `m
 | `netlify/functions/api.mjs` → `netlify/lib/api.mjs` | Campaign API at `/api/*`. `handle(req, user, db)` holds all the routes. `netlify/lib/diff.mjs` writes the activity feed text. |
 | `netlify/database/migrations/` | Postgres tables, applied automatically on deploy: `campaigns`, `members`, `characters` (versioned jsonb), `activity`, `whispers`, `homebrew`, `campaign_shared` (the players' Journal and turn order), `user_docs` (each account's own Tracker, World, NPCs, custom items and monsters) and `feature_requests` (the Requests tab). |
 | `public/player.html` | The TV player screen. It shows only the pictures the DM's window sends. |
-| `public/manifest.webmanifest`, `public/icons/` | Install as an app (PWA). |
+| `public/manifest.webmanifest`, `public/icons/` | Install as an app (PWA). The icons and the header emblem (`emblem.webp`, 144 px, also the picture above empty-page headings) are made from the owner's d20-and-hammers picture (2026-11-24). These keep fixed names, so when they change, bump `CACHE` in `src/sw.js` or the offline helper keeps showing the old ones. |
 | `public/vendor/pdfjs/` | pdf.js (`pdfjs-dist` 6.5.438 legacy build, Apache-2.0, unchanged), loaded only when someone imports a PDF. |
 | `test/api.test.mjs` | API tests (node:test against PGlite through `@netlify/database-dev`). |
 | `test/e2e/*.cjs` | One Playwright check per feature (`npm run test:…`). Each starts its own static server for `public/` and needs no database. `server.mjs` serves the app, the API and an in-memory database (`npm run dev`); `fake-identity.js` stands in for Netlify Identity; `walkthrough.cjs` is a sign-in walkthrough. |

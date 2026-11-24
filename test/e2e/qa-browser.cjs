@@ -47,6 +47,17 @@ const server = http.createServer((req, res) => {
     await p.goto(URL + "#compendium"); await p.waitForTimeout(300);
     const noIcon = await p.evaluate(() => [...document.querySelectorAll("header nav a[data-view]")].filter(a => !getComputedStyle(a).getPropertyValue("--ic").trim()).map(a => a.dataset.view));
     check("every header tab has its own icon", !noIcon.length, noIcon.join());
+    // the app icons and the header emblem (new picture, 2026-11-24): each loads at its stated size
+    const pics = await p.evaluate(async () => {
+      const load = src => new Promise(res => { const i = new Image(); i.onload = () => res([src, i.naturalWidth, i.naturalHeight]); i.onerror = () => res([src, 0, 0]); i.src = src; });
+      const man = await (await fetch("/manifest.webmanifest")).json();
+      const want = [...man.icons.map(x => [x.src, +x.sizes.split("x")[0]]), ["/icons/apple-touch-icon.png", 180], ["/icons/emblem.webp", 144]];
+      const got = await Promise.all(want.map(([src]) => load(src)));
+      return { bad: got.filter(([src, w, h], k) => w !== want[k][1] || h !== w).map(x => x.join(" ")), emblem: (document.querySelector("img.emblem") || {}).naturalWidth };
+    });
+    const emptyPic = await p.evaluate(() => { const h = document.querySelector(".empty h2"); return h ? getComputedStyle(h, "::before").backgroundImage : ""; });
+    check("empty pages show the emblem above their heading", /\/icons\/emblem\.webp/.test(emptyPic), emptyPic.slice(0, 80));
+    check("the app icons and header emblem load at their sizes", !pics.bad.length && pics.emblem === 144, JSON.stringify(pics));
 
     // 4. the Characters tab comes back to the character that was open
     await p.goto(URL + "#roster"); await p.waitForFunction(() => typeof keepPC === "function");

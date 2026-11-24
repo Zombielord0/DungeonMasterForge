@@ -2,6 +2,9 @@
    When a change ships, add an entry to the top of NEWS with a new id, in plain words for players and DMs. */
 
 const NEWS = [
+  { id: "2026-11-24-new-icon", date: "2026-11-24", title: "A new look for the Forge's icon", go: "generate", items: [
+    "The Forge has a new emblem: a golden d20 on a shield with crossed hammers. You'll see it in the header, above empty pages, on the browser tab and on your home screen if you installed the app."
+  ] },
   { id: "2026-11-23-browser-qa", date: "2026-11-23", title: "Small fixes all round", go: "tracker", items: [
     "DMs: the campaign you start is in your Campaign Tracker straight away, so you can save NPCs, loot and treasure to it before any player joins.",
     "Shop descriptions and random encounters read properly. A lone monster no longer has “one keeping watch”.",
