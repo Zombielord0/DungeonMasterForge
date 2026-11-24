@@ -182,7 +182,11 @@ function fogBox(fog, d, x1, y1, x2, y2, val) {
 const MAP_STYLES = {
   parchment: { ink: "#2a2018", hatch: "rgba(70,50,30,.55)", grid: "rgba(90,70,50,.16)", tex: true, hand: true, grain: true, dark: false },
   blue: { ink: "#1d4f91", hatch: "rgba(29,79,145,.38)", grid: "rgba(29,79,145,.26)", tex: false, hand: false, grain: false, dark: false, bg: "#ffffff", floor: "#ffffff" },
-  dark: { ink: "#050403", hatch: null, grid: "rgba(255,255,255,.07)", tex: true, hand: false, grain: false, dark: true, bg: "#1d1b19" }
+  dark: { ink: "#050403", hatch: null, grid: "rgba(255,255,255,.07)", tex: true, hand: false, grain: false, dark: true, bg: "#1d1b19" },
+  /* the hand-drawn looks (2026-11-24), drawn by mapLook in 03b-map-looks.js */
+  inked: { look: "inked", ink: "#14110d", hatch: "#2b2620", grid: "rgba(40,35,30,.17)", dark: false, bg: "#f5f0e3", floor: "#fcfaf3", propA: "#f3efe6", propB: "#d9d3c5", door: "#fcfaf3" },
+  atlas: { look: "atlas", ink: "#3d2412", hatch: "rgba(92,58,28,.72)", grid: "rgba(110,70,35,.2)", dark: false, bg: "#e3cfa3", floor: "#f6e8c6", door: "#b07a3e", numBg: "#8b1e1e" },
+  torch: { look: "torch", ink: "#0b0908", grid: "rgba(255,230,190,.07)", dark: true, bg: "#141110", door: "#6b4a28" }
 };
 const MAP_BG = { crypt: "#e9e2d2", cavern: "#efe6cf", keep: "#efe3c6", sewer: "#e3e2cc", temple: "#f0e4c8", mine: "#ecdcc0" };
 const MAP_FLOOR = { crypt: ["#f2ede3", "#6f6b64"], cavern: ["#efe4cc", "#6b6053"], keep: ["#eed9b4", "#6e5739"], sewer: ["#e3e5d3", "#5d625b"], temple: ["#f7eed9", "#7a725f"], mine: ["#e8d2ae", "#6b5944"] };
@@ -242,7 +246,7 @@ function mapDress(d) {
 function drawProp(g, p, st) {
   const ink = st.ink, [x0, y0] = p.cells[0], last = p.cells[p.cells.length - 1];
   const X = x0 * CS, Y = y0 * CS, w = (last[0] - x0 + 1) * CS, h = (last[1] - y0 + 1) * CS, cx = X + w / 2, cy = Y + h / 2, horiz = w > h;
-  const fillA = st.dark ? "#4b4238" : "#d9ccb0", fillB = st.dark ? "#6e5a3f" : "#c8a979";
+  const fillA = st.propA || (st.dark ? "#4b4238" : "#d9ccb0"), fillB = st.propB || (st.dark ? "#6e5a3f" : "#c8a979");
   g.save(); g.lineWidth = 1.2; g.strokeStyle = ink; g.lineJoin = "round"; g.lineCap = "round";
   const box = (x, y, bw, bh, f) => { g.fillStyle = f; g.fillRect(x, y, bw, bh); g.strokeRect(x, y, bw, bh); };
   switch (p.kind) {
@@ -266,6 +270,24 @@ function drawProp(g, p, st) {
   }
   g.restore();
 }
+// caves: blur the floor squares into a soft shape and trace a wobbly edge through it.
+// Returns [inner (the floor), outer (the wall ink)] canvases at the drawing scale.
+function mapCaveMasks(d, s, mk, inkHex) {
+  const { W, H, grid } = d, floor = (x, y) => x >= 0 && y >= 0 && x < W && y < H && grid[y * W + x] > 0;
+  const [mc, mg] = mk(); mg.fillStyle = "#fff"; for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) if (floor(x, y)) mg.fillRect(x * CS, y * CS, CS, CS);
+  const [bc, bg] = mk(); bg.setTransform(1, 0, 0, 1, 0, 0); bg.filter = `blur(${(CS * .32 * s).toFixed(1)}px)`; bg.drawImage(mc, 0, 0); bg.filter = "none";
+  const id = bg.getImageData(0, 0, bc.width, bc.height), px = id.data, nz = mapNoise(d.params.seed);
+  const inner = new ImageData(bc.width, bc.height), outer = new ImageData(bc.width, bc.height), ip = inner.data, op = outer.data;
+  const ink = inkHex.match(/\w\w/g).map(h => parseInt(h, 16));
+  for (let yy = 0; yy < bc.height; yy++) for (let xx = 0; xx < bc.width; xx++) {
+    const i = (yy * bc.width + xx) * 4, v = px[i + 3], n = nz(xx / s / 9, yy / s / 9) * 34;
+    if (v > 120 + n) ip[i + 3] = 255;
+    if (v > 78 + n) { op[i] = ink[0]; op[i + 1] = ink[1]; op[i + 2] = ink[2]; op[i + 3] = 255; }
+  }
+  const [ic, ig] = mk(); ig.setTransform(1, 0, 0, 1, 0, 0); ig.putImageData(inner, 0, 0);
+  const [oc, og] = mk(); og.setTransform(1, 0, 0, 1, 0, 0); og.putImageData(outer, 0, 0);
+  return [ic, oc];
+}
 // smooth value noise in [-1, 1] (for wobbly cave edges)
 function mapNoise(seed) {
   const r = makeRng("noise", seed), N = 64, t = Array.from({ length: N * N }, () => r.f() * 2 - 1), sm = v => v * v * (3 - 2 * v);
@@ -277,6 +299,8 @@ function mapBase(d, showGrid, player, found, s) {
   const st = mapStyle(d), foundKey = found ? [...found].sort().join(";") : "";
   const key = [showGrid, player, foundKey, s, d.params.style || "parchment"].join("|");
   d._base = d._base || new Map(); if (d._base.has(key)) return d._base.get(key);
+  if (d._base.size > 6) d._base.delete(d._base.keys().next().value);
+  if (st.look) { const lc = mapLook(d, showGrid, player, found, s, st); d._base.set(key, lc); return lc; }
   const { W, H, grid, rid } = d, th = d.params.theme, PW = W * CS, PH = H * CS;
   const mk = () => { const c = document.createElement("canvas"); c.width = Math.round(PW * s); c.height = Math.round(PH * s); const g = c.getContext("2d"); g.setTransform(s, 0, 0, s, 0, 0); return [c, g]; };
   const [cv, g] = mk();
@@ -302,18 +326,7 @@ function mapBase(d, showGrid, player, found, s) {
   const smooth = th === "cavern" && typeof g.filter === "string";
   if (smooth) {
     // caves: blur the floor squares into a soft shape and trace a wobbly edge through it
-    const [mc, mg] = mk(); mg.fillStyle = "#fff"; for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) if (floor(x, y)) mg.fillRect(x * CS, y * CS, CS, CS);
-    const [bc, bg] = mk(); bg.setTransform(1, 0, 0, 1, 0, 0); bg.filter = `blur(${(CS * .32 * s).toFixed(1)}px)`; bg.drawImage(mc, 0, 0); bg.filter = "none";
-    const id = bg.getImageData(0, 0, bc.width, bc.height), px = id.data, nz = mapNoise(d.params.seed);
-    const inner = new ImageData(bc.width, bc.height), outer = new ImageData(bc.width, bc.height), ip = inner.data, op = outer.data;
-    const ink = st.ink.match(/\w\w/g).map(h => parseInt(h, 16));
-    for (let yy = 0; yy < bc.height; yy++) for (let xx = 0; xx < bc.width; xx++) {
-      const i = (yy * bc.width + xx) * 4, v = px[i + 3], n = nz(xx / s / 9, yy / s / 9) * 34;
-      if (v > 120 + n) ip[i + 3] = 255;
-      if (v > 78 + n) { op[i] = ink[0]; op[i + 1] = ink[1]; op[i + 2] = ink[2]; op[i + 3] = 255; }
-    }
-    const [ic, ig] = mk(); ig.setTransform(1, 0, 0, 1, 0, 0); ig.putImageData(inner, 0, 0);
-    const [oc, og] = mk(); og.setTransform(1, 0, 0, 1, 0, 0); og.putImageData(outer, 0, 0);
+    const [ic, oc] = mapCaveMasks(d, s, mk, st.ink);
     fg.setTransform(1, 0, 0, 1, 0, 0); fg.globalCompositeOperation = "destination-in"; fg.drawImage(ic, 0, 0); fg.globalCompositeOperation = "source-over";
     g.setTransform(1, 0, 0, 1, 0, 0); g.drawImage(oc, 0, 0); g.drawImage(fc, 0, 0); g.setTransform(s, 0, 0, s, 0, 0);
     d._caveSmooth = true;
@@ -347,7 +360,6 @@ function mapBase(d, showGrid, player, found, s) {
     v.addColorStop(0, "rgba(110,70,30,0)"); v.addColorStop(1, "rgba(110,70,30,.2)"); g.fillStyle = v; g.fillRect(0, 0, PW, PH);
   }
   mapDrawIcons(g, d, st, player);
-  if (d._base.size > 6) d._base.delete(d._base.keys().next().value);
   d._base.set(key, cv); return cv;
 }
 function mapTexture(g, d, st, r) {
@@ -400,7 +412,7 @@ function mapDrawDoors(g, d, st, player, found) {
     }
     if (dr.secret && !player) { g.fillStyle = isFound ? "#3f9a3a" : st.dark ? "#e7d9b8" : st.ink; /* green once the players have found it */ g.font = "bold 13px Cinzel, serif"; g.textAlign = "center"; g.textBaseline = "middle"; g.fillText("S", ex, ey); return; }
     const vert = dr.dx !== 0, w = vert ? CS * .32 : CS * .72, h = vert ? CS * .72 : CS * .32;
-    g.fillStyle = st.dark ? "#8a6a3e" : "#c79a5b"; g.strokeStyle = st.ink; g.lineWidth = 1.5; g.fillRect(ex - w / 2, ey - h / 2, w, h); g.strokeRect(ex - w / 2, ey - h / 2, w, h);
+    g.fillStyle = st.door || (st.dark ? "#8a6a3e" : "#c79a5b"); g.strokeStyle = st.ink; g.lineWidth = 1.5; g.fillRect(ex - w / 2, ey - h / 2, w, h); g.strokeRect(ex - w / 2, ey - h / 2, w, h);
   });
 }
 function mapDrawIcons(g, d, st, player) {
@@ -473,7 +485,7 @@ function drawDungeon(cv, d, showGrid, o = {}) {
   d.rooms.forEach(r => {
     if (!showNums || (fog && !fog[r.cy * W + r.cx])) return;
     const X = r.cx * CS + CS / 2, Y = r.cy * CS + CS / 2, boss = !player && (r.marks || []).includes("boss");
-    g.beginPath(); g.arc(X, Y, 10, 0, Math.PI * 2); g.fillStyle = boss ? "#9b2f2f" : st.dark ? "#0b0a09" : st.ink; g.fill();
+    g.beginPath(); g.arc(X, Y, 10, 0, Math.PI * 2); g.fillStyle = boss ? (st.numBg ? "#4a0c0c" : "#9b2f2f") : st.numBg || (st.dark ? "#0b0a09" : st.ink); g.fill();
     if (st.dark) { g.strokeStyle = "#c9b48a"; g.lineWidth = 1; g.stroke(); }
     g.fillStyle = "#fdfaf2"; g.font = "bold 11px Cinzel, Georgia, serif"; g.textAlign = "center"; g.textBaseline = "middle"; g.fillText(String(r.num), X, Y + .5);
   });
@@ -493,6 +505,7 @@ function drawDungeon(cv, d, showGrid, o = {}) {
   const legend = (player && fog) || st.dark ? "#c9b48a" : st.ink; // readable on top of solid fog and dark rock
   const by = TOP + H * CS - 14; g.strokeStyle = legend; g.fillStyle = legend; g.lineWidth = 2; g.beginPath(); g.moveTo(14, by); g.lineTo(14 + CS * 4, by); for (let k = 0; k <= 4; k++) { g.moveTo(14 + k * CS, by - 4); g.lineTo(14 + k * CS, by + 4); } g.stroke();
   g.font = "12px 'Crimson Pro', Georgia, serif"; g.textAlign = "left"; g.fillText("20 ft", 14 + CS * 4 + 6, by);
+  if (st.look === "atlas") { mapCompassRose(g, W * CS - 52, TOP + H * CS - 52, 34, legend); return; }
   const cx = W * CS - 26, cy = TOP + H * CS - 26; g.beginPath(); g.moveTo(cx, cy - 14); g.lineTo(cx + 5, cy); g.lineTo(cx, cy + 14); g.lineTo(cx - 5, cy); g.closePath(); g.fillStyle = legend; g.fill();
   g.font = "bold 11px Cinzel, serif"; g.textAlign = "center"; g.fillText("N", cx, cy - 20);
 }

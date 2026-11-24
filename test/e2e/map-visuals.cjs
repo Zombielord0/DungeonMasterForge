@@ -44,6 +44,32 @@ const FINGERPRINTS = {"crypt|FOG5":550955431,"crypt|CAVE1":-610202048,"crypt|ABC
   check("all 18 theme and style pairs draw", Object.keys(looks).length === 18 && errs.length === 0, errs.join(" | "));
   check("Dark style floors are darker than Parchment", ["crypt", "keep", "temple"].every(t => lum(looks["dark|" + t]) < lum(looks["parchment|" + t]) - 40), JSON.stringify(looks));
   check("Classic blue is blue on white", ["crypt", "keep"].every(t => looks["blue|" + t][2] >= looks["blue|" + t][0] && lum(looks["blue|" + t]) > 200));
+  // the hand-drawn looks (2026-11-24): Inked sketch, Old atlas, Stone and torchlight
+  const hand = await p.evaluate(() => {
+    const out = { floor: {}, same: [], errs: [], red: {} };
+    const make = (th, style, seed = "ABC123") => { const d = generateDungeon({ name: "T", theme: th, size: "medium", rooms: 10, level: 3, party: 4, seed }); d.params.style = style; return d; };
+    for (const style of ["inked", "atlas", "torch"]) for (const th of ["crypt", "cavern", "keep", "sewer", "temple", "mine"]) {
+      try {
+        const d = make(th, style), cv = document.createElement("canvas"); drawDungeon(cv, d, true, { scale: 1 });
+        const o = d.rooms[1], px = cv.getContext("2d").getImageData((o.x + 1) * CS + 2, TOP + (o.y + 1) * CS + 2, CS - 4, CS - 4).data;
+        const avg = [0, 0, 0]; for (let i = 0; i < px.length; i += 4) { avg[0] += px[i]; avg[1] += px[i + 1]; avg[2] += px[i + 2]; }
+        out.floor[style + "|" + th] = avg.map(v => Math.round(v / (px.length / 4)));
+        if (th === "crypt" || th === "cavern") { const a = document.createElement("canvas"), b = document.createElement("canvas"); drawDungeon(a, make(th, style), true, { scale: 1 }); drawDungeon(b, make(th, style), true, { scale: 1 }); out.same.push(a.toDataURL() === b.toDataURL()); }
+      } catch (e) { out.errs.push(style + "|" + th + ": " + e.message); }
+    }
+    // traps are the DM's: count the trap icon's red in the DM's and the players' pictures
+    for (const player of [false, true]) { let seed = 0, d; do d = make("crypt", "inked", "TRAP" + seed++); while (!d.rooms.some(r => (r.icons || []).some(i => i.m === "trap")) && seed < 60);
+      const cv = document.createElement("canvas"); drawDungeon(cv, d, true, { scale: 1, player }); const px = cv.getContext("2d").getImageData(0, 0, cv.width, cv.height).data; let n = 0;
+      for (let i = 0; i < px.length; i += 4) if (Math.abs(px[i] - 176) < 12 && Math.abs(px[i + 1] - 47) < 12 && Math.abs(px[i + 2] - 47) < 12) n++; out.red[player ? "player" : "dm"] = n; }
+    out.options = [...$("#mapStyle").options].map(o => o.value);
+    return out;
+  });
+  check("the three hand-drawn looks draw every theme", Object.keys(hand.floor).length === 18 && hand.errs.length === 0, hand.errs.join(" | "));
+  check("a hand-drawn map looks the same every time it's drawn", hand.same.length === 6 && hand.same.every(Boolean));
+  check("Stone and torchlight floors are darker than Inked sketch", ["crypt", "keep", "temple"].every(t => lum(hand.floor["torch|" + t]) < lum(hand.floor["inked|" + t]) - 60), JSON.stringify(hand.floor));
+  check("Inked sketch floors are paler than Parchment", ["crypt", "keep"].every(t => lum(hand.floor["inked|" + t]) > lum(looks["parchment|" + t])));
+  check("the players' picture of a hand-drawn map leaves out traps", hand.red.dm > 20 && hand.red.player === 0, JSON.stringify(hand.red));
+  check("the Style list offers the new looks", ["inked", "atlas", "torch"].every(v => hand.options.includes(v)), hand.options.join());
   const floors = new Set(["crypt", "keep", "sewer", "temple", "mine"].map(t => looks["parchment|" + t].join()));
   check("themes have their own floors in Parchment", floors.size >= 4, [...floors].join(" / "));
 
