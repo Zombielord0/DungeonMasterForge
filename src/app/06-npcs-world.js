@@ -528,21 +528,55 @@ const WB = {
     if (o.map !== false) d.map = { name: name.slice(0, 60), theme, size: "medium", rooms: 8, level, party: 4, seed: r.int(1, 1e9).toString(36).toUpperCase().slice(0, 6), style: "parchment" };
     return d;
   },
-  /* a region with its own generated map (2026-11-18). The map's seed comes from the build seed, so typing doesn't change it; o.names are the DM's own feature names. */
+  /* a region with its own generated map (2026-11-18). The map's seed comes from the build seed, so typing doesn't change it; o.names are the DM's own feature names.
+     2026-11-24: a climate, towns and villages (o.towns) and kingdoms inside it (o.realms), pinned on the map. Pins use draft keys (x._pin)
+     until wbCommit gives the places their ids. */
   region(r, o) {
-    const shape = ATLAS_SHAPES[o.shape] ? o.shape : "coast", land = ATLAS_LANDS[o.land] ? o.land : "balanced";
-    const name = String(o.name || "").trim() || (shape === "island" ? r.pick([`The ${r.pick(ATLAS_NA)} Isle`, `The ${r.pick(ATLAS_NB)} Isles`]) : r.pick([`The ${r.pick(ATLAS_NA)} Reach`, `The ${r.pick(ATLAS_NB)} Marches`, `The Kingdom of ${r.pick(ATLAS_NB)}`, `The ${r.pick(ATLAS_NA)} Vale`]));
-    const atlas = { v: 1, seed: "at-" + W.build.seed, shape, land, pins: {}, names: [] }, own = o.names || {};
+    const shape = ATLAS_SHAPES[o.shape] ? o.shape : "coast", land = ATLAS_LANDS[o.land] ? o.land : "balanced", climate = ATLAS_CLIMATES[o.climate] ? o.climate : "temperate";
+    const isle = shape === "island" || shape === "archipelago" || shape === "volcano";
+    const name = String(o.name || "").trim() || (isle ? r.pick([`The ${r.pick(ATLAS_NA)} Isle`, `The ${r.pick(ATLAS_NB)} Isles`]) : r.pick([`The ${r.pick(ATLAS_NA)} Reach`, `The ${r.pick(ATLAS_NB)} Marches`, `The Kingdom of ${r.pick(ATLAS_NB)}`, `The ${r.pick(ATLAS_NA)} Vale`]));
+    const atlas = { v: 2, seed: "at-" + W.build.seed, shape, land, climate, pins: {}, names: [] }, own = o.names || {};
     atlas.names = atlasNames(atlas).map(f => own[f.id] ? { ...f, name: own[f.id] } : f);
-    const desc = `${shape === "island" ? "An" : "A"} ${{ coast: "coastal land", inland: "land far from the sea", island: "island" }[shape]}${land === "balanced" ? "" : " of " + { mountains: "mountains", forest: "forests", plains: "open plains" }[land]}.`;
-    return { name, type: "region", desc, sections: [], kids: [], npcs: [], atlas };
+    const what = `${{ temperate: "", desert: "desert ", jungle: "jungle-covered ", tundra: "frozen ", swamp: "marshy " }[climate]}${{ coast: "coastal land", inland: "land far from the sea", island: "island", archipelago: "chain of islands", peninsula: "peninsula", volcano: "volcanic island", twin: "pair of lands across a strait" }[shape]}`;
+    const desc = `${/^[aeiou]/.test(what) ? "An" : "A"} ${what}${land === "balanced" ? "" : " of " + { mountains: "mountains", forest: "forests", plains: "open plains" }[land]}.`;
+    const kids = wbRegionPlaces(atlas, o);
+    return { name, type: "region", desc, sections: [], kids, npcs: [], atlas };
   }
 };
-const WB_DEFAULTS = { settlement: { size: "town", terrain: "", npcs: true, places: true }, tavern: { quality: "", npcs: true }, shop: { type: "", size: "town", level: "", npcs: true, rar: [], amount: "normal", moodIx: "" }, temple: { domain: "", size: "town", npcs: true }, dungeon: { theme: "", level: "", map: true }, region: { shape: "coast", land: "balanced", names: {} } };
+/* the region builder's towns and kingdoms: drafts with _pin keys, and their spots in atlas.pins. Its own random streams, so
+   changing the name doesn't move anything, and the same build seed always puts them in the same places. */
+const WB_REALM_N = [["The Kingdom of {B}", "kingdom"], ["The Duchy of {B}", "duchy"], ["The {A} March", "march"], ["The Free Lands of {B}", "free land"], ["The {A} Throne", "kingdom"], ["The Barony of {B}", "barony"]];
+function wbRegionPlaces(atlas, o) {
+  const T = atlasTerrain(atlas), rr = makeRng("wb-region", W.build.seed), nRealm = [2, 3, 4].includes(+o.realms) ? +o.realms : 0;
+  const plan = ({ none: [], few: ["town", "village", "village"], many: ["city", "town", "town", "town", "village", "village", "village", "village"] }[o.towns || "few"] || []).slice();
+  if (plan.length) while (plan.filter(t => t !== "village").length < nRealm) plan.push("town"); // each kingdom gets a seat
+  const spots = [], cellAt = q => atlasCell(T, q), mid = i => ({ x: +(((i % T.W) + .5) / T.W).toFixed(5), y: +((Math.floor(i / T.W) + .5) / T.H).toFixed(5) });
+  const place = (score, room) => { let best = null, bs = -Infinity; for (let k = 0; k < 400; k++) { const q = { x: .06 + rr.f() * .88, y: .08 + rr.f() * .84 }, i = cellAt(q); if (T.h[i] < .01) continue; let s = score(i, q) + rr.f() * .5; for (const o2 of spots) { const d = Math.hypot(o2.x - q.x, (o2.y - q.y) * ATLAS_H / ATLAS_W); if (d < room) s -= (room - d) * 400; } if (s > bs) { bs = s; best = i; } } return best === null ? null : mid(best); };
+  const used = new Set(), uname = f => { for (let k = 0; k < 20; k++) { const n = f(); if (!used.has(n)) { used.add(n); return n; } } return f() + " " + (used.size + 1); };
+  const realms = [];
+  for (let k = 0; k < nRealm; k++) { // spread out: each kingdom's heart as far from the others as the land allows
+    const q = place((i, q2) => Math.min(1, ...realms.map(a => Math.hypot(a.spot.x - q2.x, a.spot.y - q2.y))) * 12 - (Math.abs(q2.x - .5) > .34 || Math.abs(q2.y - .5) > .36 ? 6 : 0), .2); if (!q) break; spots.push(q);
+    const [t, kind] = WB_REALM_N[(k + rr.int(0, 5)) % WB_REALM_N.length];
+    realms.push({ spot: q, d: { name: uname(() => t.replace("{A}", rr.pick(ATLAS_NA)).replace("{B}", rr.pick(ATLAS_NB))), type: "region", desc: `A ${kind} within the region.`, sections: [], kids: [], npcs: [], _pin: "a" + k } });
+  }
+  const towns = plan.map((type, i) => { const q = place(i2 => atlasLikes(type, T, i2), .1); if (!q) return null; spots.push(q);
+    const d = WB.settlement(makeRng("wb-town", W.build.seed, i), { size: type, name: uname(() => rr.pick(WB_A) + rr.pick(WB_B)), npcs: false, places: false });
+    d._pin = "t" + i; return { spot: q, d }; }).filter(Boolean);
+  [...realms, ...towns].forEach(x => { atlas.pins[x.d._pin] = x.spot; });
+  if (!realms.length) return towns.map(x => x.d);
+  towns.forEach(x => { let best = realms[0], bd = Infinity; realms.forEach(a => { const d = Math.hypot(a.spot.x - x.spot.x, a.spot.y - x.spot.y); if (d < bd) { bd = d; best = a; } }); best.d.kids.push(x.d); });
+  return realms.map(a => a.d);
+}
+/* the region builder's preview pins, from the draft's places */
+function wbRegionPins(d) {
+  const out = [], walk = x => { const q = x._pin && d.atlas.pins[x._pin]; if (q) out.push({ id: x._pin, name: x.name, icon: (WP_TYPES[x.type] || WP_TYPES.other)[0], x: q.x, y: q.y, hidden: false, area: x.type === "region", big: x.type === "city", type: x.type }); x.kids.forEach(walk); };
+  d.kids.forEach(walk); return out;
+}
+const WB_DEFAULTS = { settlement: { size: "town", terrain: "", npcs: true, places: true }, tavern: { quality: "", npcs: true }, shop: { type: "", size: "town", level: "", npcs: true, rar: [], amount: "normal", moodIx: "" }, temple: { domain: "", size: "town", npcs: true }, dungeon: { theme: "", level: "", map: true }, region: { shape: "coast", land: "balanced", climate: "temperate", towns: "few", realms: "0", names: {} } };
 /* The settlement size of the nearest village, town or city a place is in (or the place itself), or null. */
 function wpSettleSize(id) { const p = id && wp(id); if (!p) return null; const hit = wpPath(p).reverse().find(x => ["village", "town", "city"].includes(x.type)); return hit ? hit.type : null; }
 function wbStart(kind) { const prev = W.build; W.build = { kind, seed: newSeed(), o: { ...WB_DEFAULTS[kind], name: "" }, parent: prev ? prev.parent : (W.sel && wp(W.sel) ? W.sel : null), camp: prev ? prev.camp : W.camp }; }
-function wbMapDraw() { const cv = $("#wbMapCv"); if (!cv || !W.build) return; const d = wbDraft(); if (!d.atlas) return; atlasDraw(cv, d.atlas, { picture: null, pins: [], names: d.atlas.names.filter(f => f.name), title: d.name }); }
+function wbMapDraw() { const cv = $("#wbMapCv"); if (!cv || !W.build) return; const d = wbDraft(); if (!d.atlas) return; atlasDraw(cv, d.atlas, { picture: null, pins: wbRegionPins(d), names: d.atlas.names.filter(f => f.name), title: d.name }); }
 const wbDraft = () => WB[W.build.kind](makeRng("wb", W.build.kind, W.build.seed), W.build.o);
 function wbCount(d) { let p = 0, n = 0; const walk = x => { p++; n += x.npcs.length; x.kids.forEach(walk); }; walk(d); return { p, n }; }
 function wbHTML() {
@@ -556,7 +590,8 @@ function wbHTML() {
       + f("How much stock", sel("amount", [["small", "Small"], ["normal", "Normal"], ["large", "Large"]], "")) + f("Shopkeeper's manner", sel("moodIx", SHOP_MOODS.map((m, i) => [i, cap1(m[0])]), "Random"))
       + `<div class="field" style="flex:1 1 100%"><label>Magic item rarities</label><div class="wb-rar">${[["auto", "Automatic"], ...RARITY.slice(0, 5).map((n, i) => [i, n])].map(([v, l]) => `<label class="check"><input type="checkbox" data-wbrar="${v}" ${v === "auto" ? (!(o.rar || []).length ? "checked" : "") : (o.rar || []).includes(v) ? "checked" : ""}> ${esc(l)}</label>`).join("")}</div>${o.type && SHOPS[o.type] && !SHOPS[o.type].magic ? `<p class="hint wb-note">A ${esc(SHOPS[o.type].label.toLowerCase())} doesn't sell magic items, so rarity doesn't apply.</p>` : ""}</div>`,
     temple: f("God of", sel("domain", Object.keys(WB_GODS).map(k => [k, `${k} (${WB_GODS[k]})`]))) + f("Settlement", sel("size", [["village", "Village (a shrine)"], ["town", "Town"], ["city", "City (a great temple)"]], "")),
-    region: f("Shape", sel("shape", Object.entries(ATLAS_SHAPES), "")) + f("Land", sel("land", Object.entries(ATLAS_LANDS), "")),
+    region: f("Shape", sel("shape", Object.entries(ATLAS_SHAPES), "")) + f("Land", sel("land", Object.entries(ATLAS_LANDS), "")) + f("Climate", sel("climate", Object.entries(ATLAS_CLIMATES), ""))
+      + f("Towns", sel("towns", [["none", "None"], ["few", "A few"], ["many", "Many"]], "")) + f("Kingdoms", sel("realms", [["0", "None"], ["2", "Two"], ["3", "Three"], ["4", "Four"]], "")),
     dungeon: f("Kind", sel("theme", Object.keys(WB_DUN_N).map(k => [k, cap1(k)]))) + f("Party level", `<input type="number" data-wb="level" min="1" max="20" value="${esc(o.level)}" placeholder="${shopLevelGuess()}" aria-label="Party level">`)
   }[B.kind];
   const checks = { settlement: chk("places", "Add inns, shops and a temple" + (o.size === "city" ? ", in districts" : "")) + chk("npcs", "Add NPCs who live there"), tavern: chk("npcs", "Add the innkeeper, staff and a regular"), shop: chk("npcs", "Add the shopkeeper as an NPC"), temple: chk("npcs", "Add the priest and an acolyte"), region: "", dungeon: chk("map", "Generate a map for it") }[B.kind];
@@ -581,15 +616,17 @@ function wbHTML() {
   </div>`;
 }
 function wbCommit() {
-  const B = W.build; if (!B) return null; const d = wbDraft(), camp = B.camp && Store.get(B.camp), looseL = npcLoose();
+  const B = W.build; if (!B) return null; const d = wbDraft(), camp = B.camp && Store.get(B.camp), looseL = npcLoose(), pinIds = {};
   const make = (x, parent) => {
     const p = wpNew({ name: x.name.slice(0, 120), type: x.type, parent: parent || null, desc: x.desc, sections: x.sections.map(s2 => ({ ...s2 })), ...(x.shop ? { shop: x.shopFull || x.shop } : {}), ...(x.atlas ? { atlas: JSON.parse(JSON.stringify(x.atlas)) } : {}), ...(x.map ? { map: { ...x.map, id: uid("m"), saved: Date.now() } } : {}) });
     x.npcs.forEach(n => { const id = uid("n"), rec = { id, lib: "nl-" + id, name: n.name, role: `${n.race} ${n.occupation}`, attitude: { Wary: "Neutral" }[n.attitude] || n.attitude, notes: npcText(n).split("\n").slice(1).join("\n"), placeId: p.id, place: p.name };
       if (camp) { camp.npcs = camp.npcs || []; camp.npcs.push(rec); } else looseL.push(rec); });
     x.kids.forEach(k => make(k, p.id));
+    if (x._pin) pinIds[x._pin] = p.id;
     return p;
   };
   const top = make(d, B.parent && wp(B.parent) ? B.parent : null);
+  if (top.atlas) { const pins = {}; Object.entries(top.atlas.pins || {}).forEach(([k, q]) => { if (pinIds[k]) pins[pinIds[k]] = q; }); top.atlas.pins = pins; } // draft keys -> the new places' ids
   worldSave(); npcLooseSave(looseL);
   if (camp) wpSetCamp(top, camp, true);
   B.seed = newSeed(); B.o.name = ""; if (B.o.names) B.o.names = {};
