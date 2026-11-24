@@ -2,6 +2,50 @@
    When a change ships, add an entry to the top of NEWS with a new id, in plain words for players and DMs. */
 
 const NEWS = [
+  { id: "2026-11-24-map-editor", date: "2026-11-24", title: "Draw your own maps", go: "map", items: [
+    "Dungeon Map → ✏️ Edit map lets you change any generated dungeon, and ➕ New blank map starts one from scratch.",
+    "Draw rooms, round rooms and any shape, paint corridors, and erase. Walls follow the shape, curves included.",
+    "Add doors (normal, secret, locked or bars), stairs, room numbers with Room Key entries, text labels (tick DM only to keep one off the TV), furniture, and your own pictures.",
+    "Select anything to move, turn, resize or delete it, with Undo and Redo (Ctrl+Z and Ctrl+Y).",
+    "🎨 Style changes the walls' colour, thickness and roughness, the floor colour, the grid and the hatching, in any of the six looks.",
+    "Fog, tokens and the TV work on drawn maps too. Save them to a campaign or a World place to keep them; your last drawing also comes back after a refresh."
+  ] },
+  { id: "2026-11-24-map-art", date: "2026-11-24", title: "New map art: hand-drawn dungeons and richer region maps", go: "map", items: [
+    "Dungeon Map → Style has three new looks: Inked sketch (black ink on white paper), Old atlas (stained paper, red room numbers and a compass rose) and Stone and torchlight (dark stone lit by torches, made for the TV).",
+    "Region and world maps are painted more richly, with ripples off the coast, hills and a ruled frame. Pick a Climate: desert, jungle, frozen north or swamp.",
+    "New land shapes: Archipelago, Peninsula, Volcano island and Twin lands. New maps also get lakes inland.",
+    "Roads join the towns on a map, and regions inside it get borders. The TV only shows the roads and borders of places the players have found.",
+    "The World builder's Region can now add towns and villages (A few or Many) and split the land into two to four kingdoms, all pinned on its map.",
+    "Maps you already have keep their land and pins."
+  ] },
+  { id: "2026-11-24-chat", date: "2026-11-24", title: "Chat with your DM and your party", go: "whispers", items: [
+    "Whispers are now a chat. Players can reply to their DM, and the DM sees each player's conversation on the Party tab with a count of new messages.",
+    "Players also have a Party chat to talk among themselves. The DM can't see it."
+  ] },
+  { id: "2026-11-24-phone-table", date: "2026-11-24", title: "Easier at the table on a phone", go: "tracker", items: [
+    "DMs: while a fight is under way, a bar above the bottom buttons shows the round, whose turn it is and who's next, with a big Next turn button. The Encounter button jumps straight to the fight.",
+    "The open campaign and the open character now come first on phones; their lists fold below or into one tap. The Tracker's sections are one row you swipe sideways.",
+    "Buttons and boxes are bigger on touch screens. In a fight, Next turn is the gold button, and Next Session and Save as template sit under More.",
+    "On laptops the header is one row shorter, and keyboard users can press Tab once for Skip to content."
+  ] },
+  { id: "2026-11-24-group-initiative", date: "2026-11-24", title: "Group initiative and numbered tokens", go: "tracker", items: [
+    "Tick Group by monster beside Roll enemy initiative and each kind of monster rolls once, so all the goblins act together.",
+    "Rolling initiative again in the middle of a fight now asks first, since it starts the fight again at round 1.",
+    "On the Dungeon Map, adding a token with a name that's already there numbers them: Goblin 1, Goblin 2, Goblin 3."
+  ] },
+  { id: "2026-11-24-qa-pass-3", date: "2026-11-24", title: "Fairer fights and multiclass fixes", go: "tracker", items: [
+    "Roll enemy initiative now adds each monster's own initiative bonus, for every monster, not just a few.",
+    "Multiclass druids and rangers get Companions & Wild Shape, and Circle of the Moon druids see their higher beast limit there too.",
+    "Multiclass characters can take feats at their total character level (a Fighter 2 / Wizard 6 is level 8).",
+    "Wild Shape reads the attacks of the last few beasts that had none. The monster builder no longer saves hit points of 0 or less.",
+    "Shop prices under 1 gp show exact silver and copper (8 sp 5 cp, not 9 sp). On phones, the Tracker's fight boxes are labelled and long campaign names fit."
+  ] },
+  { id: "2026-11-24-monster-fixes", date: "2026-11-24", title: "Monsters that can fight back", go: "monsters", items: [
+    "About 400 Tome of Beasts 3 monsters now have their attacks and Multiattack. Before, their stat blocks only showed traits.",
+    "Black Flag monsters' resistance and immunity lines now only list damage. Conditions are labelled or moved to Condition Immunities, and a trait like Fey Resilience says \"see Fey Resilience\".",
+    "Druids: Wild Shape forms from the extra books now have their attacks, and the full list of forms shows without opening the Monster Manual first.",
+    "Multiclassing into Barbarian or Monk now gives you Unarmored Defense in your Armor Class."
+  ] },
   { id: "2026-11-24-new-icon", date: "2026-11-24", title: "A new look for the Forge's icon", go: "generate", items: [
     "The Forge has a new emblem: a golden d20 on a shield with crossed hammers. You'll see it in the header, above empty pages, on the browser tab and on your home screen if you installed the app."
   ] },

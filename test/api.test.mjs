@@ -401,3 +401,50 @@ test("feature requests: anyone signed in sends them and sees their own; the owne
   assert.equal((await handle(req, owner, pool)).status, 400);
   delete process.env.FORGE_OWNER_EMAILS;
 });
+
+test("chat: DM ↔ player both ways, and a party chat the DM never sees", async () => {
+  const made = await call(DM, "POST", "campaigns", { name: "Chat Keep", displayName: "Matt" });
+  const cid = made.body.id, code = made.body.code;
+  await call(AVA, "POST", "join", { code, displayName: "Ava" });
+  await call(BEN, "POST", "join", { code, displayName: "Ben" });
+  const W = `campaigns/${cid}/whispers`;
+  const get = u => call(u, "GET", W);
+
+  assert.equal((await call(AVA, "POST", W, { to: "dm", body: "Can I check for traps?" })).status, 201);
+  let dmView = (await get(DM)).body;
+  const ask = dmView.find(w => w.body === "Can I check for traps?");
+  assert.ok(ask);
+  assert.equal(ask.thread, AVA.id); assert.equal(ask.mine, false); assert.equal(ask.read, false); assert.equal(ask.fromName, "Ava");
+
+  assert.equal((await call(DM, "POST", W, { to: AVA.id, body: "Roll Investigation." })).status, 201);
+  const avaDm = (await get(AVA)).body.filter(w => w.thread === "dm");
+  assert.deepEqual(avaDm.map(w => [w.body, w.mine]), [["Roll Investigation.", false], ["Can I check for traps?", true]]);
+
+  assert.equal((await call(AVA, "POST", W, { to: "party", body: "First watch?" })).status, 201);
+  const benParty = (await get(BEN)).body.filter(w => w.thread === "party");
+  assert.equal(benParty.length, 1);
+  assert.equal(benParty[0].fromName, "Ava"); assert.equal(benParty[0].read, false); assert.equal(benParty[0].body, "First watch?");
+  dmView = (await get(DM)).body;
+  assert.ok(!dmView.some(w => w.thread === "party" || w.body === "First watch?" || w.to === "party"), "the DM never gets party rows");
+  assert.ok(!(await get(BEN)).body.some(w => /traps|Investigation/.test(w.body)), "Ben can't read Ava's DM chat");
+
+  assert.equal((await call(AVA, "POST", W, { to: BEN.id, body: "psst" })).status, 403);
+  assert.equal((await call(AVA, "POST", W, { to: "party", body: "   " })).status, 400);
+  assert.equal((await call(DM, "POST", W, { to: "party", body: "hello all" })).status, 400);
+  assert.equal((await call(AVA, "POST", W, { to: "party", body: "x".repeat(2500) })).status, 201);
+  assert.equal((await get(BEN)).body.find(w => w.thread === "party" && w.body.startsWith("xxx")).body.length, 2000);
+
+  assert.equal((await call(BEN, "POST", `${W}/read`, { thread: "party" })).status, 200);
+  const benAfter = (await get(BEN)).body.filter(w => w.thread === "party");
+  assert.ok(benAfter.every(w => w.read), "Ben's party chat is read");
+  assert.ok((await get(AVA)).body.filter(w => w.thread === "party").every(w => w.read), "your own party messages count as read");
+
+  assert.equal((await call(DM, "POST", `${W}/read`, { thread: AVA.id })).status, 200);
+  assert.equal((await get(DM)).body.find(w => w.body === "Can I check for traps?").read, true);
+  assert.equal((await call(DM, "POST", `${W}/read`, { thread: "party" })).status, 403);
+
+  assert.equal((await call(BEN, "POST", W, { to: "party", body: "I'll take it." })).status, 201);
+  await call(DM, "DELETE", `campaigns/${cid}/members/${BEN.id}`);
+  assert.equal((await get(BEN)).status, 403);
+  assert.equal((await get(AVA)).body.find(w => w.body === "I'll take it.").fromName, "A former player");
+});

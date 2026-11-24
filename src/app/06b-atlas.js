@@ -5,8 +5,14 @@
    A map's recipe is { seed, shape, land }. Terrain is never stored: atlasTerrain rebuilds it, the same every time.
    The grid is 400 × 275 cells; drawings are 1600 × 1100 (4 px a cell). */
 const ATLAS_W = 1600, ATLAS_H = 1100, ATLAS_GW = 400, ATLAS_GH = 275;
-const ATLAS_SHAPES = { coast: "Coast", inland: "Inland", island: "Island" };
+const ATLAS_SHAPES = { coast: "Coast", inland: "Inland", island: "Island", archipelago: "Archipelago", peninsula: "Peninsula", volcano: "Volcano island", twin: "Twin lands" };
 const ATLAS_LANDS = { balanced: "Balanced", mountains: "Mountains", forest: "Forest", plains: "Plains" };
+/* climates (2026-11-24): a missing climate is temperate, so older maps keep their look */
+const ATLAS_CLIMATES = { temperate: "Temperate", desert: "Desert", jungle: "Jungle", tundra: "Frozen north", swamp: "Swamp" };
+const atlasClimate = m => ATLAS_CLIMATES[m.climate] ? m.climate : "temperate";
+/* a map's recipe as a cache key. Version 2 maps (made from 2026-11-24) also get lakes in their hollows; a missing v is 1. */
+const atlasKey = m => `${m.seed}|${m.shape}|${m.land}${atlasClimate(m) !== "temperate" ? "|" + atlasClimate(m) : ""}${(m.v || 1) >= 2 ? "|2" : ""}`;
+const ATLAS_SEA_EDGE = new Set(["island", "archipelago", "volcano", "twin"]);
 const ATLAS_T = new Map(); // terrain cache, newest last (at most 6)
 function atlasNoise(seed) {
   const r = makeRng("atlas", seed), P = new Uint16Array(512), G = new Float32Array(256);
@@ -18,25 +24,43 @@ function atlasNoise(seed) {
   return (x, y, oct, fr) => { let t = 0, amp = 1, tot = 0; for (let o = 0; o < oct; o++) { t += amp * one(x * fr + o * 31.7, y * fr + o * 17.3); tot += amp; amp *= .5; fr *= 2; } return t / tot; };
 }
 function atlasTerrain(m) {
-  const key = `${m.seed}|${m.shape}|${m.land}`;
+  const key = atlasKey(m), clim = atlasClimate(m), v2 = (m.v || 1) >= 2;
   if (ATLAS_T.has(key)) { const t = ATLAS_T.get(key); ATLAS_T.delete(key); ATLAS_T.set(key, t); return t; }
   const W = ATLAS_GW, H = ATLAS_GH, N = W * H, n = atlasNoise(m.seed), q = atlasNoise(m.seed + "|wet"), r = makeRng("atlas-shape", m.seed);
   const h = new Float32Array(N), wet = new Float32Array(N), shape = ATLAS_SHAPES[m.shape] ? m.shape : "coast", land = ATLAS_LANDS[m.land] ? m.land : "balanced";
   const sides = r.shuffle(["n", "s", "e", "w"]).slice(0, r.chance(.5) ? 1 : 2);
+  const base = shape === "peninsula" ? r.pick(["n", "s", "e", "w"]) : null; // the side a peninsula grows from
   for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) {
     const i = y * W + x; let v = (n(x, y, 5, 1 / 70) - .5) * 1.9 + .25;
     if (shape === "island") { const dx = (x - W / 2) / (W / 2), dy = (y - H / 2) / (H / 2); v -= .95 * (dx * dx + dy * dy) - .05; }
+    if (shape === "archipelago") { const dx = (x - W / 2) / (W / 2), dy = (y - H / 2) / (H / 2); v = (n(x, y, 5, 1 / 30) - .5) * 2.4 + .02 - .7 * Math.max(0, dx * dx + dy * dy - .3); }
+    if (shape === "volcano") { const dx = (x - W / 2) / (W / 2), dy = (y - H / 2) / (H / 2), d = Math.hypot(dx, dy), cone = Math.max(0, 1 - d / .42); v = v * .6 - 1.1 * (dx * dx + dy * dy) + .12 + cone * cone * 1.05; }
+    if (shape === "twin") { const dy = (y - H / 2) / (H * .46), a = (x - W * .26) / (W * .3), b = (x - W * .74) / (W * .3); v -= .95 * Math.min(a * a + dy * dy, b * b + dy * dy) - .12; v -= Math.max(0, 1 - Math.abs(x - W / 2) / (W * .07)) * .9; }
+    if (shape === "peninsula") {
+      const t = { s: 1 - y / H, n: y / H, w: x / W, e: 1 - x / W }[base], u = (base === "n" || base === "s" ? (x - W / 2) / (W / 2) : (y - H / 2) / (H / 2)) + (n(x * .5 + 91, y * .5, 2, 1 / 60) - .5) * .5;
+      const wide = .6 - .36 * t; if (Math.abs(u) > wide) v -= (Math.abs(u) - wide) * 2.6 + .06; if (t > .86) v -= (t - .86) * 6;
+    }
     if (shape === "coast") for (const s of sides) { const d = { n: y / H, s: 1 - y / H, w: x / W, e: 1 - x / W }[s]; if (d < .45) v -= Math.pow((.45 - d) / .45, 1.6) * 1.05; }
     if (shape === "inland") v = .04 + Math.max(0, v + .06) * .72;
     if (land === "mountains" && v > 0) v = v * 1.3 + .06;
     if (land === "plains" && v > 0) v *= .62;
-    h[i] = v; wet[i] = q(x, y, 3, 1 / 45) + (land === "forest" ? .14 : land === "plains" ? -.05 : 0);
+    h[i] = v; wet[i] = q(x, y, 3, 1 / 45) + (land === "forest" ? .14 : land === "plains" ? -.05 : 0) + { temperate: 0, desert: -.4, jungle: .22, tundra: -.06, swamp: .18 }[clim];
   }
+  if (shape === "peninsula") for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) { const e = { n: H - 1 - y, s: y, w: W - 1 - x, e: x }[base]; if (Math.min(x, y, W - 1 - x, H - 1 - y) < 3 && e < 3) h[y * W + x] = Math.min(h[y * W + x], -.08); }
+  if (ATLAS_SEA_EDGE.has(shape) && shape !== "island") for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) if (Math.min(x, y, W - 1 - x, H - 1 - y) < 3) h[y * W + x] = Math.min(h[y * W + x], -.08);
   if (shape === "island") for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) if (Math.min(x, y, W - 1 - x, H - 1 - y) < 3) h[y * W + x] = Math.min(h[y * W + x], -.08);
   const lakeCells = [], lakes = [];
   const lake = (cx, cy, rad) => { let k = 0; for (let y = cy - rad; y <= cy + rad; y++) for (let x = cx - rad; x <= cx + rad; x++) { if (x < 1 || y < 1 || x >= W - 1 || y >= H - 1) continue; const d = (x - cx) ** 2 + (y - cy) ** 2 * 1.3; if (d > rad * rad || h[y * W + x] < 0) continue; h[y * W + x] = -.03 - .02 * (1 - d / (rad * rad)); lakeCells.push(y * W + x); k++; } if (k) lakes.push({ x: cx, y: cy, size: k }); };
   // inland: a few lakes in the lowest hollows
   if (shape === "inland") { const low = []; for (let y = 8; y < H - 8; y += 6) for (let x = 8; x < W - 8; x += 6) low.push([h[y * W + x], x, y]); low.sort((a, b) => a[0] - b[0]); low.slice(0, 2 + r.int(0, 2)).forEach(([, x, y]) => lake(x, y, 3 + r.int(0, 3))); }
+  // newer maps: lakes in the hollows away from the sea, and a swamp's pools (own random streams)
+  if (v2 && shape !== "inland") {
+    const rl = makeRng("atlas-lakes", m.seed), dry = (x, y) => { for (let a = 0; a < 16; a++) { const px = Math.round(x + 14 * Math.cos(a * .3927)), py = Math.round(y + 14 * Math.sin(a * .3927)); if (px < 0 || py < 0 || px >= W || py >= H || h[py * W + px] < 0) return false; } return true; };
+    const low = []; for (let y = 16; y < H - 16; y += 5) for (let x = 16; x < W - 16; x += 5) { const v = h[y * W + x]; if (v > .03 && v < .22 && dry(x, y)) low.push([v + rl.f() * .04, x, y]); }
+    low.sort((a, b) => a[0] - b[0]); const took = [];
+    for (const [, x, y] of low) { if (took.length >= 1 + rl.int(0, 2)) break; if (took.some(([a, b]) => Math.hypot(a - x, b - y) < 40)) continue; took.push([x, y]); lake(x, y, 3 + rl.int(0, 2)); }
+  }
+  if (clim === "swamp") { const mq = atlasNoise(m.seed + "|marsh"); for (let y = 2; y < H - 2; y++) for (let x = 2; x < W - 2; x++) { const i = y * W + x; if (h[i] > 0 && h[i] < .13 && mq(x, y, 3, 1 / 12) > .63) { h[i] = -.015; lakeCells.push(i); } } }
   // rivers: downhill from high ground to the sea or a lake, joining when they meet
   const rivers = [], onRiver = new Int16Array(N).fill(-1), D8 = [[1, 0], [-1, 0], [0, 1], [0, -1], [1, 1], [-1, -1], [1, -1], [-1, 1]];
   for (let k = 0; k < 220 && rivers.length < 5; k++) {
@@ -53,7 +77,7 @@ function atlasTerrain(m) {
     }
     if (ok && path.length >= 25) { path.forEach(([px, py]) => { if (onRiver[py * W + px] < 0) onRiver[py * W + px] = rivers.length; }); rivers.push(path); }
   }
-  const T = { W, H, h, wet, rivers, lakes, lakeCells, shape, land };
+  const T = { W, H, h, wet, rivers, lakes, lakeCells, shape, land, climate: clim };
   T.feats = atlasFeats(T);
   ATLAS_T.set(key, T); if (ATLAS_T.size > 6) ATLAS_T.delete(ATLAS_T.keys().next().value);
   return T;
@@ -100,20 +124,35 @@ function atlasNames(m) {
    atlasDraw(cv, m, o): o.pins = [{ name, icon, x, y, hidden, area }] (fractions), o.player leaves hidden pins out,
    o.names = feature labels, o.title, o.scale. Returns { labels }: every name drawn (the TV check reads it). */
 const ATLAS_IMG = new Map(); // finished terrain pictures, by recipe (at most 4)
+/* each climate's colours (2026-11-24): water by depth and land by height, as [height, [r, g, b]] stops, plus its inks */
+const ATLAS_PAL = {
+  temperate: { water: [[-.4, [30, 66, 108]], [-.08, [52, 102, 150]], [0, [96, 150, 188]]], land: [[0, [176, 196, 124]], [.08, [140, 184, 104]], [.22, [178, 188, 118]], [.38, [156, 138, 104]], [.52, [206, 200, 192]], [.62, [244, 244, 244]]], river: "#3f7fc6", ink: "#1f3550", peak: "#8a7556", tree: ["#2f5a2c", "#3f6f3a"], snow: .5 },
+  desert: { water: [[-.4, [28, 70, 110]], [-.08, [44, 110, 150]], [0, [96, 172, 192]]], land: [[0, [238, 216, 162]], [.08, [228, 198, 142]], [.22, [216, 178, 120]], [.38, [186, 140, 94]], [.52, [154, 108, 76]], [.62, [134, 94, 68]]], river: "#3f8fc0", ink: "#5a3a1a", peak: "#a8774c", tree: ["#4f6f2c", "#6f9a3a"], snow: 9 },
+  jungle: { water: [[-.4, [20, 70, 90]], [-.08, [34, 104, 120]], [0, [72, 152, 150]]], land: [[0, [124, 172, 92]], [.08, [72, 138, 66]], [.22, [88, 142, 72]], [.38, [112, 122, 82]], [.52, [152, 152, 132]], [.62, [232, 232, 228]]], river: "#3a8a9a", ink: "#1f3a30", peak: "#6f6a50", tree: ["#1f4a22", "#2f6a2c"], snow: .56 },
+  tundra: { water: [[-.4, [40, 70, 100]], [-.08, [70, 110, 140]], [0, [132, 172, 198]]], land: [[0, [200, 206, 198]], [.08, [212, 218, 214]], [.22, [198, 206, 206]], [.38, [172, 174, 178]], [.52, [234, 238, 242]], [.62, [252, 252, 254]]], river: "#7fa6c8", ink: "#24384c", peak: "#8a8c92", tree: ["#2c4a3a", "#3d5e4a"], snow: .3 },
+  swamp: { water: [[-.4, [40, 64, 64]], [-.08, [58, 88, 84]], [0, [86, 116, 102]]], land: [[0, [124, 136, 90]], [.08, [110, 128, 82]], [.22, [128, 136, 90]], [.38, [122, 112, 86]], [.52, [172, 168, 152]], [.62, [232, 232, 228]]], river: "#4f7a70", ink: "#22302a", peak: "#7a705a", tree: ["#334a2a", "#4b6b3a"], snow: .58 }
+};
+function atlasRamp(stops, v) {
+  if (v <= stops[0][0]) return stops[0][1];
+  for (let i = 1; i < stops.length; i++) if (v <= stops[i][0]) { const [a, ca] = stops[i - 1], [b, cb] = stops[i], t = (v - a) / (b - a); return ca.map((c, k) => c + (cb[k] - c) * t); }
+  return stops[stops.length - 1][1];
+}
 function atlasTerrainCanvas(m) {
-  const key = `${m.seed}|${m.shape}|${m.land}`;
+  const key = atlasKey(m);
   if (ATLAS_IMG.has(key)) return ATLAS_IMG.get(key);
-  const T = atlasTerrain(m), { W, H, h, wet } = T, sx = ATLAS_W / W, sy = ATLAS_H / H, r = makeRng("atlas-ink", m.seed);
+  const T = atlasTerrain(m), { W, H, h, wet } = T, sx = ATLAS_W / W, sy = ATLAS_H / H, r = makeRng("atlas-ink", m.seed), clim = T.climate, pal = ATLAS_PAL[clim];
   const cv = document.createElement("canvas"); cv.width = ATLAS_W; cv.height = ATLAS_H; const g = cv.getContext("2d");
-  // colours by height, with light hill shading, drawn small then scaled up smoothly
-  const img = new ImageData(W, H), col = v => v < -.06 ? [47, 95, 143] : v < 0 ? [79, 134, 184] : v < .18 ? [143, 191, 106] : v < .36 ? [185, 194, 122] : v < .5 ? [156, 139, 106] : [236, 236, 236];
+  // colours by height (a smooth ramp per climate), light hill shading and a painterly mottle, drawn small then scaled up smoothly
+  const img = new ImageData(W, H), mot = atlasNoise(m.seed + "|paint"), lush = clim === "temperate" || clim === "jungle" || clim === "swamp";
   for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) {
-    const i = y * W + x, v = h[i], c = col(v), sh = v > 0 && x > 0 && y > 0 ? Math.max(-26, Math.min(26, (v - h[i - W - 1]) * 520)) : 0, dep = v < -.06 ? Math.max(-30, v * 40) : 0;
-    img.data[i * 4] = c[0] + sh + dep; img.data[i * 4 + 1] = c[1] + sh + dep; img.data[i * 4 + 2] = c[2] + sh + dep * .4; img.data[i * 4 + 3] = 255;
+    const i = y * W + x, v = h[i], land = v >= 0, c = land ? atlasRamp(pal.land, v) : atlasRamp(pal.water, v);
+    const sh = land && x > 0 && y > 0 ? Math.max(-26, Math.min(26, (v - h[i - W - 1]) * 520)) : 0, t = (mot(x, y, 3, 1 / 9) - .5) * (land ? 22 : 10);
+    const wt = land && lush && v < .38 ? (wet[i] - .5) * 24 : 0;
+    img.data[i * 4] = c[0] + sh + t - wt * .5; img.data[i * 4 + 1] = c[1] + sh + t + wt * .4; img.data[i * 4 + 2] = c[2] + sh + t * .7 - wt * .3; img.data[i * 4 + 3] = 255;
   }
   const small = document.createElement("canvas"); small.width = W; small.height = H; small.getContext("2d").putImageData(img, 0, 0);
   g.imageSmoothingEnabled = true; g.imageSmoothingQuality = "high"; g.drawImage(small, 0, 0, ATLAS_W, ATLAS_H);
-  // the coastline: marching squares at sea level, so it's smooth
+  // the coastline: marching squares at sea level, so it's smooth; ripples of white offshore
   const line = (lvl, style, wd) => { g.strokeStyle = style; g.lineWidth = wd; g.beginPath();
     const at = (x, y) => h[Math.min(H - 1, y) * W + Math.min(W - 1, x)] - lvl, lerp = (a, b) => a / (a - b);
     for (let y = 0; y < H - 1; y++) for (let x = 0; x < W - 1; x++) {
@@ -122,31 +161,125 @@ function atlasTerrainCanvas(m) {
       if ((d < 0) !== (c < 0)) pts.push([x + lerp(d, c), y + 1]); if ((a < 0) !== (d < 0)) pts.push([x, y + lerp(a, d)]);
       for (let k = 0; k + 1 < pts.length; k += 2) { g.moveTo((pts[k][0] + .5) * sx, (pts[k][1] + .5) * sy); g.lineTo((pts[k + 1][0] + .5) * sx, (pts[k + 1][1] + .5) * sy); }
     } g.stroke(); };
-  line(-.05, "rgba(255,255,255,.18)", 3); line(0, "#1f3550", 2.2);
+  line(-.09, "rgba(255,255,255,.1)", 1); line(-.05, "rgba(255,255,255,.18)", 1.3); line(-.022, "rgba(255,255,255,.32)", 1.6);
+  if (clim === "tundra") line(-.012, "rgba(255,255,255,.6)", 4); // ice along the shore
+  line(0, pal.ink, 2.2);
   // rivers, wider downstream
-  g.strokeStyle = "#3f7fc6"; g.lineCap = "round"; g.lineJoin = "round";
+  g.strokeStyle = pal.river; g.lineCap = "round"; g.lineJoin = "round";
   T.rivers.forEach(p => { for (let i = 1; i < p.length; i++) { g.lineWidth = 1.2 + 3.2 * i / p.length; g.beginPath(); g.moveTo((p[i - 1][0] + .5) * sx, (p[i - 1][1] + .5) * sy); g.lineTo((p[i][0] + .5) * sx, (p[i][1] + .5) * sy); g.stroke(); } });
-  // forests (tree dots) and mountains (peaks, snow-capped when high), back to front
-  const marks = [];
+  // marks, back to front: peaks (snow-capped when high), hills, and each climate's plants
+  const marks = [], wd = atlasWaterDist(T);
   for (let y = 2; y < H - 2; y += 3) for (let x = 2; x < W - 2; x += 3) {
-    const jx = x + (r.f() - .5) * 2.4, jy = y + (r.f() - .5) * 2.4, i = Math.round(jy) * W + Math.round(jx), v = h[i];
-    if (v > .4 && x % 6 === 2 && y % 6 === 2 && r.chance(.7)) marks.push([jy, "m", jx, v]); else if (v > .03 && v < .3 && wet[i] > .55 && r.chance(.7)) marks.push([jy, "f", jx, v]);
+    const jx = x + (r.f() - .5) * 2.4, jy = y + (r.f() - .5) * 2.4, i = Math.round(jy) * W + Math.round(jx), v = h[i], w = wet[i], roll = r.f();
+    if (v < .02) continue;
+    if (v > .4) { if (x % 6 === 2 && y % 6 === 2 && roll < .7) marks.push([jy, "m", jx, v]); continue; }
+    if (v > .3) { if (x % 6 === 5 && y % 6 === 2 && roll < .45) marks.push([jy, "h", jx, v]); continue; }
+    if (clim === "temperate" && v > .03 && w > .55 && roll < .7) marks.push([jy, "f", jx, v]);
+    else if (clim === "jungle" && w > .42 && roll < .85) marks.push([jy, "j", jx, v]);
+    else if (clim === "tundra" && w > .48 && roll < .6) marks.push([jy, "p", jx, v]);
+    else if (clim === "desert") { if (wd[i] < 4 && roll < .55) marks.push([jy, "palm", jx, v]); else if (v < .26 && roll < .16) marks.push([jy, "dune", jx, v]); }
+    else if (clim === "swamp") { if (v < .16 && w > .45 && roll < .5) marks.push([jy, "reed", jx, v]); else if (w > .58 && roll < .5) marks.push([jy, "f", jx, v]); }
   }
   marks.sort((a, b) => a[0] - b[0]).forEach(([y, k, x, v]) => {
-    const px = (x + .5) * sx, py = (y + .5) * sy;
-    if (k === "f") { g.fillStyle = "#2f5a2c"; g.fillRect(px - .8, py + 2, 1.6, 4); g.fillStyle = "#3f6f3a"; g.beginPath(); g.arc(px, py, 5, 0, 7); g.fill(); g.fillStyle = "rgba(255,255,255,.12)"; g.beginPath(); g.arc(px - 1.5, py - 1.5, 2, 0, 7); g.fill(); return; }
-    const s = 11 + v * 18; g.fillStyle = "#8a7556"; g.strokeStyle = "#4a4038"; g.lineWidth = 1.2;
+    const px = (x + .5) * sx, py = (y + .5) * sy, [dark, mid] = pal.tree;
+    if (k === "f" || k === "j") { const R = k === "j" ? 6 : 5; g.fillStyle = dark; g.fillRect(px - .8, py + 2, 1.6, 4); g.fillStyle = k === "j" ? dark : mid; g.beginPath(); g.arc(px, py, R, 0, 7); g.fill(); g.fillStyle = "rgba(255,255,255,.12)"; g.beginPath(); g.arc(px - 1.5, py - 1.5, 2, 0, 7); g.fill(); return; }
+    if (k === "p") { g.fillStyle = dark; g.beginPath(); g.moveTo(px, py - 8); g.lineTo(px + 4.5, py + 4); g.lineTo(px - 4.5, py + 4); g.closePath(); g.fill(); g.fillStyle = "rgba(255,255,255,.55)"; g.fillRect(px - 2.5, py - 2, 5, 1.2); return; }
+    if (k === "palm") { g.strokeStyle = "#6b4a2b"; g.lineWidth = 1.4; g.beginPath(); g.moveTo(px, py + 5); g.quadraticCurveTo(px + 1.5, py, px, py - 4); g.stroke(); g.strokeStyle = mid; g.lineWidth = 1.8; g.beginPath(); for (let a = 0; a < 5; a++) { const an = -Math.PI / 2 + (a - 2) * .7; g.moveTo(px, py - 4); g.quadraticCurveTo(px + Math.cos(an) * 4, py - 4 + Math.sin(an) * 4 - 1, px + Math.cos(an) * 7, py - 4 + Math.sin(an) * 6 + 2); } g.stroke(); return; }
+    if (k === "dune") { g.strokeStyle = "rgba(130,90,50,.55)"; g.lineWidth = 1.3; g.beginPath(); g.arc(px, py + 6, 8, Math.PI * 1.15, Math.PI * 1.85); g.stroke(); return; }
+    if (k === "reed") { g.strokeStyle = dark; g.lineWidth = 1; g.beginPath(); for (const d of [-3, 0, 3]) { g.moveTo(px + d, py + 4); g.lineTo(px + d * 1.4, py - 4 + Math.abs(d) * .5); } g.stroke(); return; }
+    if (k === "h") { g.strokeStyle = "rgba(70,55,40,.55)"; g.lineWidth = 1.4; g.beginPath(); g.arc(px, py + 5, 9, Math.PI * 1.1, Math.PI * 1.9); g.stroke(); g.beginPath(); g.arc(px + 8, py + 7, 6, Math.PI * 1.15, Math.PI * 1.85); g.stroke(); return; }
+    const s = 11 + v * 18; g.fillStyle = pal.peak; g.strokeStyle = "#4a4038"; g.lineWidth = 1.2;
     g.beginPath(); g.moveTo(px - s, py + s * .55); g.lineTo(px, py - s * .75); g.lineTo(px + s, py + s * .55); g.closePath(); g.fill(); g.stroke();
     g.fillStyle = "rgba(0,0,0,.18)"; g.beginPath(); g.moveTo(px, py - s * .75); g.lineTo(px + s, py + s * .55); g.lineTo(px + s * .2, py + s * .55); g.closePath(); g.fill();
-    if (v > .5) { g.fillStyle = "#f4f4f4"; g.beginPath(); g.moveTo(px - s * .36, py - s * .12); g.lineTo(px, py - s * .75); g.lineTo(px + s * .36, py - s * .12); g.lineTo(px + s * .1, py - s * .22); g.lineTo(px - s * .1, py - s * .05); g.closePath(); g.fill(); }
+    if (v > pal.snow) { g.fillStyle = "#f4f4f4"; g.beginPath(); g.moveTo(px - s * .36, py - s * .12); g.lineTo(px, py - s * .75); g.lineTo(px + s * .36, py - s * .12); g.lineTo(px + s * .1, py - s * .22); g.lineTo(px - s * .1, py - s * .05); g.closePath(); g.fill(); }
   });
-  // compass
-  const cx = ATLAS_W - 70, cy = ATLAS_H - 80; g.fillStyle = "rgba(255,255,255,.9)"; g.strokeStyle = "#1f3550"; g.lineWidth = 1.5;
-  g.beginPath(); g.moveTo(cx, cy - 40); g.lineTo(cx + 12, cy); g.lineTo(cx, cy + 40); g.lineTo(cx - 12, cy); g.closePath(); g.fill(); g.stroke();
-  g.fillStyle = "#1f3550"; g.beginPath(); g.moveTo(cx, cy - 40); g.lineTo(cx + 12, cy); g.lineTo(cx - 12, cy); g.closePath(); g.fill();
-  g.font = "bold 22px Georgia, serif"; g.textAlign = "center"; g.lineWidth = 4; g.strokeStyle = "rgba(0,0,0,.6)"; g.strokeText("N", cx, cy - 50); g.fillStyle = "#fff"; g.fillText("N", cx, cy - 50);
+  // a volcano's crater: a dark ring with a glow of lava
+  if (T.shape === "volcano") { const cx = (W / 2 + .5) * sx, cy = (H / 2 + .5) * sy, gl = g.createRadialGradient(cx, cy, 4, cx, cy, 46); gl.addColorStop(0, "rgba(255,170,60,.95)"); gl.addColorStop(.35, "rgba(220,70,30,.6)"); gl.addColorStop(1, "rgba(120,30,10,0)");
+    g.fillStyle = gl; g.beginPath(); g.arc(cx, cy, 46, 0, 7); g.fill(); g.strokeStyle = "#3a2a22"; g.lineWidth = 4; g.beginPath(); g.arc(cx, cy, 20, 0, 7); g.stroke(); g.fillStyle = "rgba(60,40,30,.5)"; g.beginPath(); g.arc(cx, cy, 18, 0, 7); g.fill(); g.fillStyle = "#ff9a3c"; g.beginPath(); g.arc(cx, cy, 9, 0, 7); g.fill(); }
+  // old paper: grain, darker edges and a ruled frame
+  g.fillStyle = "rgba(60,40,20,.06)"; for (let i = 0; i < 9000; i++) g.fillRect(r.f() * ATLAS_W, r.f() * ATLAS_H, 1.5, 1.5);
+  const vg = g.createRadialGradient(ATLAS_W / 2, ATLAS_H / 2, ATLAS_H * .45, ATLAS_W / 2, ATLAS_H / 2, ATLAS_W * .62); vg.addColorStop(0, "rgba(60,40,20,0)"); vg.addColorStop(1, "rgba(60,40,20,.32)"); g.fillStyle = vg; g.fillRect(0, 0, ATLAS_W, ATLAS_H);
+  g.strokeStyle = pal.ink; g.globalAlpha = .75; g.lineWidth = 3; g.strokeRect(9, 9, ATLAS_W - 18, ATLAS_H - 18); g.lineWidth = 1; g.strokeRect(16, 16, ATLAS_W - 32, ATLAS_H - 32); g.globalAlpha = 1;
+  mapCompassRose(g, ATLAS_W - 84, ATLAS_H - 96, 50, pal.ink);
   ATLAS_IMG.set(key, cv); if (ATLAS_IMG.size > 4) ATLAS_IMG.delete(ATLAS_IMG.keys().next().value);
   return cv;
+}
+/* ======================= Borders and roads (2026-11-24) =======================
+   Drawn on generated land from the pins being shown: regions inside the map (areas) split the land into territories with
+   borders, and roads join the cities, towns and villages (a sea lane where there's no way over land). The players' version
+   only gets the pins of places they've found, so it never shows a border or road to a place they haven't found. */
+const ATLAS_TOWN = new Set(["city", "town", "village"]);
+const ATLAS_REALM = [[178, 60, 60], [56, 92, 176], [56, 140, 78], [178, 124, 40], [124, 70, 156], [40, 140, 150]];
+const ATLAS_LINES = new Map(); // what was worked out for a recipe and its pins (at most 8)
+function atlasRoute(T, a, b) {
+  const { W, H, h } = T, S = 2, gw = Math.ceil(W / S), gh = Math.ceil(H / S);
+  if (!T.riverSet) { T.riverSet = new Uint8Array(W * H); T.rivers.forEach(p => p.forEach(([x, y]) => { T.riverSet[y * W + x] = 1; })); }
+  const hc = (cx, cy) => { let v = Infinity; for (let y = cy * S; y < Math.min(H, cy * S + S); y++) for (let x = cx * S; x < Math.min(W, cx * S + S); x++) v = Math.min(v, h[y * W + x]); return v; }; // the lowest square in the block, so no water is skipped
+  const cost = (cx, cy) => { const v = hc(cx, cy); if (v < 0) return Infinity; return 1 + Math.max(0, v - .28) * 30 + (T.riverSet[Math.min(H - 1, cy * S) * W + Math.min(W - 1, cx * S)] ? 4 : 0); };
+  const sx = Math.min(gw - 1, Math.floor(a[0] / S)), sy = Math.min(gh - 1, Math.floor(a[1] / S)), tx = Math.min(gw - 1, Math.floor(b[0] / S)), ty = Math.min(gh - 1, Math.floor(b[1] / S));
+  const N = gw * gh, g = new Float32Array(N).fill(Infinity), from = new Int32Array(N).fill(-1), shut = new Uint8Array(N), heap = [], est = i => Math.hypot(i % gw - tx, Math.floor(i / gw) - ty);
+  const push = (i, f) => { heap.push([f, i]); let k = heap.length - 1; while (k) { const u = (k - 1) >> 1; if (heap[u][0] <= heap[k][0]) break; [heap[u], heap[k]] = [heap[k], heap[u]]; k = u; } };
+  const pop = () => { const top = heap[0], last = heap.pop(); if (heap.length) { heap[0] = last; let k = 0; for (;;) { const l = 2 * k + 1, rr = l + 1; let m = k; if (l < heap.length && heap[l][0] < heap[m][0]) m = l; if (rr < heap.length && heap[rr][0] < heap[m][0]) m = rr; if (m === k) break; [heap[m], heap[k]] = [heap[k], heap[m]]; k = m; } } return top; };
+  const s0 = sy * gw + sx, t0 = ty * gw + tx; g[s0] = 0; push(s0, est(s0));
+  while (heap.length) {
+    const [, i] = pop(); if (shut[i]) continue; shut[i] = 1; if (i === t0) break;
+    const x = i % gw, y = (i - x) / gw;
+    for (const [dx, dy] of [[1, 0], [-1, 0], [0, 1], [0, -1], [1, 1], [-1, -1], [1, -1], [-1, 1]]) {
+      const nx = x + dx, ny = y + dy; if (nx < 0 || ny < 0 || nx >= gw || ny >= gh) continue;
+      const j = ny * gw + nx, c = (j === t0 ? 1 : cost(nx, ny)) * (dx && dy ? 1.414 : 1); if (c === Infinity || shut[j]) continue;
+      if (g[i] + c < g[j]) { g[j] = g[i] + c; from[j] = i; push(j, g[j] + est(j)); }
+    }
+  }
+  if (!shut[t0]) return null;
+  const path = []; for (let i = t0; i >= 0; i = from[i]) path.push([(i % gw) * S + S / 2, Math.floor(i / gw) * S + S / 2]);
+  path.reverse(); path[0] = a; path[path.length - 1] = b;
+  let pts = path.filter((q, k) => k === 0 || k === path.length - 1 || k % 2 === 0); // then round the corners (Chaikin)
+  for (let k = 0; k < 2; k++) { const o = [pts[0]]; for (let i = 0; i + 1 < pts.length; i++) { const [x0, y0] = pts[i], [x1, y1] = pts[i + 1]; o.push([x0 * .75 + x1 * .25, y0 * .75 + y1 * .25], [x0 * .25 + x1 * .75, y0 * .25 + y1 * .75]); } o.push(pts[pts.length - 1]); pts = o; }
+  return pts;
+}
+function atlasLines(m, pins) {
+  const areas = pins.filter(q => q.area), towns = pins.filter(q => !q.area && ATLAS_TOWN.has(q.type));
+  const key = atlasKey(m) + "|" + areas.map(q => `${q.id}@${q.x},${q.y}`).join(";") + "|" + towns.map(q => `${q.id}@${q.x},${q.y}`).join(";");
+  if (ATLAS_LINES.has(key)) return ATLAS_LINES.get(key);
+  const T = atlasTerrain(m), { W, H, h } = T, out = { own: null, roads: [], lanes: [] };
+  if (areas.length >= 2) {
+    const n = atlasNoise(m.seed + "|realm"), own = new Int8Array(W * H).fill(-1);
+    for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) {
+      if (h[y * W + x] < 0) continue; let best = -1, bd = Infinity;
+      areas.forEach((q, k) => { const d = Math.hypot(x - q.x * W, y - q.y * H) * (1 + (n(x + k * 57, y, 3, 1 / 40) - .5) * .6); if (d < bd) { bd = d; best = k; } });
+      own[y * W + x] = best;
+    }
+    out.own = own;
+  }
+  if (towns.length >= 2) {
+    const pts = towns.map(q => [q.x * W, q.y * H]), inn = [0], left = new Set(pts.map((_, i) => i).slice(1));
+    while (left.size) { // the shortest links that join every town (a spanning tree)
+      let best = null; inn.forEach(i => left.forEach(j => { const d = Math.hypot(pts[i][0] - pts[j][0], pts[i][1] - pts[j][1]); if (!best || d < best[2]) best = [i, j, d]; }));
+      inn.push(best[1]); left.delete(best[1]);
+      const road = atlasRoute(T, pts[best[0]], pts[best[1]]); if (road) out.roads.push(road); else out.lanes.push([pts[best[0]], pts[best[1]]]);
+    }
+  }
+  ATLAS_LINES.set(key, out); if (ATLAS_LINES.size > 8) ATLAS_LINES.delete(ATLAS_LINES.keys().next().value);
+  return out;
+}
+function atlasDrawLines(g, m, pins, w, hh) {
+  const L = atlasLines(m, pins), T = atlasTerrain(m), { W, H } = T, sx = w / W, sy = hh / H;
+  if (L.own) {
+    const c = document.createElement("canvas"); c.width = W; c.height = H; const cg = c.getContext("2d"), img = cg.createImageData(W, H);
+    for (let i = 0; i < W * H; i++) { const k = L.own[i]; if (k < 0) continue; const col = ATLAS_REALM[k % ATLAS_REALM.length]; img.data[i * 4] = col[0]; img.data[i * 4 + 1] = col[1]; img.data[i * 4 + 2] = col[2]; img.data[i * 4 + 3] = 46; }
+    cg.putImageData(img, 0, 0); g.save(); g.imageSmoothingEnabled = true; g.drawImage(c, 0, 0, w, hh); g.restore();
+    const seg = new Path2D();
+    for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) {
+      const k = L.own[y * W + x]; if (k < 0) continue;
+      if (x + 1 < W && L.own[y * W + x + 1] >= 0 && L.own[y * W + x + 1] !== k) { seg.moveTo((x + 1) * sx, y * sy); seg.lineTo((x + 1) * sx, (y + 1) * sy); }
+      if (y + 1 < H && L.own[(y + 1) * W + x] >= 0 && L.own[(y + 1) * W + x] !== k) { seg.moveTo(x * sx, (y + 1) * sy); seg.lineTo((x + 1) * sx, (y + 1) * sy); }
+    }
+    g.save(); g.lineCap = "round"; g.strokeStyle = "rgba(255,245,230,.55)"; g.lineWidth = 5; g.stroke(seg); g.strokeStyle = "#7a2020"; g.lineWidth = 1.8; g.setLineDash([7, 5]); g.stroke(seg); g.restore();
+  }
+  g.save(); g.lineCap = "round"; g.lineJoin = "round";
+  L.roads.forEach(p => { const path = new Path2D(); p.forEach(([x, y], i) => i ? path.lineTo(x * sx, y * sy) : path.moveTo(x * sx, y * sy)); g.setLineDash([]); g.strokeStyle = "rgba(250,240,215,.6)"; g.lineWidth = 5; g.stroke(path); g.setLineDash([10, 6]); g.strokeStyle = "#6b4a2b"; g.lineWidth = 2.2; g.stroke(path); });
+  L.lanes.forEach(([a, b]) => { g.setLineDash([2, 8]); g.strokeStyle = "rgba(255,255,255,.75)"; g.lineWidth = 2.4; g.beginPath(); g.moveTo(a[0] * sx, a[1] * sy); g.lineTo(b[0] * sx, b[1] * sy); g.stroke(); });
+  g.restore();
 }
 function atlasLabel(g, text, x, y, font, fill, halo = "rgba(0,0,0,.72)", spacing = 0) {
   g.font = font; if ("letterSpacing" in g) g.letterSpacing = spacing + "px";
@@ -169,7 +302,8 @@ function atlasDraw(cv, m, o = {}) {
     boxes.push({ x0: x - r, x1: x + r, y0: y - r, y1: y + r }, left ? { x0: x - r - 6 - tw, x1: x - r, y0: y - 18, y1: y + 18 } : { x0: x + r, x1: x + r + 6 + tw, y0: y - 18, y1: y + 18 });
     return { q, font, left, x, y, r };
   });
-  const areas = pins.filter(q => q.area).map(q => { const tw = width(q.name.toUpperCase(), "bold 34px Georgia, serif", 6), b = { x0: q.x * w - tw / 2, x1: q.x * w + tw / 2, y0: q.y * hh - 22, y1: q.y * hh + 22 }; boxes.push(b); return q; });
+  if (!o.picture && m) atlasDrawLines(g, m, pins, w, hh); // borders and roads, under the names
+  const areas = pins.filter(q => q.area).map(q => { const tw = width(q.name.toUpperCase(), "bold 34px Georgia, serif", 6), cx = Math.max(tw / 2 + 12, Math.min(w - tw / 2 - 12, q.x * w)), b = { x0: cx - tw / 2, x1: cx + tw / 2, y0: q.y * hh - 22, y1: q.y * hh + 22 }; boxes.push(b); return { ...q, cx }; }); // kept inside the map
   const TRY = [[0, 0], [0, -.045], [0, .045], [-.07, 0], [.07, 0], [0, -.09], [0, .09], [-.1, -.05], [.1, .05], [-.1, .05], [.1, -.05], [0, -.14], [0, .14]];
   (o.names || []).forEach(f => {
     const big = f.kind === "sea", it = f.kind === "river" || f.kind === "lake" || f.kind === "sea", font = `${it ? "italic " : ""}${big ? 34 : 26}px Georgia, serif`, sp = big ? 4 : 1, tw = width(f.name, font, sp);
@@ -181,7 +315,7 @@ function atlasDraw(cv, m, o = {}) {
     labels.push(f.name);
   });
   // regions inside, as large spaced names; then pins
-  areas.forEach(p => { g.globalAlpha = p.hidden ? .45 : .92; atlasLabel(g, p.name.toUpperCase(), p.x * w, p.y * hh, "bold 34px Georgia, serif", "#fff8e6", "rgba(40,25,10,.55)", 6); g.globalAlpha = 1; labels.push(p.name); });
+  areas.forEach(p => { g.globalAlpha = p.hidden ? .45 : .92; atlasLabel(g, p.name.toUpperCase(), p.cx, p.y * hh, "bold 34px Georgia, serif", "#fff8e6", "rgba(40,25,10,.55)", 6); g.globalAlpha = 1; labels.push(p.name); });
   spots.forEach(({ q: p, font, left, x, y, r }) => {
     g.globalAlpha = p.hidden ? .55 : 1;
     if (p.hidden) { g.setLineDash([6, 5]); g.strokeStyle = "#d0d0d0"; g.lineWidth = 2.5; g.beginPath(); g.arc(x, y, r, 0, 7); g.stroke(); g.setLineDash([]); }
@@ -203,7 +337,7 @@ const ATLAS_STOP = new Set(["city", "town", "village", "dungeon"]); // what's in
 function atlasOf(id) { if (id === "world") return W.atlas || null; const p = wp(id); return p && p.type === "region" ? p.atlas || null : null; }
 function atlasSet(id, m) { if (id === "world") W.atlas = m; else wp(id).atlas = m; return m; }
 function atlasMake(id, o = {}) {
-  const m = { v: 1, seed: uid("at"), shape: ATLAS_SHAPES[o.shape] ? o.shape : "coast", land: ATLAS_LANDS[o.land] ? o.land : "balanced", pins: {}, names: [] };
+  const m = { v: 2, seed: uid("at"), shape: ATLAS_SHAPES[o.shape] ? o.shape : "coast", land: ATLAS_LANDS[o.land] ? o.land : "balanced", climate: ATLAS_CLIMATES[o.climate] ? o.climate : "temperate", pins: {}, names: [] };
   m.names = atlasNames(m); return atlasSet(id, m);
 }
 /* what a map shows: [{ p, area }]. A region shows what's inside it, regions as areas; the world shows top-level ones. */
@@ -278,7 +412,7 @@ function atlasPinsFill(id) {
 /* a new roll (or new shape / land): the DM's moved pins stay unless they'd be in the sea; the others are placed again */
 function atlasReroll(id, o = {}) {
   const old = atlasOf(id); if (!old) return atlasMake(id, o);
-  const m = { ...old, seed: o.keepSeed ? old.seed : uid("at"), shape: ATLAS_SHAPES[o.shape] ? o.shape : old.shape, land: ATLAS_LANDS[o.land] ? o.land : old.land, pins: {} };
+  const m = { ...old, v: 2, seed: uid("at"), shape: ATLAS_SHAPES[o.shape] ? o.shape : old.shape, land: ATLAS_LANDS[o.land] ? o.land : old.land, climate: ATLAS_CLIMATES[o.climate] ? o.climate : atlasClimate(old), pins: {} };
   m.names = atlasNames(m);
   const T = atlasTerrain(m);
   Object.entries(old.pins).forEach(([k, q]) => { if (q.m) m.pins[k] = atlasToLand(T, q); });
@@ -288,7 +422,7 @@ function atlasReroll(id, o = {}) {
 function atlasPins(id, player) {
   const m = atlasOf(id); if (!m) return [];
   return atlasPlaces(id).filter(({ p }) => m.pins[p.id] && (!player || p.found)).map(({ p, area }) => ({
-    id: p.id, name: p.name || "Unnamed", icon: (WP_TYPES[p.type] || WP_TYPES.other)[0], x: m.pins[p.id].x, y: m.pins[p.id].y, hidden: !p.found, area, big: p.type === "city" }));
+    id: p.id, name: p.name || "Unnamed", icon: (WP_TYPES[p.type] || WP_TYPES.other)[0], x: m.pins[p.id].x, y: m.pins[p.id].y, hidden: !p.found, area, big: p.type === "city", type: p.type }));
 }
 
 /* ======================= The map view on the World tab =======================
@@ -334,14 +468,14 @@ function atlasViewHTML() {
   if (!m) return `<div class="card atlas-card"><div class="row" style="gap:8px;flex-wrap:wrap;align-items:center"><h2 style="margin:0;flex:1">🗺️ ${esc(name)}</h2>${back}</div>
     <p class="muted">No map yet. Choose the kind of land and make one; you can roll again until you like it.</p>
     <div class="row" style="gap:8px;flex-wrap:wrap;align-items:flex-end"><div class="field" style="flex:0 1 160px"><label>Shape</label>${sel("data-at-shape", ATLAS_SHAPES, "coast")}</div>
-      <div class="field" style="flex:0 1 160px"><label>Land</label>${sel("data-at-land", ATLAS_LANDS, "balanced")}</div><button class="btn primary" type="button" data-at="make" style="flex:0 0 auto">🗺️ Make a map</button>
+      <div class="field" style="flex:0 1 160px"><label>Land</label>${sel("data-at-land", ATLAS_LANDS, "balanced")}</div><div class="field" style="flex:0 1 160px"><label>Climate</label>${sel("data-at-climate", ATLAS_CLIMATES, "temperate")}</div><button class="btn primary" type="button" data-at="make" style="flex:0 0 auto">🗺️ Make a map</button>
       <label class="btn" style="flex:0 0 auto">⬆ Or import your own map<input type="file" id="atlasFile" accept="image/*" hidden></label></div></div>`;
   const off = atlasPlaces(id).filter(x => !m.pins[x.p.id]);
   return `<div class="card atlas-card">
     <div class="row" style="gap:8px;flex-wrap:wrap;align-items:center"><h2 style="margin:0;flex:1 1 200px">🗺️ ${esc(name)}</h2>${back}</div>
     <div id="atlasMissing" class="hint" hidden></div>
     <div class="row atlas-tools" style="gap:8px;flex-wrap:wrap;align-items:flex-end;margin:8px 0">
-      ${m.img ? "" : `<div class="field" style="flex:0 1 140px"><label>Shape</label>${sel("data-at-shape", ATLAS_SHAPES, m.shape)}</div><div class="field" style="flex:0 1 140px"><label>Land</label>${sel("data-at-land", ATLAS_LANDS, m.land)}</div>
+      ${m.img ? "" : `<div class="field" style="flex:0 1 140px"><label>Shape</label>${sel("data-at-shape", ATLAS_SHAPES, m.shape)}</div><div class="field" style="flex:0 1 140px"><label>Land</label>${sel("data-at-land", ATLAS_LANDS, m.land)}</div><div class="field" style="flex:0 1 140px"><label>Climate</label>${sel("data-at-climate", ATLAS_CLIMATES, atlasClimate(m))}</div>
       <button class="btn sm" type="button" data-at="roll" style="flex:0 0 auto">🎲 Roll again</button>`}
       <label class="btn sm" style="flex:0 0 auto" title="Use your own map picture (Inkarnate, Wonderdraft, a book scan) instead of the generated land">⬆ ${m.img ? "Replace the picture" : "Import a map"}<input type="file" id="atlasFile" accept="image/*" hidden></label>
       ${m.img ? `<button class="btn sm" type="button" data-at="gen" style="flex:0 0 auto">Use generated land</button>` : ""}
@@ -429,10 +563,10 @@ function atlasHit(e) {
     else if (a === "open") atlasOpen(b.dataset.id || W.sel);
     else if (a === "back") { W.mode = "place"; W.sel = id; renderWorld(); }
     else if (a === "make") {
-      const target = W.mode === "atlas" ? id : W.sel, shape = ($("[data-at-shape]") || {}).value, land = ($("[data-at-land]") || {}).value;
-      atlasMake(target, { shape, land }); atlasPinsFill(target); worldSave(); atlasOpen(target);
+      const target = W.mode === "atlas" ? id : W.sel, shape = ($("[data-at-shape]") || {}).value, land = ($("[data-at-land]") || {}).value, climate = ($("[data-at-climate]") || {}).value;
+      atlasMake(target, { shape, land, climate }); atlasPinsFill(target); worldSave(); atlasOpen(target);
     }
-    else if (a === "roll") { atlasReroll(id, { shape: $("[data-at-shape]").value, land: $("[data-at-land]").value }); worldSave(); renderWorld(); }
+    else if (a === "roll") { atlasReroll(id, { shape: $("[data-at-shape]").value, land: $("[data-at-land]").value, climate: ($("[data-at-climate]") || {}).value }); worldSave(); renderWorld(); }
     else if (a === "tv") atlasTv(id);
     else if (a === "gen") { atlasUseGenerated(id).then(() => { renderWorld(); toast("Back to generated land"); }); }
     else if (a === "unhide") { const m = atlasOf(id); m.off = (m.off || []).filter(x => x !== b.dataset.id); atlasPinsFill(id); worldSave(); renderWorld(); }

@@ -53,8 +53,9 @@ const log = (...a) => console.log(...a);
   log("activity:", await dm.$$eval("#partyMain .feed li", l => l.map(x => x.innerText.replace(/\s+/g, " ")).join(" | ")));
 
   // DM whispers
-  await dm.fill("#whBody", "The amulet is cursed.");
-  await dm.click("#whForm button");
+  await dm.click("#partyChat [data-chat-open]");
+  await dm.fill("#partyChat .chat-form textarea", "The amulet is cursed.");
+  await dm.press("#partyChat .chat-form textarea", "Enter");
   await dm.waitForTimeout(500);
   await dm.screenshot({ path: SP + "/4-party.png", fullPage: true });
   await ava.evaluate(() => window.dispatchEvent(new Event("x")));
@@ -68,7 +69,7 @@ const log = (...a) => console.log(...a);
   await ava.reload(); await ava.waitForTimeout(3000);
   log("banner after Got it + reload:", (await ava.$("#whisperAlert")) ? "still shown" : "gone", "| badge:", await ava.$eval("#whisperN", b => b.hidden ? "hidden" : b.textContent));
   await ava.goto(URL + "#whispers"); await ava.waitForTimeout(1500);
-  log("ava whispers:", await ava.textContent("#whispersMain"));
+  log("ava chat:", await ava.textContent("#whispersMain"));
 
   // Thorin is in the DM's Campaign Tracker party without any clicks
   log("tracker picker:", await dm.$eval("#trackerPick", s => s.selectedOptions[0].textContent));

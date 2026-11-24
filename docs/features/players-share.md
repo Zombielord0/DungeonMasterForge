@@ -25,3 +25,14 @@ Signed-in campaigns only. Code: `src/app/05-tracker.js` (what is shared), `src/p
 
 ## Tests
 `npm test` (API) and `npm run test:share` (`test/e2e/players-share.cjs`, port 8895): the Journal hides what it should, the DM's preview, turn order on a phone with Bloodied and Your turn!, and rolls private until ticked.
+
+## Chat (2026-11-24)
+
+Whispers became a chat (`src/portal.js`, "chat" section; `netlify/lib/api.mjs`, the `whispers` routes).
+
+- **Conversations ("threads").** Each player has one private conversation with the DM, and the players share one **party chat**. **The DM never sees the party chat:** `GET whispers` leaves those rows out for the DM, and the DM can't post to it or mark it read. A player gets only their own DM conversation plus the party's.
+- **Storage.** Rows stay in `whispers`. A player's reply is a row to the campaign's DM (the player sends `to: "dm"`; the server finds the DM). A party message has `to_user_id = 'party'`. One-to-one messages use `read_at`. A player's party read position is `chat_reads.last_read_id`. The API gives each row `{id, thread, from, fromName, to, toName, body, at, mine, read}`, where `thread` is `"dm"` or `"party"` for players and the player's id for the DM. A sender who has left shows as "A former player".
+- **Screens.** Players use the Chat tab (still `#whispers`): DM and Party buttons with counts, and bubbles with a typing box (Enter sends, Shift+Enter starts a new line). A new DM message still shows the banner (`#whisperAlert`), with Got it and Reply. The DM uses the Chat card on the Party tab, which lists the players with counts; nothing is open until the DM picks a player. The Party tab button carries the total (`#partyN`).
+- **Polling** (`startChat`/`stopChat`): every 3 seconds while a conversation is on screen, otherwise every 8; nothing while the page is hidden. A 403 (removed from the campaign) stops it quietly.
+- **Redraws** replace only `.chat-list`, never the typing box, so a half-typed message survives. The list stays where the reader scrolled unless they were at the bottom. Each conversation keeps its own draft (`S.chat.drafts`).
+- **Checks:** `npm test` (the chat API rules) and `npm run test:chat` (`test/e2e/chat.cjs`, port 8893).

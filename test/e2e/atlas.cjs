@@ -102,7 +102,10 @@ const server = http.createServer((req, res) => {
   check("atlas: a campaign file carries its region's map and the world map", cf.worldMap && cf.region, JSON.stringify(cf));
 
   // ---------- Task 3: the map view on the World tab ----------
-  const pinAt = id => p.evaluate(id => { const cv = $("#atlasCv"), m = atlasOf(W.atlasId), q = m.pins[id]; let r = cv.getBoundingClientRect(); window.scrollBy(0, r.top + q.y * r.height - innerHeight / 2); r = cv.getBoundingClientRect(); return { x: r.left + q.x * r.width, y: r.top + q.y * r.height }; }, id);
+  /* scroll the pin to the middle, then wait for the page to stop moving (the header slides away after a scroll) before measuring */
+  const pinAt = id => p.evaluate(async id => { const cv = $("#atlasCv"), m = atlasOf(W.atlasId), q = m.pins[id]; let r = cv.getBoundingClientRect(); window.scrollBy(0, r.top + q.y * r.height - innerHeight / 2);
+    const frame = () => new Promise(res => requestAnimationFrame(res)); let last = "", same = 0; for (let k = 0; k < 90 && same < 6; k++) { await frame(); const b = cv.getBoundingClientRect(), key = b.top.toFixed(1) + "," + b.left.toFixed(1); same = key === last ? same + 1 : 0; last = key; }
+    r = cv.getBoundingClientRect(); return { x: r.left + q.x * r.width, y: r.top + q.y * r.height }; }, id);
   await p.evaluate(ids => { const r = wp(ids.r); delete r.atlas; worldSave(); W.sel = ids.r; W.mode = "place"; location.hash = "world"; renderWorld(); }, ids);
   await p.waitForSelector('#worldMain [data-at="make"]');
   check("atlas view: a region's page offers Make a map", await p.locator('#worldMain [data-at="make"]').count() === 1);
@@ -184,8 +187,10 @@ const server = http.createServer((req, res) => {
   await p.waitForSelector("#atlasMissing", { timeout: 10000 }).catch(() => {});
   check("import: without the picture on this device the view says so and offers Import again", /on another device/.test(await p.textContent("#atlasMissing").catch(() => "")) && !!(await p.$("#atlasFile")));
   // back to generated terrain
-  await p.setInputFiles("#atlasFile", tmp); await p.waitForFunction(() => ATLAS_VIEW.pic, null, { timeout: 10000 }).catch(() => {});
-  await p.click('[data-at="gen"]'); await p.waitForTimeout(400);
+  await p.setInputFiles("#atlasFile", tmp); /* the stand-in for a missing picture also counts as a picture, so wait for this import to be the one shown */
+  await p.waitForFunction(id => { const m = atlasOf(id), miss = $("#atlasMissing"); return ATLAS_VIEW.pic && m.img && ATLAS_PICS.has(m.img) && miss && miss.hidden; }, ids.r, { timeout: 10000 }).catch(() => {});
+  await p.click('[data-at="gen"]');
+  await p.waitForFunction(id => !atlasOf(id).img && !!$('[data-at="roll"]'), ids.r, { timeout: 10000 }).catch(() => {}); // painting the land can be slow on a busy machine
   const g4 = await p.evaluate(async ids => ({ img: atlasOf(ids.r).img, stored: !!(await MAPIMG.get("atlas-" + ids.r)), roll: !!$('[data-at="roll"]') }), ids);
   check("import: Use generated terrain switches back and deletes the picture", !g4.img && !g4.stored && g4.roll, JSON.stringify(g4));
 
@@ -209,8 +214,12 @@ const server = http.createServer((req, res) => {
   const vp = await pinAt(ids.velmor); await p.mouse.click(vp.x, vp.y); await p.waitForSelector('#atlasMenu:not([hidden]) [data-atp="reveal"]'); await p.click('#atlasMenu [data-atp="reveal"]');
   check("tv: revealing a place re-sends the picture with its name", await waitFrame(n) && await p.waitForFunction(() => atlasTvLabels().includes("Velmor"), null, { timeout: 8000 }).then(() => true, () => false));
   const nPing = await tv.evaluate(() => window.__msgs.filter(m => m.t === "ping").length);
-  const box = await p.evaluate(() => { const r = $("#atlasCv").getBoundingClientRect(); return { x: r.left + 8, y: r.top + r.height - 8 }; });
-  await p.mouse.click(box.x, box.y); await p.waitForTimeout(300);
+  /* a spot on the map that's on screen and not under anything (bars, the pin menu), away from the pins */
+  const box = await p.evaluate(() => { const cv = $("#atlasCv"); cv.scrollIntoView({ block: "center" }); const r = cv.getBoundingClientRect();
+    for (const [fx, fy] of [[.02, .96], [.98, .96], [.02, .08], [.98, .08], [.5, .97]]) { const x = r.left + r.width * fx, y = Math.min(innerHeight - 90, r.top + r.height * fy); if (y > 0 && document.elementFromPoint(x, y) === cv && !atlasPins(W.atlasId, false).some(q => Math.hypot((q.x * r.width + r.left) - x, (q.y * r.height + r.top) - y) < 60)) return { x, y }; }
+    return { x: r.left + 8, y: Math.min(innerHeight - 90, r.bottom - 8) }; });
+  await p.mouse.click(box.x, box.y);
+  await tv.waitForFunction(nn => window.__msgs.filter(m => m.t === "ping").length > nn, nPing, { timeout: 4000 }).catch(() => {});
   check("tv: a click on the DM's map while showing sends a ping", await tv.evaluate(nn => window.__msgs.filter(m => m.t === "ping").length > nn, nPing));
   check("tv: the TV only gets pictures and pings", await tv.evaluate(() => window.__msgs.every(m => ["frame", "ping", "bye"].includes(m.t) && Object.keys(m).every(k => ["t", "blob", "x", "y"].includes(k)))));
   n = await tv.evaluate(() => window.tvFrames || 0);
@@ -267,6 +276,63 @@ const server = http.createServer((req, res) => {
   await p.click('#worldMain [data-w="wbkind"][data-k="shop"]'); await p.waitForTimeout(150);
   await p.click('#worldMain [data-w="wbkind"][data-k="region"]'); await p.waitForTimeout(250);
   check("region builder: switching kinds and back draws the map again", await p.evaluate(() => { const c = $("#wbMapCv"); return !!c && c.width > 0; }));
+  // the Azgaar-style upgrade (2026-11-24): new shapes, climates, lakes, borders, roads, towns and kingdoms
+  const OLD_LAND = {"F1|coast|balanced":[1217502259,5,6],"F2|coast|balanced":[1983253885,2,6],"F1|coast|mountains":[234624164,5,8],"F2|coast|mountains":[1870781288,5,5],"F1|inland|balanced":[177756600,5,9],"F2|inland|balanced":[1401242746,5,12],"F1|inland|mountains":[948645878,5,16],"F2|inland|mountains":[1140621581,4,20],"F1|island|balanced":[1425856041,5,4],"F2|island|balanced":[-1133604488,0,0],"F1|island|mountains":[-2052677874,4,3],"F2|island|mountains":[1515042966,1,0]};
+  const up = await p.evaluate(() => {
+    const o = {}, fp = m => { const T = atlasTerrain(m); let h = 0; for (let i = 0; i < T.h.length; i += 7) h = (h * 31 + Math.round(T.h[i] * 1000)) | 0; return [h, T.rivers.length, T.lakes.length]; };
+    o.old = {}; for (const shape of ["coast", "inland", "island"]) for (const land of ["balanced", "mountains"]) for (const seed of ["F1", "F2"]) o.old[`${seed}|${shape}|${land}`] = fp({ seed, shape, land });
+    const parts = T => { const seen = new Uint8Array(T.W * T.H); let n = 0; for (let i = 0; i < T.W * T.H; i++) { if (seen[i] || T.h[i] < 0) continue; let size = 0; const st = [i]; seen[i] = 1; while (st.length) { const c = st.pop(), x = c % T.W, y = (c - x) / T.W; size++; for (const [a, b] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) { const nx = x + a, ny = y + b, j = ny * T.W + nx; if (nx < 0 || ny < 0 || nx >= T.W || ny >= T.H || seen[j] || T.h[j] < 0) continue; seen[j] = 1; st.push(j); } } if (size > 60) n++; } return n; };
+    const landShare = (T, f) => { let a = 0, n = 0; for (let y = 0; y < T.H; y++) for (let x = 0; x < T.W; x++) if (f(x, y)) { n++; if (T.h[y * T.W + x] >= 0) a++; } return a / n; };
+    o.archi = ["A1", "A2", "A3"].map(seed => parts(atlasTerrain({ v: 2, seed, shape: "archipelago", land: "balanced" })));
+    o.twin = ["A1", "A2"].map(seed => { const T = atlasTerrain({ v: 2, seed, shape: "twin", land: "balanced" }); return [landShare(T, x => Math.abs(x - T.W / 2) < 6), landShare(T, x => x < T.W * .4), landShare(T, x => x > T.W * .6)]; });
+    o.volcano = ["A1", "A2"].map(seed => { const T = atlasTerrain({ v: 2, seed, shape: "volcano", land: "balanced" }); return [T.h[Math.round(T.H / 2) * T.W + Math.round(T.W / 2)], landShare(T, (x, y) => Math.min(x, y, T.W - 1 - x, T.H - 1 - y) < 8)]; });
+    o.penin = ["A1", "A2", "A3"].map(seed => { const T = atlasTerrain({ v: 2, seed, shape: "peninsula", land: "balanced" }); return [landShare(T, (x, y) => y < 6), landShare(T, (x, y) => y > T.H - 7), landShare(T, x => x < 6), landShare(T, x => x > T.W - 7)].filter(v => v > .3).length; });
+    o.lakes = ["L1", "L2", "L3"].map(seed => [atlasTerrain({ seed, shape: "coast", land: "balanced" }).lakes.length, atlasTerrain({ v: 2, seed, shape: "coast", land: "balanced" }).lakes.length]);
+    const feats = clim => atlasTerrain({ v: 2, seed: "C1", shape: "coast", land: "forest", climate: clim }).feats.map(f => f.kind);
+    o.desertForest = feats("desert").includes("forest"); o.jungleForest = feats("jungle").includes("forest");
+    const pic = (clim, seed = "C1") => { const cv = atlasTerrainCanvas({ v: 2, seed, shape: "inland", land: "balanced", climate: clim }); const d = cv.getContext("2d").getImageData(200, 200, 1200, 700).data; let r = 0, g = 0, b = 0; for (let i = 0; i < d.length; i += 400) { r += d[i]; g += d[i + 1]; b += d[i + 2]; } return [r, g, b]; };
+    o.pics = { temperate: pic("temperate"), desert: pic("desert"), tundra: pic("tundra") }; o.picSame = atlasTerrainCanvas({ v: 2, seed: "C2", shape: "coast", land: "balanced", climate: "swamp" }).toDataURL() === (ATLAS_IMG.clear(), atlasTerrainCanvas({ v: 2, seed: "C2", shape: "coast", land: "balanced", climate: "swamp" }).toDataURL());
+    // roads and borders from pins: a town the players haven't found has no road on their map; roads stay on land
+    const m = { v: 2, seed: "R1", shape: "inland", land: "balanced" }, T = atlasTerrain(m), rq = makeRng("roads-test", "R1"), land = () => { for (;;) { const i = Math.floor(rq.f() * T.W * T.H); if (T.h[i] > .05 && T.h[i] < .25) return { x: (i % T.W + .5) / T.W, y: (Math.floor(i / T.W) + .5) / T.H }; } };
+    const towns = [0, 1, 2].map(k => ({ id: "t" + k, type: k ? "village" : "town", area: false, hidden: k === 2, ...land() })), areas = [{ id: "a0", area: true, x: .25, y: .5 }, { id: "a1", area: true, x: .75, y: .5, hidden: true }];
+    const dm = atlasLines(m, [...towns, ...areas]), pl = atlasLines(m, [...towns, ...areas].filter(q => !q.hidden));
+    o.roads = [dm.roads.length + dm.lanes.length, pl.roads.length + pl.lanes.length, !!dm.own, !!pl.own];
+    const near = (x, y) => { for (let b = -1; b <= 1; b++) for (let a = -1; a <= 1; a++) { const cx = Math.floor(x) + a, cy = Math.floor(y) + b; if (cx >= 0 && cy >= 0 && cx < T.W && cy < T.H && T.h[cy * T.W + cx] >= 0) return true; } return false; };
+    o.onLand = []; for (let k = 0; k < 6; k++) { const ts = [0, 1, 2, 3].map(j => ({ id: "r" + k + j, type: "town", area: false, ...land() })); atlasLines(m, ts).roads.forEach(r => r.forEach(([x, y]) => { if (!near(x, y)) o.onLand.push([x, y]); })); } /* rounded corners may graze a shore, never cross water */
+    const owners = new Set(dm.own); o.owners = owners.has(0) && owners.has(1);
+    return o;
+  });
+  const oldDiff = Object.keys(OLD_LAND).filter(k => JSON.stringify(up.old[k]) !== JSON.stringify(OLD_LAND[k]));
+  check("upgrade: maps made before keep exactly the same land", oldDiff.length === 0, oldDiff.join(", "));
+  check("upgrade: an archipelago is many islands", up.archi.every(n => n >= 4), up.archi.join());
+  check("upgrade: twin lands have sea down the middle and land on both sides", up.twin.every(([mid, l, r]) => mid < .1 && l > .25 && r > .25), JSON.stringify(up.twin));
+  check("upgrade: a volcano island rises to a peak in the middle, with sea all round", up.volcano.every(([top, edge]) => top > .45 && edge < .05), JSON.stringify(up.volcano));
+  check("upgrade: a peninsula joins the land on one side only", up.penin.every(n => n <= 1), up.penin.join());
+  check("upgrade: newer maps get lakes in their hollows", up.lakes.every(([a, b]) => b >= a) && up.lakes.some(([a, b]) => b > a), JSON.stringify(up.lakes));
+  check("upgrade: a desert has no forest, a jungle has one", !up.desertForest && up.jungleForest);
+  const tint = c => c[0] - c[2];
+  check("upgrade: climates paint the land their own colours", tint(up.pics.desert) > tint(up.pics.temperate) + 5000 && up.pics.tundra.reduce((a, b) => a + b) > up.pics.temperate.reduce((a, b) => a + b), JSON.stringify(up.pics));
+  check("upgrade: the same recipe paints the same picture", up.picSame);
+  check("upgrade: roads join the towns, and the players' map leaves out roads and borders to places they haven't found", up.roads[0] === 2 && up.roads[1] === 1 && up.roads[2] && !up.roads[3], JSON.stringify(up.roads));
+  check("upgrade: roads stay on land", up.onLand.length === 0, JSON.stringify(up.onLand.slice(0, 5)));
+  check("upgrade: kingdoms split the land between them", up.owners);
+  // the region builder's climate, towns and kingdoms
+  await p.click('#worldSide [data-w="build"]'); await p.waitForTimeout(150);
+  await p.click('#worldMain [data-w="wbkind"][data-k="region"]'); await p.waitForTimeout(250);
+  await p.selectOption('#worldMain [data-wb="climate"]', "desert"); await p.waitForTimeout(150);
+  await p.selectOption('#worldMain [data-wb="towns"]', "many"); await p.waitForTimeout(150);
+  await p.selectOption('#worldMain [data-wb="realms"]', "2"); await p.waitForTimeout(250);
+  const rbd = await p.evaluate(() => { const d = wbDraft(), pins = wbRegionPins(d), T = atlasTerrain(d.atlas); return { desc: d.desc, clim: d.atlas.climate, v: d.atlas.v, realms: d.kids.filter(k => k.type === "region").length, towns: d.kids.reduce((n, k) => n + k.kids.length, 0), pins: pins.length, onLand: pins.every(q => T.h[atlasCell(T, q)] >= 0), again: JSON.stringify(wbDraft().atlas.pins) === JSON.stringify(d.atlas.pins) }; });
+  check("region builder: Climate, Towns and Kingdoms shape the region", rbd.clim === "desert" && rbd.v === 2 && /desert/.test(rbd.desc) && rbd.realms === 2 && rbd.towns >= 8 && rbd.pins === rbd.realms + rbd.towns, JSON.stringify(rbd));
+  check("region builder: its towns and kingdoms sit on land, the same each time", rbd.onLand && rbd.again);
+  const rbPins = await p.evaluate(() => { const d = wbDraft(); return wbRegionPins(d).map(q => [q.name, q.x, q.y]).sort(); });
+  await p.fill('#worldMain [data-wb="name"]', "Dune Realm");
+  await p.click('#worldMain [data-w="wbadd"]'); await p.waitForTimeout(300);
+  const rbSaved = await p.evaluate(() => { const r = W.places.find(q => q.name === "Dune Realm"); atlasPinsFill(r.id); return { pins: atlasPlaces(r.id).map(({ p: q }) => [q.name, r.atlas.pins[q.id] && r.atlas.pins[q.id].x, r.atlas.pins[q.id] && r.atlas.pins[q.id].y]).sort(), clim: r.atlas.climate, inRealm: W.places.filter(q => q.type === "town" || q.type === "city" || q.type === "village").some(q => wp(q.parent) && wp(q.parent).parent === r.id) }; });
+  check("region builder: Add to World keeps every town and kingdom where the preview showed it", JSON.stringify(rbSaved.pins) === JSON.stringify(rbPins) && rbSaved.clim === "desert" && rbSaved.inRealm, JSON.stringify({ rbPins, rbSaved }));
+  const rbView = await p.evaluate(() => { const r = W.places.find(q => q.name === "Dune Realm"); atlasOpen(r.id); return { sel: ($("[data-at-climate]") || {}).value }; });
+  await p.click('[data-at="roll"]'); await p.waitForTimeout(250);
+  check("map view: Climate is shown and Roll again keeps it", rbView.sel === "desert" && await p.evaluate(() => atlasOf(W.atlasId).climate === "desert" && atlasOf(W.atlasId).v === 2), JSON.stringify(rbView));
   const rb_vp = p.viewportSize(); await p.setViewportSize({ width: 390, height: 844 }); await p.waitForTimeout(300);
   check("region builder: fits a phone without sideways scrolling", await p.evaluate(() => document.documentElement.scrollWidth <= document.documentElement.clientWidth));
   await p.setViewportSize(rb_vp);

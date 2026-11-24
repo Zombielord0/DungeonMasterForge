@@ -65,6 +65,29 @@ Moved here from `CLAUDE.md` on 2026-11-17, unchanged except that `public/index.h
   - When not hosting, clicking a room scrolls to its key entry and dragging pans. While hosting, the mouse paints fog instead.
 - **Downloads.** Download PNG and Download player map render fresh at 2× (`mapFileName()`); the player map uses `{player:true, numbers:true}`.
 
+## The hand-drawn looks (2026-11-24)
+
+- **Three more Styles:** `inked` (Inked sketch), `atlas` (Old atlas) and `torch` (Stone and torchlight). Their `MAP_STYLES` entries carry `look`, and `mapBase` hands them to `mapLook` in `src/app/03b-map-looks.js`. Parchment, Blue and Dark still draw exactly as before.
+- **Rough.js 4.6.6** (MIT, unchanged bundled build) is `src/app/03a-rough.js`, a global `rough`. Every line is drawn with a fixed `seed`, so a map looks the same on every redraw, and the TV matches the DM's window.
+- `mapLook` draws the same layers as `mapBase`: paper or rock, hatching (`mapLookHatch`), the floor layer, the walls (`mapWallRuns`: long straight runs, drawn by Rough.js; the torch look uses a thick band with a lit edge), then the shared doors, furniture and icons (`mapDrawDoors`, `drawProp`, `mapDrawIcons`), so the player rules (traps, unfound secret doors) are the same in every look. Then:
+  - Old atlas: stains and burnt edges (`mapLookLayer`: soft noise drawn small and stretched), red room numbers (`st.numBg`) and a compass rose (`mapCompassRose`) in place of the N arrow.
+  - Stone and torchlight: darkness cut by torches in room corners and braziers (`mapLights`), with a warm glow.
+- Style colours used by the shared drawings: `propA`/`propB` (furniture), `door` and `numBg`.
+- Caves: the soft outline code moved into `mapCaveMasks(d, s, mk, ink)`, used by `mapBase` and `mapLook`.
+- Checks: `npm run test:mapvis` (every look and theme draws, the same every time, floor colours, no traps in the players' picture, the Style list).
+
+## The map editor (2026-11-24)
+
+Design: `docs/superpowers/specs/2026-11-24-map-editor-design.md`. Code: `src/app/03c-map-editor.js` (data and drawing) and `src/app/03d-map-editor-ui.js` (the tools).
+- **Drawn maps** are `kind: "drawn"`. ✏️ Edit map turns a generated dungeon into one (`drawnFromGen`: its floor and room ids as `base`, its doors, its furniture from `mapDress` as `props`, its rooms and key); New blank map starts an empty one of the chosen size (`drawnBlank`). The record (`d.rec`) is what campaigns, World places, map files and the draft keep; the fields are listed at the top of `03c-map-editor.js`.
+- **`drawnRefresh(d)`** works out what the rest of the map code needs: `grid` (a square is floor when at least half of it is), `rid` (room ids: from `base`, then each drawn room shape; painted corridors are -1), `rooms` (with their sizes for the key), `doors` (`secret` from `kind`) and `params` (`seed` is the map's id). So fog, Reveal room, tokens, hovering, the TV and Run this fight work as on generated maps. `fogKey` is `drawn|<id>`.
+- **Drawing** (`drawnBase`, called by `mapBase`): the floor is a mask (`drawnMask`: `base` squares, smoothed for caves with `mapCaveMasks`, then each shape filled or cut), and the walls are its outline traced at quarter squares (`drawnContours`, marching squares), so round rooms and slanted walls are smooth. Walls are Rough.js lines (seeded) when the look's roughness is on. The rest reuses the six looks: hatching, textures, paper, torchlight, doors (`mapDrawDoors`, now with `locked` and `bars`), furniture (`drawProp`, plus `drawPropMore` for the new pieces and uploaded pictures), stairs, and labels (a DM-only label is left off the players' picture).
+- **Style** (`rec.look`, read by `drawnStyle`): wall colour, thickness and roughness, floor colour, grid (lines, dots, none) and hatching.
+- **The tools** (`MED`): Select, Room, Round room, Shape, Paint, Erase, Erase brush, Door, Stairs, Room number, Text, Furniture (`MAP_PROPS`), Picture (kept in the `dmforge-maps` IndexedDB as `prop-<id>`, like map pictures: in backups, not in account saves). Every change goes through `medChange`, which keeps an undo copy (Ctrl+Z, Ctrl+Y). While editing, the editor's pointer handlers run first and stop the map's own (pan, hover). The editor is off while hosting for the TV.
+- On a drawn map, the map form's Theme, Style, Name, Party level and Party size change the drawing (`medFormChange`); Size and Rooms don't. Generate Dungeon makes a new dungeon.
+- The drawing in progress is kept in `dmforge.mapdraft.v1` (in `BACKUP_KEYS`), and "Continue my last drawing" brings it back after a refresh.
+- Checks: `npm run test:mapedit` (`test/e2e/map-editor.cjs`).
+
 ## Dungeon Map import and export (Stage 2, 2026-11-15)
 
 - **Imported maps** are `{kind:"image", id, img (canvas), px, ox, oy, W, H, rooms, walls, params}`. Here `px` is the image's pixels per square and `walls` are segments in squares. `drawDungeon` hands them to `drawImageMap`.

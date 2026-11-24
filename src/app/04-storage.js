@@ -17,7 +17,7 @@ async function saveFile(filename, data) {
    A backup is {app:"dmforge-backup", v:2, made, data:{key: raw string}, images:{key: data URL}}: the keys in BACKUP_KEYS,
    plus the map and NPC pictures from the MAPIMG store (v1 backups have no images). Add new kinds of saved data to BACKUP_KEYS.
    Settings (offline mode, header, What's new) are left out on purpose. */
-const BACKUP_KEYS = ["dmforge.pcs.v1", "dmforge.campaigns.v1", "dmforge.homebrew.v1", "dmforge.items.v1", "dmforge.mymonsters.v1", "dmforge.npclib.v1", "dmforge.world.v1", "dmforge.favspells", "dmforge.fog.v1"];
+const BACKUP_KEYS = ["dmforge.pcs.v1", "dmforge.campaigns.v1", "dmforge.homebrew.v1", "dmforge.items.v1", "dmforge.mymonsters.v1", "dmforge.npclib.v1", "dmforge.world.v1", "dmforge.favspells", "dmforge.fog.v1", "dmforge.mapdraft.v1"];
 const BACKUP_LAST = "dmforge.lastBackup";
 function backupData() { const data = {}; BACKUP_KEYS.forEach(k => { const v = localStorage.getItem(k); if (v !== null) data[k] = v; }); return data; }
 const blobToDataURL = b => new Promise((res, rej) => { const r = new FileReader(); r.onload = () => res(r.result); r.onerror = () => rej(r.error); r.readAsDataURL(b); });
@@ -258,6 +258,7 @@ const Cloud = {
     if (!force && Object.keys(meta.dirty).length) return;
     Object.values(this.timers).forEach(clearTimeout); clearTimeout(this.retry);
     CLOUD_KEYS.forEach(k => localStorage.removeItem(k));
+    try { const dr = JSON.parse(localStorage.getItem("dmforge.mapdraft.v1") || "null"); if (dr && dr.owner) localStorage.removeItem("dmforge.mapdraft.v1"); } catch { localStorage.removeItem("dmforge.mapdraft.v1"); } // an account's map drawing in progress (03d-map-editor-ui.js)
     const stash = lsJSON(STASH_KEY) || {};
     for (const [k, raw] of Object.entries(stash)) { try { localStorage.setItem(k, raw); } catch { } }
     localStorage.removeItem(STASH_KEY); localStorage.removeItem(SYNC_KEY);

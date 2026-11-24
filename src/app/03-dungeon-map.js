@@ -116,7 +116,7 @@ function generateDungeon(p) {
 
 /* ======================= Fog of war =======================
    One byte per map square: 1 = players can see it, 0 = hidden. */
-function fogKey(p) { return p.kind === "image" ? "img|" + (p.imgId || p.id) + "|" + p.W + "x" + p.H : "gen|" + [p.seed, p.theme, p.size, p.rooms].join("|"); }
+function fogKey(p) { if (p.kind === "drawn") return "drawn|" + p.id; return p.kind === "image" ? "img|" + (p.imgId || p.id) + "|" + p.W + "x" + p.H : "gen|" + [p.seed, p.theme, p.size, p.rooms].join("|"); }
 function fogEncode(u8) {
   let s = "", v = u8[0], c = 0;
   for (let i = 0; i <= u8.length; i++) { if (i < u8.length && u8[i] === v) { c++; continue; } if (c) s += v + c.toString(36) + ","; v = u8[i]; c = 1; }
@@ -182,7 +182,11 @@ function fogBox(fog, d, x1, y1, x2, y2, val) {
 const MAP_STYLES = {
   parchment: { ink: "#2a2018", hatch: "rgba(70,50,30,.55)", grid: "rgba(90,70,50,.16)", tex: true, hand: true, grain: true, dark: false },
   blue: { ink: "#1d4f91", hatch: "rgba(29,79,145,.38)", grid: "rgba(29,79,145,.26)", tex: false, hand: false, grain: false, dark: false, bg: "#ffffff", floor: "#ffffff" },
-  dark: { ink: "#050403", hatch: null, grid: "rgba(255,255,255,.07)", tex: true, hand: false, grain: false, dark: true, bg: "#1d1b19" }
+  dark: { ink: "#050403", hatch: null, grid: "rgba(255,255,255,.07)", tex: true, hand: false, grain: false, dark: true, bg: "#1d1b19" },
+  /* the hand-drawn looks (2026-11-24), drawn by mapLook in 03b-map-looks.js */
+  inked: { look: "inked", ink: "#14110d", hatch: "#2b2620", grid: "rgba(40,35,30,.17)", dark: false, bg: "#f5f0e3", floor: "#fcfaf3", propA: "#f3efe6", propB: "#d9d3c5", door: "#fcfaf3" },
+  atlas: { look: "atlas", ink: "#3d2412", hatch: "rgba(92,58,28,.72)", grid: "rgba(110,70,35,.2)", dark: false, bg: "#e3cfa3", floor: "#f6e8c6", door: "#b07a3e", numBg: "#8b1e1e" },
+  torch: { look: "torch", ink: "#0b0908", grid: "rgba(255,230,190,.07)", dark: true, bg: "#141110", door: "#6b4a28" }
 };
 const MAP_BG = { crypt: "#e9e2d2", cavern: "#efe6cf", keep: "#efe3c6", sewer: "#e3e2cc", temple: "#f0e4c8", mine: "#ecdcc0" };
 const MAP_FLOOR = { crypt: ["#f2ede3", "#6f6b64"], cavern: ["#efe4cc", "#6b6053"], keep: ["#eed9b4", "#6e5739"], sewer: ["#e3e5d3", "#5d625b"], temple: ["#f7eed9", "#7a725f"], mine: ["#e8d2ae", "#6b5944"] };
@@ -242,7 +246,7 @@ function mapDress(d) {
 function drawProp(g, p, st) {
   const ink = st.ink, [x0, y0] = p.cells[0], last = p.cells[p.cells.length - 1];
   const X = x0 * CS, Y = y0 * CS, w = (last[0] - x0 + 1) * CS, h = (last[1] - y0 + 1) * CS, cx = X + w / 2, cy = Y + h / 2, horiz = w > h;
-  const fillA = st.dark ? "#4b4238" : "#d9ccb0", fillB = st.dark ? "#6e5a3f" : "#c8a979";
+  const fillA = st.propA || (st.dark ? "#4b4238" : "#d9ccb0"), fillB = st.propB || (st.dark ? "#6e5a3f" : "#c8a979");
   g.save(); g.lineWidth = 1.2; g.strokeStyle = ink; g.lineJoin = "round"; g.lineCap = "round";
   const box = (x, y, bw, bh, f) => { g.fillStyle = f; g.fillRect(x, y, bw, bh); g.strokeRect(x, y, bw, bh); };
   switch (p.kind) {
@@ -266,6 +270,24 @@ function drawProp(g, p, st) {
   }
   g.restore();
 }
+// caves: blur the floor squares into a soft shape and trace a wobbly edge through it.
+// Returns [inner (the floor), outer (the wall ink)] canvases at the drawing scale.
+function mapCaveMasks(d, s, mk, inkHex) {
+  const { W, H, grid } = d, floor = (x, y) => x >= 0 && y >= 0 && x < W && y < H && grid[y * W + x] > 0;
+  const [mc, mg] = mk(); mg.fillStyle = "#fff"; for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) if (floor(x, y)) mg.fillRect(x * CS, y * CS, CS, CS);
+  const [bc, bg] = mk(); bg.setTransform(1, 0, 0, 1, 0, 0); bg.filter = `blur(${(CS * .32 * s).toFixed(1)}px)`; bg.drawImage(mc, 0, 0); bg.filter = "none";
+  const id = bg.getImageData(0, 0, bc.width, bc.height), px = id.data, nz = mapNoise(d.params.seed);
+  const inner = new ImageData(bc.width, bc.height), outer = new ImageData(bc.width, bc.height), ip = inner.data, op = outer.data;
+  const ink = inkHex.match(/\w\w/g).map(h => parseInt(h, 16));
+  for (let yy = 0; yy < bc.height; yy++) for (let xx = 0; xx < bc.width; xx++) {
+    const i = (yy * bc.width + xx) * 4, v = px[i + 3], n = nz(xx / s / 9, yy / s / 9) * 34;
+    if (v > 120 + n) ip[i + 3] = 255;
+    if (v > 78 + n) { op[i] = ink[0]; op[i + 1] = ink[1]; op[i + 2] = ink[2]; op[i + 3] = 255; }
+  }
+  const [ic, ig] = mk(); ig.setTransform(1, 0, 0, 1, 0, 0); ig.putImageData(inner, 0, 0);
+  const [oc, og] = mk(); og.setTransform(1, 0, 0, 1, 0, 0); og.putImageData(outer, 0, 0);
+  return [ic, oc];
+}
 // smooth value noise in [-1, 1] (for wobbly cave edges)
 function mapNoise(seed) {
   const r = makeRng("noise", seed), N = 64, t = Array.from({ length: N * N }, () => r.f() * 2 - 1), sm = v => v * v * (3 - 2 * v);
@@ -277,6 +299,9 @@ function mapBase(d, showGrid, player, found, s) {
   const st = mapStyle(d), foundKey = found ? [...found].sort().join(";") : "";
   const key = [showGrid, player, foundKey, s, d.params.style || "parchment"].join("|");
   d._base = d._base || new Map(); if (d._base.has(key)) return d._base.get(key);
+  if (d._base.size > 6) d._base.delete(d._base.keys().next().value);
+  if (d.kind === "drawn") { const lc = drawnBase(d, showGrid, player, found, s, st); d._base.set(key, lc); return lc; } // the editor's maps (03c-map-editor.js)
+  if (st.look) { const lc = mapLook(d, showGrid, player, found, s, st); d._base.set(key, lc); return lc; }
   const { W, H, grid, rid } = d, th = d.params.theme, PW = W * CS, PH = H * CS;
   const mk = () => { const c = document.createElement("canvas"); c.width = Math.round(PW * s); c.height = Math.round(PH * s); const g = c.getContext("2d"); g.setTransform(s, 0, 0, s, 0, 0); return [c, g]; };
   const [cv, g] = mk();
@@ -302,18 +327,7 @@ function mapBase(d, showGrid, player, found, s) {
   const smooth = th === "cavern" && typeof g.filter === "string";
   if (smooth) {
     // caves: blur the floor squares into a soft shape and trace a wobbly edge through it
-    const [mc, mg] = mk(); mg.fillStyle = "#fff"; for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) if (floor(x, y)) mg.fillRect(x * CS, y * CS, CS, CS);
-    const [bc, bg] = mk(); bg.setTransform(1, 0, 0, 1, 0, 0); bg.filter = `blur(${(CS * .32 * s).toFixed(1)}px)`; bg.drawImage(mc, 0, 0); bg.filter = "none";
-    const id = bg.getImageData(0, 0, bc.width, bc.height), px = id.data, nz = mapNoise(d.params.seed);
-    const inner = new ImageData(bc.width, bc.height), outer = new ImageData(bc.width, bc.height), ip = inner.data, op = outer.data;
-    const ink = st.ink.match(/\w\w/g).map(h => parseInt(h, 16));
-    for (let yy = 0; yy < bc.height; yy++) for (let xx = 0; xx < bc.width; xx++) {
-      const i = (yy * bc.width + xx) * 4, v = px[i + 3], n = nz(xx / s / 9, yy / s / 9) * 34;
-      if (v > 120 + n) ip[i + 3] = 255;
-      if (v > 78 + n) { op[i] = ink[0]; op[i + 1] = ink[1]; op[i + 2] = ink[2]; op[i + 3] = 255; }
-    }
-    const [ic, ig] = mk(); ig.setTransform(1, 0, 0, 1, 0, 0); ig.putImageData(inner, 0, 0);
-    const [oc, og] = mk(); og.setTransform(1, 0, 0, 1, 0, 0); og.putImageData(outer, 0, 0);
+    const [ic, oc] = mapCaveMasks(d, s, mk, st.ink);
     fg.setTransform(1, 0, 0, 1, 0, 0); fg.globalCompositeOperation = "destination-in"; fg.drawImage(ic, 0, 0); fg.globalCompositeOperation = "source-over";
     g.setTransform(1, 0, 0, 1, 0, 0); g.drawImage(oc, 0, 0); g.drawImage(fc, 0, 0); g.setTransform(s, 0, 0, s, 0, 0);
     d._caveSmooth = true;
@@ -347,7 +361,6 @@ function mapBase(d, showGrid, player, found, s) {
     v.addColorStop(0, "rgba(110,70,30,0)"); v.addColorStop(1, "rgba(110,70,30,.2)"); g.fillStyle = v; g.fillRect(0, 0, PW, PH);
   }
   mapDrawIcons(g, d, st, player);
-  if (d._base.size > 6) d._base.delete(d._base.keys().next().value);
   d._base.set(key, cv); return cv;
 }
 function mapTexture(g, d, st, r) {
@@ -400,7 +413,9 @@ function mapDrawDoors(g, d, st, player, found) {
     }
     if (dr.secret && !player) { g.fillStyle = isFound ? "#3f9a3a" : st.dark ? "#e7d9b8" : st.ink; /* green once the players have found it */ g.font = "bold 13px Cinzel, serif"; g.textAlign = "center"; g.textBaseline = "middle"; g.fillText("S", ex, ey); return; }
     const vert = dr.dx !== 0, w = vert ? CS * .32 : CS * .72, h = vert ? CS * .72 : CS * .32;
-    g.fillStyle = st.dark ? "#8a6a3e" : "#c79a5b"; g.strokeStyle = st.ink; g.lineWidth = 1.5; g.fillRect(ex - w / 2, ey - h / 2, w, h); g.strokeRect(ex - w / 2, ey - h / 2, w, h);
+    if (dr.kind === "bars") { g.strokeStyle = st.dark ? "#c9b48a" : st.ink; g.lineWidth = 1.2; g.beginPath(); for (let k = -2; k <= 2; k++) { const o = k * CS * .14; if (vert) { g.moveTo(ex - w / 2, ey + o); g.lineTo(ex + w / 2, ey + o); } else { g.moveTo(ex + o, ey - h / 2); g.lineTo(ex + o, ey + h / 2); } } g.moveTo(vert ? ex : ex - w / 2, vert ? ey - h / 2 : ey); g.lineTo(vert ? ex : ex + w / 2, vert ? ey + h / 2 : ey); g.stroke(); return; } // the editor's portcullis
+    g.fillStyle = st.door || (st.dark ? "#8a6a3e" : "#c79a5b"); g.strokeStyle = st.ink; g.lineWidth = 1.5; g.fillRect(ex - w / 2, ey - h / 2, w, h); g.strokeRect(ex - w / 2, ey - h / 2, w, h);
+    if (dr.kind === "locked") { g.fillStyle = st.ink; g.beginPath(); g.arc(ex, ey, 2.2, 0, 7); g.fill(); }
   });
 }
 function mapDrawIcons(g, d, st, player) {
@@ -473,7 +488,7 @@ function drawDungeon(cv, d, showGrid, o = {}) {
   d.rooms.forEach(r => {
     if (!showNums || (fog && !fog[r.cy * W + r.cx])) return;
     const X = r.cx * CS + CS / 2, Y = r.cy * CS + CS / 2, boss = !player && (r.marks || []).includes("boss");
-    g.beginPath(); g.arc(X, Y, 10, 0, Math.PI * 2); g.fillStyle = boss ? "#9b2f2f" : st.dark ? "#0b0a09" : st.ink; g.fill();
+    g.beginPath(); g.arc(X, Y, 10, 0, Math.PI * 2); g.fillStyle = boss ? (st.numBg ? "#4a0c0c" : "#9b2f2f") : st.numBg || (st.dark ? "#0b0a09" : st.ink); g.fill();
     if (st.dark) { g.strokeStyle = "#c9b48a"; g.lineWidth = 1; g.stroke(); }
     g.fillStyle = "#fdfaf2"; g.font = "bold 11px Cinzel, Georgia, serif"; g.textAlign = "center"; g.textBaseline = "middle"; g.fillText(String(r.num), X, Y + .5);
   });
@@ -489,10 +504,11 @@ function drawDungeon(cv, d, showGrid, o = {}) {
   g.fillStyle = head; g.font = "700 20px Cinzel, Georgia, serif"; g.textAlign = "left"; g.textBaseline = "middle";
   g.fillText(d.params.name || "Dungeon", 14, TOP / 2);
   g.font = "italic 14px 'Crimson Pro', Georgia, serif"; g.textAlign = "right";
-  if (!player) g.fillText(`${{ crypt: "Crypt", cavern: "Cavern", keep: "Keep", sewer: "Sewers", temple: "Temple", mine: "Mine" }[d.params.theme]} · ${d.rooms.length} areas · party level ${d.params.level} · seed ${d.params.seed}`, W * CS - 14, TOP / 2);
+  if (!player) g.fillText(d.kind === "drawn" ? `Drawn map · ${d.rooms.length} numbered room${d.rooms.length === 1 ? "" : "s"} · party level ${d.params.level}` : `${{ crypt: "Crypt", cavern: "Cavern", keep: "Keep", sewer: "Sewers", temple: "Temple", mine: "Mine" }[d.params.theme]} · ${d.rooms.length} areas · party level ${d.params.level} · seed ${d.params.seed}`, W * CS - 14, TOP / 2);
   const legend = (player && fog) || st.dark ? "#c9b48a" : st.ink; // readable on top of solid fog and dark rock
   const by = TOP + H * CS - 14; g.strokeStyle = legend; g.fillStyle = legend; g.lineWidth = 2; g.beginPath(); g.moveTo(14, by); g.lineTo(14 + CS * 4, by); for (let k = 0; k <= 4; k++) { g.moveTo(14 + k * CS, by - 4); g.lineTo(14 + k * CS, by + 4); } g.stroke();
   g.font = "12px 'Crimson Pro', Georgia, serif"; g.textAlign = "left"; g.fillText("20 ft", 14 + CS * 4 + 6, by);
+  if (st.look === "atlas") { mapCompassRose(g, W * CS - 52, TOP + H * CS - 52, 34, legend); return; }
   const cx = W * CS - 26, cy = TOP + H * CS - 26; g.beginPath(); g.moveTo(cx, cy - 14); g.lineTo(cx + 5, cy); g.lineTo(cx, cy + 14); g.lineTo(cx - 5, cy); g.closePath(); g.fillStyle = legend; g.fill();
   g.font = "bold 11px Cinzel, serif"; g.textAlign = "center"; g.fillText("N", cx, cy - 20);
 }
@@ -532,12 +548,14 @@ function readMapForm() {
 // open a map saved in a campaign; its saved fog (if any) replaces the copy kept on this computer
 function mapOpenSaved(m) {
   if (m.kind === "image") { imgOpenSaved(m); return; }
+  if (m.kind === "drawn") { medStop(); if (m.fog) fogStorePut(fogKey(m), m.fog, m.found || [], m.tokens); medOpen(m); return; }
   setMapForm(m);
   if (m.fog) fogStorePut(fogKey(m), m.fog, m.found || [], m.tokens);
   HOST.key = null; location.hash = "map"; renderMap();
 }
 function setMapForm(p) { $("#mapStyle").value = MAP_STYLES[p.style] ? p.style : "parchment"; $("#mapName").value = p.name; $("#mapTheme").value = p.theme; $("#mapSize").value = p.size; $("#mapRooms").value = p.rooms; $("#mapLevel").value = p.level; $("#mapParty").value = p.party; $("#mapSeed").value = p.seed; }
 function renderMap() {
+  medStop();
   $("#impPanel").hidden = true; $("#impPlace").checked = false;
   const p = readMapForm();
   const cap = { small: 10, medium: 16, large: 24 }[p.size];
@@ -548,10 +566,11 @@ function renderMap() {
 $("#mapForm").addEventListener("submit", e => { e.preventDefault(); $("#mapSeed").value = newSeed(); renderMap(); });
 ["#mapTheme", "#mapStyle", "#mapSize", "#mapRooms", "#mapLevel", "#mapParty", "#mapGrid"].forEach(id => $(id).addEventListener("change", () => {
   // on an imported map, the grid lines and party settings just redraw; any other setting means "make me a dungeon"
+  if (currentMap && currentMap.kind === "drawn") { medFormChange(id); return; } // a drawn map keeps its drawing
   if (currentMap && currentMap.kind === "image" && ["#mapGrid", "#mapLevel", "#mapParty"].includes(id)) { drawMapDM(); if (HOST.on) hostSend(); } else renderMap();
 }));
-$("#mapName").addEventListener("change", renderMap); $("#mapSeed").addEventListener("change", renderMap);
-$("#mapCopyKey").addEventListener("click", async () => { if (!currentMap) return; try { await navigator.clipboard.writeText(currentMap.kind === "image" ? imgKeyText(currentMap) : roomKeyText(currentMap)); toast("Room key copied"); } catch { toast("Couldn't copy here — select the key text instead"); } });
+$("#mapName").addEventListener("change", () => currentMap && currentMap.kind === "drawn" ? medFormChange("#mapName") : renderMap()); $("#mapSeed").addEventListener("change", () => { if (!currentMap || currentMap.kind !== "drawn") renderMap(); });
+$("#mapCopyKey").addEventListener("click", async () => { if (!currentMap) return; try { await navigator.clipboard.writeText(currentMap.kind === "image" ? imgKeyText(currentMap) : currentMap.kind === "drawn" ? medKeyText(currentMap) : roomKeyText(currentMap)); toast("Room key copied"); } catch { toast("Couldn't copy here — select the key text instead"); } });
 $("#mapDownload").addEventListener("click", () => {
   if (!currentMap) return;
   const cv = document.createElement("canvas"); drawDungeon(cv, currentMap, $("#mapGrid").checked, { scale: 2 });
@@ -566,7 +585,7 @@ $("#mapDownloadPlayer").addEventListener("click", () => {
 /* the map on screen as a saved entry (generated: its settings; imported: imgRecord, no picture), with its fog and tokens */
 function mapEntryNow() {
   if (!currentMap) return null;
-  const rec = currentMap.kind === "image" ? imgRecord(currentMap) : { ...currentMap.params };
+  const rec = currentMap.kind === "image" ? imgRecord(currentMap) : currentMap.kind === "drawn" ? drawnRecord(currentMap) : { ...currentMap.params };
   const fogPart = HOST.fog && HOST.key === fogKey(rec) ? { fog: fogEncode(HOST.fog), found: [...HOST.found], tokens: HOST.tokens } : (e => e ? { fog: e.f, found: e.s || [], tokens: e.k } : {})(fogStoreRead()[fogKey(rec)]);
   return { ...rec, id: uid("m"), saved: Date.now(), ...fogPart };
 }
@@ -644,7 +663,7 @@ function renderImageMap() {
   hostLoad(d); drawMapDM(); if (HOST.on) hostSend();
   $("#roomKey").innerHTML = imageKeyHTML(d); fogKeyButtons();
 }
-function imgUse(d, toastMsg) { currentMap = d; HOST.key = null; MAPUI.hover = null; location.hash = "map"; renderImageMap(); if (toastMsg) toast(toastMsg); }
+function imgUse(d, toastMsg) { medStop(); currentMap = d; HOST.key = null; MAPUI.hover = null; location.hash = "map"; renderImageMap(); if (toastMsg) toast(toastMsg); }
 // roll a room's contents the way the dungeon generator does
 function rollRoomContents(o, theme, level, party) {
   const r = makeRng("roll", Date.now(), Math.random()), lv = clamp(level, 1, 20), tier = tierOf(lv), tags = TAGMAP[theme];
@@ -718,6 +737,7 @@ $("#mapImportFile").addEventListener("change", async e => {
     if (m.fog) fogStorePut(fogKey(imgRecord(d)), m.fog, m.found || [], m.tokens);
     imgUse(d, `“${d.params.name}” loaded.`); return;
   }
+  if (m.kind === "drawn") { medStop(); if (m.fog) fogStorePut(fogKey(m), m.fog, m.found || [], m.tokens); medOpen(m, `“${m.name}” loaded.`); return; }
   setMapForm(m); if (m.fog) fogStorePut(fogKey(m), m.fog, m.found || [], m.tokens);
   HOST.key = null; location.hash = "map"; renderMap(); toast(`“${m.name}” loaded.`);
 });
@@ -735,7 +755,8 @@ $("#mapExportFile").addEventListener("click", async () => {
   if (d.kind === "image") {
     const rec = imgRecord(d), image = await new Promise(res => { const r = new FileReader(); canvasBlob(d.img).then(b => { r.onload = () => res(r.result); r.readAsDataURL(b); }); });
     saveFile(mapFileName() + ".forgemap.json", JSON.stringify({ app: "dmforge-map", v: 1, made: new Date().toISOString(), map: { ...rec, ...mapFogForExport(fogKey(rec)) }, image }));
-  } else saveFile(mapFileName() + ".forgemap.json", JSON.stringify({ app: "dmforge-map", v: 1, made: new Date().toISOString(), map: { ...d.params, ...mapFogForExport(fogKey(d.params)) } }));
+  } else if (d.kind === "drawn") { const rec = drawnRecord(d); saveFile(mapFileName() + ".forgemap.json", JSON.stringify({ app: "dmforge-map", v: 1, made: new Date().toISOString(), map: { ...rec, ...mapFogForExport(fogKey(rec)) } })); }
+  else saveFile(mapFileName() + ".forgemap.json", JSON.stringify({ app: "dmforge-map", v: 1, made: new Date().toISOString(), map: { ...d.params, ...mapFogForExport(fogKey(d.params)) } }));
   toast("Map file downloaded.");
 });
 // the map picture at a VTT's pixels per square, without the header (players' version: no traps, secret doors as wall)
@@ -745,6 +766,7 @@ function mapVttPicture(d, ppg) {
 }
 function mapVttWalls(d) {
   if (d.kind === "image") return d.walls.map(w => [{ x: w[0], y: w[1] }, { x: w[2], y: w[3] }]);
+  if (d.kind === "drawn") return drawnVttWalls(d, HOST.key === fogKey(d.params) ? HOST.found : new Set());
   const { W, H, grid } = d, F = (x, y) => x >= 0 && y >= 0 && x < W && y < H && grid[y * W + x] > 0, out = [];
   for (let y = 0; y <= H; y++) { let run = null; for (let x = 0; x <= W; x++) { const edge = x < W && F(x, y - 1) !== F(x, y); if (edge && run === null) run = x; if (!edge && run !== null) { out.push([{ x: run, y }, { x, y }]); run = null; } } }
   for (let x = 0; x <= W; x++) { let run = null; for (let y = 0; y <= H; y++) { const edge = y < H && F(x - 1, y) !== F(x, y); if (edge && run === null) run = y; if (!edge && run !== null) { out.push([{ x, y: run }, { x, y }]); run = null; } } }
@@ -795,7 +817,7 @@ function mapSetHover(num) {
 function mapOverlayDraw() {
   const ov = $("#mapOverlay"), cv = $("#mapCanvas"), d = currentMap; if (!d) return;
   ov.width = cv.width; ov.height = cv.height; const g = ov.getContext("2d"), k = cv.width / (d.W * CS); g.setTransform(k, 0, 0, k, 0, 0);
-  const o = MAPUI.hover && d.rooms.find(r => r.num === MAPUI.hover); if (!o) return;
+  const o = MAPUI.hover && d.rooms.find(r => r.num === MAPUI.hover); if (!o) { if (MED.on) medOverlay(); return; }
   if (d.kind === "image") { g.strokeStyle = "#e8a33d"; g.lineWidth = 3; g.shadowColor = "rgba(232,163,61,.9)"; g.shadowBlur = 8; g.beginPath(); g.arc(o.cx * CS + CS / 2, TOP + o.cy * CS + CS / 2, 14, 0, 7); g.stroke(); return; }
   const rid = d.rid[o.cy * d.W + o.cx], same = (x, y) => x >= 0 && y >= 0 && x < d.W && y < d.H && d.rid[y * d.W + x] === rid;
   g.translate(0, TOP); g.fillStyle = "rgba(232,163,61,.14)"; g.strokeStyle = "#e8a33d"; g.lineWidth = 2.5; g.shadowColor = "rgba(232,163,61,.8)"; g.shadowBlur = 6; g.beginPath();
@@ -805,6 +827,7 @@ function mapOverlayDraw() {
     if (!same(x - 1, y)) { g.moveTo(X, Y); g.lineTo(X, Y + CS); } if (!same(x + 1, y)) { g.moveTo(X + CS, Y); g.lineTo(X + CS, Y + CS); }
   }
   g.stroke();
+  if (MED.on) medOverlay();
 }
 function mapZoom(z) {
   const w = $("#mapWrap"), cx = (w.scrollLeft + w.clientWidth / 2) / w.scrollWidth, cy = (w.scrollTop + w.clientHeight / 2) / w.scrollHeight;
@@ -952,7 +975,7 @@ function handoutUI() { $("#handoutBack").hidden = HOST.show !== "handout" && HOS
 /* ---- tokens ---- */
 function tokenView() { // tokens with the fight-on-TV state (Bloodied/Down) for monsters
   const f = hostEnc(), st = {}; if (f) f.e.enemies.forEach(m => { st[m.name] = m.hp <= 0 ? "Down" : m.hp <= m.max / 2 ? "Bloodied" : ""; }); // same words as the TV's turn order, never HP
-  return HOST.tokens.map(t => ({ ...t, state: t.kind === "foe" ? st[t.name] || "" : "" }));
+  return HOST.tokens.map(t => ({ ...t, state: t.kind === "foe" ? st[t.name] || st[tokBase(t.name)] || "" : "" })); /* a numbered "Goblin 2" still matches the enemy "Goblin" */
 }
 function tokFree(tx, ty) { // the nearest floor square to (tx,ty) without a token
   const d = currentMap, seen = new Set([ty * d.W + tx]), q = [[tx, ty]];
@@ -966,7 +989,16 @@ function tokFree(tx, ty) { // the nearest floor square to (tx,ty) without a toke
 function tokAdd(name, kind, room) {
   const d = currentMap; if (!d || !name) return;
   const o = (room && d.rooms.find(r => r.num === room)) || d.rooms[0], [x, y] = o ? tokFree(o.cx, o.cy) : tokFree(d.W >> 1, d.H >> 1);
-  HOST.tokens.push({ id: uid("t"), name: String(name).slice(0, 40), kind, x, y });
+  HOST.tokens.push({ id: uid("t"), name: tokName(String(name).slice(0, 36)), kind, x, y });
+}
+/* a name already on the map gets numbered: the first "Goblin" becomes "Goblin 1", the next is "Goblin 2" (2026-11-24) */
+const tokBase = n => String(n).replace(/ \d+$/, "");
+function tokName(base) {
+  const re = new RegExp("^" + base.replace(/[.*+?^${}()|[\]\\]/g, "\\$&") + "(?: (\\d+))?$"), same = HOST.tokens.filter(t => re.test(t.name));
+  if (!same.length) return base;
+  const plain = same.find(t => t.name === base); if (plain) plain.name = base + " 1";
+  const top = Math.max(1, ...same.map(t => +(t.name.match(re) || [])[1] || 1));
+  return base + " " + (top + 1);
 }
 function tokListRender() {
   const el = $("#tokList"); if (!el) return;
@@ -975,13 +1007,13 @@ function tokListRender() {
 function tokChanged() { tokListRender(); fogChanged(); }
 $("#tokParty").addEventListener("click", () => {
   const c = curCampForMap(), names = c && c.party && c.party.length ? c.party.map(p => p.name).filter(Boolean) : PCS.roster.map(p => p.name);
-  const add = names.filter(n => !HOST.tokens.some(t => t.name === n));
+  const add = names.filter(n => !HOST.tokens.some(t => t.name === n || tokBase(t.name) === n));
   if (!add.length) { toast(names.length ? "The party's tokens are already on the map." : "No heroes yet: add them to the campaign's Party, or save characters on the Characters tab."); return; }
   add.forEach(n => tokAdd(n, "pc")); tokChanged();
 });
 $("#tokFight").addEventListener("click", () => {
   const f = hostEnc(); if (!f) { toast("Put a fight on the TV first: 📺 Show on TV in Encounters, or ⚔ Run this fight in the Room Key."); return; }
-  const add = f.e.enemies.map(m => m.name).filter(n => !HOST.tokens.some(t => t.name === n));
+  const add = [...new Set(f.e.enemies.map(m => m.name))].filter(n => !HOST.tokens.some(t => t.name === n || tokBase(t.name) === n));
   add.forEach(n => tokAdd(n, "foe", f.e.room)); tokChanged();
 });
 $("#tokAdd").addEventListener("click", () => { const n = $("#tokName").value.trim(); if (!n) { toast("Type a name for the token"); return; } tokAdd(n, $("#tokKind").value); $("#tokName").value = ""; tokChanged(); });

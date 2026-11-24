@@ -4,7 +4,10 @@ A painted-atlas map per World region, plus one for the whole world, with the Wor
 
 ## Data
 - A region's map is `place.atlas`. The world map is `W.atlas`, saved next to `places` in `dmforge.world.v1` (`worldLoad` / `worldSave`). Both are:
-  `{ v: 1, seed, shape: "coast"|"inland"|"island", land: "balanced"|"mountains"|"forest"|"plains", pins: { placeId: { x, y, m? } }, names: [{ id, kind, name, x, y }], off?: [placeId], img?, imgW?, imgH? }`
+  `{ v: 1|2, seed, shape, land: "balanced"|"mountains"|"forest"|"plains", climate?, pins: { placeId: { x, y, m? } }, names: [{ id, kind, name, x, y }], off?: [placeId], img?, imgW?, imgH? }`
+  - `shape` is `coast`, `inland`, `island`, or (2026-11-24) `archipelago`, `peninsula`, `volcano`, `twin` (`ATLAS_SHAPES`).
+  - `climate` (2026-11-24) is `temperate` (also when missing), `desert`, `jungle`, `tundra` (shown as Frozen north) or `swamp` (`ATLAS_CLIMATES`).
+  - `v: 2` maps (made or rolled from 2026-11-24) also get lakes in their hollows. A missing `v` is 1. `atlasKey(m)` is the cache key.
   - Pins are fractions of the map, saved at the centre of their land cell. `m` marks a pin the DM dragged.
   - `off` lists places taken off the map.
 - **Found by the players:** `place.found = true` (one campaign per world). `atlasFound(p, on)` also reveals the regions above.
@@ -62,6 +65,19 @@ A painted-atlas map per World region, plus one for the whole world, with the Wor
 ## On the TV
 - `atlasTv(id)` toggles `HOST.show = "atlas"` and `HOST.atlas = { id }`, starting the TV if needed. `hostFrameCanvas` draws `atlasTvCanvas()`, the player version, with the turn order strip when a fight is on the TV.
 - The picture is re-sent on any change to that map or a reveal. The Dungeon Map tab's "Back to map" switches the TV back.
+
+## The upgrade (2026-11-24)
+
+Ideas from Azgaar's Fantasy Map Generator, written for the Forge (no code from it).
+- **Old maps keep their land.** Every new kind of land is behind a new shape, a climate or `v: 2`, and `atlasKey` only adds them when they're used. `test:atlas` compares old recipes with fingerprints taken before the change.
+- **The painted look** (`atlasTerrainCanvas`, every generated map): colour ramps per climate (`ATLAS_PAL`, `atlasRamp`), a painterly mottle, white ripples off the coast, ice along the shore in the frozen north, hills, each climate's plants (trees, jungle, pines, palms and dunes, reeds), grain, darker edges, a ruled frame and a compass rose. A volcano gets a glowing crater.
+- **Borders and roads** (`atlasLines`, `atlasDrawLines`) are worked out from the pins being drawn, never stored:
+  - two or more regions on the map (areas) split the land between them, with tints and dashed borders;
+  - roads join the cities, towns and villages along the shortest links (`atlasRoute`: A* on land, avoiding water, and costly over mountains and river crossings), with a dotted sea lane where there's no way over land;
+  - the players' version only has found places' pins, so their map never shows a border or road to a place they haven't found;
+  - not drawn on imported pictures.
+- **The Region builder** (`WB.region`): Climate, Towns (None, A few, Many) and Kingdoms (None, 2 to 4). `wbRegionPlaces` makes the towns (`WB.settlement` without NPCs or inner places) and the kingdoms (regions inside, with the nearest towns in them), and pins them with draft keys (`_pin`). `wbRegionPins` draws them on the preview, and `wbCommit` swaps the keys for the new places' ids, so everything stays where the preview showed it.
+- The map view has a Climate choice; Roll again keeps it and makes a `v: 2` map.
 
 ## Tests
 `npm run test:atlas` (`test/e2e/atlas.cjs`) covers:

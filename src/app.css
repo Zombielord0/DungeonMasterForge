@@ -150,6 +150,17 @@ ul.plain{margin:4px 0 0;padding-left:20px}
 .key-room.hl{background:rgba(232,163,61,.12);box-shadow:inset 3px 0 0 #e8a33d}
 #mapCanvas.fogging{cursor:crosshair;touch-action:none}
 #mapCanvas.placing{cursor:copy}
+/* the map editor (03d-map-editor-ui.js) */
+.med{margin-bottom:12px}
+.med-tools{display:flex;flex-wrap:wrap;gap:6px}
+.med-tools .chip.on,.med-props .chip.on{outline:2px solid #e8a33d;outline-offset:1px}
+.med-props{display:flex;flex-wrap:wrap;gap:5px}
+.med-opts,.med-sel{gap:8px;flex-wrap:wrap;align-items:flex-end;margin:6px 0}
+.med-sel{padding:8px;border-radius:4px;background:rgba(0,0,0,.25)}
+.med-sel .btn,.med-opts .btn{flex:0 0 auto}
+.med-sel textarea{min-height:44px}
+.med-style summary{cursor:pointer;font-family:Cinzel,serif;margin-top:6px}
+#mapCanvas.editing{cursor:crosshair;touch-action:none}
 .fog-tools{border:0;padding:0;margin:14px 0 0;min-width:0}
 .fog-tools[disabled]{opacity:.45}
 .key-room{padding:8px 0;border-bottom:1px solid rgba(0,0,0,.45);box-shadow:0 1px 0 rgba(255,255,255,.05)}
@@ -310,6 +321,17 @@ ol.plain-ol{margin:0;padding-left:20px}ol.plain-ol li{margin-bottom:6px}
 .fg-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:14px;margin-top:14px}
 .fg-grid>.sec{margin:0}
 @media (max-width:700px){.foes thead{display:none}.foes tr{display:grid;grid-template-columns:1fr 1fr;gap:4px;border-top:1px solid rgba(0,0,0,.45);padding:6px 0}.foes td{border:none}}
+/* phones: the table headings are hidden, so each box carries its own label (QA-7, 2026-11-24) */
+@media (max-width:700px){
+  .foes td:not([colspan])::before{display:block;font-family:Cinzel,serif;font-size:10.5px;letter-spacing:.06em;color:var(--muted);text-transform:uppercase;margin-bottom:2px}
+  .foes:not(.pg-table) td:nth-child(2)::before{content:"AC"}.foes:not(.pg-table) td:nth-child(3)::before{content:"HP"}
+  .foes:not(.pg-table) td:nth-child(4)::before{content:"Damage / heal"}.foes:not(.pg-table) td:nth-child(5)::before{content:"Init"}
+  .foes:not(.pg-table) td:nth-child(6)::before{content:"Conditions"}
+  .foes.pg-table td:nth-child(2)::before{content:"AC"}.foes.pg-table td:nth-child(3)::before{content:"HP"}
+  .foes.pg-table td:nth-child(4)::before{content:"Passive Perc."}.foes.pg-table td:nth-child(5)::before{content:"Init"}
+  .foes.pg-table td:nth-child(6)::before{content:"Conditions"}.foes.pg-table td:nth-child(7)::before{content:"Damage / heal"}
+}
+@media (max-width:600px){.camp-title-row{flex-wrap:wrap}.camp-title-row .title-input{flex:1 1 100%;min-width:0}}
 .title-input{font-family:Cinzel,serif!important;font-size:22px!important;font-weight:700;color:var(--gold2);background:transparent!important;border-color:transparent!important;box-shadow:none!important;padding:2px 4px!important;text-shadow:0 -1px 0 #000}
 .title-input:hover,.title-input:focus{border-color:#4a4640!important}
 /* NPC + character */
@@ -853,8 +875,8 @@ nav a[hidden]{display:none}
 .linkish:hover{color:#fff}
 .owner-tag{font-style:normal;color:var(--gold2);margin-left:6px;font-size:13px}
 .portal-player #rcCamp,.portal-player [data-ra=camp]{display:none}
-#whisperN{display:inline-block;min-width:18px;margin-left:4px;padding:0 5px;border-radius:9px;background:var(--red);color:#fff;font-size:11px;line-height:18px;text-align:center;font-family:"Crimson Pro",Georgia,serif}
-#whisperN[hidden]{display:none}
+#whisperN,#partyN{display:inline-block;min-width:18px;margin-left:4px;padding:0 5px;border-radius:9px;background:var(--red);color:#fff;font-size:11px;line-height:18px;text-align:center;font-family:"Crimson Pro",Georgia,serif}
+#whisperN[hidden],#partyN[hidden]{display:none}
 .join-code{font-family:Cinzel,serif;font-size:20px;letter-spacing:.12em;color:var(--gold2);background:var(--well);border:1px solid #0d0c0b;border-radius:4px;padding:4px 10px;text-align:center}
 .member{display:flex;align-items:center;gap:8px;justify-content:space-between;margin-bottom:8px}
 .member b,.member small{display:block}
@@ -869,6 +891,29 @@ nav a[hidden]{display:none}
 .feed time{color:var(--muted);font-size:14px;white-space:nowrap}
 .feed.whispers li{grid-template-columns:90px 1fr}
 .feed.whispers li.unread span{color:#fff;font-weight:600}
+.chat-tabs{display:flex;gap:8px;flex-wrap:wrap}
+.chat-tabs .btn{flex:0 0 auto;display:inline-flex;align-items:center;gap:6px}
+[data-chat-open].on{border-color:var(--gold);color:var(--gold);box-shadow:inset 0 0 0 1px var(--gold)}
+.chat-n{display:inline-block;min-width:18px;padding:0 5px;border-radius:9px;background:var(--red);color:#fff;font-size:11px;line-height:18px;text-align:center}
+.chat-n[hidden]{display:none}
+.chat-note{margin:8px 0 6px;font-size:14px}
+.chat-box{display:flex;flex-direction:column;gap:8px;min-width:0}
+.chat-list{list-style:none;margin:0;padding:6px 2px;max-height:60vh;min-height:160px;overflow-y:auto;display:flex;flex-direction:column;gap:6px}
+.chat-list li{max-width:80%;padding:6px 10px;border-radius:12px;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.08);overflow-wrap:anywhere;min-width:0}
+.chat-list .chat-body{white-space:pre-wrap}
+.chat-list li.theirs{align-self:flex-start;border-bottom-left-radius:4px}
+.chat-list li.mine{align-self:flex-end;background:rgba(227,154,59,.16);border-color:rgba(227,154,59,.4);border-bottom-right-radius:4px}
+.chat-list li.chat-empty{align-self:center;background:none;border:0}
+.chat-list .chat-who{display:block;font-size:13px;color:var(--gold)}
+.chat-list time{display:block;font-size:12px;color:var(--muted);text-align:right;white-space:nowrap}
+.chat-form{display:flex;gap:8px;align-items:flex-end}
+.chat-form textarea{flex:1;min-width:0;resize:vertical;min-height:44px}
+.chat-form .btn{flex:0 0 auto}
+.chat-form[hidden],.chat-list[hidden],.chat-pick[hidden]{display:none}
+.chat-dm{display:grid;grid-template-columns:minmax(140px,200px) minmax(0,1fr);gap:14px;align-items:start}
+.chat-people{display:flex;flex-direction:column;gap:6px;min-width:0}
+.chat-people .btn{display:flex;justify-content:space-between;align-items:center;gap:6px;text-align:left;overflow-wrap:anywhere}
+@media (max-width:700px){.chat-list{max-height:48vh}.chat-dm{grid-template-columns:minmax(0,1fr)}.chat-people{flex-direction:row;flex-wrap:wrap}.chat-people .btn{flex:0 0 auto}}
 nav a[data-view=homebrew]{--ic:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='1.9' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M7 3h11v15a3 3 0 0 1-3 3H6a3 3 0 0 1-3-3v-2h11v2a3 3 0 0 0 3 3'/%3E%3Cpath d='M7 3a2 2 0 0 0-2 2v11'/%3E%3Cpath d='M10 8h5M10 12h5'/%3E%3C/svg%3E")}
 .hb-kind{display:flex;align-items:center;gap:6px;margin:14px 0 6px}
 .hb-kind:first-of-type{margin-top:4px}
@@ -1406,3 +1451,56 @@ nav a[data-view=requests]{--ic:url("data:image/svg+xml,%3Csvg xmlns='http://www.
   .hdr-toggle{min-width:40px;padding-inline:10px}
   .hdr-mini-label{font-size:14px;letter-spacing:.01em}
 }
+
+/* Tracker: "Group by monster" beside Roll enemy initiative (2026-11-24) */
+.chk-inline{display:inline-flex;align-items:center;gap:6px;font-size:14px;color:var(--muted);cursor:pointer;white-space:nowrap}
+.chk-inline input{margin:0}
+
+/* ---- UI review fixes (2026-11-24) ---- */
+/* keyboard users: "Skip to content" appears when tabbed to, before the tabs */
+.skip-link{position:fixed;left:12px;top:-60px;z-index:60;padding:8px 14px;border:1px solid var(--gold);border-radius:4px;background:#15172a;color:var(--gold2);font:600 14px/1.2 system-ui,sans-serif;cursor:pointer}
+.skip-link:focus{top:10px;outline:2px solid var(--gold2);outline-offset:2px}
+/* laptops: Saved, Backup and the bell sit beside the title; the tabs get their own rows below */
+@media (min-width:601px){
+  html:not(.hdr-mini):not(.hdr-auto) header>nav{order:3;flex-basis:100%;margin-left:0}
+  html:not(.hdr-mini):not(.hdr-auto) header>#storeBadge{margin-left:auto}
+}
+/* the fight's setup buttons (Next Session, Save as template) fold under More */
+.enc-more{display:inline-block;position:relative}
+.enc-more>summary{list-style:none;display:inline-block}
+.enc-more>summary::-webkit-details-marker{display:none}
+.enc-more[open]{display:flex;flex-wrap:wrap;gap:6px;align-items:center}
+/* the fight bar: phones only, while a fight is under way on the Tracker */
+.fight-bar{display:none}
+@media (max-width:600px){
+  .fight-bar:not([hidden]){position:fixed;left:0;right:0;bottom:var(--mobile-nav-space);z-index:34;display:flex;align-items:center;gap:8px;
+    padding:8px max(10px,env(safe-area-inset-right)) 8px max(10px,env(safe-area-inset-left));background:var(--noise),linear-gradient(rgba(30,33,50,.97),rgba(18,20,34,.98));
+    border-top:1px solid rgba(255,170,80,.35);box-shadow:0 -6px 18px rgba(0,0,0,.6)}
+  .fight-now{flex:1 1 auto;min-width:0;min-height:44px;display:flex;flex-direction:column;align-items:flex-start;justify-content:center;background:none;border:none;color:var(--text);text-align:left;cursor:pointer;padding:0 4px}
+  .fight-round{font-family:Cinzel,serif;font-size:12px;color:var(--gold2)}
+  .fight-who{font-size:15px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%}
+  .fight-bar .btn.primary{flex:0 0 auto;min-height:44px}
+  body.fight-on main{padding-bottom:calc(170px + var(--mobile-nav-space))}
+  body.fight-on .roll-dock{bottom:calc(var(--mobile-nav-space) + 72px)}
+  body.fight-on #toast{bottom:calc(var(--mobile-nav-space) + 140px)}
+  /* the open campaign comes first; the campaign list follows it */
+  #view-tracker .tlayout>.side{order:2}
+  /* the Tracker's sections: one row you swipe sideways, like the sheet's quick strip */
+  .subtabs{flex-wrap:nowrap;overflow-x:auto;scrollbar-width:none;margin-left:-4px;margin-right:-4px}
+  .subtabs::-webkit-scrollbar{display:none}
+  .subtabs button{flex:0 0 auto;min-height:44px;white-space:nowrap}
+}
+/* touch screens: controls at least 44 px, so they can be tapped without misses */
+@media (pointer:coarse){
+  .btn.sm,.icon-btn,.roll-b,.sk-name,.sk-roll,.link-b{min-height:44px} /* fold arrows: the whole title bar folds, so it is the target */
+  .icon-btn,.sk-roll,.m.roll-b{min-width:44px} /* fold arrows stay narrow (tall is enough) so long section titles still fit */
+  section.view input:not([type=checkbox]):not([type=radio]),section.view select{min-height:44px}
+  section.view input[type=checkbox]{width:24px!important;height:24px!important;flex:0 0 24px;min-width:24px}
+  section.view input[type=checkbox]:checked::after{left:8px;top:3px;width:6px;height:12px} /* the tick, centred in the bigger box */
+  label.opt{min-height:44px}
+  section.view .btn{min-height:44px}
+  section.view .vit-roll{min-width:44px!important}
+  section.view details>summary:not(.btn){padding-top:12px;padding-bottom:12px}
+}
+.med .lbl input,.med .lbl select,.med .lbl textarea{text-transform:none;letter-spacing:0;font-family:'Crimson Pro',Georgia,serif;display:block;margin-top:4px}
+.med-sel[hidden],.med-opts[hidden]{display:none}
