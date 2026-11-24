@@ -6,6 +6,19 @@ const NEWS = [
     "Whispers are now a chat. Players can reply to their DM, and the DM sees each player's conversation on the Party tab with a count of new messages.",
     "Players also have a Party chat to talk among themselves. The DM can't see it."
   ] },
+  { id: "2026-11-24-new-icon", date: "2026-11-24", title: "A new look for the Forge's icon", go: "generate", items: [
+    "The Forge has a new emblem: a golden d20 on a shield with crossed hammers. You'll see it in the header, above empty pages, on the browser tab and on your home screen if you installed the app."
+  ] },
+  { id: "2026-11-23-browser-qa", date: "2026-11-23", title: "Small fixes all round", go: "tracker", items: [
+    "DMs: the campaign you start is in your Campaign Tracker straight away, so you can save NPCs, loot and treasure to it before any player joins.",
+    "Shop descriptions and random encounters read properly. A lone monster no longer has “one keeping watch”.",
+    "Refreshing the page keeps the character you had open on the Characters tab.",
+    "The Compendium tab has its own icon.",
+    "On phones, the Forge form fits the screen, and the bottom bar no longer splits “Compendium” in two."
+  ] },
+  { id: "2026-11-23-reference-spell-text", date: "2026-11-23", title: "Rules for the book spells", go: "spells", items: [
+    "Silvery Barbs and the 96 other spells from other D&D books now show a short summary of what they do, their damage and how they scale, with the book and page underneath."
+  ] },
   { id: "2026-11-23-reference-spells", date: "2026-11-23", title: "More spells, and Oathbreaker abilities", go: "spells", items: [
     "Spells from other D&D books, like Silvery Barbs, are now in the 2014 spell list with their level, casting time, range, components, duration and the book page to look them up. Imported characters keep them.",
     "Oathbreaker paladins see Aura of Hate, Control Undead and Dreadful Aspect in their Abilities list, with their save DCs. The Channel Divinity options use the Channel Divinity counter."

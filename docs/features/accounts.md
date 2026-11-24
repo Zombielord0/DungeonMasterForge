@@ -11,6 +11,7 @@ Moved here from `CLAUDE.md` on 2026-11-17, unchanged except that `public/index.h
   - `enter()` honours the key. Creating or joining a campaign removes it.
 - **Rename:** `PUT /api/campaigns/:cid {name}` is DM-only (403 otherwise; 400 "Give the campaign a name" for a blank). The Account window (`openAccount`) has `#aRename` / `#aCampName` for the DM.
   - Before renaming, it pins the party's Tracker campaign (`TRACKER_KEY`), because `trackerId` matches by name. It renames that Tracker campaign too if its name matched the old one.
+- **The DM's Tracker campaign is made at once (2026-11-23).** `syncTracker` (`src/portal.js`) makes a Tracker campaign named after the shared campaign as soon as the DM enters it, not only when the first player character arrives, so the Tracker and the "save to campaign" buttons have it. It waits for `Cloud.on` (the account's Tracker loaded) so a slow or failed load can't make a duplicate or one in the browser's own data. "Not now" (no campaign) makes none.
 - **Tests:** `npm run test:setup` (`test/e2e/setup-screen.cjs`). It builds the portal with esbuild's JS API and starts `test/e2e/server.mjs` on port 8897. The two rename/create API tests are in `npm test`.
 
 ## The DM's own data saved to their account (2026-11-17)
