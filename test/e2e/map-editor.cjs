@@ -122,6 +122,20 @@ const server = http.createServer((req, res) => {
   await settle(); await click(2.5, 2.5);
   check("Picture: an uploaded picture is placed on the map", await p.evaluate(() => currentMap.rec.props.some(q => q.k === "img" && q.img === MED.pic)));
   fs.unlinkSync(png);
+  // review fixes: a crafted map file can't put markup in the page or crash the key; fog survives Edit map; the draft belongs to its account
+  const bad = await p.evaluate(() => { const r = drawnBlank({ size: "small", name: "Bad", theme: "crypt", level: 3, party: 4, style: "parchment" });
+    r.rooms = [{ num: '<img id="hack1" src=x>', cx: "3", cy: 2, type: "<b id=hack2>x</b>", content: ["<i id=hack3>y</i>"], enc: { text: "goblins", rating: '"><b id="hack4">z</b>', adj: "lots" } }, { num: 2, cx: 5, cy: 5, enc: { text: "orcs", rating: "Hard", adj: 450 } }];
+    r.labels = [{ id: '"><b id="hack5">', x: "1", y: 1, text: 42, size: "huge", dm: "yes" }]; r.props = [{ id: "p1", k: "__proto__", x: 1, y: 1, w: 99, h: 1 }]; r.doors = [{ x: 1, y: 1, dx: 5, dy: 0, kind: "<b>" }];
+    try { medStop(); medOpen(r); medStart(); MED.sel = { type: "room", num: currentMap.rooms[0].num }; medSelUI(); } catch (e) { return { err: e.message }; }
+    const rm = currentMap.rec.rooms; return { err: null, hacks: ["hack1", "hack2", "hack3", "hack4", "hack5"].filter(id => document.getElementById(id)), nums: rm.map(o => o.num), cx: rm[0].cx, enc0: rm[0].enc || null, enc1: rm[1].enc && rm[1].enc.rating, props: currentMap.rec.props.length, door: currentMap.rec.doors[0] && currentMap.rec.doors[0].dx }; });
+  check("a crafted map file can't add markup to the page or crash the Room Key", !bad.err && bad.hacks.length === 0 && bad.nums.every(n => Number.isInteger(n)) && bad.cx === 3 && !bad.enc0 && bad.enc1 === "Hard" && bad.props === 0 && bad.door === undefined, JSON.stringify(bad));
+  const fogKept = await p.evaluate(() => { medStop(); $("#mapSize").value = "medium"; $("#mapSeed").value = "FOGKEEP"; renderMap(); const n = currentMap.W * currentMap.H, f = new Uint8Array(n).fill(1); fogStorePut(fogKey(currentMap.params), fogEncode(f), [], [{ name: "Hero", kind: "pc", x: 3, y: 3 }]); HOST.key = null; hostLoad(currentMap);
+    medStart(); return { all: HOST.fog.every(v => v === 1), tokens: HOST.tokens.length, kind: currentMap.kind }; });
+  check("Edit map keeps the dungeon's fog and tokens", fogKept.kind === "drawn" && fogKept.all && fogKept.tokens === 1, JSON.stringify(fogKept));
+  const owner = await p.evaluate(() => { const was = { on: Cloud.on, uid: Cloud.uid }; Cloud.on = true; Cloud.uid = "dm-1"; medSaveDraft();
+    localStorage.setItem("dmforge.sync.v1", JSON.stringify({ owner: "dm-1", v: {}, dirty: {}, gone: {} })); Cloud.release(true);
+    const left = localStorage.getItem("dmforge.mapdraft.v1"); medResumeUI(); const shown = !$("#medResume").hidden; Object.assign(Cloud, was); return { left: !!left, shown }; });
+  check("signing out takes the DM's drawing in progress off this browser", !owner.left && !owner.shown, JSON.stringify(owner));
   // phones: the editor fits without sideways scrolling
   await p.setViewportSize({ width: 390, height: 844 }); await p.waitForTimeout(300);
   check("the editor fits a phone without sideways scrolling", await p.evaluate(() => document.documentElement.scrollWidth <= document.documentElement.clientWidth));

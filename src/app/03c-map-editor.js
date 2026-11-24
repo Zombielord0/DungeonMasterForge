@@ -72,10 +72,36 @@ function drawnBlank(p) {
   return { kind: "drawn", v: 1, id: uid("dm"), name: p.name, theme: p.theme, level: p.level, party: p.party, style: p.style || "parchment", W, H,
     base: { g: mapRle(new Array(W * H).fill(0)), r: mapRle(new Array(W * H).fill(0)) }, shapes: [], doors: [], icons: [], labels: [], props: [], rooms: [], look: {} };
 }
+/* a saved record, cleaned: it can come from a map file, a campaign file or a backup made anywhere, so every field is rebuilt
+   from what it should be (numbers as numbers, kinds from their lists, text as text); anything else is dropped */
+const MED_RATINGS = new Set(["Trivial", "Easy", "Medium", "Hard", "Deadly"]);
+function drawnClean(rec) {
+  const src = rec && typeof rec === "object" ? rec : {}, num = (v, a, b, def = a) => { const n = +v; return Number.isFinite(n) ? clamp(n, a, b) : def; }, int = (v, a, b, def = a) => Math.round(num(v, a, b, def));
+  const str = (v, max = 200) => typeof v === "string" ? v.slice(0, max) : typeof v === "number" ? String(v) : "", arr = (v, max) => Array.isArray(v) ? v.slice(0, max) : [];
+  const W = int(src.W, 4, 120, 46), H = int(src.H, 4, 120, 34), pt = q => Array.isArray(q) ? [num(q[0], -1, W + 1), num(q[1], -1, H + 1)] : [0, 0];
+  const id = v => (str(v, 40).match(/^[\w-]+$/) || [uid("x")])[0];
+  const enc = e => e && typeof e === "object" && MED_RATINGS.has(e.rating) && Number.isFinite(+e.adj) ? { text: str(e.text, 400), rating: e.rating, adj: Math.round(+e.adj), ...(e.climax ? { climax: true } : {}) } : undefined;
+  const look = src.look && typeof src.look === "object" ? src.look : {}, L = {};
+  ["wall", "floor"].forEach(k => { if (/^#[0-9a-f]{6}$/i.test(look[k] || "")) L[k] = look[k]; }); if (look.wallW !== undefined) L.wallW = num(look.wallW, 1, 12, 3); if (look.rough !== undefined) L.rough = int(look.rough, 0, 3, 1);
+  if (["lines", "dots", "none"].includes(look.grid)) L.grid = look.grid; if (["on", "off"].includes(look.hatch)) L.hatch = look.hatch;
+  const rooms = []; arr(src.rooms, 200).forEach(o => { if (!o || typeof o !== "object") return; const e = enc(o.enc);
+    rooms.push({ num: rooms.length + 1, cx: int(o.cx, 0, W - 1), cy: int(o.cy, 0, H - 1), type: str(o.type, 80) || "Room", feature: str(o.feature, 200), content: arr(o.content, 20).map(c => str(c, 400)).filter(Boolean),
+      marks: arr(o.marks, 8).filter(m => ["up", "down", "trap", "chest", "boss"].includes(m)), icons: arr(o.icons, 8).filter(i => i && ["up", "down", "trap", "chest"].includes(i.m)).map(i => ({ m: i.m, x: int(i.x, 0, W - 1), y: int(i.y, 0, H - 1) })), ...(e ? { enc: e } : {}) }); });
+  const D1 = v => [-1, 0, 1].includes(+v) ? +v : null;
+  return { kind: "drawn", v: 1, id: id(src.id), name: str(src.name, 60) || "Drawn map", theme: MAP_BG[src.theme] ? src.theme : "crypt", level: int(src.level, 1, 20, 3), party: int(src.party, 1, 8, 4), style: MAP_STYLES[src.style] ? src.style : "parchment", W, H,
+    base: { g: str(src.base && src.base.g, 200000), r: str(src.base && src.base.r, 200000) },
+    shapes: arr(src.shapes, 2000).filter(sh => sh && ["add", "cut"].includes(sh.op) && ["rect", "ellipse", "poly", "cells"].includes(sh.t)).map(sh => sh.t === "cells" ? { op: sh.op, t: "cells", c: arr(sh.c, 20000).map(q => pt(q).map(Math.floor)) }
+      : sh.t === "poly" ? { op: sh.op, t: "poly", pts: arr(sh.pts, 400).map(pt) } : { op: sh.op, t: sh.t, x: num(sh.x, -1, W + 1), y: num(sh.y, -1, H + 1), w: num(sh.w, 0, W + 2), h: num(sh.h, 0, H + 2) }),
+    doors: arr(src.doors, 2000).filter(o => o && D1(o.dx) !== null && D1(o.dy) !== null && Math.abs(+o.dx) + Math.abs(+o.dy) === 1).map(o => ({ x: int(o.x, 0, W - 1), y: int(o.y, 0, H - 1), dx: +o.dx, dy: +o.dy, kind: ["door", "secret", "locked", "bars"].includes(o.kind) ? o.kind : "door" })),
+    icons: arr(src.icons, 500).filter(o => o && ["up", "down"].includes(o.m)).map(o => ({ m: o.m, x: int(o.x, 0, W - 1), y: int(o.y, 0, H - 1) })),
+    labels: arr(src.labels, 500).filter(o => o && typeof o === "object").map(o => ({ id: id(o.id), x: num(o.x, 0, W), y: num(o.y, 0, H), text: str(o.text, 60), size: int(o.size, 8, 60, 16), dm: o.dm === true })),
+    props: arr(src.props, 2000).filter(o => o && (MAP_PROPS[o.k] && Object.hasOwn(MAP_PROPS, o.k) || (o.k === "img" && /^prop-[\w-]+$/.test(o.img || "")))).map(o => { const w = int(o.w, 1, 8, 1), h = int(o.h, 1, 8, 1);
+      return { id: id(o.id), k: o.k, ...(o.k === "img" ? { img: o.img } : {}), x: int(o.x, 0, W - w), y: int(o.y, 0, H - h), w, h }; }),
+    rooms, look: L };
+}
 /* a saved record -> the runtime map (with its squares worked out) */
 function drawnBuild(rec) {
-  const r = JSON.parse(JSON.stringify(rec)); ["shapes", "doors", "icons", "labels", "props", "rooms"].forEach(k => { if (!Array.isArray(r[k])) r[k] = []; }); r.look = r.look || {};
-  r.W = clamp(+r.W || 46, 4, 120); r.H = clamp(+r.H || 34, 4, 120);
+  const r = drawnClean(rec);
   const d = { kind: "drawn", id: r.id, rec: r, W: r.W, H: r.H };
   drawnRefresh(d); return d;
 }
@@ -108,7 +134,7 @@ function drawnRefresh(d) {
   d.rooms.forEach(o => { const id = rid[o.cy * W + o.cx]; if (id < 0) { o.x = o.cx; o.y = o.cy; o.w = o.h = 1; return; } let x0 = W, y0 = H, x1 = 0, y1 = 0; for (let k = 0; k < W * H; k++) if (rid[k] === id) { const x = k % W, y = (k - x) / W; x0 = Math.min(x0, x); y0 = Math.min(y0, y); x1 = Math.max(x1, x); y1 = Math.max(y1, y); } o.x = x0; o.y = y0; o.w = x1 - x0 + 1; o.h = y1 - y0 + 1; });
 }
 function medInside(s, px, py) {
-  if (s.t === "cells") return (s.c || []).some(([x, y]) => px >= x && px < x + 1 && py >= y && py < y + 1);
+  if (s.t === "cells") { if (!s._set) Object.defineProperty(s, "_set", { value: new Set((s.c || []).map(([x, y]) => x + "," + y)) }); return s._set.has(Math.floor(px) + "," + Math.floor(py)); }
   if (s.t === "rect") return px >= s.x && px <= s.x + s.w && py >= s.y && py <= s.y + s.h;
   if (s.t === "ellipse") { const rx = s.w / 2, ry = s.h / 2; if (!rx || !ry) return false; const u = (px - s.x - rx) / rx, v = (py - s.y - ry) / ry; return u * u + v * v <= 1; }
   if (s.t === "poly") { const P = s.pts || []; let inside = false; for (let i = 0, j = P.length - 1; i < P.length; j = i++) { const [xi, yi] = P[i], [xj, yj] = P[j]; if ((yi > py) !== (yj > py) && px < (xj - xi) * (py - yi) / (yj - yi) + xi) inside = !inside; } return inside; }

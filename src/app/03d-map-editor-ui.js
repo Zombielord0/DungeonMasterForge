@@ -19,7 +19,7 @@ function medShowMap() {
 }
 function medKey() {
   const d = currentMap; if (!d || d.kind !== "drawn") return;
-  $("#roomKey").innerHTML = d.rooms.length ? d.rooms.map((o, i) => `<div class="key-room"><span class="key-num">${o.num}</span><b>${esc(o.type || "Room")}</b> <span class="muted">(${o.w * 5} × ${o.h * 5} ft)</span>${o.feature ? `<div>Features ${esc(o.feature)}.</div>` : ""}${(o.content || []).map(c => `<div>${esc(c)}</div>`).join("")}${o.enc ? encHTML(o.enc) + mapRunBtn(i) : ""}</div>`).join("")
+  $("#roomKey").innerHTML = d.rooms.length ? d.rooms.map((o, i) => `<div class="key-room"><span class="key-num">${+o.num}</span><b>${esc(o.type || "Room")}</b> <span class="muted">(${o.w * 5} × ${o.h * 5} ft)</span>${o.feature ? `<div>Features ${esc(o.feature)}.</div>` : ""}${(o.content || []).map(c => `<div>${esc(c)}</div>`).join("")}${o.enc ? encHTML(o.enc) + mapRunBtn(i) : ""}</div>`).join("")
     : `<p class="muted">No numbered rooms yet. Use <b>#</b> Room number to add Room Key entries.</p>`;
   fogKeyButtons();
 }
@@ -29,7 +29,9 @@ function medStart() {
   const d = currentMap; if (!d) { toast("Make or open a map first"); return; }
   if (HOST.on) { toast("Stop hosting for players to edit the map"); return; }
   if (d.kind === "image") { toast("Imported pictures can't be edited. Make a blank map or edit a generated one."); return; }
-  if (d.kind !== "drawn") { currentMap = drawnBuild(drawnFromGen(d)); HOST.key = null; medShowMap(); toast("This dungeon is now a drawn map you can change. Save it to a campaign to keep it."); }
+  if (d.kind !== "drawn") {
+    const fogNow = HOST.key === fogKey(d.params) && HOST.fog ? { f: fogEncode(HOST.fog), s: [...HOST.found], k: HOST.tokens } : fogStoreRead()[fogKey(d.params)]; // keep the dungeon's fog and tokens
+    currentMap = drawnBuild(drawnFromGen(d)); if (fogNow) fogStorePut(fogKey(currentMap.params), fogNow.f, fogNow.s || [], fogNow.k); HOST.key = null; medShowMap(); toast("This dungeon is now a drawn map you can change. Save it to a campaign to keep it."); }
   MED.on = true; MED.undo = []; MED.redo = []; MED.sel = null; MED.poly = []; medSaveDraft(); medUI(); drawMapDM();
 }
 function medNew() {
@@ -38,8 +40,12 @@ function medNew() {
   MED.on = true; MED.undo = []; MED.redo = []; MED.sel = null; MED.poly = []; medSaveDraft(); medUI(); drawMapDM();
 }
 function medStop() { if (!MED.on) return; MED.on = false; MED.sel = null; MED.poly = []; MED.drag = null; medUI(); if (currentMap) drawMapDM(); }
-function medSaveDraft() { const d = currentMap; if (d && d.kind === "drawn") try { localStorage.setItem(MED_LS, JSON.stringify(drawnRecord(d))); } catch { /* full: the campaign save still works */ } medResumeUI(); }
-function medResumeUI() { const b = $("#medResume"); if (b) b.hidden = !localStorage.getItem(MED_LS) || (currentMap && currentMap.kind === "drawn"); }
+/* the draft belongs to whoever is signed in to the account (or to the browser, with no account): Cloud.release deletes an
+   account's draft on signing out, and a draft is only offered back to its owner */
+const medOwner = () => { try { return (Cloud.on && Cloud.uid) || null; } catch { return null; } }; // Cloud (04-storage.js) loads after this file
+function medSaveDraft() { const d = currentMap; if (d && d.kind === "drawn") try { localStorage.setItem(MED_LS, JSON.stringify({ owner: medOwner(), rec: drawnRecord(d) })); } catch { /* full: the campaign save still works */ } medResumeUI(); }
+function medDraft() { try { const v = JSON.parse(localStorage.getItem(MED_LS) || "null"); return v && v.rec && (v.owner || null) === medOwner() ? v.rec : null; } catch { return null; } }
+function medResumeUI() { const b = $("#medResume"); if (b) b.hidden = !medDraft() || (currentMap && currentMap.kind === "drawn"); }
 function medChange(fn) {
   const d = currentMap; if (!d || d.kind !== "drawn") return;
   MED.undo.push(JSON.stringify(d.rec)); if (MED.undo.length > 80) MED.undo.shift(); MED.redo = [];
@@ -96,7 +102,7 @@ function medSelUI() {
     : s.type === "label" ? `<label class="lbl">Text <input type="text" data-medf="text" maxlength="60" value="${esc(o.text)}"></label><label class="lbl">Size <select data-medf="size">${[12, 16, 22, 30, 40].map(n => `<option value="${n}" ${+o.size === n ? "selected" : ""}>${n}</option>`).join("")}</select></label><label class="check" style="margin:0"><input type="checkbox" data-medf="dm" ${o.dm ? "checked" : ""}><span>DM only (not on the TV)</span></label>${del}`
     : s.type === "door" ? `<b>🚪 Door</b> <label class="lbl">Kind <select data-medf="kind">${[["door", "Door"], ["secret", "Secret door"], ["locked", "Locked door"], ["bars", "Bars"]].map(([v, l]) => `<option value="${v}" ${o.kind === v ? "selected" : ""}>${l}</option>`).join("")}</select></label>${del}`
     : s.type === "icon" ? `<b>🪜 Stairs</b> <label class="lbl">Going <select data-medf="m"><option value="up" ${o.m === "up" ? "selected" : ""}>Up</option><option value="down" ${o.m === "down" ? "selected" : ""}>Down</option></select></label>${del}`
-    : `<b>Room ${o.num}</b> <label class="lbl">Name <input type="text" data-medf="type" maxlength="60" value="${esc(o.type || "")}"></label><label class="lbl" style="flex:1 1 100%">Notes (one per line)<textarea data-medf="content" rows="2">${esc((o.content || []).join("\n"))}</textarea></label>${del}`;
+    : `<b>Room ${+o.num}</b> <label class="lbl">Name <input type="text" data-medf="type" maxlength="60" value="${esc(o.type || "")}"></label><label class="lbl" style="flex:1 1 100%">Notes (one per line)<textarea data-medf="content" rows="2">${esc((o.content || []).join("\n"))}</textarea></label>${del}`;
   box.hidden = false;
 }
 function medSelDelete() {
@@ -215,8 +221,8 @@ function medOverlay() {
   const p = medEl(); if (!p) return;
   $("#medTools").innerHTML = MED_TOOLS.map(([k, ic, l]) => `<button type="button" class="chip" data-medtool="${k}" aria-pressed="false" title="${l}"><span aria-hidden="true">${ic}</span> ${l}</button>`).join("");
   $("#medEdit").addEventListener("click", medStart); $("#medNew").addEventListener("click", medNew);
-  $("#medResume").addEventListener("click", () => { let rec = null; try { rec = JSON.parse(localStorage.getItem(MED_LS) || "null"); } catch { } if (!rec || rec.kind !== "drawn") { toast("No drawing to go back to"); return; } medOpen(rec, "Your last drawing is back."); medStart(); });
-  medResumeUI();
+  $("#medResume").addEventListener("click", () => { const rec = medDraft(); if (!rec) { toast("No drawing to go back to"); medResumeUI(); return; } medOpen(rec, "Your last drawing is back."); medStart(); });
+  setTimeout(medResumeUI, 0); // after start-up, once the account code has loaded
   p.addEventListener("click", e => {
     const tb = e.target.closest("[data-medtool]"); if (tb) { MED.tool = tb.dataset.medtool; if (MED.tool !== "shape") MED.poly = []; if (MED.tool !== "select") MED.sel = null; medUI(); medOverlayRedraw(); return; }
     const pb = e.target.closest("[data-medprop]"); if (pb) { MED.prop = pb.dataset.medprop; medUI(); return; }

@@ -258,6 +258,7 @@ const Cloud = {
     if (!force && Object.keys(meta.dirty).length) return;
     Object.values(this.timers).forEach(clearTimeout); clearTimeout(this.retry);
     CLOUD_KEYS.forEach(k => localStorage.removeItem(k));
+    try { const dr = JSON.parse(localStorage.getItem("dmforge.mapdraft.v1") || "null"); if (dr && dr.owner) localStorage.removeItem("dmforge.mapdraft.v1"); } catch { localStorage.removeItem("dmforge.mapdraft.v1"); } // an account's map drawing in progress (03d-map-editor-ui.js)
     const stash = lsJSON(STASH_KEY) || {};
     for (const [k, raw] of Object.entries(stash)) { try { localStorage.setItem(k, raw); } catch { } }
     localStorage.removeItem(STASH_KEY); localStorage.removeItem(SYNC_KEY);
