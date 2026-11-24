@@ -2,6 +2,12 @@
    When a change ships, add an entry to the top of NEWS with a new id, in plain words for players and DMs. */
 
 const NEWS = [
+  { id: "2026-11-24-phone-table", date: "2026-11-24", title: "Easier at the table on a phone", go: "tracker", items: [
+    "DMs: while a fight is under way, a bar above the bottom buttons shows the round, whose turn it is and who's next, with a big Next turn button. The Encounter button jumps straight to the fight.",
+    "The open campaign and the open character now come first on phones; their lists fold below or into one tap. The Tracker's sections are one row you swipe sideways.",
+    "Buttons and boxes are bigger on touch screens. In a fight, Next turn is the gold button, and Next Session and Save as template sit under More.",
+    "On laptops the header is one row shorter, and keyboard users can press Tab once for Skip to content."
+  ] },
   { id: "2026-11-24-group-initiative", date: "2026-11-24", title: "Group initiative and numbered tokens", go: "tracker", items: [
     "Tick Group by monster beside Roll enemy initiative and each kind of monster rolls once, so all the goblins act together.",
     "Rolling initiative again in the middle of a fight now asks first, since it starts the fight again at round 1.",

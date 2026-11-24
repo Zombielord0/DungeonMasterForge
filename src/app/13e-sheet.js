@@ -171,7 +171,7 @@ document.getElementById("spFiltersBtn").addEventListener("click", () => { docume
 ["change", "click", "input"].forEach(ev => document.getElementById("spForm").addEventListener(ev, () => setTimeout(spFiltersSync)));
 spFiltersSync();
 (function initRoster() {
-  $("#rosterList").addEventListener("click", e => { const b = e.target.closest("[data-rc]"); if (b) { RC.id = b.dataset.rc; CB.on = false; pcShow("sheet"); renderRosterTab(); showResult("#rosterMain"); } });
+  $("#rosterList").addEventListener("click", e => { const b = e.target.closest("[data-rc]"); if (b) { RC.id = b.dataset.rc; CB.on = false; pcShow("sheet"); renderRosterTab(); rosterFoldPhone(); showResult("#rosterMain"); } });
   const main = $("#rosterMain");
   const resSet = (c, key, left) => { const r = pcResources(c).find(x => x.key === key); if (!r || r.max === Infinity) return; c.used = c.used || {}; c.used[key] = r.max - clamp(left, 0, r.max); pcPersist(); renderRosterMain(); };
   main.addEventListener("click", e => {
