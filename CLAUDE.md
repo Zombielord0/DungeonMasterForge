@@ -9,6 +9,7 @@ These are project notes for the next chat (human or Claude). They cover what the
 - The owner is on **Windows** and can't run bash scripts. Anything they run themselves has to work in PowerShell or Command Prompt, so prefer `npm run ...` scripts.
 - Explain things plainly. The owner tests in the browser rather than reading code.
 - **Pull requests are allowed without asking (owner, 2026-11-18).** When a piece of work is finished, tested, reviewed and pushed, open a **draft** pull request into `main` (or push to the existing one) so the owner gets a preview page. Tell the owner the preview link.
+- **One open pull request at a time (owner, 2026-11-24).** Add new work, design changes included, to the most recent open pull request's branch instead of opening another one, so there aren't a bunch floating around. Open a new draft only when there's no open one.
 - Pushing to a pull request's branch starts a Netlify **deploy preview**, which also uses build credits. Push when the work is ready or when asked, rather than after every small change. Cloud sessions have a stop hook that asks for unpushed commits to be pushed.
 - **Test on preview pages, not the live site (owner, 2026-11-16).**
   - Work goes on a branch with a **draft** pull request into `main`, so Netlify builds a deploy preview the owner can try in the browser (`deploy-preview-<PR number>--dungeonmasterforge.netlify.app`).
