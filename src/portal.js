@@ -667,10 +667,17 @@ function trackerId() {
 function syncTracker() {
   if (!isDM() || !Portal.cloud) return;
   const players = PCS.roster.filter(c => { const o = S.owners.get(c.id); return o && o.id !== S.user.id; });
-  if (!players.length) return;
   let id = trackerId(), t = id && Store.get(id);
-  if (!t) { t = blankCampaign(S.camp.name); Store.save(t); id = t.id; toast(`Made “${t.name}” in your Campaign Tracker for the party`); }
+  if (!t) {
+    /* The DM's campaign gets its Tracker campaign straight away, not only when a player joins, so the Tracker and
+       every "save to campaign" button have it. Only once the account's Tracker has loaded (Cloud.on), so a slow or
+       failed load can't make a second one, or one in the browser's own data. */
+    if (typeof Cloud !== "undefined" && !Cloud.on) return;
+    t = blankCampaign(S.camp.name); Store.save(t); id = t.id; renderCampList();
+    toast(`Made “${t.name}” in your Campaign Tracker`);
+  }
   localStorage.setItem(TRACKER_KEY + S.camp.id, id);
+  if (!players.length) return;
   t.party = t.party || [];
   let touched = false;
   for (const c of players) {

@@ -51,7 +51,8 @@
     "test:third": "node tools/build.mjs --quiet && node test/e2e/third-casters.cjs",
     "test:requests": "node tools/build.mjs --quiet && node test/e2e/requests.cjs",
     "test:extras": "node tools/build.mjs --quiet && node test/e2e/extras.cjs",
-    "test:bulk": "node tools/build.mjs --quiet && node test/e2e/bulk-import.cjs"
+    "test:bulk": "node tools/build.mjs --quiet && node test/e2e/bulk-import.cjs",
+    "test:qabrowser": "node tools/build.mjs --quiet && node test/e2e/qa-browser.cjs"
   },
   "dependencies": {
     "@netlify/database": "^2.0.3",

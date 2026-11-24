@@ -30,16 +30,20 @@ const check = (name, ok, extra = "") => { console.log((ok ? "PASS " : "FAIL ") +
     // 3. reload: it stays closed
     await dm.reload(); await dm.waitForTimeout(2500);
     check("after a reload the setup screen stays away", await dm.locator("#gate.open").count() === 0);
+    check("Not now makes no Tracker campaign", await dm.evaluate(() => Store.list().length) === 0);
     // 4. start a campaign later, leaving both boxes blank
     await dm.click("#acctBtn"); await dm.click("text=Join or start another campaign"); await dm.waitForSelector("#dmForm");
     await dm.fill("#dName", ""); await dm.click("#dmForm button[type=submit]");
     await dm.waitForSelector("#gate:not(.open)", { state: "attached" }); await dm.waitForTimeout(500);
     check("a blank campaign is 'New Campaign' run by 'DM'", (await acct(dm)).trim() === "DM · New Campaign", await acct(dm));
+    await dm.waitForFunction(() => Store.list().some(t => t.name === "New Campaign"), null, { timeout: 5000 }).catch(() => {});
+    check("the new campaign is in the Campaign Tracker straight away, before any player joins", await dm.evaluate(() => Store.list().map(t => t.name).join()) === "New Campaign", await dm.evaluate(() => Store.list().map(t => t.name).join()));
     // 5. rename
     await dm.click("#acctBtn"); await dm.waitForSelector("#aCampName");
     check("the Account window offers a rename", await dm.inputValue("#aCampName") === "New Campaign");
     await dm.fill("#aCampName", "Velmor Reborn"); await dm.click("#aRename button[type=submit]"); await dm.waitForTimeout(600);
     check("renaming changes the campaign", (await acct(dm)).trim() === "DM · Velmor Reborn", await acct(dm));
+    check("renaming renames its Tracker campaign too", await dm.evaluate(() => Store.list().map(t => t.name).join()) === "Velmor Reborn", await dm.evaluate(() => Store.list().map(t => t.name).join()));
     // 6. reload: the new name comes from the server, and Not now is forgotten
     await dm.reload(); await dm.waitForFunction(() => /Velmor/.test((document.getElementById("acctBtn") || {}).textContent || ""), null, { timeout: 15000 }).catch(() => {});
     check("after a reload the new name is kept", (await acct(dm)).trim() === "DM · Velmor Reborn", await acct(dm));

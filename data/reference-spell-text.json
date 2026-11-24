@@ -1,0 +1,367 @@
+{
+ "_about": "Short rules summaries for the book reference spells, written by the owner (2026-11-23). Joined onto the spells by tools/build.mjs.",
+ "spells": {
+  "Booming Blade": {
+   "d": "You make a melee weapon attack against a creature within 5 feet as part of the spell. On a hit, the target suffers the weapon attack's normal effects and becomes sheathed in booming energy; if it willingly moves before your next turn, the energy bursts and deals thunder damage. The spell's damage increases at higher character levels.\n\nDamage: At character level 1–4, no extra damage on the hit; if the target willingly moves before your next turn, it takes 1d8 thunder. At level 5–10, the hit adds 1d8 thunder and movement damage becomes 2d8; at 11–16, 2d8 on the hit and 3d8 on movement; at 17+, 3d8 on the hit and 4d8 on movement. The weapon's normal damage is additional.",
+   "dt": "Thunder"
+  },
+  "Control Flames": {
+   "d": "Choose a nonmagical flame that fits within a 5-foot cube. You can enlarge or shrink it, change its color or brightness, extinguish it, or cause simple shapes to appear in its flames. You can also make the flame spread to an adjacent space, provided suitable fuel is present; the spell cannot create fuel or directly harm creatures.\n\nDamage: No direct damage. This spell's effects are control, utility, summoning, or defense rather than a damage roll."
+  },
+  "Create Bonfire": {
+   "d": "You create a bonfire on the ground at a point you can see. Creatures in its space when it appears, or that enter the space for the first time on a turn or end their turn there, must make a Dexterity save or take fire damage. The fire occupies its space and can ignite flammable objects that are not being worn or carried.\n\nDamage: 1d8 fire when a creature is in the bonfire's space when it appears, enters it for the first time on a turn, or ends its turn there (Dexterity save for half). Cantrip scaling: 2d8 at character level 5, 3d8 at 11, 4d8 at 17.",
+   "dt": "Fire"
+  },
+  "Encode Thoughts": {
+   "d": "You pull a memory, idea, or message from your mind and turn it into a visible strand of energy. A creature can carry the strand or use an action to receive the thought it contains; the strand fades after the spell ends.\n\nDamage: No direct damage. This spell's effects are control, utility, summoning, or defense rather than a damage roll."
+  },
+  "Green-Flame Blade": {
+   "d": "You make a melee weapon attack against a creature within 5 feet as part of the spell. On a hit, the target takes the attack's normal effects and green fire can leap to another creature near it, dealing fire damage. The spell's damage increases at higher character levels.\n\nDamage: The initial target takes the weapon's normal damage. A second creature of your choice within 5 feet of the first takes fire damage equal to your spellcasting ability modifier. Cantrip scaling: at level 5, the initial target also takes +1d8 fire and the second target takes +1d8 fire; at 11, those dice become 2d8; at 17, 3d8. The ability modifier is added to the secondary-target fire damage.",
+   "dt": "Fire"
+  },
+  "Gust": {
+   "d": "You create a brief blast of wind capable of pushing a creature, moving an unattended object, or producing a harmless sensory effect. A targeted creature must succeed on a Strength save to resist being pushed; the spell's other effects are limited to objects of manageable size.\n\nDamage: No direct damage. This spell's effects are control, utility, summoning, or defense rather than a damage roll."
+  },
+  "Infestation": {
+   "d": "You cause a cloud of biting insects, mites, or other parasites to appear on a creature you can see. The target must make a Constitution save or take poison damage and move 5 feet in a random direction, if it can move. The spell's damage increases at higher character levels.\n\nDamage: 1d6 poison on a failed Constitution save; the target also moves 5 feet in a random direction if it can. Cantrip scaling: 2d6 at character level 5, 3d6 at 11, 4d6 at 17.",
+   "dt": "Poison"
+  },
+  "Lightning Lure": {
+   "d": "You create a lash of lightning that strikes one creature you can see within range. The target must succeed on a Strength save or be pulled up to 10 feet toward you; if it ends within 5 feet of you, it takes lightning damage. The damage increases at higher character levels.\n\nDamage: 1d8 lightning if the target fails its Strength save, is pulled toward you, and ends within 5 feet of you. Cantrip scaling: 2d8 at character level 5, 3d8 at 11, 4d8 at 17.",
+   "dt": "Lightning"
+  },
+  "Magic Stone": {
+   "d": "You touch up to three pebbles and imbue them with magic. You or another creature can make a ranged spell attack by throwing one or using a sling; a hit deals magical bludgeoning damage based on your spellcasting ability. The stones lose their magic after a hit or when the spell ends.\n\nDamage: A hit deals 1d6 + your spellcasting ability modifier bludgeoning damage (magical)."
+  },
+  "Mold Earth": {
+   "d": "You manipulate a section of loose earth or stone within range. You can excavate or move loose dirt, make shapes or colors appear in dirt or stone, or turn an area of ground into difficult terrain or restore it. The spell cannot directly damage structures or creatures, and some effects are limited to dirt rather than stone.\n\nDamage: No direct damage. This spell's effects are control, utility, summoning, or defense rather than a damage roll."
+  },
+  "Primal Savagery": {
+   "d": "You channel primal magic into your teeth or fingernails, transforming them into a natural weapon. Make a melee spell attack against a creature within 5 feet; on a hit, it takes acid damage. The damage increases at higher character levels.\n\nDamage: 1d10 acid on a hit with the melee spell attack. Cantrip scaling: 2d10 at character level 5, 3d10 at 11, 4d10 at 17.",
+   "dt": "Acid"
+  },
+  "Shape Water": {
+   "d": "You manipulate water in a 5-foot cube, choosing an effect such as moving it, changing its flow, forming simple shapes, changing its color or opacity, or freezing it if no creatures are in it. You can have up to two non-instantaneous effects active at once, and the spell cannot create water or freeze creatures.\n\nDamage: No direct damage. This spell's effects are control, utility, summoning, or defense rather than a damage roll."
+  },
+  "Sword Burst": {
+   "d": "You create a momentary circle of spectral blades around yourself. Each other creature within 5 feet must make a Dexterity save or take force damage. The damage increases at higher character levels.\n\nDamage: 1d6 force to each other creature within 5 feet that fails its Dexterity save. Cantrip scaling: 2d6 at character level 5, 3d6 at 11, 4d6 at 17.",
+   "dt": "Force"
+  },
+  "Beast Bond": {
+   "d": "You establish a telepathic link with a willing beast you touch. While the beast is within range, you can communicate simple concepts with it, and it has advantage on attack rolls against a creature within 5 feet of you that it can see.\n\nDamage: No direct damage. This spell's effects are control, utility, summoning, or defense rather than a damage roll."
+  },
+  "Cause Fear": {
+   "d": "You awaken a creature's sense of mortality. One creature you can see within range must make a Wisdom save or become frightened of you for the duration. The target can repeat the save at the end of each of its turns, ending the effect on a success; creatures immune to being frightened are unaffected.\n\nDamage: No direct damage. This spell's effects are control, utility, summoning, or defense rather than a damage roll."
+  },
+  "Ceremony": {
+   "d": "You perform a special religious rite that produces one of several magical effects, chosen when you cast it: bless a wedding, consecrate water, mark a coming-of-age or dedication, create a funeral rite, or dedicate a person to a deity. Some options require specific participants or materials, and a creature can benefit from certain rites only once.\n\nDamage: No direct damage. This spell's effects are control, utility, summoning, or defense rather than a damage roll."
+  },
+  "Chaos Bolt": {
+   "d": "You hurl an unstable mass of chaotic energy at a creature within range. Make a ranged spell attack; on a hit, the target takes damage of two types determined by the damage dice. If both damage dice show the same number, the bolt can leap to another target, potentially continuing if the dice match again.\n\nDamage: Ranged spell attack; on a hit, 2d8 + 1d6 damage. Choose one d8 to set the damage type: 1 acid, 2 cold, 3 fire, 4 force, 5 lightning, 6 poison, 7 psychic, 8 thunder. If both d8s show the same number, the bolt jumps to another creature of your choice within 30 feet; make a new attack and damage roll. A creature can be hit only once by this casting.",
+   "h": "+1d6 damage per slot level above 1st, using the rolled type."
+  },
+  "Earth Tremor": {
+   "d": "You cause the ground in a 10-foot radius around you to shake. Each creature other than you in the area must make a Dexterity save or take bludgeoning damage and be knocked prone. The area becomes difficult terrain until cleared.\n\nDamage: 1d6 bludgeoning to creatures that fail a Dexterity save; they also fall prone. A successful save avoids the damage and prone effect.",
+   "h": "+1d6 bludgeoning per slot level above 1st. The affected ground becomes difficult terrain.",
+   "dt": "Bludgeoning"
+  },
+  "Silvery Barbs": {
+   "d": "When a creature you can see succeeds on an attack roll, ability check, or saving throw, you magically distract it and force it to reroll the d20, using the lower result. You can then choose another creature you can see to gain advantage on its next attack roll, ability check, or saving throw within the next minute.\n\nDamage: No direct damage. This spell's effects are control, utility, summoning, or defense rather than a damage roll."
+  },
+  "Snare": {
+   "d": "You create a magical trap in a 5-foot space on the ground. The first Small or larger creature that enters the space triggers it and must succeed on a Dexterity save or be hoisted upside down and restrained. The trapped creature can make a Strength check to escape, and the trap can also be detected and disarmed.\n\nDamage: No direct damage. This spell's effects are control, utility, summoning, or defense rather than a damage roll."
+  },
+  "Tasha's Caustic Brew": {
+   "d": "You spray acid in a line from yourself. Each creature in the line must make a Dexterity save or become covered in acid, taking acid damage at the start of each of its turns. An affected creature, or another creature within reach, can use an action to scrape or wash the acid away and end the ongoing damage.\n\nDamage: A creature that fails its Dexterity save is coated in acid and takes 2d4 acid at the start of each of its turns until the acid is removed with an action or the spell ends.",
+   "h": "the recurring damage increases by 2d4 per slot level above 1st.",
+   "dt": "Acid"
+  },
+  "Aganazzar's Scorcher": {
+   "d": "A line of roaring flame shoots from you in a direction you choose. Each creature in the line must make a Dexterity save, taking fire damage on a failure or half as much on a success.\n\nDamage: 3d8 fire to each creature in the line that fails its Dexterity save; half damage on a success.",
+   "h": "+1d8 fire per slot level above 2nd.",
+   "dt": "Fire"
+  },
+  "Borrowed Knowledge": {
+   "d": "You draw on the knowledge of spirits from the past, gaining proficiency in one skill of your choice that you lack for the duration. The spell ends early if you cast it again.\n\nDamage: No direct damage. This spell's effects are control, utility, summoning, or defense rather than a damage roll."
+  },
+  "Dust Devil": {
+   "d": "You summon a Small whirlwind in an unoccupied space you can see. As a bonus action, you can move it and direct it to strike nearby creatures, which must make Strength saves or take bludgeoning damage and be pushed away. The whirlwind also scatters loose, unsecured objects and creates difficult terrain in its space.\n\nDamage: 1d8 bludgeoning to a creature that fails its Strength save when the whirlwind is directed into its space; it is also pushed 10 feet away.",
+   "h": "+1d8 bludgeoning per slot level above 2nd.",
+   "dt": "Bludgeoning"
+  },
+  "Earthbind": {
+   "d": "You choose one creature you can see within range. It must succeed on a Strength save or have its flying speed reduced to 0 for the duration, causing it to descend safely at 60 feet per round until it reaches the ground or the spell ends. Affected creatures can repeat the save at the end of each of their turns.\n\nDamage: No direct damage. This spell's effects are control, utility, summoning, or defense rather than a damage roll."
+  },
+  "Healing Spirit": {
+   "d": "You call forth a spirit of nature in an unoccupied space. The spirit occupies its space and can restore hit points to a creature that enters it for the first time on a turn or starts its turn there, using your bonus action to move it. The spirit can heal a limited number of times before the spell ends.\n\nHealing: A creature entering the spirit's space for the first time on a turn or starting its turn there regains 1d6 hit points (using your bonus action to move the spirit). The spirit can heal a number of times equal to 1 + your spellcasting ability modifier (minimum twice).",
+   "h": "healing increases by 1d6 per slot level above 2nd."
+  },
+  "Kinetic Jaunt": {
+   "d": "You magically enhance your movement for the duration. Your walking speed increases, your movement does not provoke opportunity attacks, and you can move through the space of another creature. A creature whose space you pass through takes force damage, but can be affected only once per turn.\n\nDamage: Each creature whose space you move through takes 1d8 force damage (once per turn per creature). You also gain increased walking speed and do not provoke opportunity attacks from your movement.",
+   "dt": "Force"
+  },
+  "Maximilian's Earthen Grasp": {
+   "d": "A Large hand made of earth rises from the ground in an unoccupied space you choose. You can use a bonus action to make it reach for a creature within 5 feet; the creature must make a Strength save or take bludgeoning damage and become restrained. You can use later bonus actions to crush a restrained target or attempt to restrain another creature.\n\nDamage: 2d6 bludgeoning when the hand first grabs a creature that fails its Strength save; a restrained creature takes 2d6 bludgeoning when you use a later bonus action to crush it.",
+   "h": "each damage instance increases by 2d6 per slot level above 2nd.",
+   "dt": "Bludgeoning"
+  },
+  "Nathair's Mischief": {
+   "d": "You fill a 20-foot cube with magical fey and draconic mischief. At the start of each of your turns, roll to determine the magical effect in the area, such as a scent that charms, a burst of blinding light, a burst of laughter that incapacitates, or difficult terrain. Creatures may make saves to resist the applicable effects.\n\nRoll table: At casting and at the start of each of your turns, roll 1d4; you may move the 20-foot cube up to 10 feet before rolling. 1: apple-pie scent; each creature makes a Wisdom save or is charmed by you until your next turn. 2: flower bouquets spray water; each creature makes a Dexterity save or is blinded until your next turn. 3: creatures make a Wisdom save or giggle, becoming incapacitated and moving randomly until your next turn. 4: floating molasses makes the cube difficult terrain until your next turn. No direct damage."
+  },
+  "Pyrotechnics": {
+   "d": "Choose a nonmagical flame you can see within range and extinguish it, creating either a burst of fireworks or a cloud of smoke. Fireworks can blind nearby creatures that fail a Constitution save; smoke heavily obscures an area for the duration.\n\nDamage: No direct damage. This spell's effects are control, utility, summoning, or defense rather than a damage roll."
+  },
+  "Rime's Binding Ice": {
+   "d": "A burst of freezing energy erupts from you in a cone. Each creature in the area must make a Constitution save, taking cold damage on a failure or half as much on a success. A creature that fails also has its speed reduced to 0 until the start of your next turn as ice encases it.\n\nDamage: 3d8 cold in a 30-foot cone; Constitution save for half. On a failed save, the creature's speed becomes 0 until it or an adjacent creature uses an action to break away the ice (up to 1 minute).",
+   "h": "+1d8 cold per slot level above 2nd.",
+   "dt": "Cold"
+  },
+  "Shadow Blade": {
+   "d": "You weave shadow into a sword of solid gloom in your hand. The blade is a simple melee weapon with which you are proficient, deals psychic damage, and has the finesse, light, and thrown properties. It has advantage on attacks against targets in dim light or darkness and can be thrown, reappearing in your hand after the attack.\n\nDamage: The blade deals 2d8 psychic damage on a hit; it has finesse, light, and thrown properties.",
+   "h": "3d8 with a 3rd- or 4th-level slot; 4d8 with a 5th-level slot or higher.",
+   "dt": "Psychic"
+  },
+  "Skywrite": {
+   "d": "You cause up to ten words to form in clouds in a place you can see. The words remain visible for the duration and can be dispersed by a strong wind.\n\nDamage: No direct damage. This spell's effects are control, utility, summoning, or defense rather than a damage roll."
+  },
+  "Snilloc's Snowball Swarm": {
+   "d": "A flurry of magic snowballs erupts from a point you choose. Each creature in the area must make a Dexterity save, taking cold damage on a failure or half as much on a success.\n\nDamage: 3d6 cold in a 5-foot-radius sphere; Dexterity save for half.",
+   "h": "+1d6 cold per slot level above 2nd.",
+   "dt": "Cold"
+  },
+  "Tasha's Mind Whip": {
+   "d": "You lash a creature's mind with psychic energy. The target must make an Intelligence save, taking psychic damage on a failure or half as much on a success. On a failed save, it also cannot take reactions and must choose on its next turn whether to move, take an action, or take a bonus action; it can do only one of those.\n\nDamage: 3d6 psychic; Intelligence save for half. On a failed save, the target also cannot take reactions and on its next turn can choose only one of movement, an action, or a bonus action.",
+   "h": "+1d6 psychic per slot level above 2nd.",
+   "dt": "Psychic"
+  },
+  "Vortex Warp": {
+   "d": "You magically twist space around one creature you can see within range. An unwilling creature must succeed on a Constitution save; a willing creature need not save. The target teleports to an unoccupied space you can see within range, and a creature moved to a hazardous location may be affected by that hazard.\n\nDamage: No direct damage. This spell's effects are control, utility, summoning, or defense rather than a damage roll."
+  },
+  "Warding Wind": {
+   "d": "A strong wind swirls around you in a 10-foot radius. It deafens you and other creatures in the area, extinguishes exposed flames, disperses vapor and gas, makes the area difficult terrain for creatures other than you, and imposes disadvantage on ranged weapon attacks passing through or originating within it.\n\nDamage: No direct damage. This spell's effects are control, utility, summoning, or defense rather than a damage roll."
+  },
+  "Ashardalon's Stride": {
+   "d": "Flames shroud your feet and increase your walking speed. Moving within 5 feet of a creature during your turn deals fire damage to it, and the spell protects you from the heat of your own flames.\n\nDamage: Each creature you move within 5 feet of during your turn takes 1d6 fire damage (once per turn per creature).",
+   "h": "+1d6 fire per slot level above 3rd.",
+   "dt": "Fire"
+  },
+  "Enemies Abound": {
+   "d": "You reach into a creature's mind and make it perceive everyone as an enemy. The target must make an Intelligence save or lose the ability to distinguish friend from foe, treating creatures it can see as enemies and choosing targets randomly when it attacks. It repeats the save whenever it takes damage.\n\nDamage: No direct damage. This spell's effects are control, utility, summoning, or defense rather than a damage roll."
+  },
+  "Erupting Earth": {
+   "d": "Choose a point on the ground; earth and stone erupt in a 20-foot cube. Creatures in the area must make a Dexterity save, taking bludgeoning damage on a failure or half as much on a success. The area becomes difficult terrain until cleared.\n\nDamage: 3d12 bludgeoning in a 20-foot cube; Dexterity save for half. The area becomes difficult terrain.",
+   "h": "+1d12 bludgeoning per slot level above 3rd.",
+   "dt": "Bludgeoning"
+  },
+  "Flame Arrows": {
+   "d": "You touch a quiver containing nonmagical ammunition and imbue it with fire. Each piece of ammunition that hits a target deals extra fire damage, and the spell ends after the specified number of pieces have been used.\n\nDamage: Each piece of ammunition that hits deals an extra 1d6 fire damage. The spell ends after 12 pieces of ammunition have been used.",
+   "h": "+2 pieces of ammunition per slot level above 3rd.",
+   "dt": "Fire"
+  },
+  "Intellect Fortress": {
+   "d": "You or a willing creature you touch gains protection against psychic intrusion. The target has resistance to psychic damage and advantage on Intelligence, Wisdom, and Charisma saving throws for the duration.\n\nDamage: No direct damage. This spell's effects are control, utility, summoning, or defense rather than a damage roll."
+  },
+  "Life Transference": {
+   "d": "You sacrifice some of your own vitality to heal another creature. You take necrotic damage that cannot be reduced or prevented, and a creature you can see regains hit points equal to twice the damage you take.\n\nDamage/healing: You take 4d8 necrotic damage that cannot be reduced or prevented; one creature you can see regains hit points equal to twice the necrotic damage rolled.",
+   "h": "the self-damage increases by 1d8 per slot level above 3rd, and healing remains twice the damage taken.",
+   "dt": "Necrotic"
+  },
+  "Melf's Minute Meteors": {
+   "d": "You create six tiny meteors that orbit you. As a bonus action, you can expend one or two to send them to points you choose, where they explode; creatures in each small area must make Dexterity saves or take fire damage, or half as much on a success.\n\nDamage: Each meteor explodes in a 5-foot-radius area; creatures make a Dexterity save, taking 2d6 fire on a failure or half on a success. You create six meteors and can expend one or two as a bonus action.",
+   "h": "create two additional meteors per slot level above 3rd.",
+   "dt": "Fire"
+  },
+  "Spirit Shroud": {
+   "d": "You call forth spirits of the dead that surround you. Your attacks deal extra damage when you hit creatures within 10 feet, and affected creatures cannot regain hit points until the start of your next turn. The damage type is chosen when you cast the spell.\n\nDamage: Whenever you hit a creature within 10 feet with an attack, that attack deals an extra 1d8 of your chosen type: radiant, necrotic, or cold. A creature damaged by you cannot regain hit points until the start of your next turn.",
+   "h": "extra damage becomes 2d8 with a 5th- or 6th-level slot, 3d8 with a 7th- or 8th-level slot, and 4d8 with a 9th-level slot."
+  },
+  "Summon Lesser Demons": {
+   "d": "You open a gateway to the Abyss and summon lesser demons into unoccupied spaces you can see. The demons are hostile to all creatures, including you, and act after you in initiative. The number and type summoned depend on the spell slot and a roll; the spell requires concentration to keep control of the summoning effect.\n\nRoll table: Roll 1d6 when casting. 1–2: summon two demons of CR 1 or lower. 3–4: summon four demons of CR 1/2 or lower. 5–6: summon eight demons of CR 1/4 or lower. The DM chooses the demons; they are hostile to all creatures and attack the nearest non-demons. A protective circle made with the material blood prevents them crossing, harming it, or targeting creatures inside. At 6th–7th level, double the number summoned; at 8th–9th, triple it."
+  },
+  "Summon Shadowspawn": {
+   "d": "You summon a shadowy spirit in an unoccupied space. It takes a form you choose and uses the spirit's statistics, gaining abilities based on its form. You can command it to move and attack, and it disappears when the spell ends or its hit points reach 0.\n\nDamage: The summoned spirit attacks using its stat block; damage depends on its chosen form and the spirit's attack."
+  },
+  "Thunder Step": {
+   "d": "You teleport yourself and one willing creature of your choice within 5 feet to an unoccupied space you can see within range. The space you leave erupts with thunder; creatures within 10 feet of it must make a Constitution save or take thunder damage, taking half on a success. The sound can be heard from far away.\n\nDamage: 3d10 thunder in a 10-foot-radius sphere centered on the space you leave; Constitution save for half.",
+   "h": "+1d10 thunder per slot level above 3rd.",
+   "dt": "Thunder"
+  },
+  "Tidal Wave": {
+   "d": "You conjure a wave of water that crashes down in an area you choose. Each creature in the area must make a Dexterity save, taking bludgeoning damage and falling prone on a failure or taking half damage without falling prone on a success. The water then spreads across the ground and extinguishes unprotected flames.\n\nDamage: 4d8 bludgeoning in a 30-foot-long, 10-foot-high, 10-foot-wide area; Dexterity save for half. A creature that fails also falls prone. The water spreads across the ground and extinguishes unprotected flames.",
+   "dt": "Bludgeoning"
+  },
+  "Tiny Servant": {
+   "d": "You animate a Tiny nonmagical object into a small servant. It follows your verbal commands, can move and perform simple tasks, and can attack when commanded. Its statistics are specified by the spell, and it remains animated for the duration.\n\nDamage: No direct damage. This spell's effects are control, utility, summoning, or defense rather than a damage roll."
+  },
+  "Wall of Sand": {
+   "d": "You create a wall of swirling sand at a point you can see. The wall blocks vision, and its space is difficult terrain. A creature that enters the wall for the first time on a turn or starts its turn there must save against the sand's abrasive force, taking bludgeoning damage on a failure.\n\nDamage: A creature that enters the wall for the first time on a turn or starts its turn there makes a Strength save, taking 3d8 bludgeoning on a failure or half on a success. The wall heavily obscures and is difficult terrain.",
+   "dt": "Bludgeoning"
+  },
+  "Wall of Water": {
+   "d": "You create a wall of water on the ground. The wall is difficult terrain and can extinguish ordinary flames. Ranged weapon attacks that pass through it have disadvantage, and fire damage is reduced for creatures or objects on the other side.\n\nDamage: No direct damage. This spell's effects are control, utility, summoning, or defense rather than a damage roll."
+  },
+  "Elemental Bane": {
+   "d": "Choose one creature you can see within range and select acid, cold, fire, lightning, or thunder. The target must make a Constitution save or lose resistance to that damage type for the duration. The first time it takes damage of the chosen type on each of its turns, it takes additional damage.\n\nDamage/effect: Choose acid, cold, fire, lightning, or thunder. On a failed Constitution save, the target loses resistance to that type for the duration and takes an extra 2d6 damage of that type the first time it takes that type of damage on each turn. No initial damage roll."
+  },
+  "Find Greater Steed": {
+   "d": "You summon a spirit that assumes the form of a loyal steed, such as a griffon, pegasus, or other listed creature. The steed appears in an unoccupied space, serves you, and can be ridden; it shares a telepathic bond with you while within range. It disappears when reduced to 0 hit points or when the spell ends.\n\nDamage: No fixed spell damage; the summoned steed attacks using its own stat block."
+  },
+  "Guardian of Nature": {
+   "d": "You call upon a nature spirit to transform you, choosing a primal beast or great tree form. The beast form improves your speed, strength-based attacks, and resilience; the tree form improves durability, grants advantage on certain attacks, and enhances your spellcasting in specific ways.\n\nDamage/effect: No direct spell damage; the chosen form improves your attacks and defenses."
+  },
+  "Raulothim's Psychic Lance": {
+   "d": "You unleash a lance of psychic energy at one creature you can see within range, or at a creature whose name you speak if it is within range. The target must make an Intelligence save, taking psychic damage on a failure or half as much on a success; on a failure it is also incapacitated until the start of your next turn.\n\nDamage: 7d6 psychic; Intelligence save for half. On a failed save, the target is also incapacitated until the start of your next turn.",
+   "h": "+1d6 psychic per slot level above 4th.",
+   "dt": "Psychic"
+  },
+  "Shadow of Moil": {
+   "d": "You cloak yourself in flame-like shadows that heavily obscure you from others. You gain resistance to radiant damage, and a creature that hits you with an attack while within 10 feet takes necrotic damage. The spell heavily obscures you from other creatures.\n\nDamage/effect: A creature that hits you with an attack while within 10 feet takes 2d8 necrotic damage. Your own attacks can deal extra necrotic damage as specified by the spell. The spell does not deal an initial area-damage roll.",
+   "dt": "Necrotic"
+  },
+  "Sickening Radiance": {
+   "d": "You create a sphere of greenish light that sheds dim light. A creature that enters the area for the first time on a turn or starts its turn there must make a Constitution save, taking radiant damage and gaining one level of exhaustion on a failure. The light also reveals invisible creatures and objects.\n\nDamage: 4d10 radiant whenever a creature enters the area for the first time on a turn or starts its turn there; A successful Constitution save avoids both the damage and exhaustion. On a failed save, the creature also gains one level of exhaustion and glows, preventing it from benefiting from invisibility. No upcast damage.",
+   "dt": "Radiant"
+  },
+  "Storm Sphere": {
+   "d": "You create a 20-foot-radius sphere of whirling air centered on a point you can see. The area is difficult terrain, and creatures that start their turn there take bludgeoning damage. As a bonus action, you can direct lightning from the storm at a creature within it, making a ranged spell attack.\n\nDamage: Creatures that start their turn in the sphere take 2d6 bludgeoning. As a bonus action, make a ranged spell attack against a creature in the sphere; on a hit it takes 4d6 lightning.",
+   "h": "the bludgeoning and lightning damage each increase by 1d6 per slot level above 4th.",
+   "dt": "Bludgeoning"
+  },
+  "Summon Greater Demon": {
+   "d": "You summon a powerful demon from the Abyss into an unoccupied space you can see. The demon is hostile toward all creatures, including you, and you can attempt to issue commands; it may resist your control. Its type and statistics depend on the spell slot and the summoning roll.\n\nDamage: No direct damage. This spell's effects are control, utility, summoning, or defense rather than a damage roll."
+  },
+  "Watery Sphere": {
+   "d": "You conjure a floating sphere of water that can engulf creatures. A Large or smaller creature in the sphere's space must make a Strength save or be restrained and trapped inside; the sphere can move and carry engulfed creatures. A trapped creature can use an action to make a Strength check to escape.\n\nDamage: No direct damage. This spell's effects are control, utility, summoning, or defense rather than a damage roll."
+  },
+  "Control Winds": {
+   "d": "You alter the air in a large cube, choosing effects such as changing wind direction and speed, creating downdrafts or updrafts, or forming a strong wind barrier. The chosen effect can hinder movement, affect ranged attacks, disperse gases, or help creatures fly, depending on the option selected.\n\nDamage: No direct damage. This spell's effects are control, utility, summoning, or defense rather than a damage roll."
+  },
+  "Danse Macabre": {
+   "d": "You animate up to five corpses or piles of bones into undead servants. The creatures rise as skeletons or zombies, gain bonuses to their attacks, and obey your verbal commands. They remain animated for the duration.\n\nDamage: No direct damage. This spell's effects are control, utility, summoning, or defense rather than a damage roll."
+  },
+  "Dawn": {
+   "d": "A 30-foot-radius, 40-foot-high cylinder of sunlight appears at a point you choose. The area sheds bright light and damages creatures that enter it for the first time on a turn or start their turn there; creatures can make a Constitution save to take half damage.\n\nDamage: 4d10 radiant when a creature enters the cylinder for the first time on a turn or starts its turn there; Constitution save for half.",
+   "h": "+1d10 radiant per slot level above 5th.",
+   "dt": "Radiant"
+  },
+  "Far Step": {
+   "d": "You teleport up to 60 feet to an unoccupied space you can see. Until the spell ends, you can use a bonus action on each of your turns to teleport again in the same way.\n\nDamage: No direct damage. This spell's effects are control, utility, summoning, or defense rather than a damage roll."
+  },
+  "Holy Weapon": {
+   "d": "You imbue a weapon you touch with holy power. The weapon sheds light and deals extra radiant damage on hits. As a bonus action, you can end the spell to release a burst of radiant energy that damages and may blind nearby creatures.\n\nDamage: A weapon hit deals an extra 2d8 radiant. When you end the spell as a bonus action, creatures of your choice within 30 feet make a Constitution save, taking 4d8 radiant on a failure or half on a success; a failed save also blinds until the end of your next turn.",
+   "h": "hit damage increases by 1d8 per slot level above 5th.",
+   "dt": "Radiant"
+  },
+  "Immolation": {
+   "d": "Flames engulf one creature you can see. The target must make a Dexterity save, taking fire damage on a failure or half as much on a success; on a failure it also burns for the duration, taking additional fire damage at the end of each turn. The flames can be extinguished by specified means.\n\nDamage: 8d6 fire initially; Dexterity save for half. On a failed save, the target burns and takes 4d6 fire at the end of each of its turns until the spell ends; it can repeat the save at the end of each turn to end the flames.",
+   "h": "initial and recurring damage each increase by 1d6 per slot level above 5th.",
+   "dt": "Fire"
+  },
+  "Infernal Calling": {
+   "d": "You summon a devil from the Nine Hells. The devil appears in an unoccupied space, is initially hostile, and must be bound or persuaded through the spell's checks and material components. If you maintain control, it follows your commands for the duration.\n\nDamage: No direct damage. This spell's effects are control, utility, summoning, or defense rather than a damage roll."
+  },
+  "Maelstrom": {
+   "d": "A swirling mass of water forms in a 30-foot-radius, 5-foot-deep area. The area becomes difficult terrain, and creatures that enter it or start their turns there must make a Strength save or take bludgeoning damage and be pulled toward the center.\n\nDamage: 6d6 bludgeoning to creatures that fail a Strength save when they enter the area or start their turn there; half damage on a success. A creature that fails is also pulled toward the center.",
+   "h": "+1d6 bludgeoning per slot level above 5th.",
+   "dt": "Bludgeoning"
+  },
+  "Skill Empowerment": {
+   "d": "You touch a willing creature and enhance its expertise in one skill. The target gains proficiency in the chosen skill and doubles its proficiency bonus on ability checks using that skill for the duration.\n\nDamage: No direct damage. This spell's effects are control, utility, summoning, or defense rather than a damage roll."
+  },
+  "Summon Draconic Spirit": {
+   "d": "You summon a draconic spirit in an unoccupied space. Choose a damage-affinity type; the spirit's statistics reflect that choice, and it obeys your commands. It can fly, attack, and use a breath weapon, and disappears when the spell ends or its hit points reach 0.\n\nDamage: The spirit attacks using its stat block and can use its breath weapon; its damage type is the chosen draconic damage type."
+  },
+  "Transmute Rock": {
+   "d": "You reshape nonmagical, unworked mud, sand, or stone in a large area. You can turn stone into mud, making it difficult terrain and potentially trapping creatures, or turn mud into stone, potentially restraining creatures in the area. The spell's effects depend on the material and creatures' saves or checks.\n\nDamage: No direct damage. This spell's effects are control, utility, summoning, or defense rather than a damage roll."
+  },
+  "Wall of Light": {
+   "d": "You create a brilliant wall of light that sheds bright light and blocks vision. When it appears, creatures in its area may be damaged and blinded. You can use an action to fire a beam of radiant energy from the wall at a creature, making a ranged spell attack.\n\nDamage: When the wall appears, creatures in its area make a Constitution save, taking 4d8 radiant on a failure or half on a success; a failed save also blinds until the end of your next turn. As an action, fire a beam with a ranged spell attack for 4d8 radiant on a hit.",
+   "h": "+1d8 radiant per slot level above 5th.",
+   "dt": "Radiant"
+  },
+  "Wrath of Nature": {
+   "d": "You awaken the natural environment in a large cube, causing trees, rocks, and grasses to attack or hinder your enemies. Creatures in the area can be struck by branches, entangled by roots, or pelted by rocks, with effects depending on the terrain.\n\nDamage/effects: Depending on the terrain, branches can make melee spell attacks for 4d6 slashing; rocks can make ranged spell attacks for 3d8 bludgeoning. Grass and roots hinder or restrain creatures. The spell's effects depend on which natural features are present.",
+   "dt": "Slashing"
+  },
+  "Bones of the Earth": {
+   "d": "You cause up to six stone pillars to erupt from the ground at points you can see. Creatures on a point where a pillar appears must make a Dexterity save or be lifted and restrained atop it; a creature can escape by climbing or destroying the pillar. The pillars can also provide cover and elevation.\n\nDamage/effect: A creature at a point where a pillar erupts makes a Dexterity save; on a failure it is lifted and restrained atop the pillar and takes 6d6 bludgeoning damage. The pillars provide elevation and can be attacked or destroyed.",
+   "dt": "Bludgeoning"
+  },
+  "Create Homunculus": {
+   "d": "You create a homunculus from clay, ash, and your own blood. It is a loyal construct that shares a telepathic bond with you, obeys your commands, and can serve as a familiar-like assistant. Creating it costs hit points and requires costly materials; it can be repaired or restored under the spell's rules.\n\nDamage: No direct damage. This spell's effects are control, utility, summoning, or defense rather than a damage roll."
+  },
+  "Druid Grove": {
+   "d": "You call forth protective nature spirits to create a magical grove in a large outdoor area. The grove gains natural defenses and several magical effects, such as grasping undergrowth, concealed paths, or guardians. You can designate creatures that are protected from the grove's effects.\n\nDamage: No direct damage. This spell's effects are control, utility, summoning, or defense rather than a damage roll."
+  },
+  "Fizban's Platinum Shield": {
+   "d": "You create a shimmering, protective shield around yourself or a willing creature you can see. The target gains the spell's defensive benefits, including cover and resistance to specified damage types; you can use a bonus action on later turns to move the shield to another eligible creature.\n\nDamage: No direct damage; the spell grants defensive benefits."
+  },
+  "Investiture of Flame": {
+   "d": "Flames wreath your body without harming you. You gain fire resistance, immunity to the effects of extreme heat, and the ability to ignite flammable objects you touch. You can also project a line of fire or damage creatures that come too close.\n\nDamage: As an action, create a 15-foot cone of fire; creatures make a Dexterity save, taking 4d8 fire on a failure or half on a success. You also have fire resistance and are unharmed by extreme heat.",
+   "dt": "Fire"
+  },
+  "Investiture of Ice": {
+   "d": "You become surrounded by ice and gain cold resistance and protection from extreme cold. You can move across difficult icy terrain without penalty, create difficult terrain around you, and unleash a cone of freezing wind that damages and slows creatures.\n\nDamage: As an action, release a 15-foot cone of freezing wind; creatures make a Constitution save, taking 4d6 cold on a failure or half on a success. A creature that fails has its speed halved until the start of your next turn.",
+   "dt": "Cold"
+  },
+  "Investiture of Stone": {
+   "d": "Your skin becomes as hard as stone. You gain resistance to nonmagical bludgeoning, piercing, and slashing damage, can use your reaction to reduce incoming damage, and can move through solid earth or stone as though it were difficult terrain.\n\nDamage: No direct damage. This spell's effects are control, utility, summoning, or defense rather than a damage roll."
+  },
+  "Investiture of Wind": {
+   "d": "You take on a whirling, windlike form. Ranged weapon attacks have disadvantage against you, you gain a flying speed, and you can use an action to create a powerful wind blast that damages and pushes creatures away.\n\nDamage: As an action, create a 60-foot-long, 10-foot-wide line of wind; creatures in it make a Strength save, taking 2d10 bludgeoning on a failure or half on a success, and are pushed 10 feet away on a failure.",
+   "dt": "Bludgeoning"
+  },
+  "Mental Prison": {
+   "d": "You trap one creature's mind in an illusory cell. The target must make an Intelligence save or take psychic damage and become restrained by the illusion, perceiving itself as trapped. If it leaves the illusion or another creature removes it, the prison shatters and deals additional psychic damage.\n\nDamage: 5d10 psychic on a failed Intelligence save. While trapped, the target perceives an illusory cell and is restrained. If it takes damage from any source other than this spell, or another creature uses an action to examine it and succeeds on an Intelligence (Investigation) check against your spell save DC, the spell ends; when it ends, the target takes 10d10 psychic damage if it was forced out of the illusion."
+  },
+  "Primordial Ward": {
+   "d": "You protect yourself with elemental energy, gaining resistance to acid, cold, fire, lightning, and thunder damage. When you take damage of one of those types, you can use your reaction to gain immunity to that instance of damage and release energy of the same type.\n\nDamage: No direct damage. This spell's effects are control, utility, summoning, or defense rather than a damage roll."
+  },
+  "Scatter": {
+   "d": "You teleport up to five creatures you can see to unoccupied spaces you choose within range. An unwilling creature can make a Wisdom save to resist being moved. You can also teleport unattended objects within the spell's size and weight limits.\n\nDamage: No direct damage. This spell's effects are control, utility, summoning, or defense rather than a damage roll."
+  },
+  "Soul Cage": {
+   "d": "You capture the soul of a humanoid that dies within range, provided it is eligible. The soul is trapped in a tiny silver cage and can be used for one of several benefits, such as questioning it, borrowing its experience, seeing through its eyes, or recovering hit points. The soul is released when the spell ends or the cage is destroyed.\n\nDamage: No direct damage. This spell's effects are control, utility, summoning, or defense rather than a damage roll."
+  },
+  "Tasha's Otherworldly Guise": {
+   "d": "You draw on the power of the Upper or Lower Planes and transform yourself, gaining a set of supernatural benefits. Depending on the chosen plane, you gain different resistances, immunities, movement, senses, and combat abilities, including magical attacks and enhanced defenses.\n\nDamage: No direct spell damage; your attacks gain the benefits described by the chosen planar form."
+  },
+  "Tenser's Transformation": {
+   "d": "You imbue yourself with martial prowess, gaining temporary hit points, advantage on weapon attacks, and proficiency with all armor, shields, simple weapons, and martial weapons. Your weapon attacks deal extra force damage, and you gain proficiency in Constitution saves; when the spell ends, you suffer one level of exhaustion.\n\nDamage/effect: Your weapon hits deal an extra 2d12 force damage. You also gain temporary hit points, advantage on weapon attacks, armor and weapon proficiencies, and Constitution saving throw proficiency; when the spell ends, you gain one level of exhaustion.",
+   "dt": "Force"
+  },
+  "Crown of Stars": {
+   "d": "Seven star-like motes orbit your head and shed dim light. As a bonus action, you can launch one mote at a creature or object within range, making a ranged spell attack that deals radiant damage on a hit. The motes last until expended or the spell ends.\n\nDamage: You create seven motes. As a bonus action, launch one at a target within 120 feet; make a ranged spell attack, dealing 4d12 radiant on a hit. Each mote can be used once.",
+   "dt": "Radiant"
+  },
+  "Draconic Transformation": {
+   "d": "You take on draconic features and gain blindsight, a flying speed, and a breath weapon that deals force damage in a cone. You can use an action to exhale the energy, damaging creatures in the area that fail a Dexterity save.\n\nDamage: Your breath weapon is a 60-foot cone; creatures make a Dexterity save, taking 6d8 force damage on a failure or half on a success.",
+   "dt": "Force"
+  },
+  "Dream of the Blue Veil": {
+   "d": "You and a group of willing creatures enter a trance and travel to another world on the Material Plane. The spell requires a special magic item from the destination world and a lengthy casting; the travelers arrive at a location determined by the spell and the item.\n\nDamage: No direct damage. This spell's effects are control, utility, summoning, or defense rather than a damage roll."
+  },
+  "Temple of the Gods": {
+   "d": "You cause a magnificent temple to appear on the ground. The structure has a protected interior, resists damage, and can be configured to bar or admit certain creature types or alignments. The temple includes furnishings and can serve as a secure place of worship or refuge.\n\nDamage: No direct damage. This spell's effects are control, utility, summoning, or defense rather than a damage roll."
+  },
+  "Whirlwind": {
+   "d": "A howling whirlwind appears at a point you choose. Creatures in its area must make a Dexterity save or take damage and be caught inside, where they are restrained and carried upward. A trapped creature can use an action to escape with a Strength or Dexterity check.\n\nDamage: A creature that fails its Dexterity save when the whirlwind first appears, or when it enters the whirlwind for the first time on a turn, takes 10d6 bludgeoning and is caught inside; a successful save takes half damage and avoids being caught. A trapped creature also takes 10d6 bludgeoning at the start of each of its turns while inside.",
+   "dt": "Bludgeoning"
+  },
+  "Abi-Dalzim's Horrid Wilting": {
+   "d": "You draw moisture from creatures in a large area. Each creature of your choice must make a Constitution save, taking necrotic damage on a failure or half as much on a success. The spell is especially destructive to plants and nonmagical vegetation.\n\nDamage: 12d8 necrotic to creatures in a 30-foot cube; Constitution save for half. Nonmagical plants in the area wither, and plant creatures have disadvantage on the save and take maximum damage.",
+   "dt": "Necrotic"
+  },
+  "Maddening Darkness": {
+   "d": "You create a sphere of magical darkness that cannot be illuminated by ordinary light. Creatures in the area take psychic damage when they start their turns there, and must make a Wisdom save or become frightened until they leave the darkness.\n\nDamage: 8d8 psychic to a creature that starts its turn in the area. The area is magical darkness; creatures that start their turns there must also make a Wisdom save or become frightened until they leave the darkness.",
+   "dt": "Psychic"
+  },
+  "Mighty Fortress": {
+   "d": "You conjure a fortified stone structure with defensive features, including walls, towers, battlements, and interior rooms. The fortress is permanent if the spell is cast in the same place every day for a year; otherwise it lasts for the spell's duration.\n\nDamage: No direct damage. This spell's effects are control, utility, summoning, or defense rather than a damage roll."
+  },
+  "Psychic Scream": {
+   "d": "You unleash a psychic scream that blasts the minds of up to ten creatures you choose. Each target must make an Intelligence save, taking psychic damage on a failure or half as much on a success. A creature reduced to 0 hit points by this spell has its head explode, and a failed save can also stun the target.\n\nDamage: 14d6 psychic to each target; Intelligence save for half. A target that fails is also stunned until the start of your next turn. If this damage reduces a creature to 0 hit points, its head explodes.",
+   "dt": "Psychic"
+  }
+ }
+}

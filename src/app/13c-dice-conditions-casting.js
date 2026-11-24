@@ -165,10 +165,14 @@ function spellPlan(sp) {
   const heal = d.match(/regains?\s+(?:a number of\s+)?hit points equal to\s+(\d+d\d+)(\s*(?:\+|plus)\s*your spellcasting ability modifier)?/i);
   if (heal) { P.heal = true; P.dice = heal[1]; P.mod = !!heal[2]; }
   else {
-    const dm = d.match(/(\d+d\d+)(?:\s*\+\s*(\d+))?\s+([A-Za-z]+)\s+damage/i);
+    let dm = d.match(/(\d+d\d+)(?:\s*\+\s*(\d+))?\s+([A-Za-z]+)\s+damage/i);
+    /* book reference spells (the owner's summaries, 2026-11-23) write "3d8 fire to each creature": the first dice before a damage type */
+    const typed = sp.ref && d.match(/(\d+d\d+)(?:\s*\+\s*(\d+))?\s+(acid|bludgeoning|cold|fire|force|lightning|necrotic|piercing|poison|psychic|radiant|slashing|thunder)\b/i);
+    if (typed && (!dm || typed.index < dm.index)) dm = typed;
     if (dm) { P.dice = dm[1]; P.flat = +(dm[2] || 0); if (!P.type) P.type = cap1(dm[3].toLowerCase()); }
   }
-  const up = h.match(/(?:damage|healing)[^.]*?increases?\s+by\s+(\d+d\d+)\s+for each (?:spell )?slot level above/i); if (up) P.per = up[1];
+  const up = h.match(/(?:damage|healing)[^.]*?increases?\s+by\s+(\d+d\d+)\s+for each (?:spell )?slot level above/i)
+    || (sp.ref && String(sp.h || "").match(/\+(\d+d\d+)\b[^.]*?\bper (?:spell )?slot level above/i)); if (up) P.per = up[1];
   const many = d.match(/\b(three|two|four)\s+(?:glowing\s+|fiery\s+)?(darts|rays|beams|bolts)\b/i);
   if (many) { P.count = { two: 2, three: 3, four: 4 }[many[1].toLowerCase()]; if (/(one more|one additional|additional)\s+(dart|ray|beam|bolt)/i.test(h)) P.countPer = 1; }
   const sv = (sp.sv || (d.match(/(strength|dexterity|constitution|intelligence|wisdom|charisma)\s+saving throw/i) || [])[1] || "").toLowerCase();
