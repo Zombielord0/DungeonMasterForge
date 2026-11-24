@@ -2,6 +2,14 @@
    When a change ships, add an entry to the top of NEWS with a new id, in plain words for players and DMs. */
 
 const NEWS = [
+  { id: "2026-11-24-map-art", date: "2026-11-24", title: "New map art: hand-drawn dungeons and richer region maps", go: "map", items: [
+    "Dungeon Map → Style has three new looks: Inked sketch (black ink on white paper), Old atlas (stained paper, red room numbers and a compass rose) and Stone and torchlight (dark stone lit by torches, made for the TV).",
+    "Region and world maps are painted more richly, with ripples off the coast, hills and a ruled frame. Pick a Climate: desert, jungle, frozen north or swamp.",
+    "New land shapes: Archipelago, Peninsula, Volcano island and Twin lands. New maps also get lakes inland.",
+    "Roads join the towns on a map, and regions inside it get borders. The TV only shows the roads and borders of places the players have found.",
+    "The World builder's Region can now add towns and villages (A few or Many) and split the land into two to four kingdoms, all pinned on its map.",
+    "Maps you already have keep their land and pins."
+  ] },
   { id: "2026-11-24-group-initiative", date: "2026-11-24", title: "Group initiative and numbered tokens", go: "tracker", items: [
     "Tick Group by monster beside Roll enemy initiative and each kind of monster rolls once, so all the goblins act together.",
     "Rolling initiative again in the middle of a fight now asks first, since it starts the fight again at round 1.",

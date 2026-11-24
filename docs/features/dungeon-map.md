@@ -65,6 +65,17 @@ Moved here from `CLAUDE.md` on 2026-11-17, unchanged except that `public/index.h
   - When not hosting, clicking a room scrolls to its key entry and dragging pans. While hosting, the mouse paints fog instead.
 - **Downloads.** Download PNG and Download player map render fresh at 2× (`mapFileName()`); the player map uses `{player:true, numbers:true}`.
 
+## The hand-drawn looks (2026-11-24)
+
+- **Three more Styles:** `inked` (Inked sketch), `atlas` (Old atlas) and `torch` (Stone and torchlight). Their `MAP_STYLES` entries carry `look`, and `mapBase` hands them to `mapLook` in `src/app/03b-map-looks.js`. Parchment, Blue and Dark still draw exactly as before.
+- **Rough.js 4.6.6** (MIT, unchanged bundled build) is `src/app/03a-rough.js`, a global `rough`. Every line is drawn with a fixed `seed`, so a map looks the same on every redraw, and the TV matches the DM's window.
+- `mapLook` draws the same layers as `mapBase`: paper or rock, hatching (`mapLookHatch`), the floor layer, the walls (`mapWallRuns`: long straight runs, drawn by Rough.js; the torch look uses a thick band with a lit edge), then the shared doors, furniture and icons (`mapDrawDoors`, `drawProp`, `mapDrawIcons`), so the player rules (traps, unfound secret doors) are the same in every look. Then:
+  - Old atlas: stains and burnt edges (`mapLookLayer`: soft noise drawn small and stretched), red room numbers (`st.numBg`) and a compass rose (`mapCompassRose`) in place of the N arrow.
+  - Stone and torchlight: darkness cut by torches in room corners and braziers (`mapLights`), with a warm glow.
+- Style colours used by the shared drawings: `propA`/`propB` (furniture), `door` and `numBg`.
+- Caves: the soft outline code moved into `mapCaveMasks(d, s, mk, ink)`, used by `mapBase` and `mapLook`.
+- Checks: `npm run test:mapvis` (every look and theme draws, the same every time, floor colours, no traps in the players' picture, the Style list).
+
 ## Dungeon Map import and export (Stage 2, 2026-11-15)
 
 - **Imported maps** are `{kind:"image", id, img (canvas), px, ox, oy, W, H, rooms, walls, params}`. Here `px` is the image's pixels per square and `walls` are segments in squares. `drawDungeon` hands them to `drawImageMap`.
