@@ -41,7 +41,7 @@ const probe = sel => {
     const L1 = lumOf(fg), L2 = lumOf(bg), ratio = (Math.max(L1, L2) + .05) / (Math.min(L1, L2) + .05);
     if (ratio < 4.5) faint.push(`${el.className || el.tagName} «${el.textContent.trim().slice(0, 24)}» ${st.color} ${ratio.toFixed(1)}`);
   }
-  return { roots: roots.length, onPaper: roots.filter(isPaper).length, garamond: roots.filter(r => /EB Garamond/.test(getComputedStyle(r).fontFamily)).length, faint: [...new Set(faint)].slice(0, 8) };
+  return { roots: roots.length, onPaper: roots.filter(isPaper).length, garamond: roots.filter(r => /EB Garamond/.test(getComputedStyle(r).fontFamily)).length, meta: roots.filter(r => /^"?Metamorphous/.test(getComputedStyle(r).fontFamily)).length, faint: [...new Set(faint)].slice(0, 8) };
 };
 
 (async () => {
@@ -56,12 +56,12 @@ const probe = sel => {
     // parchment: a generated adventure, NPCs, a forged monster
     await p.goto(URL + "#generate"); await p.click("#genForm button[type=submit]"); await p.waitForTimeout(700);
     let r = await p.evaluate(probe, PARCH);
-    check(`${size}: a generated adventure is on the rulebook parchment, in the book font, readable`, r.roots > 0 && r.onPaper === r.roots && r.garamond === r.roots && !r.faint.length, JSON.stringify(r));
+    check(`${size}: a generated adventure is on the rulebook parchment, in Metamorphous (owner's pick, 2026-11-24), readable`, r.roots > 0 && r.onPaper === r.roots && r.meta === r.roots && !r.faint.length, JSON.stringify(r));
     const head = await p.evaluate(() => { const t = document.querySelector("#genOut .gen-title"); const st = getComputedStyle(t); return { tt: st.textTransform, color: st.color }; });
     check(`${size}: its titles are steel-blue capitals`, head.tt === "uppercase" && head.color === "rgb(29, 59, 91)", JSON.stringify(head));
     await p.goto(URL + "#npc"); await p.click("#view-npc form button[type=submit]"); await p.waitForTimeout(600);
     r = await p.evaluate(probe, "#npcOut .npc-card");
-    check(`${size}: NPC cards are on the parchment and readable`, r.roots > 0 && r.onPaper === r.roots && !r.faint.length, JSON.stringify(r));
+    check(`${size}: NPC cards are on the parchment, in Metamorphous, and readable`, r.roots > 0 && r.onPaper === r.roots && r.meta === r.roots && !r.faint.length, JSON.stringify(r));
     await p.goto(URL + "#monsters"); await p.click('label.opt:has(input[value="forge"])').catch(() => {}); await p.click("#fgForm button[type=submit]"); await p.waitForTimeout(700);
     r = await p.evaluate(probe, "#fgOut.fg-monster .card,#fgOut.fg-monster .sec,#fgOut .card");
     check(`${size}: a forged creature is on parchment (monsters) or crimson vellum (villains), readable`, r.roots > 0 && !r.faint.length, JSON.stringify(r));
@@ -74,7 +74,7 @@ const probe = sel => {
     await p.evaluate(() => { const c = generateCharacter({ cls: "Wizard", level: 5, ed: "2014", seed: "book-stone" }); c.id = "pc-book-stone"; PCS.roster.unshift(c); RC.id = c.id; renderRosterTab(); });
     await p.waitForTimeout(400);
     r = await p.evaluate(probe, STONE);
-    check(`${size}: spells, items, the Monster Manual, the sheet and the Journal stay stone, in the book font`, r.roots >= 5 && r.onPaper === 0 && r.garamond === r.roots, JSON.stringify(r));
+    check(`${size}: spells, items, the Monster Manual, the sheet and the Journal stay stone, in the book font (EB Garamond)`, r.roots >= 5 && r.onPaper === 0 && r.garamond === r.roots && r.meta === 0, JSON.stringify(r));
     check(`${size}: the page isn't wider than the screen`, await p.evaluate(() => document.documentElement.scrollWidth - innerWidth) <= 1);
 
     check(`${size}: no page errors`, !errs.length, errs.join(" | "));

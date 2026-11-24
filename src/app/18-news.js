@@ -2,6 +2,10 @@
    When a change ships, add an entry to the top of NEWS with a new id, in plain words for players and DMs. */
 
 const NEWS = [
+  { id: "2026-11-24-parchment-font", date: "2026-11-24", title: "A new look for the parchment pages", items: [
+    "Generated adventures and chapter briefs, NPC cards, forged monsters and the monster builder's preview now use Metamorphous, an old-manuscript lettering.",
+    "Spells, items, the Monster Manual and character sheets keep their easy-reading book font."
+  ] },
   { id: "2026-11-24-side-menu", date: "2026-11-24", title: "The tabs moved to a menu on the left, with search", items: [
     "Every tab is now in a menu down the left side, in groups: Prep, Characters, Rules, Players and Forge.",
     "Campaign Tracker, Villains & Monsters, Items and World have a ▸ arrow that shows their sections, so you can jump straight to Loot, Lore or the Monster Manual.",

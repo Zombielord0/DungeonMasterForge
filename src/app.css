@@ -1432,7 +1432,7 @@ nav a[data-view=requests]{--ic:url("data:image/svg+xml,%3Csvg xmlns='http://www.
 }
 :root,:is(#genOut,#fgOut.fg-monster,#mbPreview){--parch:var(--book-paper)}
 :is(#genOut>.card:not(.empty),#genOut>.sec,#npcOut .npc-card,#fgOut.fg-monster .card,#fgOut.fg-monster .sec,#mbPreview,details.brief>div){--ink-d:#1c140c;--ink-m:#33261a;--ink-h:#1d3b5b;--oxblood:#1d3b5b;--page-rule:#1d3b5b;--page-trim:#8a6a3e;
-  font-family:"EB Garamond",Georgia,"Times New Roman",serif}
+  font-family:Metamorphous,"EB Garamond",Georgia,"Times New Roman",serif} /* the parchment pages' font: Metamorphous (open licence, Google Fonts; owner's pick 2026-11-24) */
 :is(#genOut>.card:not(.empty),#genOut>.sec,#npcOut .npc-card,#fgOut.fg-monster .card,#fgOut.fg-monster .sec,#mbPreview,details.brief>div) :is(h1,h2,h3,h4,.gen-title,.sb-name,.sb-h,.sec-h h3){font-family:Cinzel,Georgia,serif!important;font-weight:500;font-variant-caps:normal;text-transform:uppercase;letter-spacing:.04em;color:var(--ink-h)!important}
 :is(#genOut>.card:not(.empty),#genOut>.sec,#npcOut .npc-card,#fgOut.fg-monster .card,#fgOut.fg-monster .sec,#mbPreview,details.brief>div) .sec-h{border-bottom:1.5px solid var(--ink-h)!important;border-image:none!important}
 :is(#genOut>.card:not(.empty),#genOut>.sec,#npcOut .npc-card,#fgOut.fg-monster .card,#fgOut.fg-monster .sec,#mbPreview,details.brief>div) :is(b:not(.btn b),strong,.sb-l b,dt){color:var(--ink-d)!important}
