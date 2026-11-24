@@ -481,33 +481,84 @@ export async function handle(req, user, db) {
       })));
     }
 
-    // ---- whispers ----
+    // ---- chat (whispers): DM <-> each player, and a players-only party chat ----
+    // A party message is a row with to_user_id = 'party'. The DM is never sent one. A player only gets rows they
+    // sent or received, plus the party's.
     if (b === "whispers" && !id && m === "GET") {
-      const { rows } = isDM
-        ? await db.query(
-          `SELECT w.*, m.display_name AS to_name FROM whispers w
-             LEFT JOIN members m ON m.campaign_id = w.campaign_id AND m.user_id = w.to_user_id
-            WHERE w.campaign_id = $1 ORDER BY w.created_at DESC LIMIT 100`, [cid])
-        : await db.query(
-          "SELECT * FROM whispers WHERE campaign_id = $1 AND to_user_id = $2 ORDER BY created_at DESC LIMIT 100", [cid, user.id]);
-      return json(rows.map(r => ({ id: r.id, to: r.to_user_id, toName: r.to_name, body: r.body, at: r.created_at, read: !!r.read_at })));
+      const names = `LEFT JOIN members f ON f.campaign_id = w.campaign_id AND f.user_id = w.from_user_id
+                     LEFT JOIN members t ON t.campaign_id = w.campaign_id AND t.user_id = w.to_user_id`;
+      const cols = "w.*, f.display_name AS from_name, t.display_name AS to_name";
+      let rows, partyRead = 0;
+      if (isDM) {
+        ({ rows } = await db.query(
+          `SELECT ${cols} FROM whispers w ${names}
+            WHERE w.campaign_id = $1 AND w.to_user_id <> 'party' AND (w.from_user_id = $2 OR w.to_user_id = $2)
+            ORDER BY w.id DESC LIMIT 400`, [cid, user.id]));
+      } else {
+        const own = await db.query(
+          `SELECT ${cols} FROM whispers w ${names}
+            WHERE w.campaign_id = $1 AND w.to_user_id <> 'party' AND (w.from_user_id = $2 OR w.to_user_id = $2)
+            ORDER BY w.id DESC LIMIT 200`, [cid, user.id]);
+        const party = await db.query(
+          `SELECT ${cols} FROM whispers w ${names}
+            WHERE w.campaign_id = $1 AND w.to_user_id = 'party' ORDER BY w.id DESC LIMIT 200`, [cid]);
+        const rd = await db.query(
+          "SELECT last_read_id FROM chat_reads WHERE campaign_id = $1 AND user_id = $2 AND thread = 'party'", [cid, user.id]);
+        partyRead = rd.rows.length ? Number(rd.rows[0].last_read_id) : 0;
+        rows = own.rows.concat(party.rows).sort((x, y) => Number(y.id) - Number(x.id));
+      }
+      return json(rows.map(r => {
+        const mine = r.from_user_id === user.id, party = r.to_user_id === "party";
+        return {
+          id: Number(r.id), thread: party ? "party" : isDM ? (mine ? r.to_user_id : r.from_user_id) : "dm",
+          from: r.from_user_id, fromName: r.from_name || "A former player",
+          to: r.to_user_id, toName: party ? "Party" : r.to_name, body: r.body, at: r.created_at, mine,
+          read: mine || (party ? Number(r.id) <= partyRead : !!r.read_at),
+        };
+      }));
     }
     if (b === "whispers" && !id && m === "POST") {
-      dmOnly();
       const p = await body(req);
+      const want = String(p.to ?? "");
+      let to;
+      if (isDM) {
+        const { rows } = await db.query(
+          "SELECT user_id FROM members WHERE campaign_id = $1 AND user_id = $2 AND role = 'player'", [cid, want]);
+        if (!rows.length) throw new HttpError(400, "Pick a player in this campaign");
+        to = rows[0].user_id;
+      } else if (want === "party") {
+        to = "party";
+      } else if (want === "dm") {
+        const { rows } = await db.query("SELECT user_id FROM members WHERE campaign_id = $1 AND role = 'dm' LIMIT 1", [cid]);
+        if (!rows.length) throw new HttpError(400, "This campaign has no DM");
+        to = rows[0].user_id;
+      } else throw new HttpError(403, "Send to your DM or the party");
       const text = String(p.body ?? "").trim().slice(0, MAX_WHISPER);
       if (!text) throw new HttpError(400, "Write a message first");
-      const { rows: to } = await db.query(
-        "SELECT user_id FROM members WHERE campaign_id = $1 AND user_id = $2 AND role = 'player'", [cid, String(p.to ?? "")]);
-      if (!to.length) throw new HttpError(400, "Pick a player in this campaign");
       const { rows } = await db.query(
         "INSERT INTO whispers (campaign_id, from_user_id, to_user_id, body) VALUES ($1, $2, $3, $4) RETURNING id, created_at",
-        [cid, user.id, to[0].user_id, text]);
-      return json({ id: rows[0].id, at: rows[0].created_at }, 201);
+        [cid, user.id, to, text]);
+      return json({ id: Number(rows[0].id), at: rows[0].created_at }, 201);
     }
     if (b === "whispers" && id === "read" && m === "POST") {
-      await db.query(
-        "UPDATE whispers SET read_at = now() WHERE campaign_id = $1 AND to_user_id = $2 AND read_at IS NULL", [cid, user.id]);
+      let p = {};
+      try { p = await req.json(); } catch { /* old clients send no body: the DM thread */ }
+      const thread = String((p && p.thread) ?? (isDM ? "" : "dm"));
+      if (thread === "party") {
+        if (isDM) throw new HttpError(403, "The party chat is for the players");
+        await db.query(
+          `INSERT INTO chat_reads (campaign_id, user_id, thread, last_read_id)
+             SELECT $1, $2, 'party', COALESCE(MAX(id), 0) FROM whispers WHERE campaign_id = $1 AND to_user_id = 'party'
+           ON CONFLICT (campaign_id, user_id, thread) DO UPDATE SET last_read_id = GREATEST(chat_reads.last_read_id, EXCLUDED.last_read_id)`,
+          [cid, user.id]);
+      } else if (isDM) {
+        await db.query(
+          "UPDATE whispers SET read_at = now() WHERE campaign_id = $1 AND to_user_id = $2 AND from_user_id = $3 AND read_at IS NULL",
+          [cid, user.id, thread]);
+      } else if (thread === "dm") {
+        await db.query(
+          "UPDATE whispers SET read_at = now() WHERE campaign_id = $1 AND to_user_id = $2 AND read_at IS NULL", [cid, user.id]);
+      } else throw new HttpError(400, "Unknown conversation");
       return json({ ok: true });
     }
 
