@@ -123,6 +123,7 @@ async function walk(p, who, phone) {
     await walk(p, "laptop"); await ctx.close();
     ({ p, ctx } = await open(browser, URL, { width: 390, height: 844 }));
     check("phone: the menu is off-screen", await p.evaluate(() => document.querySelector("#fside").getBoundingClientRect().right <= 0 || getComputedStyle(document.querySelector("#fside")).visibility === "hidden"));
+    check("phone: the bottom bar keeps its quick links", await p.evaluate(() => [...document.querySelectorAll("#mobileNavLinks a")].map(a => a.textContent).join(",")) === "Sheet,Spells,Encounter");
     await p.click("#mobileMore"); await p.waitForTimeout(300);
     check("phone: More opens the menu", await p.evaluate(() => document.documentElement.classList.contains("fside-open") && document.querySelector("#fside").getBoundingClientRect().left >= 0));
     await p.keyboard.press("Escape"); await p.waitForTimeout(300);

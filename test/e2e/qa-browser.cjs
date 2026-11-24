@@ -179,8 +179,8 @@ const server = http.createServer((req, res) => {
 
     // UI review (2026-11-24), laptop: Saved / Backup / bell share the title's row; Skip to content; Next turn leads a fight
     await p.goto(URL + "#generate"); await p.reload(); await p.waitForFunction(() => typeof route === "function"); await p.waitForTimeout(800);
-    const hdr = await p.evaluate(() => { const mid = r => (r.top + r.bottom) / 2, b = document.querySelector("#storeBadge").getBoundingClientRect(), t = document.querySelector(".brand").getBoundingClientRect(), n = document.querySelector("header nav").getBoundingClientRect(); return { level: Math.round(Math.abs(mid(b) - mid(t))), above: b.bottom <= n.top + 2 }; });
-    check("UI: on laptops, Saved / Backup / the bell sit beside the title, above the tabs", hdr.level < 30 && hdr.above, JSON.stringify(hdr));
+    const hdr = await p.evaluate(() => { const mid = r => (r.top + r.bottom) / 2, b = document.querySelector("#storeBadge").getBoundingClientRect(), t = document.querySelector(".brand").getBoundingClientRect(); return { level: Math.round(Math.abs(mid(b) - mid(t))) }; });
+    check("UI: on laptops, Saved / Backup / the bell sit beside the title (the tabs are in the side menu)", hdr.level < 30, JSON.stringify(hdr));
     await p.keyboard.press("Tab"); /* the first Tab on a fresh page */
     const skip = await p.evaluate(() => document.activeElement && document.activeElement.id);
     await p.keyboard.press("Enter");

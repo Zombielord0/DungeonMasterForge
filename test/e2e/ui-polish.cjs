@@ -90,8 +90,8 @@ const EMOJI = /\p{Extended_Pictographic}/u;
     const still = await p.evaluate(async () => { const wait = ms => new Promise(r => setTimeout(r, ms)); scrollTo(0, 0); await wait(300); const el = document.querySelector("#genOut").lastElementChild, doc0 = el.getBoundingClientRect().top + scrollY; scrollTo(0, 600); await wait(300); const doc1 = el.getBoundingClientRect().top + scrollY; return { shrunk: document.documentElement.classList.contains("hdr-auto"), moved: Math.round(doc1 - doc0) }; });
     check("laptop: nothing below the header moves when it shrinks", still.shrunk && Math.abs(still.moved) <= 1, JSON.stringify(still));
     await p.evaluate(() => scrollTo(0, 0)); await p.waitForTimeout(400);
-    const hb = await p.evaluate(() => document.querySelector("header").getBoundingClientRect().height);
-    check("laptop: the full header comes back at the top", hb > 150, `${Math.round(hb)}px`);
+    const hb = await p.evaluate(() => ({ h: Math.round(document.querySelector("header").getBoundingClientRect().height), full: !document.documentElement.classList.contains("hdr-auto") && !!document.querySelector(".brand small").getClientRects().length }));
+    check("laptop: the full header comes back at the top", hb.full && hb.h > hs, JSON.stringify(hb)); /* the tabs moved to the side menu (2026-11-24), so the full header is one row */
     await p.goto(URL + "#character"); await p.waitForTimeout(400);
     check("laptop: Forge Character is on screen without scrolling", await vis("#pcForgeBtn"));
     await p.click("#pcForgeBtn"); await p.waitForTimeout(500);

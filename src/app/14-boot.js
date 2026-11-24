@@ -57,7 +57,7 @@ function hdrShrink(y) {
 
 const mobileMore = $("#mobileMore");
 function mobileNavSync(view) {
-  const tabs = new Map($$("header nav a[data-view]:not([hidden])").map(a => [a.dataset.view, a]));
+  const tabs = new Map($$("#fside nav a[data-view]:not([hidden])").map(a => [a.dataset.view, a]));
   const shortcuts = document.body.classList.contains("portal-player")
     ? [["roster", "Sheet"], ["spells", "Spells"], ["journal", "Journal"]]
     : document.body.classList.contains("portal-dm")
