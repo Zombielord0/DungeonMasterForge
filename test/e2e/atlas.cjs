@@ -184,8 +184,10 @@ const server = http.createServer((req, res) => {
   await p.waitForSelector("#atlasMissing", { timeout: 10000 }).catch(() => {});
   check("import: without the picture on this device the view says so and offers Import again", /on another device/.test(await p.textContent("#atlasMissing").catch(() => "")) && !!(await p.$("#atlasFile")));
   // back to generated terrain
-  await p.setInputFiles("#atlasFile", tmp); await p.waitForFunction(() => ATLAS_VIEW.pic, null, { timeout: 10000 }).catch(() => {});
-  await p.click('[data-at="gen"]'); await p.waitForTimeout(400);
+  await p.setInputFiles("#atlasFile", tmp); /* the stand-in for a missing picture also counts as a picture, so wait for this import to be the one shown */
+  await p.waitForFunction(id => { const m = atlasOf(id), miss = $("#atlasMissing"); return ATLAS_VIEW.pic && m.img && ATLAS_PICS.has(m.img) && miss && miss.hidden; }, ids.r, { timeout: 10000 }).catch(() => {});
+  await p.click('[data-at="gen"]');
+  await p.waitForFunction(id => !atlasOf(id).img && !!$('[data-at="roll"]'), ids.r, { timeout: 10000 }).catch(() => {}); // painting the land can be slow on a busy machine
   const g4 = await p.evaluate(async ids => ({ img: atlasOf(ids.r).img, stored: !!(await MAPIMG.get("atlas-" + ids.r)), roll: !!$('[data-at="roll"]') }), ids);
   check("import: Use generated terrain switches back and deletes the picture", !g4.img && !g4.stored && g4.roll, JSON.stringify(g4));
 
@@ -284,11 +286,12 @@ const server = http.createServer((req, res) => {
     const pic = (clim, seed = "C1") => { const cv = atlasTerrainCanvas({ v: 2, seed, shape: "inland", land: "balanced", climate: clim }); const d = cv.getContext("2d").getImageData(200, 200, 1200, 700).data; let r = 0, g = 0, b = 0; for (let i = 0; i < d.length; i += 400) { r += d[i]; g += d[i + 1]; b += d[i + 2]; } return [r, g, b]; };
     o.pics = { temperate: pic("temperate"), desert: pic("desert"), tundra: pic("tundra") }; o.picSame = atlasTerrainCanvas({ v: 2, seed: "C2", shape: "coast", land: "balanced", climate: "swamp" }).toDataURL() === (ATLAS_IMG.clear(), atlasTerrainCanvas({ v: 2, seed: "C2", shape: "coast", land: "balanced", climate: "swamp" }).toDataURL());
     // roads and borders from pins: a town the players haven't found has no road on their map; roads stay on land
-    const m = { v: 2, seed: "R1", shape: "inland", land: "balanced" }, T = atlasTerrain(m), land = () => { for (;;) { const i = Math.floor(Math.random() * T.W * T.H); if (T.h[i] > .05 && T.h[i] < .25) return { x: (i % T.W + .5) / T.W, y: (Math.floor(i / T.W) + .5) / T.H }; } };
+    const m = { v: 2, seed: "R1", shape: "inland", land: "balanced" }, T = atlasTerrain(m), rq = makeRng("roads-test", "R1"), land = () => { for (;;) { const i = Math.floor(rq.f() * T.W * T.H); if (T.h[i] > .05 && T.h[i] < .25) return { x: (i % T.W + .5) / T.W, y: (Math.floor(i / T.W) + .5) / T.H }; } };
     const towns = [0, 1, 2].map(k => ({ id: "t" + k, type: k ? "village" : "town", area: false, hidden: k === 2, ...land() })), areas = [{ id: "a0", area: true, x: .25, y: .5 }, { id: "a1", area: true, x: .75, y: .5, hidden: true }];
     const dm = atlasLines(m, [...towns, ...areas]), pl = atlasLines(m, [...towns, ...areas].filter(q => !q.hidden));
     o.roads = [dm.roads.length + dm.lanes.length, pl.roads.length + pl.lanes.length, !!dm.own, !!pl.own];
-    o.onLand = dm.roads.every(r => r.slice(1, -1).every(([x, y]) => T.h[Math.min(T.H - 1, Math.round(y)) * T.W + Math.min(T.W - 1, Math.round(x))] >= -.02));
+    const near = (x, y) => { for (let b = -1; b <= 1; b++) for (let a = -1; a <= 1; a++) { const cx = Math.floor(x) + a, cy = Math.floor(y) + b; if (cx >= 0 && cy >= 0 && cx < T.W && cy < T.H && T.h[cy * T.W + cx] >= 0) return true; } return false; };
+    o.onLand = []; for (let k = 0; k < 6; k++) { const ts = [0, 1, 2, 3].map(j => ({ id: "r" + k + j, type: "town", area: false, ...land() })); atlasLines(m, ts).roads.forEach(r => r.forEach(([x, y]) => { if (!near(x, y)) o.onLand.push([x, y]); })); } /* rounded corners may graze a shore, never cross water */
     const owners = new Set(dm.own); o.owners = owners.has(0) && owners.has(1);
     return o;
   });
@@ -304,7 +307,7 @@ const server = http.createServer((req, res) => {
   check("upgrade: climates paint the land their own colours", tint(up.pics.desert) > tint(up.pics.temperate) + 5000 && up.pics.tundra.reduce((a, b) => a + b) > up.pics.temperate.reduce((a, b) => a + b), JSON.stringify(up.pics));
   check("upgrade: the same recipe paints the same picture", up.picSame);
   check("upgrade: roads join the towns, and the players' map leaves out roads and borders to places they haven't found", up.roads[0] === 2 && up.roads[1] === 1 && up.roads[2] && !up.roads[3], JSON.stringify(up.roads));
-  check("upgrade: roads stay on land", up.onLand);
+  check("upgrade: roads stay on land", up.onLand.length === 0, JSON.stringify(up.onLand.slice(0, 5)));
   check("upgrade: kingdoms split the land between them", up.owners);
   // the region builder's climate, towns and kingdoms
   await p.click('#worldSide [data-w="build"]'); await p.waitForTimeout(150);

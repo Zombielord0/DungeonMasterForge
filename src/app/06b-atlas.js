@@ -214,7 +214,8 @@ const ATLAS_LINES = new Map(); // what was worked out for a recipe and its pins 
 function atlasRoute(T, a, b) {
   const { W, H, h } = T, S = 2, gw = Math.ceil(W / S), gh = Math.ceil(H / S);
   if (!T.riverSet) { T.riverSet = new Uint8Array(W * H); T.rivers.forEach(p => p.forEach(([x, y]) => { T.riverSet[y * W + x] = 1; })); }
-  const hc = (cx, cy) => h[Math.min(H - 1, cy * S) * W + Math.min(W - 1, cx * S)], cost = (cx, cy) => { const v = hc(cx, cy); if (v < 0) return Infinity; return 1 + Math.max(0, v - .28) * 30 + (T.riverSet[Math.min(H - 1, cy * S) * W + Math.min(W - 1, cx * S)] ? 4 : 0); };
+  const hc = (cx, cy) => { let v = Infinity; for (let y = cy * S; y < Math.min(H, cy * S + S); y++) for (let x = cx * S; x < Math.min(W, cx * S + S); x++) v = Math.min(v, h[y * W + x]); return v; }; // the lowest square in the block, so no water is skipped
+  const cost = (cx, cy) => { const v = hc(cx, cy); if (v < 0) return Infinity; return 1 + Math.max(0, v - .28) * 30 + (T.riverSet[Math.min(H - 1, cy * S) * W + Math.min(W - 1, cx * S)] ? 4 : 0); };
   const sx = Math.min(gw - 1, Math.floor(a[0] / S)), sy = Math.min(gh - 1, Math.floor(a[1] / S)), tx = Math.min(gw - 1, Math.floor(b[0] / S)), ty = Math.min(gh - 1, Math.floor(b[1] / S));
   const N = gw * gh, g = new Float32Array(N).fill(Infinity), from = new Int32Array(N).fill(-1), shut = new Uint8Array(N), heap = [], est = i => Math.hypot(i % gw - tx, Math.floor(i / gw) - ty);
   const push = (i, f) => { heap.push([f, i]); let k = heap.length - 1; while (k) { const u = (k - 1) >> 1; if (heap[u][0] <= heap[k][0]) break; [heap[u], heap[k]] = [heap[k], heap[u]]; k = u; } };
