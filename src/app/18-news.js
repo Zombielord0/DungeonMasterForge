@@ -2,6 +2,14 @@
    When a change ships, add an entry to the top of NEWS with a new id, in plain words for players and DMs. */
 
 const NEWS = [
+  { id: "2026-11-24-map-editor", date: "2026-11-24", title: "Draw your own maps", go: "map", items: [
+    "Dungeon Map → ✏️ Edit map lets you change any generated dungeon, and ➕ New blank map starts one from scratch.",
+    "Draw rooms, round rooms and any shape, paint corridors, and erase. Walls follow the shape, curves included.",
+    "Add doors (normal, secret, locked or bars), stairs, room numbers with Room Key entries, text labels (tick DM only to keep one off the TV), furniture, and your own pictures.",
+    "Select anything to move, turn, resize or delete it, with Undo and Redo (Ctrl+Z and Ctrl+Y).",
+    "🎨 Style changes the walls' colour, thickness and roughness, the floor colour, the grid and the hatching, in any of the six looks.",
+    "Fog, tokens and the TV work on drawn maps too. Save them to a campaign or a World place to keep them; your last drawing also comes back after a refresh."
+  ] },
   { id: "2026-11-24-map-art", date: "2026-11-24", title: "New map art: hand-drawn dungeons and richer region maps", go: "map", items: [
     "Dungeon Map → Style has three new looks: Inked sketch (black ink on white paper), Old atlas (stained paper, red room numbers and a compass rose) and Stone and torchlight (dark stone lit by torches, made for the TV).",
     "Region and world maps are painted more richly, with ripples off the coast, hills and a ruled frame. Pick a Climate: desert, jungle, frozen north or swamp.",

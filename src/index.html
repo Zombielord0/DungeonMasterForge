@@ -221,6 +221,8 @@ if (location.protocol !== "file:" && localStorage.getItem("dmforge.offline") !==
         <label class="check" style="margin:0"><input type="checkbox" id="mapGrid" checked><span>Show grid</span></label>
       </div>
       <button class="btn primary wide" type="submit">🗺 Generate Dungeon</button>
+      <div class="row" style="margin-top:8px"><button class="btn" type="button" id="medEdit" title="Draw on this map: rooms, doors, furniture, labels and its look">✏️ Edit map</button><button class="btn" type="button" id="medNew" title="An empty map of the size chosen above, to draw from scratch">➕ New blank map</button></div>
+      <button class="btn wide" type="button" id="medResume" hidden style="margin-top:8px">↩ Continue my last drawing</button>
       <div class="row" style="margin-top:10px">
         <button class="btn" type="button" id="mapDownload">Download PNG</button>
         <button class="btn" type="button" id="mapCopyKey">Copy room key</button>
@@ -258,6 +260,25 @@ if (location.protocol !== "file:" && localStorage.getItem("dmforge.offline") !==
           <div><label>Nudge grid ↓ <span id="impOffYv">0</span> px</label><input type="range" id="impOffY" min="0" max="100" value="0"></div>
         </div>
         <label class="check" style="margin:0"><input type="checkbox" id="impPlace"><span><b>Place rooms</b><small>Click the map to number a room; drag a number to move it.</small></span></label>
+      </div>
+      <div class="card med" id="medPanel" hidden>
+        <div class="sec-h"><h3>✏️ Editing</h3><span class="sp"></span><button class="btn sm" type="button" data-meda="undo" id="medUndo" title="Undo (Ctrl+Z)">↶ Undo</button><button class="btn sm" type="button" data-meda="redo" id="medRedo" title="Redo (Ctrl+Y)">↷ Redo</button><button class="btn sm primary" type="button" data-meda="done">✓ Done</button></div>
+        <div class="med-tools" id="medTools" role="toolbar" aria-label="Map tools"></div>
+        <p class="hint" id="medHint" style="margin:6px 0"></p>
+        <div class="med-opts row" id="medOpts" hidden></div>
+        <div class="med-sel row" id="medSel" hidden aria-live="polite"></div>
+        <details class="med-style"><summary>🎨 Style</summary>
+          <div class="row" style="gap:10px;flex-wrap:wrap;margin-top:8px">
+            <label class="lbl">Walls <input type="color" id="medWall"></label>
+            <label class="lbl">Wall thickness <input type="range" id="medWallW" min="1" max="12" step="0.5"></label>
+            <label class="lbl">Roughness <select id="medRough"><option value="0">Off</option><option value="1">Light</option><option value="2">Medium</option><option value="3">Heavy</option></select></label>
+            <label class="lbl">Floor <input type="color" id="medFloor"></label>
+            <label class="lbl">Grid <select id="medGrid"><option value="lines">Lines</option><option value="dots">Dots</option><option value="none">None</option></select></label>
+            <label class="lbl">Hatching <select id="medHatch"><option value="auto">As the look has it</option><option value="on">On</option><option value="off">Off</option></select></label>
+            <button class="btn sm" type="button" data-meda="stylereset" style="flex:0 0 auto">Reset to the look</button>
+          </div>
+          <p class="hint" style="margin:6px 0 0">Pick the look itself under Style on the left.</p>
+        </details>
       </div>
       <div class="map-tools"><button class="btn sm" type="button" id="mapZoomOut" aria-label="Zoom out">−</button><button class="btn sm" type="button" id="mapZoomIn" aria-label="Zoom in">+</button><button class="btn sm" type="button" id="mapFit">Fit</button><span class="muted" id="mapToolsHint">Hover a room to find it in the key, click it to jump there. Drag to move around when zoomed in.</span></div>
       <div class="map-wrap" id="mapWrap"><div class="map-stage"><canvas id="mapCanvas"></canvas><canvas id="mapOverlay" aria-hidden="true"></canvas></div></div>

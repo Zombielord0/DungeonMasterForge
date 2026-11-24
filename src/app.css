@@ -150,6 +150,17 @@ ul.plain{margin:4px 0 0;padding-left:20px}
 .key-room.hl{background:rgba(232,163,61,.12);box-shadow:inset 3px 0 0 #e8a33d}
 #mapCanvas.fogging{cursor:crosshair;touch-action:none}
 #mapCanvas.placing{cursor:copy}
+/* the map editor (03d-map-editor-ui.js) */
+.med{margin-bottom:12px}
+.med-tools{display:flex;flex-wrap:wrap;gap:6px}
+.med-tools .chip.on,.med-props .chip.on{outline:2px solid #e8a33d;outline-offset:1px}
+.med-props{display:flex;flex-wrap:wrap;gap:5px}
+.med-opts,.med-sel{gap:8px;flex-wrap:wrap;align-items:flex-end;margin:6px 0}
+.med-sel{padding:8px;border-radius:4px;background:rgba(0,0,0,.25)}
+.med-sel .btn,.med-opts .btn{flex:0 0 auto}
+.med-sel textarea{min-height:44px}
+.med-style summary{cursor:pointer;font-family:Cinzel,serif;margin-top:6px}
+#mapCanvas.editing{cursor:crosshair;touch-action:none}
 .fog-tools{border:0;padding:0;margin:14px 0 0;min-width:0}
 .fog-tools[disabled]{opacity:.45}
 .key-room{padding:8px 0;border-bottom:1px solid rgba(0,0,0,.45);box-shadow:0 1px 0 rgba(255,255,255,.05)}
@@ -1491,3 +1502,5 @@ nav a[data-view=requests]{--ic:url("data:image/svg+xml,%3Csvg xmlns='http://www.
   section.view .vit-roll{min-width:44px!important}
   section.view details>summary:not(.btn){padding-top:12px;padding-bottom:12px}
 }
+.med .lbl input,.med .lbl select,.med .lbl textarea{text-transform:none;letter-spacing:0;font-family:'Crimson Pro',Georgia,serif;display:block;margin-top:4px}
+.med-sel[hidden],.med-opts[hidden]{display:none}

@@ -12,6 +12,7 @@
     "test:backup": "node tools/build.mjs --quiet && node test/e2e/backup.cjs",
     "test:tv": "node tools/build.mjs --quiet && node test/e2e/tv.cjs",
     "test:mapvis": "node tools/build.mjs --quiet && node test/e2e/map-visuals.cjs",
+    "test:mapedit": "node tools/build.mjs --quiet && node test/e2e/map-editor.cjs",
     "test:mapio": "node tools/build.mjs --quiet && node test/e2e/map-import.cjs",
     "test:shop": "node tools/build.mjs --quiet && node test/e2e/shop.cjs",
     "test:random": "node tools/build.mjs --quiet && node test/e2e/random-enc.cjs",

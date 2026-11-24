@@ -184,7 +184,7 @@ function renderSub(c) {
   }
   if (subTab === "maps") {
     const ms = c.maps || [];
-    return ms.length ? ms.map(m => `<div class="item"><div class="item-h"><b style="flex:1">${esc(m.name)}</b><span class="muted" style="font-size:14px">${m.kind === "image" ? "Imported map" : `${esc(m.theme)} · ${esc(m.size)}`} · Lv ${m.level}${m.fog ? " · fog saved" : ""}</span>${sessionQueueButton("maps", m)}<button class="btn sm" data-openmap="${m.id}">Open</button><button class="icon-btn" data-del="maps" data-id="${m.id}" title="Remove">✕</button></div></div>`).join("")
+    return ms.length ? ms.map(m => `<div class="item"><div class="item-h"><b style="flex:1">${esc(m.name)}</b><span class="muted" style="font-size:14px">${m.kind === "image" ? "Imported map" : m.kind === "drawn" ? "Drawn map" : `${esc(m.theme)} · ${esc(m.size)}`} · Lv ${m.level}${m.fog ? " · fog saved" : ""}</span>${sessionQueueButton("maps", m)}<button class="btn sm" data-openmap="${m.id}">Open</button><button class="icon-btn" data-del="maps" data-id="${m.id}" title="Remove">✕</button></div></div>`).join("")
       : `<p class="muted">No maps yet. Generate one on the Dungeon Map tab and press “Save”. Saved maps redraw exactly the same every time.</p>`;
   }
   const L = LISTS[subTab]; let items = c[subTab], tabsHTML = "";

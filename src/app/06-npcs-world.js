@@ -392,7 +392,7 @@ function worldPlaceHTML(p, groups) {
     <div class="sec-h"><h3>${p.type === "region" ? "Other map" : "Map"}</h3></div>
     ${p.map ? `<div class="wmap"><button type="button" class="wmap-view" id="wpMapView" data-w="openmap" title="Open on the Dungeon Map tab" aria-label="Open the map of ${esc(p.name)} on the Dungeon Map tab"><span class="muted">Loading map…</span></button>
       <div class="row" style="flex-wrap:wrap;gap:6px;margin-top:6px"><button class="btn sm primary" type="button" data-w="openmap" style="flex:0 0 auto">🗺 Open on Dungeon Map</button><label class="btn sm" style="flex:0 0 auto">🖼 Replace with a picture…<input type="file" id="wpMapFile" accept="image/*" hidden></label><button class="btn sm" type="button" data-w="rmmap" style="flex:0 0 auto">✕ Remove map</button></div>
-      <p class="hint" style="margin:6px 0 0">${p.map.kind === "image" ? "A map picture" : `A generated ${esc(p.map.theme || "dungeon")} map`}${p.map.fog ? ", with its fog" : ""}. Open it to add room notes, show it on the TV and reveal it as the players explore, then press <b>Save to a World place</b> there to keep the changes.</p></div>`
+      <p class="hint" style="margin:6px 0 0">${p.map.kind === "image" ? "A map picture" : p.map.kind === "drawn" ? "A drawn map" : `A generated ${esc(p.map.theme || "dungeon")} map`}${p.map.fog ? ", with its fog" : ""}. Open it to add room notes, show it on the TV and reveal it as the players explore, then press <b>Save to a World place</b> there to keep the changes.</p></div>`
       : `<p class="muted" style="margin:0 0 6px">No map yet.</p><div class="row" style="flex-wrap:wrap;gap:6px"><label class="btn sm" style="flex:0 0 auto">🖼 Upload a map picture…<input type="file" id="wpMapFile" accept="image/*" hidden></label><button class="btn sm" type="button" data-w="genmap" style="flex:0 0 auto">🎲 Generate a dungeon map</button>${currentMap ? `<button class="btn sm" type="button" data-w="usemap" style="flex:0 0 auto">Use the map on the Dungeon Map tab (${esc(currentMap.params.name)})</button>` : ""}</div>
         <p class="hint" style="margin:6px 0 0">A picture can be a city, town or region map, or a battle map from Dungeondraft or a book.</p>`}
     <div class="sec-h"><h3>Places inside</h3><span class="sp"></span><button class="btn sm" type="button" data-w="child">+ Add a place inside</button></div>
@@ -442,7 +442,7 @@ async function wpMapThumb(p) {
       if (!blob) { box.innerHTML = `<span class="muted">The picture isn't on this computer. Upload it again with Replace.</span>`; return; }
       wpMapUrl = URL.createObjectURL(blob); box.innerHTML = `<img src="${wpMapUrl}" alt="Map of ${esc(p.name)}">`;
     } else {
-      const cap = { small: 10, medium: 16, large: 24 }[m.size] || 16, d = generateDungeon({ ...m, rooms: Math.min(m.rooms || 10, cap) }), cv = document.createElement("canvas");
+      const cap = { small: 10, medium: 16, large: 24 }[m.size] || 16, d = m.kind === "drawn" ? drawnBuild(m) : generateDungeon({ ...m, rooms: Math.min(m.rooms || 10, cap) }), cv = document.createElement("canvas");
       drawDungeon(cv, d, true, { scale: 1 }); cv.setAttribute("aria-hidden", "true"); box.replaceChildren(cv);
     }
   } catch (e) { box.innerHTML = `<span class="muted">Couldn't draw this map.</span>`; }
