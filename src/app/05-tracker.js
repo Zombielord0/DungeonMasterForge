@@ -1114,6 +1114,7 @@ function encCard(c, e) {
       ${sessionQueueButton("encounters", e)}
       <button class="btn sm" type="button" data-ea="saveTemplate" data-eid="${esc(e.id)}">Save as template</button>
       <button class="btn sm primary" data-ea="roll" data-eid="${e.id}">🎲 Roll enemy initiative</button>
+      <label class="chk-inline" title="One initiative roll for each kind of monster, so all the goblins act together"><input type="checkbox" data-ef="groupInit" data-eid="${e.id}" ${e.groupInit ? "checked" : ""}> Group by monster</label>
       <button class="btn sm" data-ea="next" data-eid="${e.id}" ${order.length ? "" : "disabled"}>Next turn ▶</button>
       ${combatHistory(e).some(row => !row.undone) ? `<button class="btn sm" type="button" data-ea="undo" data-eid="${esc(e.id)}">Undo combat action</button>` : ""}
       <button class="btn sm" data-ea="reset" data-eid="${e.id}">Reset</button>
@@ -1348,7 +1349,14 @@ campMain.addEventListener("click", async ev => {
     rows.forEach((r, k) => r.name = (have + n > 1) ? `${nm} ${have + k + 1}` : nm);
     e.enemies.push(...rows);
   } else if (a === "roll") {
-    e.enemies.forEach(x => x.init = 1 + Math.floor(Math.random() * 20) + foeInit(x.stat));
+    /* re-rolling a fight already under way starts it again at round 1, so ask first (2026-11-24) */
+    if (e.status === "Active" && (e.round || 0) > 1 && !(await confirmBox("Re-roll initiative?", `This fight is in round ${e.round}. Re-rolling starts it again at round 1. HP and conditions stay as they are.`, "Re-roll"))) return;
+    /* Group initiative: one roll for each kind of monster, as the rules suggest for big fights (2026-11-24) */
+    const group = {};
+    e.enemies.forEach(x => {
+      if (e.groupInit && group[x.stat] !== undefined) { x.init = group[x.stat]; return; }
+      x.init = group[x.stat] = 1 + Math.floor(Math.random() * 20) + foeInit(x.stat);
+    });
     e.round = 1; e.status = "Active"; const o = encOrder(c, e).filter(x => !x.down); e.turn = o.length ? o[0].key : null;
   } else if (a === "next") {
     const o = encOrder(c, e).filter(x => !x.down); if (!o.length) return;
@@ -1378,7 +1386,8 @@ function onEncField(ev, commit) {
   const tracked = ["status", "pcinit", "init", "hp", "cond"].includes(f);
   if (tracked && !commit) return;
   const before = tracked ? combatSnapshot(e) : null;
-  if (f === "name" || f === "notes") e[f] = t.value;
+  if (f === "groupInit") e.groupInit = t.checked;
+  else if (f === "name" || f === "notes") e[f] = t.value;
   else if (f === "status") e.status = t.value;
   else if (f === "map") e.mapId = (c.maps || []).find(m => m.id === t.value)?.id || "";
   else if (f === "level") e.level = clamp(parseInt(t.value) || 1, 1, 20);

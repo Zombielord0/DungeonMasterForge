@@ -2,6 +2,11 @@
    When a change ships, add an entry to the top of NEWS with a new id, in plain words for players and DMs. */
 
 const NEWS = [
+  { id: "2026-11-24-group-initiative", date: "2026-11-24", title: "Group initiative and numbered tokens", go: "tracker", items: [
+    "Tick Group by monster beside Roll enemy initiative and each kind of monster rolls once, so all the goblins act together.",
+    "Rolling initiative again in the middle of a fight now asks first, since it starts the fight again at round 1.",
+    "On the Dungeon Map, adding a token with a name that's already there numbers them: Goblin 1, Goblin 2, Goblin 3."
+  ] },
   { id: "2026-11-24-qa-pass-3", date: "2026-11-24", title: "Fairer fights and multiclass fixes", go: "tracker", items: [
     "Roll enemy initiative now adds each monster's own initiative bonus, for every monster, not just a few.",
     "Multiclass druids and rangers get Companions & Wild Shape, and Circle of the Moon druids see their higher beast limit there too.",

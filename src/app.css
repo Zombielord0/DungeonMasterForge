@@ -1417,3 +1417,7 @@ nav a[data-view=requests]{--ic:url("data:image/svg+xml,%3Csvg xmlns='http://www.
   .hdr-toggle{min-width:40px;padding-inline:10px}
   .hdr-mini-label{font-size:14px;letter-spacing:.01em}
 }
+
+/* Tracker: "Group by monster" beside Roll enemy initiative (2026-11-24) */
+.chk-inline{display:inline-flex;align-items:center;gap:6px;font-size:14px;color:var(--muted);cursor:pointer;white-space:nowrap}
+.chk-inline input{margin:0}

@@ -966,7 +966,15 @@ function tokFree(tx, ty) { // the nearest floor square to (tx,ty) without a toke
 function tokAdd(name, kind, room) {
   const d = currentMap; if (!d || !name) return;
   const o = (room && d.rooms.find(r => r.num === room)) || d.rooms[0], [x, y] = o ? tokFree(o.cx, o.cy) : tokFree(d.W >> 1, d.H >> 1);
-  HOST.tokens.push({ id: uid("t"), name: String(name).slice(0, 40), kind, x, y });
+  HOST.tokens.push({ id: uid("t"), name: tokName(String(name).slice(0, 36)), kind, x, y });
+}
+/* a name already on the map gets numbered: the first "Goblin" becomes "Goblin 1", the next is "Goblin 2" (2026-11-24) */
+function tokName(base) {
+  const re = new RegExp("^" + base.replace(/[.*+?^${}()|[\]\\]/g, "\\$&") + "(?: (\\d+))?$"), same = HOST.tokens.filter(t => re.test(t.name));
+  if (!same.length) return base;
+  const plain = same.find(t => t.name === base); if (plain) plain.name = base + " 1";
+  const top = Math.max(1, ...same.map(t => +(t.name.match(re) || [])[1] || 1));
+  return base + " " + (top + 1);
 }
 function tokListRender() {
   const el = $("#tokList"); if (!el) return;

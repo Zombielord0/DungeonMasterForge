@@ -139,6 +139,31 @@ const server = http.createServer((req, res) => {
     // shop prices under 1 gp show exact silver and copper
     const gp = await p.evaluate(() => [fmtGp(0.85), fmtGp(0.5), fmtGp(0.05), fmtGp(2)]);
     check("QA3: prices under 1 gp show exact silver and copper", gp.join("|") === "8 sp 5 cp|5 sp|5 cp|2 gp", gp.join("|"));
+
+    // Ideas 4 and 5 (2026-11-24). Map tokens with the same name are numbered
+    await p.goto(URL + "#map"); await p.waitForFunction(() => typeof renderMap === "function");
+    await p.evaluate(() => { $("#mapSeed").value = "TOK1"; renderMap(); HOST.tokens = []; });
+    await p.evaluate(() => { for (const n of ["Goblin", "Goblin", "Goblin", "Orc"]) tokAdd(n, "foe"); }); /* what the Add button does; its box only works with the TV on */
+    const tokNames = await p.evaluate(() => HOST.tokens.map(t => t.name).join());
+    check("IDEA: map tokens with the same name are numbered", tokNames === "Goblin 1,Goblin 2,Goblin 3,Orc", tokNames);
+    // group initiative: one roll per kind of monster; re-rolling mid-fight asks first
+    await p.goto(URL + "#tracker"); await p.waitForFunction(() => typeof newEncounter === "function");
+    const gid = await p.evaluate(() => {
+      const c = curCamp(); c.encounters = c.encounters || [];
+      c.encounters.push(newEncounter(null, "Group fight", 3, [{ name: "Goblin", stat: "Goblin", cr: 0.25, count: 3, boss: false }, { name: "Wolf", stat: "Wolf", cr: 0.25, count: 2, boss: false }]));
+      Store.save(c); subTab = "encounters"; renderTracker(); return c.encounters[c.encounters.length - 1].id;
+    });
+    await p.check(`[data-ef="groupInit"][data-eid="${gid}"]`);
+    await p.click(`[data-ea="roll"][data-eid="${gid}"]`); await p.waitForTimeout(200);
+    const grp = await p.evaluate(id => { const e = curCamp().encounters.find(x => x.id === id); const by = {}; e.enemies.forEach(m => (by[m.stat] = by[m.stat] || new Set()).add(m.init)); return { group: e.groupInit, sizes: Object.values(by).map(x => x.size), round: e.round }; }, gid);
+    check("IDEA: Group by monster gives each kind of monster one initiative", grp.group === true && grp.sizes.every(n => n === 1) && grp.sizes.length === 2, JSON.stringify(grp));
+    await p.evaluate(id => { const c = curCamp(), e = c.encounters.find(x => x.id === id); e.round = 3; Store.save(c); renderTracker(); }, gid);
+    await p.click(`[data-ea="roll"][data-eid="${gid}"]`); await p.waitForSelector("#modal.open");
+    await p.click("#modalNo"); await p.waitForTimeout(150);
+    const kept = await p.evaluate(id => curCamp().encounters.find(x => x.id === id).round, gid);
+    await p.click(`[data-ea="roll"][data-eid="${gid}"]`); await p.waitForSelector("#modal.open"); await p.click("#modalYes"); await p.waitForTimeout(200);
+    const again = await p.evaluate(id => curCamp().encounters.find(x => x.id === id).round, gid);
+    check("IDEA: re-rolling mid-fight asks first; No keeps the round, Re-roll starts at round 1", kept === 3 && again === 1, JSON.stringify([kept, again]));
     await p.context().close();
 
     // 5. phones: the Forge form stays inside its card, and the bottom bar keeps whole words
