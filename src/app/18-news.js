@@ -2,6 +2,10 @@
    When a change ships, add an entry to the top of NEWS with a new id, in plain words for players and DMs. */
 
 const NEWS = [
+  { id: "2026-11-24-chat", date: "2026-11-24", title: "Chat with your DM and your party", go: "whispers", items: [
+    "Whispers are now a chat. Players can reply to their DM, and the DM sees each player's conversation on the Party tab with a count of new messages.",
+    "Players also have a Party chat to talk among themselves. The DM can't see it."
+  ] },
   { id: "2026-11-23-reference-spells", date: "2026-11-23", title: "More spells, and Oathbreaker abilities", go: "spells", items: [
     "Spells from other D&D books, like Silvery Barbs, are now in the 2014 spell list with their level, casting time, range, components, duration and the book page to look them up. Imported characters keep them.",
     "Oathbreaker paladins see Aura of Hate, Control Undead and Dreadful Aspect in their Abilities list, with their save DCs. The Channel Divinity options use the Channel Divinity counter."
