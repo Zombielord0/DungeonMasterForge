@@ -5,7 +5,7 @@ const hdrPhone = matchMedia("(max-width:600px)");
 let hdrHold = 0, hdrPinned = false; // hdrPinned: "Show tabs" pressed while the laptop header was shrunk by scrolling; stays full until back at the top // until then, scrolling doesn't move the header (the page shifts when the full header opens)
 function hdrSync() {
   const H = document.documentElement, mini = hdrPhone.matches ? !H.classList.contains("hdr-full") : H.classList.contains("hdr-mini") || H.classList.contains("hdr-auto"), btn = document.getElementById("hdrToggle");
-  const label = hdrPhone.matches ? "toolbar" : "tabs";
+  const label = "toolbar"; /* the tabs are in the side menu since 2026-11-24 */
   /* the words sit in their own span so narrow phones can show just the arrow (QA-7); the full label stays for screen readers */
   const words = mini ? `Show ${label}` : `Hide ${label}`, arrow = document.createElement("span"), word = document.createElement("span");
   arrow.textContent = mini ? "▾" : "▴"; word.className = "hdr-word"; word.textContent = " " + words;

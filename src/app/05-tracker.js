@@ -40,7 +40,12 @@ function renderTracker() {
   renderCampList();
   const c = Store.get(activeId) || Store.list()[0];
   const main = $("#campMain");
-  if (!c) { main.innerHTML = `<div class="card empty"><h2>No campaign selected</h2><p>Forge an adventure in the Generator and save it here, or start a blank campaign.</p><a class="btn primary" href="#generate" style="text-decoration:none;display:inline-block">Go to Generator</a></div>`; return; }
+  if (!c) {
+    /* a section picked from the side menu (Loot, Lore…) with no campaign yet: say where it lives, and start one on that section (QA idea, 2026-11-24) */
+    const sec = window.sideReady && subTab !== "overview" ? (SIDE_SECTIONS.tracker.find(([k]) => k === subTab) || [])[1] : "";
+    main.innerHTML = `<div class="card empty"><h2>No campaign yet</h2><p>${sec ? `${esc(sec)} is kept in a campaign. ` : ""}Start a blank campaign, or forge an adventure in the Generator and save it here.</p><button type="button" class="btn primary" data-newcamp="1">+ Start a blank campaign</button> <a class="btn" href="#generate" style="text-decoration:none;display:inline-block">Go to Generator</a></div>`;
+    return;
+  }
   activeId = c.id; renderCampList();
   if (c.gen && c.gen.outline) {
     // Upgrade short auto-generated chapter notes (from older saves) to full briefs; notes the DM edited are left alone.
@@ -1484,3 +1489,5 @@ function turnsNow() {
   if (!e || e.status === "Done") return null;
   return { name: e.name || "Fight", round: e.round || 0, rows: tvInitRows(c, e) };
 }
+/* the empty Tracker's "Start a blank campaign": stays on the section picked from the side menu */
+$("#campMain").addEventListener("click", e => { if (!e.target.closest("[data-newcamp]")) return; const c = blankCampaign(); Store.save(c); activeId = c.id; renderTracker(); if (window.sideReady) sideSync(); });

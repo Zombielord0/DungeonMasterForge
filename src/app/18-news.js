@@ -6,7 +6,8 @@ const NEWS = [
     "Every tab is now in a menu down the left side, in groups: Prep, Characters, Rules, Players and Forge.",
     "Campaign Tracker, Villains & Monsters, Items and World have a ▸ arrow that shows their sections, so you can jump straight to Loot, Lore or the Monster Manual.",
     "The search box at the top finds everything: type \"fireball\" to see the characters who have it, campaign notes that mention it, and the spell and items in the rules. Click a result to go straight to it.",
-    "Press « to fold the menu down to icons; it stays that way next time. On a phone, the More button opens the same menu."
+    "A spell or item that's in both rulebooks shows once, with buttons for the other edition. After you open a result, a note says where you landed.",
+    "Press « to fold the menu down to icons; it stays that way next time, and 🔍 opens it again ready to search. On a phone, the More button opens the same menu."
   ] },
   { id: "2026-11-24-map-editor", date: "2026-11-24", title: "Draw your own maps", go: "map", items: [
     "Dungeon Map → ✏️ Edit map lets you change any generated dungeon, and ➕ New blank map starts one from scratch.",

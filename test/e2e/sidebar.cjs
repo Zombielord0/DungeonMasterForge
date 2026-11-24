@@ -116,6 +116,39 @@ async function walk(p, who, phone) {
     await p.fill("#sideQ", "loot"); await p.waitForTimeout(600);
     await p.focus("#sideQ"); await p.keyboard.press("Escape");
     check("Escape clears the search", await p.evaluate(() => document.querySelector("#sideQ").value === "" && document.querySelector("#sideResults").hidden));
+
+    /* QA pass on the preview (2026-11-24) */
+    check("QA-1: no tab name in the menu is cut off", await p.evaluate(() => [...document.querySelectorAll("#fside nav a[data-view]")].filter(a => !a.hidden).every(a => a.scrollWidth <= a.clientWidth + 1)));
+    await p.fill("#sideQ", "<b>x</b>"); await p.waitForTimeout(900);
+    check("QA-2: symbols and one letter left over match nothing", await p.evaluate(() => !document.querySelector("#sideResults [data-side-hit]") && /Nothing matches/.test(document.querySelector("#sideResults").textContent)));
+    await p.fill("#sideQ", "fireball"); await p.waitForTimeout(900);
+    const fb = await p.evaluate(() => [...document.querySelectorAll("#sideResults .fside-hitrow")].filter(r => r.querySelector("b")?.textContent === "Fireball" && /Spell/.test(r.textContent)).map(r => r.querySelectorAll("[data-side-alt]").length));
+    check("IDEA-2: Fireball is one rules row, with the other editions beside it", fb.length === 1 && fb[0] >= 1, JSON.stringify(fb));
+    await p.evaluate(() => document.querySelector("#sideResults [data-side-alt]").click()); await p.waitForTimeout(500);
+    check("IDEA-2: an edition button opens that edition's rules", await p.evaluate(() => [...document.querySelectorAll("dialog[open], .character-reference[open]")].some(d => /Fireball/.test(d.textContent))));
+    await p.keyboard.press("Escape");
+    await p.evaluate(() => [...document.querySelectorAll("#sideResults [data-side-hit]")].find(b => /Elara Test/.test(b.textContent)).click()); await p.waitForTimeout(400);
+    check("IDEA-5: opening a result says where it landed", await p.evaluate(() => /Elara Test/.test(document.querySelector("#toast").textContent) && document.querySelector("#toast").classList.contains("show")));
+    await p.click("#sideFoldBtn"); await p.waitForTimeout(250);
+    check("IDEA-1: a folded menu shows a search button", await p.evaluate(() => { const b = document.querySelector("#sideSearchBtn"); return !!b && b.getBoundingClientRect().width > 0; }));
+    await p.click("#sideSearchBtn"); await p.waitForTimeout(250);
+    check("IDEA-1: it opens the menu with the search box ready", await p.evaluate(() => document.querySelector("#fside").getBoundingClientRect().width > 200 && document.activeElement?.id === "sideQ"));
+    check("IDEA-1: the search button hides again when open", await p.evaluate(() => document.querySelector("#sideSearchBtn").getBoundingClientRect().width === 0));
+    await ctx.close();
+
+    /* IDEA-3: a Tracker section with no campaign says what to do, and its button starts one on that section */
+    ({ p, ctx } = await open(browser, URL, { width: 1280, height: 800 }));
+    await p.click('#fside [data-side-toggle="tracker"]');
+    await p.click('#fside [data-side-go="tracker"][data-side-sec="loot"]'); await p.waitForTimeout(400);
+    check("IDEA-3: Loot with no campaign says it belongs to a campaign", await p.evaluate(() => /Loot is kept in a campaign/.test(document.querySelector("#campMain").textContent) && !!document.querySelector("#campMain [data-newcamp]")));
+    await p.click("#campMain [data-newcamp]"); await p.waitForTimeout(500);
+    check("IDEA-3: its button starts a campaign and opens Loot", await p.evaluate(() => Store.list().length === 1 && document.querySelector(".subtabs button.on")?.dataset.sub === "loot"));
+    await ctx.close();
+
+    /* unconfirmed QA note: the Dungeon Map at 320 px is no wider than the screen */
+    ({ p, ctx } = await open(browser, URL, { width: 320, height: 700 }));
+    await p.goto(URL + "#map"); await p.waitForTimeout(1500);
+    check("320 px: the Dungeon Map page fits the screen", await p.evaluate(() => document.documentElement.scrollWidth <= 321), String(await p.evaluate(() => document.documentElement.scrollWidth)));
     await ctx.close();
 
     /* ---------------- every page opens: laptop and phone ---------------- */

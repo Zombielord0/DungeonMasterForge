@@ -84,6 +84,8 @@ The owner asked for the tabs on the left, scrollable, searchable and foldable, w
 
 - **The links:** the `<nav>` that was in the header now sits in `<aside id="fside">`. `sideBuild` moves its `a[data-view]` links into groups (`SIDE_GROUPS`) and rows (`.fside-row`). Portal still hides and shows the same links, and `sideSync` (called at the end of `route()`) hides empty groups and marks the open section.
 - **Sections** (`SIDE_SECTIONS`): Campaign Tracker (its 14 sub-tabs, set through `subTab`), Villains & Monsters (`monMode`), Items (`itMode`) and World (`W.mode` place or build). They start folded; the ▸ arrow shows them. `sideGo(view, section)` opens either.
+- **Folded search:** a folded menu shows 🔍 (`#sideSearchBtn`), which unfolds it with the search box focused.
+- **Tracker sections with no campaign:** the empty Tracker says "<Section> is kept in a campaign" and its **+ Start a blank campaign** (`data-newcamp`) stays on that section.
 - **Folding:** `«` sets `html.fside-folded` (56 px, icons from the tabs' `--ic`), kept in `dmforge.side.v1` and applied before paint in `index.html`. Not in backups (a UI choice).
 - **Layout:** the menu is fixed under the header (`top: var(--hdr-live)`). `body` gets `padding-left: var(--fside-w)`, and the header undoes it so it stays full width. The laptop's "Hide tabs" button is gone; phones keep "Show toolbar".
 - **Phones:** the bottom bar stays. **More** calls `sideOpen()`, which slides the menu in over a shade (`#fsideShade`). Escape, the shade, ✕ or picking a tab closes it.
@@ -95,5 +97,9 @@ The owner asked for the tabs on the left, scrollable, searchable and foldable, w
     - for players, the Journal page's text.
   - **Rules:** `compendiumMatches` (split out of `compendiumSearch`) for both editions, or the open campaign's edition, plus "Show all … in the Compendium".
   - **Tabs:** tab and section names.
+
+  - Words of one letter are ignored (QA-2: `<b>x</b>` left single letters that matched everything).
+  - Rules rows are grouped by kind and name: one row, with the other editions and book references as `.fside-ed` buttons (`data-side-alt="row:n"`).
+  - Each of your own results has a `where` ("Campaign "X" › Lore › …"), shown in a toast when it opens.
 
   A result opens its page, and `sideReveal` finds the words there, opens folded parts, scrolls to them and flashes a gold outline (`.side-flash`). Rules results open the rules window over the page.

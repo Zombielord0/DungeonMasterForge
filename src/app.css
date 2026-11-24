@@ -1514,7 +1514,7 @@ header{margin-left:calc(-1 * var(--fside-w))}
 .fside-grp{margin:12px 6px 4px;font:600 11px/1.2 Cinzel,serif;letter-spacing:.12em;text-transform:uppercase;color:var(--muted)}
 .fside-row{display:flex;align-items:stretch;gap:2px}
 .fside-row[hidden],.fside-grp[hidden]{display:none}
-#fside nav a{display:block;flex:1 1 auto;min-width:0;margin:1px 0;padding:7px 10px;font-size:13.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+#fside nav a{display:block;flex:1 1 auto;min-width:0;margin:1px 0;padding:7px 10px;font-size:13.5px;overflow-wrap:anywhere;
   background:transparent;border:1px solid transparent!important;box-shadow:none;border-radius:4px}
 #fside nav a:hover{background:rgba(255,255,255,.05);color:#fff!important}
 #fside nav a.active{background:var(--noise),radial-gradient(ellipse at 50% 30%,#f8c26c,#c46d22);border-color:#7a4415!important;box-shadow:0 0 12px rgba(240,150,60,.4)}
@@ -1529,6 +1529,12 @@ header{margin-left:calc(-1 * var(--fside-w))}
 .fside-results{flex:1 1 auto;overflow-y:auto;overscroll-behavior:contain;padding:4px 8px 16px}
 .fside-results[hidden]{display:none}
 .fside-rgrp{margin:10px 4px 4px;font:600 11px/1.2 Cinzel,serif;letter-spacing:.12em;text-transform:uppercase;color:var(--muted)}
+.fside-hitrow{display:flex;flex-direction:column}
+.fside-eds{display:flex;flex-wrap:wrap;gap:4px;margin:-2px 0 4px 34px}
+.fside-ed{background:var(--well);border:1px solid var(--line);border-radius:10px;padding:1px 8px;font-size:11.5px;color:var(--muted);cursor:pointer}
+.fside-ed:hover,.fside-ed:focus-visible{color:var(--gold2);border-color:var(--gold)}
+#sideSearchBtn{display:none}
+html.fside-folded #sideSearchBtn{display:inline-block}
 .fside-hit{display:flex;gap:8px;align-items:flex-start;width:100%;text-align:left;background:none;border:1px solid transparent;border-radius:4px;padding:6px 8px;color:var(--text);cursor:pointer}
 .fside-hit>span:last-child{min-width:0}
 .fside-hit b{display:block;font-weight:600;overflow-wrap:anywhere}
@@ -1554,6 +1560,7 @@ html.fside-folded #fside.fside-searching nav{display:block}
   #fside{top:0;z-index:40;width:min(300px,86vw);transform:translateX(-105%);visibility:hidden;transition:transform .2s ease,visibility 0s .2s;padding-top:env(safe-area-inset-top)}
   html.fside-open #fside{transform:none;visibility:visible;transition:transform .2s ease}
   html.fside-folded :is(#sideQ,.fside-grp,.fside-arrow){display:revert!important}
+  html.fside-folded #sideSearchBtn{display:none}
   html.fside-folded .fside-top{flex-direction:row}
   html.fside-folded #fside nav a{padding:10px;text-align:left;font-size:15px}
   html.fside-folded #fside nav a::before{margin-right:6px;width:15px;height:15px}
@@ -1562,3 +1569,5 @@ html.fside-folded #fside.fside-searching nav{display:block}
   .fside-arrow{flex-basis:40px}
 }
 @media (max-width:600px) and (prefers-reduced-motion:reduce){#fside{transition:none}}
+/* a .btn with the hidden attribute stays hidden (#handoutBack showed on phones and pushed the Dungeon Map wider than a 320 px screen; QA 2026-11-24) */
+.btn[hidden]{display:none}

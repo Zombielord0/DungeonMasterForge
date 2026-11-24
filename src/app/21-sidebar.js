@@ -112,6 +112,7 @@ $("#fside").addEventListener("click", e => {
 });
 $("#sideFoldBtn").addEventListener("click", () => { if (hdrPhone.matches) sideClose(); else sideFold(!document.documentElement.classList.contains("fside-folded")); });
 $("#fsideShade").addEventListener("click", sideClose);
+$("#sideSearchBtn").addEventListener("click", () => { sideFold(false); $("#sideQ").focus(); }); /* folded menu: 🔍 opens it with the search box ready (QA idea, 2026-11-24) */
 document.addEventListener("keydown", e => { if (e.key === "Escape" && document.documentElement.classList.contains("fside-open") && !document.querySelector("dialog[open]")) { e.preventDefault(); sideClose(); } });
 hdrPhone.addEventListener("change", () => { sideClose(); sideSyncPhone(); });
 function sideSyncPhone() { const b = $("#sideFoldBtn"); if (hdrPhone.matches) { b.textContent = "✕"; b.title = "Close the menu"; b.removeAttribute("aria-expanded"); } else sideFold(document.documentElement.classList.contains("fside-folded")); }
@@ -140,7 +141,7 @@ function sideMine(words) {
     const h = sideHits(words, c)[0]; if (!h) continue;
     const where = SIDE_WHERE[h.path[0]] || h.path[0];
     const cls = (c.multi || []).length ? classLine(c) : `${c.cls || ""} ${c.level || ""}`.trim();
-    hits.push({ icon: "🧙", name: c.name || "Unnamed", sub: `${cls} · ${where === "name" ? "character" : where}${where !== "name" ? ": " + sideSnip(h.text) : ""}`, open: () => { RC.id = c.id; CB.on = false; sideGo("roster"); sideReveal("#rosterMain", words); } });
+    hits.push({ icon: "🧙", name: c.name || "Unnamed", sub: `${cls} · ${where === "name" ? "character" : where}${where !== "name" ? ": " + sideSnip(h.text) : ""}`, where: `${c.name || "Unnamed"}'s sheet${where !== "name" ? " › " + where : ""}`, open: () => { RC.id = c.id; CB.on = false; sideGo("roster"); sideReveal("#rosterMain", words); } });
   }
   if (sideCan("tracker")) {
     const subs = Object.fromEntries(SIDE_SECTIONS.tracker);
@@ -150,19 +151,19 @@ function sideMine(words) {
       for (const x of list) {
         const h = sideHits(words, x)[0]; if (!h) continue;
         const nm = sideName(x);
-        hits.push({ icon: "📜", name: sideSnip(typeof x === "string" ? h.text : nm || h.text), sub: `Campaign "${c.name}" · ${subs[key]}`, open: () => { activeId = c.id; sideGo("tracker", key); sideReveal("#campMain", words); } });
+        hits.push({ icon: "📜", name: sideSnip(typeof x === "string" ? h.text : nm || h.text), sub: `Campaign "${c.name}" · ${subs[key]}`, where: `Campaign "${c.name}" › ${subs[key]}${nm ? " › " + sideSnip(nm) : ""}`, open: () => { activeId = c.id; sideGo("tracker", key); sideReveal("#campMain", words); } });
         break;
       }
     }
   }
   if (sideCan("world")) {
     if (!W.loaded) worldLoad();
-    for (const p of W.places) { const h = sideHits(words, p)[0]; if (!h) continue; hits.push({ icon: "🗺️", name: p.name, sub: `World place · ${sideSnip(h.text)}`, open: () => { W.sel = p.id; W.open.add(p.id); sideGo("world", "place"); } }); }
+    for (const p of W.places) { const h = sideHits(words, p)[0]; if (!h) continue; hits.push({ icon: "🗺️", name: p.name, sub: `World place · ${sideSnip(h.text)}`, where: `World › ${p.name}`, open: () => { W.sel = p.id; W.open.add(p.id); sideGo("world", "place"); } }); }
   }
-  if (sideCan("npc")) for (const n of npcLoose()) { const h = sideHits(words, n)[0]; if (!h) continue; hits.push({ icon: "🧑", name: n.name || "NPC", sub: `Your NPCs · ${sideSnip(h.text)}`, open: () => { sideGo("npc"); sideReveal("#view-npc", words); } }); }
-  if (sideCan("homebrew")) for (const x of HB.list) { const h = sideHits(words, x)[0]; if (!h) continue; hits.push({ icon: "⚗️", name: x.name, sub: `Homebrew ${x.kind || ""}`.trim(), open: () => { sideGo("homebrew"); sideReveal("#view-homebrew", words); } }); }
+  if (sideCan("npc")) for (const n of npcLoose()) { const h = sideHits(words, n)[0]; if (!h) continue; hits.push({ icon: "🧑", name: n.name || "NPC", sub: `Your NPCs · ${sideSnip(h.text)}`, where: `NPCs › Your NPCs › ${n.name || "NPC"}`, open: () => { sideGo("npc"); sideReveal("#view-npc", words); } }); }
+  if (sideCan("homebrew")) for (const x of HB.list) { const h = sideHits(words, x)[0]; if (!h) continue; hits.push({ icon: "⚗️", name: x.name, sub: `Homebrew ${x.kind || ""}`.trim(), where: `Homebrew › ${x.name}`, open: () => { sideGo("homebrew"); sideReveal("#view-homebrew", words); } }); }
   const j = $('#fside a[data-view="journal"]');
-  if (j && !j.hidden) { const t = compendiumText($("#view-journal")?.innerText || ""); if (t && words.every(w => t.includes(w))) hits.push({ icon: "📖", name: "Journal", sub: "The party's Journal", open: () => { sideGo("journal"); sideReveal("#view-journal", words); } }); }
+  if (j && !j.hidden) { const t = compendiumText($("#view-journal")?.innerText || ""); if (t && words.every(w => t.includes(w))) hits.push({ icon: "📖", name: "Journal", sub: "The party's Journal", where: "Journal", open: () => { sideGo("journal"); sideReveal("#view-journal", words); } }); }
   return hits.slice(0, max);
 }
 function sideTabs(words) {
@@ -178,22 +179,33 @@ function sideTabs(words) {
 async function sideRules(q) {
   const eds = currentSourceRules() ? [currentSourceRules().edition] : ["2024", "2014"];
   const sets = await Promise.all(eds.map(ed => compendiumMatches({ query: q, ed }).catch(() => ({ rows: [] }))));
-  const rows = sets.flatMap(s => s.rows).sort((a, b) => b.rank - a.rank || (a.ed === b.ed ? 0 : a.ed === "2024" ? -1 : 1));
-  return { total: rows.length, hits: rows.slice(0, 5).map(r => ({ icon: { Spell: "✨", Item: "🪄", Monster: "🐉", Feat: "🎖️", Class: "⚔️", Subclass: "⚔️", Species: "🧝", Background: "📜" }[r.kind] || "📘", name: r.name, sub: [r.kind, r.group, r.ed, r.source].filter(Boolean).join(" · "), rule: r })) };
+  const book = r => r.group === "Book reference";
+  const rows = sets.flatMap(s => s.rows).sort((a, b) => b.rank - a.rank || (a.ed === b.ed ? 0 : a.ed === "2024" ? -1 : 1) || book(a) - book(b));
+  /* the same rule in both editions (and as a book reference) is one row; the others are buttons beside it (QA idea, 2026-11-24) */
+  const groups = new Map();
+  for (const r of rows) { const k = r.kind + "|" + r.name.toLowerCase(); if (!groups.has(k)) groups.set(k, []); groups.get(k).push(r); }
+  const hits = [...groups.values()].slice(0, 5).map(([r, ...more]) => ({
+    icon: { Spell: "✨", Item: "🪄", Monster: "🐉", Feat: "🎖️", Class: "⚔️", Subclass: "⚔️", Species: "🧝", Background: "📜" }[r.kind] || "📘",
+    name: r.name, sub: [r.kind, r.group, r.ed, r.source].filter(Boolean).join(" · "), rule: r,
+    alts: more.map(m => ({ label: book(m) ? `${m.ed} book` : m.ed, title: [m.kind, m.group, m.ed, m.source].filter(Boolean).join(" · "), rule: m }))
+  }));
+  return { total: groups.size, hits };
 }
 
 async function sideSearch(q) {
-  const req = ++SIDE.req, box = $("#sideResults"), words = compendiumText(q).split(" ").filter(Boolean);
+  const req = ++SIDE.req, box = $("#sideResults"), words = compendiumText(q).split(" ").filter(w => w.length > 1);
   if (compendiumText(q).length < 2) { box.hidden = true; box.innerHTML = ""; SIDE.hits = []; $("#fside").classList.remove("fside-searching"); return; }
+  /* QA-2: "<b>x</b>" leaves only single letters, which match nearly everything */
+  if (!words.length) { SIDE.hits = []; box.innerHTML = `<p class="muted fside-none">Nothing matches “${esc(q.trim())}”. Try a longer word.</p>`; box.hidden = false; $("#fside").classList.add("fside-searching"); return; }
   let mine = [];
   try { mine = sideMine(words); } catch (e) { console.warn(e); }
-  const tabs = sideTabs(words), rules = await sideRules(q);
+  const tabs = sideTabs(words), rules = await sideRules(words.join(" "));
   if (req !== SIDE.req) return; /* a newer search has started */
   SIDE.hits = [...mine, ...rules.hits, ...tabs];
   let i = 0;
-  const rows = list => list.map(h => `<button type="button" class="fside-hit" data-side-hit="${i++}"><span aria-hidden="true">${h.icon}</span><span><b>${esc(h.name)}</b><small>${esc(h.sub)}</small></span></button>`).join("");
+  const rows = list => list.map(h => { const n = i++; return `<div class="fside-hitrow"><button type="button" class="fside-hit" data-side-hit="${n}"><span aria-hidden="true">${h.icon}</span><span><b>${esc(h.name)}</b><small>${esc(h.sub)}</small></span></button>${(h.alts || []).length ? `<span class="fside-eds">${h.alts.map((a, j) => `<button type="button" class="fside-ed" data-side-alt="${n}:${j}" title="${esc(a.title)}" aria-label="${esc(h.name)}, ${esc(a.title)}">${esc(a.label)}</button>`).join("")}</span>` : ""}</div>`; }).join("");
   const grp = (label, list, extra = "") => list.length ? `<p class="fside-rgrp">${label}</p>${rows(list)}${extra}` : "";
-  box.innerHTML = (grp("Your stuff", mine) + grp("Rules", rules.hits, rules.total > rules.hits.length ? `<button type="button" class="fside-all" data-side-all="1">Show all ${rules.total.toLocaleString()} in the Compendium</button>` : "") + grp("Tabs", tabs))
+  box.innerHTML = (grp("Your stuff", mine) + grp("Rules", rules.hits, rules.hits.length ? `<button type="button" class="fside-all" data-side-all="1">Show all ${rules.total.toLocaleString()} in the Compendium</button>` : "") + grp("Tabs", tabs))
     || `<p class="muted fside-none">Nothing matches “${esc(q.trim())}”.</p>`;
   box.hidden = false; $("#fside").classList.add("fside-searching");
 }
@@ -202,13 +214,16 @@ function sideClear() { $("#sideQ").value = ""; clearTimeout(SIDE.timer); sideSea
 $("#sideResults").addEventListener("click", e => {
   const all = e.target.closest("[data-side-all]");
   if (all) { $("#compendiumQuery").value = $("#sideQ").value; sideClear(); sideGo("compendium"); return; }
+  const alt = e.target.closest("[data-side-alt]");
+  if (alt) { const [n, j] = alt.dataset.sideAlt.split(":"); const a = SIDE.hits[n]?.alts?.[j]; if (a) a.rule.open(alt); return; }
   const b = e.target.closest("[data-side-hit]"); if (!b) return;
   const h = SIDE.hits[b.dataset.sideHit]; if (!h) return;
   if (h.rule) { h.rule.open(b); return; } /* the rules window opens over the page; the results stay */
   sideClear(); if (hdrPhone.matches) sideClose(); h.open();
+  if (h.where) toast("📍 " + h.where); /* IDEA-5: say where the result landed (toast is plain text) */
 });
 $("#fside").addEventListener("keydown", e => {
-  const items = $$("#sideResults [data-side-hit], #sideResults [data-side-all]"), i = items.indexOf(document.activeElement);
+  const items = $$("#sideResults [data-side-hit], #sideResults [data-side-alt], #sideResults [data-side-all]"), i = items.indexOf(document.activeElement);
   if (e.key === "ArrowDown" && (e.target.id === "sideQ" || i >= 0) && items.length) { e.preventDefault(); items[Math.min(i + 1, items.length - 1)].focus(); }
   else if (e.key === "ArrowUp" && i >= 0) { e.preventDefault(); i === 0 ? $("#sideQ").focus() : items[i - 1].focus(); }
   else if (e.key === "Escape" && (e.target.id === "sideQ" || i >= 0) && $("#sideQ").value) { e.preventDefault(); e.stopPropagation(); sideClear(); $("#sideQ").focus(); }
@@ -230,7 +245,7 @@ function sideReveal(root, words) {
     if (!best) return;
     for (let d = best.closest("details:not([open])"); d; d = d.parentElement && d.parentElement.closest("details:not([open])")) d.open = true;
     best.scrollIntoView({ block: "center" });
-    best.classList.add("side-flash"); setTimeout(() => best.classList.remove("side-flash"), 1500);
+    best.classList.add("side-flash"); setTimeout(() => best.classList.remove("side-flash"), 3000);
   };
   requestAnimationFrame(() => requestAnimationFrame(go));
 }
