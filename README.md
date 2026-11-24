@@ -66,9 +66,11 @@ In **Campaign Tracker → Encounters**, pick where the party is and how hard the
 
 Each campaign in the **Campaign Tracker** has a **Calendar** tab. It shows the day, season, time and weather. Use the buttons for rests, the next morning or travelling several days, and new weather is rolled for each day. Pick the climate and starting season to suit your world. Rests, travel and your own notes are logged.
 
-## On phones
+## The menu, search and phones
 
-The Forge works on phones as well as computers. On a phone the header is one slim line with a tab menu; it slides out of the way while you scroll or type and comes back when you scroll up (tap **▾ Show tabs** for the full header). On **My Characters** a jump bar takes you straight to HP, Attacks, Spells, Gear or Notes. On **Spells**, tap **Filters** to narrow the list. Buttons are bigger on touch screens, and pop-up windows always keep their buttons in view.
+The tabs are in a menu on the left, in groups. Tabs with sections (Campaign Tracker, Villains & Monsters, Items, World) have a ▸ arrow that shows them. The **search box** at the top of the menu finds everything that matches: your characters (their spells, gear and notes), your campaigns' NPCs, Lore, quests, loot and sessions, World places, Your NPCs, homebrew, the rules (spells, items, monsters, feats, classes, species, backgrounds) and the tabs themselves. Click a result to go straight to it; **↓**, **↑** and **Enter** work too. Press **«** to fold the menu to icons.
+
+The Forge works on phones as well as computers. On a phone the bottom bar has quick links, and **More** opens the menu from the left. The header is one slim line that slides out of the way while you scroll or type and comes back when you scroll up (tap **▾ Show toolbar** for the full header). On **My Characters** a jump bar takes you straight to HP, Attacks, Spells, Gear or Notes. On **Spells**, tap **Filters** to narrow the list. Buttons are bigger on touch screens, and pop-up windows always keep their buttons in view.
 
 ## Importing characters
 

@@ -71,11 +71,11 @@ const away = p => p.evaluate(() => document.documentElement.classList.contains("
       await p.waitForSelector("#mobileNav a[aria-current=page][href=\"#roster\"]");
       check("phone: Sheet is marked as the current page", await quickNav.getByRole("link", { name: "Sheet" }).getAttribute("aria-current") === "page");
       await quickNav.getByRole("button", { name: "More" }).tap();
-      const menu = p.locator("#mobileMenu");
+      const menu = p.locator("#fside"); /* More opens the side menu from the left (2026-11-24) */
       check("phone: More shows tools available to this session", await menu.getByRole("link", { name: "Compendium" }).isVisible() && !(await menu.getByRole("link", { name: "Party" }).count()));
       await menu.getByRole("link", { name: "Compendium" }).tap();
       await p.waitForURL("**/#compendium");
-      check("phone: choosing a tool closes More", !(await menu.isVisible()));
+      check("phone: choosing a tool closes More", !(await p.evaluate(() => document.documentElement.classList.contains("fside-open"))));
       await quickNav.getByRole("link", { name: "Sheet" }).tap();
       await p.waitForURL("**/#roster");
 
