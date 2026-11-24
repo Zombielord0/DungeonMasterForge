@@ -55,7 +55,7 @@ function renderTracker() {
   const active = c.quests.filter(q => q.status === "Active").length;
   const tabs = [["overview", "Overview"], ["session", "Open Session"], ["encounters", "Encounters", (c.encounters || []).length], ["sessions", "Sessions", c.sessions.length], ["party", "Party", c.party.length], ["npcs", "NPCs", c.npcs.length], ["lore", "Lore", (c.lore = c.lore || []).length], ["quests", "Quests", c.quests.length], ["loot", "Loot", c.loot.length], ["notes", "Notes"], ["maps", "Maps", (c.maps || []).length], ["calendar", "Calendar"], ["sources", "Sourcebooks"], ["handouts", "Handouts"]];
   let h = `<div class="card">
-    <div class="row" style="align-items:flex-start"><input class="title-input" type="text" data-field="name" value="${esc(c.name)}" aria-label="Campaign name">
+    <div class="row camp-title-row" style="align-items:flex-start"><input class="title-input" type="text" data-field="name" value="${esc(c.name)}" aria-label="Campaign name">
       <div style="flex:0 0 auto;display:flex;gap:6px"><button class="btn sm" id="exportCamp">Export campaign</button><button class="btn sm danger" id="delCamp">Delete</button></div></div>
     <div class="row" style="margin-top:10px;gap:14px;flex-wrap:wrap">
       <div style="flex:0 0 auto" class="row"><span class="lbl" style="margin:0">Party level</span><input type="number" min="1" max="20" data-field="currentLevel" value="${c.currentLevel || 1}" style="width:70px"></div>
@@ -67,6 +67,7 @@ function renderTracker() {
   if (subTab === "overview" && c.gen) h += `<div style="margin-top:6px">${renderAdventure(c.gen, { rerolls: false })}</div>`;
   main.innerHTML = h;
   $$("textarea.ch-note", main).forEach(autoGrow);
+  fightBarSync();
 }
 const SESSION_TYPES = { encounters: "Encounter", maps: "Map", npcs: "NPC", loot: "Loot", handouts: "Handout" };
 function sessionEntries(c, type) {
@@ -811,6 +812,13 @@ campMain.addEventListener("input", onEdit);
 
 /* ======================= Encounter tracker ======================= */
 // SRD 5.1 quick stats: [AC, HP, hit dice, initiative mod, speed, attacks, traits, role]
+/* a foe's initiative bonus: the hand-written table first, then its stat block in the rules data (QA-1, 2026-11-24: random
+   encounters and most monsters got +0) */
+function foeInit(stat) {
+  const t = MSTAT[stat]; if (t) return +t[3] || 0;
+  const d = dmData("monsterData"), m = (d["2014"] || []).find(x => x.n === stat) || (d["2024"] || []).find(x => x.n === stat);
+  return !m ? 0 : m.init !== undefined && m.init !== null && m.init !== "" ? +m.init || 0 : mod(+(m.scores || [])[1] || 10);
+}
 const MSTAT = {
   "Kobold": [12, 5, "2d6-2", 2, "30 ft", "Dagger +4 (1d4+2 piercing); Sling +4, 30/120 ft (1d4+2 bludgeoning)", "Pack Tactics; Sunlight Sensitivity", "pack"],
   "Giant rat": [12, 7, "2d6", 2, "30 ft", "Bite +4 (1d4+2 piercing)", "Pack Tactics; Keen Smell", "pack"],
@@ -1067,7 +1075,7 @@ function encGuide(c, e) {
 }
 const openGuides = new Set();
 function encOrder(c, e) {
-  const rows = e.enemies.filter(m => m.init !== "" && m.init !== null).map(m => ({ key: m.id, name: m.name, init: +m.init, foe: true, down: m.hp <= 0, dex: (MSTAT[m.stat] || [])[3] || 0 }));
+  const rows = e.enemies.filter(m => m.init !== "" && m.init !== null).map(m => ({ key: m.id, name: m.name, init: +m.init, foe: true, down: m.hp <= 0, dex: foeInit(m.stat) }));
   (c.party || []).forEach(p => { const v = e.pcInit && e.pcInit[p.id]; if (v !== undefined && v !== "") rows.push({ key: p.id, name: p.name || "Hero", init: +v, foe: false, down: false, dex: 99 }); });
   return rows.sort((a, b) => b.init - a.init || b.dex - a.dex);
 }
@@ -1090,6 +1098,7 @@ function encCard(c, e) {
   const opts = MON.map(m => m[0]).concat(VSTAT.map(v => v[0])).filter((n, i, a) => a.indexOf(n) === i && (!catalog || catalog.has(n))).sort((a, b) => monCR(a) - monCR(b) || a.localeCompare(b));
   const mine = (c.bestiary || []).filter(b => campaignBestiaryEntryAllowed(c, b)).map(b => b.name);
   const guide = encGuide(c, e);
+  const fighting = e.status === "Active" && (e.round || 0) > 0 && e.enemies.some(m => m.init !== "" && m.init !== null);
   return `<div class="encard ${e.status === "Done" ? "done" : ""} ${e.status === "Active" ? "live" : ""}" id="enc-${e.id}">
     <div class="row" style="align-items:center;gap:8px;flex-wrap:wrap">
       <input type="text" data-ef="name" data-eid="${e.id}" value="${esc(e.name)}" style="flex:1;min-width:220px;font-weight:600" aria-label="Encounter name">
@@ -1104,15 +1113,15 @@ function encCard(c, e) {
         <option value="">No map</option>${(c.maps || []).map(m => `<option value="${esc(m.id)}" ${m.id === e.mapId ? "selected" : ""}>${esc(m.name)}</option>`).join("")}
         </select></label>` : ""}
       ${(c.maps || []).some(m => m.id === e.mapId) ? `<button class="btn sm" type="button" data-openmap="${esc(e.mapId)}">Open encounter map</button>` : ""}
-      ${sessionQueueButton("encounters", e)}
-      <button class="btn sm" type="button" data-ea="saveTemplate" data-eid="${esc(e.id)}">Save as template</button>
-      <button class="btn sm primary" data-ea="roll" data-eid="${e.id}">🎲 Roll enemy initiative</button>
-      <button class="btn sm" data-ea="next" data-eid="${e.id}" ${order.length ? "" : "disabled"}>Next turn ▶</button>
+      <button class="btn sm ${fighting ? "" : "primary"}" data-ea="roll" data-eid="${e.id}">🎲 Roll enemy initiative</button>
+      <label class="chk-inline" title="One initiative roll for each kind of monster, so all the goblins act together"><input type="checkbox" data-ef="groupInit" data-eid="${e.id}" ${e.groupInit ? "checked" : ""}> Group by monster</label>
+      <button class="btn sm ${fighting ? "primary" : ""}" data-ea="next" data-eid="${e.id}" ${order.length ? "" : "disabled"}>Next turn ▶</button>
       ${combatHistory(e).some(row => !row.undone) ? `<button class="btn sm" type="button" data-ea="undo" data-eid="${esc(e.id)}">Undo combat action</button>` : ""}
       <button class="btn sm" data-ea="reset" data-eid="${e.id}">Reset</button>
       <button class="btn sm" data-ea="tv" data-eid="${e.id}" title="Show the turn order on the player screen (TV). Monsters show as Bloodied or Down, never their HP.">${HOST.enc && HOST.enc.eid === e.id ? "📺 Off TV" : "📺 Show on TV"}</button>
       ${window.Portal?.linkedTrackerId?.() === c.id ? `<button class="btn sm" data-ea="players" data-eid="${e.id}" title="Show the turn order on your players' phones. Monsters show as Bloodied or Down, never their HP.">${playersFight(c.id, e.id) ? "📱 Off players' phones" : "📱 Show players"}</button>` : ""}
       <span class="muted" style="font-size:14px">${e.round ? `Round <b>${e.round}</b>` : "Not started"}</span>
+      <details class="enc-more"><summary class="btn sm">More</summary>${sessionQueueButton("encounters", e)}<button class="btn sm" type="button" data-ea="saveTemplate" data-eid="${esc(e.id)}">Save as template</button></details>
     </div>
     ${order.length ? `<div class="init-strip">${order.map(o => `<span class="init-chip ${o.foe ? "foe" : "pc"} ${o.down ? "down" : ""} ${e.turn === o.key ? "cur" : ""}">${e.turn === o.key ? "▶ " : ""}${esc(o.name)} <b>${o.init}</b></span>`).join("")}</div>` : ""}
     ${combatHistoryHTML(e)}
@@ -1239,9 +1248,46 @@ function rerenderEnc(c, e) {
   // Deferred so a focused input being replaced (which fires blur/change) can't re-enter mid-update.
   if (HOST.on && HOST.enc && HOST.enc.eid === e.id) hostSend(); // keep the TV's turn order current
   if (encPending.has(e.id)) return; encPending.add(e.id);
-  setTimeout(() => { encPending.delete(e.id); const el = document.getElementById("enc-" + e.id); const cc = curCamp(); const ee = cc && findEnc(cc, e.id); if (el && ee) el.outerHTML = encCard(cc, ee); }, 0);
+  setTimeout(() => { encPending.delete(e.id); const el = document.getElementById("enc-" + e.id); const cc = curCamp(); const ee = cc && findEnc(cc, e.id); if (el && ee) el.outerHTML = encCard(cc, ee); fightBarSync(); }, 0);
 }
 function findEnc(c, id) { return (c.encounters || []).find(x => x.id === id); }
+/* ---- the fight bar: on phones, while a fight is under way, a bar above the bottom navigation shows the round, whose
+   turn it is and who's next, with Next turn (2026-11-24). It presses the encounter's own Next turn button. */
+function liveFight(c) { return c ? (c.encounters || []).find(e => e.status === "Active" && e.turn && encOrder(c, e).length) : null; }
+function fightBarSync() {
+  const bar = $("#fightBar"); if (!bar) return;
+  const onTracker = ($("section.view.active") || {}).id === "view-tracker"; /* the tab really showing, not just the address */
+  const c = onTracker ? curCamp() : null, e = liveFight(c);
+  document.body.classList.toggle("fight-on", !!e);
+  if (!e) { bar.hidden = true; bar.innerHTML = ""; return; }
+  const o = encOrder(c, e).filter(x => !x.down), i = o.findIndex(x => x.key === e.turn), cur = o[i] || o[0], nxt = o.length > 1 ? o[(i + 1) % o.length] : null;
+  bar.innerHTML = `<button type="button" class="fight-now" data-fight-go="${esc(e.id)}" title="Go to ${esc(e.name)}"><span class="fight-round">Round ${e.round || 1}</span>
+      <span class="fight-who"><b>${esc(cur ? cur.name : "")}</b>${nxt ? `<span class="muted"> · next ${esc(nxt.name)}</span>` : ""}</span></button>
+    <button type="button" class="btn primary" data-fight-next="${esc(e.id)}">Next turn ▶</button>`;
+  bar.hidden = false;
+}
+function fightJump(id) {
+  /* the fight the bar describes (an Active encounter with a turn), not just the first Active one */
+  if (!id) { const e = liveFight(curCamp()); id = e && e.id; } if (!id) return false;
+  const live = document.getElementById("enc-" + id); if (!live) return false;
+  const row = live.querySelector("tr.cur") || live; row.scrollIntoView({ block: "center", behavior: "instant" }); return true;
+}
+$("#fightBar").addEventListener("click", ev => {
+  const go = ev.target.closest("[data-fight-go]"), next = ev.target.closest("[data-fight-next]");
+  const cardFor = id => document.getElementById("enc-" + id);
+  if (go) { if (!cardFor(go.dataset.fightGo)) { subTab = "encounters"; renderTracker(); } fightJump(go.dataset.fightGo); return; }
+  if (next) {
+    const id = next.dataset.fightNext;
+    if (!cardFor(id)) { /* the fight's card isn't on screen: take the turn without changing the section */
+      const c = curCamp(), e = c && findEnc(c, id); if (!e) return;
+      const before = combatSnapshot(e), o = encOrder(c, e).filter(x => !x.down); if (!o.length) return;
+      const i = o.findIndex(x => x.key === e.turn);
+      if (i === -1) e.turn = o[0].key; else if (i + 1 >= o.length) { e.turn = o[0].key; e.round = (e.round || 1) + 1; } else e.turn = o[i + 1].key;
+      combatRecord(e, before, `Advanced turn · Round ${e.round}`); Store.save(c); if (HOST.on && HOST.enc && HOST.enc.eid === e.id) hostSend(); fightBarSync(); return;
+    }
+    const b = cardFor(id).querySelector('[data-ea="next"]'); if (b) b.click();
+  }
+});
 campMain.addEventListener("change", ev => { if (ev.target.id === "randEnv") RAND.env = ev.target.value; if (ev.target.id === "randDiff") RAND.diff = ev.target.value; });
 campMain.addEventListener("click", async ev => {
   if (ev.target.id === "randRoll") {
@@ -1341,7 +1387,15 @@ campMain.addEventListener("click", async ev => {
     rows.forEach((r, k) => r.name = (have + n > 1) ? `${nm} ${have + k + 1}` : nm);
     e.enemies.push(...rows);
   } else if (a === "roll") {
-    e.enemies.forEach(x => x.init = 1 + Math.floor(Math.random() * 20) + ((MSTAT[x.stat] || [])[3] || 0));
+    /* re-rolling a fight already under way starts it again at round 1, so ask first (2026-11-24) */
+    if (e.status === "Active" && (e.round || 0) > 1 && !(await confirmBox("Re-roll initiative?", `This fight is in round ${e.round}. Re-rolling starts it again at round 1. HP and conditions stay as they are.`, "Re-roll"))) return;
+    /* Group initiative: one roll for each kind of monster, as the rules suggest for big fights (2026-11-24) */
+    before = combatSnapshot(e); /* after the question, so Undo restores what was there */
+    const group = {}, key = x => x.boss ? x.id : x.stat || x.name; /* a boss rolls alone; creatures with no stat block group by name */
+    e.enemies.forEach(x => {
+      if (e.groupInit && group[key(x)] !== undefined) { x.init = group[key(x)]; return; }
+      x.init = group[key(x)] = 1 + Math.floor(Math.random() * 20) + foeInit(x.stat);
+    });
     e.round = 1; e.status = "Active"; const o = encOrder(c, e).filter(x => !x.down); e.turn = o.length ? o[0].key : null;
   } else if (a === "next") {
     const o = encOrder(c, e).filter(x => !x.down); if (!o.length) return;
@@ -1371,7 +1425,8 @@ function onEncField(ev, commit) {
   const tracked = ["status", "pcinit", "init", "hp", "cond"].includes(f);
   if (tracked && !commit) return;
   const before = tracked ? combatSnapshot(e) : null;
-  if (f === "name" || f === "notes") e[f] = t.value;
+  if (f === "groupInit") e.groupInit = t.checked;
+  else if (f === "name" || f === "notes") e[f] = t.value;
   else if (f === "status") e.status = t.value;
   else if (f === "map") e.mapId = (c.maps || []).find(m => m.id === t.value)?.id || "";
   else if (f === "level") e.level = clamp(parseInt(t.value) || 1, 1, 20);

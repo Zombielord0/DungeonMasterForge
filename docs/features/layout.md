@@ -68,3 +68,12 @@ From a review of the Adventure, Characters and Items tabs. Checks: `npm run test
 - **The book font on stone:** spells, items, the Monster Manual, the character sheet and the Journal use EB Garamond too, in their usual stone colours.
 - **The check:** `npm run test:book` checks that the parchment areas are on the paper with ink at least 4.5:1 against a stained spot, and that the other five areas stay stone in the book font.
 - **To undo it,** delete the "Rulebook parchment" block at the end of `src/app.css` and the EB Garamond family in `src/index.html`'s font link. Design: `docs/superpowers/specs/2026-11-23-book-pages-design.md`.
+
+## UI review fixes (2026-11-24)
+- **Fight bar** (`#fightBar`, `fightBarSync`, `liveFight` in `05-tracker.js`): phones only, on the Tracker, while an encounter is Active with a turn set. It shows the round, whose turn and who's next, and its Next turn presses the encounter's own `[data-ea="next"]`. `body.fight-on` lifts the roll dock and the toast above it. The bottom bar's Encounter shortcut jumps to the live fight (`fightJump`).
+- **Phones put the open thing first:** the Tracker's campaign list comes after the campaign (CSS `order`), and `rosterFoldPhone` (in `14-boot.js`) closes "Your characters" when a character is open. The Tracker's section links are one sideways-scrolling row.
+- **Touch targets:** a `(pointer:coarse)` block makes buttons, boxes and selects at least 44 px tall (tick boxes 24 px in taller rows). Fold arrows stay narrow, because the whole title bar folds and long titles must still fit (`test:lorelink`).
+- **Fight controls:** once initiative is rolled, Next turn is the gold button; Next Session and Save as template sit in `.enc-more` ("More").
+- **Laptop header:** `#storeBadge`, Backup and the bell share the title's row (the nav gets `order:3; flex-basis:100%` above 600 px, not in the compact header).
+- **Skip to content** (`#skipLink`, the first thing Tab reaches) focuses the active view.
+- Checks: the "UI" lines in `test:qabrowser`.

@@ -26,6 +26,7 @@ if (location.protocol !== "file:" && localStorage.getItem("dmforge.offline") !==
 <meta name="forge-book-references-2024" content="/assets/book-references-2024.js">
 </head>
 <body>
+<button class="skip-link" type="button" id="skipLink">Skip to content</button>
 <header>
   <div class="brand">
     <span class="torch" aria-hidden="true"><svg class="torch-svg" viewBox="0 0 40 92" width="32" height="74" aria-hidden="true">
@@ -106,6 +107,7 @@ if (location.protocol !== "file:" && localStorage.getItem("dmforge.offline") !==
   <button class="btn sm hdr-toggle" type="button" id="hdrToggle" aria-expanded="true" title="Hide the toolbar to give this tab more room">▴ Hide tabs</button>
 </header>
 
+<div id="fightBar" class="fight-bar" role="region" aria-label="Fight under way" hidden></div>
 <div id="mobileNav" class="mobile-nav" role="navigation" aria-label="Quick navigation">
   <div id="mobileNavLinks"></div>
   <button class="btn" type="button" id="mobileMore" aria-haspopup="dialog" aria-controls="mobileMenu">More</button>

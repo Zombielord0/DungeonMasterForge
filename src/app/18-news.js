@@ -6,6 +6,30 @@ const NEWS = [
     "Whispers are now a chat. Players can reply to their DM, and the DM sees each player's conversation on the Party tab with a count of new messages.",
     "Players also have a Party chat to talk among themselves. The DM can't see it."
   ] },
+  { id: "2026-11-24-phone-table", date: "2026-11-24", title: "Easier at the table on a phone", go: "tracker", items: [
+    "DMs: while a fight is under way, a bar above the bottom buttons shows the round, whose turn it is and who's next, with a big Next turn button. The Encounter button jumps straight to the fight.",
+    "The open campaign and the open character now come first on phones; their lists fold below or into one tap. The Tracker's sections are one row you swipe sideways.",
+    "Buttons and boxes are bigger on touch screens. In a fight, Next turn is the gold button, and Next Session and Save as template sit under More.",
+    "On laptops the header is one row shorter, and keyboard users can press Tab once for Skip to content."
+  ] },
+  { id: "2026-11-24-group-initiative", date: "2026-11-24", title: "Group initiative and numbered tokens", go: "tracker", items: [
+    "Tick Group by monster beside Roll enemy initiative and each kind of monster rolls once, so all the goblins act together.",
+    "Rolling initiative again in the middle of a fight now asks first, since it starts the fight again at round 1.",
+    "On the Dungeon Map, adding a token with a name that's already there numbers them: Goblin 1, Goblin 2, Goblin 3."
+  ] },
+  { id: "2026-11-24-qa-pass-3", date: "2026-11-24", title: "Fairer fights and multiclass fixes", go: "tracker", items: [
+    "Roll enemy initiative now adds each monster's own initiative bonus, for every monster, not just a few.",
+    "Multiclass druids and rangers get Companions & Wild Shape, and Circle of the Moon druids see their higher beast limit there too.",
+    "Multiclass characters can take feats at their total character level (a Fighter 2 / Wizard 6 is level 8).",
+    "Wild Shape reads the attacks of the last few beasts that had none. The monster builder no longer saves hit points of 0 or less.",
+    "Shop prices under 1 gp show exact silver and copper (8 sp 5 cp, not 9 sp). On phones, the Tracker's fight boxes are labelled and long campaign names fit."
+  ] },
+  { id: "2026-11-24-monster-fixes", date: "2026-11-24", title: "Monsters that can fight back", go: "monsters", items: [
+    "About 400 Tome of Beasts 3 monsters now have their attacks and Multiattack. Before, their stat blocks only showed traits.",
+    "Black Flag monsters' resistance and immunity lines now only list damage. Conditions are labelled or moved to Condition Immunities, and a trait like Fey Resilience says \"see Fey Resilience\".",
+    "Druids: Wild Shape forms from the extra books now have their attacks, and the full list of forms shows without opening the Monster Manual first.",
+    "Multiclassing into Barbarian or Monk now gives you Unarmored Defense in your Armor Class."
+  ] },
   { id: "2026-11-24-new-icon", date: "2026-11-24", title: "A new look for the Forge's icon", go: "generate", items: [
     "The Forge has a new emblem: a golden d20 on a shield with crossed hammers. You'll see it in the header, above empty pages, on the browser tab and on your home screen if you installed the app."
   ] },

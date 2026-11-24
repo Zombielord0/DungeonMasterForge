@@ -203,8 +203,9 @@ function pcAC(c) {
     if (fx.mageArmor) opts.push([13 + m.dex, "Mage Armor (13 + DEX)"]);
     if (c.subclass === "College of Dance" && c.level >= 3 && !shield) opts.push([10 + m.dex + m.cha, "Dazzling Footwork (10 + DEX + CHA)"]);
     F.acUnarm.forEach(o => opts.push(o));
-    if (baseClassOf(c.cls) === "Barbarian") opts.push([10 + m.dex + m.con, "Unarmored Defense (10 + DEX + CON)"]);
-    if (c.cls === "Monk" && !shield) opts.push([10 + m.dex + m.wis, "Unarmored Defense (10 + DEX + WIS)"]);
+    /* first class or a multiclass (QA-3, 2026-11-24); with both, the better one counts */
+    if ([c.cls, ...(c.multi || []).map(x => x.cls)].some(k => baseClassOf(k) === "Barbarian")) opts.push([10 + m.dex + m.con, "Unarmored Defense (10 + DEX + CON)"]);
+    if (clsLv(c, "Monk") > 0 && !shield) opts.push([10 + m.dex + m.wis, "Unarmored Defense (10 + DEX + WIS)"]);
     const B = subBonusOf(c); if (B.ac) opts.push(B.ac);
     const best = opts.sort((a, b) => b[0] - a[0])[0]; ac = best[0]; parts.push(`${best[1]} ${best[0]}`);
   }

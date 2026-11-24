@@ -111,13 +111,67 @@ def guess_env(m):
             if re.search(rx, m["n"].lower()): env += [p for p in places if p not in env]
     return env or list(TYPE_ENVS.get(m["type"], ["ruins"]))
 
+# (2026-11-24, QA-1) Open5e's v2 files lack the plain Actions of almost every Tome of Beasts 3 monster (only 2 of 397
+# have any; bonus actions, reactions and legendary actions are there). Its older v1 files have them, so a monster with no
+# Actions takes them from there. data/v1 folder per book code:
+V1_FOLDER = {"tob-2023": "tob-2023", "tob": "tob", "tob2": "tob2", "tob3": "tob3", "ccdx": "cc", "bfrd": "blackflag"}
+def v1_actions(code):
+    path = os.path.join(V2, "..", "v1", V1_FOLDER.get(code, code), "Monster.json")
+    if not os.path.exists(path): return {}
+    out = {}
+    for x in json.load(open(path)):
+        acts = json.loads(x["fields"].get("actions_json") or "[]")
+        if acts: out[x["fields"]["name"].lower()] = [[a["name"], a.get("desc") or ""] for a in acts]
+    return out
+
+# (2026-11-24, QA-4) Tidy the damage lines so they only name damage. Black Flag writes one line per kind mixing damage
+# types, conditions and the name of a trait that explains it ("Fey Resilience"): conditions an immunity line names go
+# to Condition Immunities, other conditions are labelled as conditions, and a trait name becomes "see <trait>".
+DMG = "acid bludgeoning cold fire force lightning necrotic piercing poison psychic radiant slashing thunder".split()
+CONDS = set("blinded charmed deafened exhaustion frightened grappled incapacitated invisible paralyzed petrified poisoned prone restrained stunned unconscious".split())
+def tidy_damage(m):
+    for k in ("vul", "res", "imm"):
+        v = m.get(k)
+        if not v: continue
+        cm = re.match(r"(.*?)\s*Condition Immunities\s+(.*)$", v)  # (Moderate Malleable) two lines run together
+        if cm:
+            v = cm.group(1); m["ci"] = ", ".join(x for x in [cm.group(2), m.get("ci")] if x)
+        v = v.replace("piericing", "piercing").replace("nonmagic B/P/S", "nonmagical bludgeoning, piercing and slashing").replace("B/P/S", "bludgeoning, piercing and slashing")
+        if m.get("src") != "bfrd" and k != "imm": m[k] = v; continue
+        keep, conds, see = [], [], []
+        parts = [t.strip() for t in re.split(r",(?![^(]*\))", v) if t.strip()]
+        if m.get("src") != "bfrd" and not any(t.lower() in CONDS for t in parts): m[k] = v; continue
+        for t in parts:
+            low = t.lower()
+            if low in CONDS: conds.append(low)
+            elif any(d in low for d in DMG) or m.get("src") != "bfrd": keep.append(t)
+            else: see.append("see " + t)
+        if k == "imm" and conds:
+            ci = [c.strip() for c in (m.get("ci") or "").split(",") if c.strip()]
+            m["ci"] = ", ".join(ci + [c for c in conds if c not in ci]); conds = []
+        line = ", ".join(keep)
+        if conds: line += ("; " if line else "") + ", ".join(conds) + (" (conditions)" if len(conds) > 1 else " (condition)")
+        if see: line += ("; " if line else "") + "; ".join(see)
+        if line: m[k] = line
+        else: m.pop(k, None)
+    if m.get("lang"): m["lang"] = re.sub(r",(?=\S)", ", ", m["lang"])
+
 def monsters():
     srd = srd_names("Creature")
     tob_env = {m["n"].lower(): [re.sub(r"^[a-z0-9]+_", "", e) for e in m.get("env", [])] for m in srdmon.convert(os.path.join(V2, "kobold-press/tob"))}
     out, seen = [], set()
     for path in MONSTER_BOOKS:
         code = book(path)
+        older = v1_actions(code)
         for m in srdmon.convert(os.path.join(V2, path)):
+            if not m.get("actions") and older.get(m["n"].lower()):
+                m["actions"] = older[m["n"].lower()]
+                m["role"] = srdmon.role(m, m.get("traits") or [], m["actions"])
+            if not m.get("actions"):  # (Berberoka) the source lists its Multiattack and attacks among its traits
+                moved = [t for t in m.get("traits") or [] if t[0] == "Multiattack" or re.search(r"(Weapon|Spell) Attack", t[1] or "")]
+                if moved:
+                    m["traits"] = [t for t in m["traits"] if t not in moved]; m["actions"] = moved
+                    m["role"] = srdmon.role(m, m["traits"], m["actions"])
             env = [re.sub(r"^[a-z0-9]+_", "", e) for e in m.get("env", [])]
             k = m["n"].lower()
             if k in seen or k in srd: continue
@@ -128,6 +182,7 @@ def monsters():
             m["env"] = env
             if not m["env"]: m["env"] = guess_env(m); m["envGuess"] = 1
             m["src"] = code
+            tidy_damage(m)
             out.append(m)
     out.sort(key=lambda m: m["n"])
     return out
