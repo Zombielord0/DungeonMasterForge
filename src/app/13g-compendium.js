@@ -47,30 +47,18 @@ function renderCompendiumPage() {
       <b>${esc(name)}</b><small>${esc([kind, group, ed, source].filter(Boolean).join(" · "))}</small></button>${canQueue ? `<button class="btn sm" type="button" data-compendium-queue="${start + i}" aria-label="Queue ${esc(name)} for next session">+ Next Session</button>` : ""}</div>`).join("");
 }
 
-async function compendiumSearch() {
-  const request = ++compendium.request;
-  const rules = currentSourceRules(), edition = $("#compendiumEdition");
-  edition.disabled = !!rules;
-  if (rules) edition.value = rules.edition;
-  const query = compendiumText($("#compendiumQuery").value);
-  const typeSelect = $("#compendiumType");
+/* The matching rows for a search, without drawing anything: the Compendium tab and the side menu's search
+   (21-sidebar.js) both use it. The source rules of the open campaign and the player's tabs still apply. */
+async function compendiumMatches({ query = "", ed, type = "" }) {
+  const rules = currentSourceRules();
+  if (rules) ed = rules.edition;
+  query = compendiumText(query);
   const canBrowseMonsters = !window.Portal?.views || Portal.views.includes("monsters");
-  typeSelect.querySelector('option[value="Monster"]').hidden = !canBrowseMonsters;
-  if (!canBrowseMonsters && typeSelect.value === "Monster") typeSelect.value = "";
-  const results = $("#compendiumResults");
-  compendium.rows = [];
-  compendium.page = 0;
-  $("#compendiumPages").hidden = true;
-
-  const ed = edition.value, type = typeSelect.value;
   const showMonsters = (!type || type === "Monster") && canBrowseMonsters;
   const getReferences = compendiumCatalog(`forge-book-references-${ed}`, `bookReferences${ed}`);
   const getMonsterIndex = showMonsters && !extraMonstersReady
     ? compendiumCatalog("forge-monster-index", "monsterIndex") : null;
-  results.innerHTML = "";
-  $("#compendiumCount").textContent = query ? "Searching…" : "Loading catalog…";
   const [references, monsterIndex] = await Promise.all([getReferences, getMonsterIndex]);
-  if (request !== compendium.request) return;
   const words = query ? query.split(" ") : [], matches = [], playable = new Set();
   const wants = kind => !type || type === kind;
   const add = (kind, name, src, homebrew, open, group = "") => {
@@ -106,7 +94,7 @@ async function compendiumSearch() {
       for (const [name, src] of monsterIndex || []) {
         add("Monster", name, src, false, async button => {
           if (!(await dmLoadExtraMonsters())) { toast("Monster details are unavailable. Try again when online."); return; }
-          if (!button.isConnected || location.hash !== "#compendium") return;
+          if (!button.isConnected) return; /* the Compendium list or the side menu's results */
           const m = BS.data[ed].find(row => row.n === name && row.src === src);
           if (m) monsterDetail(m, button);
         });
@@ -140,9 +128,29 @@ async function compendiumSearch() {
     }
   }
   matches.sort((a, b) => b.rank - a.rank || a.name.localeCompare(b.name));
+  return { rows: matches, notice: (!references ? " · Book references unavailable" : "")
+    + (getMonsterIndex && !monsterIndex && !extraMonstersReady ? " · Extra monster search unavailable" : "") };
+}
+
+async function compendiumSearch() {
+  const request = ++compendium.request;
+  const rules = currentSourceRules(), edition = $("#compendiumEdition");
+  edition.disabled = !!rules;
+  if (rules) edition.value = rules.edition;
+  const typeSelect = $("#compendiumType");
+  const canBrowseMonsters = !window.Portal?.views || Portal.views.includes("monsters");
+  typeSelect.querySelector('option[value="Monster"]').hidden = !canBrowseMonsters;
+  if (!canBrowseMonsters && typeSelect.value === "Monster") typeSelect.value = "";
+  const results = $("#compendiumResults"), query = $("#compendiumQuery").value;
+  compendium.rows = [];
+  compendium.page = 0;
+  $("#compendiumPages").hidden = true;
+  results.innerHTML = "";
+  $("#compendiumCount").textContent = compendiumText(query) ? "Searching…" : "Loading catalog…";
+  const { rows: matches, notice } = await compendiumMatches({ query, ed: edition.value, type: typeSelect.value });
+  if (request !== compendium.request) return;
   compendium.rows = matches;
-  compendium.notice = (!references ? " · Book references unavailable" : "")
-    + (getMonsterIndex && !monsterIndex && !extraMonstersReady ? " · Extra monster search unavailable" : "");
+  compendium.notice = notice;
   const queued = compendium.sessionEntry;
   compendium.sessionEntry = null;
   const index = queued ? matches.findIndex(row => row.kind === queued.kind && row.ed === queued.ed && row.name === queued.name && row.source === queued.source) : -1;

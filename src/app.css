@@ -950,19 +950,15 @@ nav a[data-view=whispers]{--ic:url("data:image/svg+xml,%3Csvg xmlns='http://www.
 .hdr-toggle{flex:0 0 auto;margin-left:auto}
 .hdr-mini-label{display:none;font-family:Cinzel,serif;color:#e9dcc2;font-size:15px;letter-spacing:.03em;flex:0 1 auto;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .hdr-mini-label b{color:var(--gold2);font-weight:700}
-.hdr-tabsel{display:none;flex:0 1 auto;width:auto;min-width:0;max-width:260px;padding:4px 30px 4px 10px;font-family:Cinzel,serif;font-size:13px;color:var(--gold2)}
-:is(.hdr-mini,.hdr-auto) .hdr-tabsel{display:block}
-:is(.hdr-mini,.hdr-auto) header{padding-top:6px;padding-bottom:6px}
-:is(.hdr-mini,.hdr-auto) header>:not(.hdr-toggle):not(.hdr-mini-label):not(.hdr-tabsel):not(.news-btn){display:none}
-:is(.hdr-mini,.hdr-auto) .hdr-mini-label{display:block}
-:is(.hdr-mini,.hdr-auto) :is(.side,.mb-side){top:58px;max-height:calc(100vh - 74px)}
-@media (max-width:600px){.hdr-mini .hdr-mini-label{display:none}}
+.hdr-auto header{padding-top:6px;padding-bottom:6px}
+.hdr-auto header>:not(.hdr-toggle):not(.hdr-mini-label):not(.news-btn){display:none}
+.hdr-auto .hdr-mini-label{display:block}
+.hdr-auto :is(.side,.mb-side){top:58px;max-height:calc(100vh - 74px)}
 /* Phones: the slim one-line header (tab menu, bell, Show tabs) unless "Show tabs" asked for the full one this visit.
    It slides out of the way while scrolling down or typing (hdr-away, set by hdrAuto) and comes back on scroll-up. */
 @media (max-width:600px){
   html:not(.hdr-full) header{padding-top:6px;padding-bottom:6px}
-  html:not(.hdr-full) header>:not(.hdr-toggle):not(.hdr-mini-label):not(.hdr-tabsel):not(.news-btn){display:none}
-  html:not(.hdr-full) .hdr-tabsel{display:block;flex:1 1 auto;max-width:none}
+  html:not(.hdr-full) header>:not(.hdr-toggle):not(.hdr-mini-label):not(.news-btn){display:none}
   header{transition:transform .22s ease;padding-top:max(6px,env(safe-area-inset-top))}
   .hdr-away header{transform:translateY(-110%)}
 }
@@ -1361,7 +1357,6 @@ nav a[data-view=requests]{--ic:url("data:image/svg+xml,%3Csvg xmlns='http://www.
 
 @media (max-width:600px){
   :root{--mobile-nav-space:calc(60px + env(safe-area-inset-bottom))}
-  header nav,#hdrTabSel{display:none}
   html:not(.hdr-full) header .hdr-mini-label{display:block;flex:1 1 0}
   html.hdr-full header .hdr-mini-label{display:none}
   .mobile-nav{
@@ -1370,17 +1365,15 @@ nav a[data-view=requests]{--ic:url("data:image/svg+xml,%3Csvg xmlns='http://www.
     min-height:var(--mobile-nav-space);background:var(--slab);border-top:1px solid var(--line);
   }
   #mobileNavLinks{display:flex;flex:3 1 0;min-width:0;gap:4px}
-  .mobile-nav a,.mobile-nav .btn,.mobile-menu-links a{
+  .mobile-nav a,.mobile-nav .btn{
     display:grid;place-items:center;min-width:0;min-height:44px;padding:4px;border:1px solid transparent;border-radius:6px;
     color:var(--text);text-align:center;text-decoration:none;font:600 .875rem/1.25 system-ui,sans-serif;overflow-wrap:anywhere;
   }
   .mobile-nav a,.mobile-nav .btn{flex:1 1 0}
   /* bottom bar: whole words only ("Compendium" was split in two); the text shrinks a little on narrow phones instead */
   .mobile-nav a,.mobile-nav .btn{overflow-wrap:normal;word-break:keep-all;font-size:clamp(.65rem,3.2vw,.875rem);padding:4px 2px}
-  .mobile-nav [aria-current],.mobile-nav .btn.on,.mobile-menu-links [aria-current]{color:var(--gold2);border-color:var(--gold);background:var(--well)}
-  .mobile-nav :focus-visible,.mobile-menu-links a:focus-visible{outline:2px solid var(--gold2);outline-offset:-2px}
-  .mobile-menu-links{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
-  .mobile-menu-links a{background:var(--well)}
+  .mobile-nav [aria-current],.mobile-nav .btn.on{color:var(--gold2);border-color:var(--gold);background:var(--well)}
+  .mobile-nav :focus-visible{outline:2px solid var(--gold2);outline-offset:-2px}
   main{padding-bottom:calc(96px + var(--mobile-nav-space))}
   #turnBar,.roll-dock{bottom:calc(var(--mobile-nav-space) + 8px)}
   #turnBar{left:max(8px,env(safe-area-inset-left));overflow-wrap:anywhere}
@@ -1460,9 +1453,8 @@ nav a[data-view=requests]{--ic:url("data:image/svg+xml,%3Csvg xmlns='http://www.
 /* keyboard users: "Skip to content" appears when tabbed to, before the tabs */
 .skip-link{position:fixed;left:12px;top:-60px;z-index:60;padding:8px 14px;border:1px solid var(--gold);border-radius:4px;background:#15172a;color:var(--gold2);font:600 14px/1.2 system-ui,sans-serif;cursor:pointer}
 .skip-link:focus{top:10px;outline:2px solid var(--gold2);outline-offset:2px}
-/* laptops: Saved, Backup and the bell sit beside the title; the tabs get their own rows below */
+/* laptops: Saved, Backup and the bell sit beside the title (the tabs are in the side menu since 2026-11-24) */
 @media (min-width:601px){
-  html:not(.hdr-mini):not(.hdr-auto) header>nav{order:3;flex-basis:100%;margin-left:0}
   html:not(.hdr-mini):not(.hdr-auto) header>#storeBadge{margin-left:auto}
 }
 /* the fight's setup buttons (Next Session, Save as template) fold under More */
@@ -1504,3 +1496,69 @@ nav a[data-view=requests]{--ic:url("data:image/svg+xml,%3Csvg xmlns='http://www.
 }
 .med .lbl input,.med .lbl select,.med .lbl textarea{text-transform:none;letter-spacing:0;font-family:'Crimson Pro',Georgia,serif;display:block;margin-top:4px}
 .med-sel[hidden],.med-opts[hidden]{display:none}
+
+/* ======================= Side menu (2026-11-24): the tabs on the left (21-sidebar.js) ======================= */
+:root{--fside-w:240px}
+html.fside-folded{--fside-w:56px}
+body{padding-left:var(--fside-w)}
+header{margin-left:calc(-1 * var(--fside-w))}
+@media (min-width:601px){.hdr-toggle{display:none}} /* phones still use it for the full header; laptops have the side menu */
+#fside{position:fixed;left:0;top:var(--hdr-live,72px);bottom:0;z-index:15;width:var(--fside-w);display:flex;flex-direction:column;
+  background:var(--noise),linear-gradient(rgba(22,24,40,.92),rgba(10,11,22,.9));backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px);
+  border-right:1px solid rgba(255,170,80,.18);box-shadow:6px 0 24px rgba(0,0,0,.55)}
+.fside-top{display:flex;gap:6px;align-items:center;padding:10px 10px 8px;border-bottom:1px solid rgba(255,170,80,.12)}
+.fside-top input{flex:1 1 auto;min-width:0;padding:6px 9px;font-size:14px}
+.fside-top .icon-btn{flex:0 0 auto}
+#fside nav{display:block;margin:0;flex:1 1 auto;overflow-y:auto;overscroll-behavior:contain;padding:4px 8px 16px;scrollbar-gutter:stable}
+#fside.fside-searching nav{display:none}
+.fside-grp{margin:12px 6px 4px;font:600 11px/1.2 Cinzel,serif;letter-spacing:.12em;text-transform:uppercase;color:var(--muted)}
+.fside-row{display:flex;align-items:stretch;gap:2px}
+.fside-row[hidden],.fside-grp[hidden]{display:none}
+#fside nav a{display:block;flex:1 1 auto;min-width:0;margin:1px 0;padding:7px 10px;font-size:13.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+  background:transparent;border:1px solid transparent!important;box-shadow:none;border-radius:4px}
+#fside nav a:hover{background:rgba(255,255,255,.05);color:#fff!important}
+#fside nav a.active{background:var(--noise),radial-gradient(ellipse at 50% 30%,#f8c26c,#c46d22);border-color:#7a4415!important;box-shadow:0 0 12px rgba(240,150,60,.4)}
+#fside nav a.active::after{display:none}
+.fside-arrow{flex:0 0 28px;margin:1px 0;background:none;border:1px solid transparent;border-radius:4px;color:var(--muted);cursor:pointer;font-size:12px}
+.fside-arrow:hover,.fside-arrow[aria-expanded=true]{color:var(--gold2);background:rgba(255,255,255,.05)}
+.fside-subs{display:flex;flex-direction:column;margin:0 0 4px 22px;padding-left:8px;border-left:1px solid rgba(255,170,80,.22)}
+.fside-subs[hidden]{display:none}
+.fside-subs button{text-align:left;background:none;border:0;border-radius:4px;padding:5px 8px;color:#cfcbd8;font-size:13px;cursor:pointer}
+.fside-subs button:hover{background:rgba(255,255,255,.05);color:#fff}
+.fside-subs button[aria-current]{color:var(--gold2);background:var(--well)}
+.fside-results{flex:1 1 auto;overflow-y:auto;overscroll-behavior:contain;padding:4px 8px 16px}
+.fside-results[hidden]{display:none}
+.fside-rgrp{margin:10px 4px 4px;font:600 11px/1.2 Cinzel,serif;letter-spacing:.12em;text-transform:uppercase;color:var(--muted)}
+.fside-hit{display:flex;gap:8px;align-items:flex-start;width:100%;text-align:left;background:none;border:1px solid transparent;border-radius:4px;padding:6px 8px;color:var(--text);cursor:pointer}
+.fside-hit>span:last-child{min-width:0}
+.fside-hit b{display:block;font-weight:600;overflow-wrap:anywhere}
+.fside-hit small{display:block;color:var(--muted);font-size:12px;overflow-wrap:anywhere}
+.fside-hit:hover,.fside-hit:focus-visible{background:var(--well);border-color:var(--gold)}
+.fside-all{display:block;width:100%;margin:2px 0 4px;text-align:left;background:none;border:0;padding:4px 8px;color:var(--gold2);cursor:pointer;font-size:13px;text-decoration:underline}
+.fside-none{padding:8px}
+#fside :focus-visible{outline:2px solid var(--gold2);outline-offset:-2px}
+.side-flash{outline:2px solid var(--gold2)!important;outline-offset:2px;border-radius:3px;transition:outline-color .3s}
+/* folded: icons only */
+html.fside-folded .fside-top{flex-direction:column;padding:8px 6px}
+html.fside-folded :is(#sideQ,.fside-grp,.fside-arrow,.fside-subs,.fside-results){display:none!important}
+html.fside-folded #fside nav{padding:4px 6px;scrollbar-width:none}
+html.fside-folded #fside nav a{padding:9px 0;text-align:center;font-size:0}
+html.fside-folded #fside nav a::before{margin:0;width:18px;height:18px}
+html.fside-folded #fside nav a span{display:none}
+html.fside-folded #fside.fside-searching nav{display:block}
+/* phones: a panel from the left (the bottom bar's More), over a shade */
+.fside-shade{position:fixed;inset:0;z-index:39;background:rgba(0,0,0,.55)}
+.fside-shade[hidden]{display:none}
+@media (max-width:600px){
+  :root,html.fside-folded{--fside-w:0px}
+  #fside{top:0;z-index:40;width:min(300px,86vw);transform:translateX(-105%);visibility:hidden;transition:transform .2s ease,visibility 0s .2s;padding-top:env(safe-area-inset-top)}
+  html.fside-open #fside{transform:none;visibility:visible;transition:transform .2s ease}
+  html.fside-folded :is(#sideQ,.fside-grp,.fside-arrow){display:revert!important}
+  html.fside-folded .fside-top{flex-direction:row}
+  html.fside-folded #fside nav a{padding:10px;text-align:left;font-size:15px}
+  html.fside-folded #fside nav a::before{margin-right:6px;width:15px;height:15px}
+  #fside nav a{font-size:15px;padding:10px}
+  .fside-subs button{padding:9px 8px;font-size:14px}
+  .fside-arrow{flex-basis:40px}
+}
+@media (max-width:600px) and (prefers-reduced-motion:reduce){#fside{transition:none}}

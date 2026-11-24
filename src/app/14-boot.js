@@ -12,18 +12,11 @@ function hdrSync() {
   btn.replaceChildren(arrow, word); btn.setAttribute("aria-label", words);
   btn.setAttribute("aria-expanded", String(!mini));
   btn.title = mini ? `Show the ${label}` : "Hide the toolbar to give this tab more room";
-  const sel = document.getElementById("hdrTabSel"), tabs = $$("nav a").filter(a => !a.hidden);
-  sel.innerHTML = tabs.map(a => `<option value="${esc(a.dataset.view)}"${a.classList.contains("active") ? " selected" : ""}>${esc(a.firstChild.textContent.trim())}</option>`).join("");
 }
-document.getElementById("hdrTabSel").addEventListener("change", e => { location.hash = e.target.value; });
-document.getElementById("hdrTabSel").addEventListener("focus", hdrSync); // pick up tabs revealed after sign-in
 document.getElementById("hdrToggle").addEventListener("click", () => {
   const H = document.documentElement;
   if (hdrPhone.matches) { hdrHold = performance.now() + 500; H.classList.toggle("hdr-full"); H.classList.remove("hdr-away"); hdrSync(); return; } // phones: just for this visit
-  if (H.classList.contains("hdr-auto")) { hdrPinned = true; H.classList.remove("hdr-auto"); document.querySelector("header").style.marginBottom = ""; hdrSync(); return; } // laptops: open the header shrunk by scrolling
-  const mini = H.classList.toggle("hdr-mini");
-  try { localStorage.setItem("dmforge.hdrMini", mini ? "1" : "0"); } catch (e) {}
-  hdrSync();
+  if (H.classList.contains("hdr-auto")) { hdrPinned = true; H.classList.remove("hdr-auto"); document.querySelector("header").style.marginBottom = ""; hdrSync(); } // laptops: open the header shrunk by scrolling (the tabs moved to the side menu on 2026-11-24, so this button only shows on phones)
 });
 hdrPhone.addEventListener("change", () => { document.documentElement.classList.remove("hdr-away", "hdr-full", "hdr-auto"); document.querySelector("header").style.marginBottom = ""; hdrPinned = false; hdrSync(); }); /* hdr-auto is the laptop's slim header: never on phones */
 /* Phones: the header slides away when scrolling down past its height or while typing in a box, and comes back after
@@ -33,7 +26,7 @@ hdrPhone.addEventListener("change", () => { document.documentElement.classList.r
 function hdrShrink(y) {
   const H = document.documentElement, was = H.classList.contains("hdr-auto");
   if (y < 40) hdrPinned = false;
-  const now = !hdrPinned && !H.classList.contains("hdr-mini") && (y > 260 || (was && y >= 40));
+  const now = !hdrPinned && (y > 260 || (was && y >= 40));
   if (now === was) return;
   /* keep the header's full space while it's slim (that space has scrolled off the top), so nothing below it moves */
   const head = document.querySelector("header"), full = head.getBoundingClientRect().height;
@@ -62,7 +55,6 @@ function hdrShrink(y) {
   document.addEventListener("focusout", e => { if (field(e.target)) typing = false; });
 })();
 
-const mobileMenu = $("#mobileMenu");
 const mobileMore = $("#mobileMore");
 function mobileNavSync(view) {
   const tabs = new Map($$("header nav a[data-view]:not([hidden])").map(a => [a.dataset.view, a]));
@@ -77,10 +69,9 @@ function mobileNavSync(view) {
   const focused = quickLinks.contains(document.activeElement) ? document.activeElement.getAttribute("href") : null;
   quickLinks.innerHTML = available.map(([key, label]) => link(key, label, true)).join("");
   if (focused) [...quickLinks.children].find(a => a.getAttribute("href") === focused)?.focus({ preventScroll: true });
-  $("#mobileMenuLinks").innerHTML = [...tabs].map(([key, a]) => link(key, a.firstChild.textContent.trim())).join("");
   mobileMore.classList.toggle("on", !available.some(([key]) => key === view));
 }
-mobileMore.addEventListener("click", () => mobileMenu.showModal());
+mobileMore.addEventListener("click", () => sideOpen()); /* More opens the side menu as a panel (2026-11-24) */
 function mobileNavigate(e) {
   const link = e.target.closest("a");
   if (!link || e.defaultPrevented || e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) return;
@@ -89,15 +80,12 @@ function mobileNavigate(e) {
     subTab = "encounters"; jump = true;
     if (location.hash === "#tracker") renderTracker();
   }
-  if (mobileMenu.open) mobileMenu.close();
+  sideClose();
   if (location.hash === link.hash && !(jump && fightJump())) window.scrollTo({ top: 0, behavior: "instant" });
   /* the Encounter shortcut goes straight to a fight under way (2026-11-24); route() draws the Tracker first */
   if (jump && location.hash !== link.hash) setTimeout(fightJump, 60);
 }
 $("#mobileNavLinks").addEventListener("click", mobileNavigate);
-mobileMenu.addEventListener("click", mobileNavigate);
-mobileMenu.addEventListener("keydown", e => { if (e.key === "Escape") e.stopPropagation(); });
-hdrPhone.addEventListener("change", () => { if (!hdrPhone.matches && mobileMenu.open) mobileMenu.close(); });
 
 /* ======================= Routing ======================= */
 /* phones: with a character open, fold "Your characters" so the sheet comes first (2026-11-24); it's one tap to open */
@@ -138,6 +126,7 @@ function route() {
   if (v === "requests") renderRequests();
   hdrSync();
   mobileNavSync(v);
+  if (window.sideReady) sideSync(v); /* the side menu (21-sidebar.js) starts after the first route() */
 }
 window.addEventListener("hashchange", route);
 
