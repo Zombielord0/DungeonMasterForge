@@ -740,8 +740,8 @@ function mbLoadLib() { try { MB.lib = JSON.parse(localStorage.getItem(MB_KEY) ||
 function mbSaveLib() { try { localStorage.setItem(MB_KEY, JSON.stringify(MB.lib)); Cloud.touch("mymonsters"); return true; } catch { toast("Couldn't save: this browser's storage is full"); return false; } }
 const mbNum = v => v === "" || v === null || v === undefined || isNaN(+v) ? null : +v;
 function mbCompile(f, id) {
-  const cr = +f.cr || 0, pb = bsPB(cr), mods = f.scores.map(x => mod(+x || 10));
-  const n = mbNum(f.hdN) || 0, die = +f.hdD || 8, conT = n * mods[2];
+  const cr = Math.max(0, +f.cr || 0), pb = bsPB(cr), mods = f.scores.map(x => mod(clamp(+x || 10, 1, 30)));
+  const n = Math.max(0, Math.round(mbNum(f.hdN) || 0)), die = +f.hdD || 8, conT = n * mods[2];
   const avg = n ? Math.max(1, Math.floor(n * (die + 1) / 2) + conT) : 1;
   const sp = [`${mbNum(f.speed.walk) ?? 0} ft.`];
   ["burrow", "climb", "fly", "swim"].forEach(k => { if (mbNum(f.speed[k])) sp.push(`${k} ${f.speed[k]} ft.${k === "fly" && f.speed.hover ? " (hover)" : ""}`); });
@@ -752,8 +752,8 @@ function mbCompile(f, id) {
   const L = k => f[k].filter(x => x.n.trim() || x.t.trim()).map(x => [x.n.trim() || MB_LISTS[k], x.t.trim()]);
   return {
     id: id || "custom-x", key: f.id, n: f.name.trim() || "Unnamed monster", cr, type: f.type, sub: f.sub.trim(), size: f.size, al: f.al.trim(),
-    ac: +f.ac || 10, acd: f.acd.trim(), hp: mbNum(f.hp) || avg, hd: n ? `${n}d${die}${conT ? (conT > 0 ? "+" : "") + conT : ""}` : "", speed: sp.join(", "),
-    scores: f.scores.map(x => +x || 10), saves: f.saves.slice().sort().map(i => `${MB_ABS[i]} ${sgn(mods[i] + pb)}`), skills,
+    ac: +f.ac > 0 ? Math.round(+f.ac) : 10, acd: f.acd.trim(), hp: mbNum(f.hp) > 0 ? Math.round(mbNum(f.hp)) : avg, /* 0 or less: the average (QA-5, 2026-11-24) */ hd: n ? `${n}d${die}${conT ? (conT > 0 ? "+" : "") + conT : ""}` : "", speed: sp.join(", "),
+    scores: f.scores.map(x => clamp(Math.round(+x || 10), 1, 30)), saves: f.saves.slice().sort().map(i => `${MB_ABS[i]} ${sgn(mods[i] + pb)}`), skills,
     vul: f.vul.trim(), res: f.res.trim(), imm: f.imm.trim(), ci: f.ci.trim(), senses: sen.join(", "), lang: f.lang.trim() || "—", init: mods[1],
     traits: L("traits"), actions: L("actions"), bonus: L("bonus"), reacts: L("reacts"), legend: L("legend"), legN: +f.legN || 3, role: f.role, desc: f.desc.trim(), env: [],
   };
@@ -902,18 +902,19 @@ const COMP_KIND = { wild: "Wild Shape form", beast: "Beast companion", familiar:
 function compHasSpell(c, name) { return (c.prepared || []).some(p => p.n === name); }
 function compKinds(c) {
   const k = [];
-  if (c.cls === "Druid" && c.level >= 2) k.push("wild");
-  if (c.cls === "Ranger" && c.level >= 3) k.push("beast");
+  /* by class level, so a multiclass Druid or Ranger counts too (QA-2, 2026-11-24) */
+  if (clsLv(c, "Druid") >= 2) k.push("wild");
+  if (clsLv(c, "Ranger") >= 3) k.push("beast");
   if (compHasSpell(c, "Find Familiar")) k.push("familiar");
   if (compHasSpell(c, "Find Steed")) k.push("steed");
   return k;
 }
 function compRule(c, kind, ed) {
-  const lv = c.level || 1;
   if (kind === "wild") {
-    const max = lv >= 8 ? 1 : lv >= 4 ? 0.5 : 0.25, fly = lv >= 8, swim = ed === "2024" || lv >= 4;
+    /* the same limits as the sheet's Wild Shape picker, Circle of the Moon included (QA-3, 2026-11-24) */
+    const L = wildShapeLimit(c), max = L.cr, fly = !L.noFly, swim = !L.noSwim;
     return { test: m => m.type === "beast" && m.cr <= max && (fly || !/\bfly\b/.test(m.speed)) && (swim || !/\bswim\b/.test(m.speed)),
-      text: `Druid level ${lv}: beasts of CR ${crLabel(max)} or lower${fly ? "" : ", no flying speed"}${swim ? "" : ", no swimming speed"}.` };
+      text: `Druid level ${clsLv(c, "Druid")}${druidSub(c) === "Circle of the Moon" ? " (Circle of the Moon)" : ""}: beasts of CR ${crLabel(max)} or lower${fly ? "" : ", no flying speed"}${swim ? "" : ", no swimming speed"}.` };
   }
   if (kind === "beast") return { test: m => m.type === "beast" && m.cr <= 0.25 && ["tiny", "small", "medium"].includes(m.size),
     text: "Ranger companion: a beast of Medium size or smaller with CR 1/4 or lower (Beast Master rules, which aren't in the free SRD)." };

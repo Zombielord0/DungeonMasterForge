@@ -99,6 +99,46 @@ const server = http.createServer((req, res) => {
       return [a + "/" + b, pcAC(c).ac, want];
     }));
     check("QA2: Unarmored Defense counts from a second class (Barbarian or Monk)", ac.every(([, got, want]) => got === want), JSON.stringify(ac));
+
+    // QA pass 3 (2026-11-24)
+    // QA-1: rolled enemy initiative adds the monster's own bonus (Air Elemental, Dex 20: +5)
+    await p.goto(URL + "#tracker"); await p.waitForFunction(() => typeof newEncounter === "function");
+    await p.click("#newCamp"); await p.waitForTimeout(200);
+    const init = await p.evaluate(() => {
+      const c = curCamp(); c.encounters = c.encounters || [];
+      c.encounters.push(newEncounter(null, "QA fight", 5, [{ name: "Air Elemental", stat: "Air Elemental", cr: 5, count: 1, boss: false }]));
+      Store.save(c); subTab = "encounters"; renderTracker(); window.__rnd = Math.random; Math.random = () => 0; return c.encounters[c.encounters.length - 1].id;
+    });
+    await p.click(`[data-ea="roll"][data-eid="${init}"]`); await p.waitForTimeout(200);
+    const rolled = await p.evaluate(id => { Math.random = window.__rnd; return curCamp().encounters.find(e => e.id === id).enemies.map(m => +m.init); }, init);
+    check("QA3: rolled enemy initiative adds the monster's Dexterity (Air Elemental 1 + 5)", rolled.join() === "6", rolled.join());
+    // QA-2, QA-3: companions for a multiclass Druid or Ranger, and Circle of the Moon limits
+    const comp = await p.evaluate(() => {
+      const fd = pcEnsure(generateCharacter({ seed: "QAC1", name: "Mix", cls: "Fighter", level: 5, ed: "2014", multi: [{ cls: "Druid", lv: 4 }, { cls: "Ranger", lv: 3 }] }));
+      const moon = pcEnsure(generateCharacter({ seed: "QAC2", name: "Moon", cls: "Druid", level: 2, ed: "2014", subclass: "Circle of the Moon" }));
+      const r = compRule(moon, "wild", "2014");
+      return { kinds: compKinds(fd), moonText: r.text, moonCR1: r.test({ type: "beast", cr: 1, speed: "40 ft." }), moonLimit: wildShapeLimit(moon).cr };
+    });
+    check("QA3: a multiclass Druid and Ranger get Companions & Wild Shape", comp.kinds.includes("wild") && comp.kinds.includes("beast"), JSON.stringify(comp.kinds));
+    check("QA3: Circle of the Moon's beast limit matches the Wild Shape picker (CR 1 at level 2)", comp.moonCR1 && comp.moonLimit === 1 && /CR 1 or lower/.test(comp.moonText), comp.moonText);
+    // QA-4: the Feats tab judges general feats by the character's total level
+    await p.evaluate(() => { const c = pcEnsure(generateCharacter({ seed: "QAF", name: "Split", cls: "Fighter", level: 2, ed: "2024", multi: [{ cls: "Wizard", lv: 6 }] })); PCS.roster.push(c); pcPersist(); FT.target = c.id; FT.ed = "2024"; FT.q = "Ability Score Improvement"; FT.grp = ""; });
+    await p.goto(URL + "#feats"); await p.waitForSelector("#ftList .ft-card");
+    const feat = await p.evaluate(() => ({ list: document.querySelector("#ftList").innerText, picker: (document.querySelector("#ftTarget option:checked") || {}).textContent || "" }));
+    check("QA3: a level 8 multiclass character can take a general feat on the Feats tab", !/Requires level 4/.test(feat.list) && /Lv 8/.test(feat.picker), feat.picker + " | " + feat.list.slice(0, 160).replace(/\s+/g, " "));
+    // QA-5: the monster builder ignores nonsense hit points
+    const built = await p.evaluate(() => {
+      const f = { ...mbBlank(), name: "Bad Numbers", hp: "-5", hdN: "5", hdD: "8" };
+      f.scores = [10, 10, 14, 10, 10, 10]; const m = mbCompile(f, "qa");
+      return [m.hp, m.hd];
+    }).catch(e => ["error", String(e).slice(0, 80)]);
+    check("QA3: the monster builder uses the average when hit points are 0 or less", built[0] === 32 && built[1] === "5d8+10", JSON.stringify(built));
+    // QA-6: book-reference beasts have their attacks
+    const refs = await p.evaluate(() => { bsLoad(); return ["Pandarian Dragon Turtle", "Swarm of Infesting Insects"].map(n => { const m = Object.values(BS.data).flat().find(x => x.n === n); return m ? beastForm(m.id).attacks.map(a => `${a.name} +${a.hit} ${a.die}${a.mod ? "+" + a.mod : ""} ${a.type}`).join() : "missing"; }); });
+    check("QA3: book-reference beasts read their attacks", refs[0] === "Bite +5 1d8+3 piercing" && refs[1] === "Infestation +4 4d4+2 poison", JSON.stringify(refs));
+    // shop prices under 1 gp show exact silver and copper
+    const gp = await p.evaluate(() => [fmtGp(0.85), fmtGp(0.5), fmtGp(0.05), fmtGp(2)]);
+    check("QA3: prices under 1 gp show exact silver and copper", gp.join("|") === "8 sp 5 cp|5 sp|5 cp|2 gp", gp.join("|"));
     await p.context().close();
 
     // 5. phones: the Forge form stays inside its card, and the bottom bar keeps whole words
@@ -117,6 +157,18 @@ const server = http.createServer((req, res) => {
         mobileNavSync("roster");
         return [...document.querySelectorAll("#mobileNav a, #mobileNav .btn")].map(a => { const r = document.createRange(); r.selectNodeContents(a); return { t: a.textContent.trim(), lines: new Set([...r.getClientRects()].map(x => Math.round(x.top))).size, over: a.scrollWidth > a.clientWidth }; });
       });
+      // QA-7: the Tracker's encounter boxes are labelled, and the campaign name gets its own line
+      await ph.goto(URL + "#tracker"); await ph.waitForFunction(() => typeof newEncounter === "function");
+      await ph.click("#newCamp"); await ph.waitForTimeout(200);
+      const trk = await ph.evaluate(() => {
+        const c = curCamp(); c.name = "A Rather Long Campaign Name For Phones"; c.encounters = [newEncounter(null, "Fight", 3, [{ name: "Goblin", stat: "Goblin", cr: 0.25, count: 1, boss: false }])];
+        Store.save(c); subTab = "encounters"; renderTracker();
+        const td = [...document.querySelectorAll(".foes:not(.pg-table) tbody tr:first-child td")].map(x => getComputedStyle(x, "::before").content);
+        const t = document.querySelector(".camp-title-row .title-input").getBoundingClientRect(), b = document.querySelector("#exportCamp").getBoundingClientRect();
+        return { labels: td.slice(1, 6), titleWide: t.width > innerWidth * 0.6, below: b.top >= t.bottom - 1 };
+      });
+      check(`${width} px: Tracker encounter boxes are labelled; the campaign name has room`, trk.labels.join() === '"AC","HP","Damage / heal","Init","Conditions"' && trk.titleWide && trk.below, JSON.stringify(trk));
+      await ph.goto(URL + "#roster"); await ph.waitForFunction(() => typeof mobileNavSync === "function");
       check(`${width} px: bottom bar words aren't split or cut off`, nav.some(n => n.t === "Compendium") && nav.every(n => n.lines === 1 && !n.over), JSON.stringify(nav));
       await ph.context().close();
     }

@@ -563,7 +563,7 @@ function renderFeats() {
   if (FT.target === undefined || (FT.target && !list.some(c => c.id === FT.target))) { FT.target = list.length ? list[0].id : ""; const t = ftTarget(); if (t) FT.ed = edOf(t); }
   $$("input[name=ftEd]").forEach(r => r.checked = r.value === FT.ed);
   const t = ftTarget(), ed = FT.ed;
-  $("#ftTargetRow").innerHTML = list.length ? `<span>Add feats to</span><select id="ftTarget" aria-label="Character to add feats to"><option value="">No one (just browsing)</option>${list.map(c => `<option value="${esc(c.id)}" ${c.id === FT.target ? "selected" : ""}>${esc(c.name)} · Lv ${c.level} ${esc(c.cls)} (${edOf(c)})</option>`).join("")}</select>`
+  $("#ftTargetRow").innerHTML = list.length ? `<span>Add feats to</span><select id="ftTarget" aria-label="Character to add feats to"><option value="">No one (just browsing)</option>${list.map(c => `<option value="${esc(c.id)}" ${c.id === FT.target ? "selected" : ""}>${esc(c.name)} · Lv ${totalLv(c)} ${esc((c.multi || []).length ? classLine(c) : c.cls)} (${edOf(c)})</option>`).join("")}</select>`
     : `<span class="muted" style="font-size:14px">Forge a character on the Characters tab to add feats to them here.</span>`;
   const hasHb = featList(ed).some(F => F[5]);
   const grps = (ed === "2024" ? [["", "All"], ["g", "General"], ["o", "Origin"], ["b", "Epic boon"]] : [["", "All"]]).concat(hasHb ? [["h", "Homebrew"]] : []);
@@ -572,7 +572,7 @@ function renderFeats() {
   $("#ftGrpWrap").classList.toggle("hidden", grps.length < 2);
   const has = t ? pcFeatNames(t) : [], words = FT.q.toLowerCase().split(/\s+/).filter(Boolean);
   const rows = featList(ed).filter(F => (!FT.grp || (FT.grp === "h" ? F[5] : F[4] === FT.grp)) && words.every(w => (F[0] + " " + F[3] + " " + featReqText(F)).toLowerCase().includes(w)))
-    .map(F => ({ F, why: !t ? "" : has.includes(F[0]) && !FEAT_REPEAT.has(F[0]) ? `${t.name} already has it` : edOf(t) !== ed ? `${t.name} uses the ${edOf(t)} rules` : featBlock(F, t, t.scores, t.level) }))
+    .map(F => ({ F, why: !t ? "" : has.includes(F[0]) && !FEAT_REPEAT.has(F[0]) ? `${t.name} already has it` : edOf(t) !== ed ? `${t.name} uses the ${edOf(t)} rules` : featBlock(F, t, t.scores, totalLv(t)) }))
     .filter(r => !FT.ok || !r.why);
   $("#ftCount").textContent = `${rows.length} feat${rows.length === 1 ? "" : "s"}`;
   $("#ftList").innerHTML = rows.length ? rows.map(({ F, why }) => {
@@ -588,7 +588,7 @@ async function ftAdd(c, name) {
   if (!sourceAllowed(currentSourceRules(), F[6], F[5])) { toast("This feat is outside the campaign sourcebooks."); return; }
   if (pcFeatNames(c).includes(name) && !FEAT_REPEAT.has(name)) { toast(`${c.name} already has ${name}`); return; }
   if (edOf(c) !== ed && !(await confirmBox("Different rules edition", `${name} is from the ${ed} feat list, but ${c.name} uses the ${edOf(c)} rules. Add it anyway?`, "Add anyway"))) return;
-  const block = featBlock(F, c, c.scores, c.level);
+  const block = featBlock(F, c, c.scores, totalLv(c)); /* character level, not the first class's (QA-4, 2026-11-24) */
   if (block && !(await confirmBox("Prerequisite not met", `${block}. ${c.name} doesn't meet it. Add ${name} anyway (for example as a DM's reward)?`, "Add anyway"))) return;
   const max = F[4] === "b" ? 30 : 20, open = featAbs(F).filter(a => (c.scores[a] || 0) + 1 <= max);
   let a = open.length === 1 ? open[0] : "";
@@ -596,7 +596,7 @@ async function ftAdd(c, name) {
     a = await choiceBox(`${name}: raise which score?`, `${name} raises one ability score by 1 (to a maximum of ${max}).`, open.map(x => [x, `${AB_FULL[x]} ${c.scores[x]} → ${c.scores[x] + 1}`]), "Add feat");
     if (a === null) return;
   }
-  c.bonusFeats = [...(c.bonusFeats || []), { n: name, l: c.level, ...(a ? { a } : {}), ...(a && max === 30 ? { max } : {}) }];
+  c.bonusFeats = [...(c.bonusFeats || []), { n: name, l: totalLv(c), ...(a ? { a } : {}), ...(a && max === 30 ? { max } : {}) }];
   pcRebuild(c); renderFeats(); toast(`${name} added to ${c.name}`);
 }
 (function initFeats() {

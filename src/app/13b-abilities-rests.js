@@ -486,8 +486,10 @@ function shortRestFinish() {
 }
 /* ---- Wild Shape: pick a beast; its AC, speeds and attacks replace yours ---- */
 const crText = v => v === 0.125 ? "1/8" : v === 0.25 ? "1/4" : v === 0.5 ? "1/2" : String(v);
+/* the Druid's subclass, whether Druid is the first class or a multiclass */
+function druidSub(c) { return c.cls === "Druid" ? c.subclass : ((c.multi || []).find(x => x.cls === "Druid") || {}).subclass; }
 function wildShapeLimit(c) {
-  const lv = clsLv(c, "Druid") || c.level, ed = edOf(c), moon = c.subclass === "Circle of the Moon";
+  const lv = clsLv(c, "Druid") || c.level, ed = edOf(c), moon = druidSub(c) === "Circle of the Moon";
   let cr = lv >= 8 ? 1 : lv >= 4 ? 0.5 : 0.25;
   if (moon) cr = ed === "2024" ? Math.max(1, Math.floor(lv / 3)) : lv >= 6 ? Math.floor(lv / 3) : 1;
   return { cr, noFly: lv < 8, noSwim: ed === "2014" && lv < 4 };
@@ -507,6 +509,9 @@ function beastForm(id) {
     const hit = (t.match(/Attack(?: Roll)?:\s*\+(\d+)/) || [])[1], d = t.match(/(\d+)\s*\((\d+d\d+)\s*(?:([+\-−])\s*(\d+))?\)\s*([A-Za-z]+) damage/);
     /* a tiny beast's flat damage, "Hit: 1 piercing damage" or "1 Piercing damage" (QA-4, 2026-11-23) */
     const flat = !d && t.match(/(?:Hit:\s*|ft\.\s+|\.\s+)(\d+)\s+(acid|bludgeoning|cold|fire|force|lightning|necrotic|piercing|poison|psychic|radiant|slashing|thunder)(?: damage|\.|$)/i); /* ToB3 writes "1 piercing." */
+    /* book-reference style, "Melee attack +5, reach 5 ft. Damage listed: 1d8 + 3 piercing" (QA-6, 2026-11-24) */
+    const ref = !d && !flat && t.match(/\b(?:Melee|Ranged) attack \+(\d+)[^.]*\..*?Damage listed:\s*(\d+d\d+)\s*(?:([+\-−])\s*(\d+))?\s*(acid|bludgeoning|cold|fire|force|lightning|necrotic|piercing|poison|psychic|radiant|slashing|thunder)/i);
+    if (ref) return { name: n, hit: +ref[1], die: ref[2], mod: ref[3] ? (ref[3] === "+" ? 1 : -1) * +ref[4] : 0, type: ref[5].toLowerCase(), melee: /Melee/.test(t), prof: true, beast: true, ab: "beast" };
     if (hit === undefined || (!d && !flat)) return null;
     if (flat) return { name: n, hit: +hit, die: "", mod: +flat[1], type: flat[2].toLowerCase(), melee: /Melee/.test(t), prof: true, beast: true, ab: "beast" };
     return { name: n, hit: +hit, die: d[2], mod: d[3] ? (d[3] === "+" ? 1 : -1) * +d[4] : 0, type: d[5].toLowerCase(), melee: /Melee/.test(t), prof: true, beast: true, ab: "beast" };

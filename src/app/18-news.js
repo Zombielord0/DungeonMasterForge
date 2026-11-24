@@ -2,6 +2,13 @@
    When a change ships, add an entry to the top of NEWS with a new id, in plain words for players and DMs. */
 
 const NEWS = [
+  { id: "2026-11-24-qa-pass-3", date: "2026-11-24", title: "Fairer fights and multiclass fixes", go: "tracker", items: [
+    "Roll enemy initiative now adds each monster's own initiative bonus, for every monster, not just a few.",
+    "Multiclass druids and rangers get Companions & Wild Shape, and Circle of the Moon druids see their higher beast limit there too.",
+    "Multiclass characters can take feats at their total character level (a Fighter 2 / Wizard 6 is level 8).",
+    "Wild Shape reads the attacks of the last few beasts that had none. The monster builder no longer saves hit points of 0 or less.",
+    "Shop prices under 1 gp show exact silver and copper (8 sp 5 cp, not 9 sp). On phones, the Tracker's fight boxes are labelled and long campaign names fit."
+  ] },
   { id: "2026-11-24-monster-fixes", date: "2026-11-24", title: "Monsters that can fight back", go: "monsters", items: [
     "About 400 Tome of Beasts 3 monsters now have their attacks and Multiattack. Before, their stat blocks only showed traits.",
     "Black Flag monsters' resistance and immunity lines now only list damage. Conditions are labelled or moved to Condition Immunities, and a trait like Fey Resilience says \"see Fey Resilience\".",

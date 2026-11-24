@@ -55,7 +55,7 @@ function renderTracker() {
   const active = c.quests.filter(q => q.status === "Active").length;
   const tabs = [["overview", "Overview"], ["session", "Open Session"], ["encounters", "Encounters", (c.encounters || []).length], ["sessions", "Sessions", c.sessions.length], ["party", "Party", c.party.length], ["npcs", "NPCs", c.npcs.length], ["lore", "Lore", (c.lore = c.lore || []).length], ["quests", "Quests", c.quests.length], ["loot", "Loot", c.loot.length], ["notes", "Notes"], ["maps", "Maps", (c.maps || []).length], ["calendar", "Calendar"], ["sources", "Sourcebooks"], ["handouts", "Handouts"]];
   let h = `<div class="card">
-    <div class="row" style="align-items:flex-start"><input class="title-input" type="text" data-field="name" value="${esc(c.name)}" aria-label="Campaign name">
+    <div class="row camp-title-row" style="align-items:flex-start"><input class="title-input" type="text" data-field="name" value="${esc(c.name)}" aria-label="Campaign name">
       <div style="flex:0 0 auto;display:flex;gap:6px"><button class="btn sm" id="exportCamp">Export campaign</button><button class="btn sm danger" id="delCamp">Delete</button></div></div>
     <div class="row" style="margin-top:10px;gap:14px;flex-wrap:wrap">
       <div style="flex:0 0 auto" class="row"><span class="lbl" style="margin:0">Party level</span><input type="number" min="1" max="20" data-field="currentLevel" value="${c.currentLevel || 1}" style="width:70px"></div>
@@ -811,6 +811,13 @@ campMain.addEventListener("input", onEdit);
 
 /* ======================= Encounter tracker ======================= */
 // SRD 5.1 quick stats: [AC, HP, hit dice, initiative mod, speed, attacks, traits, role]
+/* a foe's initiative bonus: the hand-written table first, then its stat block in the rules data (QA-1, 2026-11-24: random
+   encounters and most monsters got +0) */
+function foeInit(stat) {
+  const t = MSTAT[stat]; if (t) return +t[3] || 0;
+  const d = dmData("monsterData"), m = (d["2014"] || []).find(x => x.n === stat) || (d["2024"] || []).find(x => x.n === stat);
+  return !m ? 0 : m.init !== undefined && m.init !== null && m.init !== "" ? +m.init || 0 : mod(+(m.scores || [])[1] || 10);
+}
 const MSTAT = {
   "Kobold": [12, 5, "2d6-2", 2, "30 ft", "Dagger +4 (1d4+2 piercing); Sling +4, 30/120 ft (1d4+2 bludgeoning)", "Pack Tactics; Sunlight Sensitivity", "pack"],
   "Giant rat": [12, 7, "2d6", 2, "30 ft", "Bite +4 (1d4+2 piercing)", "Pack Tactics; Keen Smell", "pack"],
@@ -1067,7 +1074,7 @@ function encGuide(c, e) {
 }
 const openGuides = new Set();
 function encOrder(c, e) {
-  const rows = e.enemies.filter(m => m.init !== "" && m.init !== null).map(m => ({ key: m.id, name: m.name, init: +m.init, foe: true, down: m.hp <= 0, dex: (MSTAT[m.stat] || [])[3] || 0 }));
+  const rows = e.enemies.filter(m => m.init !== "" && m.init !== null).map(m => ({ key: m.id, name: m.name, init: +m.init, foe: true, down: m.hp <= 0, dex: foeInit(m.stat) }));
   (c.party || []).forEach(p => { const v = e.pcInit && e.pcInit[p.id]; if (v !== undefined && v !== "") rows.push({ key: p.id, name: p.name || "Hero", init: +v, foe: false, down: false, dex: 99 }); });
   return rows.sort((a, b) => b.init - a.init || b.dex - a.dex);
 }
@@ -1341,7 +1348,7 @@ campMain.addEventListener("click", async ev => {
     rows.forEach((r, k) => r.name = (have + n > 1) ? `${nm} ${have + k + 1}` : nm);
     e.enemies.push(...rows);
   } else if (a === "roll") {
-    e.enemies.forEach(x => x.init = 1 + Math.floor(Math.random() * 20) + ((MSTAT[x.stat] || [])[3] || 0));
+    e.enemies.forEach(x => x.init = 1 + Math.floor(Math.random() * 20) + foeInit(x.stat));
     e.round = 1; e.status = "Active"; const o = encOrder(c, e).filter(x => !x.down); e.turn = o.length ? o[0].key : null;
   } else if (a === "next") {
     const o = encOrder(c, e).filter(x => !x.down); if (!o.length) return;

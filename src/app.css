@@ -310,6 +310,17 @@ ol.plain-ol{margin:0;padding-left:20px}ol.plain-ol li{margin-bottom:6px}
 .fg-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:14px;margin-top:14px}
 .fg-grid>.sec{margin:0}
 @media (max-width:700px){.foes thead{display:none}.foes tr{display:grid;grid-template-columns:1fr 1fr;gap:4px;border-top:1px solid rgba(0,0,0,.45);padding:6px 0}.foes td{border:none}}
+/* phones: the table headings are hidden, so each box carries its own label (QA-7, 2026-11-24) */
+@media (max-width:700px){
+  .foes td:not([colspan])::before{display:block;font-family:Cinzel,serif;font-size:10.5px;letter-spacing:.06em;color:var(--muted);text-transform:uppercase;margin-bottom:2px}
+  .foes:not(.pg-table) td:nth-child(2)::before{content:"AC"}.foes:not(.pg-table) td:nth-child(3)::before{content:"HP"}
+  .foes:not(.pg-table) td:nth-child(4)::before{content:"Damage / heal"}.foes:not(.pg-table) td:nth-child(5)::before{content:"Init"}
+  .foes:not(.pg-table) td:nth-child(6)::before{content:"Conditions"}
+  .foes.pg-table td:nth-child(2)::before{content:"AC"}.foes.pg-table td:nth-child(3)::before{content:"HP"}
+  .foes.pg-table td:nth-child(4)::before{content:"Passive Perc."}.foes.pg-table td:nth-child(5)::before{content:"Init"}
+  .foes.pg-table td:nth-child(6)::before{content:"Conditions"}.foes.pg-table td:nth-child(7)::before{content:"Damage / heal"}
+}
+@media (max-width:600px){.camp-title-row{flex-wrap:wrap}.camp-title-row .title-input{flex:1 1 100%;min-width:0}}
 .title-input{font-family:Cinzel,serif!important;font-size:22px!important;font-weight:700;color:var(--gold2);background:transparent!important;border-color:transparent!important;box-shadow:none!important;padding:2px 4px!important;text-shadow:0 -1px 0 #000}
 .title-input:hover,.title-input:focus{border-color:#4a4640!important}
 /* NPC + character */

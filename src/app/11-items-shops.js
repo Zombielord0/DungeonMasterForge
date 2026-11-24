@@ -12,8 +12,10 @@ let itemsRemote = null, itTimer = null, itRT = null;
 function fmtGp(v) {
   if (v === null || v === undefined) return "—";
   if (v >= 1) return (Math.round(v * 100) / 100).toLocaleString() + " gp";
-  if (v >= 0.1) return Math.round(v * 10) + " sp";
-  return Math.round(v * 100) + " cp";
+  /* under 1 gp: exact silver and copper, as the purse is charged ("8 sp 5 cp", not "9 sp"; 2026-11-24) */
+  const cp = Math.round(v * 100), sp = Math.floor(cp / 10);
+  if (!sp) return cp + " cp";
+  return sp + " sp" + (cp % 10 ? " " + (cp % 10) + " cp" : "");
 }
 function magicPrice(m) {
   if (m.rk === 5) return { gp: null, text: "Priceless (artifact)" };
