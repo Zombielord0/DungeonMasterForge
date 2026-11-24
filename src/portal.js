@@ -25,8 +25,9 @@ const S = {
   user: null, campaigns: [], camp: null,
   synced: new Map(),   // character id -> { v: version, json: last saved JSON }
   owners: new Map(),   // character id -> { id, name }
-  since: null, saveTimer: null, busy: false, again: false, pollTimer: null, whisperTimer: null,
+  since: null, saveTimer: null, busy: false, again: false, pollTimer: null,
   members: [], activity: [], whispers: [], renderPending: false,
+  chat: { msgs: [], open: null, drafts: {}, timer: null, gen: 0, stopped: true, stick: false },
   shared: {},          // what the DM shares: { journal: {data, updatedAt}, turns: {data, updatedAt} }
   published: {},       // DM: the JSON last sent for each, so only changes are sent
   sharedTimer: null,
@@ -39,7 +40,7 @@ const Portal = window.Portal = {
   changed: () => queueSave(),
   ownerTag,
   renderParty: () => renderParty(true),
-  renderWhispers,
+  renderWhispers: () => { renderWhispers(); chatKick(); },
   isDM: () => isDM(),
   campName: () => (S.camp && S.camp.name) || "your campaign",
   hbPut, hbDel,
@@ -407,11 +408,12 @@ async function startCloud() {
   const tick = async () => { await poll(); if (isDM()) await publishShared(); S.pollTimer = setTimeout(tick, isDM() ? POLL_DM : POLL_PLAYER); };
   S.pollTimer = setTimeout(tick, isDM() ? POLL_DM : POLL_PLAYER);
   S.hbTimer = setInterval(() => { if (!document.hidden) loadHomebrew(); }, POLL_HOMEBREW);
-  if (!isDM()) { loadWhispers(); S.whisperTimer = setInterval(loadWhispers, POLL_WHISPERS); loadShared(); }
+  S.chat.msgs = []; S.chat.open = null; S.chat.drafts = {}; startChat();
+  if (!isDM()) loadShared();
   else { syncTracker(); loadParty(); }
 }
 
-function stopLoops() { clearTimeout(S.pollTimer); clearInterval(S.whisperTimer); clearInterval(S.hbTimer); clearTimeout(S.saveTimer); clearTimeout(S.sharedTimer); S.shared = {}; S.published = {}; renderTurnBar(); }
+function stopLoops() { clearTimeout(S.pollTimer); stopChat(); clearInterval(S.hbTimer); clearTimeout(S.saveTimer); clearTimeout(S.sharedTimer); S.shared = {}; S.published = {}; renderTurnBar(); }
 
 /* Every character from the database, yours too (a DM can edit your sheet): fix its numbers and rules edition before
    anything reads or remembers it (pcIncoming, in the app; lossless). Text stays as typed; the page guard and esc() keep
@@ -781,23 +783,141 @@ function shareRoll(c, e) {
   api(campPath("rolls"), { method: "POST", body: { characterId: c.id, text } }).catch(() => { });
 }
 
-/* ------------------------------------------------------------ player: whispers */
-async function loadWhispers() {
-  if (!Portal.cloud || isDM() || document.hidden) return;
+/* ------------------------------------------------------------ chat (DM <-> each player, and the players' party chat) */
+// S.chat.msgs is the API's list, newest first: { id, thread, fromName, body, at, mine, read }. A player's threads are
+// "dm" and "party"; the DM's are player ids (the server never sends the DM party messages).
+const POLL_CHAT_FAST = 3000;
+
+function chatOnScreen() {
+  if (!S.chat.open) return null;
+  if (isDM()) return location.hash === "#party" ? S.chat.open : null;
+  return location.hash === "#whispers" ? S.chat.open : null;
+}
+const chatUnread = thread => S.chat.msgs.filter(w => w.thread === thread && !w.mine && !w.read).length;
+
+async function loadChat() {
+  if (!Portal.cloud || !S.camp || document.hidden) return;
+  const camp = S.camp.id;
   const r = await api(campPath("whispers"));
-  if (!r.ok) return;
-  S.whispers = r.data;
+  if (!S.camp || S.camp.id !== camp) return;
+  if (r.status === 403) { stopChat(); return; } // removed from the campaign: stop asking, quietly
+  if (!r.ok || !Array.isArray(r.data)) return;
+  S.chat.msgs = r.data;
+  const open = chatOnScreen();
+  if (open) chatRead(open);
   showUnread();
-  if (location.hash === "#whispers") renderWhispers();
+  redrawChat();
+}
+function redrawChat() {
+  if (isDM()) { if (location.hash === "#party") renderPartyChat(); }
+  else if (location.hash === "#whispers") renderWhispers();
 }
 
-// Unread whispers sit in a banner across the top of the screen until the player
-// presses "Got it", so a note from the DM can't slip by unnoticed.
+// Polls every 3 seconds while a conversation is on screen, every 8 otherwise, and not at all while the page is hidden.
+function startChat() {
+  clearTimeout(S.chat.timer);
+  S.chat.stopped = false;
+  const gen = ++S.chat.gen;
+  const tick = async () => {
+    if (gen !== S.chat.gen) return;
+    await loadChat();
+    if (S.chat.stopped || gen !== S.chat.gen) return;
+    S.chat.timer = setTimeout(tick, chatOnScreen() && !document.hidden ? POLL_CHAT_FAST : POLL_WHISPERS);
+  };
+  tick();
+}
+function stopChat() { S.chat.stopped = true; S.chat.gen++; clearTimeout(S.chat.timer); }
+const chatKick = () => { if (Portal.cloud && S.camp && !S.chat.stopped) startChat(); };
+document.addEventListener("visibilitychange", () => { if (!document.hidden) chatKick(); });
+
+function chatRead(thread) {
+  let any = false;
+  S.chat.msgs.forEach(w => { if (w.thread === thread && !w.mine && !w.read) { w.read = true; any = true; } });
+  if (!any) return;
+  showUnread();
+  api(campPath("whispers/read"), { method: "POST", body: { thread } }).catch(() => { });
+}
+
+function chatListHTML(msgs, { names }) {
+  if (!msgs.length) return `<li class="chat-empty muted">No messages yet.</li>`;
+  return msgs.slice().sort((a, b) => a.id - b.id).map(w => `<li class="${w.mine ? "mine" : "theirs"}">
+    ${names && !w.mine ? `<b class="chat-who">${esc(w.fromName)}</b>` : ""}<span class="chat-body">${esc(w.body)}</span>
+    <time title="${esc(new Date(w.at).toLocaleString())}">${esc(clock(w.at))}</time></li>`).join("");
+}
+function chatComposerHTML(thread) {
+  return `<form class="chat-form" data-chat-to="${esc(thread)}">
+    <textarea rows="2" maxlength="2000" aria-label="Message" placeholder="Write a message… (Enter sends, Shift+Enter for a new line)"></textarea>
+    <button class="btn primary" type="submit">Send</button></form>`;
+}
+// Redraws only the message list (never the typing box), and only when a message came or went. Stays at the
+// bottom if the reader was already there; jumps to the bottom when the conversation changes or you sent one.
+function drawChatList(host, thread, names) {
+  const list = host.querySelector(".chat-list"); if (!list) return;
+  const msgs = S.chat.msgs.filter(w => w.thread === thread);
+  const sig = thread + ":" + msgs.map(w => w.id).join(",");
+  if (list.dataset.sig === sig && !S.chat.stick) return;
+  const fresh = list.dataset.thread !== thread;
+  const near = list.scrollHeight - list.scrollTop - list.clientHeight < 40;
+  list.innerHTML = chatListHTML(msgs, { names });
+  list.dataset.sig = sig; list.dataset.thread = thread;
+  if (fresh || near || S.chat.stick) list.scrollTop = list.scrollHeight;
+  S.chat.stick = false;
+}
+function chatBadges(host) {
+  host.querySelectorAll("[data-chat-open]").forEach(b => {
+    const on = b.dataset.chatOpen === S.chat.open, n = chatUnread(b.dataset.chatOpen), s = b.querySelector(".chat-n");
+    b.classList.toggle("on", on); b.setAttribute("aria-pressed", on ? "true" : "false");
+    if (s) { s.textContent = n || ""; s.hidden = !n; }
+  });
+}
+// Switching conversations keeps each one's half-typed message.
+function chatSwitch(thread) {
+  const ta = document.querySelector(".chat-form textarea");
+  if (ta && S.chat.open) S.chat.drafts[S.chat.open] = ta.value;
+  S.chat.open = thread;
+  if (ta) ta.value = S.chat.drafts[thread] || "";
+  redrawChat();
+  chatKick();
+  const t2 = document.querySelector(".chat-form textarea"); if (t2) t2.focus({ preventScroll: true });
+}
+
+document.addEventListener("click", e => {
+  const b = e.target.closest("[data-chat-open]"); if (!b) return;
+  chatSwitch(b.dataset.chatOpen);
+});
+document.addEventListener("keydown", e => {
+  if (e.key !== "Enter" || e.shiftKey || e.isComposing || !e.target.matches || !e.target.matches(".chat-form textarea")) return;
+  e.preventDefault();
+  e.target.form.requestSubmit();
+});
+document.addEventListener("submit", async e => {
+  const f = e.target.closest && e.target.closest(".chat-form"); if (!f) return;
+  e.preventDefault();
+  if (f.dataset.busy) return; // a second Enter while the first is on its way
+  const ta = f.querySelector("textarea"), body = ta.value.trim(), to = f.dataset.chatTo;
+  if (!body || !to) return;
+  const btn = f.querySelector("button"); f.dataset.busy = "1"; btn.disabled = true;
+  const r = await api(campPath("whispers"), { method: "POST", body: { to, body } });
+  delete f.dataset.busy; btn.disabled = false;
+  if (!r.ok) { toast(r.data.error || "Couldn't send"); return; }
+  if (f.dataset.chatTo === to && ta.value.trim() === body) ta.value = "";
+  S.chat.drafts[to] = "";
+  S.chat.stick = true;
+  await loadChat();
+});
+
+/* ------------------------------------------------------------ player: the Chat tab and the DM-message banner */
+// A new message from the DM sits in a banner across the top of the screen until the player presses Reply or
+// Got it, so it can't slip by unnoticed. Party messages only add to the counts.
 function showUnread() {
-  const unread = S.whispers.filter(w => !w.read);
+  const total = S.chat.msgs.filter(w => !w.mine && !w.read).length;
+  document.title = (total ? `(${total}) ` : "") + document.title.replace(/^\(\d+\) /, "");
+  const pn = $("#partyN");
+  if (isDM()) { if (pn) { pn.textContent = total || ""; pn.hidden = !total; } return; }
   const badge = $("#whisperN");
-  if (badge) { badge.textContent = unread.length || ""; badge.hidden = !unread.length; }
-  document.title = (unread.length ? `(${unread.length}) ` : "") + document.title.replace(/^\(\d+\) /, "");
+  if (badge) { badge.textContent = total || ""; badge.hidden = !total; }
+  const host = $("#whispersMain"); if (host) chatBadges(host);
+  const unread = S.chat.msgs.filter(w => w.thread === "dm" && !w.mine && !w.read);
   let bar = $("#whisperAlert");
   if (!unread.length) { if (bar) bar.remove(); return; }
   const w = unread[0]; // newest first
@@ -810,34 +930,41 @@ function showUnread() {
   }
   bar.dataset.id = w.id; bar.dataset.n = unread.length;
   bar.innerHTML = `<div class="wa-box">
-    <div class="wa-head"><h3 id="waTitle">📜 A whisper from your DM</h3><small class="muted">${esc(ago(w.at))}</small></div>
+    <div class="wa-head"><h3 id="waTitle">📜 A message from your DM</h3><small class="muted">${esc(ago(w.at))}</small></div>
     <p id="waBody">${esc(w.body)}</p>
     <div class="row wa-actions">${unread.length > 1 ? `<small class="muted">+${unread.length - 1} more unread</small>` : "<span></span>"}
-      <button class="btn sm" type="button" data-wa="all">See all whispers</button>
-      <button class="btn primary sm" type="button" data-wa="ok">Got it</button></div></div>`;
+      <button class="btn sm" type="button" data-wa="ok">Got it</button>
+      <button class="btn primary sm" type="button" data-wa="reply">Reply</button></div></div>`;
   if (isNew) { bar.classList.remove("ping"); void bar.offsetWidth; bar.classList.add("ping"); }
-  bar.querySelector("[data-wa=ok]").focus({ preventScroll: true });
-}
-
-async function markWhispersRead() {
-  if (!S.whispers.some(w => !w.read)) return;
-  S.whispers.forEach(w => w.read = true);
-  showUnread();
-  await api(campPath("whispers/read"), { method: "POST" });
+  bar.querySelector("[data-wa=reply]").focus({ preventScroll: true });
 }
 
 document.addEventListener("click", e => {
   const b = e.target.closest("[data-wa]"); if (!b) return;
-  if (b.dataset.wa === "all") location.hash = "#whispers"; // the inbox marks them read
-  else markWhispersRead();
+  if (b.dataset.wa === "reply") {
+    S.chat.open = "dm";
+    if (location.hash === "#whispers") { renderWhispers(); chatKick(); } else location.hash = "#whispers"; // opening it marks it read
+  } else chatRead("dm");
 });
 
-async function renderWhispers() {
-  const host = $("#whispersMain"); if (!host) return;
-  host.innerHTML = S.whispers.length
-    ? `<ul class="feed whispers">${S.whispers.map(w => `<li class="${w.read ? "" : "unread"}"><time title="${esc(new Date(w.at).toLocaleString())}">${esc(ago(w.at))}</time><span>${esc(w.body)}</span></li>`).join("")}</ul>`
-    : `<p class="muted">Nothing yet. Private notes from your DM will appear here.</p>`;
-  await markWhispersRead();
+function renderPartyChat() { /* the DM's Chat card: Task 3 */ }
+
+function renderWhispers() {
+  const host = $("#whispersMain"); if (!host || isDM()) return;
+  if (S.chat.open !== "dm" && S.chat.open !== "party") S.chat.open = "dm";
+  const t = S.chat.open;
+  if (!host.querySelector(".chat-box")) {
+    host.innerHTML = `<div class="chat-tabs">${[["dm", "DM"], ["party", "Party"]].map(([k, l]) =>
+      `<button class="btn sm" type="button" data-chat-open="${k}">${l}<span class="chat-n" hidden></span></button>`).join("")}</div>
+      <p class="muted chat-note"></p>
+      <div class="chat-box"><ul class="chat-list" aria-live="polite"></ul>${chatComposerHTML(t)}</div>`;
+  }
+  chatRead(t);
+  chatBadges(host);
+  host.querySelector(".chat-note").textContent = t === "party"
+    ? "Only the players see the party chat. Your DM can't." : "Only you and your DM see this conversation.";
+  host.querySelector(".chat-form").dataset.chatTo = t;
+  drawChatList(host, t, t === "party");
 }
 
 /* ------------------------------------------------------------ boot */

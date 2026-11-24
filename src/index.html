@@ -110,7 +110,7 @@ if (location.protocol !== "file:" && localStorage.getItem("dmforge.offline") !==
     <a href="#requests" data-view="requests">Requests</a>
     <a href="#party" data-view="party" hidden>Party</a>
     <a href="#journal" data-view="journal" hidden>Journal</a>
-    <a href="#whispers" data-view="whispers" hidden>Whispers<span id="whisperN" hidden></span></a>
+    <a href="#whispers" data-view="whispers" hidden>Chat<span id="whisperN" hidden></span></a>
   </nav>
   <span id="storeBadge" class="badge" title="Where your campaigns are saved">Connecting…</span>
   <button class="btn sm" type="button" id="backupBtn" hidden aria-haspopup="dialog" title="Download or restore a backup of everything saved in this browser">💾 Backup</button>
@@ -702,10 +702,10 @@ if (location.protocol !== "file:" && localStorage.getItem("dmforge.offline") !==
 <section class="view" id="view-journal">
   <div class="card" style="max-width:860px;margin:0 auto" id="journalMain"></div>
 </section>
-<!-- ================= WHISPERS (player portal) ================= -->
+<!-- ================= CHAT (player portal: the DM and the party; the view keeps its old name, whispers) ================= -->
 <section class="view" id="view-whispers">
   <div class="card" style="max-width:760px;margin:0 auto">
-    <div class="sec-h"><h3>Whispers from your DM</h3></div>
+    <div class="sec-h"><h3>Chat</h3></div>
     <div id="whispersMain"></div>
   </div>
 </section>
