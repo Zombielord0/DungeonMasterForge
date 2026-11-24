@@ -26,7 +26,7 @@ const S = {
   synced: new Map(),   // character id -> { v: version, json: last saved JSON }
   owners: new Map(),   // character id -> { id, name }
   since: null, saveTimer: null, busy: false, again: false, pollTimer: null,
-  members: [], activity: [], whispers: [], renderPending: false,
+  members: [], activity: [], renderPending: false,
   chat: { msgs: [], open: null, drafts: {}, timer: null, gen: 0, stopped: true, stick: false },
   shared: {},          // what the DM shares: { journal: {data, updatedAt}, turns: {data, updatedAt} }
   published: {},       // DM: the JSON last sent for each, so only changes are sent
@@ -39,7 +39,7 @@ const Portal = window.Portal = {
   home: "generate",
   changed: () => queueSave(),
   ownerTag,
-  renderParty: () => renderParty(true),
+  renderParty: () => { renderParty(true); chatKick(); },
   renderWhispers: () => { renderWhispers(); chatKick(); },
   isDM: () => isDM(),
   campName: () => (S.camp && S.camp.name) || "your campaign",
@@ -561,10 +561,9 @@ async function hbDel(id) {
 /* ------------------------------------------------------------ DM: party tab */
 async function loadParty() {
   if (!isDM()) return;
-  const [m, a, w] = await Promise.all([api(campPath("members")), api(campPath("activity")), api(campPath("whispers"))]);
+  const [m, a] = await Promise.all([api(campPath("members")), api(campPath("activity"))]);
   if (m.ok) S.members = m.data;
   if (a.ok) S.activity = a.data;
-  if (w.ok) S.whispers = w.data;
   renderParty();
 }
 
@@ -592,7 +591,7 @@ function renderParty(fetch) {
     const oa = (S.owners.get(a.id) || {}).name || "", ob = (S.owners.get(b.id) || {}).name || "";
     return oa.localeCompare(ob) || String(a.name).localeCompare(b.name);
   });
-  const keep = { to: $("#whTo") && $("#whTo").value, body: $("#whBody") && $("#whBody").value, focus: document.activeElement && document.activeElement.id };
+  const keep = { focus: document.activeElement && $("#partySide").contains(document.activeElement) && document.activeElement.id };
   $("#partySide").innerHTML = `
     <div class="sec-h"><h3>${esc(S.camp.name)}</h3></div>
     <div class="field"><span class="lbl">Join code</span>
@@ -605,37 +604,47 @@ function renderParty(fetch) {
     ${players.length ? players.map(p => `<div class="member"><div><b>${esc(p.name)}</b><small class="muted">${esc(p.email || "")}</small></div>
       <button class="btn sm danger" type="button" data-kick="${esc(p.id)}" aria-label="Remove ${esc(p.name)}">Remove</button></div>`).join("")
       : `<p class="muted">No players yet. Share the join code.</p>`}`;
-  host.innerHTML = `
-    <div class="card"><div class="sec-h"><h3>Party</h3><span class="sp"></span><small class="muted">Click a sheet to view or edit it</small></div>
-      ${sheets.length ? `<div class="party-grid">${sheets.map(partyCard).join("")}</div>` : `<p class="muted">No characters yet. They appear here as soon as a player saves one.</p>`}</div>
-    <div class="card"><div class="sec-h"><h3>Whisper</h3></div>
-      ${players.length ? `<form id="whForm"><div class="row"><select id="whTo" aria-label="Player" style="flex:0 0 180px">${players.map(p => `<option value="${esc(p.id)}">${esc(p.name)}</option>`).join("")}</select>
-        <input type="text" id="whBody" maxlength="2000" placeholder="Only this player will see it…" aria-label="Message" autocomplete="off">
-        <button class="btn primary" type="submit" style="flex:0">Send</button></div></form>
-        ${S.whispers.length ? `<ul class="feed">${S.whispers.slice(0, 8).map(w => `<li><time>${esc(clock(w.at))}</time><span>To <b>${esc(w.toName || "player")}</b>: ${esc(w.body)} <small class="muted">${w.read ? "· read" : "· unread"}</small></span></li>`).join("")}</ul>` : ""}`
-      : `<p class="muted">Whispers open up once a player joins.</p>`}</div>
-    <div class="card"><div class="sec-h"><h3>Activity</h3></div>
+  // The Chat card is built once and kept, so a refresh never wipes what the DM is typing.
+  if (!$("#partyChat")) host.innerHTML = `<div class="card" id="partyCards"></div><div class="card" id="partyChat"></div><div class="card" id="partyActivity"></div>`;
+  $("#partyCards").innerHTML = `<div class="sec-h"><h3>Party</h3><span class="sp"></span><small class="muted">Click a sheet to view or edit it</small></div>
+      ${sheets.length ? `<div class="party-grid">${sheets.map(partyCard).join("")}</div>` : `<p class="muted">No characters yet. They appear here as soon as a player saves one.</p>`}`;
+  $("#partyActivity").innerHTML = `<div class="sec-h"><h3>Activity</h3></div>
       ${S.activity.length ? `<ul class="feed">${S.activity.map(a => `<li><time title="${esc(new Date(a.at).toLocaleString())}">${esc(clock(a.at))}</time><span><b>${esc(a.byDM ? "You" : a.actor)}</b> · ${esc(a.characterName)}: ${esc(a.summary)}</span></li>`).join("")}</ul>`
-      : `<p class="muted">Changes players make to their sheets show up here.</p>`}</div>`;
-  if (keep.to && $("#whTo")) $("#whTo").value = keep.to;
-  if (keep.body && $("#whBody")) $("#whBody").value = keep.body;
+      : `<p class="muted">Changes players make to their sheets show up here.</p>`}`;
+  renderPartyChat();
   if (keep.focus && $("#" + keep.focus)) $("#" + keep.focus).focus();
 }
 
-async function sendWhisper(e) {
-  e.preventDefault();
-  const to = $("#whTo").value, body = $("#whBody").value.trim();
-  if (!body) return;
-  const btn = e.target.querySelector("button"); btn.disabled = true;
-  const r = await api(campPath("whispers"), { method: "POST", body: { to, body } });
-  btn.disabled = false;
-  if (!r.ok) { toast(r.data.error || "Couldn't send"); return; }
-  $("#whBody").value = "";
-  toast(`Whispered to ${(S.members.find(m => m.id === to) || {}).name || "player"}`);
-  loadParty();
+// The DM's Chat card: players down the side with unread counts, the open conversation beside them.
+// Nothing is open until the DM picks a player, so just visiting the Party tab doesn't mark messages read.
+function renderPartyChat() {
+  const card = $("#partyChat"); if (!card || !isDM()) return;
+  const players = S.members.filter(m => m.role === "player");
+  if (!players.length) {
+    card.innerHTML = `<div class="sec-h"><h3>Chat</h3></div><p class="muted">Chat opens up once a player joins.</p>`;
+    card.dataset.people = ""; return;
+  }
+  const sig = players.map(p => p.id + ":" + p.name).join("|");
+  if (card.dataset.people !== sig) {
+    const old = card.querySelector(".chat-form textarea"), draft = old ? old.value : "", had = old && document.activeElement === old;
+    card.innerHTML = `<div class="sec-h"><h3>Chat</h3><span class="sp"></span><small class="muted">Each conversation is just you and that player</small></div>
+      <div class="chat-dm"><div class="chat-people">${players.map(p =>
+        `<button class="btn sm" type="button" data-chat-open="${esc(p.id)}">${esc(p.name)}<span class="chat-n" hidden></span></button>`).join("")}</div>
+        <div class="chat-box"><p class="muted chat-pick">Pick a player to chat with.</p><ul class="chat-list" aria-live="polite"></ul>${chatComposerHTML("")}</div></div>`;
+    card.dataset.people = sig;
+    const ta = card.querySelector(".chat-form textarea"); ta.value = draft; if (had) ta.focus({ preventScroll: true });
+  }
+  if (S.chat.open && !players.some(p => p.id === S.chat.open)) S.chat.open = null;
+  const t = S.chat.open;
+  if (t) chatRead(t);
+  chatBadges(card);
+  card.querySelector(".chat-pick").hidden = !!t;
+  card.querySelector(".chat-list").hidden = !t;
+  card.querySelector(".chat-form").hidden = !t;
+  card.querySelector(".chat-form").dataset.chatTo = t || "";
+  if (t) drawChatList(card, t, false);
 }
 
-document.addEventListener("submit", e => { if (e.target.id === "whForm") sendWhisper(e); });
 document.addEventListener("click", async e => {
   const open = e.target.closest("[data-open]");
   if (open) { RC.id = open.dataset.open; location.hash = "#roster"; renderRosterTab(); return; }
@@ -840,13 +849,13 @@ function chatRead(thread) {
 
 function chatListHTML(msgs, { names }) {
   if (!msgs.length) return `<li class="chat-empty muted">No messages yet.</li>`;
-  return msgs.slice().sort((a, b) => a.id - b.id).map(w => `<li class="${w.mine ? "mine" : "theirs"}">
-    ${names && !w.mine ? `<b class="chat-who">${esc(w.fromName)}</b>` : ""}<span class="chat-body">${esc(w.body)}</span>
-    <time title="${esc(new Date(w.at).toLocaleString())}">${esc(clock(w.at))}</time></li>`).join("");
+  return msgs.slice().sort((a, b) => a.id - b.id).map(w => `<li class="${w.mine ? "mine" : "theirs"}">`
+    + (names && !w.mine ? `<b class="chat-who">${esc(w.fromName)}</b>` : "") + `<span class="chat-body">${esc(w.body)}</span>`
+    + `<time title="${esc(new Date(w.at).toLocaleString())}">${esc(clock(w.at))}</time></li>`).join("");
 }
 function chatComposerHTML(thread) {
   return `<form class="chat-form" data-chat-to="${esc(thread)}">
-    <textarea rows="2" maxlength="2000" aria-label="Message" placeholder="Write a message… (Enter sends, Shift+Enter for a new line)"></textarea>
+    <textarea rows="2" maxlength="2000" aria-label="Message" placeholder="Write a message…" title="Enter sends. Shift+Enter starts a new line."></textarea>
     <button class="btn primary" type="submit">Send</button></form>`;
 }
 // Redraws only the message list (never the typing box), and only when a message came or went. Stays at the
@@ -913,7 +922,11 @@ function showUnread() {
   const total = S.chat.msgs.filter(w => !w.mine && !w.read).length;
   document.title = (total ? `(${total}) ` : "") + document.title.replace(/^\(\d+\) /, "");
   const pn = $("#partyN");
-  if (isDM()) { if (pn) { pn.textContent = total || ""; pn.hidden = !total; } return; }
+  if (isDM()) {
+    if (pn) { pn.textContent = total || ""; pn.hidden = !total; }
+    const pc = $("#partyChat"); if (pc) chatBadges(pc);
+    return;
+  }
   const badge = $("#whisperN");
   if (badge) { badge.textContent = total || ""; badge.hidden = !total; }
   const host = $("#whispersMain"); if (host) chatBadges(host);
@@ -946,8 +959,6 @@ document.addEventListener("click", e => {
     if (location.hash === "#whispers") { renderWhispers(); chatKick(); } else location.hash = "#whispers"; // opening it marks it read
   } else chatRead("dm");
 });
-
-function renderPartyChat() { /* the DM's Chat card: Task 3 */ }
 
 function renderWhispers() {
   const host = $("#whispersMain"); if (!host || isDM()) return;

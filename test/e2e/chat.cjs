@@ -106,6 +106,39 @@ const check = (name, ok, extra = "") => { console.log((ok ? "PASS " : "FAIL ") +
     await say(rook, "party", "x".repeat(300));
     await pia.waitForFunction(() => /xxxxxxxxxx/.test(document.querySelector(".chat-list").textContent), null, { timeout: 15000 });
     check("a long word wraps on a phone", await pia.evaluate(() => document.documentElement.scrollWidth <= 390), await pia.evaluate(() => document.documentElement.scrollWidth));
+
+    // ---- the DM's Chat card on the Party tab
+    const rookId = await myId(rook);
+    await dm.evaluate(() => { location.hash = "#party"; });
+    await dm.waitForSelector(`#partyChat [data-chat-open="${piaId}"]`, { timeout: 15000 });
+    check("the Party tab has a Chat card listing each player", await dm.evaluate(id => !!document.querySelector(`#partyChat [data-chat-open="${id}"]`), rookId));
+    await dm.evaluate(() => { location.hash = "#tracker"; });
+    await say(pia, "dm", "Psst, DM");
+    await dm.waitForFunction(() => { const b = document.getElementById("partyN"); return b && !b.hidden && Number(b.textContent) >= 1; }, null, { timeout: 15000 });
+    check("a player's message puts a count on the Party tab while the DM is elsewhere", true);
+    await dm.evaluate(() => { location.hash = "#party"; });
+    await dm.waitForFunction(id => { const s = document.querySelector(`#partyChat [data-chat-open="${id}"] .chat-n`); return s && !s.hidden && Number(s.textContent) >= 1; }, piaId, { timeout: 10000 });
+    check("the player's name shows the unread count", true);
+    await dm.click(`#partyChat [data-chat-open="${piaId}"]`);
+    await dm.waitForFunction(() => /Psst, DM/.test(document.querySelector("#partyChat .chat-list").textContent), null, { timeout: 10000 });
+    await dm.waitForFunction(() => document.getElementById("partyN").hidden, null, { timeout: 10000 });
+    check("opening the conversation clears the counts", true);
+    await dm.fill("#partyChat .chat-form textarea", "Roll Investigation.");
+    await dm.press("#partyChat .chat-form textarea", "Enter");
+    await dm.waitForFunction(() => [...document.querySelectorAll("#partyChat .chat-list li.mine")].some(li => /Roll Investigation/.test(li.textContent)), null, { timeout: 10000 });
+    check("the DM's reply reaches the player", (await rows(pia)).some(w => w.thread === "dm" && w.body === "Roll Investigation."));
+    await dm.fill("#partyChat .chat-form textarea", "draft here");
+    await dm.focus("#partyChat .chat-form textarea");
+    await dm.evaluate(() => Portal.renderParty());
+    await dm.waitForTimeout(5000);
+    check("the DM's half-typed message survives the Party tab refreshing", await dm.evaluate(() => { const t = document.querySelector("#partyChat .chat-form textarea"); return t.value === "draft here" && document.activeElement === t; }));
+    check("the DM's page never shows the party chat", !(await dm.evaluate(() => document.body.innerText.includes("First watch"))));
+
+    // a removed player's open chat stops asking, without errors
+    await dm.evaluate(async id => { const me = await (await fetch("/api/me")).json(); await fetch(`/api/campaigns/${me.campaigns[0].id}/members/${id}`, { method: "DELETE" }); }, rookId);
+    await rook.waitForTimeout(8000);
+    await dm.waitForFunction(id => !document.querySelector(`#partyChat [data-chat-open="${id}"]`), rookId, { timeout: 15000 });
+    check("a removed player leaves the DM's chat list", true);
   } finally {
     check("no page errors", errs.length === 0, errs.join(" | "));
     await browser.close(); srv.kill();
