@@ -31,7 +31,7 @@ About 3,700 open-licensed monsters, spells and magic items from books other than
 
 ## Licences
 
-Only OGL 1.0a and CC BY 4.0 books. `public/credits.html` lists each book, its licence, the OGL text and its section 15 notices, and is linked from every extra entry's details and from the licence notes under the lists. Never add a book without a licence from that list, and never add Wizards of the Coast's non-SRD books.
+Only OGL 1.0a and CC BY 4.0 books. `public/credits.html` lists each book, its licence, the OGL text and its section 15 notices, and is linked from every extra entry's details and from the licence notes under the lists.
 
 ## Book reference spells (2026-11-23, owner's choice)
 
