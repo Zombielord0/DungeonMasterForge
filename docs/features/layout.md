@@ -64,11 +64,11 @@ From a review of the Adventure, Characters and Items tabs. Checks: `npm run test
 - **Where:** the parchment areas from before, which are generated adventures and briefs (`#genOut`), NPC cards, forged monsters and the monster builder preview. Spells, items, the Monster Manual, the character sheet and the Journal stay stone.
 - **Why:** the owner chose the look from a picture of a 3.5-era rulebook page.
 - **The paper** is `--book-paper` (used through `--parch`): yellowed, with soft brown mottling (the layer with `baseFrequency='.007'`, which the check looks for), faint creases and darker edges. It's all SVG noise and gradients, with no picture files and nothing from the book.
-- **The ink and headings:** near-black ink in EB Garamond (open licence, loaded with the other Google Fonts), and steel-blue capital headings (Cinzel) over a thin rule.
+- **The ink and headings:** near-black ink, in EB Garamond until 2026-11-24 and Metamorphous since (both open licence, loaded with the other Google Fonts), and steel-blue capital headings (Cinzel) over a thin rule.
 - **The parchment font (owner's pick, 2026-11-24):** the parchment areas' text is in **Metamorphous** (open licence, Google Fonts), an old-manuscript lettering; headings stay Cinzel. The owner first asked for a font called "Wetlands" (not found), then sent Dalek (K-Type), which is free for personal use only and needs a paid licence as a web font, so it isn't used. Bangers and Germania One were the other previews.
 - **The book font on stone:** spells, items, the Monster Manual, the character sheet and the Journal use EB Garamond too, in their usual stone colours.
 - **The check:** `npm run test:book` checks that the parchment areas are on the paper with ink at least 4.5:1 against a stained spot, and that the other five areas stay stone in the book font.
-- **To undo it,** delete the "Rulebook parchment" block at the end of `src/app.css` and the EB Garamond family in `src/index.html`'s font link. Design: `docs/superpowers/specs/2026-11-23-book-pages-design.md`.
+- **To undo it,** delete the "Rulebook parchment" block at the end of `src/app.css` and the EB Garamond and Metamorphous families in `src/index.html`'s font link. Design: `docs/superpowers/specs/2026-11-23-book-pages-design.md`.
 
 ## UI review fixes (2026-11-24)
 - **Fight bar** (`#fightBar`, `fightBarSync`, `liveFight` in `05-tracker.js`): phones only, on the Tracker, while an encounter is Active with a turn set. It shows the round, whose turn and who's next, and its Next turn presses the encounter's own `[data-ea="next"]`. `body.fight-on` lifts the roll dock and the toast above it. The bottom bar's Encounter shortcut jumps to the live fight (`fightJump`).
