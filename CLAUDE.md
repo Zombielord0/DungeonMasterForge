@@ -199,7 +199,7 @@ Playwright and Chromium are pre-installed in cloud sessions. To test offline mod
   - `dmforge.world.v1`: World places (the World tab), with region maps on the places and the world map as `atlas`.
   - `dmforge.fog.v1`: map fog, found secret doors and tokens for the 40 most recent maps.
   - `dmforge.mapdraft.v1`: the drawn map being edited (the map editor), so a refresh doesn't lose it.
-  - `dmforge.lastBackup`, `dmforge.newsSeen`, `dmforge.hdrMini`.
+  - `dmforge.lastBackup`, `dmforge.newsSeen`, `dmforge.side.v1` (side menu folded; a UI choice, not in backups).
   - **Imported map pictures and NPC pictures** are in IndexedDB (database `dmforge-maps`), not localStorage.
   - The 💾 Backup file (v2) covers the keys in `BACKUP_KEYS` and the pictures (`images`: key → data URL, from `MAPIMG.all()`). Restoring a v2 backup replaces the pictures; a v1 backup leaves them alone.
 - **Campaign fields added on 2026-11-15** (saved with the campaign, signed in or not):
