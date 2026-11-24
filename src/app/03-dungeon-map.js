@@ -952,7 +952,7 @@ function handoutUI() { $("#handoutBack").hidden = HOST.show !== "handout" && HOS
 /* ---- tokens ---- */
 function tokenView() { // tokens with the fight-on-TV state (Bloodied/Down) for monsters
   const f = hostEnc(), st = {}; if (f) f.e.enemies.forEach(m => { st[m.name] = m.hp <= 0 ? "Down" : m.hp <= m.max / 2 ? "Bloodied" : ""; }); // same words as the TV's turn order, never HP
-  return HOST.tokens.map(t => ({ ...t, state: t.kind === "foe" ? st[t.name] || "" : "" }));
+  return HOST.tokens.map(t => ({ ...t, state: t.kind === "foe" ? st[t.name] || st[tokBase(t.name)] || "" : "" })); /* a numbered "Goblin 2" still matches the enemy "Goblin" */
 }
 function tokFree(tx, ty) { // the nearest floor square to (tx,ty) without a token
   const d = currentMap, seen = new Set([ty * d.W + tx]), q = [[tx, ty]];
@@ -969,6 +969,7 @@ function tokAdd(name, kind, room) {
   HOST.tokens.push({ id: uid("t"), name: tokName(String(name).slice(0, 36)), kind, x, y });
 }
 /* a name already on the map gets numbered: the first "Goblin" becomes "Goblin 1", the next is "Goblin 2" (2026-11-24) */
+const tokBase = n => String(n).replace(/ \d+$/, "");
 function tokName(base) {
   const re = new RegExp("^" + base.replace(/[.*+?^${}()|[\]\\]/g, "\\$&") + "(?: (\\d+))?$"), same = HOST.tokens.filter(t => re.test(t.name));
   if (!same.length) return base;
@@ -983,13 +984,13 @@ function tokListRender() {
 function tokChanged() { tokListRender(); fogChanged(); }
 $("#tokParty").addEventListener("click", () => {
   const c = curCampForMap(), names = c && c.party && c.party.length ? c.party.map(p => p.name).filter(Boolean) : PCS.roster.map(p => p.name);
-  const add = names.filter(n => !HOST.tokens.some(t => t.name === n));
+  const add = names.filter(n => !HOST.tokens.some(t => t.name === n || tokBase(t.name) === n));
   if (!add.length) { toast(names.length ? "The party's tokens are already on the map." : "No heroes yet: add them to the campaign's Party, or save characters on the Characters tab."); return; }
   add.forEach(n => tokAdd(n, "pc")); tokChanged();
 });
 $("#tokFight").addEventListener("click", () => {
   const f = hostEnc(); if (!f) { toast("Put a fight on the TV first: 📺 Show on TV in Encounters, or ⚔ Run this fight in the Room Key."); return; }
-  const add = f.e.enemies.map(m => m.name).filter(n => !HOST.tokens.some(t => t.name === n));
+  const add = [...new Set(f.e.enemies.map(m => m.name))].filter(n => !HOST.tokens.some(t => t.name === n || tokBase(t.name) === n));
   add.forEach(n => tokAdd(n, "foe", f.e.room)); tokChanged();
 });
 $("#tokAdd").addEventListener("click", () => { const n = $("#tokName").value.trim(); if (!n) { toast("Type a name for the token"); return; } tokAdd(n, $("#tokKind").value); $("#tokName").value = ""; tokChanged(); });

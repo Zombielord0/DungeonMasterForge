@@ -1352,10 +1352,11 @@ campMain.addEventListener("click", async ev => {
     /* re-rolling a fight already under way starts it again at round 1, so ask first (2026-11-24) */
     if (e.status === "Active" && (e.round || 0) > 1 && !(await confirmBox("Re-roll initiative?", `This fight is in round ${e.round}. Re-rolling starts it again at round 1. HP and conditions stay as they are.`, "Re-roll"))) return;
     /* Group initiative: one roll for each kind of monster, as the rules suggest for big fights (2026-11-24) */
-    const group = {};
+    before = combatSnapshot(e); /* after the question, so Undo restores what was there */
+    const group = {}, key = x => x.boss ? x.id : x.stat || x.name; /* a boss rolls alone; creatures with no stat block group by name */
     e.enemies.forEach(x => {
-      if (e.groupInit && group[x.stat] !== undefined) { x.init = group[x.stat]; return; }
-      x.init = group[x.stat] = 1 + Math.floor(Math.random() * 20) + foeInit(x.stat);
+      if (e.groupInit && group[key(x)] !== undefined) { x.init = group[key(x)]; return; }
+      x.init = group[key(x)] = 1 + Math.floor(Math.random() * 20) + foeInit(x.stat);
     });
     e.round = 1; e.status = "Active"; const o = encOrder(c, e).filter(x => !x.down); e.turn = o.length ? o[0].key : null;
   } else if (a === "next") {

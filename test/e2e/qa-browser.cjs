@@ -164,6 +164,18 @@ const server = http.createServer((req, res) => {
     await p.click(`[data-ea="roll"][data-eid="${gid}"]`); await p.waitForSelector("#modal.open"); await p.click("#modalYes"); await p.waitForTimeout(200);
     const again = await p.evaluate(id => curCamp().encounters.find(x => x.id === id).round, gid);
     check("IDEA: re-rolling mid-fight asks first; No keeps the round, Re-roll starts at round 1", kept === 3 && again === 1, JSON.stringify([kept, again]));
+    const boss = await p.evaluate(id => { const c = curCamp(), e = c.encounters.find(x => x.id === id); e.enemies[0].boss = true; e.enemies[0].name = "Grak"; Store.save(c); renderTracker(); return e.enemies[0].id; }, gid);
+    await p.evaluate(id => { const c = curCamp(), e = c.encounters.find(x => x.id === id); e.round = 1; Store.save(c); renderTracker(); window.__rnd2 = Math.random; let i = 0; Math.random = () => [0.05, 0.95][i++ % 2]; }, gid);
+    await p.click(`[data-ea="roll"][data-eid="${gid}"]`); await p.waitForTimeout(150);
+    const bossAlone = await p.evaluate(([id, bid]) => { const e = curCamp().encounters.find(x => x.id === id); Math.random = window.__rnd2; const gob = e.enemies.filter(m => m.stat === "Goblin" && !m.boss).map(m => m.init); return { same: new Set(gob).size === 1, n: gob.length, gob: gob[0], boss: e.enemies.find(m => m.id === bid).init }; }, [gid, boss]);
+    check("IDEA: a boss rolls its own initiative in Group by monster", bossAlone.same && bossAlone.n === 2 && bossAlone.boss !== bossAlone.gob, JSON.stringify(bossAlone));
+    // a numbered token still shows its monster's Bloodied/Down state on the TV
+    const tokState = await p.evaluate(() => {
+      const c = curCamp(), e = newEncounter(null, "Lone", 1, [{ name: "Goblin", stat: "Goblin", cr: 0.25, count: 1, boss: false }]); e.enemies[0].hp = 0; c.encounters.push(e); Store.save(c);
+      HOST.enc = { cid: c.id, eid: e.id }; HOST.tokens = []; tokAdd("Goblin", "foe"); tokAdd("Goblin", "foe");
+      const v = tokenView().map(t => t.name + ":" + t.state); HOST.enc = null; HOST.tokens = []; return v;
+    });
+    check("IDEA: numbered tokens keep their monster's Bloodied/Down state on the TV", tokState.join() === "Goblin 1:Down,Goblin 2:Down", tokState.join());
     await p.context().close();
 
     // 5. phones: the Forge form stays inside its card, and the bottom bar keeps whole words
