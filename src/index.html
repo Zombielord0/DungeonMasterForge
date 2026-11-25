@@ -388,7 +388,8 @@ if (location.protocol !== "file:" && localStorage.getItem("dmforge.offline") !==
           <div><label for="mbCR">Challenge rating</label><select id="mbCR" data-mb="cr"></select></div>
           <div><label for="mbRole">How it fights</label><select id="mbRole" data-mb="role"></select></div>
         </div>
-        <p class="hint" id="mbCRHint" style="margin:-6px 0 12px"></p>
+        <p class="hint" id="mbCRHint" style="margin:-6px 0 6px"></p>
+        <div class="mb-crrec" id="mbCRRec" aria-live="polite"></div>
         <div class="field"><label for="mbDesc">Description</label><textarea id="mbDesc" data-mb="desc" placeholder="What it looks like, where it lairs, what it wants, how the heroes might hear of it…"></textarea></div>
       </div>
       <div class="card"><div class="sec-h"><h3>Defenses &amp; movement</h3></div>

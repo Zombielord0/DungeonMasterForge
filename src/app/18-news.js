@@ -2,6 +2,11 @@
    When a change ships, add an entry to the top of NEWS with a new id, in plain words for players and DMs. */
 
 const NEWS = [
+  { id: "2026-11-25-recommended-cr", date: "2026-11-25", title: "A recommended CR for your own monsters", go: "monsters", items: [
+    "Build a monster now shows a recommended challenge rating as you go, from its defense (hit points and AC) and offense (damage per round and attack bonus).",
+    "Features count: legendary actions add their damage, Legendary Resistance and regeneration add staying power, resistances, Magic Resistance and many saving throws make it harder to beat. Open Why to see each step, and press Use CR to take it.",
+    "Damage is read from attacks written like \"Hit: 13 (2d8 + 4)\"; spells aren't counted."
+  ] },
   { id: "2026-11-25-builder-picks", date: "2026-11-25", title: "Pick senses, languages and defences from lists", go: "monsters", items: [
     "In Villains & Monsters → Build a monster, each sense now has a list of distances (10 to 300 ft.).",
     "Languages, damage resistances, immunities, vulnerabilities and condition immunities each have a + Add list beside them: pick one and it's added. You can still type your own wording in the box."

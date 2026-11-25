@@ -824,6 +824,11 @@ function mbPreview() {
   mbTimer = setTimeout(() => {
     const m = mbCompile(MB.f), pb = bsPB(m.cr);
     $("#mbCRHint").textContent = `Proficiency bonus ${sgn(pb)} · ${(xpOf(m.cr) || 0).toLocaleString()} XP · ${m.hp} hit points`;
+    /* recommended CR (10b-monster-cr.js): worked out twice, the second time at the first answer's CR, whose band sets the multipliers */
+    const r = MB.rec = crRecommend(Object.assign({}, m, { cr: crRecommend(m).cr }));
+    const spells = (m.actions || []).some(([n]) => /spellcasting/i.test(n)) ? `<li>Spells aren't counted: a spellcaster may be stronger than this.</li>` : "";
+    $("#mbCRRec").innerHTML = `<p><b>Recommended: CR ${esc(crLabel(r.cr))}</b> <span class="muted">(defense ${esc(crLabel(r.def))}, offense ${esc(crLabel(r.off))})</span>${r.cr !== m.cr ? ` <button type="button" class="btn sm" data-mbcruse="${r.cr}">Use CR ${esc(crLabel(r.cr))}</button>` : ` <span class="muted">· matches your pick</span>`}</p>
+      <details><summary>Why</summary><ul>${r.why.map(w => `<li>${esc(w)}</li>`).join("")}${spells}<li>Only damage written as numbers in attacks (like "Hit: 13 (2d8 + 4)") is counted.</li></ul></details>`;
     $("#mbHP").placeholder = `Average: ${mbCompile({ ...MB.f, hp: "" }).hp}`;
     $("#mbPreview").innerHTML = `${bsSbHTML(m, "custom")}${m.desc ? `<p class="mb-desc">${esc(m.desc)}</p>` : ""}`;
   }, 80);
@@ -862,6 +867,10 @@ function mbEditFrom(m) {
   $("#mbRole").innerHTML = Object.keys(ROLE_TAC).map(k => `<option value="${k}">${cap1(k)}</option>`).join("");
   $("#mbAtkT").innerHTML = MB_DMG.map(d => `<option value="${d}">${cap1(d)}</option>`).join("");
   $$("#mbForm select[data-mbpick]").forEach(s => { const [lab, list] = MB_PICKS[s.dataset.mbpick]; s.innerHTML = `<option value="">+ Add ${lab.toLowerCase()}…</option>` + list.map(x => `<option value="${esc(x)}">${esc(cap1(x))}</option>`).join(""); });
+  $("#mbForm").addEventListener("click", e => {
+    const u = e.target.closest("[data-mbcruse]"); if (!u) return;
+    MB.f.cr = +u.dataset.mbcruse; $("#mbCR").value = String(MB.f.cr); mbPreview();
+  });
   $("#mbForm").addEventListener("change", e => {
     const s = e.target.closest("select[data-mbpick]"); if (!s || !s.value) return;
     const k = s.dataset.mbpick, box = $(`#mbForm [data-mb="${k}"]`);

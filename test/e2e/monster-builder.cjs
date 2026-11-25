@@ -5,6 +5,7 @@ const { chromium } = require("playwright");
 const ROOT = path.join(__dirname, "..", "..", "public");
 const TYPES = { ".html": "text/html", ".js": "text/javascript", ".css": "text/css", ".png": "image/png", ".webp": "image/webp", ".svg": "image/svg+xml", ".webmanifest": "application/manifest+json" };
 let fails = 0;
+const CRS = [0, 0.125, 0.25, 0.5, ...Array.from({ length: 30 }, (_, i) => i + 1)], crSteps = cr => CRS.indexOf(cr);
 const check = (name, ok, extra = "") => { console.log((ok ? "PASS " : "FAIL ") + name + (ok || !extra ? "" : "  -> " + extra)); if (!ok) fails++; };
 const server = http.createServer((req, res) => {
   const u = new URL(req.url, "http://x"), f = path.join(ROOT, u.pathname === "/" ? "index.html" : decodeURIComponent(u.pathname));
@@ -54,6 +55,27 @@ const server = http.createServer((req, res) => {
     // editing a copy of a monster with an unusual distance keeps it
     await p.evaluate(() => { const m = Object.assign(mbCompile(mbBlank()), { senses: "darkvision 45 ft., passive Perception 10", n: "Odd" }); mbOpen(mbFromMonster(m)); });
     check("an unusual distance from a copied monster stays picked", await p.evaluate(() => document.querySelector('#mbForm [data-mb="senses.dark"]').value === "45"));
+    /* recommended CR (2026-11-25): how close it gets to the SRD monsters' real CRs (the Guide's table measured 0.76 / 0.74) */
+    const acc = await p.evaluate(() => { bsLoad(); return ["2014", "2024"].map(ed => { const L = BS.data[ed].filter(m => !m.src && m.cr >= 0.125); return L.filter(m => Math.abs(crIdx(crRecommend(m).cr) - crIdx(m.cr)) <= 1).length / L.length; }); });
+    check("recommended CR is within 1 of the real CR for at least 70% of SRD monsters (2014, 2024)", acc.every(a => a >= 0.7), acc.map(a => a.toFixed(2)).join(", "));
+    const owl = await p.evaluate(() => { bsLoad(); const m = BS.data["2014"].find(x => x.n === "Owlbear"); return crRecommend(m).cr; });
+    check("an Owlbear (CR 3) comes out within 1 CR", [2, 3, 4].includes(owl), String(owl));
+    /* the builder shows it, and features move it */
+    await p.evaluate(() => {
+      const f = mbBlank(); Object.assign(f, { name: "Test Brute", cr: 1, ac: 15, hdN: 15, hdD: 10, scores: [18, 12, 16, 6, 10, 8] });
+      f.actions = [{ n: "Multiattack", t: "The brute makes two Slam attacks." }, { n: "Slam", t: "Melee Weapon Attack: +6 to hit, reach 5 ft., one target. Hit: 13 (2d8 + 4) bludgeoning damage." }];
+      mbOpen(f);
+    });
+    await p.waitForTimeout(500);
+    const rec0 = await p.evaluate(() => ({ text: document.querySelector("#mbCRRec").textContent, cr: MB.rec && MB.rec.cr }));
+    check("the builder shows a recommended CR with defense and offense", /Recommended: CR \d/.test(rec0.text) && /defense/i.test(rec0.text) && /offense/i.test(rec0.text), rec0.text);
+    await p.evaluate(() => { MB.f.legend = [{ n: "Slam", t: "The brute makes one Slam attack." }, { n: "Stomp (Costs 2 Actions)", t: "Melee Weapon Attack: +6 to hit, reach 5 ft. Hit: 20 (3d10 + 4) bludgeoning damage." }]; MB.f.traits = [{ n: "Legendary Resistance (3/Day)", t: "If the brute fails a saving throw, it can choose to succeed instead." }]; mbFillForm(); });
+    await p.waitForTimeout(500);
+    const rec1 = await p.evaluate(() => ({ text: document.querySelector("#mbCRRec").textContent, cr: MB.rec && MB.rec.cr }));
+    check("legendary actions and resistance raise it by at least 2 CR", crSteps(rec1.cr) - crSteps(rec0.cr) >= 2 && /Legendary actions/.test(rec1.text) && /Legendary Resistance/.test(rec1.text), `${rec0.cr} -> ${rec1.cr}: ${rec1.text}`);
+    await p.click("[data-mbcruse]"); await p.waitForTimeout(300);
+    check("Use CR sets the challenge rating", await p.evaluate(cr => +document.querySelector("#mbCR").value === cr && +MB.f.cr === cr, rec1.cr));
+    check("…and the button goes once they match", await p.evaluate(() => !document.querySelector("[data-mbcruse]")));
     check("no page errors", !errs.length, errs.join(" | "));
     await ctx.close();
   } catch (e) { console.error(e); fails++; }

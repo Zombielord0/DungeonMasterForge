@@ -159,3 +159,24 @@ The owner asked for drop-downs for everything in the builder's **Senses, languag
 - Senses are `<select data-mbsense>` lists of distances (`MB_SENSE_FT`); `mbSenseOptions` adds an unusual distance from a copied monster so it stays picked.
 - Languages, resistances, immunities, vulnerabilities and condition immunities keep their text box (so copied monsters keep any wording) with a `select[data-mbpick]` beside it (`MB_PICKS`). `mbPickAdd` adds the pick, skips one already there, replaces a lone "—", and joins a pick that has commas of its own with "; ".
 - Check: `npm run test:mbuild`.
+
+## Recommended CR (2026-11-25)
+
+The owner asked for a recommended CR in the monster builder that goes up as features are added ("legendary actions bumping it up 2 or 3 CRs"). Code: `src/app/10b-monster-cr.js`; shown under Challenge rating (`#mbCRRec`, with **Use CR** and a **Why** list); check: `npm run test:mbuild`.
+- **Method:** the usual one (from the Dungeon Master's Guide; only its maths, none of its wording). Defensive CR from effective hit points, moved one step per 2 points of AC above or below the expected AC. Offensive CR from damage per round, moved one step per 2 points of attack bonus (or save DC). The recommendation is their average.
+- **Features** change those numbers rather than adding a flat bump:
+  - resistances or immunities to 3 or more damage types (or nonmagical weapons) multiply hit points, less at higher CR;
+  - Legendary Resistance adds 10, 20 or 30 hit points a use;
+  - regeneration adds 3 rounds of healing;
+  - Magic Resistance counts as +2 AC, and 3–4 saving throw proficiencies as +2 AC (5 or more, +4);
+  - flying with ranged attacks counts as +2 AC up to CR 10;
+  - Pack Tactics counts as +1 to hit;
+  - legendary actions add the best damage per action point × the actions a round.
+- **Damage is read from the text** (`crActionInfo`): "Hit: 19 (2d10 + 8) … plus 7 (2d6)", the 2024 "Attack Roll: +14 … 13 (1d10 + 8)", and saving-throw damage. Multiattack counts the named attacks. A recharge or per-day attack is spread over three rounds, and area damage counts two targets. Spells aren't counted.
+- **Accuracy, tested against the SRD monsters (CR ⅛ and up):**
+  - with the Guide's table (`CR_REC_TABLE`), 76% (2014) and 74% (2024) are within 1 CR, and 90% within 2;
+  - the builder's typical-monster table (`CR_TABLE`) did slightly worse (71% and 76%, and it ran high), so it isn't used;
+  - the biggest misses are spellcasters and some adult dragons (about 3 high).
+
+  The check fails if accuracy drops below 70%.
+- The builder works it out twice, the second time at the first answer's CR, because the hit point multipliers depend on the CR band.

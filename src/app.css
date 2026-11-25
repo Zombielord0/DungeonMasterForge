@@ -1577,3 +1577,9 @@ html.fside-folded #fside.fside-searching nav{display:block}
 .mb-pick>input{flex:1 1 180px;min-width:0}
 .mb-pick>select{flex:0 1 190px;min-width:0}
 .mb-speeds select{width:100%}
+
+/* monster builder: the recommended CR (2026-11-25) */
+.mb-crrec{margin:0 0 12px;padding:8px 10px;border:1px solid var(--line);border-radius:4px;background:var(--well)}
+.mb-crrec p{margin:0;display:flex;flex-wrap:wrap;gap:6px;align-items:center}
+.mb-crrec details{margin-top:4px;font-size:13px}
+.mb-crrec ul{margin:4px 0 0 18px;padding:0}
