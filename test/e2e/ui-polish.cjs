@@ -178,6 +178,27 @@ const EMOJI = /\p{Extended_Pictographic}/u;
     await ctx.close();
   }
 
+  // ---- owner (2026-11-25): Generate map on an adventure's location opens a preview window to check the map first
+  {
+    const { ctx, p } = await open(1366, 900);
+    await p.goto(URL + "#generate"); await p.waitForFunction(() => typeof generateAdventure === "function");
+    await p.click("#genForm button[type=submit]"); await p.waitForTimeout(600);
+    const loc = await p.evaluate(() => currentGen.locations[0].name);
+    await p.click('[data-mkmap="0"]'); await p.waitForTimeout(400);
+    const pv = await p.evaluate(() => { const m = document.querySelector("#locMapModal"); return { open: !!m && m.classList.contains("open"), canvas: !!(m && m.querySelector("canvas")), rooms: m ? m.querySelectorAll(".locmap-rooms li").length : 0, hash: location.hash, title: (m && m.querySelector("h3") || {}).textContent || "", seed: m && m.dataset.seed }; });
+    check("Generate map on a location opens a preview window, staying on the adventure", pv.open && pv.canvas && pv.rooms > 0 && pv.hash === "#generate" && pv.title.includes(loc), JSON.stringify(pv));
+    await p.click("#locMapAgain"); await p.waitForTimeout(300);
+    const seed2 = await p.evaluate(() => document.querySelector("#locMapModal").dataset.seed);
+    check("🎲 Another map rolls a different layout", seed2 && seed2 !== pv.seed, `${pv.seed} -> ${seed2}`);
+    await p.click("#locMapOpen"); await p.waitForTimeout(500);
+    const st = await p.evaluate(() => ({ hash: location.hash, name: currentMap && currentMap.params.name, seed: currentMap && currentMap.params.seed, closed: !document.querySelector("#locMapModal").classList.contains("open") }));
+    check("Open in Dungeon Map opens that same map", st.hash === "#map" && st.name === loc && st.seed === seed2 && st.closed, JSON.stringify(st));
+    await p.goto(URL + "#generate"); await p.waitForTimeout(300);
+    await p.click("#genForm button[type=submit]"); await p.waitForTimeout(500); await p.click('[data-mkmap="1"]'); await p.waitForTimeout(300);
+    await p.keyboard.press("Escape"); await p.waitForTimeout(200);
+    check("Esc closes the preview", await p.evaluate(() => !document.querySelector("#locMapModal").classList.contains("open") && location.hash === "#generate"));
+    await ctx.close();
+  }
   // ---- owner (2026-11-25): the Tracker's Journal handouts form looks like the rest of the Forge
   {
     const { ctx, p } = await open(1366, 900);

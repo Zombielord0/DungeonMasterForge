@@ -282,8 +282,30 @@ function onGenClick(e) {
   if (mb && currentGen) { openMapForLocation(currentGen, +mb.dataset.mkmap); return; }
   if (e.target.id === "saveCampaign") saveGenAsCampaign(currentGen);
 }
-function openMapForLocation(g, i) {
-  const l = g.locations[i]; const s = g.settings;
-  setMapForm({ name: l.name, theme: l.mapTheme, size: s.format === "oneshot" ? "medium" : "medium", rooms: 10, level: s.format === "oneshot" ? g.outline.level : s.min, party: s.party, seed: g.seed + "-" + (i + 1) });
-  mapShowBuild(); location.hash = "map"; renderMap(); /* opens in Build, not Your maps (03e-map-modes.js) */
+/* a location's map: first a preview window to check it (owner, 2026-11-25), then Open in Dungeon Map opens that same map */
+const LOCMAP = { g: null, i: 0, seed: "" };
+function locMapParams(g, i, seed) {
+  const l = g.locations[i], s = g.settings;
+  return { name: l.name, theme: l.mapTheme, size: "medium", rooms: 10, level: s.format === "oneshot" ? g.outline.level : s.min, party: s.party, seed, style: MAP_STYLES[$("#mapStyle").value] ? $("#mapStyle").value : "parchment" };
 }
+function openMapForLocation(g, i) { LOCMAP.g = g; LOCMAP.i = i; LOCMAP.seed = g.seed + "-" + (i + 1); locMapShow(); }
+function locMapShow() {
+  const { g, i, seed } = LOCMAP, l = g.locations[i], d = generateDungeon(locMapParams(g, i, seed)), box = $("#locMapModal");
+  box.dataset.seed = seed;
+  $("#locMapTitle").textContent = `Map for ${l.name}`;
+  $("#locMapInfo").textContent = `${cap1(l.mapTheme)} · ${d.rooms.length} rooms · party level ${d.params.level} · seed ${seed}`;
+  const cv = document.createElement("canvas"); drawDungeon(cv, d, true, { scale: 1 }); cv.setAttribute("aria-label", `Preview of the map for ${l.name}`);
+  $("#locMapPic").replaceChildren(cv);
+  $("#locMapRooms").innerHTML = d.rooms.map(o => `<li><b>${o.num}. ${esc(o.type || o.name || "Room")}</b>${o.enc ? ` <span class="muted">· ${esc(o.enc.text)}</span>` : ""}${o.boss ? ` <span class="tag">boss</span>` : ""}</li>`).join("");
+  if (!box.classList.contains("open")) { box.classList.add("open"); $("#locMapOpen").focus(); }
+}
+function locMapClose() { $("#locMapModal").classList.remove("open"); }
+$("#locMapAgain").addEventListener("click", () => { LOCMAP.seed = newSeed(); locMapShow(); });
+$("#locMapClose").addEventListener("click", locMapClose);
+$("#locMapModal").addEventListener("click", e => { if (e.target.id === "locMapModal") locMapClose(); });
+document.addEventListener("keydown", e => { if (e.key === "Escape" && $("#locMapModal").classList.contains("open")) locMapClose(); });
+$("#locMapOpen").addEventListener("click", () => {
+  const { g, i, seed } = LOCMAP; if (!g) return; locMapClose();
+  setMapForm(locMapParams(g, i, seed));
+  mapShowBuild(); location.hash = "map"; renderMap(); /* opens in Build, not Your maps (03e-map-modes.js) */
+});

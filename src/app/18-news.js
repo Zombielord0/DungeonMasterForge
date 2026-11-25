@@ -2,6 +2,9 @@
    When a change ships, add an entry to the top of NEWS with a new id, in plain words for players and DMs. */
 
 const NEWS = [
+  { id: "2026-11-25-locmap-preview", date: "2026-11-25", title: "Check a location's map before opening it", go: "generate", items: [
+    "On an adventure, a location's Generate map now opens a preview: the map with its rooms and fights. Press 🎲 Another map for a different layout, or Open in Dungeon Map to use that exact map."
+  ] },
   { id: "2026-11-25-bulk-types", date: "2026-11-25", title: "Bulk import says which files it takes", go: "homebrew", items: [
     "The Homebrew tab's Bulk import buttons now say they take CSV or JSON files (.csv, .json, or a .txt holding either), with a line on what each one is."
   ] },

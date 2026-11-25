@@ -1688,3 +1688,16 @@ html.fight-open{overflow:hidden}
 .handout-pics>div{flex:1 1 220px;min-width:0}
 /* a file-upload button made from a <label> inside a .field keeps the button look, not the field-label look */
 .field label.btn:not(.check):not(.opt){display:inline-flex;align-items:center;margin:0;letter-spacing:.04em;text-transform:none;text-shadow:none}
+
+/* the Adventure tab's location map preview (2026-11-25) */
+#locMapModal{position:fixed;inset:0;background:rgba(0,0,0,.7);display:none;align-items:center;justify-content:center;z-index:50;padding:20px}
+#locMapModal.open{display:flex}
+#locMapModal .box{position:relative;background:var(--noise),linear-gradient(165deg,#262a3e,#14161f);box-shadow:0 20px 50px rgba(0,0,0,.8);border:1px solid #7a4415;border-radius:var(--radius);width:100%;max-width:1000px;max-height:calc(100vh - 40px);overflow:auto;padding:20px}
+#locMapModal h3{margin:0 0 4px}
+.locmap-body{display:grid;grid-template-columns:minmax(0,1fr) 260px;gap:14px;align-items:start}
+.locmap-pic{background:#e9dcbd;border-radius:3px;padding:8px}
+.locmap-pic canvas{width:100%;height:auto;display:block}
+.locmap-side h4{margin:0 0 6px;font-family:Cinzel,serif;color:var(--gold2)}
+.locmap-rooms{margin:0;padding:0;font-size:14px;max-height:60vh;overflow:auto}
+.locmap-rooms li{padding:4px 0;border-bottom:1px solid var(--line)}
+@media (max-width:760px){.locmap-body{grid-template-columns:minmax(0,1fr)}.locmap-rooms{max-height:none}}

@@ -756,6 +756,12 @@ if (location.protocol !== "file:" && localStorage.getItem("dmforge.offline") !==
   <div id="bulkOut" class="imp-out" aria-live="polite"></div>
   <div class="row" style="justify-content:flex-end;margin-top:14px;gap:8px"><button class="btn" type="button" id="bulkCancel" style="flex:0 0 auto">Close</button><button class="btn primary" type="button" id="bulkGo" style="flex:0 0 auto" disabled>Add</button></div>
 </div></div>
+<div id="locMapModal" role="dialog" aria-modal="true" aria-labelledby="locMapTitle"><div class="box">
+  <h3 id="locMapTitle">Map</h3>
+  <p class="muted" id="locMapInfo" style="margin:0 0 8px"></p>
+  <div class="locmap-body"><div class="locmap-pic" id="locMapPic"></div><div class="locmap-side"><h4>Rooms</h4><ol class="plain locmap-rooms" id="locMapRooms"></ol></div></div>
+  <div class="row" style="justify-content:flex-end;margin-top:14px;gap:8px;flex-wrap:wrap"><button class="btn" type="button" id="locMapClose" style="flex:0 0 auto">Close</button><button class="btn" type="button" id="locMapAgain" style="flex:0 0 auto">🎲 Another map</button><button class="btn primary" type="button" id="locMapOpen" style="flex:0 0 auto">Open in Dungeon Map</button></div>
+</div></div>
 <div id="impCampModal" role="dialog" aria-modal="true" aria-labelledby="impCampTitle"><div class="box">
   <h3 id="impCampTitle">Import from MythWeaver</h3>
   <div id="impCampBody"></div>
