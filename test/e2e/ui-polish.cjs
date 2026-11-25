@@ -191,6 +191,11 @@ const EMOJI = /\p{Extended_Pictographic}/u;
     });
     check("Journal handouts: the Title box is the Forge's dark field, full width", f.dark && f.titleWide, JSON.stringify(f));
     check("Journal handouts: labelled fields, and the picture upload is a Forge button", f.fields >= 3 && f.fileHidden && f.fileBtn, JSON.stringify(f));
+    const btn = await p.evaluate(() => { const l = document.querySelector('#journalHandoutForm label.btn'), cs = getComputedStyle(l); return { tt: cs.textTransform, display: cs.display, labels: [...document.querySelectorAll("#journalHandoutForm .handout-pics .lbl, #journalHandoutForm .handout-pics label[for]")].map(x => Math.round(x.getBoundingClientRect().top)) }; });
+    check("Journal handouts: the upload button reads like a button (not capitals, not a block label)", btn.tt === "none" && btn.display !== "block", JSON.stringify(btn));
+    check("Journal handouts: the Picture and campaign-image labels line up", btn.labels.length === 2 && Math.abs(btn.labels[0] - btn.labels[1]) <= 2, JSON.stringify(btn.labels));
+    await p.locator('#journalHandoutForm input[name="picture"]').setInputFiles({ name: "letter.png", mimeType: "image/png", buffer: Buffer.from("iVBORw0KGgo=", "base64") });
+    check("Journal handouts: choosing a picture shows its name", (await p.textContent("#jhFileName")).trim() === "letter.png");
     await ctx.close();
   }
 
