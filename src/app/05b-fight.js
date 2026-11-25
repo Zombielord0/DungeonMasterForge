@@ -184,13 +184,16 @@ function fightNowHTML(c, e, w) {
       <button class="btn primary" type="button" id="fcAdd">Add</button></div>`;
 }
 function fightRender() {
-  const main = $("#campMain"); if (!main) return;
   let box = $("#fightWin");
   const c = curCamp(), e = c && FIGHT.eid && findEnc(c, FIGHT.eid);
   if (!e) { if (box) box.remove(); FIGHT.eid = null; document.documentElement.classList.remove("fight-open"); return; }
   fightSync(c, e);
-  if (!box) { box = document.createElement("div"); box.id = "fightWin"; box.className = "fight-win"; box.setAttribute("role", "dialog"); box.setAttribute("aria-label", "Fight"); }
-  if (box.parentNode !== main) main.append(box);
+  /* over any tab (the Dungeon Map's Run this fight opens it there), so it handles the encounter's buttons and fields itself */
+  if (!box) {
+    box = document.createElement("div"); box.id = "fightWin"; box.className = "fight-win"; box.setAttribute("role", "dialog"); box.setAttribute("aria-label", "Fight");
+    box.addEventListener("click", encClick); box.addEventListener("input", ev => onEncField(ev, false)); box.addEventListener("change", ev => onEncField(ev, true));
+  }
+  if (box.parentNode !== document.body) document.body.append(box);
   document.documentElement.classList.add("fight-open");
   const all = fightAll(c, e), turnKey = fightTurnKey(c, e);
   if (!FIGHT.sel || !all.some(w => w.key === FIGHT.sel)) FIGHT.sel = turnKey || (all[0] && all[0].key) || null;

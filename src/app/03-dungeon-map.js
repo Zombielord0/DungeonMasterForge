@@ -519,13 +519,28 @@ function mapRunEncounter(i) {
   const d = currentMap, o = d && d.rooms[i]; if (!o || !o.enc) return;
   const c = curCampForMap(); if (!c) { toast("Create a campaign first (Campaign Tracker), then pick it under Save to campaign."); return; }
   const groups = parseEncText(o.enc.text); if (!groups.length) { toast("Couldn't read the monsters in that fight."); return; }
-  const e = newEncounter(null, `${d.params.name} · Room ${o.num}: ${o.type || o.name || "Room"}`, d.params.level || c.currentLevel || 1, groups, { kind: "map", room: o.num, notes: `From the map “${d.params.name}”, room ${o.num}.` });
-  c.encounters = c.encounters || []; c.encounters.push(e); Store.save(c);
-  if (HOST.on && HOST.fog) {
-    const tmp = new Uint8Array(d.W * d.H); if (fogRevealRoom(d, tmp, o.cx, o.cy)) { fogSnap(); tmp.forEach((on, k) => { if (on) HOST.fog[k] = 1; }); fogSaveLocal(); }
-    HOST.enc = { cid: c.id, eid: e.id }; if (HOST.show === "handout") { HOST.show = "map"; handoutUI(); } drawMapDM(); hostSend();
+  c.encounters = c.encounters || [];
+  /* this room's fight again (not finished): reopen it rather than adding a copy (owner, 2026-11-25) */
+  const name = `${d.params.name} · Room ${o.num}: ${o.type || o.name || "Room"}`;
+  let e = c.encounters.find(x => x.kind === "map" && x.room === o.num && x.name === name && x.status !== "Done"), added = false;
+  if (!e) {
+    e = newEncounter(null, name, d.params.level || c.currentLevel || 1, groups, { kind: "map", room: o.num, notes: `From the map “${d.params.name}”, room ${o.num}.` });
+    c.encounters.push(e); added = true;
   }
-  toast(`Fight added to “${c.name}” → Encounters${HOST.on ? ", the room is revealed and the turn order is on the TV" : ""}.`);
+  /* started straight away: the monsters' initiative rolled, round 1, so the turn order is filled in */
+  if (!e.enemies.some(m => m.init !== "" && m.init !== null)) {
+    const group = {}, key = x => x.boss ? x.id : x.stat || x.name;
+    e.enemies.forEach(x => { if (e.groupInit && group[key(x)] !== undefined) { x.init = group[key(x)]; return; } x.init = group[key(x)] = 1 + Math.floor(Math.random() * 20) + foeInit(x.stat); });
+    e.round = 1; e.status = "Active"; const order = encOrder(c, e).filter(x => !x.down); e.turn = order.length ? order[0].key : null; fightOnTurn(c, e, null, 0);
+  }
+  Store.save(c);
+  if (HOST.on) {
+    if (HOST.fog) { const tmp = new Uint8Array(d.W * d.H); if (fogRevealRoom(d, tmp, o.cx, o.cy)) { fogSnap(); tmp.forEach((on, k) => { if (on) HOST.fog[k] = 1; }); fogSaveLocal(); } }
+    HOST.enc = { cid: c.id, eid: e.id }; if (HOST.show !== "map") { HOST.show = "map"; handoutUI(); } drawMapDM(); hostSend(); /* this fight replaces any other on the TV */
+  }
+  /* the fight window opens over the map, with the monsters and the party; Close comes back here */
+  activeId = c.id; subTab = "encounters"; fightOpen(e.id);
+  toast(`${added ? "Fight added to" : "Reopened the fight in"} “${c.name}”${HOST.on ? ". The room is revealed and the turn order is on the TV" : ""}. Enter the heroes' initiative.`);
 }
 $("#roomKey").addEventListener("click", e => { const b = e.target.closest("[data-runenc]"); if (b) mapRunEncounter(+b.dataset.runenc); });
 function roomKeyHTML(d) {

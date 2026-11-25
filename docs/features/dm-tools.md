@@ -96,3 +96,10 @@ The owner asked for condition drop-downs for foes and heroes in a fight, and rem
 - **Unchanged:** the TV and players' phones still get only names, whose turn, and Bloodied or Down.
 - **The TV's turn order** (2026-11-25, owner's request) shows each creature's condition names: `tvInitRows(c, e, { conds: true })`, with foes' from `m.conds` and heroes' from `e.pcConds` and their sheet. It never shows a foe's free-text note. Players' phones (`turnsNow`) don't get conditions.
 - **Closing the TV window** (noticed within 2 seconds), or Stop, calls `hostOffReset`. That clears `HOST.enc` and `HOST.atlas`, returns a handout to the map, and redraws the Tracker or World, so every TV button reads Show on TV again.
+- **From the Dungeon Map** (2026-11-25, owner's report): a room's **Run this fight** (`mapRunEncounter`)
+  - reuses that room's unfinished fight (same map name and room), or adds one;
+  - rolls the monsters' initiative if nobody has any (round 1, turn set, `fightOnTurn`);
+  - puts it on the TV whenever hosting, replacing any other fight;
+  - opens the fight window over the map.
+
+  The window is attached to `<body>` (z-index 62, above the map's Run at 60) and runs the encounter's own handlers itself: `encClick` (the Tracker's `data-ea` handler, now a named function) and `onEncField`. That way it works over any tab. Esc closes the fight window before the map's Run.

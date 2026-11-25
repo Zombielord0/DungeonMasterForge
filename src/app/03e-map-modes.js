@@ -87,7 +87,7 @@ $("#mapToRun").addEventListener("click", () => mapMode("run"));
 $("#mapRunDone").addEventListener("click", () => mapMode(MAPMODE.from));
 $("#mapRTabs").addEventListener("click", e => { const b = e.target.closest("[data-rtab]"); if (b) mapRunTab(b.dataset.rtab); });
 document.addEventListener("keydown", e => {
-  if (e.key !== "Escape" || MAPMODE.m !== "run" || e.defaultPrevented) return;
+  if (e.key !== "Escape" || MAPMODE.m !== "run" || e.defaultPrevented || document.querySelector("#fightWin")) return; /* Esc closes the fight window first */
   /* a window open over Run (any of the app's pop-ups, What's new) gets the Esc instead */
   if (document.querySelector('dialog[open], #modal.open, [id$="Modal"].open, #sheetOverlay.open, #newsPanel:not([hidden])')) return;
   if (e.target.closest && e.target.closest("input, textarea, select")) return;

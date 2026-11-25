@@ -1632,7 +1632,7 @@ html.map-running{overflow:hidden}
 
 /* ======================= The fight window (2026-11-25; 05b-fight.js) ======================= */
 html.fight-open{overflow:hidden}
-.fight-win{position:fixed;inset:0;z-index:58;background:#07080d;display:flex;flex-direction:column;gap:8px;padding:10px 12px;overflow:hidden}
+.fight-win{position:fixed;inset:0;z-index:62;background:#07080d;display:flex;flex-direction:column;gap:8px;padding:10px 12px;overflow:hidden}
 .fight-top{display:flex;flex-wrap:wrap;gap:8px;align-items:center;font-family:Cinzel,serif;color:var(--gold2);font-size:17px} /* not .fight-bar: that's the phone's fight bar */
 .fight-top .muted{font-family:inherit;font-size:14px}
 .fight-win .pc-init{display:flex;flex-wrap:wrap;gap:10px;align-items:center}

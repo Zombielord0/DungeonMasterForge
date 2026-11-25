@@ -1299,7 +1299,8 @@ $("#fightBar").addEventListener("click", ev => {
   }
 });
 campMain.addEventListener("change", ev => { if (ev.target.id === "randEnv") RAND.env = ev.target.value; if (ev.target.id === "randDiff") RAND.diff = ev.target.value; });
-campMain.addEventListener("click", async ev => {
+/* the encounter buttons (data-ea): on the Tracker, and in the fight window, which can sit over any tab (05b-fight.js) */
+async function encClick(ev) {
   if (ev.target.id === "randRoll") {
     const c = curCamp(), button = ev.target;
     if (!c || button.disabled) return;
@@ -1432,7 +1433,8 @@ campMain.addEventListener("click", async ev => {
     combatRecord(e, before, label);
   }
   Store.save(c); rerenderEnc(c, e);
-});
+}
+campMain.addEventListener("click", encClick);
 function onEncField(ev, commit) {
   const t = ev.target; if (!t.dataset || !t.dataset.ef) return;
   const c = curCamp(); if (!c) return; const e = findEnc(c, t.dataset.eid); if (!e) return;

@@ -2,6 +2,11 @@
    When a change ships, add an entry to the top of NEWS with a new id, in plain words for players and DMs. */
 
 const NEWS = [
+  { id: "2026-11-25-map-run-fight", date: "2026-11-25", title: "Run this fight opens the fight", go: "map", items: [
+    "On the Dungeon Map, a room's Run this fight now rolls the monsters' initiative and opens the fight window right over the map, with the monsters and your party. Close goes back to the map.",
+    "With the TV on, that fight's turn order replaces any other fight on the TV, and the room is revealed.",
+    "Pressing it again for the same room reopens that fight instead of adding a copy."
+  ] },
   { id: "2026-11-25-tv-conditions", date: "2026-11-25", title: "Conditions on the TV, and TV buttons that reset", items: [
     "The turn order on the TV now shows each creature's conditions, like Goblin 1 · Prone.",
     "When the TV window is closed, every Show on TV button (fights, NPC pictures, Lore, the World map) goes back to Show on TV instead of staying on Off TV."
