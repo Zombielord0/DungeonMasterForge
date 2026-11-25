@@ -192,7 +192,7 @@ Playwright and Chromium are pre-installed in cloud sessions. To test offline mod
 - Use `totalLv(c)` rather than `c.level` for anything that depends on character level.
 - **Spellcasting can come from a subclass:** use `castOf(cls, subclass)` (not `CLASS_DATA[cls].cast`) and `castListOf` for the spell list. Eldritch Knight and Arcane Trickster are third casters (`SUB_CASTERS`, `thirdSlots`, `THIRD_KNOWN`).
 - **Class pickers use `classList(ed)`; random picks use `builtInClasses()`** (homebrew classes live in `CLASS_DATA` with `hb: true`).
-- **Never send the TV map data, room key text or HP numbers.** It only gets finished pictures, and monster state as "Bloodied" or "Down". The same goes for the turn order on players' phones (`turnsNow`), and the players' Journal never carries quest notes or DM-only Lore sections.
+- **Never send the TV map data, room key text or HP numbers.** It only gets finished pictures, and monster state as "Bloodied" or "Down". **Since 2026-11-25 (owner's request) the TV's turn order also shows each creature's condition names** (`tvInitRows(c, e, { conds: true })`), but never a foe's free-text note. The turn order on players' phones (`turnsNow`) stays names, whose turn and Bloodied or Down only, and the players' Journal never carries quest notes or DM-only Lore sections.
 
 ## Saved data
 

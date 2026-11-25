@@ -897,24 +897,33 @@ function hostFrameCanvas() {
   let cv = null;
   if (HOST.show === "atlas" && HOST.atlas) { // a World or region map (src/app/06b-atlas.js): found places only
     cv = atlasTvCanvas();
-    if (cv) { const f = hostEnc(); if (f) tvDrawInitStrip(cv, tvInitRows(f.c, f.e), f.e.round); return cv; }
+    if (cv) { const f = hostEnc(); if (f) tvDrawInitStrip(cv, tvInitRows(f.c, f.e, { conds: true }), f.e.round); return cv; }
   }
   if (currentMap) { cv = document.createElement("canvas"); drawDungeon(cv, currentMap, $("#mapGrid").checked, { player: true, fog: HOST.fog, found: HOST.found, numbers: HOST.numbers, scale: 2, tokens: tokenView() }); }
   const f = hostEnc();
-  if (f) { const rows = tvInitRows(f.c, f.e); if (cv) tvDrawInitStrip(cv, rows, f.e.round); else cv = tvInitBoard(rows, f.e.round); }
+  if (f) { const rows = tvInitRows(f.c, f.e, { conds: true }); if (cv) tvDrawInitStrip(cv, rows, f.e.round); else cv = tvInitBoard(rows, f.e.round); }
   if (!cv) { cv = document.createElement("canvas"); cv.width = 1920; cv.height = 1080; const g = cv.getContext("2d"); g.fillStyle = "#0b0a09"; g.fillRect(0, 0, 1920, 1080); } // nothing to show yet: a dark screen
   return cv;
 }
 function hostEnc() { if (!HOST.enc) return null; const c = Store.get(HOST.enc.cid), e = c && findEnc(c, HOST.enc.eid); return e ? { c, e } : null; }
 // what the TV may know about a fight: names, whose turn, Bloodied/Down. Never HP numbers.
-function tvInitRows(c, e) {
-  return encOrder(c, e).map(o => {
-    const m = o.foe ? e.enemies.find(x => x.id === o.key) : null;
+/* the turn order for the TV and players' phones: names, whose turn, Bloodied or Down (never HP).
+   o.conds (the TV only, owner 2026-11-25): each creature's condition names too, from the fight window;
+   players' phones (turnsNow) don't get them. A foe's free-text note is never shown. */
+function tvInitRows(c, e, o = {}) {
+  return encOrder(c, e).map(row => {
+    const m = row.foe ? e.enemies.find(x => x.id === row.key) : null;
     const state = !m ? "" : m.hp <= 0 ? "Down" : m.hp <= m.max / 2 ? "Bloodied" : "";
-    return { name: o.name, foe: !!o.foe, cur: e.turn === o.key, state };
+    const r = { name: row.name, foe: !!row.foe, cur: e.turn === row.key, state };
+    if (o.conds) {
+      const pt = !row.foe ? (c.party || []).find(p => p.id === row.key) : null, pc = pt && pt.pcId ? PCS.roster.find(x => x.id === pt.pcId) : null;
+      const ks = m ? (m.conds || []).map(cd => cd.k) : [...((e.pcConds || {})[row.key] || []).map(cd => cd.k), ...(pc ? CONDS.filter(([k]) => condOn(pc, k)).map(([k]) => k) : [])];
+      r.conds = [...new Set(ks)].map(fightCondLabel);
+    }
+    return r;
   });
 }
-function tvChipLabel(r) { return (r.cur ? "▶ " : "") + r.name + (r.state ? " · " + r.state : ""); }
+function tvChipLabel(r) { return (r.cur ? "▶ " : "") + r.name + (r.state ? " · " + r.state : "") + ((r.conds || []).length ? " · " + r.conds.join(", ") : ""); }
 function tvDrawInitStrip(cv, rows, round) {
   const g = cv.getContext("2d"); g.setTransform(1, 0, 0, 1, 0, 0);
   const W = cv.width, h = Math.round(Math.max(70, Math.min(130, W * .05))), pad = Math.round(h * .22);
@@ -1037,7 +1046,13 @@ function hostLive() { return HOST.on && !!HOST.win && !HOST.win.closed; }
 function hostEnsure() { if (hostLive()) { try { HOST.win.focus(); } catch (e) { } } else hostStart(); }
 function hostStop() {
   if (HOST.ch) HOST.ch.postMessage({ t: "bye" });
-  HOST.on = false; HOST.tv = false; hostStatus(); drawMapDM();
+  HOST.on = false; HOST.tv = false; hostOffReset(); hostStatus(); drawMapDM();
+}
+/* the TV is gone: nothing is "on the TV" any more, so every TV button reads Show on TV again (owner, 2026-11-25) */
+function hostOffReset() {
+  HOST.enc = null; HOST.atlas = null; if (HOST.show !== "map") { HOST.show = "map"; handoutUI(); }
+  const v = ($("section.view.active") || {}).id;
+  if (v === "view-tracker") renderTracker(); else if (v === "view-world") renderWorld();
 }
 $("#hostStart").addEventListener("click", () => hostLive() ? hostStop() : hostStart());
 
@@ -1119,5 +1134,5 @@ $("#handoutTextShow").addEventListener("click", () => { const t = $("#handoutTex
 $("#handoutBack").addEventListener("click", () => { HOST.show = "map"; handoutUI(); hostSend(); });
 $("#fogNums").addEventListener("change", e => { HOST.numbers = e.target.checked; hostSend(); });
 /* the TV window was closed: stop hosting, so every Show on TV and Host for players opens it again */
-setInterval(() => { if (HOST.on && HOST.win && HOST.win.closed) { HOST.on = false; HOST.tv = false; hostStatus(); drawMapDM(); } }, 2000);
+setInterval(() => { if (HOST.on && HOST.win && HOST.win.closed) { HOST.on = false; HOST.tv = false; hostOffReset(); hostStatus(); drawMapDM(); } }, 2000);
 addEventListener("pagehide", () => { if (HOST.on && HOST.ch) HOST.ch.postMessage({ t: "bye" }); });

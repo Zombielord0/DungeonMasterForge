@@ -2,6 +2,10 @@
    When a change ships, add an entry to the top of NEWS with a new id, in plain words for players and DMs. */
 
 const NEWS = [
+  { id: "2026-11-25-tv-conditions", date: "2026-11-25", title: "Conditions on the TV, and TV buttons that reset", items: [
+    "The turn order on the TV now shows each creature's conditions, like Goblin 1 · Prone.",
+    "When the TV window is closed, every Show on TV button (fights, NPC pictures, Lore, the World map) goes back to Show on TV instead of staying on Off TV."
+  ] },
   { id: "2026-11-25-fight-window", date: "2026-11-25", title: "Run a fight in its own window, with conditions and save reminders", go: "tracker", items: [
     "In the Campaign Tracker's Encounters, press ▶ Run fight. Everyone is in initiative order, with HP, AC, conditions and concentration, and the current creature's stat block in the middle.",
     "Add a condition to anyone from the + Condition list, foes and heroes alike. A hero's condition goes onto their character sheet too.",

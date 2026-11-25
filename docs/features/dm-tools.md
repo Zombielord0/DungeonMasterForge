@@ -94,3 +94,5 @@ The owner asked for condition drop-downs for foes and heroes in a fight, and rem
   - `fightCasterSpells`: a hero's prepared spells, or the spells named in the monster's stat block.
 - **Undo** (`combatSnapshot`) now covers foes' `conds` and `conc`, and the encounter's `prompts` and `casts`. Heroes' sheet conditions aren't undone.
 - **Unchanged:** the TV and players' phones still get only names, whose turn, and Bloodied or Down.
+- **The TV's turn order** (2026-11-25, owner's request) shows each creature's condition names: `tvInitRows(c, e, { conds: true })`, with foes' from `m.conds` and heroes' from `e.pcConds` and their sheet. It never shows a foe's free-text note. Players' phones (`turnsNow`) don't get conditions.
+- **Closing the TV window** (noticed within 2 seconds), or Stop, calls `hostOffReset`. That clears `HOST.enc` and `HOST.atlas`, returns a handout to the map, and redraws the Tracker or World, so every TV button reads Show on TV again.

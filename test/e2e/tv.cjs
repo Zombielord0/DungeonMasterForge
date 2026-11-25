@@ -104,6 +104,25 @@ const server = http.createServer((req, res) => {
     await dm.click("#hostStart");
     check("Host for players opens the window again (instead of switching off) when it was closed", !!(await pop3) && await dm.evaluate(() => HOST.on));
   }
+  // ---------- owner (2026-11-25): the TV's turn order shows conditions; closing the TV resets every TV button ----------
+  {
+    const r = await dm.evaluate(id => {
+      const c = curCamp(), e = findEnc(c, id);
+      fightAddCond(c, e, fightWho(c, e, "foe:" + e.enemies[2].id), { k: "prone", ends: "removed" }); Store.save(c);
+      const tv = tvInitRows(c, e, { conds: true }), ph = tvInitRows(c, e);
+      return { tv: tv.find(x => x.name === e.enemies[2].name), phone: ph.find(x => x.name === e.enemies[2].name), label: tvChipLabel(tv.find(x => x.name === e.enemies[2].name)) };
+    }, eid);
+    check("the TV's turn order lists a creature's conditions", r.tv && (r.tv.conds || []).includes("Prone") && /Prone/.test(r.label), JSON.stringify(r));
+    check("players' phones still get no conditions", r.phone && !("conds" in r.phone), JSON.stringify(r.phone));
+    for (const pg of ctx.pages()) if (/player\.html/.test(pg.url())) await pg.close(); /* the TV left open by the check above */
+    await dm.bringToFront(); await dm.waitForTimeout(2600);
+    await dm.evaluate(() => { location.hash = "tracker"; HOST.enc = null; subTab = "encounters"; renderTracker(); }); await dm.waitForTimeout(300);
+    const pop = ctx.waitForEvent("page", { timeout: 4000 }).catch(() => null);
+    await dm.click(`[data-ea="tv"][data-eid="${eid}"]`); const tvp = await pop; await dm.waitForTimeout(300);
+    check("(set-up) the button says Off TV while the TV is open", /Off TV/.test(await dm.textContent(`[data-ea="tv"][data-eid="${eid}"]`)));
+    if (tvp) await tvp.close(); await dm.bringToFront(); await dm.waitForTimeout(2600);
+    check("closing the TV window resets the button to Show on TV", /Show on TV/.test(await dm.textContent(`[data-ea="tv"][data-eid="${eid}"]`)) && await dm.evaluate(() => !HOST.enc && !HOST.atlas && HOST.show !== "handout"));
+  }
   check("no page errors", errs.length === 0, errs.join(" | "));
   await browser.close(); server.close();
   console.log(fails ? `\n${fails} check(s) failed` : "\nAll TV checks passed");
