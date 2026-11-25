@@ -751,7 +751,8 @@ if (location.protocol !== "file:" && localStorage.getItem("dmforge.offline") !==
   <p class="hint" style="margin-top:0">Add many spells, feats, species, backgrounds, subclasses, magic items or monsters at once, for example from books you own. Fill in a template in Excel or Google Sheets, save it as CSV, then choose it here. A JSON file with the same columns works too.</p>
   <div class="field"><label>Templates (one example row each; add a row per entry)</label><div class="row" id="bulkTpl" style="flex-wrap:wrap;gap:6px"></div>
     <p class="hint" style="margin:6px 0 0">Species and subclasses take several rows: one per trait, subrace or feature, each with the same name. Monsters take a whole stat block in one cell.</p></div>
-  <label class="btn" style="display:block;text-align:center" tabindex="0">Choose a file…<input type="file" id="bulkFile" accept=".csv,.json,.txt,text/csv,application/json" hidden></label>
+  <label class="btn" style="display:block;text-align:center" tabindex="0">Choose a file… <small>(.csv, .json or .txt)</small><input type="file" id="bulkFile" accept=".csv,.json,.txt,text/csv,application/json" hidden></label>
+  <p class="hint" style="margin:6px 0 0"><b>CSV</b>: a template filled in and saved from Excel or Google Sheets. <b>JSON</b>: a list of entries, each with a kind and a name. A <b>.txt</b> file holding either works too.</p>
   <div id="bulkOut" class="imp-out" aria-live="polite"></div>
   <div class="row" style="justify-content:flex-end;margin-top:14px;gap:8px"><button class="btn" type="button" id="bulkCancel" style="flex:0 0 auto">Close</button><button class="btn primary" type="button" id="bulkGo" style="flex:0 0 auto" disabled>Add</button></div>
 </div></div>

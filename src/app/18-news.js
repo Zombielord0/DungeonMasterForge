@@ -2,6 +2,9 @@
    When a change ships, add an entry to the top of NEWS with a new id, in plain words for players and DMs. */
 
 const NEWS = [
+  { id: "2026-11-25-bulk-types", date: "2026-11-25", title: "Bulk import says which files it takes", go: "homebrew", items: [
+    "The Homebrew tab's Bulk import buttons now say they take CSV or JSON files (.csv, .json, or a .txt holding either), with a line on what each one is."
+  ] },
   { id: "2026-11-25-handout-form", date: "2026-11-25", title: "A tidier Journal handouts form", go: "tracker", items: [
     "The Campaign Tracker's Handouts form now looks like the rest of the Forge, with labelled fields, an Upload a picture button that shows the file's name, and a note that handouts start hidden."
   ] },
