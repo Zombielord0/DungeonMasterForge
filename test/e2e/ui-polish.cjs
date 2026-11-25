@@ -178,6 +178,22 @@ const EMOJI = /\p{Extended_Pictographic}/u;
     await ctx.close();
   }
 
+  // ---- owner (2026-11-25): the Tracker's Journal handouts form looks like the rest of the Forge
+  {
+    const { ctx, p } = await open(1366, 900);
+    await p.goto(URL + "#tracker"); await p.waitForFunction(() => typeof renderTracker === "function");
+    await p.evaluate(() => { const c = blankCampaign("Handouts"); Store.save(c); activeId = c.id; subTab = "handouts"; renderTracker(); });
+    await p.waitForTimeout(300);
+    const f = await p.evaluate(() => {
+      const form = document.querySelector("#journalHandoutForm"), t = form.querySelector('input[name="title"]'), file = form.querySelector('input[name="picture"]');
+      const bg = getComputedStyle(t).backgroundColor.match(/\d+/g).slice(0, 3).map(Number);
+      return { dark: bg.every(v => v < 90), fields: form.querySelectorAll(".field").length, fileHidden: file.hidden || getComputedStyle(file).display === "none", fileBtn: !!file.closest("label.btn"), titleWide: t.getBoundingClientRect().width > 300 };
+    });
+    check("Journal handouts: the Title box is the Forge's dark field, full width", f.dark && f.titleWide, JSON.stringify(f));
+    check("Journal handouts: labelled fields, and the picture upload is a Forge button", f.fields >= 3 && f.fileHidden && f.fileBtn, JSON.stringify(f));
+    await ctx.close();
+  }
+
   check("no page errors", !errs.length, errs.join(" | "));
   await browser.close(); server.close();
   console.log(fails ? `\n${fails} check(s) failed` : "\nAll UI polish checks passed");

@@ -1679,3 +1679,11 @@ html.fight-open{overflow:hidden}
   .fight-dmg{justify-content:flex-start}
   .fight-chip{overflow-wrap:normal}
 }
+
+/* the Tracker's Journal handouts form (2026-11-25): the Forge's own fields, in a well like other add forms */
+.handout-form{margin-top:12px;padding:12px;border:1px solid var(--line);border-radius:4px;background:var(--well)}
+.handout-form h4{margin:0 0 8px;font-family:Cinzel,serif;color:var(--gold2);font-size:14px}
+.handout-form .lbl{display:block}
+.handout-pics>div{flex:1 1 220px;min-width:0}
+/* a file-upload button made from a <label> inside a .field keeps the button look, not the field-label look */
+.field label.btn:not(.check):not(.opt){display:inline-flex;align-items:center;margin:0;font-size:13px;letter-spacing:.04em;color:#e3dbcb;text-shadow:none}

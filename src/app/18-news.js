@@ -2,6 +2,9 @@
    When a change ships, add an entry to the top of NEWS with a new id, in plain words for players and DMs. */
 
 const NEWS = [
+  { id: "2026-11-25-handout-form", date: "2026-11-25", title: "A tidier Journal handouts form", go: "tracker", items: [
+    "The Campaign Tracker's Handouts form now looks like the rest of the Forge, with labelled fields, an Upload a picture button that shows the file's name, and a note that handouts start hidden."
+  ] },
   { id: "2026-11-25-map-run-fight", date: "2026-11-25", title: "Run this fight opens the fight", go: "map", items: [
     "On the Dungeon Map, a room's Run this fight now rolls the monsters' initiative and opens the fight window right over the map, with the monsters and your party. Close goes back to the map.",
     "With the TV on, that fight's turn order replaces any other fight on the TV, and the room is revealed.",
