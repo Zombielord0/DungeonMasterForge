@@ -297,8 +297,21 @@ function locMapShow() {
   const cv = document.createElement("canvas"); drawDungeon(cv, d, true, { scale: 1 }); cv.setAttribute("aria-label", `Preview of the map for ${l.name}`);
   $("#locMapPic").replaceChildren(cv);
   $("#locMapRooms").innerHTML = d.rooms.map(o => `<li><b>${o.num}. ${esc(o.type || o.name || "Room")}</b>${o.enc ? ` <span class="muted">· ${esc(o.enc.text)}</span>` : ""}${o.boss ? ` <span class="tag">boss</span>` : ""}</li>`).join("");
+  /* Save to campaign: this adventure's campaign first (if it was saved to the Tracker), else the last one picked */
+  const sel = $("#locMapCamp"), camps = Store.list(), was = sel.value, mine = camps.find(c => c.gen && c.gen.seed === g.seed);
+  sel.innerHTML = camps.length ? camps.map(c => `<option value="${esc(c.id)}">${esc(c.name)}</option>`).join("") : `<option value="">No campaigns yet</option>`;
+  sel.value = camps.some(c => c.id === was) ? was : mine ? mine.id : camps[0] ? camps[0].id : "";
+  sel.disabled = !camps.length; $("#locMapSave").disabled = !camps.length;
+  $("#locMapSave").title = camps.length ? "Keep this map in the campaign: it shows on the Dungeon Map's Your maps and the campaign's Maps tab" : "Save the adventure to the Campaign Tracker first (Save to Campaign Tracker), then save its maps to it";
   if (!box.classList.contains("open")) { box.classList.add("open"); $("#locMapOpen").focus(); }
 }
+$("#locMapSave").addEventListener("click", () => {
+  const { g, i, seed } = LOCMAP, c = Store.get($("#locMapCamp").value); if (!g || !c) { toast("Save the adventure to the Campaign Tracker first."); return; }
+  const rec = locMapParams(g, i, seed); c.maps = c.maps || [];
+  if (c.maps.some(m => !m.kind && m.name === rec.name && m.seed === rec.seed)) { toast(`“${rec.name}” is already saved in “${c.name}”.`); return; }
+  c.maps.unshift({ ...rec, id: uid("m"), saved: Date.now() }); Store.save(c);
+  toast(`Map saved to “${c.name}”. It's on the Dungeon Map's Your maps and the campaign's Maps tab.`);
+});
 function locMapClose() { $("#locMapModal").classList.remove("open"); }
 $("#locMapAgain").addEventListener("click", () => { LOCMAP.seed = newSeed(); locMapShow(); });
 $("#locMapClose").addEventListener("click", locMapClose);

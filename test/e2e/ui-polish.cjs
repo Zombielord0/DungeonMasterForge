@@ -190,6 +190,13 @@ const EMOJI = /\p{Extended_Pictographic}/u;
     await p.click("#locMapAgain"); await p.waitForTimeout(300);
     const seed2 = await p.evaluate(() => document.querySelector("#locMapModal").dataset.seed);
     check("🎲 Another map rolls a different layout", seed2 && seed2 !== pv.seed, `${pv.seed} -> ${seed2}`);
+    /* owner (2026-11-25): add the previewed map to a campaign from the window */
+    await p.evaluate(() => { const c = blankCampaign("Preview camp"); Store.save(c); renderCampList(); locMapShow(); });
+    await p.waitForTimeout(200);
+    const cid = await p.evaluate(() => Store.list().find(c => c.name === "Preview camp").id);
+    await p.selectOption("#locMapCamp", cid); await p.click("#locMapSave"); await p.waitForTimeout(200); await p.click("#locMapSave"); await p.waitForTimeout(200);
+    const sv = await p.evaluate(id => (Store.get(id).maps || []).map(m => ({ name: m.name, seed: m.seed })), cid);
+    check("Save to campaign adds the previewed map to the chosen campaign, once", sv.length === 1 && sv[0].name === loc && sv[0].seed === seed2, JSON.stringify(sv));
     await p.click("#locMapOpen"); await p.waitForTimeout(500);
     const st = await p.evaluate(() => ({ hash: location.hash, name: currentMap && currentMap.params.name, seed: currentMap && currentMap.params.seed, closed: !document.querySelector("#locMapModal").classList.contains("open") }));
     check("Open in Dungeon Map opens that same map", st.hash === "#map" && st.name === loc && st.seed === seed2 && st.closed, JSON.stringify(st));
