@@ -1,7 +1,8 @@
 /* 05b-fight.js: the fight window (2026-11-25, owner's request): a full-screen view of one encounter with everyone in
    initiative order, conditions for foes and heroes (picked from a list, with how they end and their saving throw),
    reminders that wait for Saved / Failed, and concentration that links a spell to the conditions it caused.
-   It lives inside #campMain, so the encounter's own buttons (data-ea) and fields (data-ef) work in it unchanged.
+   It sits on <body> over any tab (the Dungeon Map's Run this fight opens it there) and runs the encounter's own
+   handlers itself (encClick for data-ea, onEncField for data-ef), so those buttons and fields work in it unchanged.
    Design: docs/superpowers/specs/2026-11-25-fight-window-design.md. Check: npm run test:fight. */
 const FIGHT = { eid: null, sel: null };
 const FIGHT_ENDS = [["removed", "Until removed"], ["saveEnd", "Save at the end of each of its turns"], ["saveStart", "Save at the start of each of its turns"], ["rounds", "After a number of rounds"], ["endNext", "At the end of its next turn"], ["startNext", "At the start of its next turn"]];

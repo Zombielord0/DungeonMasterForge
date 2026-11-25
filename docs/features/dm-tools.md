@@ -77,7 +77,7 @@ Moved here from `CLAUDE.md` on 2026-11-17, unchanged except that `public/index.h
 ## The fight window (2026-11-25)
 
 The owner asked for condition drop-downs for foes and heroes in a fight, and reminders for concentration and spells' saves. They then chose a full-screen fight window. Design: `docs/superpowers/specs/2026-11-25-fight-window-design.md`. Code: `src/app/05b-fight.js`. Check: `npm run test:fight`.
-- **Opening:** **▶ Run fight** on an encounter card (`data-fopen`). The window (`#fightWin`) is drawn inside `#campMain`, so the encounter's own actions work in it: `data-ea` (roll, next, dmg, heal, tv, undo) and `data-ef` (heroes' initiative). `renderTracker` and `rerenderEnc` redraw it. Close it with ✕ or Esc.
+- **Opening:** **▶ Run fight** on an encounter card (`data-fopen`). The window (`#fightWin`) sits on `<body>` and runs the encounter's own handlers (`encClick`, `onEncField`), so `data-ea` (roll, next, dmg, heal, tv, undo) and `data-ef` (heroes' initiative) work in it over any tab. `renderTracker` and `rerenderEnc` redraw it. Close it with ✕ or Esc.
 - **Creatures** are keyed `foe:<enemy id>` and `pc:<party id>` (`fightWho`, `fightAll`).
 - **Conditions:**
   - foes keep `m.conds` (`{id, k, ends, save {ab, dc}, src {by, name, spell}, castId, untilRound, seenStart}`);
