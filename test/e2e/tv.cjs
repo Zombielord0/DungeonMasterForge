@@ -83,6 +83,27 @@ const server = http.createServer((req, res) => {
   n = await frames(); await dm.click("#handoutBack"); await waitFrame(n);
 
   check("TV still only receives pictures, pings and bye", await obs.evaluate(() => window.__msgs.length > 0 && window.__msgs.every(m => Object.keys(m).every(k => ["t", "blob", "x", "y"].includes(k)) && ["frame", "ping", "bye"].includes(m.t))));
+  // ---------- the owner's bug (2026-11-25): after the TV window is closed, Show on TV opens it again ----------
+  {
+    for (const pg of ctx.pages()) if (/player\.html/.test(pg.url())) await pg.close();
+    await dm.bringToFront(); await dm.waitForTimeout(300);
+    await dm.evaluate(() => { location.hash = "tracker"; HOST.enc = null; subTab = "encounters"; renderTracker(); }); await dm.waitForTimeout(300);
+    const tvBtn = `[data-ea="tv"][data-eid="${eid}"]`;
+    const pop = ctx.waitForEvent("page", { timeout: 4000 }).catch(() => null);
+    await dm.click(tvBtn);
+    check("Show on TV opens the TV window again after it was closed", !!(await pop));
+    for (const pg of ctx.pages()) if (/player\.html/.test(pg.url())) await pg.close();
+    await dm.bringToFront(); await dm.waitForTimeout(300);
+    await dm.click(tvBtn); await dm.waitForTimeout(200); /* Off TV */
+    const pop2 = ctx.waitForEvent("page", { timeout: 4000 }).catch(() => null);
+    await dm.click(tvBtn); /* Show on TV once more */
+    check("…and again after Off TV, with the window closed", !!(await pop2));
+    for (const pg of ctx.pages()) if (/player\.html/.test(pg.url())) await pg.close();
+    await dm.bringToFront(); await dm.evaluate(() => { location.hash = "map"; mapMode("run"); }); await dm.waitForTimeout(400);
+    const pop3 = ctx.waitForEvent("page", { timeout: 4000 }).catch(() => null);
+    await dm.click("#hostStart");
+    check("Host for players opens the window again (instead of switching off) when it was closed", !!(await pop3) && await dm.evaluate(() => HOST.on));
+  }
   check("no page errors", errs.length === 0, errs.join(" | "));
   await browser.close(); server.close();
   console.log(fails ? `\n${fails} check(s) failed` : "\nAll TV checks passed");

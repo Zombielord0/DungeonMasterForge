@@ -1030,11 +1030,16 @@ function hostStart() {
   if (!w) { toast("Your browser blocked the player window. Allow pop-ups for this site and try again."); return; }
   HOST.win = w; HOST.on = true; hostStatus(); drawMapDM(); hostSend();
 }
+/* the TV window is open: hosting, and its window hasn't been closed */
+function hostLive() { return HOST.on && !!HOST.win && !HOST.win.closed; }
+/* Show on TV (turn order, an NPC picture, Lore, the World map): open the TV window if it isn't open, or bring it forward.
+   (2026-11-25: HOST.on stayed true after the window was closed, so Show on TV never opened it again.) */
+function hostEnsure() { if (hostLive()) { try { HOST.win.focus(); } catch (e) { } } else hostStart(); }
 function hostStop() {
   if (HOST.ch) HOST.ch.postMessage({ t: "bye" });
   HOST.on = false; HOST.tv = false; hostStatus(); drawMapDM();
 }
-$("#hostStart").addEventListener("click", () => HOST.on ? hostStop() : hostStart());
+$("#hostStart").addEventListener("click", () => hostLive() ? hostStop() : hostStart());
 
 /* ---- fog: kept on this computer while playing; goes into a campaign only on Save ---- */
 const FOG_LS = "dmforge.fog.v1", FOG_KEEP = 40;
@@ -1113,5 +1118,6 @@ $("#handoutFile").addEventListener("change", e => { const f = e.target.files[0];
 $("#handoutTextShow").addEventListener("click", () => { const t = $("#handoutText").value.trim(); if (!t) { toast("Write something to show first"); return; } handoutWriting($("#handoutTitle").value.trim(), t); });
 $("#handoutBack").addEventListener("click", () => { HOST.show = "map"; handoutUI(); hostSend(); });
 $("#fogNums").addEventListener("change", e => { HOST.numbers = e.target.checked; hostSend(); });
-setInterval(() => { if (HOST.on && HOST.tv && HOST.win && HOST.win.closed) { HOST.tv = false; hostStatus(); } }, 2000);
+/* the TV window was closed: stop hosting, so every Show on TV and Host for players opens it again */
+setInterval(() => { if (HOST.on && HOST.win && HOST.win.closed) { HOST.on = false; HOST.tv = false; hostStatus(); drawMapDM(); } }, 2000);
 addEventListener("pagehide", () => { if (HOST.on && HOST.ch) HOST.ch.postMessage({ t: "bye" }); });

@@ -459,7 +459,7 @@ const atlasOnTv = id => HOST.show === "atlas" && HOST.atlas && HOST.atlas.id ===
 function atlasTvSync(id) { if (atlasOnTv(id) && HOST.on) hostSend(); }
 function atlasTv(id) {
   if (atlasOnTv(id)) { HOST.show = "map"; HOST.atlas = null; toast("The map is off the TV"); }
-  else { HOST.atlas = { id }; HOST.show = "atlas"; if (!HOST.on) hostStart(); toast(`${atlasName(id)} is on the TV, showing only the places the players have found`); }
+  else { HOST.atlas = { id }; HOST.show = "atlas"; hostEnsure(); toast(`${atlasName(id)} is on the TV, showing only the places the players have found`); }
   handoutUI(); hostSend(); renderWorld();
 }
 function atlasViewHTML() {

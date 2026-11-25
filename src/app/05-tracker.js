@@ -282,7 +282,7 @@ async function npcPicClear(id) {
 async function npcPicTV(id) {
   const n = npcOf(id); if (!n || !(n.img || npcUrlOk(n.imgUrl))) return;
   // open the TV window straight from the click, before any waiting, so pop-up blockers allow it
-  if (!HOST.on) hostStart();
+  hostEnsure();
   if (!HOST.on) return;
   let blob = null;
   if (n.img) { try { blob = await MAPIMG.get(n.img); } catch { } if (!blob) { toast("This picture isn't on this device. Add it again with 🖼 Add picture."); return; } }
@@ -547,7 +547,7 @@ function loreRender() {
 }
 async function loreTV(x) {
   if (!npcUrlOk(x.imgUrl)) return;
-  if (!HOST.on) hostStart();
+  hostEnsure();
   if (!HOST.on) return;
   let blob; try { const r = await fetch(x.imgUrl, { mode: "cors" }); if (!r.ok) throw 0; blob = await r.blob(); }
   catch { toast("That website doesn't let the Forge copy its picture. Download it and show it with 🖼 Show a picture on the Dungeon Map tab."); return; }
@@ -1349,7 +1349,7 @@ campMain.addEventListener("click", async ev => {
   }
   if (a === "tv" && e) {
     if (HOST.enc && HOST.enc.eid === e.id) { HOST.enc = null; toast("Turn order taken off the TV"); }
-    else { HOST.enc = { cid: c.id, eid: e.id }; if (HOST.show === "handout") { HOST.show = "map"; handoutUI(); } if (!HOST.on) hostStart(); toast("Turn order is on the TV"); }
+    else { HOST.enc = { cid: c.id, eid: e.id }; if (HOST.show === "handout") { HOST.show = "map"; handoutUI(); } hostEnsure(); toast("Turn order is on the TV"); }
     hostSend(); renderTracker(); return;
   }
   if (a === "addEnc") {

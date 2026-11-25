@@ -2,6 +2,9 @@
    When a change ships, add an entry to the top of NEWS with a new id, in plain words for players and DMs. */
 
 const NEWS = [
+  { id: "2026-11-25-tv-reopen", date: "2026-11-25", title: "Show on TV opens the TV window again", items: [
+    "If you closed the TV window, Show on TV (turn order, NPC pictures, Lore, the World map) and Host for players now open it again, instead of doing nothing."
+  ] },
   { id: "2026-11-25-map-layout", date: "2026-11-25", title: "A calmer Dungeon Map", go: "map", items: [
     "The Dungeon Map tab now opens on Your maps: picture cards of every map saved to a campaign or a World place, each with Edit and Run.",
     "Build is just for making maps: generate, draw or import, with the Room key below.",
