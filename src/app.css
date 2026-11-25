@@ -1629,3 +1629,53 @@ html.map-running{overflow:hidden}
   #view-map.map-run #hostCard,#view-map.map-run #roomKeyCard{overflow:visible}
   .map-rtabs{order:0}
 }
+
+/* ======================= The fight window (2026-11-25; 05b-fight.js) ======================= */
+html.fight-open{overflow:hidden}
+.fight-win{position:fixed;inset:0;z-index:58;background:#07080d;display:flex;flex-direction:column;gap:8px;padding:10px 12px;overflow:hidden}
+.fight-top{display:flex;flex-wrap:wrap;gap:8px;align-items:center;font-family:Cinzel,serif;color:var(--gold2);font-size:17px} /* not .fight-bar: that's the phone's fight bar */
+.fight-top .muted{font-family:inherit;font-size:14px}
+.fight-win .pc-init{display:flex;flex-wrap:wrap;gap:10px;align-items:center}
+.fight-win .pc-init input{width:60px}
+.fight-rem{display:flex;flex-wrap:wrap;gap:8px;align-items:center;background:#3a2410;border:1px solid #c46d22;border-radius:5px;padding:8px 12px;font-size:16px}
+.fight-ok{background:linear-gradient(#5d8a4a,#35552a)!important;color:#fff!important}
+.fight-cols{flex:1;min-height:0;display:grid;grid-template-columns:minmax(0,430px) minmax(0,1fr) minmax(0,300px);gap:10px}
+.fight-cols>.card{margin:0;overflow:auto;min-height:0}
+.fight-cols h3{margin:0 0 8px;font:600 13px Cinzel,serif;color:var(--gold2);letter-spacing:.06em}
+.fight-row{display:grid;grid-template-columns:34px minmax(0,1fr) auto;gap:8px;align-items:start;padding:7px 6px;border-bottom:1px solid #24231d;border-radius:4px}
+.fight-row.cur{background:#2c2312;outline:1px solid #c46d22}
+.fight-row.sel{box-shadow:inset 3px 0 0 var(--gold2)}
+.fight-row.down{opacity:.6}
+.fight-init{font:700 15px Cinzel,serif;color:var(--gold2);text-align:center;padding-top:3px}
+.fight-name{background:none;border:0;padding:0;font:600 16px "EB Garamond",serif;cursor:pointer;text-align:left;overflow-wrap:anywhere}
+.fight-row.foe .fight-name{color:#ffb0a0}.fight-row.pc .fight-name{color:#a8d4ff}
+.fight-main .hpbar{margin:3px 0}
+.fight-chips{display:flex;flex-wrap:wrap;gap:3px;align-items:center}
+.fight-chips select{width:auto;max-width:130px;padding:1px 22px 1px 6px;font-size:12px;min-height:0}
+.fight-chip{display:inline-flex;align-items:center;gap:3px;font-size:12px;padding:1px 4px 1px 8px;border-radius:9px;background:#4a2020;color:#ffd5c8;overflow-wrap:anywhere}
+.fight-chip small{color:#e8b8a8;font-size:11px}
+.fight-chip.conc{background:#1d3550;color:#cfe6ff;padding-right:8px}
+.fight-chip.note{background:#33302a;color:var(--text)}
+.fight-chip.down{background:#5a1a1a;padding-right:8px}
+.fight-x{background:none;border:0;color:inherit;cursor:pointer;font-size:11px;padding:0 3px;opacity:.8}
+.fight-side{font-size:13px;color:var(--muted);text-align:right;white-space:nowrap}
+.fight-dmg{display:flex;gap:3px;justify-content:flex-end;margin-top:4px}
+.fight-dmg input{width:52px;padding:2px 4px}
+.fight-stats{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:8px}
+.fight-stats span{background:var(--well);border:1px solid #000;border-radius:3px;padding:3px 8px;font-size:14px}
+.fight-add{margin-top:14px;border-top:1px solid var(--line);padding-top:10px}
+.fight-form{display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:8px;align-items:end;margin-bottom:6px}
+.fight-form label{display:flex;flex-direction:column;gap:3px;font-size:12px;color:var(--muted)}
+.fight-form label[hidden]{display:none}
+.fight-form .chk-inline{flex-direction:row;align-items:center;gap:6px;font-size:14px;color:var(--text)}
+.fight-log{font-size:13px;color:var(--muted);margin:0;padding-left:18px}
+.enc-conds{display:flex;flex-wrap:wrap;gap:3px;margin-bottom:4px}
+@media (max-width:900px){
+  .fight-win{overflow:auto}
+  .fight-cols{display:flex;flex-direction:column;flex:none}
+  .fight-cols>.card{overflow:visible}
+  .fight-side{white-space:normal;grid-column:2;text-align:left}
+  .fight-row{grid-template-columns:34px minmax(0,1fr)}
+  .fight-dmg{justify-content:flex-start}
+  .fight-chip{overflow-wrap:normal}
+}

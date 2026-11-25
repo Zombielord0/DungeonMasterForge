@@ -51,7 +51,15 @@ The Dungeon Map tab has three parts:
    - **Secret door:** click an "S" once the players find it.
    - Use the **Reveal on TV** buttons in the Room Key, which also work with the keyboard. A secret door turns green on your map once the players have found it.
    - Switch **Mode** to **Hide** to cover areas again, and use **Undo** if you make a mistake.
-4. **Turn order:** in Campaign Tracker → Encounters, press **📺 Show on TV** on a fight. The TV shows whose turn it is and the round. Monsters show only as Bloodied or Down.
+4. **Running a fight:** in Campaign Tracker → Encounters, press **▶ Run fight** to open the fight in its own window:
+   - everyone in initiative order, with HP and AC;
+   - **+ Condition** for foes and heroes (a hero's goes on their sheet);
+   - the current creature's stat block;
+   - **Add a condition** with how it ends and its save. Pick the caster and the spell to fill these in.
+
+   **Next turn** reminds you of each save, and damage to a concentrating foe asks for its concentration save. Answer with **Saved / Failed** or **Kept / Lost**.
+
+   **Turn order on the TV:** press **📺 Show on TV** on a fight. The TV shows whose turn it is and the round. Monsters show only as Bloodied or Down.
 5. **Handouts:** on the **Handout** tab, show a picture from your computer, or type a letter or note to show on parchment. **Back to map** returns to the dungeon.
 6. **Tokens:** press **+ Party**, **+ Fight on TV**, or type a name and press **Add**. Then choose the **Tokens** tool and drag them. Tokens in the fog stay hidden from players.
 7. **Shift+click** the map to flash a ring on the TV.

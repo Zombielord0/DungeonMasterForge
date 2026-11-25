@@ -73,3 +73,24 @@ Moved here from `CLAUDE.md` on 2026-11-17, unchanged except that `public/index.h
 - **Encounters (2026-11-19, owner's request):** a hoard can be for an encounter (`H.enc`). The panel's Encounter menu (Items tab: of the chosen campaign; Loot tab: of this campaign) and each encounter card's **💰 Hoard** button (`data-ea="hoard"`) set it; `hoardEncTier(e)` picks the band from the encounter's toughest monster (or its level). `hoardToLoot` then adds `encId` and "From <encounter>" to each Loot entry and appends a one-line summary to `e.treasure`, which the encounter card shows.
 - **Layout:** `.hoard-top` (title and ✕), `.hoard-ctl` (band and Roll again, wrapping on phones), `.hoard-dest` (campaign and encounter), `.hoard-acts`. `test:hoard` checks everything fits a 360px phone.
 - Check: `npm run test:hoard`.
+
+## The fight window (2026-11-25)
+
+The owner asked for condition drop-downs for foes and heroes in a fight, and reminders for concentration and spells' saves. They then chose a full-screen fight window. Design: `docs/superpowers/specs/2026-11-25-fight-window-design.md`. Code: `src/app/05b-fight.js`. Check: `npm run test:fight`.
+- **Opening:** **▶ Run fight** on an encounter card (`data-fopen`). The window (`#fightWin`) is drawn inside `#campMain`, so the encounter's own actions work in it: `data-ea` (roll, next, dmg, heal, tv, undo) and `data-ef` (heroes' initiative). `renderTracker` and `rerenderEnc` redraw it. Close it with ✕ or Esc.
+- **Creatures** are keyed `foe:<enemy id>` and `pc:<party id>` (`fightWho`, `fightAll`).
+- **Conditions:**
+  - foes keep `m.conds` (`{id, k, ends, save {ab, dc}, src {by, name, spell}, castId, untilRound, seenStart}`);
+  - heroes' conditions go on their sheet (`c.conds[k]`, or `c.exh` for Exhaustion) through `pcPersist`, with the details in `e.pcConds[partyId]`;
+  - the old free-text `m.cond` shows as a note chip.
+- **Reminders** (`e.prompts`), answered one at a time with Saved / Failed or Kept / Lost:
+  - `fightOnTurn` (called from both Next turn paths) asks for end-of-turn and start-of-turn saves, ends "next turn" conditions, and ends conditions whose rounds have run out;
+  - `fightOnFoeDamage` asks a concentrating foe for a CON save (DC max(10, half the damage)), and ends its cast at 0 HP;
+  - a hero's `concCheck`, set by the sheet when damaged, shows as a reminder too.
+- **Casts** (`e.casts`): adding a condition with a caster, a spell and Concentration records `{by, spell}`. A foe gets `m.conc`; a hero gets `concStart` on their sheet. A new concentration spell ends the caster's last one. `fightEndCast` removes every condition from that cast. `fightSync` ends casts whose hero stopped concentrating anywhere, or whose foe is down.
+- **Filled in for you:**
+  - `fightCasterDC`: a hero's `c.spell.dc`, or "spell save DC N" or "DC N" in the monster's stat block;
+  - `fightSpellInfo`: the save from `sv` or the wording, the first condition named in the text, end or start saves from "end/start of each of its turns", concentration from `co`, and rounds from the duration;
+  - `fightCasterSpells`: a hero's prepared spells, or the spells named in the monster's stat block.
+- **Undo** (`combatSnapshot`) now covers foes' `conds` and `conc`, and the encounter's `prompts` and `casts`. Heroes' sheet conditions aren't undone.
+- **Unchanged:** the TV and players' phones still get only names, whose turn, and Bloodied or Down.

@@ -2,6 +2,12 @@
    When a change ships, add an entry to the top of NEWS with a new id, in plain words for players and DMs. */
 
 const NEWS = [
+  { id: "2026-11-25-fight-window", date: "2026-11-25", title: "Run a fight in its own window, with conditions and save reminders", go: "tracker", items: [
+    "In the Campaign Tracker's Encounters, press ▶ Run fight. Everyone is in initiative order, with HP, AC, conditions and concentration, and the current creature's stat block in the middle.",
+    "Add a condition to anyone from the + Condition list, foes and heroes alike. A hero's condition goes onto their character sheet too.",
+    "Add a condition with how it ends and its save. Pick who cast it and the spell, and the Forge fills in the save, the DC from the caster, the condition and concentration (Hold Person: WIS save at the end of each turn).",
+    "Next turn reminds you of each save, waiting for Saved or Failed. Damage to a concentrating foe asks for its concentration save, and when concentration ends, the spell's conditions go too."
+  ] },
   { id: "2026-11-25-tv-reopen", date: "2026-11-25", title: "Show on TV opens the TV window again", items: [
     "If you closed the TV window, Show on TV (turn order, NPC pictures, Lore, the World map) and Host for players now open it again, instead of doing nothing."
   ] },
