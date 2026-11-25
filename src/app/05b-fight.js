@@ -38,6 +38,7 @@ function fightAddCond(c, e, w, cd) {
 function fightRemoveCond(c, e, w, id) {
   const list = fightCondList(e, w), cd = list.find(x => x.id === id); if (!cd) return null;
   list.splice(list.indexOf(cd), 1);
+  e.prompts = (e.prompts || []).filter(p => p.condId !== id); /* its waiting save reminder goes too */
   if (w.t === "pc" && w.pc) {
     if (cd.k === "exhaustion") w.pc.exh = Math.max(0, exhOf(w.pc) - 1);
     else if (!list.some(x => x.k === cd.k)) { const cs = { ...(w.pc.conds || {}) }; delete cs[cd.k]; w.pc.conds = cs; }
@@ -63,7 +64,7 @@ function fightSync(c, e) {
   for (const [id, cast] of Object.entries(e.casts || {})) {
     const by = fightWho(c, e, cast.by);
     if (!by) { fightEndCast(c, e, id, "its caster left the fight"); changed = true; continue; }
-    if (by.t === "pc" && (!by.pc || (by.pc.conc || {}).spell !== cast.spell)) { fightEndCast(c, e, id, `${by.name}'s concentration ended`); changed = true; }
+    if (by.t === "pc" && by.pc && (by.pc.conc || {}).spell !== cast.spell) { fightEndCast(c, e, id, `${by.name}'s concentration ended`); changed = true; } /* no sheet (or not loaded yet): the cast is tracked here only */
     else if (by.t === "foe" && by.m.hp <= 0) { fightEndCast(c, e, id, `${by.name} is down`); changed = true; }
   }
   /* a hero who took damage while concentrating: the sheet set concCheck; ask here too */
@@ -75,7 +76,7 @@ function fightSync(c, e) {
 
 /* ---- Next turn: end-of-turn and start-of-turn saves, conditions that end by themselves ---- */
 function fightOnTurn(c, e, prevTurn, prevRound) {
-  if (!e.turn || e.turn === prevTurn) return;
+  if (!e.turn) return; /* the same creature again (one left standing) counts as its turn ending, then starting */
   const key = id => e.enemies.some(m => m.id === id) ? "foe:" + id : "pc:" + id;
   const prev = prevTurn ? fightWho(c, e, key(prevTurn)) : null, cur = fightWho(c, e, key(e.turn)), notes = [];
   const ask = (w, cd, when) => (e.prompts = e.prompts || []).push({ id: uid("fp"), type: "save", who: w.key, condId: cd.id, castId: cd.castId || null,
@@ -100,6 +101,7 @@ function fightOnFoeDamage(c, e, m, amount) {
   (e.prompts = e.prompts || []).push({ id: uid("fp"), type: "conc", who: "foe:" + m.id, castId: m.conc.castId, dc, text: `${m.name}: Concentration save (CON) DC ${dc} to keep ${m.conc.spell}` });
 }
 function fightReset(c, e) {
+  for (const id of Object.keys(e.casts || {})) fightEndCast(c, e, id, "the fight was reset"); /* heroes stop concentrating too */
   for (const w of fightAll(c, e)) if (w.t === "pc") for (const cd of [...fightCondList(e, w)]) fightRemoveCond(c, e, w, cd.id);
   e.enemies.forEach(m => { m.conds = []; m.conc = null; }); e.prompts = []; e.casts = {};
 }
@@ -147,7 +149,7 @@ function fightRowHTML(c, e, w, turnKey) {
   const conds = fightCondList(e, w);
   let hp, max, ac, extra = "", conc = null;
   if (w.t === "foe") { hp = w.m.hp; max = w.m.max; ac = w.m.ac; conc = w.m.conc && w.m.conc.spell; }
-  else if (w.pc) { max = +w.pc.hp || 0; hp = w.pc.hpCur === undefined || w.pc.hpCur === "" || isNaN(+w.pc.hpCur) ? max : +w.pc.hpCur; ac = w.pc.ac; conc = w.pc.conc && w.pc.conc.spell; const D = w.pc.death || {}; if (hp === 0) extra = `<span class="fight-chip down">${D.dead ? "Dead" : D.stable ? "Stable" : `Dying ${D.s || 0}✓ ${D.f || 0}✗`}</span>`; }
+  else if (w.pc) { max = +w.pc.hp || 0; hp = w.pc.hpCur === undefined || w.pc.hpCur === "" || isNaN(+w.pc.hpCur) ? max : +w.pc.hpCur; ac = w.pc.ac; conc = w.pc.conc && w.pc.conc.spell; const D = w.pc.death || {}; if (hp === 0) extra = `<span class="fight-chip down">${D.dead ? "Dead" : D.stable ? "Stable" : `Dying ${+D.s || 0}✓ ${+D.f || 0}✗`}</span>`; }
   const pct = max ? Math.max(0, Math.min(100, Math.round(hp / max * 100))) : 0;
   const quick = `<select data-fqk="${esc(w.key)}" aria-label="Add a condition to ${esc(w.name)}"><option value="">+ Condition</option>${fightConds().map(([k, l]) => `<option value="${k}">${l}</option>`).join("")}</select>`;
   const dmg = w.t === "foe" ? `<div class="fight-dmg"><input type="number" min="0" data-amt="${esc(w.m.id)}" placeholder="0" aria-label="Amount for ${esc(w.name)}"><button class="btn sm danger" type="button" data-ea="dmg" data-eid="${esc(e.id)}" data-mid="${esc(w.m.id)}" title="Damage">−</button><button class="btn sm" type="button" data-ea="heal" data-eid="${esc(e.id)}" data-mid="${esc(w.m.id)}" title="Heal">+</button></div>`
@@ -195,7 +197,7 @@ function fightRender() {
   const rolled = e.enemies.some(m => m.init !== "" && m.init !== null);
   const prompts = e.prompts || [], p0 = prompts[0];
   const conc = Object.values(e.casts || {});
-  const keep = { cond: $("#fcCond")?.value, ends: $("#fcEnds")?.value };
+  const keepSel = FIGHT.formFor === FIGHT.sel, keep = keepSel ? Object.fromEntries(["fcCond", "fcEnds", "fcCaster", "fcSpell", "fcRounds", "fcAb", "fcDC"].map(id => [id, $("#" + id)?.value])) : {}, keepConc = keepSel && $("#fcConc")?.checked;
   box.innerHTML = `<div class="fight-top"><b>⚔ ${esc(e.name)}</b><span class="muted">${e.round ? `Round ${e.round}` : "Not started"}</span><span class="sp"></span>
       ${rolled ? "" : `<button class="btn sm primary" type="button" data-ea="roll" data-eid="${esc(e.id)}">🎲 Roll enemy initiative</button>`}
       <button class="btn sm" type="button" data-ea="tv" data-eid="${esc(e.id)}">${HOST.enc && HOST.enc.eid === e.id ? "📺 Off TV" : "📺 Show on TV"}</button>
@@ -211,8 +213,10 @@ function fightRender() {
       <div class="card fight-right"><h3>Concentration</h3>${conc.length ? conc.map(x => { const by = fightWho(c, e, x.by); return `<p>◎ <b>${esc(by ? by.name : "?")}</b>: ${esc(x.spell)}</p>`; }).join("") : `<p class="muted">No one is concentrating.</p>`}
         <h3>Log</h3>${combatHistory(e).length ? `<ol class="plain fight-log">${combatHistory(e).slice(0, 12).map(r => `<li>${esc(r.label)}${r.undone ? ' <span class="muted">· undone</span>' : ""}</li>`).join("")}</ol>` : `<p class="muted">Nothing yet.</p>`}</div>
     </div>`;
-  if (keep.cond && $("#fcCond")) $("#fcCond").value = keep.cond;
-  if (keep.ends && $("#fcEnds")) $("#fcEnds").value = keep.ends;
+  /* what was typed in Add a condition survives a redraw (damage, a sync), for the same creature */
+  for (const [id, v] of Object.entries(keep)) if (v !== undefined && $("#" + id)) $("#" + id).value = v;
+  if (keepConc && $("#fcConc")) $("#fcConc").checked = true;
+  FIGHT.formFor = FIGHT.sel;
   fightFormUpdate(c, e);
 }
 function fightFormUpdate(c, e) {
@@ -236,7 +240,7 @@ document.addEventListener("click", e => {
     const w = fightWho(c, en, rm.dataset.fwho); if (!w) return;
     const before = combatSnapshot(en);
     if (rm.dataset.frm === "note") w.m.cond = "";
-    else { const cd = fightRemoveCond(c, en, w, rm.dataset.frm); if (cd && cd.castId && !Object.values(fightAll(c, en)).some(x => fightCondList(en, x).some(y => y.castId === cd.castId))) { /* the spell's last target freed: the caster can stop concentrating */ } }
+    else fightRemoveCond(c, en, w, rm.dataset.frm);
     combatRecord(en, before, `Removed a condition from ${w.name}`); Store.save(c); rerenderEnc(c, en); fightRender(); return;
   }
   const fp = e.target.closest("[data-fp]");

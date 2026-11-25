@@ -34,6 +34,7 @@ function pcNums(c) {
   if (c.scores && typeof c.scores === "object") Object.keys(c.scores).forEach(a => { if (typeof c.scores[a] !== "number") c.scores[a] = n(c.scores[a]); });
   if (Array.isArray(c.multi)) c.multi.forEach(m => { if (m && typeof m === "object" && m.lv !== undefined) m.lv = clamp(Math.round(n(m.lv)) || 1, 1, 20); });
   const num = (o, ks) => { if (o && typeof o === "object") ks.forEach(k => { if (o[k] !== undefined && o[k] !== null && typeof o[k] !== "number" && typeof o[k] !== "boolean") o[k] = n(o[k]); }); };
+  num(c.death, ["s", "f"]); /* death-save counters: shown as numbers in the fight window (security review, 2026-11-25) */
   if (Array.isArray(c.hdList)) c.hdList = c.hdList.map(d => typeof d === "number" ? d : n(d));
   const S = c.spell;
   if (S && typeof S === "object") {

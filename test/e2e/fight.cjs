@@ -108,6 +108,34 @@ const W = "#fightWin";
     await p.evaluate(i => { const e = findEnc(curCamp(), i.eid); e.enemies[0].name = "<img src=x onerror=window.__x=1>Gob"; Store.save(curCamp()); fightRender(); }, ids);
     await p.waitForTimeout(200);
     check("names show as text, never as HTML", await p.evaluate(s => window.__x === undefined && !document.querySelector(`${s} img[src="x"]`), W));
+    /* code review (2026-11-25): a hero with no saved sheet can still concentrate */
+    await st(i => { const c = curCamp(); c.party.push({ id: "pt9", name: "Nobody" }); Store.save(c); fightRender(); });
+    await p.click(`${W} [data-fsel="${foe(2)}"]`);
+    await p.selectOption("#fcCaster", "pc:pt9"); await p.fill("#fcSpell", "Hold Person"); await p.dispatchEvent("#fcSpell", "change"); await p.fill("#fcDC", "12");
+    await p.click("#fcAdd"); await p.waitForTimeout(300); await st(() => fightRender()); await p.waitForTimeout(200);
+    e = await enc();
+    check("a hero with no saved sheet keeps their concentration spell and its condition", e.enemies[1].conds.some(x => x.k === "paralyzed" && x.castId && e.casts[x.castId]), JSON.stringify(e.enemies[1].conds));
+    /* a fight down to one creature still asks for saves and ends rounds */
+    const solo = await st(() => {
+      const c = curCamp(), e = newEncounter(null, "Solo", 2, [{ name: "Ogre", stat: "Ogre", cr: monCR("Ogre"), count: 1, boss: false }]);
+      c.encounters.push(e); e.enemies[0].init = 10; e.round = 1; e.turn = e.enemies[0].id; e.status = "Active";
+      const w = fightWho(c, e, "foe:" + e.enemies[0].id);
+      fightAddCond(c, e, w, { k: "blinded", ends: "rounds", rounds: 1 }); fightAddCond(c, e, w, { k: "restrained", ends: "saveEnd", save: { ab: "str", dc: 12 } });
+      Store.save(c); return e.id;
+    });
+    await st(() => { FIGHT.eid = null; }); await p.evaluate(id => fightOpen(id), solo); await p.waitForTimeout(200);
+    await p.click(`${W} [data-ea="next"]`); await p.waitForTimeout(300);
+    const so = await p.evaluate(id => { const e = findEnc(curCamp(), id); return { conds: e.enemies[0].conds.map(x => x.k), prompts: (e.prompts || []).map(x => x.text) }; }, solo);
+    check("one creature left: Next turn still asks its end-of-turn save and ends its rounds", !so.conds.includes("blinded") && so.prompts.some(t => /STR save DC 12/.test(t)), JSON.stringify(so));
+    await st(() => { FIGHT.eid = null; }); await p.evaluate(i => fightOpen(i.eid), ids); await p.waitForTimeout(200);
+    /* security review (2026-11-25): a player's death-save counters are numbers, never page code */
+    const bad = await st(i => {
+      const pc = PCS.roster.find(x => x.id === i.pcId); pc.hpCur = 0; pc.death = { s: "<b id=fightInj>x</b>", f: "<i id=fightInj2>y</i>" };
+      const inc = pcIncoming(JSON.parse(JSON.stringify(pc)));
+      fightRender(); return { s: inc.death.s, f: inc.death.f };
+    });
+    check("death-save counters arriving from a campaign become numbers", bad.s === 0 && bad.f === 0, JSON.stringify(bad));
+    check("death-save counters show as numbers in the fight window, never as HTML", await p.evaluate(s => !document.querySelector("#fightInj, #fightInj2") && /Dying 0✓ 0✗/.test(document.querySelector(s).textContent), W));
     await p.click(`${W} [data-fclose]`); await p.waitForTimeout(200);
     check("✕ Close goes back to the Tracker", await p.evaluate(s => !document.querySelector(s), W));
     check("no page errors", !errs.length, errs.join(" | "));

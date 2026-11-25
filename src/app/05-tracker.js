@@ -1408,6 +1408,7 @@ campMain.addEventListener("click", async ev => {
       x.init = group[key(x)] = 1 + Math.floor(Math.random() * 20) + foeInit(x.stat);
     });
     e.round = 1; e.status = "Active"; const o = encOrder(c, e).filter(x => !x.down); e.turn = o.length ? o[0].key : null;
+    fightOnTurn(c, e, null, 0); /* the first creature's start-of-turn saves */
   } else if (a === "next") {
     const o = encOrder(c, e).filter(x => !x.down); if (!o.length) return;
     let i = o.findIndex(x => x.key === e.turn); const prevTurn = e.turn, prevRound = e.round || 0;
