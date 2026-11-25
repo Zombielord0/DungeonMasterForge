@@ -547,7 +547,8 @@ function readMapForm() {
 }
 // open a map saved in a campaign; its saved fog (if any) replaces the copy kept on this computer
 function mapOpenSaved(m) {
-  if (m.kind === "image") { imgOpenSaved(m); return; }
+  mapShowBuild(); /* the tab's mode (03e-map-modes.js): a map opened from a card, the Tracker or the World shows in Build */
+  if (m.kind === "image") return imgOpenSaved(m);
   if (m.kind === "drawn") { medStop(); if (m.fog) fogStorePut(fogKey(m), m.fog, m.found || [], m.tokens); medOpen(m); return; }
   setMapForm(m);
   if (m.fog) fogStorePut(fogKey(m), m.fog, m.found || [], m.tokens);
@@ -663,7 +664,7 @@ function renderImageMap() {
   hostLoad(d); drawMapDM(); if (HOST.on) hostSend();
   $("#roomKey").innerHTML = imageKeyHTML(d); fogKeyButtons();
 }
-function imgUse(d, toastMsg) { medStop(); currentMap = d; HOST.key = null; MAPUI.hover = null; location.hash = "map"; renderImageMap(); if (toastMsg) toast(toastMsg); }
+function imgUse(d, toastMsg) { mapShowBuild(); medStop(); currentMap = d; HOST.key = null; MAPUI.hover = null; location.hash = "map"; renderImageMap(); if (toastMsg) toast(toastMsg); }
 // roll a room's contents the way the dungeon generator does
 function rollRoomContents(o, theme, level, party) {
   const r = makeRng("roll", Date.now(), Math.random()), lv = clamp(level, 1, 20), tier = tierOf(lv), tags = TAGMAP[theme];
@@ -878,6 +879,7 @@ function hostLoad(d) {
 function hostStatus() {
   const b = $("#hostStatus"); b.textContent = !HOST.on ? "Not connected" : (HOST.tv ? "📺 TV connected" : "Waiting for the TV window…") + (HOST.show === "handout" ? " · showing a handout" : "");
   b.className = "badge" + (HOST.on && HOST.tv ? " ok" : "");
+  mapRunTv();
   $("#hostStart").textContent = HOST.on ? "Stop hosting" : "📺 Host for players"; $("#hostStart").classList.toggle("primary", !HOST.on);
   $("#fogTools").disabled = !HOST.on; $("#mapCanvas").classList.toggle("fogging", HOST.on);
 }

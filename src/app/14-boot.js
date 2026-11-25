@@ -109,6 +109,7 @@ function route() {
   }
   $$("nav a").forEach(a => a.classList.toggle("active", a.dataset.view === v));
   if (v === "map" && !currentMap) renderMap();
+  if (v === "map") mapEnter(); else mapLeave(); /* Your maps, Build or Run (03e-map-modes.js) */
   if (v === "map") mapPlaceFill();
   if (v === "tracker") renderTracker();
   if (v === "npc") { worldAdopt(); renderNpcLib(); }

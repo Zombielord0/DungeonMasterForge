@@ -199,7 +199,12 @@ if (location.protocol !== "file:" && localStorage.getItem("dmforge.offline") !==
 </section>
 
 <!-- ================= MAP ================= -->
-<section class="view" id="view-map">
+<section class="view map-build" id="view-map">
+  <div class="map-lib" id="mapLib">
+    <div class="map-lib-h"><h2>Your maps</h2><label class="sr-only" for="mapLibFrom">Show maps from</label><select id="mapLibFrom"></select><span class="sp"></span>
+      <button class="btn primary" type="button" id="mapLibNew">+ New map</button><button class="btn" type="button" id="mapLibImport">⬆ Import</button></div>
+    <div class="map-lib-grid" id="mapLibGrid"></div>
+  </div>
   <div class="layout">
     <form class="card side" id="mapForm" autocomplete="off">
       <div class="field"><label>Map name</label><input type="text" id="mapName" value="The Forgotten Halls"></div>
@@ -248,7 +253,10 @@ if (location.protocol !== "file:" && localStorage.getItem("dmforge.offline") !==
         <p class="hint" style="margin:6px 0 0">The place's page on the World tab shows this map, with its fog and room notes.</p>
       </div>
     </form>
-    <div>
+    <div class="map-main">
+      <div class="map-buildbar"><button class="btn sm" type="button" id="mapToList">← Your maps</button><span class="sp"></span><button class="btn primary" type="button" id="mapToRun">▶ Run for players</button></div>
+      <div class="map-runbar" id="mapRunBar"><b id="mapRunName"></b><span class="badge" id="mapRunTv">TV not connected</span><span class="sp"></span><button class="btn sm" type="button" id="mapRunDone">✕ Done</button></div>
+      <div class="map-rtabs" id="mapRTabs" role="tablist" aria-label="Running the map"><button type="button" role="tab" data-rtab="fog" aria-selected="true">📺 TV &amp; fog</button><button type="button" role="tab" data-rtab="tok" aria-selected="false">● Tokens</button><button type="button" role="tab" data-rtab="hand" aria-selected="false">✉ Handout</button><button type="button" role="tab" data-rtab="key" aria-selected="false">📜 Room key</button></div>
       <div class="card" id="impPanel" hidden style="margin-bottom:12px">
         <div class="sec-h"><h3>Imported Map</h3><span class="sp"></span><span class="muted" style="font-size:14px">Save to a campaign or export a map file to keep it</span></div>
         <div class="field row">
@@ -300,13 +308,13 @@ if (location.protocol !== "file:" && localStorage.getItem("dmforge.offline") !==
           </div>
           <label class="check"><input type="checkbox" id="fogNums"><span>Show room numbers on the TV</span></label>
           <p class="hint" style="margin:6px 0 0"><b>Room:</b> click a room or corridor. <b>Brush:</b> paint over squares. <b>Box:</b> drag a rectangle. <b>Secret door:</b> click an “S” once the players find it, and it appears on the TV. <b>Shift+click</b> flashes a ring on the TV to point something out. Fog is kept on this computer; press Save to store it with a campaign.</p>
-          <div class="field" style="margin:16px 0 0">
+          <div class="field" id="tokField" style="margin:16px 0 0">
             <label>Tokens</label>
             <div class="row" style="flex-wrap:wrap;gap:6px;align-items:center"><button class="btn sm" type="button" id="tokParty" style="flex:0 0 auto" title="A token for each hero in the campaign chosen under Save to campaign, placed in the entrance">+ Party</button><button class="btn sm" type="button" id="tokFight" style="flex:0 0 auto" title="The monsters of the fight on the TV">+ Fight on TV</button><input type="text" id="tokName" placeholder="Name" style="width:150px;flex:0 0 auto"><select id="tokKind" style="width:auto;flex:0 0 auto"><option value="pc">Hero</option><option value="foe">Monster</option><option value="npc">NPC</option></select><button class="btn sm" type="button" id="tokAdd" style="flex:0 0 auto">Add</button></div>
             <div id="tokList" class="tok-list"></div>
             <p class="hint" style="margin:4px 0 0">Choose the <b>Tokens</b> tool above to drag them. Tokens in the fog stay hidden from players; monsters in the fight on the TV show Bloodied or Down.</p>
           </div>
-          <div class="field" style="margin:16px 0 0">
+          <div class="field" id="handoutField" style="margin:16px 0 0">
             <label>Handout</label>
             <div class="row" style="margin-bottom:8px"><label class="btn sm" style="flex:0 0 auto">🖼 Show a picture…<input type="file" id="handoutFile" accept="image/*" hidden></label><button class="btn sm primary" type="button" id="handoutBack" hidden style="flex:0 0 auto">🗺 Back to map</button></div>
             <input type="text" id="handoutTitle" placeholder="Title (optional), e.g. A torn letter" style="margin-bottom:6px">
@@ -315,7 +323,7 @@ if (location.protocol !== "file:" && localStorage.getItem("dmforge.offline") !==
           </div>
         </fieldset>
       </div>
-      <div class="card" style="margin-top:14px">
+      <div class="card" id="roomKeyCard" style="margin-top:14px">
         <div class="sec-h"><h3>Room Key</h3><span class="sp"></span><span class="muted" style="font-size:14px">1 square = 5 ft · encounter math uses the 5e DMG XP thresholds</span></div>
         <div id="roomKey"></div>
       </div>

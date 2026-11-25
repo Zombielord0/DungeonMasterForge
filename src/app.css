@@ -1583,3 +1583,47 @@ html.fside-folded #fside.fside-searching nav{display:block}
 .mb-crrec p{margin:0;display:flex;flex-wrap:wrap;gap:6px;align-items:center}
 .mb-crrec details{margin-top:4px;font-size:13px}
 .mb-crrec ul{margin:4px 0 0 18px;padding:0}
+
+/* ======================= Dungeon Map: Your maps, Build, Run (2026-11-25; 03e-map-modes.js) ======================= */
+#view-map:not(.map-list) .map-lib,#view-map.map-list>.layout{display:none}
+.map-lib-h{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-bottom:14px}
+.map-lib-h h2{margin:0 8px 0 0;font-family:Cinzel,serif;color:var(--gold2)}
+.map-lib-h select{width:auto;max-width:100%}
+.map-lib-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,240px),1fr));gap:12px}
+.map-card{display:flex;flex-direction:column;gap:6px;margin:0}
+.map-card h3{margin:2px 0 0;font-family:Cinzel,serif;font-size:15px;color:var(--gold2);overflow-wrap:anywhere}
+.map-card p{margin:0;font-size:13px}
+.map-card .row{gap:6px;margin-top:auto}
+.map-thumb{height:140px;border-radius:3px;background:#e9dcbd;overflow:hidden;display:grid;place-items:center}
+.map-thumb canvas,.map-thumb img{max-width:100%;max-height:100%;object-fit:contain;display:block}
+.map-thumb .muted{padding:8px;font-size:13px;text-align:center}
+.map-card-new{align-items:center;justify-content:center;min-height:200px;border:1px dashed #5a4a2a!important;color:var(--muted);cursor:pointer;font:inherit;text-align:center}
+.map-card-new span{font-size:34px;color:var(--gold2)}
+.map-lib-empty{grid-column:1/-1}
+.map-buildbar{display:flex;gap:8px;align-items:center;margin-bottom:10px}
+.map-runbar,.map-rtabs{display:none}
+#view-map.map-build #hostCard{display:none}
+/* Run: the map full screen, the Player Screen tools and Room key in tabs beside it */
+html.map-running{overflow:hidden}
+#view-map.map-run>.layout{position:fixed;inset:0;z-index:60;margin:0;padding:10px 12px;background:#07080d;display:grid;
+  grid-template-columns:minmax(0,1fr) 370px;grid-template-rows:auto auto minmax(0,1fr);gap:8px 12px}
+#view-map.map-run #mapForm,#view-map.map-run .map-buildbar,#view-map.map-run #impPanel,#view-map.map-run #medPanel{display:none!important}
+#view-map.map-run .map-main{display:contents}
+#view-map.map-run .map-runbar{display:flex;grid-column:1/-1;gap:10px;align-items:center;font-family:Cinzel,serif;color:var(--gold2);font-size:17px}
+#view-map.map-run .map-tools{grid-column:1;grid-row:2;margin:0}
+#view-map.map-run .map-rtabs{display:flex;grid-column:2;grid-row:2;gap:4px;flex-wrap:wrap}
+.map-rtabs button{flex:1 1 auto;background:var(--well);border:1px solid var(--line);border-radius:4px;padding:5px 6px;color:var(--text);font:12px Cinzel,serif;cursor:pointer}
+.map-rtabs button[aria-selected=true]{background:linear-gradient(#f2b45e,#c46d22);color:#1b130b;border-color:#7a4415}
+#view-map.map-run #mapWrap{grid-column:1;grid-row:3;min-height:0;height:100%;transform:none}
+#view-map.map-run #hostCard,#view-map.map-run #roomKeyCard{grid-column:2;grid-row:3;margin:0!important;overflow:auto;min-height:0}
+#view-map.map-run[data-rtab=key] #hostCard,#view-map.map-run:not([data-rtab=key]) #roomKeyCard{display:none}
+#view-map.map-run[data-rtab=tok] #hostCard fieldset>:not(#tokField),#view-map.map-run[data-rtab=hand] #hostCard fieldset>:not(#handoutField){display:none}
+#view-map.map-run[data-rtab=tok] #hostCard>p,#view-map.map-run[data-rtab=hand] #hostCard>p{display:none}
+#view-map.map-run :is(#tokField,#handoutField){margin-top:0!important}
+@media (max-width:760px){
+  #view-map.map-run>.layout{grid-template-columns:minmax(0,1fr);grid-template-rows:none;grid-auto-rows:auto;overflow:auto;padding-bottom:calc(16px + env(safe-area-inset-bottom))}
+  #view-map.map-run .map-tools,#view-map.map-run .map-rtabs,#view-map.map-run #mapWrap,#view-map.map-run #hostCard,#view-map.map-run #roomKeyCard{grid-column:1;grid-row:auto}
+  #view-map.map-run #mapWrap{height:auto;max-height:70vh}
+  #view-map.map-run #hostCard,#view-map.map-run #roomKeyCard{overflow:visible}
+  .map-rtabs{order:0}
+}

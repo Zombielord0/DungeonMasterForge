@@ -448,7 +448,7 @@ async function wpMapThumb(p) {
   } catch (e) { box.innerHTML = `<span class="muted">Couldn't draw this map.</span>`; }
 }
 const WP_MAP_THEME = { dungeon: "crypt", temple: "temple", wilderness: "cavern", landmark: "crypt", building: "keep", tavern: "keep", shop: "keep", city: "keep", town: "keep", village: "keep", district: "sewer", region: "cavern", other: "crypt" };
-function wpMapOpen(p) { MAPLINK.place = p.id; mapOpenSaved(p.map); setTimeout(mapPlaceFill, 50); toast(`${p.name}'s map is open. Press Save to a World place to keep changes.`); }
+function wpMapOpen(p) { MAPLINK.place = p.id; const r = mapOpenSaved(p.map); setTimeout(mapPlaceFill, 50); toast(`${p.name}'s map is open. Press Save to a World place to keep changes.`); return r; }
 /* ======================= World builder =======================
    W.build = {kind, seed, o (options)}. Each builder in WB turns (rng, o) into a draft {name, type, desc, sections, kids, npcs, shop?, map?};
    the preview shows it, Roll again changes the seed, and wbCommit makes the World places (and their NPCs) from it. */
