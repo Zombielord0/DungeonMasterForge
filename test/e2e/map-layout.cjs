@@ -86,6 +86,22 @@ const mode = p => p.evaluate(() => ["map-list", "map-build", "map-run"].find(c =
     check("coming back to the tab with saved maps shows Build where you left it", await mode(p) === "map-build");
     await p.reload(); await p.waitForFunction(() => typeof mapMode === "function"); await p.waitForTimeout(800);
     check("after a refresh, with saved maps, the tab opens on Your maps", await mode(p) === "map-list");
+    /* review fix: Run never leaves the map editor live, and Esc leaves an open window alone */
+    await p.evaluate(() => mapMode("build")); await p.click("#medEdit"); await p.waitForTimeout(400);
+    check("(set-up) the map editor is on in Build", await p.evaluate(() => MED.on));
+    await p.click("#mapToRun"); await p.waitForTimeout(400);
+    check("focus moves into Run", await p.evaluate(() => !!document.activeElement && document.querySelector("#view-map .layout").contains(document.activeElement) && document.activeElement.offsetParent !== null));
+    check("Run turns the map editor off", await p.evaluate(() => !MED.on && !document.querySelector("#mapCanvas").classList.contains("editing")));
+    const before = await p.evaluate(() => JSON.stringify(drawnRecord(currentMap)));
+    const box = await p.locator("#mapCanvas").boundingBox();
+    await p.mouse.move(box.x + box.width * .3, box.y + box.height * .3); await p.mouse.down(); await p.mouse.move(box.x + box.width * .5, box.y + box.height * .5, { steps: 5 }); await p.mouse.up(); await p.waitForTimeout(300);
+    check("dragging on the map in Run doesn't change the drawing", await p.evaluate(b => JSON.stringify(drawnRecord(currentMap)) === b, before));
+    await p.evaluate(() => { document.querySelector("#newsBtn").click(); }); await p.waitForTimeout(200);
+    await p.keyboard.press("Escape"); await p.waitForTimeout(200);
+    check("Esc with a window open over Run leaves Run open", await mode(p) === "map-run", await mode(p));
+    await p.evaluate(() => { const n = document.querySelector("#newsPanel"); if (!n.hidden) document.querySelector("#newsClose").click(); });
+    await p.click("#mapRunDone"); await p.waitForTimeout(300);
+    check("after Done, focus is on the Build screen", await p.evaluate(() => document.activeElement && document.activeElement.offsetParent !== null && document.activeElement !== document.body));
     check("no page errors", !errs.length, errs.join(" | "));
     await ctx.close();
 

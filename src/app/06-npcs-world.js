@@ -432,20 +432,11 @@ function renderWorld(treeOnly) {
 }
 /* the map's picture on the place page: a generated map is drawn from its settings, an imported one comes from this computer */
 let wpMapUrl = null;
-async function wpMapThumb(p) {
-  const box = $("#wpMapView"); if (!box) return; const m = p.map;
+async function wpMapThumb(p) { /* the same small picture as the Dungeon Map's Your maps cards (03e-map-modes.js) */
+  const box = $("#wpMapView"); if (!box) return;
   if (wpMapUrl) { URL.revokeObjectURL(wpMapUrl); wpMapUrl = null; }
-  try {
-    if (m.kind === "image") {
-      let blob = null; try { blob = await MAPIMG.get(m.imgId); } catch { }
-      if (!box.isConnected || W.sel !== p.id) return;
-      if (!blob) { box.innerHTML = `<span class="muted">The picture isn't on this computer. Upload it again with Replace.</span>`; return; }
-      wpMapUrl = URL.createObjectURL(blob); box.innerHTML = `<img src="${wpMapUrl}" alt="Map of ${esc(p.name)}">`;
-    } else {
-      const cap = { small: 10, medium: 16, large: 24 }[m.size] || 16, d = m.kind === "drawn" ? drawnBuild(m) : generateDungeon({ ...m, rooms: Math.min(m.rooms || 10, cap) }), cv = document.createElement("canvas");
-      drawDungeon(cv, d, true, { scale: 1 }); cv.setAttribute("aria-hidden", "true"); box.replaceChildren(cv);
-    }
-  } catch (e) { box.innerHTML = `<span class="muted">Couldn't draw this map.</span>`; }
+  const u = await mapThumbInto(box, p.map, () => W.sel === p.id);
+  if (u) { if (W.sel === p.id) wpMapUrl = u; else URL.revokeObjectURL(u); }
 }
 const WP_MAP_THEME = { dungeon: "crypt", temple: "temple", wilderness: "cavern", landmark: "crypt", building: "keep", tavern: "keep", shop: "keep", city: "keep", town: "keep", village: "keep", district: "sewer", region: "cavern", other: "crypt" };
 function wpMapOpen(p) { MAPLINK.place = p.id; const r = mapOpenSaved(p.map); setTimeout(mapPlaceFill, 50); toast(`${p.name}'s map is open. Press Save to a World place to keep changes.`); return r; }

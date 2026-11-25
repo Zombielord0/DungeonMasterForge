@@ -46,6 +46,7 @@ function mapLibRender() {
 function mapMode(m) {
   const v = $("#view-map");
   if (m === "run" && !currentMap) renderMap();
+  if (m === "run" && MED.on) medStop(); /* editing and running are separate: the editor's hidden tools must not stay live on the Run map */
   if (m === "run" && MAPMODE.m !== "run") MAPMODE.from = MAPMODE.m === "list" ? "list" : "build";
   MAPMODE.m = m;
   v.classList.toggle("map-list", m === "list"); v.classList.toggle("map-build", m === "build"); v.classList.toggle("map-run", m === "run");
@@ -53,6 +54,9 @@ function mapMode(m) {
   if (m === "list") mapLibRender();
   if (m === "run") { $("#mapRunName").textContent = currentMap ? currentMap.params.name : ""; mapRunTab(MAPMODE.rtab); mapRunTv(); }
   if (m !== "list" && currentMap) requestAnimationFrame(() => { drawMapDM(); });
+  /* the button pressed may now be hidden: move keyboard focus to the new screen */
+  const a = document.activeElement;
+  if (!a || a === document.body || (v.contains(a) && a.offsetParent === null)) { const f = $({ list: "#mapLibNew", build: "#mapToRun", run: "#mapRTabs [aria-selected=true]" }[m]); if (f) f.focus({ preventScroll: true }); }
 }
 function mapRunTab(t) {
   MAPMODE.rtab = t; $("#view-map").dataset.rtab = t;
@@ -83,7 +87,9 @@ $("#mapToRun").addEventListener("click", () => mapMode("run"));
 $("#mapRunDone").addEventListener("click", () => mapMode(MAPMODE.from));
 $("#mapRTabs").addEventListener("click", e => { const b = e.target.closest("[data-rtab]"); if (b) mapRunTab(b.dataset.rtab); });
 document.addEventListener("keydown", e => {
-  if (e.key !== "Escape" || MAPMODE.m !== "run" || document.querySelector("dialog[open], .modal.open") || e.defaultPrevented) return;
+  if (e.key !== "Escape" || MAPMODE.m !== "run" || e.defaultPrevented) return;
+  /* a window open over Run (any of the app's pop-ups, What's new) gets the Esc instead */
+  if (document.querySelector('dialog[open], #modal.open, [id$="Modal"].open, #sheetOverlay.open, #newsPanel:not([hidden])')) return;
   if (e.target.closest && e.target.closest("input, textarea, select")) return;
   mapMode(MAPMODE.from);
 });
