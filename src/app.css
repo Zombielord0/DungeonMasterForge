@@ -1571,3 +1571,9 @@ html.fside-folded #fside.fside-searching nav{display:block}
 @media (max-width:600px) and (prefers-reduced-motion:reduce){#fside{transition:none}}
 /* a .btn with the hidden attribute stays hidden (#handoutBack showed on phones and pushed the Dungeon Map wider than a 320 px screen; QA 2026-11-24) */
 .btn[hidden]{display:none}
+
+/* monster builder: a drop-down beside each list in Senses, languages & defenses (2026-11-25) */
+.mb-pick{display:flex;gap:6px;align-items:stretch;flex-wrap:wrap}
+.mb-pick>input{flex:1 1 180px;min-width:0}
+.mb-pick>select{flex:0 1 190px;min-width:0}
+.mb-speeds select{width:100%}

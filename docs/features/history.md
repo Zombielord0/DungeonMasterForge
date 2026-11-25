@@ -152,3 +152,10 @@ PR #8 (the expired sign-in fix) was merged before that chat.
 28. **What's new bell** (PR #5)
     - A bell in the header (`#newsBtn`, also shown on the collapsed strip) with a red count of updates this browser hasn't seen. Clicking it opens the "What's new" panel (`newsOpen`), and opening it marks everything as seen (`dmforge.newsSeen`).
     - The entries are in `NEWS`, newest first: `{ id, date, title, go, items }`. `go` adds a "Show me →" button that opens that tab.
+
+## Monster builder drop-downs (2026-11-25)
+
+The owner asked for drop-downs for everything in the builder's **Senses, languages & defenses** box (`10-monsters.js`).
+- Senses are `<select data-mbsense>` lists of distances (`MB_SENSE_FT`); `mbSenseOptions` adds an unusual distance from a copied monster so it stays picked.
+- Languages, resistances, immunities, vulnerabilities and condition immunities keep their text box (so copied monsters keep any wording) with a `select[data-mbpick]` beside it (`MB_PICKS`). `mbPickAdd` adds the pick, skips one already there, replaces a lone "—", and joins a pick that has commas of its own with "; ".
+- Check: `npm run test:mbuild`.

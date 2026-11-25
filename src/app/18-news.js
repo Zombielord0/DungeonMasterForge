@@ -2,6 +2,10 @@
    When a change ships, add an entry to the top of NEWS with a new id, in plain words for players and DMs. */
 
 const NEWS = [
+  { id: "2026-11-25-builder-picks", date: "2026-11-25", title: "Pick senses, languages and defences from lists", go: "monsters", items: [
+    "In Villains & Monsters → Build a monster, each sense now has a list of distances (10 to 300 ft.).",
+    "Languages, damage resistances, immunities, vulnerabilities and condition immunities each have a + Add list beside them: pick one and it's added. You can still type your own wording in the box."
+  ] },
   { id: "2026-11-24-parchment-font", date: "2026-11-24", title: "A new look for the parchment pages", items: [
     "Generated adventures and chapter briefs, NPC cards, forged monsters and the monster builder's preview now use Metamorphous, an old-manuscript lettering.",
     "Spells, items, the Monster Manual and character sheets keep their easy-reading book font."

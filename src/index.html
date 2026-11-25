@@ -415,16 +415,16 @@ if (location.protocol !== "file:" && localStorage.getItem("dmforge.offline") !==
       </div>
       <div class="card"><div class="sec-h"><h3>Senses, languages &amp; defenses</h3></div>
         <div class="field mb-speeds"><span class="lbl">Senses (feet)</span><div class="row">
-          <label>Darkvision<input type="number" min="0" step="5" data-mb="senses.dark"></label><label>Blindsight<input type="number" min="0" step="5" data-mb="senses.blind"></label>
-          <label>Tremorsense<input type="number" min="0" step="5" data-mb="senses.tremor"></label><label>Truesight<input type="number" min="0" step="5" data-mb="senses.true"></label></div></div>
-        <div class="field"><label for="mbLang">Languages</label><input type="text" id="mbLang" data-mb="lang" placeholder="e.g. Common, Abyssal; telepathy 60 ft."></div>
+          <label>Darkvision<select data-mb="senses.dark" data-mbsense="1"></select></label><label>Blindsight<select data-mb="senses.blind" data-mbsense="1"></select></label>
+          <label>Tremorsense<select data-mb="senses.tremor" data-mbsense="1"></select></label><label>Truesight<select data-mb="senses.true" data-mbsense="1"></select></label></div></div>
+        <div class="field"><label for="mbLang">Languages</label><div class="mb-pick"><input type="text" id="mbLang" data-mb="lang" placeholder="e.g. Common, Abyssal; telepathy 60 ft."><select data-mbpick="lang" aria-label="Add a language"></select></div></div>
         <div class="field row">
-          <div><label for="mbRes">Damage resistances</label><input type="text" id="mbRes" data-mb="res" placeholder="e.g. cold, necrotic"></div>
-          <div><label for="mbImm">Damage immunities</label><input type="text" id="mbImm" data-mb="imm" placeholder="e.g. poison"></div>
+          <div><label for="mbRes">Damage resistances</label><div class="mb-pick"><input type="text" id="mbRes" data-mb="res" placeholder="e.g. cold, necrotic"><select data-mbpick="res" aria-label="Add to this list"></select></div></div>
+          <div><label for="mbImm">Damage immunities</label><div class="mb-pick"><input type="text" id="mbImm" data-mb="imm" placeholder="e.g. poison"><select data-mbpick="imm" aria-label="Add to this list"></select></div></div>
         </div>
         <div class="field row">
-          <div><label for="mbVul">Damage vulnerabilities</label><input type="text" id="mbVul" data-mb="vul" placeholder="e.g. radiant"></div>
-          <div><label for="mbCI">Condition immunities</label><input type="text" id="mbCI" data-mb="ci" placeholder="e.g. exhaustion, poisoned"></div>
+          <div><label for="mbVul">Damage vulnerabilities</label><div class="mb-pick"><input type="text" id="mbVul" data-mb="vul" placeholder="e.g. radiant"><select data-mbpick="vul" aria-label="Add to this list"></select></div></div>
+          <div><label for="mbCI">Condition immunities</label><div class="mb-pick"><input type="text" id="mbCI" data-mb="ci" placeholder="e.g. exhaustion, poisoned"><select data-mbpick="ci" aria-label="Add to this list"></select></div></div>
         </div>
       </div>
       <div class="card"><div class="sec-h"><h3>Traits</h3><span class="sp"></span><button class="btn sm" type="button" data-mbadd="traits">+ Add trait</button></div><div data-mblist="traits"></div></div>
