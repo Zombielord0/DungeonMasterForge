@@ -27,7 +27,7 @@ const server = http.createServer((req, res) => {
   const e = await p.evaluate(() => { const c = curCampForMap(), e = c && c.encounters[c.encounters.length - 1]; return e && { name: e.name, n: e.enemies.length, kind: e.kind }; });
   check("it adds the fight to the campaign's encounters", !!e && e.kind === "map" && e.n > 0 && e.name.includes(info.room.type), JSON.stringify(e));
   // with the TV on: the room is revealed and the turn order goes to the TV
-  const [tv] = await Promise.all([ctx.waitForEvent("page"), p.click("#hostStart")]); await tv.waitForSelector("#tv"); await p.bringToFront();
+  const [tv] = await Promise.all([ctx.waitForEvent("page"), p.evaluate(() => mapMode("run")).then(() => p.click("#hostStart"))]); await tv.waitForSelector("#tv"); await p.bringToFront();
   await p.click(`#roomKey [data-runenc="${info.i}"]`); await p.waitForTimeout(300);
   check("while hosting, the room is revealed on the TV", await p.evaluate(o => HOST.fog[o.cy * currentMap.W + o.cx] === 1, info.room));
   check("while hosting, the fight's turn order goes to the TV", await p.evaluate(() => !!HOST.enc));

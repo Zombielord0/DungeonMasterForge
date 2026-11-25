@@ -285,5 +285,5 @@ function onGenClick(e) {
 function openMapForLocation(g, i) {
   const l = g.locations[i]; const s = g.settings;
   setMapForm({ name: l.name, theme: l.mapTheme, size: s.format === "oneshot" ? "medium" : "medium", rooms: 10, level: s.format === "oneshot" ? g.outline.level : s.min, party: s.party, seed: g.seed + "-" + (i + 1) });
-  location.hash = "map"; renderMap();
+  mapShowBuild(); location.hash = "map"; renderMap(); /* opens in Build, not Your maps (03e-map-modes.js) */
 }

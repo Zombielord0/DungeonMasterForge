@@ -740,7 +740,7 @@ $("#mapImportFile").addEventListener("change", async e => {
   }
   if (m.kind === "drawn") { medStop(); if (m.fog) fogStorePut(fogKey(m), m.fog, m.found || [], m.tokens); medOpen(m, `“${m.name}” loaded.`); return; }
   setMapForm(m); if (m.fog) fogStorePut(fogKey(m), m.fog, m.found || [], m.tokens);
-  HOST.key = null; location.hash = "map"; renderMap(); toast(`“${m.name}” loaded.`);
+  mapShowBuild(); HOST.key = null; location.hash = "map"; renderMap(); toast(`“${m.name}” loaded.`);
 });
 async function imgOpenSaved(m) {
   let blob = null; try { blob = await MAPIMG.get(m.imgId); } catch { /* storage unavailable */ }

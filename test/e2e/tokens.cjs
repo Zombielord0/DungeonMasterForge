@@ -22,7 +22,7 @@ const server = http.createServer((req, res) => {
   await p.click("#newCamp"); await p.evaluate(() => { const c = curCamp(); c.party = [{ id: "p1", name: "Ava Thorn" }, { id: "p2", name: "Brom" }]; Store.save(c); });
   await p.goto(URL + "#map"); await p.waitForTimeout(200);
   await p.evaluate(() => { $("#mapSeed").value = "FOG5"; $("#mapTheme").value = "crypt"; $("#mapSize").value = "medium"; $("#mapRooms").value = 10; renderMap(); });
-  const [tv] = await Promise.all([ctx.waitForEvent("page"), p.click("#hostStart")]); await tv.waitForSelector("#tv"); await p.bringToFront();
+  const [tv] = await Promise.all([ctx.waitForEvent("page"), p.evaluate(() => mapMode("run")).then(() => p.click("#hostStart"))]); await tv.waitForSelector("#tv"); await p.bringToFront();
   const frame = async fn => { const n = await tv.evaluate(() => window.tvFrames || 0); await fn(); await tv.waitForFunction(n => (window.tvFrames || 0) > n, n, { timeout: 8000 }).catch(() => {}); await tv.waitForTimeout(80); };
   const tvPx = (x, y) => p.evaluate(([x, y]) => ({ fx: (x * CS + CS / 2) / (currentMap.W * CS), fy: (TOP + y * CS + CS / 2) / (currentMap.H * CS + TOP) }), [x, y]).then(f => tv.evaluate(({ fx, fy }) => { const R = window.tvRect, c = document.getElementById("tv"); const d = c.getContext("2d").getImageData(Math.round(R.x + fx * R.w), Math.round(R.y + fy * R.h), 1, 1).data; return [d[0], d[1], d[2]]; }, f));
   const isFog = px => Math.abs(px[0] - 0x0b) <= 8 && Math.abs(px[1] - 0x0a) <= 8 && Math.abs(px[2] - 0x09) <= 8;

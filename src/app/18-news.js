@@ -2,6 +2,11 @@
    When a change ships, add an entry to the top of NEWS with a new id, in plain words for players and DMs. */
 
 const NEWS = [
+  { id: "2026-11-25-map-layout", date: "2026-11-25", title: "A calmer Dungeon Map", go: "map", items: [
+    "The Dungeon Map tab now opens on Your maps: picture cards of every map saved to a campaign or a World place, each with Edit and Run.",
+    "Build is just for making maps: generate, draw or import, with the Room key below.",
+    "Run (▶ Run for players) puts the map full screen, with the TV and fog tools, tokens and handouts in tabs beside it and the Room key underneath. ✕ Done or Esc goes back."
+  ] },
   { id: "2026-11-25-recommended-cr", date: "2026-11-25", title: "A recommended CR for your own monsters", go: "monsters", items: [
     "Build a monster now shows a recommended challenge rating as you go, from its defense (hit points and AC) and offense (damage per round and attack bonus).",
     "Features count: legendary actions add their damage, Legendary Resistance and regeneration add staying power, resistances, Magic Resistance and many saving throws make it harder to beat. Open Why to see each step, and press Use CR to take it.",

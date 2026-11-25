@@ -1606,7 +1606,7 @@ html.fside-folded #fside.fside-searching nav{display:block}
 /* Run: the map full screen, the Player Screen tools and Room key in tabs beside it */
 html.map-running{overflow:hidden}
 #view-map.map-run>.layout{position:fixed;inset:0;z-index:60;margin:0;padding:10px 12px;background:#07080d;display:grid;
-  grid-template-columns:minmax(0,1fr) 370px;grid-template-rows:auto auto minmax(0,1fr);gap:8px 12px}
+  grid-template-columns:minmax(0,1fr) 370px;grid-template-rows:auto auto auto minmax(0,1fr);gap:8px 12px;align-items:stretch;align-content:stretch}
 #view-map.map-run #mapForm,#view-map.map-run .map-buildbar,#view-map.map-run #impPanel,#view-map.map-run #medPanel{display:none!important}
 #view-map.map-run .map-main{display:contents}
 #view-map.map-run .map-runbar{display:flex;grid-column:1/-1;gap:10px;align-items:center;font-family:Cinzel,serif;color:var(--gold2);font-size:17px}
@@ -1614,15 +1614,17 @@ html.map-running{overflow:hidden}
 #view-map.map-run .map-rtabs{display:flex;grid-column:2;grid-row:2;gap:4px;flex-wrap:wrap}
 .map-rtabs button{flex:1 1 auto;background:var(--well);border:1px solid var(--line);border-radius:4px;padding:5px 6px;color:var(--text);font:12px Cinzel,serif;cursor:pointer}
 .map-rtabs button[aria-selected=true]{background:linear-gradient(#f2b45e,#c46d22);color:#1b130b;border-color:#7a4415}
-#view-map.map-run #mapWrap{grid-column:1;grid-row:3;min-height:0;height:100%;transform:none}
-#view-map.map-run #hostCard,#view-map.map-run #roomKeyCard{grid-column:2;grid-row:3;margin:0!important;overflow:auto;min-height:0}
-#view-map.map-run[data-rtab=key] #hostCard,#view-map.map-run:not([data-rtab=key]) #roomKeyCard{display:none}
+#view-map.map-run #mapWrap{grid-column:1;grid-row:3/5;min-height:0;height:auto;contain:size;transform:none} /* contain:size: the map scrolls inside its area instead of stretching the rows */
+/* the tools on top (in tabs), the Room key always under them, so a room's notes show while revealing it */
+#view-map.map-run #hostCard{grid-column:2;grid-row:3;margin:0!important;overflow:auto;max-height:52vh}
+#view-map.map-run #roomKeyCard{grid-column:2;grid-row:4;margin:0!important;overflow:auto;min-height:0;contain:size}
 #view-map.map-run[data-rtab=tok] #hostCard fieldset>:not(#tokField),#view-map.map-run[data-rtab=hand] #hostCard fieldset>:not(#handoutField){display:none}
 #view-map.map-run[data-rtab=tok] #hostCard>p,#view-map.map-run[data-rtab=hand] #hostCard>p{display:none}
 #view-map.map-run :is(#tokField,#handoutField){margin-top:0!important}
 @media (max-width:760px){
-  #view-map.map-run>.layout{grid-template-columns:minmax(0,1fr);grid-template-rows:none;grid-auto-rows:auto;overflow:auto;padding-bottom:calc(16px + env(safe-area-inset-bottom))}
-  #view-map.map-run .map-tools,#view-map.map-run .map-rtabs,#view-map.map-run #mapWrap,#view-map.map-run #hostCard,#view-map.map-run #roomKeyCard{grid-column:1;grid-row:auto}
+  #view-map.map-run>.layout{display:flex;flex-direction:column;overflow:auto;padding-bottom:calc(16px + env(safe-area-inset-bottom))}
+  #view-map.map-run #mapWrap,#view-map.map-run #roomKeyCard{contain:none;flex:0 0 auto}
+  #view-map.map-run .map-tools,#view-map.map-run .map-rtabs,#view-map.map-run #mapWrap,#view-map.map-run #hostCard,#view-map.map-run #roomKeyCard{grid-column:1;grid-row:auto;max-height:none}
   #view-map.map-run #mapWrap{height:auto;max-height:70vh}
   #view-map.map-run #hostCard,#view-map.map-run #roomKeyCard{overflow:visible}
   .map-rtabs{order:0}

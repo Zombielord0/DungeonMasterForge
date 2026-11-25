@@ -666,7 +666,7 @@ function worldGoNpc(lib, placeId) { NL.tab = placeId || ""; NL.camp = ""; NL.q =
     else if (a === "usemap" && p && currentMap) { p.map = mapEntryNow(); worldSave(); renderWorld(); toast(`Map saved to ${p.name}`); }
     else if (a === "genmap" && p) {
       setMapForm({ ...readMapForm(), name: p.name.slice(0, 60), theme: WP_MAP_THEME[p.type] || "crypt", seed: newSeed() }); HOST.key = null;
-      MAPLINK.place = p.id; location.hash = "map"; renderMap(); p.map = mapEntryNow(); worldSave(); mapPlaceFill();
+      MAPLINK.place = p.id; mapShowBuild(); location.hash = "map"; renderMap(); p.map = mapEntryNow(); worldSave(); mapPlaceFill();
       toast(`A map for ${p.name}. Press Generate Dungeon for a different one, then Save to a World place to keep it.`);
     }
     else if (a === "opennpc") worldGoNpc(b.dataset.lib, W.sel);

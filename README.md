@@ -37,8 +37,13 @@ Live at https://dungeonmasterforge.netlify.app
 
 ## Showing the dungeon map on a TV
 
-1. Open **Dungeon Map** and generate (or open a saved) map.
-2. Under the map, press **📺 Host for players**. A second window opens. Drag it onto the TV or second monitor and double-click it for full screen.
+The Dungeon Map tab has three parts:
+- **Your maps:** picture cards of every map you've saved to a campaign or a World place, each with **✏ Edit** and **▶ Run**.
+- **Build:** generate, draw or import a map.
+- **Run:** the map full screen, with the TV and fog tools, tokens and handouts beside it and the Room key underneath. **✕ Done** or Esc goes back.
+
+1. Open **Dungeon Map** and press **▶ Run** on one of your maps (or **▶ Run for players** while building one).
+2. Press **📺 Host for players**. A second window opens. Drag it onto the TV or second monitor and double-click it for full screen.
 3. Players see only what you reveal. With the fog tools you can:
    - **Room:** click a room or corridor.
    - **Brush:** paint squares.
@@ -47,7 +52,7 @@ Live at https://dungeonmasterforge.netlify.app
    - Use the **Reveal on TV** buttons in the Room Key, which also work with the keyboard. A secret door turns green on your map once the players have found it.
    - Switch **Mode** to **Hide** to cover areas again, and use **Undo** if you make a mistake.
 4. **Turn order:** in Campaign Tracker → Encounters, press **📺 Show on TV** on a fight. The TV shows whose turn it is and the round. Monsters show only as Bloodied or Down.
-5. **Handouts:** under the fog tools, show a picture from your computer, or type a letter or note to show on parchment. **Back to map** returns to the dungeon.
+5. **Handouts:** on the **Handout** tab, show a picture from your computer, or type a letter or note to show on parchment. **Back to map** returns to the dungeon.
 6. **Tokens:** press **+ Party**, **+ Fight on TV**, or type a name and press **Add**. Then choose the **Tokens** tool and drag them. Tokens in the fog stay hidden from players.
 7. **Shift+click** the map to flash a ring on the TV.
 8. Traps never show on the TV.

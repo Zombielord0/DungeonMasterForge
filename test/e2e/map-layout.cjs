@@ -52,9 +52,8 @@ const mode = p => p.evaluate(() => ["map-list", "map-build", "map-run"].find(c =
     check("the Tokens tab shows the tokens and not the fog tools", await shown(p, "#tokField") && !(await shown(p, "#fogAll")));
     await p.click('#mapRTabs [data-rtab="hand"]'); await p.waitForTimeout(150);
     check("the Handout tab shows the handout", await shown(p, "#handoutField") && !(await shown(p, "#tokField")));
-    await p.click('#mapRTabs [data-rtab="key"]'); await p.waitForTimeout(150);
-    check("the Room key tab shows the room key", await shown(p, "#roomKey") && !(await shown(p, "#hostStart")));
-    await p.click('#mapRTabs [data-rtab="fog"]');
+    await p.click('#mapRTabs [data-rtab="fog"]'); await p.waitForTimeout(150);
+    check("the Room key shows under the tools, beside the map", await shown(p, "#roomKeyCard") && await p.evaluate(() => { const k = document.querySelector("#roomKeyCard").getBoundingClientRect(), h = document.querySelector("#hostCard").getBoundingClientRect(), m = document.querySelector("#mapWrap").getBoundingClientRect(); return k.top >= h.bottom - 1 && k.left >= m.right - 1 && k.top < innerHeight; }));
     await p.keyboard.press("Escape"); await p.waitForTimeout(300);
     check("Esc leaves Run, back to Build", await mode(p) === "map-build");
 

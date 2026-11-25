@@ -86,7 +86,7 @@ async function setMap(page, seed, theme = "crypt") {
   // fraction position of a room centre inside the whole map picture
   const frac = (o) => dm.evaluate(([cx, cy]) => ({ fx: (cx * CS + CS / 2) / (currentMap.W * CS), fy: (TOP + cy * CS + CS / 2) / (currentMap.H * CS + TOP) }), [o.cx, o.cy]);
   const rooms = await dm.evaluate(() => ({ ent: currentMap.rooms[0], boss: currentMap.rooms.find(o => o.marks.includes("boss")) }));
-  const [tv] = await Promise.all([ctx.waitForEvent("page"), dm.click("#hostStart")]);
+  const [tv] = await Promise.all([ctx.waitForEvent("page"), dm.evaluate(() => mapMode("run")).then(() => dm.click("#hostStart"))]);
   tv.on("pageerror", e => errs.push("tv: " + e.message));
   await tv.waitForSelector("#tv");
   const frameIn = (p, ms = 3000) => p.waitForFunction(() => window.tvRect, null, { timeout: ms }).then(() => true, () => false);

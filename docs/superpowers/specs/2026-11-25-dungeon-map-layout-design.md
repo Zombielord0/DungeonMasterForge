@@ -44,7 +44,7 @@ The tab has three modes, held in the class on `#view-map`: `map-list`, `map-buil
   - **Fog & TV:** fog tools, reveal/hide all, undo, room numbers;
   - **Tokens;**
   - **Handout;**
-  - **Room key:** clicking a room on the map shows that room here, as hover does today.
+- The **Room key** is always shown under the tool tabs, not as a fourth tab, so a room's notes are on screen while you reveal it (decided while building: the tab version hid the notes while you used the fog tools).
 - Esc closes Run, unless a dialog is open.
 - On phones the panel sits under the map instead of beside it.
 

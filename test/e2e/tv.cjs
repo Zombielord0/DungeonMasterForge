@@ -60,7 +60,7 @@ const server = http.createServer((req, res) => {
   check("Off TV sends a picture without the fight", await waitFrame(n) && await dm.evaluate(() => !HOST.enc));
 
   // ---------- handouts ----------
-  await dm.goto(URL + "#map"); await dm.waitForFunction(() => typeof hostStart === "function");
+  await dm.goto(URL + "#map"); await dm.waitForFunction(() => typeof hostStart === "function"); await dm.evaluate(() => mapMode("run")); /* the Player Screen is in Run (2026-11-25) */
   await dm.evaluate(() => renderMap());
   // switching tabs doesn't reload the page, so the player screen is still being hosted
   check("hosting carries on when moving to the map tab", await dm.evaluate(() => HOST.on)); await dm.bringToFront();

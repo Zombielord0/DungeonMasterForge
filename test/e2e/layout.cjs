@@ -185,7 +185,7 @@ const away = p => p.evaluate(() => document.documentElement.classList.contains("
     }
     if (size === "laptop") {
       await go(p, URL, "map"); await p.click("#mapGen").catch(() => { }); await p.waitForTimeout(800);
-      const [tv] = await Promise.all([ctx.waitForEvent("page", { timeout: 5000 }).catch(() => null), p.click("#hostStart").catch(() => { })]);
+      const [tv] = await Promise.all([ctx.waitForEvent("page", { timeout: 5000 }).catch(() => null), p.evaluate(() => mapMode("run")).then(() => p.click("#hostStart")).catch(() => { })]);
       await p.bringToFront(); await p.waitForTimeout(800);
       for (const s of ["#fogTools", "#mapCanvas, canvas#map, #map canvas", "#roomKey .room, #roomKey > *"]) {
         const r = await p.evaluate(s => { const e = document.querySelector(s); if (!e) return { ok: false, why: "missing" }; scrollBy(0, e.getBoundingClientRect().top - innerHeight * .4); const r = e.getBoundingClientRect(); const x = r.left + Math.min(r.width / 2, 40), y = r.top + Math.min(r.height / 2, 20); const top = document.elementFromPoint(x, y); return { ok: r.height > 0 && (e === top || e.contains(top)), why: `${Math.round(r.top)} ${top && (top.id || top.className)}` }; }, s);
