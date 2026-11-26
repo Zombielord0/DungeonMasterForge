@@ -37,3 +37,10 @@ test("the real summaries cover every reference that has no details", () => {
   assert.deepEqual(out.filter(r => !r.details.length && !r.sum).map(r => `${r.kind}: ${r.name}`), []);
   assert.ok(!out.some(r => r.details.some(([k, v]) => k === "Rarity" && v === "unknown" && r.name !== "Ivana's Whisper")));
 });
+
+test("review wording: ritual copying limit and Cloud Rune's targets", () => {
+  const other = JSON.parse(readFileSync(new URL("../data/reference-summaries.json", import.meta.url), "utf8"))["Other rules"];
+  assert.match(other["Book of Ancient Secrets"], /spell level is no higher than half your warlock level \(rounded up\)/);
+  assert.match(other["Cloud Rune"], /hits you or a creature/);
+  assert.match(other["Cloud Rune"], /not the attacker/);
+});
