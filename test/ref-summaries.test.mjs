@@ -78,3 +78,16 @@ test("Quiver of Ehlonna shows the free rules' Efficient Quiver", () => {
   const links = JSON.parse(readFileSync(new URL("../data/reference-srd-items.json", import.meta.url), "utf8"))["dmg-2014"];
   assert.equal(links["Quiver of Ehlonna"], "Efficient Quiver");
 });
+
+test("summaries use \"an\" before a vowel sound", () => {
+  const d = JSON.parse(readFileSync(new URL("../data/reference-summaries.json", import.meta.url), "utf8"));
+  const bad = [];
+  for (const [kind, byName] of Object.entries(d)) {
+    if (kind.startsWith("_")) continue;
+    for (const [name, text] of Object.entries(byName)) {
+      /* "a one", "a use", "a unicorn" sound like "y" or "w"; anything else needs "an" */
+      for (const m of text.matchAll(/\b[Aa] (?!one\b|once\b|use|uni|eu)[AEIOUaeiou]\w*/g)) bad.push(`${name}: ${m[0]}`);
+    }
+  }
+  assert.deepEqual(bad, []);
+});
