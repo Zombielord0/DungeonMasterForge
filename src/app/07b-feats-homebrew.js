@@ -357,6 +357,7 @@ function hbSet(list) { HB.list = Array.isArray(list) ? list.filter(x => x && HB_
 function hbLoadLocal() { let l = []; try { l = JSON.parse(localStorage.getItem(HB_KEY) || "[]"); } catch { } hbSet(l); }
 const hbCloud = () => !!(window.Portal && Portal.cloud);
 async function hbPut(item) {
+  if (hbCloud() && !Portal.isDM()) return Portal.hbReqPut(item); /* a player's homebrew waits for the DM (the server enforces it too) */
   if (hbCloud()) return Portal.hbPut(item);
   const l = HB.list.filter(x => x.id !== item.id).concat(item);
   try { localStorage.setItem(HB_KEY, JSON.stringify(l)); } catch { toast("Couldn't save in this browser"); return false; }

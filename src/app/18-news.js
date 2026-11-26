@@ -2,6 +2,11 @@
    When a change ships, add an entry to the top of NEWS with a new id, in plain words for players and DMs. */
 
 const NEWS = [
+  { id: "2026-11-26-hb-requests", date: "2026-11-26", title: "Players can make homebrew, with the DM's approval", go: "homebrew", items: [
+    "Players now have the Homebrew tab. They can make classes, subclasses, backgrounds, feats, species and spells, or open one of the campaign's entries and suggest a change.",
+    "Whatever a player makes is sent to the DM and waits under “Waiting for your DM”. Nobody can pick it, not even the player, until the DM approves it. Players can change or withdraw it while it waits.",
+    "DMs see what players sent at the top of their Homebrew tab (and a note on the Party tab), with ✓ Approve and ✕ Don't approve. The server checks this too, so only the DM can add to the campaign's homebrew."
+  ] },
   { id: "2026-11-26-import-names", date: "2026-11-26", title: "Imports understand more names, weapons and extra AC", go: "roster", items: [
     "Gear written differently from the Forge's names is now recognised: light crossbow, bolts (20), belt pouch, holy symbol, small typos, and magic or named versions like Shield +1 or Morningstar Of Bleeding, which keep their own name and bonus.",
     "Fifth Edition Character Sheet files bring in their weapon list, and their misc AC bonus goes into a new Other AC bonus box under Armor class on the sheet (you can change it there too).",
