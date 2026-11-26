@@ -2,6 +2,10 @@
    When a change ships, add an entry to the top of NEWS with a new id, in plain words for players and DMs. */
 
 const NEWS = [
+  { id: "2026-11-26-all-magic-items", date: "2026-11-26", title: "Every book magic item says what it does", go: "compendium", items: [
+    "All the Compendium's magic items from the other books now say what they do too: Tasha's, Xanathar's, Eberron, Ravnica, the giants and dragons books, Theros, Strixhaven and more, 306 in all.",
+    "Some newer items get only a general description for now, pointing you to the book's page for the exact numbers."
+  ] },
   { id: "2026-11-26-dmg-items", date: "2026-11-26", title: "Dungeon Master's Guide items say what they do", go: "compendium", items: [
     "The Compendium's magic items from the Dungeon Master's Guide used to show only their rarity and type. Now 358 of them show their full rules, from the free rules the Forge already has (some under another name there, like Iron Bands of Binding for Iron Bands of Bilarro).",
     "The other 65, which are only in the book (Driftglobe, the Swords of Answering, the Hand of Vecna and more), have a short summary."

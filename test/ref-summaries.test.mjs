@@ -55,11 +55,11 @@ test("book items link to their free-rules name", () => {
   assert.throws(() => joinSrdItems(items, { "dmg-2014": { "Ioun Stone, Agilty": "Ioun Stone of Agility" } }, srd), /no dmg-2014 item reference named Ioun Stone, Agilty/);
 });
 
-test("every Dungeon Master's Guide magic item has free-rules text or a summary", () => {
+test("every magic item reference has free-rules text or a summary", () => {
   const read = f => JSON.parse(readFileSync(new URL(`../data/${f}`, import.meta.url), "utf8"));
   const srd = new Set(read("items.json")["2014"].mi.filter(m => !m.src).map(m => m.n));
   const out = joinSrdItems(joinSummaries(read("book-references.json"), read("reference-summaries.json")), read("reference-srd-items.json"), srd);
-  const bare = out.filter(r => r.kind === "Item" && r.src === "dmg-2014" && !["none", undefined].includes(Object.fromEntries(r.details).Rarity) && !r.srd && !r.sum);
+  const bare = out.filter(r => r.kind === "Item" && !["none", undefined].includes(Object.fromEntries(r.details).Rarity) && !r.srd && !r.sum);
   assert.deepEqual(bare.map(r => r.name), []);
 });
 
