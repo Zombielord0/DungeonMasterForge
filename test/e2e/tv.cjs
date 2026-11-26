@@ -93,11 +93,11 @@ const server = http.createServer((req, res) => {
     await dm.click(tvBtn);
     check("Show on TV opens the TV window again after it was closed", !!(await pop));
     for (const pg of ctx.pages()) if (/player\.html/.test(pg.url())) await pg.close();
-    await dm.bringToFront(); await dm.waitForTimeout(300);
-    await dm.click(tvBtn); await dm.waitForTimeout(200); /* Off TV */
+    /* the button resets itself to Show on TV within 2 s of the window closing (2026-11-25), so wait for that, then show again */
+    await dm.bringToFront(); await dm.waitForFunction(id => /Show on TV/.test(document.querySelector(`[data-ea="tv"][data-eid="${id}"]`)?.textContent || ""), eid, { timeout: 5000 }).catch(() => {});
     const pop2 = ctx.waitForEvent("page", { timeout: 4000 }).catch(() => null);
     await dm.click(tvBtn); /* Show on TV once more */
-    check("…and again after Off TV, with the window closed", !!(await pop2));
+    check("…and again after the TV window was closed a second time", !!(await pop2));
     for (const pg of ctx.pages()) if (/player\.html/.test(pg.url())) await pg.close();
     await dm.bringToFront(); await dm.evaluate(() => { location.hash = "map"; mapMode("run"); }); await dm.waitForTimeout(400);
     const pop3 = ctx.waitForEvent("page", { timeout: 4000 }).catch(() => null);
