@@ -2,6 +2,10 @@
    When a change ships, add an entry to the top of NEWS with a new id, in plain words for players and DMs. */
 
 const NEWS = [
+  { id: "2026-11-26-feat-summaries", date: "2026-11-26", title: "Book feats now say what they do", go: "compendium", items: [
+    "The 83 feats from other books (Player's Handbook, Xanathar's, Tasha's, the giants and dragons books and more) used to show only their book and page in the Compendium. Each now has a short summary of what it does, with its prerequisite.",
+    "They're summaries, not the book's text, so check the page for the full rules."
+  ] },
   { id: "2026-11-26-import-names", date: "2026-11-26", title: "Imports understand more names, weapons and extra AC", go: "roster", items: [
     "Gear written differently from the Forge's names is now recognised: light crossbow, bolts (20), belt pouch, holy symbol, small typos, and magic or named versions like Shield +1 or Morningstar Of Bleeding, which keep their own name and bonus.",
     "Fifth Edition Character Sheet files bring in their weapon list, and their misc AC bonus goes into a new Other AC bonus box under Armor class on the sheet (you can change it there too).",

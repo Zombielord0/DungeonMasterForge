@@ -44,3 +44,12 @@ Only OGL 1.0a and CC BY 4.0 books. `public/credits.html` lists each book, its li
 - **Where they show:** the Spells tab, the Compendium and spell search. Imports match them (`spellMatch`), so a character's Silvery Barbs stays on the sheet. Class filters and random picks don't use them, because no class list is known.
 - **The check:** `npm run test:qafix`.
 - **Their rules text (2026-11-23):** `data/reference-spell-text.json` holds a short summary for each of the 97 spells, written by the owner. `tools/build.mjs` joins it on as `d` (the summary, then "From <book>, page N."), `h` (the summary's "Upcast:" sentence) and `dt`. A spell without a summary still says "see the book". The check is `npm run test:qafix`. To add or change one, edit that file. The owner's export of the spells still missing text is made with bulk-import columns, so a filled-in copy can also go in through Homebrew → Bulk import.
+
+## Book reference summaries (2026-11-26, owner's choice)
+
+- **What:** `data/reference-summaries.json` holds short rules summaries, written in our own words, for book references that otherwise show only their book and page. It is keyed by kind (`"Feat"`, later `"Other rules"`, `"Monster"`, `"Species"`, `"Background"`), then by name. Use `"Name|book code"` when two books share a name (several "Other rules" do).
+- **Build:** `tools/build.mjs` joins each one onto its reference as `sum`. A key that matches no reference stops the build, so a typo can't hide.
+- **In the app:** `compendiumBookDetail` shows `sum` under the Source line, with the hint "A short summary. See the sourcebook for the full rules."
+- **Done:** all 83 feats that had no details (checked against the owner's compendium CSV, "DnD_Compendium v19.2 Session 28"). **Not yet:** 163 Other rules, 12 monsters, 6 species and 5 backgrounds.
+- **Never paste the books' own text.** Write each summary fresh, short and in plain words (prerequisite first as "Needs: …").
+- **The check:** "a book reference feat shows its summary" in `npm run test:assets`.

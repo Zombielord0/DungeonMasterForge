@@ -159,6 +159,13 @@ const server = http.createServer((req, res) => {
   await results.getByRole("button", { name: /Abi-Dalzim/ }).first().click();
   check("punctuation-insensitive search opens the book reference", await p.locator("#characterReference").getByText(/Reference only/).isVisible());
   await p.locator("#characterReference").getByRole("button", { name: "Close" }).click();
+  /* reference summaries (2026-11-26): a feat with no details shows its short summary from data/reference-summaries.json */
+  await query.fill("squat nimbleness");
+  await results.getByRole("button", { name: /Squat Nimbleness.*Book reference/ }).first().click();
+  const featRef = p.locator("#characterReference");
+  check("a book reference feat shows its summary", await featRef.getByText(/A short summary/).isVisible()
+    && /Needs: dwarf or a Small species/.test(await featRef.innerText()) && /p\. 75/.test(await featRef.innerText()));
+  await featRef.getByRole("button", { name: "Close" }).click();
   await p.locator("#compendiumQuery").fill("Test campaign spell");
   await p.evaluate(() => hbSet([{ id: "compendium-test", kind: "spell", name: "Test campaign spell", desc: "A campaign spell.", ed: "2014" }]));
   await results.getByRole("button", { name: /Test campaign spell/ }).waitFor();

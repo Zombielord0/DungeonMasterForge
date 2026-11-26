@@ -23,7 +23,10 @@ function compendiumCatalog(meta, key) {
 function compendiumBookDetail(entry) {
   const details = entry.details.map(([label, value]) =>
     `<p><b>${esc(label)}</b> · ${esc(value)}</p>`).join("");
-  return `${bookLine(entry)}<p class="hint">Reference only. See the sourcebook for the full rules.</p>${details}`;
+  /* entry.sum: a short summary in our own words (data/reference-summaries.json), for references with no details */
+  const summary = entry.sum ? `<p>${esc(entry.sum)}</p>` : "";
+  const hint = entry.sum ? "A short summary. See the sourcebook for the full rules." : "Reference only. See the sourcebook for the full rules.";
+  return `${bookLine(entry)}<p class="hint">${hint}</p>${summary}${details}`;
 }
 const compendiumText = value => value.normalize("NFKD").toLowerCase()
   .replace(/[\p{M}'’]/gu, "").replace(/[^\p{L}\p{N}]+/gu, " ").trim();
