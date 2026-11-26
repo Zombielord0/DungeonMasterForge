@@ -203,6 +203,8 @@ const ZOOK = fs.readFileSync(path.join(FIX, "companion-zook.json"), "utf8").repl
   });
   check("gear names written differently are matched: light crossbow, bolts (20), iron pot, a typo", nm.light.g === "Crossbow, light" && nm.bolts.g === "Crossbow bolt" && nm.bolts.qty === 20 && nm.pot.g === "Pot, iron" && nm.typo.g === "Longsword", JSON.stringify(nm));
   check("a magic or named version keeps its own name on the base item (Shield +1, Morningstar Of Bleeding)", nm.shield1.g === "Shield" && nm.shield1.n === "Shield +1" && nm.star.g === "Morningstar" && /Bleeding/.test(nm.star.n), JSON.stringify(nm));
+  const ofs = await p.evaluate(() => ["Wand of Magic Missiles", "Amulet of Health", "Robe of Stars", "Dagger of Venom", "Plate Armor of Resistance"].map(n => { const r = impGear("2014", n); return r.g ? r.g.n : null; }));
+  check("\"X of Y\" magic items only borrow a base weapon or armour (Dagger of Venom), never an everyday item (Wand, Amulet, Robe)", JSON.stringify(ofs) === JSON.stringify([null, null, null, "Dagger", "Plate Armor"]), JSON.stringify(ofs));
   check("everyday names: belt pouch is a Pouch, a holy symbol is an Amulet; an item the Forge doesn't have stays itself", nm.pouch.g === "Pouch" && nm.holy.g === "Amulet" && /holy symbol/i.test(nm.holy.n) && nm.mine.g === null && nm.mine.n === "Leyline Locket", JSON.stringify(nm));
   const wl = await p.evaluate(txt => {
     const X = "⊠", w = (n, r, code) => [n, r, code, 0, 0, 0, 0, 0, true, true, 1, 1, 8].join(X);

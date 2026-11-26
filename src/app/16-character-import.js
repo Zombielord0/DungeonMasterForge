@@ -146,7 +146,9 @@ function impGear(ed, raw) {
   const base = name.replace(/\s*\+\s*\d+\s*$/, "").replace(/^\+\s*\d+\s+/, "").replace(/\s+of\s+.+$/i, "").trim();
   if (magic && base) { const g = impGearFind(ed, base); if (g) return { g, n: own, qty }; }
   { const g = impGearFind(ed, name); if (g) return { g, n: g.n, qty }; }
-  if (base && base !== name && base.length >= 3) { const g = impGearFind(ed, base); if (g) return { g, n: own, qty }; }
+  /* "Dagger of Venom" -> Dagger; but "Wand of Magic Missiles" or "Amulet of Health" are magic items in their own right, not a
+     plain wand or amulet (review, 2026-11-26): only a weapon, armour or shield base counts */
+  if (base && base !== name && base.length >= 3) { const g = impGearFind(ed, base); if (g && (eqIsWeapon(g) || eqIsArmor(g))) return { g, n: own, qty }; }
   const syn = IMP_GEAR_SYN[name.toLowerCase()] || IMP_GEAR_SYN[base.toLowerCase()];
   if (syn) { const g = impGearFind(ed, syn); if (g) return { g, n: /^(arrows|bolts|crossbow bolts|rations?|torches|bedroll|waterskin)$/i.test(name) ? g.n : own, qty }; }
   const w = base.split(/\s+/);
