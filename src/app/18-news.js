@@ -2,6 +2,11 @@
    When a change ships, add an entry to the top of NEWS with a new id, in plain words for players and DMs. */
 
 const NEWS = [
+  { id: "2026-11-26-hb-requests", date: "2026-11-26", title: "Players can make homebrew, with the DM's approval", go: "homebrew", items: [
+    "Players now have the Homebrew tab. They can make classes, subclasses, backgrounds, feats, species and spells, or open one of the campaign's entries and suggest a change.",
+    "Whatever a player makes is sent to the DM and waits under “Waiting for your DM”. Nobody can pick it, not even the player, until the DM approves it. Players can change or withdraw it while it waits.",
+    "DMs see what players sent at the top of their Homebrew tab (and a note on the Party tab), with ✓ Approve and ✕ Don't approve. The server checks this too, so only the DM can add to the campaign's homebrew."
+  ] },
   { id: "2026-11-26-subclass-summaries", date: "2026-11-26", title: "Book subclasses say what they do", go: "compendium", items: [
     "Subclasses from the Player's Handbook and other books that showed only their feature names in the Compendium now have a short level-by-level summary, like Way of Shadow, the School of Evocation or the Battle Master.",
     "Subclasses the Forge already lets you play (Gloom Stalker, Oath of Glory and the rest) still open their full progression."

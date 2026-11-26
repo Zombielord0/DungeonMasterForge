@@ -18,7 +18,7 @@ const CAMP_KEY = "dmforge.campaign";
 const LAST_KEY = "dmforge.lastCampaign."; // + user id: the campaign and role from last visit
 const OFFERED_KEY = "dmforge.uploadOffered.";
 const ALL_VIEWS = ["generate", "npc", "world", "monsters", "character", "roster", "compendium", "spells", "feats", "items", "map", "tracker", "homebrew", "journal", "requests"];
-const PLAYER_VIEWS = ["character", "roster", "compendium", "spells", "feats", "items", "journal", "whispers", "requests"];
+const PLAYER_VIEWS = ["character", "roster", "compendium", "spells", "feats", "items", "homebrew", "journal", "whispers", "requests"];
 const POLL_DM = 4000, POLL_PLAYER = 10000, POLL_WHISPERS = 8000, POLL_HOMEBREW = 30000;
 
 const S = {
@@ -31,6 +31,7 @@ const S = {
   shared: {},          // what the DM shares: { journal: {data, updatedAt}, turns: {data, updatedAt} }
   published: {},       // DM: the JSON last sent for each, so only changes are sent
   sharedTimer: null,
+  hbReqs: [],          // homebrew waiting for the DM: a player's own, or (DM) everyone's
 };
 
 const Portal = window.Portal = {
@@ -44,6 +45,7 @@ const Portal = window.Portal = {
   isDM: () => isDM(),
   campName: () => (S.camp && S.camp.name) || "your campaign",
   hbPut, hbDel,
+  hbReqs: () => S.hbReqs, hbReqPut, hbReqDel, hbReqApprove, reloadHomebrew: () => loadHomebrew(),
   renderJournal: () => renderJournal(),
   linkedTrackerId: () => Portal.cloud && isDM() ? trackerId() : null,
   sourceRules: () => isDM() ? Store.get(trackerId())?.sourceRules : S.shared.journal?.data?.sourceRules,
@@ -381,6 +383,7 @@ async function startCloud() {
   setBadgeText("Loading characters…");
   applyMode(S.camp);
   hbSet([]); // this browser's own homebrew stays out of the campaign
+  S.hbReqs = [];
   await loadHomebrew();
 
   const r = await api(campPath("characters"));
@@ -544,6 +547,38 @@ async function loadHomebrew() {
   if (!Portal.cloud) return;
   const r = await api(campPath("homebrew"));
   if (r.ok && JSON.stringify(r.data) !== JSON.stringify(HB.list)) hbSet(r.data);
+  await loadHbReqs();
+}
+/* Homebrew requests (2026-11-26): a player's new or changed entry waits on the server until the DM approves it.
+   The server keeps players to their own requests and lets only the DM approve; this only shows them. */
+async function loadHbReqs() {
+  if (!Portal.cloud) return;
+  const r = await api(campPath("hbrequests"));
+  if (!r.ok || !Array.isArray(r.data) || JSON.stringify(r.data) === JSON.stringify(S.hbReqs)) return;
+  S.hbReqs = r.data; hbReqsChanged();
+}
+function hbReqsChanged() {
+  if (location.hash === "#homebrew" && typeof renderHomebrew === "function") renderHomebrew();
+  if (isDM() && location.hash === "#party") renderParty(true);
+}
+async function hbReqPut(item) {
+  const r = await api(campPath("hbrequests/" + encodeURIComponent(item.id)), { method: "PUT", body: { data: item } });
+  if (!r.ok) { toast(r.data.error || "Couldn't send that to your DM"); return false; }
+  S.hbReqs = S.hbReqs.filter(q => q.id !== item.id).concat({ id: item.id, userId: S.user.id, userName: Portal.myName(), data: r.data });
+  hbReqsChanged(); return true;
+}
+async function hbReqDel(id, userId) {
+  const r = await api(campPath("hbrequests/" + encodeURIComponent(id) + (isDM() ? "?user=" + encodeURIComponent(userId) : "")), { method: "DELETE" });
+  if (!r.ok) { toast(r.data.error || "Couldn't remove that request"); return false; }
+  S.hbReqs = S.hbReqs.filter(q => !(q.id === id && (!isDM() || q.userId === userId)));
+  hbReqsChanged(); return true;
+}
+async function hbReqApprove(id, userId) {
+  const r = await api(campPath("hbrequests/" + encodeURIComponent(id) + "/approve?user=" + encodeURIComponent(userId)), { method: "POST" });
+  if (!r.ok) { toast(r.data.error || "Couldn't approve that"); await loadHbReqs(); return false; }
+  S.hbReqs = S.hbReqs.filter(q => !(q.id === id && q.userId === userId));
+  hbSet(HB.list.filter(x => x.id !== id).concat(r.data));
+  hbReqsChanged(); return true;
 }
 async function hbPut(item) {
   const r = await api(campPath("homebrew/" + encodeURIComponent(item.id)), { method: "PUT", body: { data: item } });
@@ -607,6 +642,7 @@ function renderParty(fetch) {
   // The Chat card is built once and kept, so a refresh never wipes what the DM is typing.
   if (!$("#partyChat")) host.innerHTML = `<div class="card" id="partyCards"></div><div class="card" id="partyChat"></div><div class="card" id="partyActivity"></div>`;
   $("#partyCards").innerHTML = `<div class="sec-h"><h3>Party</h3><span class="sp"></span><small class="muted">Click a sheet to view or edit it</small></div>
+      ${S.hbReqs.length ? `<p id="partyHbReqs"><a href="#homebrew" class="tag gold">⚗️ ${S.hbReqs.length} homebrew from players to approve</a></p>` : ""}
       ${sheets.length ? `<div class="party-grid">${sheets.map(partyCard).join("")}</div>` : `<p class="muted">No characters yet. They appear here as soon as a player saves one.</p>`}`;
   $("#partyActivity").innerHTML = `<div class="sec-h"><h3>Activity</h3></div>
       ${S.activity.length ? `<ul class="feed">${S.activity.map(a => `<li><time title="${esc(new Date(a.at).toLocaleString())}">${esc(clock(a.at))}</time><span><b>${esc(a.byDM ? "You" : a.actor)}</b> · ${esc(a.characterName)}: ${esc(a.summary)}</span></li>`).join("")}</ul>`
