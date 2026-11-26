@@ -26,7 +26,7 @@ const pcKeep = c => ({ multi: c.multi && c.multi.length ? c.multi : undefined, k
 /* Numbers on a sheet are numbers (including the spell block and hit dice). Other members' characters arrive from the campaign database as any JSON, and many
    of these fields are written into the page as they are, so a string here could carry page code. "" stays "" where the
    sheet lets a box be emptied. */
-const PC_NUMS = ["hp", "hpCur", "hpTemp", "ac", "acAuto", "speed", "prof", "hd", "init", "passive", "xp", "startGold", "initBonus", "atkBonus", "formHp"];
+const PC_NUMS = ["hp", "hpCur", "hpTemp", "ac", "acAuto", "speed", "prof", "hd", "init", "passive", "xp", "startGold", "initBonus", "atkBonus", "formHp", "acBonus"];
 function pcNums(c) {
   const n = v => { const x = parseFloat(v); return Number.isFinite(x) ? x : 0; };
   if (c.level !== undefined) c.level = clamp(Math.round(n(c.level)) || 1, 1, 20);

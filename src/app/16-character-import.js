@@ -119,16 +119,42 @@ function impClass(ed, name, def, D, src, saves) {
   return nm;
 }
 // "20 Arrows" -> qty 20; Items-tab matching with a few extra tries ("Scalemail", "Set Of Common Clothes")
-function impGear(ed, raw) {
-  let name = String(raw || "").trim(), qty = 1;
-  const m = name.match(/^(\d+)\s+(.+)$/); if (m) { qty = +m[1]; name = m[2]; }
+/* an imported item's weight: the Forge's ammunition weighs a bundle of 20, and imports count single arrows or bolts (2026-11-26) */
+const impW = g => !g ? 0 : g.cat === "Ammunition" ? Math.round((+g.w || 0) / 20 * 1000) / 1000 : +g.w || 0;
+/* everyday names other apps use for an item the Forge names differently (owner, 2026-11-26: "code for naming mismatches") */
+const IMP_GEAR_SYN = { "holy symbol": "Amulet", "holysymbol": "Amulet", "arrows": "Arrow", "bolts": "Crossbow bolt", "crossbow bolts": "Crossbow bolt", "rations": "Rations (1 day)", "ration": "Rations (1 day)", "bedroll": "Bedroll", "waterskin": "Waterskin", "torches": "Torch", "spell focus": "Arcane focus", "arcane focus": "Crystal", "druidic focus": "Sprig of mistletoe" };
+/* one name -> a Forge gear item: exact (with "set of" dropped, "… Armor" added, a squashed name split), then the same letters */
+function impGearFind(ed, name) {
   const tries = [name, name.replace(/^(a\s+)?set\s+of\s+/i, "")];
   if (!/armou?r$/i.test(name)) tries.push(name + " Armor"); /* "Half Plate", "Studded Leather" -> "… Armor" (owner's file, 2026-11-26) */
+  const w = name.trim().split(/\s+/); if (w.length === 2) tries.push(`${w[1]}, ${w[0]}`); /* "iron pot" -> "Pot, iron" */
   if (/^\S+$/.test(name)) for (let i = 3; i <= name.length - 3; i++) tries.push(name.slice(0, i) + " " + name.slice(i));
-  for (const t of tries) { const g = eqGear(ed, t); if (g) return { g, n: g.n, qty }; }
+  for (const t of tries) { const g = eqGear(ed, t); if (g) return g; }
   itLoad(); const k = impLetters(name), ks = k.replace(/s$/, ""), G = IT.data[ed === "2014" ? "2014" : "2024"].filter(x => x.kind === "gear");
-  const g = G.find(x => [k, ks].includes(impLetters(x.n)) || [k, ks].includes(impLetters(x.n).replace(/s$/, "")));
-  return g ? { g, n: g.n, qty } : { g: null, n: name, qty };
+  if (!k) return null;
+  return G.find(x => [k, ks].includes(impLetters(x.n)) || [k, ks].includes(impLetters(x.n).replace(/s$/, ""))) || null;
+}
+/* a gear line -> { g: the Forge item or null, n: the name to show, qty }. The Forge's name is used for a plain match; a
+   magic or named version ("Shield +1", "Morningstar Of Bleeding", "belt pouch") keeps its own name on the base item, so the
+   sheet still reads its +1 and attacks with it. Tried in order: exact, magic/named base, everyday names, the last words,
+   then a small typo (owner, 2026-11-26). */
+function impGear(ed, raw) {
+  let name = String(raw || "").trim(), qty = 1, m;
+  if ((m = name.match(/^(\d+)\s+(.+)$/))) { qty = +m[1]; name = m[2]; }
+  if ((m = name.match(/^(.*?\S)\s*\((\d+)\)$/))) { qty *= +m[2]; name = m[1]; } /* "bolts (20)" */
+  const own = name, magic = /(^|\s)\+\s*\d\b/.test(name);
+  const base = name.replace(/\s*\+\s*\d+\s*$/, "").replace(/^\+\s*\d+\s+/, "").replace(/\s+of\s+.+$/i, "").trim();
+  if (magic && base) { const g = impGearFind(ed, base); if (g) return { g, n: own, qty }; }
+  { const g = impGearFind(ed, name); if (g) return { g, n: g.n, qty }; }
+  if (base && base !== name && base.length >= 3) { const g = impGearFind(ed, base); if (g) return { g, n: own, qty }; }
+  const syn = IMP_GEAR_SYN[name.toLowerCase()] || IMP_GEAR_SYN[base.toLowerCase()];
+  if (syn) { const g = impGearFind(ed, syn); if (g) return { g, n: /^(arrows|bolts|crossbow bolts|rations?|torches|bedroll|waterskin)$/i.test(name) ? g.n : own, qty }; }
+  const w = base.split(/\s+/);
+  for (let i = 1; i < w.length; i++) { const t = w.slice(i).join(" "); if (t.length < 4) continue; const g = impGearFind(ed, t); if (g) return { g, n: own, qty }; } /* "belt pouch" -> Pouch */
+  itLoad(); const G = IT.data[ed === "2014" ? "2014" : "2024"].filter(x => x.kind === "gear");
+  const fz = impFuzzy([G.map(x => x.n)], name); /* a small typo: "Longswrod" */
+  if (fz) { const g = G.find(x => x.n === fz.name); if (g) return { g, n: g.n, qty }; }
+  return { g: null, n: own, qty };
 }
 // spells: an exact name (any case) in this rule set, then the other one
 // spells: exact letters first, then a name that starts a built-in name, then up to 2 letters different (names of 6+ letters)
@@ -281,7 +307,7 @@ function compImport(j, ed) {
     if (!x || !x.name) return;
     const { g, n, qty } = impGear(ed, x.name), q = qty * Math.max(1, +x.amount || 1);
     const ex = inv.find(i => i.n.toLowerCase() === n.toLowerCase()); if (ex) { ex.qty += q; return; }
-    inv.push({ id: uid("i"), ref: g ? g.id : undefined, n, qty: q, w: g ? g.w || 0 : 0, att: false, attuned: !!x.isAttuned, value: g ? g.c : undefined, note: impCut(x.description, 300), eq: anyEq ? !!x.isEquipped : eqIsWeapon(g) || eqIsArmor(g) });
+    inv.push({ id: uid("i"), ref: g ? g.id : undefined, n, qty: q, w: impW(g), att: false, attuned: !!x.isAttuned, value: g ? g.c : undefined, note: impCut(x.description, 300), eq: anyEq ? !!x.isEquipped : eqIsWeapon(g) || eqIsArmor(g) });
   });
   // fighting style, feature picks
   const fightStyles = [];
@@ -389,8 +415,21 @@ function fecsImport(text, ed) {
   note(5).split(/\r?\n/).map(x => x.trim()).filter(Boolean).forEach(line => {
     const { g, n, qty } = impGear(ed, fecsQty(line));
     const ex = inv.find(i => i.n.toLowerCase() === n.toLowerCase()); if (ex) { ex.qty += qty; return; }
-    inv.push({ id: uid("i"), ref: g ? g.id : undefined, n, qty, w: g ? g.w || 0 : 0, att: false, attuned: false, value: g ? g.c : undefined, note: "", eq: eqIsWeapon(g) || eqIsArmor(g) });
+    inv.push({ id: uid("i"), ref: g ? g.id : undefined, n, qty, w: impW(g), att: false, attuned: false, value: g ? g.c : undefined, note: "", eq: eqIsWeapon(g) || eqIsArmor(g) });
   });
+  /* the weapon list (count, then 13 fields a weapon, the name first): each weapon is worn under the file's name; one already
+     in the gear (the same item, or the same base weapon) takes that name instead of being added twice (owner, 2026-11-26) */
+  { const WL = tag("weaponList").split(FECS_X), nW = clamp(parseInt(WL[0]) || 0, 0, 40), took = new Set();
+    for (let k = 0; k < nW; k++) {
+      const wn = impCut(String(WL[1 + k * 13] || "").trim(), 80); if (!wn) continue;
+      const { g } = impGear(ed, wn), gw = g && eqIsWeapon(g) ? g : null;
+      let it = inv.find(x => !took.has(x.id) && x.n.toLowerCase() === wn.toLowerCase()) || (gw && inv.find(x => !took.has(x.id) && x.ref === gw.id));
+      if (it) { it.n = wn; it.eq = true; if (!it.ref && gw) { it.ref = gw.id; it.w = impW(gw); it.value = gw.c; } }
+      else inv.push(it = { id: uid("i"), ref: gw ? gw.id : g ? g.id : undefined, n: wn, qty: 1, w: impW(gw || g), att: false, attuned: false, value: (gw || g || {}).c, note: "", eq: true });
+      took.add(it.id);
+      if (!gw && !eqWeaponOf(it, ed)) D.report.dropped.push(`${wn}: the Forge doesn't know this weapon, so it's kept as an item with no attack. On the sheet, write the weapon it's like in its note (for example Greataxe)`);
+    }
+  }
   // fighting style: a "fighting style⊡Name" piece in classData
   /* every "fighting style⊡Name" piece (one per class that has one), with either form of the separators */
   const fightStyles = [], fsRe = new RegExp(`fighting style\\s*(?:${FECS_D.source})\\s*(.+?)\\s*(?=${FECS_M.source}|${FECS_X.source}|${FECS_D.source}|$)`, "gi");
@@ -413,6 +452,9 @@ function fecsImport(text, ed) {
     notes: notes.join("\n\n"), langs: note(4).split(/\r?\n|,\s*/).map(x => x.trim()).filter(Boolean).join(", "), toolsChosen: note(3).split(/\r?\n|,\s*/).map(x => x.trim()).filter(Boolean).join(", "), conds: [] };
   /* speed: only flagged when the app's is higher (a feat or item the Forge doesn't know); the app may not count class bonuses like a Monk's */
   D.check = { hp: +tag("maxHealth") || 0, speed: (+tag("baseSpeed") || 0) + (+tag("speedMiscMod") || 0), speedUp: true };
+  /* the app's misc AC bonus (magic items, a species bonus and the like) -> the sheet's Other AC bonus; and its AC, to compare */
+  D.extras.acBonus = clamp(parseInt(tag("miscArmorBonus")) || 0, -10, 20);
+  { const armor = parseInt(tag("armorBonus")) || 0; if (armor > 0) { const dex = Math.floor((D.final.dex - 10) / 2), mx = parseInt(tag("maxDex")); D.check.ac = armor + (parseInt(tag("shieldBonus")) || 0) + D.extras.acBonus + (Number.isFinite(mx) && mx >= 0 && mx < 10 ? Math.min(dex, mx) : dex); } }
   if (!main.subclass && main.lv >= subclassLevel(ed, main.cls)) D.report.differ.push(`No ${main.cls} subclass in the file: choose one on the sheet`);
   return D;
 }
@@ -439,6 +481,7 @@ function importBuild(D) {
     if (X.fightStyles && X.fightStyles.length) c.fightStyles = X.fightStyles;
     if (X.conds && X.conds.length) c.conds = X.conds;
     if (X.death) c.death = X.death;
+    if (+X.acBonus) c.acBonus = +X.acBonus; /* the file's misc AC bonus (Fifth Edition Character Sheet) */
     pcEnsure(c);
     try { pcRecompute(c); } catch { }
     c.hpCur = X.hpCur === undefined || isNaN(X.hpCur) ? c.hp : clamp(X.hpCur, 0, c.hp);
@@ -568,7 +611,7 @@ function pdfImport(F, ed) {
     let note = ""; const pm = t.match(/^(.*?)\s*\((.*)\)\s*$/); if (pm && pm[1]) { t = pm[1]; note = pm[2]; }
     const { g, n, qty } = impGear(ed, t);
     const ex = inv.find(i => i.n.toLowerCase() === n.toLowerCase()); if (ex) { if (eq === null) ex.qty += qty; return; }
-    inv.push({ id: uid("i"), ref: g ? g.id : undefined, n: impCut(n, 80), qty, w: g ? g.w || 0 : 0, att: false, attuned: false, value: g ? g.c : undefined, note: impCut(note, 300), eq: eq === null ? eqIsWeapon(g) || eqIsArmor(g) : eq });
+    inv.push({ id: uid("i"), ref: g ? g.id : undefined, n: impCut(n, 80), qty, w: impW(g), att: false, attuned: false, value: g ? g.c : undefined, note: impCut(note, 300), eq: eq === null ? eqIsWeapon(g) || eqIsArmor(g) : eq });
   };
   [get("Equipment"), get("Treasure")].join("\n").split(/\n/).forEach(l => addGear(l, null));
   ["Wpn Name", "Wpn Name 2", "Wpn Name 3"].map(get).filter(Boolean).forEach(w => addGear(w, true));

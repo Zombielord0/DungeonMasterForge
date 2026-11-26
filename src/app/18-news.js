@@ -2,6 +2,11 @@
    When a change ships, add an entry to the top of NEWS with a new id, in plain words for players and DMs. */
 
 const NEWS = [
+  { id: "2026-11-26-import-names", date: "2026-11-26", title: "Imports understand more names, weapons and extra AC", go: "roster", items: [
+    "Gear written differently from the Forge's names is now recognised: light crossbow, bolts (20), belt pouch, holy symbol, small typos, and magic or named versions like Shield +1 or Morningstar Of Bleeding, which keep their own name and bonus.",
+    "Fifth Edition Character Sheet files bring in their weapon list, and their misc AC bonus goes into a new Other AC bonus box under Armor class on the sheet (you can change it there too).",
+    "Imported arrows and bolts now weigh the right amount, and Tempest and War clerics and Valor bards are proficient with martial weapons."
+  ] },
   { id: "2026-11-26-fecs-amp", date: "2026-11-26", title: "Fifth Edition Character Sheet files import again", go: "roster", items: [
     "Characters from the Fifth Edition Character Sheet app now import even when their notes or gear have an & in them (like \"Salt & pepper\"). The app saves those in a way that stopped the import before.",
     "Armour written without the word Armor (\"Half Plate\", \"Studded Leather\") is now recognised and worn, so the character's AC comes out right."

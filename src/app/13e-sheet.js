@@ -253,6 +253,7 @@ spFiltersSync();
     else if (t.dataset.formhp) { c.formHp = Math.max(0, parseInt(t.value) || 0); pcPersist(); renderRosterMain(); }
     else if (t.dataset.actpersist) { c.active = c.active || {}; if (t.value) c.active[t.dataset.actpersist] = t.value; else delete c.active[t.dataset.actpersist]; pcRecompute(c); pcPersist(); renderRosterMain(); }
     else if (t.dataset.fx) { c.fx = c.fx || {}; c.fx[t.dataset.fx] = t.checked; pcACApply(c); pcPersist(); renderRosterMain(); }
+    else if (t.dataset.acbonus) { c.acBonus = clamp(parseInt(t.value) || 0, -10, 20); pcACApply(c); pcPersist(); renderRosterMain(); }
   });
   main.addEventListener("input", e => {
     const c = rosterCur(); if (!c) return; const t = e.target;

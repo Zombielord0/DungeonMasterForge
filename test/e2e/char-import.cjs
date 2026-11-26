@@ -196,6 +196,36 @@ const ZOOK = fs.readFileSync(path.join(FIX, "companion-zook.json"), "utf8").repl
     return { name: d.opts.name, half: { n: g("half plate").n, ref: !!g("half plate").ref, eq: g("half plate").eq }, studded: { n: g("studded").n, ref: !!g("studded").ref }, salt: g("salt").n };
   }, FECS);
   check("5e Character Sheet: a file with a bare & in it (as the app writes) still imports, keeping the &", !amp.error && amp.name === "Wren & Co" && amp.salt === "Salt & pepper", JSON.stringify(amp));
+  /* owner (2026-11-26): names written differently from the Forge's, the file's weapon list, and its misc AC bonus */
+  const nm = await p.evaluate(() => {
+    const t = s => { const r = impGear("2014", s); return { n: r.n, g: r.g ? r.g.n : null, qty: r.qty }; };
+    return { light: t("light crossbow"), bolts: t("bolts (20)"), shield1: t("Shield +1"), star: t("Morningstar Of Bleeding"), pouch: t("belt pouch"), holy: t("holy symbol"), typo: t("Longswrod"), mine: t("Leyline Locket"), pot: t("iron pot") };
+  });
+  check("gear names written differently are matched: light crossbow, bolts (20), iron pot, a typo", nm.light.g === "Crossbow, light" && nm.bolts.g === "Crossbow bolt" && nm.bolts.qty === 20 && nm.pot.g === "Pot, iron" && nm.typo.g === "Longsword", JSON.stringify(nm));
+  check("a magic or named version keeps its own name on the base item (Shield +1, Morningstar Of Bleeding)", nm.shield1.g === "Shield" && nm.shield1.n === "Shield +1" && nm.star.g === "Morningstar" && /Bleeding/.test(nm.star.n), JSON.stringify(nm));
+  check("everyday names: belt pouch is a Pouch, a holy symbol is an Amulet; an item the Forge doesn't have stays itself", nm.pouch.g === "Pouch" && nm.holy.g === "Amulet" && /holy symbol/i.test(nm.holy.n) && nm.mine.g === null && nm.mine.n === "Leyline Locket", JSON.stringify(nm));
+  const wl = await p.evaluate(txt => {
+    const X = "⊠", w = (n, r, code) => [n, r, code, 0, 0, 0, 0, 0, true, true, 1, 1, 8].join(X);
+    const t2 = txt.replace(/<weaponList>[^<]*<\/weaponList>/, `<weaponList>3${X}${w("Longsword +1", "5 feet", "1102")}${X}${w("Bonesaw Cleaver +2", "melee", "1102")}${X}${w("Shortbow", "80/320", "2201")}</weaponList>`)
+      .replace("</character>", "<armorBonus>0</armorBonus><shieldBonus>0</shieldBonus><miscArmorBonus>3</miscArmorBonus></character>");
+    const d = fecsImport(t2, "2014"); if (d.error) return { error: d.error };
+    const { c, report } = importBuild(d); pcEnsure(c); pcRecompute(c);
+    const inv = n => (c.inv || []).find(x => x.n === n) || {};
+    return { ls: { eq: inv("Longsword +1").eq, ref: !!inv("Longsword +1").ref }, cleaver: { has: !!inv("Bonesaw Cleaver +2").n, eq: inv("Bonesaw Cleaver +2").eq }, bow: inv("Shortbow").eq, lsCount: (c.inv || []).filter(x => /^Longsword/.test(x.n)).length, attacks: (c.attacks || []).map(a => a.name + " " + a.hit), acBonus: c.acBonus, acSrc: c.acAutoSrc || c.acSrc, report: [...report.dropped, ...report.differ].join(" | ") };
+  }, FECS);
+  check("the file's weapon list comes in: Longsword +1 and Shortbow worn, with attacks, and no second Longsword", wl.ls && wl.ls.eq && wl.ls.ref && wl.bow && wl.lsCount === 1 && wl.attacks.some(a => /^Longsword \+1/.test(a)) && wl.attacks.some(a => /^Shortbow/.test(a)), JSON.stringify(wl));
+  check("a weapon the Forge doesn't know is kept as an item, and the report says to pick what it is", wl.cleaver && wl.cleaver.has && /Bonesaw Cleaver/.test(wl.report), JSON.stringify(wl));
+  check("the file's misc AC bonus comes in as Other AC bonus and counts in the AC", wl.acBonus === 3 && /Other \+3/.test(wl.acSrc || ""), JSON.stringify([wl.acBonus, wl.acSrc]));
+  const ammo = await p.evaluate(txt => {
+    const t2 = txt.replace(/(<noteList>)([\s\S]*?)(<\/noteList>)/, (m, a, b, z) => { const P = b.split("⊠"); P[5] = "bolts (20)\nMorningstar"; return a + P.join("⊠") + z; })
+      .replace(/(<classData>)[^⊡]*⊡[^⊡]*⊡/, "$1Cleric⊡Tempest Domain⊡");
+    const d = fecsImport(t2, "2014"); if (d.error) return { error: d.error };
+    const { c } = importBuild(d); pcEnsure(c); pcRecompute(c);
+    const b = c.inv.find(x => /bolt/i.test(x.n)) || {}, star = (c.attacks || []).find(a => /Morningstar/.test(a.name)) || {};
+    return { qty: b.qty, lb: Math.round(b.qty * b.w * 100) / 100, sub: c.subclass, starHit: star.hit, expect: c.mods.str + c.prof };
+  }, FECS);
+  check("20 bolts from a file weigh 1.5 lb (the Forge's bolt weight is for a bundle of 20)", ammo.qty === 20 && ammo.lb === 1.5, JSON.stringify(ammo));
+  check("a Tempest cleric is proficient with a morningstar (martial weapons from the subclass)", /Tempest/.test(ammo.sub || "") && ammo.starHit === ammo.expect, JSON.stringify(ammo));
   check("the Import window names the Fifth Edition Character Sheet app and the file types it takes", await p.evaluate(() => { const t = document.querySelector("#impCharModal").textContent; return /Fifth Edition Character Sheet/.test(t) && /\.xml/.test(t) && /\.json/.test(t) && /\.pdf/.test(t); }));
   check("5e Character Sheet: armour named without \"Armor\" (Half Plate, Studded Leather) is matched and worn", amp.half && amp.half.ref && amp.half.eq && /Half Plate Armor/i.test(amp.half.n) && amp.studded.ref, JSON.stringify(amp));
   // reviewer fixes (2026-11-18)

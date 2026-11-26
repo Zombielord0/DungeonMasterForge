@@ -112,3 +112,21 @@ Moved here from `CLAUDE.md` on 2026-11-17, unchanged except that `public/index.h
 - `impGender(src, texts)` (in `src/app/16-character-import.js`) looks for a key named gender, sex or pronouns anywhere in `src`, then counts he/him/his against she/her in the character's own story `texts` (2 or more, and twice the other). "he or she" and "his/her" don't count. The Forge only has male and female names, so a field like "they/them" leaves it unset.
 - `impGenderSet(D, G)` sets `D.opts.gender` and adds "Gender: … (from the file / the backstory)" to the report, or a note that one was picked.
 - Companion App: `about`, `personalityTraits`, `ideals`, `bonds`, `flaws` and notes. PDF: fields named like gender, sex or pronouns, plus Backstory, PersonalityTraits, Ideals, Bonds, Flaws and Allies. MythWeaver: the whole raw character (`raw`, kept by `mwRead`).
+
+## Names written differently, weapons and extra AC (2026-11-26)
+
+The owner asked for imports to "code for naming mismatches", after a real Fifth Edition Character Sheet file came in with unmatched gear.
+- **`impGear`** (used by every importer) tries, in order:
+  1. the exact name (`impGearFind`: "set of" dropped, "… Armor" added, a two-word name turned round, a squashed name split, the same letters);
+  2. a magic version's base ("Shield +1");
+  3. the exact name again;
+  4. a named version's base ("Morningstar Of Bleeding");
+  5. everyday names (`IMP_GEAR_SYN`: holy symbol is an Amulet, bolts are a Crossbow bolt…);
+  6. the last word or words ("belt pouch" is a Pouch);
+  7. a small typo (`impFuzzy`).
+
+  A plain match takes the Forge's name. A magic or named version keeps its own name on the base item, so the sheet still reads its +N and attacks with it. "(20)" counts are read.
+- **Ammunition:** the Forge's arrows and bolts weigh a bundle of 20, and imports count single pieces, so `impW` gives each piece a twentieth.
+- **The Fifth Edition Character Sheet weapon list** (`weaponList`: a count, then 13 fields a weapon) is read. A weapon already in the gear takes the list's name; a new one is added and worn. One the Forge can't identify is kept as an item, with a report line.
+- **Other AC bonus** (`c.acBonus`, a saved number, `PC_NUMS`): added by `pcAC` as "Other +N" and editable under Armor class on the sheet (`data-acbonus`). It's user-set, so it stays out of the `pcLevelTo` copy list. Fifth Edition Character Sheet files fill it from `miscArmorBonus`, and the report compares the file's own AC.
+- **Martial weapons from a subclass** (`SUB_MARTIAL`): 2014 Tempest and War Domains, and the College of Valor.

@@ -226,7 +226,7 @@ function mwChar(ch, ed) {
   else if (bName) { bg = impCut(bName, 60); D.homebrew.push({ id: uid("hb"), kind: "background", src: MW_SRC, ed, name: bg, desc: "Imported from MythWeaver; add its feature here.", skills: [], feat: "", gear: "", fx: [] }); D.report.made.push(`${bg} (background, name only)`); }
   const keepSkills = (sel.class_skills || []).map(s => ALL_SKILLS.find(k => impSame(k, String(s).replace(/^skill-/, "").replace(/-/g, " ")))).filter(Boolean);
   const gearIds = Object.entries(sel).filter(([k]) => /equipment/i.test(k)).flatMap(([, v]) => Array.isArray(v) ? v : [v]).filter(v => typeof v === "string");
-  const inv = gearIds.map(id => { const { g, n, qty } = impGear(ed, impTitle(id.replace(/-/g, " "))); return { id: uid("i"), ref: g ? g.id : undefined, n, qty, w: g ? g.w || 0 : 0, att: false, attuned: false, value: g ? g.c : undefined, note: "", eq: eqIsWeapon(g) || eqIsArmor(g) }; });
+  const inv = gearIds.map(id => { const { g, n, qty } = impGear(ed, impTitle(id.replace(/-/g, " "))); return { id: uid("i"), ref: g ? g.id : undefined, n, qty, w: impW(g), att: false, attuned: false, value: g ? g.c : undefined, note: "", eq: eqIsWeapon(g) || eqIsArmor(g) }; });
   D.report.matched.unshift(`${cls} ${lv}`);
   D.opts = { seed: "mw|" + ch.mwId, name: ch.name, ed, bonus: "fixed", method: "array", cls, level: lv, subclass: "none", race, sub, bg: bg || undefined, keepSkills };
   { const texts = []; const walk = (v, d) => { if (d > 6 || v == null) return; if (typeof v === "string") { if (v.length > 12) texts.push(mwText(v)); } else if (typeof v === "object") Object.values(v).forEach(x => walk(x, d + 1)); };

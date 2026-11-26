@@ -1701,3 +1701,7 @@ html.fight-open{overflow:hidden}
 .locmap-rooms{margin:0;padding:0;font-size:14px;max-height:60vh;overflow:auto}
 .locmap-rooms li{padding:4px 0;border-bottom:1px solid var(--line)}
 @media (max-width:760px){.locmap-body{grid-template-columns:minmax(0,1fr)}.locmap-rooms{max-height:none}}
+
+/* the sheet's Other AC bonus (2026-11-26) */
+.ac-other{display:flex;align-items:center;gap:8px;margin:10px 0 0;text-transform:none;letter-spacing:0;font-family:inherit;font-size:14px}
+.ac-other input{width:70px}
