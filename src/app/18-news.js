@@ -2,9 +2,10 @@
    When a change ships, add an entry to the top of NEWS with a new id, in plain words for players and DMs. */
 
 const NEWS = [
-  { id: "2026-11-26-feat-summaries", date: "2026-11-26", title: "Book feats now say what they do", go: "compendium", items: [
-    "The 83 feats from other books (Player's Handbook, Xanathar's, Tasha's, the giants and dragons books and more) used to show only their book and page in the Compendium. Each now has a short summary of what it does, with its prerequisite.",
-    "They're summaries, not the book's text, so check the page for the full rules."
+  { id: "2026-11-26-book-summaries", date: "2026-11-26", title: "Book references now say what they do", go: "compendium", items: [
+    "Every entry from the other books that used to show only its book and page in the Compendium now has a short summary: 83 feats, 163 class options (fighting styles, Battle Master maneuvers, Metamagic, warlock invocations and pacts, Four Elements disciplines, Arcane Shots, Rune Knight runes, artificer infusions), 6 species, 5 background variants and 12 monsters.",
+    "Everyday gear from those books (silvered and adamantine weapons, spiked armor and the like) now says Rarity: none instead of unknown, and the Silver Sword says legendary.",
+    "They're summaries, not the books' text, so check the page for the full rules."
   ] },
   { id: "2026-11-26-import-names", date: "2026-11-26", title: "Imports understand more names, weapons and extra AC", go: "roster", items: [
     "Gear written differently from the Forge's names is now recognised: light crossbow, bolts (20), belt pouch, holy symbol, small typos, and magic or named versions like Shield +1 or Morningstar Of Bleeding, which keep their own name and bonus.",

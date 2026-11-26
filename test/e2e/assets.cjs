@@ -166,6 +166,15 @@ const server = http.createServer((req, res) => {
   check("a book reference feat shows its summary", await featRef.getByText(/A short summary/).isVisible()
     && /Needs: dwarf or a Small species/.test(await featRef.innerText()) && /p\. 75/.test(await featRef.innerText()));
   await featRef.getByRole("button", { name: "Close" }).click();
+  /* an "Other rules" entry that two books share takes the summary keyed to its own book */
+  await query.fill("enhanced defense");
+  await results.getByRole("button", { name: /Enhanced Defense.*Book reference/ }).first().click();
+  check("an Other rules reference shows its summary", /Artificer infusion for armor or a shield/.test(await featRef.innerText()));
+  await featRef.getByRole("button", { name: "Close" }).click();
+  await query.fill("silvered weapon");
+  await results.getByRole("button", { name: /Silvered Weapon.*Book reference/ }).first().click();
+  check("everyday book items say Rarity none, not unknown", /Rarity · none/.test(await featRef.innerText()));
+  await featRef.getByRole("button", { name: "Close" }).click();
   await p.locator("#compendiumQuery").fill("Test campaign spell");
   await p.evaluate(() => hbSet([{ id: "compendium-test", kind: "spell", name: "Test campaign spell", desc: "A campaign spell.", ed: "2014" }]));
   await results.getByRole("button", { name: /Test campaign spell/ }).waitFor();

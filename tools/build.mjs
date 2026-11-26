@@ -22,6 +22,7 @@
 import { createHash } from "node:crypto";
 import { readFileSync, writeFileSync, readdirSync, unlinkSync, mkdirSync } from "node:fs";
 import vm from "node:vm";
+import { joinSummaries } from "./ref-summaries.mjs";
 
 if (process.env.DMFORGE_BUILT === "1") process.exit(0); // npm run test:all builds once, then skips this in each check
 
@@ -106,19 +107,7 @@ for (const [name, key] of [["spells", "spellData"], ["monsters", "monsterData"],
   if (name === "book-references") {
     /* Short summaries in our own words for references with nothing else to show (owner, 2026-11-26).
        Keyed by kind, then "Name|book" or plain "Name". A key that matches no reference stops the build, so typos can't hide. */
-    const summaries = JSON.parse(read("data/reference-summaries.json")), used = new Set();
-    data = data.map(row => {
-      const byKind = summaries[row.kind] || {}, key = [`${row.name}|${row.src}`, row.name].find(k => k in byKind);
-      if (!key) return row;
-      used.add(`${row.kind}\u0000${key}`);
-      return { ...row, sum: byKind[key] };
-    });
-    for (const [kind, byKind] of Object.entries(summaries)) {
-      if (kind.startsWith("_")) continue;
-      for (const key of Object.keys(byKind)) {
-        if (!used.has(`${kind}\u0000${key}`)) throw new Error(`data/reference-summaries.json: no ${kind} reference named ${key}`);
-      }
-    }
+    data = joinSummaries(data, JSON.parse(read("data/reference-summaries.json")));
     for (const ed of ["2014", "2024"]) {
       emitCatalog(`book-references-${ed}`, `bookReferences${ed}`, data.filter(row => (row.ed || "2014") === ed), name);
     }
