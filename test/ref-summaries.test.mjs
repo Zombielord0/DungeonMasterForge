@@ -62,3 +62,19 @@ test("every Dungeon Master's Guide magic item has free-rules text or a summary",
   const bare = out.filter(r => r.kind === "Item" && r.src === "dmg-2014" && !["none", undefined].includes(Object.fromEntries(r.details).Rarity) && !r.srd && !r.sum);
   assert.deepEqual(bare.map(r => r.name), []);
 });
+
+test("each Sword of Answering's summary names the alignment its attunement line gives", () => {
+  const read = f => JSON.parse(readFileSync(new URL(`../data/${f}`, import.meta.url), "utf8"));
+  const sum = read("reference-summaries.json").Item;
+  const swords = read("book-references.json").filter(r => r.kind === "Item" && r.name.startsWith("Sword of Answering ("));
+  assert.equal(swords.length, 9);
+  for (const sword of swords) {
+    const align = Object.fromEntries(sword.details).Attunement.match(/^by an? (.+) creature$/)[1];
+    assert.match(sum[sword.name], new RegExp(`for an? ${align} wielder`), sword.name);
+  }
+});
+
+test("Quiver of Ehlonna shows the free rules' Efficient Quiver", () => {
+  const links = JSON.parse(readFileSync(new URL("../data/reference-srd-items.json", import.meta.url), "utf8"))["dmg-2014"];
+  assert.equal(links["Quiver of Ehlonna"], "Efficient Quiver");
+});

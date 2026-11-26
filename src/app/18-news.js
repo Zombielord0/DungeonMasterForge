@@ -3,8 +3,8 @@
 
 const NEWS = [
   { id: "2026-11-26-dmg-items", date: "2026-11-26", title: "Dungeon Master's Guide items say what they do", go: "compendium", items: [
-    "The Compendium's 423 magic items from the Dungeon Master's Guide used to show only their rarity and type. Now 357 of them show their full rules, from the free rules the Forge already has (some under another name there, like Iron Bands of Binding for Iron Bands of Bilarro).",
-    "The other 66, which are only in the book (Driftglobe, the Swords of Answering, the Hand of Vecna and more), have a short summary."
+    "The Compendium's magic items from the Dungeon Master's Guide used to show only their rarity and type. Now 358 of them show their full rules, from the free rules the Forge already has (some under another name there, like Iron Bands of Binding for Iron Bands of Bilarro).",
+    "The other 65, which are only in the book (Driftglobe, the Swords of Answering, the Hand of Vecna and more), have a short summary."
   ] },
   { id: "2026-11-26-book-summaries", date: "2026-11-26", title: "Book references now say what they do", go: "compendium", items: [
     "Every entry from the other books that used to show only its book and page in the Compendium now has a short summary: 83 feats, 163 class options (fighting styles, Battle Master maneuvers, Metamagic, warlock invocations and pacts, Four Elements disciplines, Arcane Shots, Rune Knight runes, artificer infusions), 6 species, 5 background variants and 12 monsters.",

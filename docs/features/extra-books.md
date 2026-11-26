@@ -57,7 +57,7 @@ Only OGL 1.0a and CC BY 4.0 books. `public/credits.html` lists each book, its li
 
 ## Dungeon Master's Guide items (2026-11-26, owner's choice)
 
-- **Free-rules links:** 357 of the guide's 423 magic item references are also in the free rules (SRD 5.1). `data/reference-srd-items.json` maps each reference name to its free-rules name (`"Ioun Stone, Agility"` → `"Ioun Stone of Agility"`; every Armor of <type> Resistance → Armor of Resistance). `joinSrdItems` (`tools/ref-summaries.mjs`) joins it on as `srd`, and the build stops if either name is missing. `compendiumBookDetail` then shows that item's full free-rules text (`itDetail`) under the book reference, saying what the free rules call it.
-- **Summaries:** the other 66 (only in the guide, or "family" entries such as Ioun Stone or Instrument of the Bards) have a summary under `"Item"` in `data/reference-summaries.json`.
+- **Free-rules links:** 358 of the guide's 423 magic item references are also in the free rules (SRD 5.1). `data/reference-srd-items.json` maps each reference name to its free-rules name (`"Ioun Stone, Agility"` → `"Ioun Stone of Agility"`; every Armor of <type> Resistance → Armor of Resistance). `joinSrdItems` (`tools/ref-summaries.mjs`) joins it on as `srd`, and the build stops if either name is missing. `compendiumBookDetail` then shows that item's full free-rules text (`itDetail`) under the book reference, saying what the free rules call it.
+- **Summaries:** the other 65 (only in the guide, or "family" entries such as Ioun Stone or Instrument of the Bards) have a summary under `"Item"` in `data/reference-summaries.json`.
 - **Not yet:** magic items from the other books (Tasha's 86, Xanathar's 48, Eberron 43, Ravnica 36, the giants book 33 and more).
 - **The checks:** `test/ref-summaries.test.mjs` (the join, and every guide magic item has one or the other) and two lines in `npm run test:assets`.
