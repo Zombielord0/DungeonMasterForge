@@ -185,6 +185,10 @@ const server = http.createServer((req, res) => {
   await results.getByRole("button", { name: /Bead of Nourishment.*Book reference/ }).first().click();
   check("a magic item from another book shows its summary", /feeds you for a day/.test(await featRef.innerText()));
   await featRef.getByRole("button", { name: "Close" }).click();
+  await query.fill("way of shadow");
+  await results.getByRole("button", { name: /Way of Shadow.*Book reference/ }).first().click();
+  check("a book subclass shows its summary", /teleport between shadows/.test(await featRef.innerText()));
+  await featRef.getByRole("button", { name: "Close" }).click();
   await query.fill("silvered weapon");
   await results.getByRole("button", { name: /Silvered Weapon.*Book reference/ }).first().click();
   check("everyday book items say Rarity none, not unknown", /Rarity · none/.test(await featRef.innerText()));

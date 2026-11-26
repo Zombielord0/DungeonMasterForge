@@ -105,3 +105,9 @@ test("item facts checked against the owner's magic item list (2026-11-26)", () =
   const eye = read("book-references.json").find(r => r.kind === "Item" && r.name === "Ersatz Eye");
   assert.equal(Object.fromEntries(eye.details).Attunement, "Required");
 });
+
+test("every subclass reference has a summary", () => {
+  const read = f => JSON.parse(readFileSync(new URL(`../data/${f}`, import.meta.url), "utf8"));
+  const out = joinSummaries(read("book-references.json"), read("reference-summaries.json"));
+  assert.deepEqual(out.filter(r => r.kind === "Subclass" && !r.sum).map(r => `${r.name} (${r.src})`), []);
+});

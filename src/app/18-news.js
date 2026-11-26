@@ -2,6 +2,10 @@
    When a change ships, add an entry to the top of NEWS with a new id, in plain words for players and DMs. */
 
 const NEWS = [
+  { id: "2026-11-26-subclass-summaries", date: "2026-11-26", title: "Book subclasses say what they do", go: "compendium", items: [
+    "Subclasses from the Player's Handbook and other books that showed only their feature names in the Compendium now have a short level-by-level summary, like Way of Shadow, the School of Evocation or the Battle Master.",
+    "Subclasses the Forge already lets you play (Gloom Stalker, Oath of Glory and the rest) still open their full progression."
+  ] },
   { id: "2026-11-26-all-magic-items", date: "2026-11-26", title: "Every book magic item says what it does", go: "compendium", items: [
     "All the Compendium's magic items from the other books now say what they do too: Tasha's, Xanathar's, Eberron, Ravnica, the giants and dragons books, Theros, Strixhaven and more, 306 in all.",
     "Some newer items get only a general description for now, pointing you to the book's page for the exact numbers."
