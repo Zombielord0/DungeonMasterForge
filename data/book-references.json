@@ -531,7 +531,7 @@
   {"kind":"Item","name":"Energy Cell","src":"dmg-2014","page":268,"details":[["Rarity","none"],["Weight (lb)","0.3125"]]},
   {"kind":"Item","name":"Entertainer's Pack","src":"phb-2014","page":151,"details":[["Rarity","none"],["Type","Adventuring gear"],["Weight (lb)","38"]]},
   {"kind":"Item","name":"Ephixis, Bow of Nylea","src":"mot","page":200,"details":[["Rarity","artifact"],["Type","Ranged weapon"],["Attunement","Required"],["Weight (lb)","2"],["Damage dice","1d6"]]},
-  {"kind":"Item","name":"Ersatz Eye","src":"xge","page":137,"details":[["Rarity","common"],["Type","Wondrous item"]]},
+{"kind":"Item","name":"Ersatz Eye","src":"xge","page":137,"details":[["Rarity","common"],["Type","Wondrous item"],["Attunement","Required"]]},
   {"kind":"Item","name":"Essence of Ether","src":"dmg-2014","page":258,"details":[["Rarity","none"],["Type","Adventuring gear"]]},
   {"kind":"Item","name":"Everbright Lantern","src":"erlw","page":277,"details":[["Rarity","common"],["Type","Wondrous item"]]},
   {"kind":"Item","name":"Eversmoking Bottle","src":"dmg-2014","page":168,"details":[["Rarity","uncommon"],["Type","Wondrous item"],["Weight (lb)","1"]]},

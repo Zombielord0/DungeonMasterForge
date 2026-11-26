@@ -91,3 +91,17 @@ test("summaries use \"an\" before a vowel sound", () => {
   }
   assert.deepEqual(bad, []);
 });
+
+test("item facts checked against the owner's magic item list (2026-11-26)", () => {
+  const read = f => JSON.parse(readFileSync(new URL(`../data/${f}`, import.meta.url), "utf8"));
+  const it = read("reference-summaries.json").Item;
+  assert.match(it["Slumbering Dragon's Wrath Weapon"], /roll a 20/);            /* not +1d6: that's the stirring stage */
+  assert.match(it["Slumbering Scaled Ornament"], /charmed or frightened/);      /* not +1 AC: that's the stirring stage */
+  assert.match(it["Dragonlance"], /Against dragons it deals 3d6/);
+  assert.match(it["Potion of Dragon's Majesty"], /kind its scale came from/);
+  assert.match(it["Shadowfell Brand Tattoo"], /darkvision 60 feet.*sunset/);
+  assert.match(it["Elemental Essence Shard (Water)"], /2d6 cold/);
+  assert.match(it["Guild Signet"], /save DC 13/);
+  const eye = read("book-references.json").find(r => r.kind === "Item" && r.name === "Ersatz Eye");
+  assert.equal(Object.fromEntries(eye.details).Attunement, "Required");
+});
