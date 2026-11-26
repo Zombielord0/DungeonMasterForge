@@ -23,3 +23,26 @@ export function joinSummaries(rows, summaries) {
   }
   return out;
 }
+
+// Joins data/reference-srd-items.json onto the book references as `srd`: the free-rules (SRD 5.1) name of an item
+// that a book reference repeats, so the Compendium can show that item's full text (owner, 2026-11-26).
+// `links` is { "<book code>": { "<reference name>": "<free-rules name>" } }; `srdNames` is the set of 2014 free-rules
+// magic item names (data/items.json). A link whose reference or free-rules item is missing stops the build.
+export function joinSrdItems(rows, links, srdNames) {
+  const used = new Set(), id = (src, name) => `${src}\u0000${name}`;
+  const out = rows.map(row => {
+    const bySrc = row.kind === "Item" && Object.hasOwn(links, row.src) ? links[row.src] : null;
+    if (!bySrc || !Object.hasOwn(bySrc, row.name)) return row;
+    const srd = bySrc[row.name];
+    if (!srdNames.has(srd)) throw new Error(`data/reference-srd-items.json: no free-rules item named ${srd} (for ${row.name})`);
+    used.add(id(row.src, row.name));
+    return { ...row, srd };
+  });
+  for (const [src, bySrc] of Object.entries(links)) {
+    if (src.startsWith("_")) continue;
+    for (const name of Object.keys(bySrc)) {
+      if (!used.has(id(src, name))) throw new Error(`data/reference-srd-items.json: no ${src} item reference named ${name}`);
+    }
+  }
+  return out;
+}

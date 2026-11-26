@@ -171,6 +171,16 @@ const server = http.createServer((req, res) => {
   await results.getByRole("button", { name: /Enhanced Defense.*Book reference/ }).first().click();
   check("an Other rules reference shows its summary", /Artificer infusion for armor or a shield/.test(await featRef.innerText()));
   await featRef.getByRole("button", { name: "Close" }).click();
+  /* Dungeon Master's Guide items (2026-11-26): free-rules text when the SRD has the item, else a summary */
+  await query.fill("ioun stone agility");
+  await results.getByRole("button", { name: /Ioun Stone, Agility.*Book reference/ }).first().click();
+  check("a book item the free rules have shows their full text", /called Ioun Stone of Agility there/.test(await featRef.innerText())
+    && /Dexterity score increases by 2/.test(await featRef.innerText()));
+  await featRef.getByRole("button", { name: "Close" }).click();
+  await query.fill("driftglobe");
+  await results.getByRole("button", { name: /Driftglobe.*Book reference/ }).first().click();
+  check("a book item only in its book shows its summary", /A short summary/.test(await featRef.innerText()) && /follow you/.test(await featRef.innerText()));
+  await featRef.getByRole("button", { name: "Close" }).click();
   await query.fill("silvered weapon");
   await results.getByRole("button", { name: /Silvered Weapon.*Book reference/ }).first().click();
   check("everyday book items say Rarity none, not unknown", /Rarity · none/.test(await featRef.innerText()));

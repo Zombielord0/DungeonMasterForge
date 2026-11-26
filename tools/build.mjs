@@ -22,7 +22,7 @@
 import { createHash } from "node:crypto";
 import { readFileSync, writeFileSync, readdirSync, unlinkSync, mkdirSync } from "node:fs";
 import vm from "node:vm";
-import { joinSummaries } from "./ref-summaries.mjs";
+import { joinSummaries, joinSrdItems } from "./ref-summaries.mjs";
 
 if (process.env.DMFORGE_BUILT === "1") process.exit(0); // npm run test:all builds once, then skips this in each check
 
@@ -108,6 +108,9 @@ for (const [name, key] of [["spells", "spellData"], ["monsters", "monsterData"],
     /* Short summaries in our own words for references with nothing else to show (owner, 2026-11-26).
        Keyed by kind, then "Name|book" or plain "Name". A key that matches no reference stops the build, so typos can't hide. */
     data = joinSummaries(data, JSON.parse(read("data/reference-summaries.json")));
+    /* book items the free rules also have point at their free-rules name, so the Compendium shows the full text */
+    const srdItems = new Set(JSON.parse(read("data/items.json"))["2014"].mi.filter(m => !m.src).map(m => m.n));
+    data = joinSrdItems(data, JSON.parse(read("data/reference-srd-items.json")), srdItems);
     for (const ed of ["2014", "2024"]) {
       emitCatalog(`book-references-${ed}`, `bookReferences${ed}`, data.filter(row => (row.ed || "2014") === ed), name);
     }

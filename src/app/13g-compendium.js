@@ -25,6 +25,12 @@ function compendiumBookDetail(entry) {
     `<p><b>${esc(label)}</b> · ${esc(value)}</p>`).join("");
   /* entry.sum: a short summary in our own words (data/reference-summaries.json), for references with no details */
   const summary = entry.sum ? `<p>${esc(entry.sum)}</p>` : "";
+  /* entry.srd: the item's name in the free rules (data/reference-srd-items.json), whose full text the app already has */
+  const free = entry.srd ? (itLoad(), IT.data["2014"].find(x => x.kind === "magic" && !x.src && x.n === entry.srd)) : null;
+  if (free) {
+    const called = free.n === entry.name ? "" : ` (called ${esc(free.n)} there)`;
+    return `${bookLine(entry)}<p class="hint">Full rules from the free rules (SRD 5.1)${called}.</p>${details}${itDetail(free, false)}`;
+  }
   const hint = entry.sum ? "A short summary. See the sourcebook for the full rules." : "Reference only. See the sourcebook for the full rules.";
   return `${bookLine(entry)}<p class="hint">${hint}</p>${summary}${details}`;
 }
