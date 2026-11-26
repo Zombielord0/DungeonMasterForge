@@ -739,10 +739,10 @@ if (location.protocol !== "file:" && localStorage.getItem("dmforge.offline") !==
 </div></div>
 <div id="impCharModal" role="dialog" aria-modal="true" aria-labelledby="impCharTitle"><div class="box">
   <h3 id="impCharTitle">Import a character</h3>
-  <p>Bring in a character from the <b>5e Companion App</b> or a fillable <b>PDF character sheet</b>. The Forge rebuilds it with its own rules, keeping the scores, skills, gear, spells and story. Anything the Forge doesn't know becomes homebrew.</p>
-  <p class="muted" style="font-size:14px;margin-top:-8px">In the 5e Companion App, open the character, then use Export or Share to save its file. For a PDF, use one you can still type into.</p>
+  <p>Bring in a character from the <b>5e Companion App</b>, the <b>Fifth Edition Character Sheet</b> app, or a fillable <b>PDF character sheet</b>. The Forge rebuilds it with its own rules, keeping the scores, skills, gear, spells and story. Anything the Forge doesn't know becomes homebrew.</p>
+  <p class="muted" style="font-size:14px;margin-top:-8px">In the 5e Companion App, open the character, then use Export or Share to save its file (.json). In the Fifth Edition Character Sheet app, export the character (.xml). For a PDF, use one you can still type into (.pdf).</p>
   <div class="field"><label>Rules</label><div class="seg"><label class="opt"><input type="radio" name="impEd" value="2014" checked><span>2014 rules</span></label><label class="opt"><input type="radio" name="impEd" value="2024"><span>2024 rules</span></label></div></div>
-  <label class="btn" style="display:block;text-align:center" tabindex="0">Choose a file…<input type="file" id="impCharFile" hidden></label>
+  <label class="btn" style="display:block;text-align:center" tabindex="0">Choose a file… <small>(.json, .xml or .pdf)</small><input type="file" id="impCharFile" hidden></label>
   <div id="impCharOut" class="imp-out" aria-live="polite"></div>
   <div class="row" style="justify-content:flex-end;margin-top:14px;gap:8px"><button class="btn" type="button" id="impCharCancel" style="flex:0 0 auto">Cancel</button><button class="btn primary" type="button" id="impCharGo" style="flex:0 0 auto" disabled>Import</button></div>
 </div></div>

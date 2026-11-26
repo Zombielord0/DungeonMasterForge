@@ -2,6 +2,10 @@
    When a change ships, add an entry to the top of NEWS with a new id, in plain words for players and DMs. */
 
 const NEWS = [
+  { id: "2026-11-26-fecs-amp", date: "2026-11-26", title: "Fifth Edition Character Sheet files import again", go: "roster", items: [
+    "Characters from the Fifth Edition Character Sheet app now import even when their notes or gear have an & in them (like \"Salt & pepper\"). The app saves those in a way that stopped the import before.",
+    "Armour written without the word Armor (\"Half Plate\", \"Studded Leather\") is now recognised and worn, so the character's AC comes out right."
+  ] },
   { id: "2026-11-25-locmap-preview", date: "2026-11-25", title: "Check a location's map before opening it", go: "generate", items: [
     "On an adventure, a location's Generate map now opens a preview: the map with its rooms and fights. Press 🎲 Another map for a different layout, 💾 Save to campaign to keep it in a campaign (it then shows on the Dungeon Map's Your maps), or Open in Dungeon Map to use that exact map."
   ] },

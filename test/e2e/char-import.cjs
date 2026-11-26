@@ -187,6 +187,17 @@ const ZOOK = fs.readFileSync(path.join(FIX, "companion-zook.json"), "utf8").repl
   });
   check("5e Character Sheet: an XML file that isn't a character is refused kindly", /Fifth Edition Character Sheet/.test(fe3[0]) && /Fifth Edition Character Sheet/.test(fe3[1]), JSON.stringify(fe3));
   check("5e Character Sheet: the report names the app", fe.src === "Fifth Edition Character Sheet");
+  /* owner's file (2026-11-26): the app writes a bare & into its XML (not valid XML), and armour without the word "Armor" */
+  const amp = await p.evaluate(txt => {
+    const withAmp = txt.replace(/(<noteList>)([\s\S]*?)(<\/noteList>)/, (m, a, b, z) => { const P = b.split("⊠"); P[5] = "Half Plate\nStudded Leather\nSalt & pepper\nRope & grapnel"; return a + P.join("⊠") + z; }).replace("Wren Ashdown", "Wren & Co");
+    const d = fecsImport(withAmp, "2014"); if (d.error) return { error: d.error };
+    const inv = d.extras.inv, g = n => inv.find(x => new RegExp(n, "i").test(x.n)) || {};
+    const { c } = importBuild(d);
+    return { name: d.opts.name, half: { n: g("half plate").n, ref: !!g("half plate").ref, eq: g("half plate").eq }, studded: { n: g("studded").n, ref: !!g("studded").ref }, salt: g("salt").n };
+  }, FECS);
+  check("5e Character Sheet: a file with a bare & in it (as the app writes) still imports, keeping the &", !amp.error && amp.name === "Wren & Co" && amp.salt === "Salt & pepper", JSON.stringify(amp));
+  check("the Import window names the Fifth Edition Character Sheet app and the file types it takes", await p.evaluate(() => { const t = document.querySelector("#impCharModal").textContent; return /Fifth Edition Character Sheet/.test(t) && /\.xml/.test(t) && /\.json/.test(t) && /\.pdf/.test(t); }));
+  check("5e Character Sheet: armour named without \"Armor\" (Half Plate, Studded Leather) is matched and worn", amp.half && amp.half.ref && amp.half.eq && /Half Plate Armor/i.test(amp.half.n) && amp.studded.ref, JSON.stringify(amp));
   // reviewer fixes (2026-11-18)
   const fx = await p.evaluate(txt => {
     const X = "\u22a0", D = "\u22a1", M = "\u229f";

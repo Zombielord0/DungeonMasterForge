@@ -123,6 +123,7 @@ function impGear(ed, raw) {
   let name = String(raw || "").trim(), qty = 1;
   const m = name.match(/^(\d+)\s+(.+)$/); if (m) { qty = +m[1]; name = m[2]; }
   const tries = [name, name.replace(/^(a\s+)?set\s+of\s+/i, "")];
+  if (!/armou?r$/i.test(name)) tries.push(name + " Armor"); /* "Half Plate", "Studded Leather" -> "… Armor" (owner's file, 2026-11-26) */
   if (/^\S+$/.test(name)) for (let i = 3; i <= name.length - 3; i++) tries.push(name.slice(0, i) + " " + name.slice(i));
   for (const t of tries) { const g = eqGear(ed, t); if (g) return { g, n: g.n, qty }; }
   itLoad(); const k = impLetters(name), ks = k.replace(/s$/, ""), G = IT.data[ed === "2014" ? "2014" : "2024"].filter(x => x.kind === "gear");
@@ -319,7 +320,11 @@ function fecsQty(line) {
 }
 function fecsImport(text, ed) {
   const bad = { error: "This file isn't a Fifth Edition Character Sheet character. In the app, export the character (or upload it to Google Drive) and choose its .xml file." };
-  let doc; try { doc = new DOMParser().parseFromString(String(text || ""), "application/xml"); } catch { return bad; }
+  const parse = t => { try { return new DOMParser().parseFromString(t, "application/xml"); } catch { return null; } };
+  let doc = parse(String(text || ""));
+  /* the app writes a bare & (an item called "Salt & pepper") without escaping it, which isn't valid XML: escape only those
+     and read it again (owner's file, 2026-11-26) */
+  if (!doc || doc.querySelector("parsererror")) doc = parse(String(text || "").replace(/&(?!(?:amp|lt|gt|quot|apos|#\d+|#x[0-9a-f]+);)/gi, "&amp;"));
   if (!doc || doc.querySelector("parsererror") || !doc.documentElement || doc.documentElement.nodeName !== "character") return bad;
   const tag = n => { const e = doc.documentElement.querySelector(":scope > " + n); return e ? e.textContent : ""; };
   if (!tag("classData") || !tag("abilityScores")) return bad;
