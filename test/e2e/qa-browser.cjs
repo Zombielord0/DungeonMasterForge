@@ -45,8 +45,8 @@ const server = http.createServer((req, res) => {
 
     // 3. every header tab has an icon (the Compendium had none)
     await p.goto(URL + "#compendium"); await p.waitForTimeout(300);
-    const noIcon = await p.evaluate(() => [...document.querySelectorAll("header nav a[data-view]")].filter(a => !getComputedStyle(a).getPropertyValue("--ic").trim()).map(a => a.dataset.view));
-    check("every header tab has its own icon", !noIcon.length, noIcon.join());
+    const noIcon = await p.evaluate(() => [...document.querySelectorAll("#fside nav a[data-view]")].filter(a => !getComputedStyle(a).getPropertyValue("--ic").trim()).map(a => a.dataset.view));
+    check("every tab in the side menu has its own icon", !noIcon.length && await p.evaluate(() => document.querySelectorAll("#fside nav a[data-view]").length > 10), noIcon.join());
     // the app icons and the header emblem (new picture, 2026-11-24): each loads at its stated size
     const pics = await p.evaluate(async () => {
       const load = src => new Promise(res => { const i = new Image(); i.onload = () => res([src, i.naturalWidth, i.naturalHeight]); i.onerror = () => res([src, 0, 0]); i.src = src; });
@@ -179,8 +179,8 @@ const server = http.createServer((req, res) => {
 
     // UI review (2026-11-24), laptop: Saved / Backup / bell share the title's row; Skip to content; Next turn leads a fight
     await p.goto(URL + "#generate"); await p.reload(); await p.waitForFunction(() => typeof route === "function"); await p.waitForTimeout(800);
-    const hdr = await p.evaluate(() => { const mid = r => (r.top + r.bottom) / 2, b = document.querySelector("#storeBadge").getBoundingClientRect(), t = document.querySelector(".brand").getBoundingClientRect(), n = document.querySelector("header nav").getBoundingClientRect(); return { level: Math.round(Math.abs(mid(b) - mid(t))), above: b.bottom <= n.top + 2 }; });
-    check("UI: on laptops, Saved / Backup / the bell sit beside the title, above the tabs", hdr.level < 30 && hdr.above, JSON.stringify(hdr));
+    const hdr = await p.evaluate(() => { const mid = r => (r.top + r.bottom) / 2, b = document.querySelector("#storeBadge").getBoundingClientRect(), t = document.querySelector(".brand").getBoundingClientRect(); return { level: Math.round(Math.abs(mid(b) - mid(t))) }; });
+    check("UI: on laptops, Saved / Backup / the bell sit beside the title (the tabs are in the side menu)", hdr.level < 30, JSON.stringify(hdr));
     await p.keyboard.press("Tab"); /* the first Tab on a fresh page */
     const skip = await p.evaluate(() => document.activeElement && document.activeElement.id);
     await p.keyboard.press("Enter");

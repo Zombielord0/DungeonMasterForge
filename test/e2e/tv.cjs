@@ -60,7 +60,7 @@ const server = http.createServer((req, res) => {
   check("Off TV sends a picture without the fight", await waitFrame(n) && await dm.evaluate(() => !HOST.enc));
 
   // ---------- handouts ----------
-  await dm.goto(URL + "#map"); await dm.waitForFunction(() => typeof hostStart === "function");
+  await dm.goto(URL + "#map"); await dm.waitForFunction(() => typeof hostStart === "function"); await dm.evaluate(() => mapMode("run")); /* the Player Screen is in Run (2026-11-25) */
   await dm.evaluate(() => renderMap());
   // switching tabs doesn't reload the page, so the player screen is still being hosted
   check("hosting carries on when moving to the map tab", await dm.evaluate(() => HOST.on)); await dm.bringToFront();
@@ -83,6 +83,46 @@ const server = http.createServer((req, res) => {
   n = await frames(); await dm.click("#handoutBack"); await waitFrame(n);
 
   check("TV still only receives pictures, pings and bye", await obs.evaluate(() => window.__msgs.length > 0 && window.__msgs.every(m => Object.keys(m).every(k => ["t", "blob", "x", "y"].includes(k)) && ["frame", "ping", "bye"].includes(m.t))));
+  // ---------- the owner's bug (2026-11-25): after the TV window is closed, Show on TV opens it again ----------
+  {
+    for (const pg of ctx.pages()) if (/player\.html/.test(pg.url())) await pg.close();
+    await dm.bringToFront(); await dm.waitForTimeout(300);
+    await dm.evaluate(() => { location.hash = "tracker"; HOST.enc = null; subTab = "encounters"; renderTracker(); }); await dm.waitForTimeout(300);
+    const tvBtn = `[data-ea="tv"][data-eid="${eid}"]`;
+    const pop = ctx.waitForEvent("page", { timeout: 4000 }).catch(() => null);
+    await dm.click(tvBtn);
+    check("Show on TV opens the TV window again after it was closed", !!(await pop));
+    for (const pg of ctx.pages()) if (/player\.html/.test(pg.url())) await pg.close();
+    /* the button resets itself to Show on TV within 2 s of the window closing (2026-11-25), so wait for that, then show again */
+    await dm.bringToFront(); await dm.waitForFunction(id => /Show on TV/.test(document.querySelector(`[data-ea="tv"][data-eid="${id}"]`)?.textContent || ""), eid, { timeout: 5000 }).catch(() => {});
+    const pop2 = ctx.waitForEvent("page", { timeout: 4000 }).catch(() => null);
+    await dm.click(tvBtn); /* Show on TV once more */
+    check("…and again after the TV window was closed a second time", !!(await pop2));
+    for (const pg of ctx.pages()) if (/player\.html/.test(pg.url())) await pg.close();
+    await dm.bringToFront(); await dm.evaluate(() => { location.hash = "map"; mapMode("run"); }); await dm.waitForTimeout(400);
+    const pop3 = ctx.waitForEvent("page", { timeout: 4000 }).catch(() => null);
+    await dm.click("#hostStart");
+    check("Host for players opens the window again (instead of switching off) when it was closed", !!(await pop3) && await dm.evaluate(() => HOST.on));
+  }
+  // ---------- owner (2026-11-25): the TV's turn order shows conditions; closing the TV resets every TV button ----------
+  {
+    const r = await dm.evaluate(id => {
+      const c = curCamp(), e = findEnc(c, id);
+      fightAddCond(c, e, fightWho(c, e, "foe:" + e.enemies[2].id), { k: "prone", ends: "removed" }); Store.save(c);
+      const tv = tvInitRows(c, e, { conds: true }), ph = tvInitRows(c, e);
+      return { tv: tv.find(x => x.name === e.enemies[2].name), phone: ph.find(x => x.name === e.enemies[2].name), label: tvChipLabel(tv.find(x => x.name === e.enemies[2].name)) };
+    }, eid);
+    check("the TV's turn order lists a creature's conditions", r.tv && (r.tv.conds || []).includes("Prone") && /Prone/.test(r.label), JSON.stringify(r));
+    check("players' phones still get no conditions", r.phone && !("conds" in r.phone), JSON.stringify(r.phone));
+    for (const pg of ctx.pages()) if (/player\.html/.test(pg.url())) await pg.close(); /* the TV left open by the check above */
+    await dm.bringToFront(); await dm.waitForTimeout(2600);
+    await dm.evaluate(() => { location.hash = "tracker"; HOST.enc = null; subTab = "encounters"; renderTracker(); }); await dm.waitForTimeout(300);
+    const pop = ctx.waitForEvent("page", { timeout: 4000 }).catch(() => null);
+    await dm.click(`[data-ea="tv"][data-eid="${eid}"]`); const tvp = await pop; await dm.waitForTimeout(300);
+    check("(set-up) the button says Off TV while the TV is open", /Off TV/.test(await dm.textContent(`[data-ea="tv"][data-eid="${eid}"]`)));
+    if (tvp) await tvp.close(); await dm.bringToFront(); await dm.waitForTimeout(2600);
+    check("closing the TV window resets the button to Show on TV", /Show on TV/.test(await dm.textContent(`[data-ea="tv"][data-eid="${eid}"]`)) && await dm.evaluate(() => !HOST.enc && !HOST.atlas && HOST.show !== "handout"));
+  }
   check("no page errors", errs.length === 0, errs.join(" | "));
   await browser.close(); server.close();
   console.log(fails ? `\n${fails} check(s) failed` : "\nAll TV checks passed");

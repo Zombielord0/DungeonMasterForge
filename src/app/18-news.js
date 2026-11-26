@@ -2,6 +2,67 @@
    When a change ships, add an entry to the top of NEWS with a new id, in plain words for players and DMs. */
 
 const NEWS = [
+  { id: "2026-11-26-import-names", date: "2026-11-26", title: "Imports understand more names, weapons and extra AC", go: "roster", items: [
+    "Gear written differently from the Forge's names is now recognised: light crossbow, bolts (20), belt pouch, holy symbol, small typos, and magic or named versions like Shield +1 or Morningstar Of Bleeding, which keep their own name and bonus.",
+    "Fifth Edition Character Sheet files bring in their weapon list, and their misc AC bonus goes into a new Other AC bonus box under Armor class on the sheet (you can change it there too).",
+    "Imported arrows and bolts now weigh the right amount, and Tempest and War clerics and Valor bards are proficient with martial weapons."
+  ] },
+  { id: "2026-11-26-fecs-amp", date: "2026-11-26", title: "Fifth Edition Character Sheet files import again", go: "roster", items: [
+    "Characters from the Fifth Edition Character Sheet app now import even when their notes or gear have an & in them (like \"Salt & pepper\"). The app saves those in a way that stopped the import before.",
+    "Armour written without the word Armor (\"Half Plate\", \"Studded Leather\") is now recognised and worn, so the character's AC comes out right."
+  ] },
+  { id: "2026-11-25-locmap-preview", date: "2026-11-25", title: "Check a location's map before opening it", go: "generate", items: [
+    "On an adventure, a location's Generate map now opens a preview: the map with its rooms and fights. Press 🎲 Another map for a different layout, 💾 Save to campaign to keep it in a campaign (it then shows on the Dungeon Map's Your maps), or Open in Dungeon Map to use that exact map."
+  ] },
+  { id: "2026-11-25-bulk-types", date: "2026-11-25", title: "Bulk import says which files it takes", go: "homebrew", items: [
+    "The Homebrew tab's Bulk import buttons now say they take CSV or JSON files (.csv, .json, or a .txt holding either), with a line on what each one is."
+  ] },
+  { id: "2026-11-25-handout-form", date: "2026-11-25", title: "A tidier Journal handouts form", go: "tracker", items: [
+    "The Campaign Tracker's Handouts form now looks like the rest of the Forge, with labelled fields, an Upload a picture button that shows the file's name, and a note that handouts start hidden."
+  ] },
+  { id: "2026-11-25-map-run-fight", date: "2026-11-25", title: "Run this fight opens the fight", go: "map", items: [
+    "On the Dungeon Map, a room's Run this fight now rolls the monsters' initiative and opens the fight window right over the map, with the monsters and your party. Close goes back to the map.",
+    "With the TV on, that fight's turn order replaces any other fight on the TV, and the room is revealed.",
+    "Pressing it again for the same room reopens that fight instead of adding a copy."
+  ] },
+  { id: "2026-11-25-tv-conditions", date: "2026-11-25", title: "Conditions on the TV, and TV buttons that reset", items: [
+    "The turn order on the TV now shows each creature's conditions, like Goblin 1 · Prone.",
+    "When the TV window is closed, every Show on TV button (fights, NPC pictures, Lore, the World map) goes back to Show on TV instead of staying on Off TV."
+  ] },
+  { id: "2026-11-25-fight-window", date: "2026-11-25", title: "Run a fight in its own window, with conditions and save reminders", go: "tracker", items: [
+    "In the Campaign Tracker's Encounters, press ▶ Run fight. Everyone is in initiative order, with HP, AC, conditions and concentration, and the current creature's stat block in the middle.",
+    "Add a condition to anyone from the + Condition list, foes and heroes alike. A hero's condition goes onto their character sheet too.",
+    "Add a condition with how it ends and its save. Pick who cast it and the spell, and the Forge fills in the save, the DC from the caster, the condition and concentration (Hold Person: WIS save at the end of each turn).",
+    "Next turn reminds you of each save, waiting for Saved or Failed. Damage to a concentrating foe asks for its concentration save, and when concentration ends, the spell's conditions go too."
+  ] },
+  { id: "2026-11-25-tv-reopen", date: "2026-11-25", title: "Show on TV opens the TV window again", items: [
+    "If you closed the TV window, Show on TV (turn order, NPC pictures, Lore, the World map) and Host for players now open it again, instead of doing nothing."
+  ] },
+  { id: "2026-11-25-map-layout", date: "2026-11-25", title: "A calmer Dungeon Map", go: "map", items: [
+    "The Dungeon Map tab now opens on Your maps: picture cards of every map saved to a campaign or a World place, each with Edit and Run.",
+    "Build is just for making maps: generate, draw or import, with the Room key below.",
+    "Run (▶ Run for players) puts the map full screen, with the TV and fog tools, tokens and handouts in tabs beside it and the Room key underneath. ✕ Done or Esc goes back."
+  ] },
+  { id: "2026-11-25-recommended-cr", date: "2026-11-25", title: "A recommended CR for your own monsters", go: "monsters", items: [
+    "Build a monster now shows a recommended challenge rating as you go, from its defense (hit points and AC) and offense (damage per round and attack bonus).",
+    "Features count: legendary actions add their damage, Legendary Resistance and regeneration add staying power, resistances, Magic Resistance and many saving throws make it harder to beat. Open Why to see each step, and press Use CR to take it.",
+    "Damage is read from attacks written like \"Hit: 13 (2d8 + 4)\"; spells aren't counted."
+  ] },
+  { id: "2026-11-25-builder-picks", date: "2026-11-25", title: "Pick senses, languages and defences from lists", go: "monsters", items: [
+    "In Villains & Monsters → Build a monster, each sense now has a list of distances (10 to 300 ft.).",
+    "Languages, damage resistances, immunities, vulnerabilities and condition immunities each have a + Add list beside them: pick one and it's added. You can still type your own wording in the box."
+  ] },
+  { id: "2026-11-24-parchment-font", date: "2026-11-24", title: "A new look for the parchment pages", items: [
+    "Generated adventures and chapter briefs, NPC cards, forged monsters and the monster builder's preview now use Metamorphous, an old-manuscript lettering.",
+    "Spells, items, the Monster Manual and character sheets keep their easy-reading book font."
+  ] },
+  { id: "2026-11-24-side-menu", date: "2026-11-24", title: "The tabs moved to a menu on the left, with search", items: [
+    "Every tab is now in a menu down the left side, in groups: Prep, Characters, Rules, Players and Forge.",
+    "Campaign Tracker, Villains & Monsters, Items and World have a ▸ arrow that shows their sections, so you can jump straight to Loot, Lore or the Monster Manual.",
+    "The search box at the top finds everything: type \"fireball\" to see the characters who have it, campaign notes that mention it, and the spell and items in the rules. Click a result to go straight to it.",
+    "A spell or item that's in both rulebooks shows once, with buttons for the other edition. After you open a result, a note says where you landed.",
+    "Press « to fold the menu down to icons; it stays that way next time, and 🔍 opens it again ready to search. On a phone, the More button opens the same menu."
+  ] },
   { id: "2026-11-24-map-editor", date: "2026-11-24", title: "Draw your own maps", go: "map", items: [
     "Dungeon Map → ✏️ Edit map lets you change any generated dungeon, and ➕ New blank map starts one from scratch.",
     "Draw rooms, round rooms and any shape, paint corridors, and erase. Walls follow the shape, curves included.",

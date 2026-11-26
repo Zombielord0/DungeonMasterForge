@@ -519,13 +519,28 @@ function mapRunEncounter(i) {
   const d = currentMap, o = d && d.rooms[i]; if (!o || !o.enc) return;
   const c = curCampForMap(); if (!c) { toast("Create a campaign first (Campaign Tracker), then pick it under Save to campaign."); return; }
   const groups = parseEncText(o.enc.text); if (!groups.length) { toast("Couldn't read the monsters in that fight."); return; }
-  const e = newEncounter(null, `${d.params.name} · Room ${o.num}: ${o.type || o.name || "Room"}`, d.params.level || c.currentLevel || 1, groups, { kind: "map", room: o.num, notes: `From the map “${d.params.name}”, room ${o.num}.` });
-  c.encounters = c.encounters || []; c.encounters.push(e); Store.save(c);
-  if (HOST.on && HOST.fog) {
-    const tmp = new Uint8Array(d.W * d.H); if (fogRevealRoom(d, tmp, o.cx, o.cy)) { fogSnap(); tmp.forEach((on, k) => { if (on) HOST.fog[k] = 1; }); fogSaveLocal(); }
-    HOST.enc = { cid: c.id, eid: e.id }; if (HOST.show === "handout") { HOST.show = "map"; handoutUI(); } drawMapDM(); hostSend();
+  c.encounters = c.encounters || [];
+  /* this room's fight again (not finished): reopen it rather than adding a copy (owner, 2026-11-25) */
+  const name = `${d.params.name} · Room ${o.num}: ${o.type || o.name || "Room"}`;
+  let e = c.encounters.find(x => x.kind === "map" && x.room === o.num && x.name === name && x.status !== "Done"), added = false;
+  if (!e) {
+    e = newEncounter(null, name, d.params.level || c.currentLevel || 1, groups, { kind: "map", room: o.num, notes: `From the map “${d.params.name}”, room ${o.num}.` });
+    c.encounters.push(e); added = true;
   }
-  toast(`Fight added to “${c.name}” → Encounters${HOST.on ? ", the room is revealed and the turn order is on the TV" : ""}.`);
+  /* started straight away: the monsters' initiative rolled, round 1, so the turn order is filled in */
+  if (!e.enemies.some(m => m.init !== "" && m.init !== null)) {
+    const group = {}, key = x => x.boss ? x.id : x.stat || x.name;
+    e.enemies.forEach(x => { if (e.groupInit && group[key(x)] !== undefined) { x.init = group[key(x)]; return; } x.init = group[key(x)] = 1 + Math.floor(Math.random() * 20) + foeInit(x.stat); });
+    e.round = 1; e.status = "Active"; const order = encOrder(c, e).filter(x => !x.down); e.turn = order.length ? order[0].key : null; fightOnTurn(c, e, null, 0);
+  }
+  Store.save(c);
+  if (HOST.on) {
+    if (HOST.fog) { const tmp = new Uint8Array(d.W * d.H); if (fogRevealRoom(d, tmp, o.cx, o.cy)) { fogSnap(); tmp.forEach((on, k) => { if (on) HOST.fog[k] = 1; }); fogSaveLocal(); } }
+    HOST.enc = { cid: c.id, eid: e.id }; if (HOST.show !== "map") { HOST.show = "map"; handoutUI(); } drawMapDM(); hostSend(); /* this fight replaces any other on the TV */
+  }
+  /* the fight window opens over the map, with the monsters and the party; Close comes back here */
+  activeId = c.id; subTab = "encounters"; fightOpen(e.id);
+  toast(`${added ? "Fight added to" : "Reopened the fight in"} “${c.name}”${HOST.on ? ". The room is revealed and the turn order is on the TV" : ""}. Enter the heroes' initiative.`);
 }
 $("#roomKey").addEventListener("click", e => { const b = e.target.closest("[data-runenc]"); if (b) mapRunEncounter(+b.dataset.runenc); });
 function roomKeyHTML(d) {
@@ -547,7 +562,8 @@ function readMapForm() {
 }
 // open a map saved in a campaign; its saved fog (if any) replaces the copy kept on this computer
 function mapOpenSaved(m) {
-  if (m.kind === "image") { imgOpenSaved(m); return; }
+  mapShowBuild(); /* the tab's mode (03e-map-modes.js): a map opened from a card, the Tracker or the World shows in Build */
+  if (m.kind === "image") return imgOpenSaved(m);
   if (m.kind === "drawn") { medStop(); if (m.fog) fogStorePut(fogKey(m), m.fog, m.found || [], m.tokens); medOpen(m); return; }
   setMapForm(m);
   if (m.fog) fogStorePut(fogKey(m), m.fog, m.found || [], m.tokens);
@@ -663,7 +679,7 @@ function renderImageMap() {
   hostLoad(d); drawMapDM(); if (HOST.on) hostSend();
   $("#roomKey").innerHTML = imageKeyHTML(d); fogKeyButtons();
 }
-function imgUse(d, toastMsg) { medStop(); currentMap = d; HOST.key = null; MAPUI.hover = null; location.hash = "map"; renderImageMap(); if (toastMsg) toast(toastMsg); }
+function imgUse(d, toastMsg) { mapShowBuild(); medStop(); currentMap = d; HOST.key = null; MAPUI.hover = null; location.hash = "map"; renderImageMap(); if (toastMsg) toast(toastMsg); }
 // roll a room's contents the way the dungeon generator does
 function rollRoomContents(o, theme, level, party) {
   const r = makeRng("roll", Date.now(), Math.random()), lv = clamp(level, 1, 20), tier = tierOf(lv), tags = TAGMAP[theme];
@@ -739,7 +755,7 @@ $("#mapImportFile").addEventListener("change", async e => {
   }
   if (m.kind === "drawn") { medStop(); if (m.fog) fogStorePut(fogKey(m), m.fog, m.found || [], m.tokens); medOpen(m, `“${m.name}” loaded.`); return; }
   setMapForm(m); if (m.fog) fogStorePut(fogKey(m), m.fog, m.found || [], m.tokens);
-  HOST.key = null; location.hash = "map"; renderMap(); toast(`“${m.name}” loaded.`);
+  mapShowBuild(); HOST.key = null; location.hash = "map"; renderMap(); toast(`“${m.name}” loaded.`);
 });
 async function imgOpenSaved(m) {
   let blob = null; try { blob = await MAPIMG.get(m.imgId); } catch { /* storage unavailable */ }
@@ -878,6 +894,7 @@ function hostLoad(d) {
 function hostStatus() {
   const b = $("#hostStatus"); b.textContent = !HOST.on ? "Not connected" : (HOST.tv ? "📺 TV connected" : "Waiting for the TV window…") + (HOST.show === "handout" ? " · showing a handout" : "");
   b.className = "badge" + (HOST.on && HOST.tv ? " ok" : "");
+  mapRunTv();
   $("#hostStart").textContent = HOST.on ? "Stop hosting" : "📺 Host for players"; $("#hostStart").classList.toggle("primary", !HOST.on);
   $("#fogTools").disabled = !HOST.on; $("#mapCanvas").classList.toggle("fogging", HOST.on);
 }
@@ -895,24 +912,33 @@ function hostFrameCanvas() {
   let cv = null;
   if (HOST.show === "atlas" && HOST.atlas) { // a World or region map (src/app/06b-atlas.js): found places only
     cv = atlasTvCanvas();
-    if (cv) { const f = hostEnc(); if (f) tvDrawInitStrip(cv, tvInitRows(f.c, f.e), f.e.round); return cv; }
+    if (cv) { const f = hostEnc(); if (f) tvDrawInitStrip(cv, tvInitRows(f.c, f.e, { conds: true }), f.e.round); return cv; }
   }
   if (currentMap) { cv = document.createElement("canvas"); drawDungeon(cv, currentMap, $("#mapGrid").checked, { player: true, fog: HOST.fog, found: HOST.found, numbers: HOST.numbers, scale: 2, tokens: tokenView() }); }
   const f = hostEnc();
-  if (f) { const rows = tvInitRows(f.c, f.e); if (cv) tvDrawInitStrip(cv, rows, f.e.round); else cv = tvInitBoard(rows, f.e.round); }
+  if (f) { const rows = tvInitRows(f.c, f.e, { conds: true }); if (cv) tvDrawInitStrip(cv, rows, f.e.round); else cv = tvInitBoard(rows, f.e.round); }
   if (!cv) { cv = document.createElement("canvas"); cv.width = 1920; cv.height = 1080; const g = cv.getContext("2d"); g.fillStyle = "#0b0a09"; g.fillRect(0, 0, 1920, 1080); } // nothing to show yet: a dark screen
   return cv;
 }
 function hostEnc() { if (!HOST.enc) return null; const c = Store.get(HOST.enc.cid), e = c && findEnc(c, HOST.enc.eid); return e ? { c, e } : null; }
 // what the TV may know about a fight: names, whose turn, Bloodied/Down. Never HP numbers.
-function tvInitRows(c, e) {
-  return encOrder(c, e).map(o => {
-    const m = o.foe ? e.enemies.find(x => x.id === o.key) : null;
+/* the turn order for the TV and players' phones: names, whose turn, Bloodied or Down (never HP).
+   o.conds (the TV only, owner 2026-11-25): each creature's condition names too, from the fight window;
+   players' phones (turnsNow) don't get them. A foe's free-text note is never shown. */
+function tvInitRows(c, e, o = {}) {
+  return encOrder(c, e).map(row => {
+    const m = row.foe ? e.enemies.find(x => x.id === row.key) : null;
     const state = !m ? "" : m.hp <= 0 ? "Down" : m.hp <= m.max / 2 ? "Bloodied" : "";
-    return { name: o.name, foe: !!o.foe, cur: e.turn === o.key, state };
+    const r = { name: row.name, foe: !!row.foe, cur: e.turn === row.key, state };
+    if (o.conds) {
+      const pt = !row.foe ? (c.party || []).find(p => p.id === row.key) : null, pc = pt && pt.pcId ? PCS.roster.find(x => x.id === pt.pcId) : null;
+      const ks = m ? (m.conds || []).map(cd => cd.k) : [...((e.pcConds || {})[row.key] || []).map(cd => cd.k), ...(pc ? CONDS.filter(([k]) => condOn(pc, k)).map(([k]) => k) : [])];
+      r.conds = [...new Set(ks)].map(fightCondLabel);
+    }
+    return r;
   });
 }
-function tvChipLabel(r) { return (r.cur ? "▶ " : "") + r.name + (r.state ? " · " + r.state : ""); }
+function tvChipLabel(r) { return (r.cur ? "▶ " : "") + r.name + (r.state ? " · " + r.state : "") + ((r.conds || []).length ? " · " + r.conds.join(", ") : ""); }
 function tvDrawInitStrip(cv, rows, round) {
   const g = cv.getContext("2d"); g.setTransform(1, 0, 0, 1, 0, 0);
   const W = cv.width, h = Math.round(Math.max(70, Math.min(130, W * .05))), pad = Math.round(h * .22);
@@ -1028,11 +1054,22 @@ function hostStart() {
   if (!w) { toast("Your browser blocked the player window. Allow pop-ups for this site and try again."); return; }
   HOST.win = w; HOST.on = true; hostStatus(); drawMapDM(); hostSend();
 }
+/* the TV window is open: hosting, and its window hasn't been closed */
+function hostLive() { return HOST.on && !!HOST.win && !HOST.win.closed; }
+/* Show on TV (turn order, an NPC picture, Lore, the World map): open the TV window if it isn't open, or bring it forward.
+   (2026-11-25: HOST.on stayed true after the window was closed, so Show on TV never opened it again.) */
+function hostEnsure() { if (hostLive()) { try { HOST.win.focus(); } catch (e) { } } else hostStart(); }
 function hostStop() {
   if (HOST.ch) HOST.ch.postMessage({ t: "bye" });
-  HOST.on = false; HOST.tv = false; hostStatus(); drawMapDM();
+  HOST.on = false; HOST.tv = false; hostOffReset(); hostStatus(); drawMapDM();
 }
-$("#hostStart").addEventListener("click", () => HOST.on ? hostStop() : hostStart());
+/* the TV is gone: nothing is "on the TV" any more, so every TV button reads Show on TV again (owner, 2026-11-25) */
+function hostOffReset() {
+  HOST.enc = null; HOST.atlas = null; if (HOST.show !== "map") { HOST.show = "map"; handoutUI(); }
+  const v = ($("section.view.active") || {}).id;
+  if (v === "view-tracker") renderTracker(); else if (v === "view-world") renderWorld();
+}
+$("#hostStart").addEventListener("click", () => hostLive() ? hostStop() : hostStart());
 
 /* ---- fog: kept on this computer while playing; goes into a campaign only on Save ---- */
 const FOG_LS = "dmforge.fog.v1", FOG_KEEP = 40;
@@ -1111,5 +1148,6 @@ $("#handoutFile").addEventListener("change", e => { const f = e.target.files[0];
 $("#handoutTextShow").addEventListener("click", () => { const t = $("#handoutText").value.trim(); if (!t) { toast("Write something to show first"); return; } handoutWriting($("#handoutTitle").value.trim(), t); });
 $("#handoutBack").addEventListener("click", () => { HOST.show = "map"; handoutUI(); hostSend(); });
 $("#fogNums").addEventListener("change", e => { HOST.numbers = e.target.checked; hostSend(); });
-setInterval(() => { if (HOST.on && HOST.tv && HOST.win && HOST.win.closed) { HOST.tv = false; hostStatus(); } }, 2000);
+/* the TV window was closed: stop hosting, so every Show on TV and Host for players opens it again */
+setInterval(() => { if (HOST.on && HOST.win && HOST.win.closed) { HOST.on = false; HOST.tv = false; hostOffReset(); hostStatus(); drawMapDM(); } }, 2000);
 addEventListener("pagehide", () => { if (HOST.on && HOST.ch) HOST.ch.postMessage({ t: "bye" }); });

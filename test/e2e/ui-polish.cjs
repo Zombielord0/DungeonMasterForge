@@ -90,8 +90,8 @@ const EMOJI = /\p{Extended_Pictographic}/u;
     const still = await p.evaluate(async () => { const wait = ms => new Promise(r => setTimeout(r, ms)); scrollTo(0, 0); await wait(300); const el = document.querySelector("#genOut").lastElementChild, doc0 = el.getBoundingClientRect().top + scrollY; scrollTo(0, 600); await wait(300); const doc1 = el.getBoundingClientRect().top + scrollY; return { shrunk: document.documentElement.classList.contains("hdr-auto"), moved: Math.round(doc1 - doc0) }; });
     check("laptop: nothing below the header moves when it shrinks", still.shrunk && Math.abs(still.moved) <= 1, JSON.stringify(still));
     await p.evaluate(() => scrollTo(0, 0)); await p.waitForTimeout(400);
-    const hb = await p.evaluate(() => document.querySelector("header").getBoundingClientRect().height);
-    check("laptop: the full header comes back at the top", hb > 150, `${Math.round(hb)}px`);
+    const hb = await p.evaluate(() => ({ h: Math.round(document.querySelector("header").getBoundingClientRect().height), full: !document.documentElement.classList.contains("hdr-auto") && !!document.querySelector(".brand small").getClientRects().length }));
+    check("laptop: the full header comes back at the top", hb.full && hb.h > hs, JSON.stringify(hb)); /* the tabs moved to the side menu (2026-11-24), so the full header is one row */
     await p.goto(URL + "#character"); await p.waitForTimeout(400);
     check("laptop: Forge Character is on screen without scrolling", await vis("#pcForgeBtn"));
     await p.click("#pcForgeBtn"); await p.waitForTimeout(500);
@@ -175,6 +175,55 @@ const EMOJI = /\p{Extended_Pictographic}/u;
     const { ctx, p } = await open(1440, 900);
     await p.goto(URL + "#items"); await p.waitForTimeout(400);
     check("laptop: Items filters show without the Filters button", await p.evaluate(() => !!document.querySelector("#itGroup").offsetParent && !document.querySelector("#itFiltersBtn").offsetParent));
+    await ctx.close();
+  }
+
+  // ---- owner (2026-11-25): Generate map on an adventure's location opens a preview window to check the map first
+  {
+    const { ctx, p } = await open(1366, 900);
+    await p.goto(URL + "#generate"); await p.waitForFunction(() => typeof generateAdventure === "function");
+    await p.click("#genForm button[type=submit]"); await p.waitForTimeout(600);
+    const loc = await p.evaluate(() => currentGen.locations[0].name);
+    await p.click('[data-mkmap="0"]'); await p.waitForTimeout(400);
+    const pv = await p.evaluate(() => { const m = document.querySelector("#locMapModal"); return { open: !!m && m.classList.contains("open"), canvas: !!(m && m.querySelector("canvas")), rooms: m ? m.querySelectorAll(".locmap-rooms li").length : 0, hash: location.hash, title: (m && m.querySelector("h3") || {}).textContent || "", seed: m && m.dataset.seed }; });
+    check("Generate map on a location opens a preview window, staying on the adventure", pv.open && pv.canvas && pv.rooms > 0 && pv.hash === "#generate" && pv.title.includes(loc), JSON.stringify(pv));
+    await p.click("#locMapAgain"); await p.waitForTimeout(300);
+    const seed2 = await p.evaluate(() => document.querySelector("#locMapModal").dataset.seed);
+    check("🎲 Another map rolls a different layout", seed2 && seed2 !== pv.seed, `${pv.seed} -> ${seed2}`);
+    /* owner (2026-11-25): add the previewed map to a campaign from the window */
+    await p.evaluate(() => { const c = blankCampaign("Preview camp"); Store.save(c); renderCampList(); locMapShow(); });
+    await p.waitForTimeout(200);
+    const cid = await p.evaluate(() => Store.list().find(c => c.name === "Preview camp").id);
+    await p.selectOption("#locMapCamp", cid); await p.click("#locMapSave"); await p.waitForTimeout(200); await p.click("#locMapSave"); await p.waitForTimeout(200);
+    const sv = await p.evaluate(id => (Store.get(id).maps || []).map(m => ({ name: m.name, seed: m.seed })), cid);
+    check("Save to campaign adds the previewed map to the chosen campaign, once", sv.length === 1 && sv[0].name === loc && sv[0].seed === seed2, JSON.stringify(sv));
+    await p.click("#locMapOpen"); await p.waitForTimeout(500);
+    const st = await p.evaluate(() => ({ hash: location.hash, name: currentMap && currentMap.params.name, seed: currentMap && currentMap.params.seed, closed: !document.querySelector("#locMapModal").classList.contains("open") }));
+    check("Open in Dungeon Map opens that same map", st.hash === "#map" && st.name === loc && st.seed === seed2 && st.closed, JSON.stringify(st));
+    await p.goto(URL + "#generate"); await p.waitForTimeout(300);
+    await p.click("#genForm button[type=submit]"); await p.waitForTimeout(500); await p.click('[data-mkmap="1"]'); await p.waitForTimeout(300);
+    await p.keyboard.press("Escape"); await p.waitForTimeout(200);
+    check("Esc closes the preview", await p.evaluate(() => !document.querySelector("#locMapModal").classList.contains("open") && location.hash === "#generate"));
+    await ctx.close();
+  }
+  // ---- owner (2026-11-25): the Tracker's Journal handouts form looks like the rest of the Forge
+  {
+    const { ctx, p } = await open(1366, 900);
+    await p.goto(URL + "#tracker"); await p.waitForFunction(() => typeof renderTracker === "function");
+    await p.evaluate(() => { const c = blankCampaign("Handouts"); Store.save(c); activeId = c.id; subTab = "handouts"; renderTracker(); });
+    await p.waitForTimeout(300);
+    const f = await p.evaluate(() => {
+      const form = document.querySelector("#journalHandoutForm"), t = form.querySelector('input[name="title"]'), file = form.querySelector('input[name="picture"]');
+      const bg = getComputedStyle(t).backgroundColor.match(/\d+/g).slice(0, 3).map(Number);
+      return { dark: bg.every(v => v < 90), fields: form.querySelectorAll(".field").length, fileHidden: file.hidden || getComputedStyle(file).display === "none", fileBtn: !!file.closest("label.btn"), titleWide: t.getBoundingClientRect().width > 300 };
+    });
+    check("Journal handouts: the Title box is the Forge's dark field, full width", f.dark && f.titleWide, JSON.stringify(f));
+    check("Journal handouts: labelled fields, and the picture upload is a Forge button", f.fields >= 3 && f.fileHidden && f.fileBtn, JSON.stringify(f));
+    const btn = await p.evaluate(() => { const l = document.querySelector('#journalHandoutForm label.btn'), cs = getComputedStyle(l); return { tt: cs.textTransform, display: cs.display, labels: [...document.querySelectorAll("#journalHandoutForm .handout-pics .lbl, #journalHandoutForm .handout-pics label[for]")].map(x => Math.round(x.getBoundingClientRect().top)) }; });
+    check("Journal handouts: the upload button reads like a button (not capitals, not a block label)", btn.tt === "none" && btn.display !== "block", JSON.stringify(btn));
+    check("Journal handouts: the Picture and campaign-image labels line up", btn.labels.length === 2 && Math.abs(btn.labels[0] - btn.labels[1]) <= 2, JSON.stringify(btn.labels));
+    await p.locator('#journalHandoutForm input[name="picture"]').setInputFiles({ name: "letter.png", mimeType: "image/png", buffer: Buffer.from("iVBORw0KGgo=", "base64") });
+    check("Journal handouts: choosing a picture shows its name", (await p.textContent("#jhFileName")).trim() === "letter.png");
     await ctx.close();
   }
 

@@ -37,8 +37,13 @@ Live at https://dungeonmasterforge.netlify.app
 
 ## Showing the dungeon map on a TV
 
-1. Open **Dungeon Map** and generate (or open a saved) map.
-2. Under the map, press **📺 Host for players**. A second window opens. Drag it onto the TV or second monitor and double-click it for full screen.
+The Dungeon Map tab has three parts:
+- **Your maps:** picture cards of every map you've saved to a campaign or a World place, each with **✏ Edit** and **▶ Run**.
+- **Build:** generate, draw or import a map.
+- **Run:** the map full screen, with the TV and fog tools, tokens and handouts beside it and the Room key underneath. **✕ Done** or Esc goes back.
+
+1. Open **Dungeon Map** and press **▶ Run** on one of your maps (or **▶ Run for players** while building one).
+2. Press **📺 Host for players**. A second window opens. Drag it onto the TV or second monitor and double-click it for full screen.
 3. Players see only what you reveal. With the fog tools you can:
    - **Room:** click a room or corridor.
    - **Brush:** paint squares.
@@ -46,8 +51,16 @@ Live at https://dungeonmasterforge.netlify.app
    - **Secret door:** click an "S" once the players find it.
    - Use the **Reveal on TV** buttons in the Room Key, which also work with the keyboard. A secret door turns green on your map once the players have found it.
    - Switch **Mode** to **Hide** to cover areas again, and use **Undo** if you make a mistake.
-4. **Turn order:** in Campaign Tracker → Encounters, press **📺 Show on TV** on a fight. The TV shows whose turn it is and the round. Monsters show only as Bloodied or Down.
-5. **Handouts:** under the fog tools, show a picture from your computer, or type a letter or note to show on parchment. **Back to map** returns to the dungeon.
+4. **Running a fight:** in Campaign Tracker → Encounters, press **▶ Run fight** to open the fight in its own window:
+   - everyone in initiative order, with HP and AC;
+   - **+ Condition** for foes and heroes (a hero's goes on their sheet);
+   - the current creature's stat block;
+   - **Add a condition** with how it ends and its save. Pick the caster and the spell to fill these in.
+
+   **Next turn** reminds you of each save, and damage to a concentrating foe asks for its concentration save. Answer with **Saved / Failed** or **Kept / Lost**.
+
+   **Turn order on the TV:** press **📺 Show on TV** on a fight. The TV shows whose turn it is and the round. Monsters show only as Bloodied or Down.
+5. **Handouts:** on the **Handout** tab, show a picture from your computer, or type a letter or note to show on parchment. **Back to map** returns to the dungeon.
 6. **Tokens:** press **+ Party**, **+ Fight on TV**, or type a name and press **Add**. Then choose the **Tokens** tool and drag them. Tokens in the fog stay hidden from players.
 7. **Shift+click** the map to flash a ring on the TV.
 8. Traps never show on the TV.
@@ -66,9 +79,11 @@ In **Campaign Tracker → Encounters**, pick where the party is and how hard the
 
 Each campaign in the **Campaign Tracker** has a **Calendar** tab. It shows the day, season, time and weather. Use the buttons for rests, the next morning or travelling several days, and new weather is rolled for each day. Pick the climate and starting season to suit your world. Rests, travel and your own notes are logged.
 
-## On phones
+## The menu, search and phones
 
-The Forge works on phones as well as computers. On a phone the header is one slim line with a tab menu; it slides out of the way while you scroll or type and comes back when you scroll up (tap **▾ Show tabs** for the full header). On **My Characters** a jump bar takes you straight to HP, Attacks, Spells, Gear or Notes. On **Spells**, tap **Filters** to narrow the list. Buttons are bigger on touch screens, and pop-up windows always keep their buttons in view.
+The tabs are in a menu on the left, in groups. Tabs with sections (Campaign Tracker, Villains & Monsters, Items, World) have a ▸ arrow that shows them. The **search box** at the top of the menu finds everything that matches: your characters (their spells, gear and notes), your campaigns' NPCs, Lore, quests, loot and sessions, World places, Your NPCs, homebrew, the rules (spells, items, monsters, feats, classes, species, backgrounds) and the tabs themselves. Click a result to go straight to it, and a note says where you landed; **↓**, **↑** and **Enter** work too. A rule that's in both rulebooks is one row, with buttons for the other edition. Press **«** to fold the menu to icons, and **🔍** to open it again ready to search.
+
+The Forge works on phones as well as computers. On a phone the bottom bar has quick links, and **More** opens the menu from the left. The header is one slim line that slides out of the way while you scroll or type and comes back when you scroll up (tap **▾ Show toolbar** for the full header). On **My Characters** a jump bar takes you straight to HP, Attacks, Spells, Gear or Notes. On **Spells**, tap **Filters** to narrow the list. Buttons are bigger on touch screens, and pop-up windows always keep their buttons in view.
 
 ## Importing characters
 

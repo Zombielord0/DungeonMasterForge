@@ -24,7 +24,7 @@ function medKey() {
   fogKeyButtons();
 }
 function medKeyText(d) { return `${d.params.name}\n${"=".repeat(d.params.name.length)}\n` + d.rooms.map(o => `${o.num}. ${o.type || "Room"} (${o.w * 5}×${o.h * 5} ft)\n` + (o.feature ? `   Features ${o.feature}.\n` : "") + (o.content || []).map(c => "   " + c + "\n").join("") + (o.enc ? `   Encounter: ${o.enc.text} [${o.enc.rating}]\n` : "")).join("\n"); }
-function medOpen(rec, msg) { currentMap = drawnBuild(rec); HOST.key = null; location.hash = "map"; medShowMap(); if (msg) toast(msg); }
+function medOpen(rec, msg) { mapShowBuild(); currentMap = drawnBuild(rec); HOST.key = null; location.hash = "map"; medShowMap(); if (msg) toast(msg); }
 function medStart() {
   const d = currentMap; if (!d) { toast("Make or open a map first"); return; }
   if (HOST.on) { toast("Stop hosting for players to edit the map"); return; }

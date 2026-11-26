@@ -91,8 +91,11 @@ function eqWeaponOf(i, ed) {
   if (ref && ref.type) { const L = hits(ref.type); if (L.length === 1) return L[0]; }
   return null;
 }
+/* subclasses that give martial weapon proficiency (2014 Tempest and War Domains, the College of Valor) (owner's Tempest cleric, 2026-11-26) */
+const SUB_MARTIAL = [["Tempest Domain", 1], ["War Domain", 1], ["College of Valor", 3]];
 function eqProficient(c, w) {
   if (/^Simple/.test(w.cat) || w.cat === "Arcane Foci") return true;
+  if (/Martial/.test(w.cat) && [{ cls: c.cls, lv: c.level, subclass: c.subclass }, ...(c.multi || [])].some(x => x && SUB_MARTIAL.some(([s, lv]) => s === x.subclass && (+x.lv || 0) >= lv))) return true;
   const props = ((w.st.find(([k]) => k === "Properties") || [])[1] || "");
   if (["Barbarian", "Fighter", "Paladin", "Ranger"].includes(baseClassOf(c.cls)) || (c.multi || []).some(x => MC_MARTIAL.includes(baseClassOf(x.cls)))) return true;
   if (w.n === "Shortsword" && (c.multi || []).some(x => x.cls === "Monk")) return true;
@@ -215,6 +218,7 @@ function pcAC(c) {
   }
   protItems(c, !!(body || shield)).forEach(p => { if (p.ac) { ac += p.ac; parts.push(`${p.i.n} +${p.ac}`); } else if (p.why) warn.push(`${p.i.n}: ${p.why}`); });
   if (+c.hbAc) { ac += +c.hbAc; parts.push(`homebrew ${sgn(+c.hbAc)}`); }
+  if (+c.acBonus) { ac += +c.acBonus; parts.push(`Other ${sgn(+c.acBonus)}`); } /* the player's own extra AC (Other AC bonus on the sheet; imported from a file's misc AC) */
   if (fx.shieldOfFaith) { ac += 2; parts.push("Shield of Faith +2"); }
   if (fx.shield) { ac += 5; parts.push("Shield spell +5"); }
   if (fx.haste) { ac += 2; parts.push("Haste +2"); }
@@ -321,7 +325,8 @@ function rcACLine(c) {
   const fx = c.fx || {};
   const toggles = `<div class="row" style="flex-wrap:wrap;gap:6px 16px;margin-top:10px"><span class="muted" style="flex:0 0 auto;font-size:14px">Spell effects:</span>${[["mageArmor", "Mage Armor (13 + DEX, no armor)"], ["shieldOfFaith", "Shield of Faith (+2 AC)"], ["shield", "Shield (+5 AC)"], ["haste", "Haste (+2 AC, double speed)"], ["barkskin", `Barkskin (AC at least ${edOf(c) === "2024" ? 17 : 16})`], ["longstrider", "Longstrider (+10 ft)"], ["fly", "Fly (60 ft)"]].map(([k, l]) => `<label style="flex:0 0 auto;display:inline-flex;align-items:center;gap:6px;font-size:14px;cursor:pointer"><input type="checkbox" data-fx="${k}" ${fx[k] ? "checked" : ""}>${l}</label>`).join("")}</div>`;
   const warn = (c.acWarn || []).map(w => `<div class="enc" style="margin-top:6px">⚠ ${esc(w.charAt(0).toUpperCase() + w.slice(1))}.</div>`).join("") + (c.acStealthDis ? `<p class="hint" style="margin:6px 0 0">Your armor gives disadvantage on Stealth checks.</p>` : "");
-  return toggles + warn + (c.acManual
+  const other = `<label class="lbl ac-other">Other AC bonus <input type="number" data-acbonus="1" value="${esc(+c.acBonus || 0)}" min="-10" max="20" aria-label="Other AC bonus, for magic items or features the Forge doesn't count"></label>`;
+  return toggles + other + warn + (c.acManual
     ? `<p class="hint" style="margin:10px 0 0">Armor class is set by hand to <b>${esc(c.ac)}</b>. Your equipment gives <b>${c.acAuto}</b> (${esc(c.acAutoSrc)}). <button class="btn sm" type="button" data-acauto="1">Use equipment AC</button></p>`
     : `<p class="hint" style="margin:10px 0 0">Armor class <b>${c.acAuto}</b>: ${esc(c.acAutoSrc)}.</p>`);
 }

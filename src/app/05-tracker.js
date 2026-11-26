@@ -36,11 +36,18 @@ function renderCampList() {
     if (list.some(c => c.id === keep)) sel.value = keep; else if (activeId && list.some(c => c.id === activeId)) sel.value = activeId;
   });
 }
-function renderTracker() {
+/* the Tracker, and the fight window over it when one is open (05b-fight.js) */
+function renderTracker() { renderTrackerMain(); if (typeof FIGHT !== "undefined" && FIGHT.eid) fightRender(); }
+function renderTrackerMain() {
   renderCampList();
   const c = Store.get(activeId) || Store.list()[0];
   const main = $("#campMain");
-  if (!c) { main.innerHTML = `<div class="card empty"><h2>No campaign selected</h2><p>Forge an adventure in the Generator and save it here, or start a blank campaign.</p><a class="btn primary" href="#generate" style="text-decoration:none;display:inline-block">Go to Generator</a></div>`; return; }
+  if (!c) {
+    /* a section picked from the side menu (Loot, Lore…) with no campaign yet: say where it lives, and start one on that section (QA idea, 2026-11-24) */
+    const sec = window.sideReady && subTab !== "overview" ? (SIDE_SECTIONS.tracker.find(([k]) => k === subTab) || [])[1] : "";
+    main.innerHTML = `<div class="card empty"><h2>No campaign yet</h2><p>${sec ? `${esc(sec)} is kept in a campaign. ` : ""}Start a blank campaign, or forge an adventure in the Generator and save it here.</p><button type="button" class="btn primary" data-newcamp="1">+ Start a blank campaign</button> <a class="btn" href="#generate" style="text-decoration:none;display:inline-block">Go to Generator</a></div>`;
+    return;
+  }
   activeId = c.id; renderCampList();
   if (c.gen && c.gen.outline) {
     // Upgrade short auto-generated chapter notes (from older saves) to full briefs; notes the DM edited are left alone.
@@ -277,7 +284,7 @@ async function npcPicClear(id) {
 async function npcPicTV(id) {
   const n = npcOf(id); if (!n || !(n.img || npcUrlOk(n.imgUrl))) return;
   // open the TV window straight from the click, before any waiting, so pop-up blockers allow it
-  if (!HOST.on) hostStart();
+  hostEnsure();
   if (!HOST.on) return;
   let blob = null;
   if (n.img) { try { blob = await MAPIMG.get(n.img); } catch { } if (!blob) { toast("This picture isn't on this device. Add it again with 🖼 Add picture."); return; } }
@@ -542,7 +549,7 @@ function loreRender() {
 }
 async function loreTV(x) {
   if (!npcUrlOk(x.imgUrl)) return;
-  if (!HOST.on) hostStart();
+  hostEnsure();
   if (!HOST.on) return;
   let blob; try { const r = await fetch(x.imgUrl, { mode: "cors" }); if (!r.ok) throw 0; blob = await r.blob(); }
   catch { toast("That website doesn't let the Forge copy its picture. Download it and show it with 🖼 Show a picture on the Dungeon Map tab."); return; }
@@ -1113,6 +1120,7 @@ function encCard(c, e) {
         <option value="">No map</option>${(c.maps || []).map(m => `<option value="${esc(m.id)}" ${m.id === e.mapId ? "selected" : ""}>${esc(m.name)}</option>`).join("")}
         </select></label>` : ""}
       ${(c.maps || []).some(m => m.id === e.mapId) ? `<button class="btn sm" type="button" data-openmap="${esc(e.mapId)}">Open encounter map</button>` : ""}
+      <button class="btn sm primary" type="button" data-fopen="${esc(e.id)}" title="Open this fight full screen: turn order, conditions, saves and concentration">▶ Run fight</button>
       <button class="btn sm ${fighting ? "" : "primary"}" data-ea="roll" data-eid="${e.id}">🎲 Roll enemy initiative</button>
       <label class="chk-inline" title="One initiative roll for each kind of monster, so all the goblins act together"><input type="checkbox" data-ef="groupInit" data-eid="${e.id}" ${e.groupInit ? "checked" : ""}> Group by monster</label>
       <button class="btn sm ${fighting ? "primary" : ""}" data-ea="next" data-eid="${e.id}" ${order.length ? "" : "disabled"}>Next turn ▶</button>
@@ -1132,7 +1140,7 @@ function encCard(c, e) {
         <td style="min-width:110px"><div class="row" style="gap:4px;align-items:center"><input type="number" data-ef="hp" data-eid="${e.id}" data-mid="${m.id}" value="${m.hp}" style="width:64px" aria-label="Current HP"><span class="muted">/ ${m.max}</span></div><div class="hpbar"><i style="width:${hpPct(m)}%;background:${hpPct(m) > 50 ? "var(--green)" : hpPct(m) > 0 ? "var(--gold)" : "var(--red)"}"></i></div></td>
         <td><div class="row" style="gap:4px"><input type="number" min="0" data-amt="${m.id}" placeholder="0" style="width:58px" aria-label="Amount"><button class="btn sm danger" data-ea="dmg" data-eid="${e.id}" data-mid="${m.id}" title="Apply damage">−</button><button class="btn sm" data-ea="heal" data-eid="${e.id}" data-mid="${m.id}" title="Heal">+</button></div></td>
         <td><input type="number" data-ef="init" data-eid="${e.id}" data-mid="${m.id}" value="${m.init}" style="width:56px" aria-label="Initiative"></td>
-        <td><input type="text" data-ef="cond" data-eid="${e.id}" data-mid="${m.id}" value="${esc(m.cond)}" placeholder="prone, poisoned…" aria-label="Conditions"></td>
+        <td>${(m.conds || []).length || m.conc ? `<div class="enc-conds">${m.conc ? `<span class="fight-chip conc">◎ ${esc(m.conc.spell)}</span>` : ""}${(m.conds || []).map(cd => `<span class="fight-chip">${esc(fightCondLabel(cd.k))}</span>`).join("")}</div>` : ""}<input type="text" data-ef="cond" data-eid="${e.id}" data-mid="${m.id}" value="${esc(m.cond)}" placeholder="prone, poisoned…" aria-label="Conditions"></td>
         <td><button class="icon-btn" data-ea="delMon" data-eid="${e.id}" data-mid="${m.id}" title="Remove">✕</button></td></tr>`).join("") || `<tr><td colspan="7" class="muted">No enemies yet. Add some below.</td></tr>`}
     </tbody></table>
     ${(c.party || []).length ? `<div class="pc-init"><span class="muted" style="font-size:14px">Hero initiative:</span>${c.party.map(p => `<label>${esc(p.name || "Hero")} <input type="number" data-ef="pcinit" data-eid="${e.id}" data-pid="${p.id}" value="${e.pcInit && e.pcInit[p.id] !== undefined ? e.pcInit[p.id] : ""}" style="width:56px"></label>`).join("")}</div>` : `<p class="hint" style="margin:6px 0 0">Add heroes on the Party tab to track their initiative here too.</p>`}
@@ -1166,7 +1174,7 @@ function partyGlanceHTML(camp) {
 document.addEventListener("click", e => {
   const o = e.target.closest("[data-openpc]"); if (o) { RC.id = o.dataset.openpc; location.hash = "roster"; renderRosterTab(); return; }
   const g = e.target.closest("[data-pg]"); if (!g) return;
-  const inp = document.querySelector(`[data-pgamt="${CSS.escape(g.dataset.pc)}"]`), v = Math.abs(parseInt(inp && inp.value) || 0); if (!v) { if (inp) inp.focus(); return; }
+  const inp = (g.closest("#fightWin") || document).querySelector(`[data-pgamt="${CSS.escape(g.dataset.pc)}"]`), v = Math.abs(parseInt(inp && inp.value) || 0); if (!v) { if (inp) inp.focus(); return; }
   toast(actApply("pc:" + g.dataset.pc, v, g.dataset.pg)); renderTracker();
 });
 function encounterTemplatesHTML(c) {
@@ -1191,12 +1199,13 @@ function renderEncounters(c) {
   if (orphans.length || !c.chapters.length) h += group(null, orphans, 0) + (c.chapters.length ? "" : `<button class="btn sm" data-ea="addEnc" data-ch="">+ Add encounter</button>`);
   return h;
 }
-const COMBAT_FIELDS = ["hp", "init", "cond"];
-const ENCOUNTER_STATE_FIELDS = ["status", "round", "turn", "pcInit"];
+const COMBAT_FIELDS = ["hp", "init", "cond", "conds", "conc"];
+const ENCOUNTER_STATE_FIELDS = ["status", "round", "turn", "pcInit", "prompts", "casts"]; /* conds, conc, prompts, casts: the fight window (2026-11-25) */
+const combatCopy = v => v === undefined ? null : JSON.parse(JSON.stringify(v));
 function combatSnapshot(e) {
   return {
-    state: Object.fromEntries(ENCOUNTER_STATE_FIELDS.map(key => [key, key === "pcInit" ? { ...e.pcInit } : e[key] ?? null])),
-    enemies: e.enemies.map(m => ({ id: m.id, hp: m.hp, init: m.init ?? "", cond: m.cond ?? "" }))
+    state: Object.fromEntries(ENCOUNTER_STATE_FIELDS.map(key => [key, key === "pcInit" ? { ...e.pcInit } : combatCopy(e[key])])),
+    enemies: e.enemies.map(m => ({ id: m.id, hp: m.hp, init: m.init ?? "", cond: m.cond ?? "", conds: combatCopy(m.conds || []), conc: combatCopy(m.conc) }))
   };
 }
 function combatHistory(e) {
@@ -1228,7 +1237,7 @@ function combatUndo(c, e) {
   if (!valid) { toast("Combat changed since that action. Undo is unavailable."); return; }
   for (const { id, key, before } of action.changes) {
     const record = id === null ? e : e.enemies.find(m => m.id === id);
-    record[key] = key === "pcInit" ? { ...before } : before;
+    record[key] = key === "pcInit" ? { ...before } : combatCopy(before); /* a copy, so the history entry is never changed later */
   }
   if (e.turn && !encOrder(c, e).some(row => row.key === e.turn)) e.turn = null;
   action.undone = true;
@@ -1248,7 +1257,7 @@ function rerenderEnc(c, e) {
   // Deferred so a focused input being replaced (which fires blur/change) can't re-enter mid-update.
   if (HOST.on && HOST.enc && HOST.enc.eid === e.id) hostSend(); // keep the TV's turn order current
   if (encPending.has(e.id)) return; encPending.add(e.id);
-  setTimeout(() => { encPending.delete(e.id); const el = document.getElementById("enc-" + e.id); const cc = curCamp(); const ee = cc && findEnc(cc, e.id); if (el && ee) el.outerHTML = encCard(cc, ee); fightBarSync(); }, 0);
+  setTimeout(() => { encPending.delete(e.id); const el = document.getElementById("enc-" + e.id); const cc = curCamp(); const ee = cc && findEnc(cc, e.id); if (el && ee) el.outerHTML = encCard(cc, ee); fightBarSync(); if (FIGHT.eid === e.id) fightRender(); }, 0);
 }
 function findEnc(c, id) { return (c.encounters || []).find(x => x.id === id); }
 /* ---- the fight bar: on phones, while a fight is under way, a bar above the bottom navigation shows the round, whose
@@ -1281,15 +1290,17 @@ $("#fightBar").addEventListener("click", ev => {
     if (!cardFor(id)) { /* the fight's card isn't on screen: take the turn without changing the section */
       const c = curCamp(), e = c && findEnc(c, id); if (!e) return;
       const before = combatSnapshot(e), o = encOrder(c, e).filter(x => !x.down); if (!o.length) return;
-      const i = o.findIndex(x => x.key === e.turn);
+      const i = o.findIndex(x => x.key === e.turn), prevTurn = e.turn, prevRound = e.round || 0;
       if (i === -1) e.turn = o[0].key; else if (i + 1 >= o.length) { e.turn = o[0].key; e.round = (e.round || 1) + 1; } else e.turn = o[i + 1].key;
+      fightOnTurn(c, e, prevTurn, prevRound);
       combatRecord(e, before, `Advanced turn · Round ${e.round}`); Store.save(c); if (HOST.on && HOST.enc && HOST.enc.eid === e.id) hostSend(); fightBarSync(); return;
     }
     const b = cardFor(id).querySelector('[data-ea="next"]'); if (b) b.click();
   }
 });
 campMain.addEventListener("change", ev => { if (ev.target.id === "randEnv") RAND.env = ev.target.value; if (ev.target.id === "randDiff") RAND.diff = ev.target.value; });
-campMain.addEventListener("click", async ev => {
+/* the encounter buttons (data-ea): on the Tracker, and in the fight window, which can sit over any tab (05b-fight.js) */
+async function encClick(ev) {
   if (ev.target.id === "randRoll") {
     const c = curCamp(), button = ev.target;
     if (!c || button.disabled) return;
@@ -1344,7 +1355,7 @@ campMain.addEventListener("click", async ev => {
   }
   if (a === "tv" && e) {
     if (HOST.enc && HOST.enc.eid === e.id) { HOST.enc = null; toast("Turn order taken off the TV"); }
-    else { HOST.enc = { cid: c.id, eid: e.id }; if (HOST.show === "handout") { HOST.show = "map"; handoutUI(); } if (!HOST.on) hostStart(); toast("Turn order is on the TV"); }
+    else { HOST.enc = { cid: c.id, eid: e.id }; if (HOST.show === "handout") { HOST.show = "map"; handoutUI(); } hostEnsure(); toast("Turn order is on the TV"); }
     hostSend(); renderTracker(); return;
   }
   if (a === "addEnc") {
@@ -1371,9 +1382,10 @@ campMain.addEventListener("click", async ev => {
   let before = ["dmg", "heal", "roll", "next"].includes(a) ? combatSnapshot(e) : null;
   if (a === "undo") { combatUndo(c, e); Store.save(c); rerenderEnc(c, e); return; }
   if (a === "dmg" || a === "heal") {
-    const inp = document.querySelector(`[data-amt="${b.dataset.mid}"]`); const v = Math.abs(parseInt(inp && inp.value) || 0); if (!m || !v) return;
+    const inp = (b.closest("#fightWin") || document).querySelector(`[data-amt="${b.dataset.mid}"]`); const v = Math.abs(parseInt(inp && inp.value) || 0); if (!m || !v) return;
     m.hp = a === "dmg" ? Math.max(0, m.hp - v) : Math.min(m.max, m.hp + v);
     if (a === "dmg" && m.hp === 0) toast(`${m.name} is down`);
+    if (a === "dmg") fightOnFoeDamage(c, e, m, v); /* a foe concentrating: save reminder, or its spell ends at 0 HP */
   } else if (a === "delMon") { e.enemies = e.enemies.filter(x => x !== m); if (e.turn === b.dataset.mid) e.turn = null; }
   else if (a === "addMon") {
     const nm = document.querySelector(`[data-addsel="${e.id}"]`).value, n = clamp(parseInt(document.querySelector(`[data-addn="${e.id}"]`).value) || 1, 1, 20);
@@ -1397,16 +1409,20 @@ campMain.addEventListener("click", async ev => {
       x.init = group[key(x)] = 1 + Math.floor(Math.random() * 20) + foeInit(x.stat);
     });
     e.round = 1; e.status = "Active"; const o = encOrder(c, e).filter(x => !x.down); e.turn = o.length ? o[0].key : null;
+    fightOnTurn(c, e, null, 0); /* the first creature's start-of-turn saves */
   } else if (a === "next") {
     const o = encOrder(c, e).filter(x => !x.down); if (!o.length) return;
-    let i = o.findIndex(x => x.key === e.turn);
+    let i = o.findIndex(x => x.key === e.turn); const prevTurn = e.turn, prevRound = e.round || 0;
     if (i === -1) { e.turn = o[0].key; e.round = e.round || 1; }
     else if (i + 1 >= o.length) { e.turn = o[0].key; e.round = (e.round || 1) + 1; }
     else e.turn = o[i + 1].key;
     if (e.status === "Planned") e.status = "Active";
+    fightOnTurn(c, e, prevTurn, prevRound); /* saves at the end and start of turns, conditions that end by themselves */
+    if (typeof FIGHT !== "undefined" && FIGHT.eid === e.id) FIGHT.sel = null; /* the window follows whose turn it is */
   } else if (a === "reset") {
     if (!(await confirmBox("Reset encounter?", "Restore all enemies to full HP and clear initiative and conditions?", "Reset"))) return;
     before = combatSnapshot(e);
+    fightReset(c, e); /* conditions, concentration and reminders from the fight window (heroes' come off their sheets) */
     e.enemies.forEach(x => { x.hp = x.max; x.init = ""; x.cond = ""; }); e.round = 0; e.turn = null; e.pcInit = {}; e.status = "Planned";
   }
   if (before) {
@@ -1417,7 +1433,8 @@ campMain.addEventListener("click", async ev => {
     combatRecord(e, before, label);
   }
   Store.save(c); rerenderEnc(c, e);
-});
+}
+campMain.addEventListener("click", encClick);
 function onEncField(ev, commit) {
   const t = ev.target; if (!t.dataset || !t.dataset.ef) return;
   const c = curCamp(); if (!c) return; const e = findEnc(c, t.dataset.eid); if (!e) return;
@@ -1484,3 +1501,5 @@ function turnsNow() {
   if (!e || e.status === "Done") return null;
   return { name: e.name || "Fight", round: e.round || 0, rows: tvInitRows(c, e) };
 }
+/* the empty Tracker's "Start a blank campaign": stays on the section picked from the side menu */
+$("#campMain").addEventListener("click", e => { if (!e.target.closest("[data-newcamp]")) return; const c = blankCampaign(); Store.save(c); activeId = c.id; renderTracker(); if (window.sideReady) sideSync(); });

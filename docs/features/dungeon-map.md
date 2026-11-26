@@ -132,3 +132,18 @@ Design: `docs/superpowers/specs/2026-11-24-map-editor-design.md`. Code: `src/app
   - `#tokFight` takes the monsters of the fight on the TV, placed in its map room (`e.room`, set by `mapRunEncounter`).
   - The Tokens fog tool (`value="token"`) drags them through `HOST.tokDrag`. `#tokList` lists them with remove buttons.
 - **Tests:** `npm run test:tokens` (`test/e2e/tokens.cjs`).
+
+## Your maps, Build and Run (2026-11-25)
+
+The owner found the tab too busy and picked, from three mockups, "your maps first" with a full-screen table view. Design: `docs/superpowers/specs/2026-11-25-dungeon-map-layout-design.md`. Code: `src/app/03e-map-modes.js`. Check: `npm run test:maplayout`.
+- **The modes** are classes on `#view-map`: `map-list`, `map-build` and `map-run`. The same elements are shown, hidden or placed by CSS, so fog, tokens, the TV and the editor work as before.
+- **Your maps** (`mapLibRender`): every campaign's `maps` and every World place's `map`, as cards drawn by `mapThumbInto`. A picker narrows them to one campaign or World places. **✏ Edit** opens Build and **▶ Run** opens Run, through `mapOpenSaved` and `wpMapOpen`.
+- **Build:** the generator form, the editor and import panels, the map and the Room key. There's no Player Screen. **← Your maps** and **▶ Run for players** sit in a bar above the map.
+- **Run:**
+  - a fixed full-screen grid over the header and side menu, with a bar showing the map's name, the TV state and **✕ Done**;
+  - the map on the left;
+  - the Player Screen card on the right, filtered by tabs (`data-rtab` on `#view-map`: TV & fog, Tokens `#tokField`, Handout `#handoutField`);
+  - the Room key always under it.
+
+  On phones it's one column. Esc or Done returns to where Run was opened from (`MAPMODE.from`). Leaving the tab leaves Run (`mapLeave` in `route()`).
+- **Which mode the tab opens in** (`mapEnter`): Your maps if anything is saved, otherwise Build. Within a visit it stays where you left it. Anything that opens a particular map (`mapOpenSaved`, `imgUse`, `medOpen`, the Adventure tab's and the World's Generate a map, loading a map file) calls `mapShowBuild()` first.

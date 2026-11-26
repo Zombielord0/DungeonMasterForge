@@ -728,6 +728,30 @@ const MB_ABS = ["Str", "Dex", "Con", "Int", "Wis", "Cha"];
 const MB_SKILLS = { Acrobatics: 1, "Animal Handling": 4, Arcana: 3, Athletics: 0, Deception: 5, History: 3, Insight: 4, Intimidation: 5, Investigation: 3, Medicine: 4, Nature: 3, Perception: 4, Performance: 5, Persuasion: 5, Religion: 3, "Sleight of Hand": 1, Stealth: 1, Survival: 4 };
 const MB_TYPES = ["aberration", "beast", "celestial", "construct", "dragon", "elemental", "fey", "fiend", "giant", "humanoid", "monstrosity", "ooze", "plant", "undead"];
 const MB_DMG = ["acid", "bludgeoning", "cold", "fire", "force", "lightning", "necrotic", "piercing", "poison", "psychic", "radiant", "slashing", "thunder"];
+/* Senses, languages & defenses: a drop-down for every field (owner, 2026-11-25). Senses pick a distance; the lists add
+   their pick to the text box beside them, which can still be typed in (so copied monsters keep any wording). */
+const MB_SENSE_FT = [10, 15, 20, 30, 60, 90, 120, 150, 300];
+const MB_PICKS = {
+  lang: ["Language", ["Common", "Dwarvish", "Elvish", "Giant", "Gnomish", "Goblin", "Halfling", "Orc", "Abyssal", "Celestial", "Deep Speech", "Draconic", "Infernal", "Primordial", "Aquan", "Auran", "Ignan", "Terran", "Sylvan", "Undercommon", "Druidic", "Thieves' Cant", "Gith", "Sphinx",
+    "telepathy 30 ft.", "telepathy 60 ft.", "telepathy 120 ft.", "all languages", "understands Common but can't speak", "understands the languages it knew in life but can't speak", "understands its creator's languages but can't speak"]],
+  res: ["Resistance", [...MB_DMG, "bludgeoning, piercing, and slashing from nonmagical attacks", "damage from spells"]],
+  imm: ["Immunity", [...MB_DMG, "bludgeoning, piercing, and slashing from nonmagical attacks"]],
+  vul: ["Vulnerability", MB_DMG],
+  ci: ["Condition", ["blinded", "charmed", "deafened", "exhaustion", "frightened", "grappled", "incapacitated", "invisible", "paralyzed", "petrified", "poisoned", "prone", "restrained", "stunned", "unconscious"]]
+};
+/* the distance options, keeping an unusual one (from a copied monster) so it stays picked */
+function mbSenseOptions(sel, v) {
+  const ft = MB_SENSE_FT.slice(); if (mbNum(v) && !ft.includes(+v)) ft.push(+v);
+  sel.innerHTML = `<option value="">—</option>` + ft.sort((a, b) => a - b).map(n => `<option value="${n}">${n} ft.</option>`).join("");
+}
+/* adds a pick to a comma list; a pick with commas of its own is joined with a semicolon, as stat blocks do */
+function mbPickAdd(cur, pick) {
+  cur = String(cur || "").trim(); if (cur === "—" || cur === "-") cur = "";
+  const have = cur.split(/[;,]/).map(x => x.trim().toLowerCase());
+  if (!pick.includes(",") && have.includes(pick.toLowerCase())) return cur;
+  if (pick.includes(",") && cur.toLowerCase().includes(pick.toLowerCase())) return cur;
+  return cur ? cur + (pick.includes(",") || cur.includes(";") ? "; " : ", ") + pick : pick;
+}
 const MB_LISTS = { traits: "Trait", actions: "Action", bonus: "Bonus action", reacts: "Reaction", legend: "Legendary action" };
 const MB = { f: null, lib: [] };
 function mbBlank() {
@@ -778,6 +802,7 @@ function mbGet(path) { return path.split(".").reduce((o, k) => o && o[k], MB.f);
 function mbSet(path, v) { const ks = path.split("."), last = ks.pop(); ks.reduce((o, k) => o[k], MB.f)[last] = v; }
 function mbFillForm() {
   const f = MB.f;
+  $$("#mbForm [data-mbsense]").forEach(el => mbSenseOptions(el, mbGet(el.dataset.mb)));
   $$("#mbForm [data-mb]").forEach(el => { const v = mbGet(el.dataset.mb); if (el.type === "checkbox") el.checked = !!v; else el.value = v ?? ""; });
   $("#mbAbil").innerHTML = AB.map((a, i) => `<div class="ab"><div class="n">${AB_NAME[a]}</div><div class="m" id="mbMod${i}">${sgn(mod(+f.scores[i] || 10))}</div><input type="number" min="1" max="30" class="ab-in" data-mbab="${i}" value="${esc(f.scores[i])}" aria-label="${AB_NAME[a]} score"></div>`).join("");
   $("#mbSaves").innerHTML = MB_ABS.map((a, i) => `<span class="chip ${f.saves.includes(i) ? "on" : ""}" data-mbsave="${i}" role="button" tabindex="0" aria-pressed="${f.saves.includes(i)}">${a}</span>`).join("");
@@ -799,6 +824,11 @@ function mbPreview() {
   mbTimer = setTimeout(() => {
     const m = mbCompile(MB.f), pb = bsPB(m.cr);
     $("#mbCRHint").textContent = `Proficiency bonus ${sgn(pb)} · ${(xpOf(m.cr) || 0).toLocaleString()} XP · ${m.hp} hit points`;
+    /* recommended CR (10b-monster-cr.js): worked out twice, the second time at the first answer's CR, whose band sets the multipliers */
+    const r = MB.rec = crRecommend(Object.assign({}, m, { cr: crRecommend(m).cr }));
+    const spells = (m.actions || []).some(([n]) => /spellcasting/i.test(n)) ? `<li>Spells aren't counted: a spellcaster may be stronger than this.</li>` : "";
+    $("#mbCRRec").innerHTML = `<p><b>Recommended: CR ${esc(crLabel(r.cr))}</b> <span class="muted">(defense ${esc(crLabel(r.def))}, offense ${esc(crLabel(r.off))})</span>${r.cr !== m.cr ? ` <button type="button" class="btn sm" data-mbcruse="${r.cr}">Use CR ${esc(crLabel(r.cr))}</button>` : ` <span class="muted">· matches your pick</span>`}</p>
+      <details><summary>Why</summary><ul>${r.why.map(w => `<li>${esc(w)}</li>`).join("")}${spells}<li>Only damage written as numbers in attacks (like "Hit: 13 (2d8 + 4)") is counted.</li></ul></details>`;
     $("#mbHP").placeholder = `Average: ${mbCompile({ ...MB.f, hp: "" }).hp}`;
     $("#mbPreview").innerHTML = `${bsSbHTML(m, "custom")}${m.desc ? `<p class="mb-desc">${esc(m.desc)}</p>` : ""}`;
   }, 80);
@@ -836,6 +866,16 @@ function mbEditFrom(m) {
   $("#mbCR").innerHTML = CR_LIST.map(c => `<option value="${c}">CR ${crLabel(c)}</option>`).join("");
   $("#mbRole").innerHTML = Object.keys(ROLE_TAC).map(k => `<option value="${k}">${cap1(k)}</option>`).join("");
   $("#mbAtkT").innerHTML = MB_DMG.map(d => `<option value="${d}">${cap1(d)}</option>`).join("");
+  $$("#mbForm select[data-mbpick]").forEach(s => { const [lab, list] = MB_PICKS[s.dataset.mbpick]; s.innerHTML = `<option value="">+ Add ${lab.toLowerCase()}…</option>` + list.map(x => `<option value="${esc(x)}">${esc(cap1(x))}</option>`).join(""); });
+  $("#mbForm").addEventListener("click", e => {
+    const u = e.target.closest("[data-mbcruse]"); if (!u) return;
+    MB.f.cr = +u.dataset.mbcruse; $("#mbCR").value = String(MB.f.cr); mbPreview();
+  });
+  $("#mbForm").addEventListener("change", e => {
+    const s = e.target.closest("select[data-mbpick]"); if (!s || !s.value) return;
+    const k = s.dataset.mbpick, box = $(`#mbForm [data-mb="${k}"]`);
+    MB.f[k] = box.value = mbPickAdd(box.value, s.value); s.value = ""; mbPreview();
+  });
   MB.f = mbBlank();
   const form = $("#mbForm");
   form.addEventListener("input", e => {

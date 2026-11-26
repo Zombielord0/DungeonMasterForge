@@ -100,8 +100,10 @@ Live site: https://dungeonmasterforge.netlify.app (Netlify; production branch `m
 | `03b-map-looks.js` | The Dungeon Map's hand-drawn looks (`mapLook`): Inked sketch, Old atlas, Stone and torchlight |
 | `03c-map-editor.js` | The map editor's drawn maps (`kind: "drawn"`): their record, squares (`drawnRefresh`), floor mask, traced walls and drawing (`drawnBase`) |
 | `03d-map-editor-ui.js` | The map editor's tools (`MED`, `medChange`, undo), its panel and the draft (`dmforge.mapdraft.v1`) |
+| `03e-map-modes.js` | The Dungeon Map tab's modes (2026-11-25): Your maps (`mapLibRender`, `mapThumbInto`), Build and the full-screen Run (`mapMode`, `mapShowBuild`, `mapEnter`/`mapLeave` from `route()`); see `docs/features/dungeon-map.md`, "Your maps, Build and Run" |
 | `04-storage.js` | `saveFile`, Backup and restore, `Store`, and `Cloud` (the DM's data saved to their account) |
 | `05-tracker.js` | Campaign Tracker: campaigns, NPC pictures, Lore, recaps, calendar, encounters, random encounters, campaign files |
+| `05b-fight.js` | **The fight window** (2026-11-25): an encounter full screen (`fightOpen`, `fightRender`), conditions for foes (`m.conds`) and heroes (on their sheets, details in `e.pcConds`), save reminders (`e.prompts`, `fightOnTurn`), concentration and casts (`e.casts`, `fightEndCast`), spell autofill (`fightSpellInfo`, `fightCasterDC`); see `docs/features/dm-tools.md`, "The fight window" |
 | `06-npcs-world.js` | NPC generator, Your NPCs, the World tab and World builder |
 | `06b-atlas.js` | World and region maps: terrain (`atlasTerrain`), drawing (`atlasDraw`), pins (`atlasPinsFill`), the map view, import, the TV |
 | `07a-classes.js` | `CLASS_DATA`, class feature text, subclasses (`subclassList`, `subclassLevel`), `classList`, homebrew classes (`hbClassData`) |
@@ -112,6 +114,7 @@ Live site: https://dungeonmasterforge.netlify.app (Netlify; production branch `m
 | `08-spells.js` | The spell browser |
 | `09-character-sheets.js` | Saving characters, prepared spells, sheet export, spell cards |
 | `10-monsters.js` | Villain generator, Monster Manual, monster builder, companions and Wild Shape |
+| `10b-monster-cr.js` | The monster builder's **recommended CR** (`crRecommend`, `crOffense`, `CR_REC_TABLE`); see `docs/features/history.md`, "Recommended CR" |
 | `11-items-shops.js` | Items tab and shops |
 | `11b-hoard.js` | The treasure hoard generator (`hoardRoll`, `hoardToLoot`): Items tab and the Tracker's Loot tab |
 | `12-level-homebrew-feats.js` | Level up, the Homebrew tab, the Feats tab |
@@ -128,6 +131,7 @@ Live site: https://dungeonmasterforge.netlify.app (Netlify; production branch `m
 | `18-news.js` | What's new (`NEWS`) and Install app |
 | `19-fold.js` | Folding list groups and sheet sections (▾ on a `.sec-h`, Fold all), remembered in `dmforge.fold.v2`. Lists start folded; sheets start open |
 | `20-requests.js` | The Requests tab: feature requests (`RQ`, `rqBrief`); see `docs/features/requests.md` |
+| `21-sidebar.js` | **The side menu** (2026-11-24): the tabs on the left (`#fside`), groups (`SIDE_GROUPS`), sections (`SIDE_SECTIONS`, `sideGo`), folding (`dmforge.side.v1`), the phone panel (`sideOpen`), and the search (`sideSearch`: your things, `compendiumMatches`, tabs); see `docs/features/layout.md` |
 
 To find a function, search `src/app/` (for example `grep -n "function pcLevelTo" src/app/*.js`).
 
@@ -158,7 +162,7 @@ npm run build     # build the page and bundle the portal (what Netlify runs)
 npm run build:app # build the page only
 ```
 
-One check per feature (Playwright, any OS): `test:assets` (fingerprinted files, repeat visits, offline), `test:map`, `test:backup`, `test:tv`, `test:mapvis` (map looks, including the hand-drawn ones), `test:mapedit` (the map editor), `test:mapio`, `test:shop`, `test:random`, `test:cards`, `test:mapenc`, `test:calendar`, `test:recap`, `test:sheet` (432 sheets vs the rules), `test:tokens`, `test:npcpic`, `test:hbspell`, `test:hbpend`, `test:import`, `test:layout`, `test:lore`, `test:mythweaver`, `test:campextras`, `test:npclib`, `test:world`, `test:setup` (builds the portal, port 8897), `test:sync` (the DM's data in their account, two devices, port 8896), `test:share` (the players' Journal, turn order on phones, shared rolls; port 8895), `test:hbclass` (homebrew classes), `test:atlas` (World and region maps, their shapes, climates, roads, borders, and the Region builder's towns and kingdoms), `test:polish` (the Adventure, Characters and Items tabs after the 2026-11-18 UI review), `test:cast` (spell bubbles and the spell window), `test:backdrop` (the background pictures and their live torches), `test:lorelink` (Lore items, monsters and encounters filling their tabs; folding lists), `test:chartab` (one Characters tab: forge, drafts, save, reroll, discard, the builder), `test:hoard` (treasure hoards), `test:third` (Eldritch Knight and Arcane Trickster spellcasting), `test:requests` (the Requests tab, port 8894), `test:extras` (the extra books), `test:bulk` (bulk import), `test:book` (rulebook parchment and the book font), `test:qafix` (fixes from the 2026-11-23 QA pass: monster data, import reports, tiny Wild Shape attacks), `test:subchange` (changing a sheet's subclass), `test:qabrowser` (fixes from the 2026-11-23 browser QA pass: Tracker campaign for new DMs is in `test:setup`; here shop wording, lone-monster encounter hooks, the Compendium icon, the Forge form and bottom bar on phones, the open character after a refresh; QA pass 2: extra monsters' actions and damage lines, Wild Shape attacks and list, Unarmored Defense from a second class; QA pass 3: "QA3" lines), `test:chat` (DM ↔ player chat and the party chat, port 8893).
+One check per feature (Playwright, any OS): `test:assets` (fingerprinted files, repeat visits, offline), `test:map`, `test:backup`, `test:tv`, `test:mapvis` (map looks, including the hand-drawn ones), `test:mapedit` (the map editor), `test:mapio`, `test:shop`, `test:random`, `test:cards`, `test:mapenc`, `test:calendar`, `test:recap`, `test:sheet` (432 sheets vs the rules), `test:tokens`, `test:npcpic`, `test:hbspell`, `test:hbpend`, `test:import`, `test:layout`, `test:lore`, `test:mythweaver`, `test:campextras`, `test:npclib`, `test:world`, `test:setup` (builds the portal, port 8897), `test:sync` (the DM's data in their account, two devices, port 8896), `test:share` (the players' Journal, turn order on phones, shared rolls; port 8895), `test:hbclass` (homebrew classes), `test:atlas` (World and region maps, their shapes, climates, roads, borders, and the Region builder's towns and kingdoms), `test:polish` (the Adventure, Characters and Items tabs after the 2026-11-18 UI review), `test:cast` (spell bubbles and the spell window), `test:backdrop` (the background pictures and their live torches), `test:lorelink` (Lore items, monsters and encounters filling their tabs; folding lists), `test:chartab` (one Characters tab: forge, drafts, save, reroll, discard, the builder), `test:hoard` (treasure hoards), `test:third` (Eldritch Knight and Arcane Trickster spellcasting), `test:requests` (the Requests tab, port 8894), `test:extras` (the extra books), `test:bulk` (bulk import), `test:book` (rulebook parchment and the book font), `test:qafix` (fixes from the 2026-11-23 QA pass: monster data, import reports, tiny Wild Shape attacks), `test:subchange` (changing a sheet's subclass), `test:qabrowser` (fixes from the 2026-11-23 browser QA pass: Tracker campaign for new DMs is in `test:setup`; here shop wording, lone-monster encounter hooks, the Compendium icon, the Forge form and bottom bar on phones, the open character after a refresh; QA pass 2: extra monsters' actions and damage lines, Wild Shape attacks and list, Unarmored Defense from a second class; QA pass 3: "QA3" lines), `test:chat` (DM ↔ player chat and the party chat, port 8893), `test:fight` (the fight window: conditions, save reminders, concentration), `test:maplayout` (the Dungeon Map tab's Your maps, Build and Run), `test:mbuild` (the monster builder's Senses, languages & defenses drop-downs, and its recommended CR, including its accuracy against the SRD monsters), `test:sidebar` (the side menu and its search; every tab and section opening offline on a laptop and a phone, then as a signed-in DM and player, port 8892).
 
 Playwright and Chromium are pre-installed in cloud sessions. To test offline mode (no sign-in screen), run `localStorage.setItem('dmforge.offline','1')` in an init script.
 
@@ -188,7 +192,7 @@ Playwright and Chromium are pre-installed in cloud sessions. To test offline mod
 - Use `totalLv(c)` rather than `c.level` for anything that depends on character level.
 - **Spellcasting can come from a subclass:** use `castOf(cls, subclass)` (not `CLASS_DATA[cls].cast`) and `castListOf` for the spell list. Eldritch Knight and Arcane Trickster are third casters (`SUB_CASTERS`, `thirdSlots`, `THIRD_KNOWN`).
 - **Class pickers use `classList(ed)`; random picks use `builtInClasses()`** (homebrew classes live in `CLASS_DATA` with `hb: true`).
-- **Never send the TV map data, room key text or HP numbers.** It only gets finished pictures, and monster state as "Bloodied" or "Down". The same goes for the turn order on players' phones (`turnsNow`), and the players' Journal never carries quest notes or DM-only Lore sections.
+- **Never send the TV map data, room key text or HP numbers.** It only gets finished pictures, and monster state as "Bloodied" or "Down". **Since 2026-11-25 (owner's request) the TV's turn order also shows each creature's condition names** (`tvInitRows(c, e, { conds: true })`), but never a foe's free-text note. The turn order on players' phones (`turnsNow`) stays names, whose turn and Bloodied or Down only, and the players' Journal never carries quest notes or DM-only Lore sections.
 
 ## Saved data
 
@@ -198,7 +202,7 @@ Playwright and Chromium are pre-installed in cloud sessions. To test offline mod
   - `dmforge.world.v1`: World places (the World tab), with region maps on the places and the world map as `atlas`.
   - `dmforge.fog.v1`: map fog, found secret doors and tokens for the 40 most recent maps.
   - `dmforge.mapdraft.v1`: the drawn map being edited (the map editor), so a refresh doesn't lose it.
-  - `dmforge.lastBackup`, `dmforge.newsSeen`, `dmforge.hdrMini`.
+  - `dmforge.lastBackup`, `dmforge.newsSeen`, `dmforge.side.v1` (side menu folded; a UI choice, not in backups).
   - **Imported map pictures and NPC pictures** are in IndexedDB (database `dmforge-maps`), not localStorage.
   - The 💾 Backup file (v2) covers the keys in `BACKUP_KEYS` and the pictures (`images`: key → data URL, from `MAPIMG.all()`). Restoring a v2 backup replaces the pictures; a v1 backup leaves them alone.
 - **Campaign fields added on 2026-11-15** (saved with the campaign, signed in or not):
@@ -307,7 +311,9 @@ Playwright and Chromium are pre-installed in cloud sessions. To test offline mod
   - Scroll the map canvas below the sticky header before clicking cells.
   - `test:map` and `test:npcpic` sometimes fail on timing when the machine is busy; `test:all` reruns failures once.
 - **The `.ds` class** is the death-save dot. Don't reuse it for anything else.
-- **Don't use `<nav>` for new bars.** The header's `nav a` styles, including an icon `::before`, apply to every `nav`.
+- **Don't use `<nav>` for new bars.** The tab links' `nav a` styles, including an icon `::before`, apply to every `nav`.
+- **The Player Screen (Host for players, fog tools, tokens, handouts) only shows in the Dungeon Map's Run mode (since 2026-11-25).** Tests call `mapMode("run")` before pressing `#hostStart`. Code that sends you to the map tab with a map open calls `mapShowBuild()` first, or the tab opens on Your maps.
+- **The tabs are in the side menu (`#fside nav`), not the header (since 2026-11-24).** Tests click `#fside nav a[data-view=…]` (on phones open it first with `#mobileMore`) or set `location.hash`. The header's tab row, `#hdrTabSel`, `hdr-mini` and the phone's `#mobileMenu` dialog are gone.
 - **Scores in imports differ by source.** The Companion App and PDFs give final scores (solved backwards in `importBuild`); MythWeaver gives starting scores (`D.base`). Imports must set `bonus: "fixed"`, or `pcLevelTo` moves the species bonus on the first level-up.
 - **pdf.js 6.5's `getFieldObjects()` returned nothing** for real sheets; read widgets with `page.getAnnotations()` instead.
 - **On phones the header can be away** (`hdr-away` on `<html>`). Anything placed relative to header elements must measure where the header ends up, not where it is mid-slide (see `newsOpen`).

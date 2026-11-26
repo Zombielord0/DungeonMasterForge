@@ -36,7 +36,7 @@ const check = (name, ok, extra = "") => { console.log((ok ? "PASS " : "FAIL ") +
     check("the player's character joins the party's Tracker campaign", true);
 
     // 1. the Journal
-    check("players have a Journal tab (in the phone's tab menu too)", await pl.evaluate(() => !document.querySelector('nav a[data-view="journal"]').hidden && [...document.querySelectorAll("#hdrTabSel option")].some(o => /Journal/.test(o.textContent))));
+    check("players have a Journal tab (in the phone's tab menu too)", await pl.evaluate(() => !document.querySelector('nav a[data-view="journal"]').hidden && !document.querySelector('#fside [data-row-of="journal"]').hidden));
     await dm.evaluate(() => {
       const c = Store.list().find(c => c.name === "Velmor");
       c.quests = [{ id: "q1", title: "Find the silver bell", status: "Active", giver: "Mother Rue", notes: "SECRET: the bell is cursed" }, { id: "q2", title: "Unmask the traitor", status: "Active", players: "No" }, { id: "q3", title: "Clear the mill", status: "Completed" }];

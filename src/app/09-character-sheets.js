@@ -26,7 +26,7 @@ const pcKeep = c => ({ multi: c.multi && c.multi.length ? c.multi : undefined, k
 /* Numbers on a sheet are numbers (including the spell block and hit dice). Other members' characters arrive from the campaign database as any JSON, and many
    of these fields are written into the page as they are, so a string here could carry page code. "" stays "" where the
    sheet lets a box be emptied. */
-const PC_NUMS = ["hp", "hpCur", "hpTemp", "ac", "acAuto", "speed", "prof", "hd", "init", "passive", "xp", "startGold", "initBonus", "atkBonus", "formHp"];
+const PC_NUMS = ["hp", "hpCur", "hpTemp", "ac", "acAuto", "speed", "prof", "hd", "init", "passive", "xp", "startGold", "initBonus", "atkBonus", "formHp", "acBonus"];
 function pcNums(c) {
   const n = v => { const x = parseFloat(v); return Number.isFinite(x) ? x : 0; };
   if (c.level !== undefined) c.level = clamp(Math.round(n(c.level)) || 1, 1, 20);
@@ -34,6 +34,7 @@ function pcNums(c) {
   if (c.scores && typeof c.scores === "object") Object.keys(c.scores).forEach(a => { if (typeof c.scores[a] !== "number") c.scores[a] = n(c.scores[a]); });
   if (Array.isArray(c.multi)) c.multi.forEach(m => { if (m && typeof m === "object" && m.lv !== undefined) m.lv = clamp(Math.round(n(m.lv)) || 1, 1, 20); });
   const num = (o, ks) => { if (o && typeof o === "object") ks.forEach(k => { if (o[k] !== undefined && o[k] !== null && typeof o[k] !== "number" && typeof o[k] !== "boolean") o[k] = n(o[k]); }); };
+  num(c.death, ["s", "f"]); /* death-save counters: shown as numbers in the fight window (security review, 2026-11-25) */
   if (Array.isArray(c.hdList)) c.hdList = c.hdList.map(d => typeof d === "number" ? d : n(d));
   const S = c.spell;
   if (S && typeof S === "object") {

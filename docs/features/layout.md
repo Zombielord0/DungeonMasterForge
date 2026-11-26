@@ -64,10 +64,11 @@ From a review of the Adventure, Characters and Items tabs. Checks: `npm run test
 - **Where:** the parchment areas from before, which are generated adventures and briefs (`#genOut`), NPC cards, forged monsters and the monster builder preview. Spells, items, the Monster Manual, the character sheet and the Journal stay stone.
 - **Why:** the owner chose the look from a picture of a 3.5-era rulebook page.
 - **The paper** is `--book-paper` (used through `--parch`): yellowed, with soft brown mottling (the layer with `baseFrequency='.007'`, which the check looks for), faint creases and darker edges. It's all SVG noise and gradients, with no picture files and nothing from the book.
-- **The ink and headings:** near-black ink in EB Garamond (open licence, loaded with the other Google Fonts), and steel-blue capital headings (Cinzel) over a thin rule.
+- **The ink and headings:** near-black ink, in EB Garamond until 2026-11-24 and Metamorphous since (both open licence, loaded with the other Google Fonts), and steel-blue capital headings (Cinzel) over a thin rule.
+- **The parchment font (owner's pick, 2026-11-24):** the parchment areas' text is in **Metamorphous** (open licence, Google Fonts), an old-manuscript lettering; headings stay Cinzel. The owner first asked for a font called "Wetlands" (not found), then sent Dalek (K-Type), which is free for personal use only and needs a paid licence as a web font, so it isn't used. Bangers and Germania One were the other previews.
 - **The book font on stone:** spells, items, the Monster Manual, the character sheet and the Journal use EB Garamond too, in their usual stone colours.
 - **The check:** `npm run test:book` checks that the parchment areas are on the paper with ink at least 4.5:1 against a stained spot, and that the other five areas stay stone in the book font.
-- **To undo it,** delete the "Rulebook parchment" block at the end of `src/app.css` and the EB Garamond family in `src/index.html`'s font link. Design: `docs/superpowers/specs/2026-11-23-book-pages-design.md`.
+- **To undo it,** delete the "Rulebook parchment" block at the end of `src/app.css` and the EB Garamond and Metamorphous families in `src/index.html`'s font link. Design: `docs/superpowers/specs/2026-11-23-book-pages-design.md`.
 
 ## UI review fixes (2026-11-24)
 - **Fight bar** (`#fightBar`, `fightBarSync`, `liveFight` in `05-tracker.js`): phones only, on the Tracker, while an encounter is Active with a turn set. It shows the round, whose turn and who's next, and its Next turn presses the encounter's own `[data-ea="next"]`. `body.fight-on` lifts the roll dock and the toast above it. The bottom bar's Encounter shortcut jumps to the live fight (`fightJump`).
@@ -77,3 +78,29 @@ From a review of the Adventure, Characters and Items tabs. Checks: `npm run test
 - **Laptop header:** `#storeBadge`, Backup and the bell share the title's row (the nav gets `order:3; flex-basis:100%` above 600 px, not in the compact header).
 - **Skip to content** (`#skipLink`, the first thing Tab reaches) focuses the active view.
 - Checks: the "UI" lines in `test:qabrowser`.
+
+## Side menu (2026-11-24)
+
+The owner asked for the tabs on the left, scrollable, searchable and foldable, with sections under the main tabs. Design: `docs/superpowers/specs/2026-11-24-sidebar-search-design.md`. Code: `src/app/21-sidebar.js`. Check: `npm run test:sidebar` (`sidebar.cjs` offline, `sidebar-portal.cjs` signed in, port 8892).
+
+- **The links:** the `<nav>` that was in the header now sits in `<aside id="fside">`. `sideBuild` moves its `a[data-view]` links into groups (`SIDE_GROUPS`) and rows (`.fside-row`). Portal still hides and shows the same links, and `sideSync` (called at the end of `route()`) hides empty groups and marks the open section.
+- **Sections** (`SIDE_SECTIONS`): Campaign Tracker (its 14 sub-tabs, set through `subTab`), Villains & Monsters (`monMode`), Items (`itMode`) and World (`W.mode` place or build). They start folded; the ▸ arrow shows them. `sideGo(view, section)` opens either.
+- **Folded search:** a folded menu shows 🔍 (`#sideSearchBtn`), which unfolds it with the search box focused.
+- **Tracker sections with no campaign:** the empty Tracker says "<Section> is kept in a campaign" and its **+ Start a blank campaign** (`data-newcamp`) stays on that section.
+- **Folding:** `«` sets `html.fside-folded` (56 px, icons from the tabs' `--ic`), kept in `dmforge.side.v1` and applied before paint in `index.html`. Not in backups (a UI choice).
+- **Layout:** the menu is fixed under the header (`top: var(--hdr-live)`). `body` gets `padding-left: var(--fside-w)`, and the header undoes it so it stays full width. The laptop's "Hide tabs" button is gone; phones keep "Show toolbar".
+- **Phones:** the bottom bar stays. **More** calls `sideOpen()`, which slides the menu in over a shade (`#fsideShade`). Escape, the shade, ✕ or picking a tab closes it.
+- **Search** (`sideSearch`, 150 ms after typing, from 2 letters), with at most 5 rows per group:
+  - **Your stuff:**
+    - `PCS.roster` (any text on the character, found with `sideHits`);
+    - Tracker campaigns' NPCs, Lore, quests, loot, sessions, encounters and notes;
+    - World places, Your NPCs and homebrew, each only when that tab is allowed (`Portal.views`);
+    - for players, the Journal page's text.
+  - **Rules:** `compendiumMatches` (split out of `compendiumSearch`) for both editions, or the open campaign's edition, plus "Show all … in the Compendium".
+  - **Tabs:** tab and section names.
+
+  - Words of one letter are ignored (QA-2: `<b>x</b>` left single letters that matched everything).
+  - Rules rows are grouped by kind and name: one row, with the other editions and book references as `.fside-ed` buttons (`data-side-alt="row:n"`).
+  - Each of your own results has a `where` ("Campaign "X" › Lore › …"), shown in a toast when it opens.
+
+  A result opens its page, and `sideReveal` finds the words there, opens folded parts, scrolls to them and flashes a gold outline (`.side-flash`). Rules results open the rules window over the page.

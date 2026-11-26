@@ -102,7 +102,7 @@ function journalHandouts(c) {
 }
 function campaignHandoutsHTML(c) {
   const rows = journalHandouts(c);
-  return `<h3>Journal handouts</h3>
+  return `<div class="sec-h"><h3>Journal handouts</h3></div>
     <p class="hint">Reveal a clue, an uploaded image, an NPC portrait, or a snapshot of the current player map. Revealed handouts appear in the linked campaign's Journal.</p>
     ${rows.map(x => `<details class="lore-card"><summary>${esc(x.title)}</summary>
       ${journalPictureOK(x.picture) || npcUrlOk(x.url) ? `<img class="journal-handout-picture" src="${esc(journalPictureOK(x.picture) ? x.picture : x.url)}" alt="" loading="lazy" referrerpolicy="no-referrer">` : ""}
@@ -110,15 +110,19 @@ function campaignHandoutsHTML(c) {
       <div class="item-h"><span>${x.revealed ? "Revealed" : "Hidden"}</span>${sessionQueueButton("handouts", x)}
       <button class="btn sm" data-journal-reveal="${esc(x.id)}">${x.revealed ? "Hide" : "Reveal"}</button>
       <button class="btn sm danger" data-journal-delete="${esc(x.id)}">Delete</button></div></details>`).join("")}
-    ${rows.length >= JOURNAL_HANDOUT_MAX ? "<p>Delete a handout to add another.</p>" : `<form id="journalHandoutForm">
-      <label>Title<input name="title" required maxlength="100"></label>
-      <label>Player notes<textarea name="text" maxlength="4000"></textarea></label>
-      <label>Upload a picture<input type="file" name="picture" accept="image/png,image/jpeg,image/webp"></label>
-      <label>Attach a campaign image<select name="image"><option value="">None</option>
-        ${currentMap ? '<option value="map">Current player map (with fog)</option>' : ""}
-        ${(c.npcs || []).filter(n => n.img || npcUrlOk(n.imgUrl)).map(n => `<option value="${esc("npc:" + n.id)}">Portrait · ${esc(n.name)}</option>`).join("")}
-      </select></label>
-      <button class="btn primary sm" type="submit">Save hidden handout</button>
+    ${rows.length >= JOURNAL_HANDOUT_MAX ? `<p class="muted">Delete a handout to add another.</p>` : `<form id="journalHandoutForm" class="handout-form" autocomplete="off">
+      <h4>New handout</h4>
+      <div class="field"><label for="jhTitle">Title</label><input type="text" id="jhTitle" name="title" required maxlength="100" placeholder="e.g. A torn letter"></div>
+      <div class="field"><label for="jhText">Player notes</label><textarea id="jhText" name="text" maxlength="4000" placeholder="What the players read. You can use **bold**, *italic* and - lists."></textarea></div>
+      <div class="field row handout-pics">
+        <div><span class="lbl">Picture</span><div class="row" style="gap:8px;align-items:center;flex-wrap:wrap"><label class="btn sm" style="flex:0 0 auto">🖼 Upload a picture…<input type="file" name="picture" accept="image/png,image/jpeg,image/webp" hidden></label><span class="muted" id="jhFileName">No picture chosen</span></div></div>
+        <div><label for="jhImage">Or attach a campaign image</label><select id="jhImage" name="image"><option value="">None</option>
+          ${currentMap ? '<option value="map">Current player map (with fog)</option>' : ""}
+          ${(c.npcs || []).filter(n => n.img || npcUrlOk(n.imgUrl)).map(n => `<option value="${esc("npc:" + n.id)}">Portrait · ${esc(n.name)}</option>`).join("")}
+        </select></div>
+      </div>
+      <button class="btn primary" type="submit">Save hidden handout</button>
+      <p class="hint" style="margin:6px 0 0">Handouts start hidden. Press Reveal on one to show it in the players' Journal.</p>
     </form>`}`;
 }
 async function journalEncodeImage(source) {
@@ -181,4 +185,10 @@ $("#campMain").addEventListener("click", async event => {
   } else handout.revealed = !handout.revealed;
   Store.save(c);
   if (curCamp() === c && subTab === "handouts") renderTracker();
+});
+
+/* the handout form's picture button shows the chosen file's name (2026-11-25: the form uses the Forge's own fields) */
+$("#campMain").addEventListener("change", e => {
+  if (e.target.name !== "picture" || !e.target.closest("#journalHandoutForm")) return;
+  const f = e.target.files && e.target.files[0], out = $("#jhFileName"); if (out) out.textContent = f ? f.name : "No picture chosen";
 });

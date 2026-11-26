@@ -71,11 +71,11 @@ const away = p => p.evaluate(() => document.documentElement.classList.contains("
       await p.waitForSelector("#mobileNav a[aria-current=page][href=\"#roster\"]");
       check("phone: Sheet is marked as the current page", await quickNav.getByRole("link", { name: "Sheet" }).getAttribute("aria-current") === "page");
       await quickNav.getByRole("button", { name: "More" }).tap();
-      const menu = p.locator("#mobileMenu");
+      const menu = p.locator("#fside"); /* More opens the side menu from the left (2026-11-24) */
       check("phone: More shows tools available to this session", await menu.getByRole("link", { name: "Compendium" }).isVisible() && !(await menu.getByRole("link", { name: "Party" }).count()));
       await menu.getByRole("link", { name: "Compendium" }).tap();
       await p.waitForURL("**/#compendium");
-      check("phone: choosing a tool closes More", !(await menu.isVisible()));
+      check("phone: choosing a tool closes More", !(await p.evaluate(() => document.documentElement.classList.contains("fside-open"))));
       await quickNav.getByRole("link", { name: "Sheet" }).tap();
       await p.waitForURL("**/#roster");
 
@@ -185,7 +185,7 @@ const away = p => p.evaluate(() => document.documentElement.classList.contains("
     }
     if (size === "laptop") {
       await go(p, URL, "map"); await p.click("#mapGen").catch(() => { }); await p.waitForTimeout(800);
-      const [tv] = await Promise.all([ctx.waitForEvent("page", { timeout: 5000 }).catch(() => null), p.click("#hostStart").catch(() => { })]);
+      const [tv] = await Promise.all([ctx.waitForEvent("page", { timeout: 5000 }).catch(() => null), p.evaluate(() => mapMode("run")).then(() => p.click("#hostStart")).catch(() => { })]);
       await p.bringToFront(); await p.waitForTimeout(800);
       for (const s of ["#fogTools", "#mapCanvas, canvas#map, #map canvas", "#roomKey .room, #roomKey > *"]) {
         const r = await p.evaluate(s => { const e = document.querySelector(s); if (!e) return { ok: false, why: "missing" }; scrollBy(0, e.getBoundingClientRect().top - innerHeight * .4); const r = e.getBoundingClientRect(); const x = r.left + Math.min(r.width / 2, 40), y = r.top + Math.min(r.height / 2, 20); const top = document.elementFromPoint(x, y); return { ok: r.height > 0 && (e === top || e.contains(top)), why: `${Math.round(r.top)} ${top && (top.id || top.className)}` }; }, s);

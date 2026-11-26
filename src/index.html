@@ -13,12 +13,12 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <script>
 /* Portals: keep the page covered until sign-in is checked; give up after 8s so the Forge never stays hidden. */
-/* Toolbar minimized last time? Apply before paint so it does not flash open. */
-if (localStorage.getItem("dmforge.hdrMini") === "1") document.documentElement.classList.add("hdr-mini");
+/* Side menu folded last time? Apply before paint so it does not flash open. */
+if (localStorage.getItem("dmforge.side.v1") === "1") document.documentElement.classList.add("fside-folded");
 if (location.protocol !== "file:" && localStorage.getItem("dmforge.offline") !== "1") { document.documentElement.classList.add("gate-wait"); setTimeout(function () { document.documentElement.classList.remove("gate-wait"); }, 8000); }
 </script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@500;700&family=Cinzel+Decorative:wght@700&family=Crimson+Pro:ital,wght@0,400;0,600;1,400&family=EB+Garamond:ital,wght@0,400;0,600;0,700;1,400&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@500;700&family=Cinzel+Decorative:wght@700&family=Crimson+Pro:ital,wght@0,400;0,600;1,400&family=EB+Garamond:ital,wght@0,400;0,600;0,700;1,400&family=Metamorphous&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="/assets/app.css">
 <meta name="forge-extra-monsters" content="/assets/extra-monsters.js">
 <meta name="forge-monster-index" content="/assets/monster-index.js">
@@ -80,6 +80,20 @@ if (location.protocol !== "file:" && localStorage.getItem("dmforge.offline") !==
   <circle class="t-em e1" cx="18" cy="14" r=".9" fill="#ffcf6a"/><circle class="t-em e2" cx="23" cy="12" r=".7" fill="#ffb347"/><circle class="t-em e3" cx="20" cy="9" r=".8" fill="#ffe08a"/><circle class="t-em e4" cx="16" cy="16" r=".6" fill="#ff9a3a"/>
 </svg></span>
   </div>
+  <span id="storeBadge" class="badge" title="Where your campaigns are saved">Connecting…</span>
+  <button class="btn sm" type="button" id="backupBtn" hidden aria-haspopup="dialog" title="Download or restore a backup of everything saved in this browser">💾 Backup</button>
+  <span class="hdr-mini-label" id="hdrMiniLabel">Dungeon Master's Forge</span>
+  <button class="news-btn" type="button" id="newsBtn" aria-haspopup="dialog" aria-expanded="false" title="What's new in the Forge"><svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/><path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"/></svg><span class="news-n" id="newsN" hidden></span><span class="sr-only" id="newsSr">What's new</span></button>
+  <button class="btn sm" type="button" id="installBtn" hidden title="Install the Forge as an app on this device">⬇ Install app</button>
+  <button class="btn sm hdr-toggle" type="button" id="hdrToggle" aria-expanded="true" title="Hide the toolbar to give this tab more room">▴ Hide tabs</button>
+</header>
+<aside id="fside" aria-label="Forge tools menu">
+  <div class="fside-top">
+    <input type="search" id="sideQ" autocomplete="off" placeholder="Search everything…" aria-label="Search the Forge: your characters, campaigns, rules and tabs" aria-controls="sideResults">
+    <button class="icon-btn" type="button" id="sideSearchBtn" title="Search everything" aria-label="Search everything">🔍</button>
+    <button class="icon-btn" type="button" id="sideFoldBtn" aria-expanded="true" title="Fold the menu to icons">«</button>
+  </div>
+  <div id="sideResults" class="fside-results" role="region" aria-label="Search results" aria-live="polite" hidden></div>
   <nav aria-label="Forge tools">
     <a href="#generate" data-view="generate">Adventure</a>
     <a href="#npc" data-view="npc">NPCs</a>
@@ -98,27 +112,14 @@ if (location.protocol !== "file:" && localStorage.getItem("dmforge.offline") !==
     <a href="#journal" data-view="journal" hidden>Journal</a>
     <a href="#whispers" data-view="whispers" hidden>Chat<span id="whisperN" hidden></span></a>
   </nav>
-  <span id="storeBadge" class="badge" title="Where your campaigns are saved">Connecting…</span>
-  <button class="btn sm" type="button" id="backupBtn" hidden aria-haspopup="dialog" title="Download or restore a backup of everything saved in this browser">💾 Backup</button>
-  <span class="hdr-mini-label" id="hdrMiniLabel">Dungeon Master's Forge</span>
-  <select class="hdr-tabsel" id="hdrTabSel" aria-label="Go to tab"></select>
-  <button class="news-btn" type="button" id="newsBtn" aria-haspopup="dialog" aria-expanded="false" title="What's new in the Forge"><svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/><path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"/></svg><span class="news-n" id="newsN" hidden></span><span class="sr-only" id="newsSr">What's new</span></button>
-  <button class="btn sm" type="button" id="installBtn" hidden title="Install the Forge as an app on this device">⬇ Install app</button>
-  <button class="btn sm hdr-toggle" type="button" id="hdrToggle" aria-expanded="true" title="Hide the toolbar to give this tab more room">▴ Hide tabs</button>
-</header>
+</aside>
+<div id="fsideShade" class="fside-shade" hidden></div>
 
 <div id="fightBar" class="fight-bar" role="region" aria-label="Fight under way" hidden></div>
 <div id="mobileNav" class="mobile-nav" role="navigation" aria-label="Quick navigation">
   <div id="mobileNavLinks"></div>
-  <button class="btn" type="button" id="mobileMore" aria-haspopup="dialog" aria-controls="mobileMenu">More</button>
+  <button class="btn" type="button" id="mobileMore" aria-controls="fside">More</button>
 </div>
-<dialog id="mobileMenu" class="character-reference mobile-menu" aria-labelledby="mobileMenuTitle">
-  <div class="character-reference-heading">
-    <h2 id="mobileMenuTitle">Forge tools</h2>
-    <form method="dialog"><button class="btn sm" type="submit" autofocus>Close</button></form>
-  </div>
-  <div id="mobileMenuLinks" class="mobile-menu-links"></div>
-</dialog>
 
 <div class="news-panel" id="newsPanel" role="dialog" aria-modal="false" aria-labelledby="newsTitle" hidden>
   <div class="news-head"><h3 id="newsTitle">What's new</h3><span class="sp"></span><button class="icon-btn" type="button" id="newsClose" aria-label="Close">✕</button></div>
@@ -198,7 +199,12 @@ if (location.protocol !== "file:" && localStorage.getItem("dmforge.offline") !==
 </section>
 
 <!-- ================= MAP ================= -->
-<section class="view" id="view-map">
+<section class="view map-build" id="view-map">
+  <div class="map-lib" id="mapLib">
+    <div class="map-lib-h"><h2>Your maps</h2><label class="sr-only" for="mapLibFrom">Show maps from</label><select id="mapLibFrom"></select><span class="sp"></span>
+      <button class="btn primary" type="button" id="mapLibNew">+ New map</button><button class="btn" type="button" id="mapLibImport">⬆ Import</button></div>
+    <div class="map-lib-grid" id="mapLibGrid"></div>
+  </div>
   <div class="layout">
     <form class="card side" id="mapForm" autocomplete="off">
       <div class="field"><label>Map name</label><input type="text" id="mapName" value="The Forgotten Halls"></div>
@@ -247,7 +253,10 @@ if (location.protocol !== "file:" && localStorage.getItem("dmforge.offline") !==
         <p class="hint" style="margin:6px 0 0">The place's page on the World tab shows this map, with its fog and room notes.</p>
       </div>
     </form>
-    <div>
+    <div class="map-main">
+      <div class="map-buildbar"><button class="btn sm" type="button" id="mapToList">← Your maps</button><span class="sp"></span><button class="btn primary" type="button" id="mapToRun">▶ Run for players</button></div>
+      <div class="map-runbar" id="mapRunBar"><b id="mapRunName"></b><span class="badge" id="mapRunTv">TV not connected</span><span class="sp"></span><button class="btn sm" type="button" id="mapRunDone">✕ Done</button></div>
+      <div class="map-rtabs" id="mapRTabs" role="tablist" aria-label="Running the map"><button type="button" role="tab" data-rtab="fog" aria-selected="true">📺 TV &amp; fog</button><button type="button" role="tab" data-rtab="tok" aria-selected="false">● Tokens</button><button type="button" role="tab" data-rtab="hand" aria-selected="false">✉ Handout</button></div>
       <div class="card" id="impPanel" hidden style="margin-bottom:12px">
         <div class="sec-h"><h3>Imported Map</h3><span class="sp"></span><span class="muted" style="font-size:14px">Save to a campaign or export a map file to keep it</span></div>
         <div class="field row">
@@ -299,13 +308,13 @@ if (location.protocol !== "file:" && localStorage.getItem("dmforge.offline") !==
           </div>
           <label class="check"><input type="checkbox" id="fogNums"><span>Show room numbers on the TV</span></label>
           <p class="hint" style="margin:6px 0 0"><b>Room:</b> click a room or corridor. <b>Brush:</b> paint over squares. <b>Box:</b> drag a rectangle. <b>Secret door:</b> click an “S” once the players find it, and it appears on the TV. <b>Shift+click</b> flashes a ring on the TV to point something out. Fog is kept on this computer; press Save to store it with a campaign.</p>
-          <div class="field" style="margin:16px 0 0">
+          <div class="field" id="tokField" style="margin:16px 0 0">
             <label>Tokens</label>
             <div class="row" style="flex-wrap:wrap;gap:6px;align-items:center"><button class="btn sm" type="button" id="tokParty" style="flex:0 0 auto" title="A token for each hero in the campaign chosen under Save to campaign, placed in the entrance">+ Party</button><button class="btn sm" type="button" id="tokFight" style="flex:0 0 auto" title="The monsters of the fight on the TV">+ Fight on TV</button><input type="text" id="tokName" placeholder="Name" style="width:150px;flex:0 0 auto"><select id="tokKind" style="width:auto;flex:0 0 auto"><option value="pc">Hero</option><option value="foe">Monster</option><option value="npc">NPC</option></select><button class="btn sm" type="button" id="tokAdd" style="flex:0 0 auto">Add</button></div>
             <div id="tokList" class="tok-list"></div>
             <p class="hint" style="margin:4px 0 0">Choose the <b>Tokens</b> tool above to drag them. Tokens in the fog stay hidden from players; monsters in the fight on the TV show Bloodied or Down.</p>
           </div>
-          <div class="field" style="margin:16px 0 0">
+          <div class="field" id="handoutField" style="margin:16px 0 0">
             <label>Handout</label>
             <div class="row" style="margin-bottom:8px"><label class="btn sm" style="flex:0 0 auto">🖼 Show a picture…<input type="file" id="handoutFile" accept="image/*" hidden></label><button class="btn sm primary" type="button" id="handoutBack" hidden style="flex:0 0 auto">🗺 Back to map</button></div>
             <input type="text" id="handoutTitle" placeholder="Title (optional), e.g. A torn letter" style="margin-bottom:6px">
@@ -314,7 +323,7 @@ if (location.protocol !== "file:" && localStorage.getItem("dmforge.offline") !==
           </div>
         </fieldset>
       </div>
-      <div class="card" style="margin-top:14px">
+      <div class="card" id="roomKeyCard" style="margin-top:14px">
         <div class="sec-h"><h3>Room Key</h3><span class="sp"></span><span class="muted" style="font-size:14px">1 square = 5 ft · encounter math uses the 5e DMG XP thresholds</span></div>
         <div id="roomKey"></div>
       </div>
@@ -387,7 +396,8 @@ if (location.protocol !== "file:" && localStorage.getItem("dmforge.offline") !==
           <div><label for="mbCR">Challenge rating</label><select id="mbCR" data-mb="cr"></select></div>
           <div><label for="mbRole">How it fights</label><select id="mbRole" data-mb="role"></select></div>
         </div>
-        <p class="hint" id="mbCRHint" style="margin:-6px 0 12px"></p>
+        <p class="hint" id="mbCRHint" style="margin:-6px 0 6px"></p>
+        <div class="mb-crrec" id="mbCRRec" aria-live="polite"></div>
         <div class="field"><label for="mbDesc">Description</label><textarea id="mbDesc" data-mb="desc" placeholder="What it looks like, where it lairs, what it wants, how the heroes might hear of it…"></textarea></div>
       </div>
       <div class="card"><div class="sec-h"><h3>Defenses &amp; movement</h3></div>
@@ -414,16 +424,16 @@ if (location.protocol !== "file:" && localStorage.getItem("dmforge.offline") !==
       </div>
       <div class="card"><div class="sec-h"><h3>Senses, languages &amp; defenses</h3></div>
         <div class="field mb-speeds"><span class="lbl">Senses (feet)</span><div class="row">
-          <label>Darkvision<input type="number" min="0" step="5" data-mb="senses.dark"></label><label>Blindsight<input type="number" min="0" step="5" data-mb="senses.blind"></label>
-          <label>Tremorsense<input type="number" min="0" step="5" data-mb="senses.tremor"></label><label>Truesight<input type="number" min="0" step="5" data-mb="senses.true"></label></div></div>
-        <div class="field"><label for="mbLang">Languages</label><input type="text" id="mbLang" data-mb="lang" placeholder="e.g. Common, Abyssal; telepathy 60 ft."></div>
+          <label>Darkvision<select data-mb="senses.dark" data-mbsense="1"></select></label><label>Blindsight<select data-mb="senses.blind" data-mbsense="1"></select></label>
+          <label>Tremorsense<select data-mb="senses.tremor" data-mbsense="1"></select></label><label>Truesight<select data-mb="senses.true" data-mbsense="1"></select></label></div></div>
+        <div class="field"><label for="mbLang">Languages</label><div class="mb-pick"><input type="text" id="mbLang" data-mb="lang" placeholder="e.g. Common, Abyssal; telepathy 60 ft."><select data-mbpick="lang" aria-label="Add a language"></select></div></div>
         <div class="field row">
-          <div><label for="mbRes">Damage resistances</label><input type="text" id="mbRes" data-mb="res" placeholder="e.g. cold, necrotic"></div>
-          <div><label for="mbImm">Damage immunities</label><input type="text" id="mbImm" data-mb="imm" placeholder="e.g. poison"></div>
+          <div><label for="mbRes">Damage resistances</label><div class="mb-pick"><input type="text" id="mbRes" data-mb="res" placeholder="e.g. cold, necrotic"><select data-mbpick="res" aria-label="Add to this list"></select></div></div>
+          <div><label for="mbImm">Damage immunities</label><div class="mb-pick"><input type="text" id="mbImm" data-mb="imm" placeholder="e.g. poison"><select data-mbpick="imm" aria-label="Add to this list"></select></div></div>
         </div>
         <div class="field row">
-          <div><label for="mbVul">Damage vulnerabilities</label><input type="text" id="mbVul" data-mb="vul" placeholder="e.g. radiant"></div>
-          <div><label for="mbCI">Condition immunities</label><input type="text" id="mbCI" data-mb="ci" placeholder="e.g. exhaustion, poisoned"></div>
+          <div><label for="mbVul">Damage vulnerabilities</label><div class="mb-pick"><input type="text" id="mbVul" data-mb="vul" placeholder="e.g. radiant"><select data-mbpick="vul" aria-label="Add to this list"></select></div></div>
+          <div><label for="mbCI">Condition immunities</label><div class="mb-pick"><input type="text" id="mbCI" data-mb="ci" placeholder="e.g. exhaustion, poisoned"><select data-mbpick="ci" aria-label="Add to this list"></select></div></div>
         </div>
       </div>
       <div class="card"><div class="sec-h"><h3>Traits</h3><span class="sp"></span><button class="btn sm" type="button" data-mbadd="traits">+ Add trait</button></div><div data-mblist="traits"></div></div>
@@ -729,10 +739,10 @@ if (location.protocol !== "file:" && localStorage.getItem("dmforge.offline") !==
 </div></div>
 <div id="impCharModal" role="dialog" aria-modal="true" aria-labelledby="impCharTitle"><div class="box">
   <h3 id="impCharTitle">Import a character</h3>
-  <p>Bring in a character from the <b>5e Companion App</b> or a fillable <b>PDF character sheet</b>. The Forge rebuilds it with its own rules, keeping the scores, skills, gear, spells and story. Anything the Forge doesn't know becomes homebrew.</p>
-  <p class="muted" style="font-size:14px;margin-top:-8px">In the 5e Companion App, open the character, then use Export or Share to save its file. For a PDF, use one you can still type into.</p>
+  <p>Bring in a character from the <b>5e Companion App</b>, the <b>Fifth Edition Character Sheet</b> app, or a fillable <b>PDF character sheet</b>. The Forge rebuilds it with its own rules, keeping the scores, skills, gear, spells and story. Anything the Forge doesn't know becomes homebrew.</p>
+  <p class="muted" style="font-size:14px;margin-top:-8px">In the 5e Companion App, open the character, then use Export or Share to save its file (.json). In the Fifth Edition Character Sheet app, export the character (.xml). For a PDF, use one you can still type into (.pdf).</p>
   <div class="field"><label>Rules</label><div class="seg"><label class="opt"><input type="radio" name="impEd" value="2014" checked><span>2014 rules</span></label><label class="opt"><input type="radio" name="impEd" value="2024"><span>2024 rules</span></label></div></div>
-  <label class="btn" style="display:block;text-align:center" tabindex="0">Choose a file…<input type="file" id="impCharFile" hidden></label>
+  <label class="btn" style="display:block;text-align:center" tabindex="0">Choose a file… <small>(.json, .xml or .pdf)</small><input type="file" id="impCharFile" hidden></label>
   <div id="impCharOut" class="imp-out" aria-live="polite"></div>
   <div class="row" style="justify-content:flex-end;margin-top:14px;gap:8px"><button class="btn" type="button" id="impCharCancel" style="flex:0 0 auto">Cancel</button><button class="btn primary" type="button" id="impCharGo" style="flex:0 0 auto" disabled>Import</button></div>
 </div></div>
@@ -741,9 +751,16 @@ if (location.protocol !== "file:" && localStorage.getItem("dmforge.offline") !==
   <p class="hint" style="margin-top:0">Add many spells, feats, species, backgrounds, subclasses, magic items or monsters at once, for example from books you own. Fill in a template in Excel or Google Sheets, save it as CSV, then choose it here. A JSON file with the same columns works too.</p>
   <div class="field"><label>Templates (one example row each; add a row per entry)</label><div class="row" id="bulkTpl" style="flex-wrap:wrap;gap:6px"></div>
     <p class="hint" style="margin:6px 0 0">Species and subclasses take several rows: one per trait, subrace or feature, each with the same name. Monsters take a whole stat block in one cell.</p></div>
-  <label class="btn" style="display:block;text-align:center" tabindex="0">Choose a file…<input type="file" id="bulkFile" accept=".csv,.json,.txt,text/csv,application/json" hidden></label>
+  <label class="btn" style="display:block;text-align:center" tabindex="0">Choose a file… <small>(.csv, .json or .txt)</small><input type="file" id="bulkFile" accept=".csv,.json,.txt,text/csv,application/json" hidden></label>
+  <p class="hint" style="margin:6px 0 0"><b>CSV</b>: a template filled in and saved from Excel or Google Sheets. <b>JSON</b>: a list of entries, each with a kind and a name. A <b>.txt</b> file holding either works too.</p>
   <div id="bulkOut" class="imp-out" aria-live="polite"></div>
   <div class="row" style="justify-content:flex-end;margin-top:14px;gap:8px"><button class="btn" type="button" id="bulkCancel" style="flex:0 0 auto">Close</button><button class="btn primary" type="button" id="bulkGo" style="flex:0 0 auto" disabled>Add</button></div>
+</div></div>
+<div id="locMapModal" role="dialog" aria-modal="true" aria-labelledby="locMapTitle"><div class="box">
+  <h3 id="locMapTitle">Map</h3>
+  <p class="muted" id="locMapInfo" style="margin:0 0 8px"></p>
+  <div class="locmap-body"><div class="locmap-pic" id="locMapPic"></div><div class="locmap-side"><h4>Rooms</h4><ol class="plain locmap-rooms" id="locMapRooms"></ol></div></div>
+  <div class="row" style="justify-content:flex-end;margin-top:14px;gap:8px;flex-wrap:wrap;align-items:center"><label class="sr-only" for="locMapCamp">Campaign to save the map to</label><select id="locMapCamp" style="flex:0 1 230px;width:auto;min-width:0"></select><button class="btn" type="button" id="locMapSave" style="flex:0 0 auto">💾 Save to campaign</button><span class="sp"></span><button class="btn" type="button" id="locMapClose" style="flex:0 0 auto">Close</button><button class="btn" type="button" id="locMapAgain" style="flex:0 0 auto">🎲 Another map</button><button class="btn primary" type="button" id="locMapOpen" style="flex:0 0 auto">Open in Dungeon Map</button></div>
 </div></div>
 <div id="impCampModal" role="dialog" aria-modal="true" aria-labelledby="impCampTitle"><div class="box">
   <h3 id="impCampTitle">Import from MythWeaver</h3>

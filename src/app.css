@@ -950,19 +950,15 @@ nav a[data-view=whispers]{--ic:url("data:image/svg+xml,%3Csvg xmlns='http://www.
 .hdr-toggle{flex:0 0 auto;margin-left:auto}
 .hdr-mini-label{display:none;font-family:Cinzel,serif;color:#e9dcc2;font-size:15px;letter-spacing:.03em;flex:0 1 auto;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .hdr-mini-label b{color:var(--gold2);font-weight:700}
-.hdr-tabsel{display:none;flex:0 1 auto;width:auto;min-width:0;max-width:260px;padding:4px 30px 4px 10px;font-family:Cinzel,serif;font-size:13px;color:var(--gold2)}
-:is(.hdr-mini,.hdr-auto) .hdr-tabsel{display:block}
-:is(.hdr-mini,.hdr-auto) header{padding-top:6px;padding-bottom:6px}
-:is(.hdr-mini,.hdr-auto) header>:not(.hdr-toggle):not(.hdr-mini-label):not(.hdr-tabsel):not(.news-btn){display:none}
-:is(.hdr-mini,.hdr-auto) .hdr-mini-label{display:block}
-:is(.hdr-mini,.hdr-auto) :is(.side,.mb-side){top:58px;max-height:calc(100vh - 74px)}
-@media (max-width:600px){.hdr-mini .hdr-mini-label{display:none}}
+.hdr-auto header{padding-top:6px;padding-bottom:6px}
+.hdr-auto header>:not(.hdr-toggle):not(.hdr-mini-label):not(.news-btn){display:none}
+.hdr-auto .hdr-mini-label{display:block}
+.hdr-auto :is(.side,.mb-side){top:58px;max-height:calc(100vh - 74px)}
 /* Phones: the slim one-line header (tab menu, bell, Show tabs) unless "Show tabs" asked for the full one this visit.
    It slides out of the way while scrolling down or typing (hdr-away, set by hdrAuto) and comes back on scroll-up. */
 @media (max-width:600px){
   html:not(.hdr-full) header{padding-top:6px;padding-bottom:6px}
-  html:not(.hdr-full) header>:not(.hdr-toggle):not(.hdr-mini-label):not(.hdr-tabsel):not(.news-btn){display:none}
-  html:not(.hdr-full) .hdr-tabsel{display:block;flex:1 1 auto;max-width:none}
+  html:not(.hdr-full) header>:not(.hdr-toggle):not(.hdr-mini-label):not(.news-btn){display:none}
   header{transition:transform .22s ease;padding-top:max(6px,env(safe-area-inset-top))}
   .hdr-away header{transform:translateY(-110%)}
 }
@@ -1361,7 +1357,6 @@ nav a[data-view=requests]{--ic:url("data:image/svg+xml,%3Csvg xmlns='http://www.
 
 @media (max-width:600px){
   :root{--mobile-nav-space:calc(60px + env(safe-area-inset-bottom))}
-  header nav,#hdrTabSel{display:none}
   html:not(.hdr-full) header .hdr-mini-label{display:block;flex:1 1 0}
   html.hdr-full header .hdr-mini-label{display:none}
   .mobile-nav{
@@ -1370,17 +1365,15 @@ nav a[data-view=requests]{--ic:url("data:image/svg+xml,%3Csvg xmlns='http://www.
     min-height:var(--mobile-nav-space);background:var(--slab);border-top:1px solid var(--line);
   }
   #mobileNavLinks{display:flex;flex:3 1 0;min-width:0;gap:4px}
-  .mobile-nav a,.mobile-nav .btn,.mobile-menu-links a{
+  .mobile-nav a,.mobile-nav .btn{
     display:grid;place-items:center;min-width:0;min-height:44px;padding:4px;border:1px solid transparent;border-radius:6px;
     color:var(--text);text-align:center;text-decoration:none;font:600 .875rem/1.25 system-ui,sans-serif;overflow-wrap:anywhere;
   }
   .mobile-nav a,.mobile-nav .btn{flex:1 1 0}
   /* bottom bar: whole words only ("Compendium" was split in two); the text shrinks a little on narrow phones instead */
   .mobile-nav a,.mobile-nav .btn{overflow-wrap:normal;word-break:keep-all;font-size:clamp(.65rem,3.2vw,.875rem);padding:4px 2px}
-  .mobile-nav [aria-current],.mobile-nav .btn.on,.mobile-menu-links [aria-current]{color:var(--gold2);border-color:var(--gold);background:var(--well)}
-  .mobile-nav :focus-visible,.mobile-menu-links a:focus-visible{outline:2px solid var(--gold2);outline-offset:-2px}
-  .mobile-menu-links{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
-  .mobile-menu-links a{background:var(--well)}
+  .mobile-nav [aria-current],.mobile-nav .btn.on{color:var(--gold2);border-color:var(--gold);background:var(--well)}
+  .mobile-nav :focus-visible{outline:2px solid var(--gold2);outline-offset:-2px}
   main{padding-bottom:calc(96px + var(--mobile-nav-space))}
   #turnBar,.roll-dock{bottom:calc(var(--mobile-nav-space) + 8px)}
   #turnBar{left:max(8px,env(safe-area-inset-left));overflow-wrap:anywhere}
@@ -1439,7 +1432,7 @@ nav a[data-view=requests]{--ic:url("data:image/svg+xml,%3Csvg xmlns='http://www.
 }
 :root,:is(#genOut,#fgOut.fg-monster,#mbPreview){--parch:var(--book-paper)}
 :is(#genOut>.card:not(.empty),#genOut>.sec,#npcOut .npc-card,#fgOut.fg-monster .card,#fgOut.fg-monster .sec,#mbPreview,details.brief>div){--ink-d:#1c140c;--ink-m:#33261a;--ink-h:#1d3b5b;--oxblood:#1d3b5b;--page-rule:#1d3b5b;--page-trim:#8a6a3e;
-  font-family:"EB Garamond",Georgia,"Times New Roman",serif}
+  font-family:Metamorphous,"EB Garamond",Georgia,"Times New Roman",serif} /* the parchment pages' font: Metamorphous (open licence, Google Fonts; owner's pick 2026-11-24) */
 :is(#genOut>.card:not(.empty),#genOut>.sec,#npcOut .npc-card,#fgOut.fg-monster .card,#fgOut.fg-monster .sec,#mbPreview,details.brief>div) :is(h1,h2,h3,h4,.gen-title,.sb-name,.sb-h,.sec-h h3){font-family:Cinzel,Georgia,serif!important;font-weight:500;font-variant-caps:normal;text-transform:uppercase;letter-spacing:.04em;color:var(--ink-h)!important}
 :is(#genOut>.card:not(.empty),#genOut>.sec,#npcOut .npc-card,#fgOut.fg-monster .card,#fgOut.fg-monster .sec,#mbPreview,details.brief>div) .sec-h{border-bottom:1.5px solid var(--ink-h)!important;border-image:none!important}
 :is(#genOut>.card:not(.empty),#genOut>.sec,#npcOut .npc-card,#fgOut.fg-monster .card,#fgOut.fg-monster .sec,#mbPreview,details.brief>div) :is(b:not(.btn b),strong,.sb-l b,dt){color:var(--ink-d)!important}
@@ -1460,9 +1453,8 @@ nav a[data-view=requests]{--ic:url("data:image/svg+xml,%3Csvg xmlns='http://www.
 /* keyboard users: "Skip to content" appears when tabbed to, before the tabs */
 .skip-link{position:fixed;left:12px;top:-60px;z-index:60;padding:8px 14px;border:1px solid var(--gold);border-radius:4px;background:#15172a;color:var(--gold2);font:600 14px/1.2 system-ui,sans-serif;cursor:pointer}
 .skip-link:focus{top:10px;outline:2px solid var(--gold2);outline-offset:2px}
-/* laptops: Saved, Backup and the bell sit beside the title; the tabs get their own rows below */
+/* laptops: Saved, Backup and the bell sit beside the title (the tabs are in the side menu since 2026-11-24) */
 @media (min-width:601px){
-  html:not(.hdr-mini):not(.hdr-auto) header>nav{order:3;flex-basis:100%;margin-left:0}
   html:not(.hdr-mini):not(.hdr-auto) header>#storeBadge{margin-left:auto}
 }
 /* the fight's setup buttons (Next Session, Save as template) fold under More */
@@ -1504,3 +1496,212 @@ nav a[data-view=requests]{--ic:url("data:image/svg+xml,%3Csvg xmlns='http://www.
 }
 .med .lbl input,.med .lbl select,.med .lbl textarea{text-transform:none;letter-spacing:0;font-family:'Crimson Pro',Georgia,serif;display:block;margin-top:4px}
 .med-sel[hidden],.med-opts[hidden]{display:none}
+
+/* ======================= Side menu (2026-11-24): the tabs on the left (21-sidebar.js) ======================= */
+:root{--fside-w:240px}
+html.fside-folded{--fside-w:56px}
+body{padding-left:var(--fside-w)}
+header{margin-left:calc(-1 * var(--fside-w))}
+@media (min-width:601px){.hdr-toggle{display:none}} /* phones still use it for the full header; laptops have the side menu */
+#fside{position:fixed;left:0;top:var(--hdr-live,72px);bottom:0;z-index:15;width:var(--fside-w);display:flex;flex-direction:column;
+  background:var(--noise),linear-gradient(rgba(22,24,40,.92),rgba(10,11,22,.9));backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px);
+  border-right:1px solid rgba(255,170,80,.18);box-shadow:6px 0 24px rgba(0,0,0,.55)}
+.fside-top{display:flex;gap:6px;align-items:center;padding:10px 10px 8px;border-bottom:1px solid rgba(255,170,80,.12)}
+.fside-top input{flex:1 1 auto;min-width:0;padding:6px 9px;font-size:14px}
+.fside-top .icon-btn{flex:0 0 auto}
+#fside nav{display:block;margin:0;flex:1 1 auto;overflow-y:auto;overscroll-behavior:contain;padding:4px 8px 16px;scrollbar-gutter:stable}
+#fside.fside-searching nav{display:none}
+.fside-grp{margin:12px 6px 4px;font:600 11px/1.2 Cinzel,serif;letter-spacing:.12em;text-transform:uppercase;color:var(--muted)}
+.fside-row{display:flex;align-items:stretch;gap:2px}
+.fside-row[hidden],.fside-grp[hidden]{display:none}
+#fside nav a{display:block;flex:1 1 auto;min-width:0;margin:1px 0;padding:7px 10px;font-size:13.5px;overflow-wrap:anywhere;
+  background:transparent;border:1px solid transparent!important;box-shadow:none;border-radius:4px}
+#fside nav a:hover{background:rgba(255,255,255,.05);color:#fff!important}
+#fside nav a.active{background:var(--noise),radial-gradient(ellipse at 50% 30%,#f8c26c,#c46d22);border-color:#7a4415!important;box-shadow:0 0 12px rgba(240,150,60,.4)}
+#fside nav a.active::after{display:none}
+.fside-arrow{flex:0 0 28px;margin:1px 0;background:none;border:1px solid transparent;border-radius:4px;color:var(--muted);cursor:pointer;font-size:12px}
+.fside-arrow:hover,.fside-arrow[aria-expanded=true]{color:var(--gold2);background:rgba(255,255,255,.05)}
+.fside-subs{display:flex;flex-direction:column;margin:0 0 4px 22px;padding-left:8px;border-left:1px solid rgba(255,170,80,.22)}
+.fside-subs[hidden]{display:none}
+.fside-subs button{text-align:left;background:none;border:0;border-radius:4px;padding:5px 8px;color:#cfcbd8;font-size:13px;cursor:pointer}
+.fside-subs button:hover{background:rgba(255,255,255,.05);color:#fff}
+.fside-subs button[aria-current]{color:var(--gold2);background:var(--well)}
+.fside-results{flex:1 1 auto;overflow-y:auto;overscroll-behavior:contain;padding:4px 8px 16px}
+.fside-results[hidden]{display:none}
+.fside-rgrp{margin:10px 4px 4px;font:600 11px/1.2 Cinzel,serif;letter-spacing:.12em;text-transform:uppercase;color:var(--muted)}
+.fside-hitrow{display:flex;flex-direction:column}
+.fside-eds{display:flex;flex-wrap:wrap;gap:4px;margin:-2px 0 4px 34px}
+.fside-ed{background:var(--well);border:1px solid var(--line);border-radius:10px;padding:1px 8px;font-size:11.5px;color:var(--muted);cursor:pointer}
+.fside-ed:hover,.fside-ed:focus-visible{color:var(--gold2);border-color:var(--gold)}
+#sideSearchBtn{display:none}
+html.fside-folded #sideSearchBtn{display:inline-block}
+.fside-hit{display:flex;gap:8px;align-items:flex-start;width:100%;text-align:left;background:none;border:1px solid transparent;border-radius:4px;padding:6px 8px;color:var(--text);cursor:pointer}
+.fside-hit>span:last-child{min-width:0}
+.fside-hit b{display:block;font-weight:600;overflow-wrap:anywhere}
+.fside-hit small{display:block;color:var(--muted);font-size:12px;overflow-wrap:anywhere}
+.fside-hit:hover,.fside-hit:focus-visible{background:var(--well);border-color:var(--gold)}
+.fside-all{display:block;width:100%;margin:2px 0 4px;text-align:left;background:none;border:0;padding:4px 8px;color:var(--gold2);cursor:pointer;font-size:13px;text-decoration:underline}
+.fside-none{padding:8px}
+#fside :focus-visible{outline:2px solid var(--gold2);outline-offset:-2px}
+.side-flash{outline:2px solid var(--gold2)!important;outline-offset:2px;border-radius:3px;transition:outline-color .3s}
+/* folded: icons only */
+html.fside-folded .fside-top{flex-direction:column;padding:8px 6px}
+html.fside-folded :is(#sideQ,.fside-grp,.fside-arrow,.fside-subs,.fside-results){display:none!important}
+html.fside-folded #fside nav{padding:4px 6px;scrollbar-width:none}
+html.fside-folded #fside nav a{padding:9px 0;text-align:center;font-size:0}
+html.fside-folded #fside nav a::before{margin:0;width:18px;height:18px}
+html.fside-folded #fside nav a span{display:none}
+html.fside-folded #fside.fside-searching nav{display:block}
+/* phones: a panel from the left (the bottom bar's More), over a shade */
+.fside-shade{position:fixed;inset:0;z-index:39;background:rgba(0,0,0,.55)}
+.fside-shade[hidden]{display:none}
+@media (max-width:600px){
+  :root,html.fside-folded{--fside-w:0px}
+  #fside{top:0;z-index:40;width:min(300px,86vw);transform:translateX(-105%);visibility:hidden;transition:transform .2s ease,visibility 0s .2s;padding-top:env(safe-area-inset-top)}
+  html.fside-open #fside{transform:none;visibility:visible;transition:transform .2s ease}
+  html.fside-folded :is(#sideQ,.fside-grp,.fside-arrow){display:revert!important}
+  html.fside-folded #sideSearchBtn{display:none}
+  html.fside-folded .fside-top{flex-direction:row}
+  html.fside-folded #fside nav a{padding:10px;text-align:left;font-size:15px}
+  html.fside-folded #fside nav a::before{margin-right:6px;width:15px;height:15px}
+  #fside nav a{font-size:15px;padding:10px}
+  .fside-subs button{padding:9px 8px;font-size:14px}
+  .fside-arrow{flex-basis:40px}
+}
+@media (max-width:600px) and (prefers-reduced-motion:reduce){#fside{transition:none}}
+/* a .btn with the hidden attribute stays hidden (#handoutBack showed on phones and pushed the Dungeon Map wider than a 320 px screen; QA 2026-11-24) */
+.btn[hidden]{display:none}
+
+/* monster builder: a drop-down beside each list in Senses, languages & defenses (2026-11-25) */
+.mb-pick{display:flex;gap:6px;align-items:stretch;flex-wrap:wrap}
+.mb-pick>input{flex:1 1 180px;min-width:0}
+.mb-pick>select{flex:0 1 190px;min-width:0}
+.mb-speeds select{width:100%}
+
+/* monster builder: the recommended CR (2026-11-25) */
+.mb-crrec{margin:0 0 12px;padding:8px 10px;border:1px solid var(--line);border-radius:4px;background:var(--well)}
+.mb-crrec p{margin:0;display:flex;flex-wrap:wrap;gap:6px;align-items:center}
+.mb-crrec details{margin-top:4px;font-size:13px}
+.mb-crrec ul{margin:4px 0 0 18px;padding:0}
+
+/* ======================= Dungeon Map: Your maps, Build, Run (2026-11-25; 03e-map-modes.js) ======================= */
+#view-map:not(.map-list) .map-lib,#view-map.map-list>.layout{display:none}
+.map-lib-h{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-bottom:14px}
+.map-lib-h h2{margin:0 8px 0 0;font-family:Cinzel,serif;color:var(--gold2)}
+.map-lib-h select{width:auto;max-width:100%}
+.map-lib-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,240px),1fr));gap:12px}
+.map-card{display:flex;flex-direction:column;gap:6px;margin:0}
+.map-card h3{margin:2px 0 0;font-family:Cinzel,serif;font-size:15px;color:var(--gold2);overflow-wrap:anywhere}
+.map-card p{margin:0;font-size:13px}
+.map-card .row{gap:6px;margin-top:auto}
+.map-thumb{height:140px;border-radius:3px;background:#e9dcbd;overflow:hidden;display:grid;place-items:center}
+.map-thumb canvas,.map-thumb img{max-width:100%;max-height:100%;object-fit:contain;display:block}
+.map-thumb .muted{padding:8px;font-size:13px;text-align:center}
+.map-card-new{align-items:center;justify-content:center;min-height:200px;border:1px dashed #5a4a2a!important;color:var(--muted);cursor:pointer;font:inherit;text-align:center}
+.map-card-new span{font-size:34px;color:var(--gold2)}
+.map-lib-empty{grid-column:1/-1}
+.map-buildbar{display:flex;gap:8px;align-items:center;margin-bottom:10px}
+.map-runbar,.map-rtabs{display:none}
+#view-map.map-build #hostCard{display:none}
+/* Run: the map full screen, the Player Screen tools and Room key in tabs beside it */
+html.map-running{overflow:hidden}
+#view-map.map-run>.layout{position:fixed;inset:0;z-index:60;margin:0;padding:10px 12px;background:#07080d;display:grid;
+  grid-template-columns:minmax(0,1fr) 370px;grid-template-rows:auto auto auto minmax(0,1fr);gap:8px 12px;align-items:stretch;align-content:stretch}
+#view-map.map-run #mapForm,#view-map.map-run .map-buildbar,#view-map.map-run #impPanel,#view-map.map-run #medPanel{display:none!important}
+#view-map.map-run .map-main{display:contents}
+#view-map.map-run .map-runbar{display:flex;grid-column:1/-1;gap:10px;align-items:center;font-family:Cinzel,serif;color:var(--gold2);font-size:17px}
+#view-map.map-run .map-tools{grid-column:1;grid-row:2;margin:0}
+#view-map.map-run .map-rtabs{display:flex;grid-column:2;grid-row:2;gap:4px;flex-wrap:wrap}
+.map-rtabs button{flex:1 1 auto;background:var(--well);border:1px solid var(--line);border-radius:4px;padding:5px 6px;color:var(--text);font:12px Cinzel,serif;cursor:pointer}
+.map-rtabs button[aria-selected=true]{background:linear-gradient(#f2b45e,#c46d22);color:#1b130b;border-color:#7a4415}
+#view-map.map-run #mapWrap{grid-column:1;grid-row:3/5;min-height:0;height:auto;contain:size;transform:none} /* contain:size: the map scrolls inside its area instead of stretching the rows */
+/* the tools on top (in tabs), the Room key always under them, so a room's notes show while revealing it */
+#view-map.map-run #hostCard{grid-column:2;grid-row:3;margin:0!important;overflow:auto;max-height:52vh}
+#view-map.map-run #roomKeyCard{grid-column:2;grid-row:4;margin:0!important;overflow:auto;min-height:0;contain:size}
+#view-map.map-run[data-rtab=tok] #hostCard fieldset>:not(#tokField),#view-map.map-run[data-rtab=hand] #hostCard fieldset>:not(#handoutField){display:none}
+#view-map.map-run[data-rtab=tok] #hostCard>p,#view-map.map-run[data-rtab=hand] #hostCard>p{display:none}
+#view-map.map-run :is(#tokField,#handoutField){margin-top:0!important}
+@media (max-width:760px){
+  #view-map.map-run>.layout{display:flex;flex-direction:column;overflow:auto;padding-bottom:calc(16px + env(safe-area-inset-bottom))}
+  #view-map.map-run #mapWrap,#view-map.map-run #roomKeyCard{contain:none;flex:0 0 auto}
+  #view-map.map-run .map-tools,#view-map.map-run .map-rtabs,#view-map.map-run #mapWrap,#view-map.map-run #hostCard,#view-map.map-run #roomKeyCard{grid-column:1;grid-row:auto;max-height:none}
+  #view-map.map-run #mapWrap{height:auto;max-height:70vh}
+  #view-map.map-run #hostCard,#view-map.map-run #roomKeyCard{overflow:visible}
+  .map-rtabs{order:0}
+}
+
+/* ======================= The fight window (2026-11-25; 05b-fight.js) ======================= */
+html.fight-open{overflow:hidden}
+.fight-win{position:fixed;inset:0;z-index:62;background:#07080d;display:flex;flex-direction:column;gap:8px;padding:10px 12px;overflow:hidden}
+.fight-top{display:flex;flex-wrap:wrap;gap:8px;align-items:center;font-family:Cinzel,serif;color:var(--gold2);font-size:17px} /* not .fight-bar: that's the phone's fight bar */
+.fight-top .muted{font-family:inherit;font-size:14px}
+.fight-win .pc-init{display:flex;flex-wrap:wrap;gap:10px;align-items:center}
+.fight-win .pc-init input{width:60px}
+.fight-rem{display:flex;flex-wrap:wrap;gap:8px;align-items:center;background:#3a2410;border:1px solid #c46d22;border-radius:5px;padding:8px 12px;font-size:16px}
+.fight-ok{background:linear-gradient(#5d8a4a,#35552a)!important;color:#fff!important}
+.fight-cols{flex:1;min-height:0;display:grid;grid-template-columns:minmax(0,430px) minmax(0,1fr) minmax(0,300px);gap:10px}
+.fight-cols>.card{margin:0;overflow:auto;min-height:0}
+.fight-cols h3{margin:0 0 8px;font:600 13px Cinzel,serif;color:var(--gold2);letter-spacing:.06em}
+.fight-row{display:grid;grid-template-columns:34px minmax(0,1fr) auto;gap:8px;align-items:start;padding:7px 6px;border-bottom:1px solid #24231d;border-radius:4px}
+.fight-row.cur{background:#2c2312;outline:1px solid #c46d22}
+.fight-row.sel{box-shadow:inset 3px 0 0 var(--gold2)}
+.fight-row.down{opacity:.6}
+.fight-init{font:700 15px Cinzel,serif;color:var(--gold2);text-align:center;padding-top:3px}
+.fight-name{background:none;border:0;padding:0;font:600 16px "EB Garamond",serif;cursor:pointer;text-align:left;overflow-wrap:anywhere}
+.fight-row.foe .fight-name{color:#ffb0a0}.fight-row.pc .fight-name{color:#a8d4ff}
+.fight-main .hpbar{margin:3px 0}
+.fight-chips{display:flex;flex-wrap:wrap;gap:3px;align-items:center}
+.fight-chips select{width:auto;max-width:130px;padding:1px 22px 1px 6px;font-size:12px;min-height:0}
+.fight-chip{display:inline-flex;align-items:center;gap:3px;font-size:12px;padding:1px 4px 1px 8px;border-radius:9px;background:#4a2020;color:#ffd5c8;overflow-wrap:anywhere}
+.fight-chip small{color:#e8b8a8;font-size:11px}
+.fight-chip.conc{background:#1d3550;color:#cfe6ff;padding-right:8px}
+.fight-chip.note{background:#33302a;color:var(--text)}
+.fight-chip.down{background:#5a1a1a;padding-right:8px}
+.fight-x{background:none;border:0;color:inherit;cursor:pointer;font-size:11px;padding:0 3px;opacity:.8}
+.fight-side{font-size:13px;color:var(--muted);text-align:right;white-space:nowrap}
+.fight-dmg{display:flex;gap:3px;justify-content:flex-end;margin-top:4px}
+.fight-dmg input{width:52px;padding:2px 4px}
+.fight-stats{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:8px}
+.fight-stats span{background:var(--well);border:1px solid #000;border-radius:3px;padding:3px 8px;font-size:14px}
+.fight-add{margin-top:14px;border-top:1px solid var(--line);padding-top:10px}
+.fight-form{display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:8px;align-items:end;margin-bottom:6px}
+.fight-form label{display:flex;flex-direction:column;gap:3px;font-size:12px;color:var(--muted)}
+.fight-form label[hidden]{display:none}
+.fight-form .chk-inline{flex-direction:row;align-items:center;gap:6px;font-size:14px;color:var(--text)}
+.fight-log{font-size:13px;color:var(--muted);margin:0;padding-left:18px}
+.enc-conds{display:flex;flex-wrap:wrap;gap:3px;margin-bottom:4px}
+@media (max-width:900px){
+  .fight-win{overflow:auto}
+  .fight-cols{display:flex;flex-direction:column;flex:none}
+  .fight-cols>.card{overflow:visible}
+  .fight-side{white-space:normal;grid-column:2;text-align:left}
+  .fight-row{grid-template-columns:34px minmax(0,1fr)}
+  .fight-dmg{justify-content:flex-start}
+  .fight-chip{overflow-wrap:normal}
+}
+
+/* the Tracker's Journal handouts form (2026-11-25): the Forge's own fields, in a well like other add forms */
+.handout-form{margin-top:12px;padding:12px;border:1px solid var(--line);border-radius:4px;background:var(--well)}
+.handout-form h4{margin:0 0 8px;font-family:Cinzel,serif;color:var(--gold2);font-size:14px}
+.handout-form .lbl{display:block}
+.handout-pics{align-items:flex-start}
+.handout-pics>div{flex:1 1 220px;min-width:0}
+/* a file-upload button made from a <label> inside a .field keeps the button look, not the field-label look */
+.field label.btn:not(.check):not(.opt){display:inline-flex;align-items:center;margin:0;letter-spacing:.04em;text-transform:none;text-shadow:none}
+
+/* the Adventure tab's location map preview (2026-11-25) */
+#locMapModal{position:fixed;inset:0;background:rgba(0,0,0,.7);display:none;align-items:center;justify-content:center;z-index:50;padding:20px}
+#locMapModal.open{display:flex}
+#locMapModal .box{position:relative;background:var(--noise),linear-gradient(165deg,#262a3e,#14161f);box-shadow:0 20px 50px rgba(0,0,0,.8);border:1px solid #7a4415;border-radius:var(--radius);width:100%;max-width:1000px;max-height:calc(100vh - 40px);overflow:auto;padding:20px}
+#locMapModal h3{margin:0 0 4px}
+.locmap-body{display:grid;grid-template-columns:minmax(0,1fr) 260px;gap:14px;align-items:start}
+.locmap-pic{background:#e9dcbd;border-radius:3px;padding:8px}
+.locmap-pic canvas{width:100%;height:auto;display:block}
+.locmap-side h4{margin:0 0 6px;font-family:Cinzel,serif;color:var(--gold2)}
+.locmap-rooms{margin:0;padding:0;font-size:14px;max-height:60vh;overflow:auto}
+.locmap-rooms li{padding:4px 0;border-bottom:1px solid var(--line)}
+@media (max-width:760px){.locmap-body{grid-template-columns:minmax(0,1fr)}.locmap-rooms{max-height:none}}
+
+/* the sheet's Other AC bonus (2026-11-26) */
+.ac-other{display:flex;align-items:center;gap:8px;margin:10px 0 0;text-transform:none;letter-spacing:0;font-family:inherit;font-size:14px}
+.ac-other input{width:70px}

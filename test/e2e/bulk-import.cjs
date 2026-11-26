@@ -60,7 +60,9 @@ const MIXED = [
     JSON.stringify(editions.add) === JSON.stringify([["Elementalism", "2014"]]) && editions.skip.length === 2, JSON.stringify(editions));
 
   // the window, its template downloads, and a mixed file
+  check("the Homebrew tab's import button names the file types (CSV or JSON)", await p.evaluate(() => /CSV/.test(document.querySelector("#hbBulk").textContent) && /JSON/.test(document.querySelector("#hbBulk").textContent)));
   await p.click("#hbBulk"); await p.waitForTimeout(150);
+  check("the Bulk import window's file button names the file types (.csv, .json, .txt)", await p.evaluate(() => { const t = document.querySelector('label:has(#bulkFile)').textContent; return /\.csv/.test(t) && /\.json/.test(t) && /\.txt/.test(t); }));
   check("window: opens from the Homebrew tab with a template per kind", await p.evaluate(() => $("#bulkModal").classList.contains("open") && $$("#bulkTpl [data-bitpl]").length === 7));
   const [dl] = await Promise.all([p.waitForEvent("download"), p.click('[data-bitpl="species"]')]);
   const dlText = fs.readFileSync(await dl.path(), "utf8");
