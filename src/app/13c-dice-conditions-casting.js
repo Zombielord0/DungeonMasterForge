@@ -162,7 +162,17 @@ function spellOf(ed, name) {
   if (canonical) return canonical;
   // An explicit local shell takes priority over another edition. It is displayable, not castable.
   return local.find(x => match(x) && !x.referenceOnly) || local.find(match)
+    || local.find(x => x.hb && x.pend && !x.shadow && String(x.n).toLowerCase().replaceAll("’", "'") === normalized)
     || Object.values(SP.data).flat().find(x => match(x) && !x.referenceOnly) || null;
+}
+// Pending user homebrew is distinct from an incomplete published reference. Keep it usable
+// only for its owning character, and do not expose it through public preparation pickers.
+function spellCastBlocked(c, sp, ed) {
+  if (!sp || sp.referenceOnly) return true;
+  if (!sp.pend) return false;
+  if (!sp.hb || !String(sp.d || "").trim()) return true;
+  return !(c?.hbPending || []).some(e => e.kind === "spell" && !e.rejected &&
+    (!e.ed || e.ed === "both" || e.ed === ed) && e.name === sp.n && e.desc === sp.d);
 }
 // what a spell does, read from its text: damage or healing dice, upcasting, cantrip growth, attack or save, area, number of rays or darts
 function spellPlan(sp) {
@@ -223,7 +233,7 @@ function freeSpellResources(c, sp, ed, resources) {
   return resources.filter(r => keys.includes(r.key));
 }
 function castOpts(c, sp, ed = edOf(c)) {
-  if (!sp || sp.referenceOnly || sp.pend) return [];
+  if (spellCastBlocked(c, sp, ed)) return [];
   const R = pcResources(c), opts = [];
   if (sp.l === 0) { opts.push(["free", "Cantrip", "no slot needed"]); return opts; }
   const sources = spellPreparationSources(c, sp.n, ed);
@@ -261,7 +271,7 @@ function castPreview(c, sp, how, ed = edOf(c)) {
   return (sp.l ? `At ${ordinal(slot)}: ` : "") + (parts.join(" · ") || "No dice to roll.");
 }
 function castPick(how) {
-  const c = ACTX.c, sp = ACTX.cast && spellOf(ACTX.cast.ed, ACTX.cast.name); if (!c || !sp || sp.referenceOnly || sp.pend) return;
+  const c = ACTX.c, sp = ACTX.cast && spellOf(ACTX.cast.ed, ACTX.cast.name); if (!c || spellCastBlocked(c, sp, ACTX.cast.ed)) return;
   const f = $("#castSlot"); if (f) f.value = how;
   $$("#actModal [data-castlv]").forEach(b => b.setAttribute("aria-pressed", String(b.dataset.castlv === how)));
   const fx = $("#castFx"); if (fx) fx.textContent = castPreview(c, sp, how, ACTX.cast.ed);
@@ -282,7 +292,7 @@ function castDialog(c, ed, name, o = {}) {
     <div class="sp-stats">${stats.map(([k, v]) => `<div><span>${esc(k)}</span>${esc(v)}</div>`).join("")}</div>
     <div class="spell-desc">${spFormat(sp.d || "")}${sp.h ? `<p><b>At higher levels.</b> ${esc(sp.h)}</p>` : ""}</div></div>`;
   let cast = "";
-  if (sp.referenceOnly || sp.pend) cast = '<p class="hint">Reference only — complete rules required before casting.</p><button class="btn" type="button" data-actclose>Close</button>';
+  if (spellCastBlocked(c, sp, ed)) cast = '<p class="hint">This spell is reference only or not available to this character. Complete rules or DM approval are required before casting.</p><button class="btn" type="button" data-actclose>Close</button>';
   else if (o.view || c.armorUntrained) cast = `<p class="hint" style="margin:10px 0 0">${esc(c.armorUntrained ? ARMOR_CASTING_WARNING : "Save the character to cast this and track spell slots.")}</p><div class="row" style="justify-content:flex-end;margin-top:12px"><button class="btn" type="button" data-actclose style="flex:0 0 auto">Close</button></div>`;
   else {
     /* start on a real slot (or the cantrip); with none left, nothing is picked, so a free casting is always a choice */
@@ -304,7 +314,7 @@ function castGo() {
   if (c.armorUntrained) { toast(ARMOR_CASTING_WARNING); return; }
   if (!ACTX.cast) return;
   const { ed, name } = ACTX.cast, sp = spellOf(ed, name);
-  if (!sp || sp.referenceOnly || sp.pend) { toast("Complete spell rules are required before casting."); return; }
+  if (spellCastBlocked(c, sp, ed)) { toast("Complete spell rules or DM approval are required before casting."); return; }
   const how = $("#castSlot").value, P = spellTweak(c, sp, spellPlan(sp)), R = pcResources(c), K = spellCaster(c, sp, how, ed);
   if (!castOpts(c, sp, ed).some(o => o[0] === how && !o[3])) { toast("That cast is unavailable"); return; }
   c.used = c.used || {};

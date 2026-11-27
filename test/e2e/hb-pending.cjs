@@ -45,6 +45,15 @@ const server = http.createServer((req, res) => {
   check("the subclass list doesn't offer a pending subclass", await p.evaluate(() => !subclassList("2014", "Ranger").some(x => x[0] === "Swarmkeeper [UA]")));
   check("the spell lists don't offer a pending spell", await p.evaluate(() => { spLoad(); SP.ed = "2014"; $("#spQ").value = "Cheers"; return !spFiltered().some(s => s.n === "Cheers"); }));
   check("the character's own spell list still finds it", await p.evaluate(() => (spellOf("2014", "Cheers") || {}).d === "Drinks for all."));
+  check("pending spell cast availability is limited to its owning character", await p.evaluate(() => {
+    const spell = spellOf("2014", "Cheers"), owner = PCS.roster.find(c => c.id === "pc-zook");
+    const stranger = {name:"Other",hbPending:[],prepared:[],used:{}};
+    const rejected = {...owner,hbPending:owner.hbPending.map(e=>({...e,rejected:true}))};
+    return !!spell?.pend && !spellCastBlocked(owner,spell,"2014") && castOpts(owner,spell,"2014").some(x=>x[0]==="free") &&
+      spellCastBlocked(stranger,spell,"2014") && !castOpts(stranger,spell,"2014").length &&
+      spellCastBlocked(rejected,spell,"2014") && spellCastBlocked(owner,{...spell,referenceOnly:true},"2014") &&
+      spellCastBlocked(owner,spell,"2024");
+  }));
 
   // the DM's queue
   await p.goto(URL + "#homebrew"); await p.waitForTimeout(400);
