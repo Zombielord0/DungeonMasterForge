@@ -73,7 +73,7 @@ function bgInfo(ed, name) {
   if (H) {
     if (H.book && H.recoveryId && H.ed === "2014") {
       if (ed !== H.ed) return null;
-      return {sk:H.skills, tools:H.tools, lang:H.lang, gear:H.gearItems.slice(), gp:H.gp, feature:H.feature, choices:H.choices, spellListExtensions:H.spellListExtensions||[], deferStartingEquipment:H.deferStartingEquipment===true, equipmentOrigin:JSON.stringify([ed,H.src,H.recoveryId]), hb:true};
+      return {sk:H.skills, tools:H.tools, lang:H.lang, gear:H.gearItems.slice(), gp:H.gp, startingCoins:H.startingCoins, coverGuilds:H.coverGuilds, feature:H.feature, choices:H.choices, spellListExtensions:H.spellListExtensions||[], deferStartingEquipment:H.deferStartingEquipment===true, equipmentOrigin:JSON.stringify([ed,H.src,H.recoveryId]), hb:true};
     }
     const revisedBook = ed === "2024" && H.book && H.ed === "2024";
     return { sk: BACKGROUNDS[name] || [], tools: revisedBook ? H.tools || "" : "", lang: "",
@@ -98,6 +98,8 @@ function bgLines(ed, name) {
   for (const choice of B.choices || []) L.push([choice.label,choice.rules]);
   if (B.spellListExtensions?.length) L.push(["Expanded spell list",B.spellListExtensions.map(s=>s.name+" (level "+s.level+")").join(", ")+"; available to qualifying spellcasting classes, not automatically prepared."]);
   if ((B.gear || []).length || B.gp) L.push(["Equipment", `${(B.gear || []).join(", ")}${B.gp ? `${(B.gear || []).length ? ", " : ""}${B.gp} gp` : ""}${ed === "2024" && !B.hb ? " (or 50 gp instead)" : ""}`]);
+  if(B.startingCoins) L.push(["Starting currency",Object.entries(B.startingCoins).filter(([,v])=>v).map(([k,v])=>v+" "+k).join(", ")||"None"]);
+  if(B.coverGuilds) L.push(["Inherited equipment","Choose a listed secondary background; inherit its equipment and starting currency only."]);
   return L;
 }
 const bgSummary = (ed, name) => bgLines(ed, name).map(([k, v]) => `${k}: ${v}.`).join(" ");

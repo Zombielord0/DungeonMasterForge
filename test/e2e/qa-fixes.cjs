@@ -164,6 +164,8 @@ const ZOOK = fs.readFileSync(path.join(FIX, "companion-zook.json"), "utf8");
     g("2024","Airship").st.some(([k,v])=>k==="HP"&&v==="300"),
     g("2014","Arrow").packQty===20,eqParseKit("20 arrows","2014")[0].qty===20,eqParseKit("Arrows","2024")[0].qty===20];});
   check("source-verified equipment metadata and ammunition quantities",gearFix.every(Boolean),JSON.stringify(gearFix));
+  const details=await p.evaluate(()=>{const g=(ed,n)=>IT.data[ed].find(x=>x.kind==="gear"&&x.n===n);return [g("2014","Backpack").d.includes("30 pounds"),g("2014","Burglar's Pack").w===47.5,g("2014","Spike, iron").packQty===10,g("2024","Entertainer's Pack").contents.some(([n,q])=>n==="Costume"&&q===3),g("2024","Dungeoneer's Pack").contents.some(([n,q])=>n==="Caltrops"&&q===1),g("2024","Trident").st.some(([k,v])=>k==="Damage"&&v.includes("1d8")),g("2024","Wooden Staff").cat==="Druidic Foci"];});
+  check("equipment container, pack, focus and weapon details are edition-correct",details.every(Boolean),JSON.stringify(details));
   check("reference spells: a spell the Forge already has isn't added twice (Fireball)", refs["2014fireball"] === 1 && refs["2024fireball"] === 1, JSON.stringify([refs["2014fireball"], refs["2024fireball"]]));
   const sb = await p.evaluate(txt => { const j = JSON.parse(txt); j.spells = [...j.spells, { name: "Silvery Barbs", level: 1 }]; const D = compImport(j, "2014");
     return { prep: D.extras.prepared.map(s => s.n), hb: D.homebrew.filter(x => x.kind === "spell").map(x => x.name) }; }, ZOOK);

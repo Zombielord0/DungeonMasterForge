@@ -31,3 +31,5 @@ A reviewed background may declare open language choices (`open:true`, language e
 
 ## Equipment recovery
 Equipment table corrections were verified against 2014 PHB pp.150,154,155 and SRD 5.2.1 pp.91–96,100–101. Existing gear IDs retain their positions; added variants and revised mounts/vehicles are appended. Ammunition purchase amounts and weights are recorded per lot; new inventory grants store individual units and per-unit weights. Old ambiguous ammunition quantities are not silently converted. Reviewed legacy backgrounds support exact starting coin denominations and nonrecursive cover-guild equipment inheritance, never inherited proficiency or spell lists. No private recovered background or magic-item payloads were published.
+
+Container capacities and pack contents follow their respective SRD editions. Legacy pack weights are calculated from the listed contents; revised pack weights use the printed values. Shop grants consult current pack size even for an older stock snapshot. Existing ambiguous inventory quantities are left for explicit review.

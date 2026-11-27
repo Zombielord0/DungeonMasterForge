@@ -37,14 +37,14 @@ function pcLevelTo(c, lv) {
 }
 /* ---- equipment: the starting kit lives in the inventory; equipped weapons make the attack list ---- */
 const EQ_COUNT = { a: 1, an: 1, one: 1, two: 2, three: 3, four: 4, five: 5, six: 6, ten: 10, twenty: 20 };
-const eqKey = t => String(t || "").toLowerCase().replace(/[^a-z' ]/g, " ").split(/\s+/).filter(Boolean).sort().join(" ");
+const eqKey = t => String(t || "").toLowerCase().replaceAll("’","'").replace(/[^a-z' ]/g, " ").split(/\s+/).filter(Boolean).sort().join(" ");
 const eqSing = w => w.endsWith("s") && !w.endsWith("ss") ? w.slice(0, -1) : w; // "handaxes" -> "handaxe"
 const eqSing2 = w => /(ch|sh|x)es$/.test(w) ? w.slice(0, -2) : eqSing(w);         // "torches" -> "torch"
 // standard gear of an edition, found by name in any word order and singular or plural ("Two handaxes", "Crossbow, light")
 function eqGear(ed, name) {
   itLoad();
   const L = IT.data[ed === "2014" ? "2014" : "2024"].filter(x => x.kind === "gear"), k = eqKey(name), ks = eqKey(k.split(" ").map(eqSing).join(" "));
-  const alias = { "shield wooden": "shield", "bolt": "bolt crossbow" };
+  const alias = { "shield wooden": "shield", "bolt": "bolt crossbow", "knive small":"knife small", "knife small":"knife small" };
   const ks2 = eqKey(k.split(" ").map(eqSing2).join(" "));
   return L.find(x => eqKey(x.n) === k) || L.find(x => eqKey(x.n) === ks) || L.find(x => eqKey(x.n) === ks2) || L.find(x => eqKey(x.n.split(/\s+/).map(eqSing).join(" ")) === ks)
     || (alias[ks] ? L.find(x => [alias[ks], eqSing(alias[ks])].includes(eqKey(x.n.split(/\s+/).map(eqSing).join(" ")))) : null) || null;
@@ -69,7 +69,7 @@ function pcInvUpgrade(c) {
   (c.kit || []).forEach(line => eqParseKit(line, ed).forEach(({ n, qty, g }) => {
     const ex = c.inv.find(i => i.n.toLowerCase() === n.toLowerCase()&&(!g?.packQty||i.ammunitionUnits===true));
     if (ex) { ex.qty = (+ex.qty || 0) + qty; return; }
-    c.inv.push({ id: uid("i"), ref: g ? g.id : undefined, n, qty, w: g ? (g.w || 0)/(g.packQty||1) : 0, ...(g?.packQty?{ammunitionUnits:true}:{}), att: false, attuned: false, value: g ? g.c : undefined, note: "", eq: eqIsWeapon(g) || eqIsArmor(g) });
+    c.inv.push({ id: uid("i"), ref: g ? g.id : undefined, n, qty, w: g ? (g.w || 0)/(g.packQty||1) : 0, ...(g?.packQty?{ammunitionUnits:true}:{}), att: false, attuned: false, value: g ? g.c+(g.packQty?" per "+g.packQty:"") : undefined, note: "", eq: eqIsWeapon(g) || eqIsArmor(g) });
   }));
   c.kit = []; c.kitMoved = true;
   if (+c.startGold && !c.goldAdded) { c.coins = c.coins || { cp: 0, sp: 0, ep: 0, gp: 0, pp: 0 }; c.coins.gp = (+c.coins.gp || 0) + +c.startGold; c.goldAdded = true; }

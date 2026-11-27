@@ -30,7 +30,7 @@ function itLoad() {
   IT.data = {};
   for (const ed of Object.keys(raw)) {
     const L = [];
-    raw[ed].eq.forEach((e, i) => L.push({ id: `${ed}-g${i}`, kind: "gear", n: e.n, cat: e.cat, g: e.g, c: e.c, gp: e.gp, w: e.w, st: e.st, d: e.d, packQty: e.packQty, rk: -2 }));
+    raw[ed].eq.forEach((e, i) => L.push({ id: `${ed}-g${i}`, kind: "gear", n: e.n, cat: e.cat, g: e.g, c: e.c, gp: e.gp, w: e.w, st: e.st, d: e.d, packQty: e.packQty, weightBasis:e.weightBasis, contents:e.contents, rk: -2 }));
     raw[ed].mi.forEach((m, i) => { const p = magicPrice(m); L.push({ id: m.k ? `${ed}-${m.k}` : `${ed}-m${i}`, src: m.src, page: m.page, kind: "magic", n: m.n, cat: m.cat, type: m.type, r: m.r, rk: m.rk, att: m.att, cons: m.cons, base: m.base, c: p.text, gp: p.gp, st: [], d: m.d }); });
     L.forEach(x => { x.hay = x.n.toLowerCase(); x.hayD = (x.n + " " + x.cat + " " + (x.type || "") + " " + x.d).toLowerCase(); });
     IT.data[ed] = L;
@@ -94,6 +94,7 @@ function itStats(x) {
   if (x.kind !== "gear") st.push(["Attunement", x.att ? "Required" + x.att.replace(/^Required/, "") : "Not required"]);
   st.push([x.kind === "gear" ? "Cost" : "Price", x.c]);
   if (x.packQty) st.push(["Sold in lots of", String(x.packQty)]);
+  if (x.weightBasis) st.push(["Weight basis", x.weightBasis]);
   if (x.w) st.push(["Weight", x.w + " lb"]);
   return st;
 }
@@ -178,7 +179,7 @@ function shopMake({ type, size, level, seed, ed, rar, amount, moodIx }) {
   const stock = picks.map(x => {
     const k = mood[1] || (0.8 + r.f() * 0.4), gp = shopNiceGp(+x.gp * k);
     const qty = x.kind === "magic" ? 1 : x.g === "Weapons" || x.g === "Armor" ? r.int(1, 3) : r.int(2, 10);
-    return { id: x.id, n: x.n, cat: x.cat, g: x.g || "", kind: x.kind, rk: x.rk, r: x.r, att: !!x.att, w: x.w || 0, gp, c: fmtGp(gp), qty };
+    return { id: x.id, n: x.n, cat: x.cat, g: x.g || "", kind: x.kind, rk: x.rk, r: x.r, att: !!x.att, w: x.w || 0, packQty:x.packQty, gp, c: fmtGp(gp), qty };
   }).sort((a, b) => (a.kind === b.kind ? 0 : a.kind === "gear" ? -1 : 1) || a.n.localeCompare(b.n));
   const out = { seed, type, size, level: lv, ed, name: `The ${r.pick(SHOP_ADJ)} ${r.pick(S.nouns)}`, label: S.label, keeper: fullName(r, r.pick(["male", "female"])), mood: mood[0], stock };
   out.moodIx = SHOP_MOODS.indexOf(mood); if (rarOn) out.rar = rar.slice(); if (amtOn) out.amount = amount;
@@ -315,10 +316,12 @@ function itGive(x, quiet) {
   const c = PCS.roster.find(r => r.id === $("#itTarget").value);
   if (!c) { toast("Save a character on the Characters tab first"); return; }
   c.inv = c.inv || [];
-  const lot=x.kind==="gear"&&x.packQty?x.packQty:1, units=lot>1;
+  const canonical=x.kind==="gear"&&x.id?itFind(x.id):null;
+  const lot=x.kind==="gear"&&(canonical?.packQty||x.packQty)?canonical?.packQty||x.packQty:1, units=lot>1;
+  const lotWeight=units?(canonical?.w??x.w??0):(x.w||0);
   const ex = c.inv.find(i => i.ref === x.id&&(!units||i.ammunitionUnits===true));
   if (ex) ex.qty = (+ex.qty || 0) + lot;
-  else c.inv.push({ id: uid("i"), ref: x.id, itemRules: inventoryRulesSnapshot(x), n: x.n, qty: lot, w: (x.w || 0)/lot, ...(units?{ammunitionUnits:true}:{}), att: !!x.att, attuned: false, value: units?x.c+" per "+lot:x.c, note: x.kind === "gear" ? "" : `${rarName(x)} ${String(x.cat).toLowerCase()}` });
+  else c.inv.push({ id: uid("i"), ref: x.id, itemRules: inventoryRulesSnapshot(x), n: x.n, qty: lot, w: lotWeight/lot, ...(units?{ammunitionUnits:true}:{}), att: !!x.att, attuned: false, value: units?x.c+" per "+lot:x.c, note: x.kind === "gear" ? "" : `${rarName(x)} ${String(x.cat).toLowerCase()}` });
   pcPersist(); if (!quiet) toast(`${x.n} given to ${c.name}`);
 }
 function itLoot(x) {
