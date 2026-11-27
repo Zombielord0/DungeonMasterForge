@@ -36,3 +36,6 @@ Container capacities and pack contents follow their respective SRD editions. Leg
 
 ## Revised SRD magic item variants
 SRD 5.2.1 tables normalize 51 placeholder-containing variants and five parent descriptions in their exact 2024 catalog slots. Original DMG source labels are retained; this is an open-rules replacement rather than verification of a separate printing. Gear aliases map equivalent standard items; unique source-specific equipment retains weight/value review notes. No private source content published.
+
+## Existing core spells and explicit dependencies
+Approved `catalog: core-spells` replacements preserve the edition, source, printed page, slot and existing aliases. Core-spell and core-item replacements stay separate from supplemental arrays. A manifest may declare exact same-edition `dependencies` entries of kind Spell (with level), Item or Monster; the build rejects missing, ambiguous, incomplete or mismatched targets after catalog assembly. These checks do not replace independent mechanics review or certify undeclared dependencies, shared-rule contracts or distribution rights. No private candidates are included in the public manifest.

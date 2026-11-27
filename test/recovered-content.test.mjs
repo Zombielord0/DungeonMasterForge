@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { appendReferenceSpells, validateRecoveryManifest, applyRecoveredContent, validateRecoveredBackgroundDependencies, applyRecoveredCoreItems } from "../tools/recovered-content.mjs";
+import { appendReferenceSpells, validateRecoveryManifest, applyRecoveredContent, validateRecoveredBackgroundDependencies, applyRecoveredCoreItems, applyRecoveredCoreSpells, validateRecoveredCatalogDependencies } from "../tools/recovered-content.mjs";
 const books={fixture:{name:"Fixture"}}, reference={kind:"Spell",name:"Example",src:"fixture",ed:"2014",page:1,details:[["Level","1"]]};
 const payload={n:"Example",src:"fixture",ed:"2014",l:1,s:"Evocation",c:["Wizard"],t:"1 action",r:"30 feet",cp:"V",m:"",du:"Instantaneous",co:0,ri:0,d:"One target takes 1 force damage.",h:"",dt:"Force",at:"",sv:""};
 const entry={kind:"Spell",name:"Example",src:"fixture",ed:"2014",stableId:"cmp:example",action:"replace",releaseGate:"PASS",productionReady:true,review:{sourceVerified:true,mechanicsVerified:true,dependenciesVerified:true,runtimeVerified:true,distributionCleared:true,evidence:"Synthetic test only"},payload};
@@ -68,4 +68,35 @@ test("reviewed core magic items replace exact slots, not supplemental rows",()=>
  for(const bad of [{...item,payload:{...item.payload,page:13}},{...item,payload:{...item.payload,k:"new-key"}},{...item,payload:{...item.payload,id:"new-id"}}])assert.throws(()=>applyRecoveredCoreItems(original,[bad]));
  assert.throws(()=>applyRecoveredCoreItems(original,[{...item,name:"Missing"}]));
  assert.throws(()=>applyRecoveredCoreItems({...original,"2024":{...original["2024"],mi:[original["2024"].mi[1],original["2024"].mi[1]]}},approved));
+});
+
+test("approved core spell reconciliation preserves position, aliases and source-page identity",()=>{
+ const core={...entry,catalog:"core-spells",payload:{...payload,page:"7",manualRoll:true,manualEffects:true}};
+ const old={...payload,page:"7",aliases:["Saved Alias"]},other={n:"Other"},legacy={ "2014":[other,old], "2024":[old]};
+ const approved=validateRecoveryManifest(manifest([core]),books),out=applyRecoveredCoreSpells(legacy,approved);
+ assert.equal(out["2024"],legacy["2024"]);assert.equal(out["2014"][0],other);
+ assert.equal(out["2014"].length,2);assert.equal(out["2014"][1].recoveryId,core.stableId);
+ assert.deepEqual(out["2014"][1].aliases,["Saved Alias"]);assert.equal(out["2014"][1].manualRoll,true);
+ assert.deepEqual(applyRecoveredContent("extra-spells",[],approved,[]),[]);
+ assert.equal(applyRecoveredCoreSpells(legacy,[]),legacy);
+ assert.throws(()=>applyRecoveredCoreSpells(legacy,[{...core,payload:{...core.payload,page:"8"}}]));
+ assert.throws(()=>applyRecoveredCoreSpells({"2014":[old,old],"2024":[]},approved));
+ assert.throws(()=>validateRecoveryManifest(manifest([{...core,action:"promote"}]),books));
+ assert.throws(()=>validateRecoveryManifest(manifest([{...core,payload:{...core.payload,rulesSummary:true}}]),books));
+});
+test("exact declared dependencies fail closed for wrong edition, source, level, summary, and ambiguity",()=>{
+ const dep={kind:"Spell",name:"Example",src:"fixture",ed:"2014",level:1}, item={...entry,dependencies:[dep]};
+ const a=validateRecoveryManifest(manifest([item]),books);
+ validateRecoveredCatalogDependencies(a,{spells:{"2014":[payload]}});
+ for(const bad of [{...payload,d:"See the sourcebook for complete rules."},{...payload,referenceSummary:true},{...payload,ed:"2024"},{...payload,src:"other"},{...payload,l:2},{...payload,pending:true,pend:true}])assert.throws(()=>validateRecoveredCatalogDependencies(a,{spells:{"2014":[bad]}}));
+ assert.throws(()=>validateRecoveredCatalogDependencies(a,{spells:{"2024":[payload]}}));
+ assert.throws(()=>validateRecoveredCatalogDependencies(a,{spells:{"2014":[payload,payload]}}));
+ for(const bad of [{...dep,ed:"2024"},{...dep,src:"unknown"},{...dep,level:10},{...dep,kind:"Rule"}])assert.throws(()=>validateRecoveryManifest(manifest([{...item,dependencies:[bad]}]),books));
+ assert.throws(()=>validateRecoveryManifest(manifest([{...item,dependencies:[dep,dep]}]),books));
+ const md={kind:"Monster",name:"Fixture Beast",src:"srd",ed:"2014"},id={kind:"Item",name:"Fixture Potion",src:"fixture",ed:"2014"};
+ const accepted=validateRecoveryManifest(manifest([{...entry,dependencies:[md,id]}]),books);
+ const beast={n:md.name,hp:10,ac:12,actions:[["Bite","Deals 1 damage."]]},potion={n:id.name,src:"fixture",d:"Synthetic effect."};
+ validateRecoveredCatalogDependencies(accepted,{monsters:{"2014":[beast]},items:{"2014":{mi:[potion]}}});
+ assert.throws(()=>validateRecoveredCatalogDependencies(accepted,{monsters:{"2014":[{...beast,actions:[["Bite","Loading"]]}]},items:{"2014":{mi:[potion]}}}));
+ assert.throws(()=>validateRecoveredCatalogDependencies(accepted,{monsters:{"2014":[beast]},items:{"2014":{mi:[{...potion,referenceOnly:true}]}}}));
 });

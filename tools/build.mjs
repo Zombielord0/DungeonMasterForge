@@ -23,7 +23,7 @@ import { createHash } from "node:crypto";
 import { readFileSync, writeFileSync, readdirSync, unlinkSync, mkdirSync } from "node:fs";
 import vm from "node:vm";
 import { joinSummaries, joinSrdItems } from "./ref-summaries.mjs";
-import { appendReferenceSpells, validateRecoveryManifest, applyRecoveredContent, validateRecoveredBackgroundDependencies, applyRecoveredCoreItems } from "./recovered-content.mjs";
+import { appendReferenceSpells, validateRecoveryManifest, applyRecoveredContent, validateRecoveredBackgroundDependencies, applyRecoveredCoreItems, applyRecoveredCoreSpells, validateRecoveredCatalogDependencies } from "./recovered-content.mjs";
 import { validateSrdSpellLinks, fillSrdSpellReferences, joinSrdSpellReferences, correctLegacySpellMetadata } from "./ref-srd-spells.mjs";
 import { recoveryCoverage } from "./recovery-coverage.mjs";
 import {verifyLegacyItemArchive,correctLegacyItemMetadata,verifyAndAnnotateLegacyItemLinks} from "./ref-srd-items.mjs";
@@ -87,6 +87,7 @@ for (const [name, key] of [["spells", "spellData"], ["monsters", "monsterData"],
   if (name === "spells") {
     data = correctLegacySpellMetadata(data);
     data["2014"].push(...spellGrants.legacySpells);
+    data=applyRecoveredCoreSpells(data,approvedRecovery);
   }
   /* Book reference spells (owner, 2026-11-23): spells from other books join the list with their stats and book page only
      (data/book-references.json has no rules text). A spell the Forge already has is not added again. */
@@ -136,6 +137,7 @@ for (const [name, key] of [["spells", "spellData"], ["monsters", "monsterData"],
     emitCatalog("monster-index", "monsterIndex", data.map(({ n, src, ed }) => [n, src, ed || null]), name);
   }
 }
+validateRecoveredCatalogDependencies(approvedRecovery,emittedCatalogs);
 // Coverage report contains only existing public reference metadata, never private recovery payloads.
 writeFileSync(at("public/compendium-coverage.json"), JSON.stringify(recoveryCoverage(emittedCatalogs["book-references"], emittedCatalogs), null, 2));
 // the credits page for the extra books (each book's notice and licence, and the Open Game License text)

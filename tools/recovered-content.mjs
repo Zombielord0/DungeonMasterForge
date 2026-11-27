@@ -12,12 +12,15 @@ export function validateRecoveryManifest(m,books) {
  const ids=new Set(),targets=new Set();
  for(const e of m.entries) {
   if(!e || !Object.hasOwn(CATALOG,e.kind) || !EDS.includes(e.ed) || !Object.hasOwn(books,e.src) || typeof e.name!=="string" || !e.name.trim() || typeof e.stableId!=="string" || !e.stableId.trim() || !["replace","promote"].includes(e.action)) fail("invalid or unsupported record identity");
-  if(e.catalog!==undefined&&(e.catalog!=="core-items"||e.kind!=="Item"||e.action!=="replace")) fail("unsupported catalog target: "+e.name);
+  if(e.catalog!==undefined&&(e.action!=="replace"||!((e.catalog==="core-items"&&e.kind==="Item")||(e.catalog==="core-spells"&&e.kind==="Spell")))) fail("unsupported catalog target: "+e.name);
   if(ids.has(e.stableId)||targets.has(key(e))) fail("duplicate stable ID or target");
   ids.add(e.stableId);targets.add(key(e));
   if(e.releaseGate!=="PASS"||e.productionReady!==true||!["sourceVerified","mechanicsVerified","dependenciesVerified","runtimeVerified","distributionCleared"].every(k=>e.review?.[k]===true)||typeof e.review.evidence!=="string"||!e.review.evidence.trim()) fail("approval missing: "+e.name);
   const p=e.payload;
-  if(!p||(e.kind==="Background"?p.name:p.n)!==e.name||p.src!==e.src||p.ed!==e.ed||p.ref||p.referenceOnly||p.pend||p.hb||p.shadow) fail("identity or release state mismatch");
+  if(e.dependencies!==undefined){
+   if(!Array.isArray(e.dependencies)||e.dependencies.some(d=>!d||!["Spell","Item","Monster"].includes(d.kind)||!okText(d.name)||!(d.src==="srd"||Object.hasOwn(books,d.src))||d.ed!==e.ed||(d.kind==="Spell"&&(!Number.isInteger(d.level)||d.level<0||d.level>9))||(d.kind!=="Spell"&&d.level!==undefined))||new Set(e.dependencies.map(d=>JSON.stringify([d.kind,d.name,d.src,d.ed,d.level]))).size!==e.dependencies.length)fail("invalid dependency contract: "+e.name);
+  }
+  if(!p||(e.kind==="Background"?p.name:p.n)!==e.name||p.src!==e.src||p.ed!==e.ed||p.ref||p.referenceOnly||p.rulesSummary||p.referenceSummary||p.pend||p.hb||p.shadow) fail("identity or release state mismatch");
   if(e.kind==="Spell") {
    const conditional = p.backgroundLists;
    if (conditional !== undefined && (!Array.isArray(conditional) || !conditional.length ||
@@ -68,7 +71,7 @@ export function validateRecoveryManifest(m,books) {
 }
 export function applyRecoveredContent(catalog,original,entries,refs) {
  const data=original.slice();
- for(const e of entries.filter(x=>x.catalog!=="core-items"&&CATALOG[x.kind]===catalog)) {
+ for(const e of entries.filter(x=>!x.catalog&&CATALOG[x.kind]===catalog)) {
   const hits=data.map((x,i)=>({x,i})).filter(({x})=>(e.kind==="Background"?x.kind==="background"&&x.name===e.name:x.n===e.name)&&x.src===e.src&&(!x.ed||x.ed==="both"||x.ed===e.ed));
   if(hits.length>1) fail("ambiguous source record: "+e.name);
   const hit=hits[0],p={...e.payload,recoveryId:e.stableId};
@@ -150,4 +153,47 @@ export function applyRecoveredCoreItems(original,entries) {
   result[ed]={...original[ed],mi};
  }
  return result;
+}
+
+// Preserve core spell slots and book/source identity. Source-page corrections must be
+// reviewed separately; the evidence can identify a PDF page without altering the printed page.
+export function applyRecoveredCoreSpells(original,entries){
+ const approved=entries.filter(e=>e.catalog==="core-spells");
+ if(!approved.length)return original;
+ const result={...original};
+ for(const ed of EDS){
+  const selected=approved.filter(e=>e.ed===ed);if(!selected.length)continue;
+  const rows=original[ed].slice();
+  for(const e of selected){
+   const hits=rows.map((x,i)=>({x,i})).filter(({x})=>x.n===e.name&&x.src===e.src&&(!x.ed||x.ed===ed));
+   if(hits.length!==1)fail("missing or ambiguous core spell: "+e.name);
+   const {x,i}=hits[0],p=e.payload;
+   if(e.action!=="replace"||e.kind!=="Spell"||p.page!==x.page||p.id!==x.id||p.k!==x.k||
+     (x.recoveryId&&x.recoveryId!==e.stableId)||rows.some((m,j)=>j!==i&&m.recoveryId===e.stableId))fail("core spell identity cannot change: "+e.name);
+   // Existing aliases may be required by saved character imports; retain them.
+   const aliases=[...new Set([...(x.aliases||[]),...(p.aliases||[])])];
+   rows[i]={...p,...(aliases.length?{aliases}:{}),recoveryId:e.stableId};
+  }
+  result[ed]=rows;
+ }
+ return result;
+}
+// Exact structural dependency checks on the final emitted catalogs. This is not
+// semantic certification: explicit reviewer approval and source evidence still apply.
+export function validateRecoveredCatalogDependencies(entries,catalogs){
+ const complete=x=>!x.ref&&!x.referenceOnly&&!x.referenceSummary&&!x.rulesSummary&&!x.pend&&!x.shadow&&!x.hb;
+ const table=(kind,ed)=>{
+  const extra=(catalogs[CATALOG[kind]]||[]).filter(x=>!x.ed||x.ed===ed);
+  if(kind==="Spell")return [...(catalogs.spells?.[ed]||[]),...extra];
+  if(kind==="Item")return [...(catalogs.items?.[ed]?.mi||[]),...(catalogs.items?.[ed]?.eq||[]),...extra];
+  return [...(catalogs.monsters?.[ed]||[]),...extra];
+ };
+ for(const e of entries){
+  for(const d of e.dependencies||[]){
+   const hits=table(d.kind,d.ed).filter(x=>x.n===d.name&&(x.src||"srd")===d.src&&(!x.ed||x.ed===d.ed)&&complete(x)&&
+    (d.kind==="Monster"?(Number.isFinite(x.hp)&&Number.isFinite(x.ac)&&Array.isArray(x.actions)&&x.actions.every(a=>Array.isArray(a)&&okText(a[1]))):okText(x.d))&&
+    (d.kind!=="Spell"||x.l===d.level));
+   if(hits.length!==1)fail("unresolved or ambiguous complete "+d.kind.toLowerCase()+" dependency: "+e.name+" / "+d.name);
+  }
+ }
 }

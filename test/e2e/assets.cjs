@@ -66,7 +66,10 @@ const server = http.createServer((req, res) => {
         revised.find(x=>x.n==="Ring of Elemental Command (Air)").spellChargeCosts["Feather Fall"]===0);
       expected["2024"]=corrected["2024"];
     }
-    const same = w.DMDATA && JSON.stringify(JSON.parse(w.DMDATA[key])) === JSON.stringify(expected);
+    const {validateRecoveryManifest,applyRecoveredCoreSpells,applyRecoveredCoreItems}=await import("../../tools/recovered-content.mjs");
+    const approved=validateRecoveryManifest(JSON.parse(fs.readFileSync(path.join(DATA,"recovered-content.json"),"utf8")),JSON.parse(fs.readFileSync(path.join(DATA,"extra-books.json"),"utf8")).books);
+    const reviewed=name==="spells"?applyRecoveredCoreSpells(expected,approved):name==="items"?applyRecoveredCoreItems(expected,approved):expected;
+    const same = w.DMDATA && JSON.stringify(JSON.parse(w.DMDATA[key])) === JSON.stringify(reviewed);
     check(`${name}: public${f} matches source data with documented edition corrections and grants`, !!same);
     check(`${name}: the file name's fingerprint matches its contents`, !!f && f.includes("." + crypto.createHash("sha256").update(js).digest("hex").slice(0, 10) + "."));
     check(`${name}: the service worker keeps it for offline use`, !!f && sw.includes(`"${f}"`));
