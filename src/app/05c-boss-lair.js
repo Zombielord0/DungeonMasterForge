@@ -7,7 +7,7 @@ function bossConfig(raw) {
   if (!raw || typeof raw !== "object" || Array.isArray(raw)) throw Error("Expected a boss configuration object.");
   const list = (v, limit, fn) => (Array.isArray(v) ? v : []).slice(0, limit).map(fn);
   const ids = new Set();
-  const id = (v, i, prefix) => { const k = bossText(v, 80) || prefix + (i + 1); if (ids.has(k)) throw Error("Duplicate ID: " + k); ids.add(k); return k; };
+  const id = (v, i, prefix) => { const k = bossText(v, 80) || prefix + (i + 1); if (!/^[a-zA-Z0-9_-]+$/.test(k) || ["__proto__","constructor","prototype"].includes(k)) throw Error("Invalid ID: "+k); if (ids.has(k)) throw Error("Duplicate ID: " + k); ids.add(k); return k; };
   const objects = list(raw.objects, 40, (o, i) => ({ id: id(o.id,i,"object"), name: bossText(o.name,120) || "Object", ac: bossInt(o.ac,1,40,15), hp: bossInt(o.hp,1,9999,30), threshold: bossInt(o.threshold,0,999,0), dc: bossInt(o.dc,0,40,0), immunities: bossText(o.immunities,300), text: bossText(o.text) }));
   const clocks = list(raw.clocks, 20, (o,i) => ({id:id(o.id,i,"clock"), name:bossText(o.name,120)||"Clock", max:bossInt(o.max,1,100,6), auto:o.auto !== false, text:bossText(o.text)}));
   const actions = list(raw.actions, 40, (a,i) => ({ id:id(a.id,i,"action"), name:bossText(a.name,120)||"Lair action", text:bossText(a.text), requires:bossText(a.requires,80), uses:bossInt(a.uses,0,99,0), heal:bossInt(a.heal,0,999,0) }));
@@ -53,20 +53,22 @@ function bossResolve(e,a) {
 function bossSeed(e, ownerId) {
   const m=e.enemies.find(x=>x.id===ownerId)||e.enemies.find(x=>x.boss)||e.enemies[0], f=m&&fightMonster(m), mon=f?.mon;
   const legend=mon?.legend||[], traits=mon?.traits||[], lair=mon?.lair||[];
+  if(mon?.bossKit) return bossConfig({...mon.bossKit,owner:m.id});
+  const slots=Array(9).fill(0); for(const t of traits.map(x=>x.join(" "))) for(const match of t.matchAll(/\b([1-9])(?:st|nd|rd|th)\s+level\s*\((\d+)\s+slots?\)/gi)) slots[+match[1]-1]=+match[2];
   const lr=traits.map(x=>x.join(" ")).join(" ").match(/Legendary Resistance\s*\((\d+)\s*\/\s*Day\)/i);
-  return bossConfig({name:mon?.n||"Encounter mechanics",owner:m?.id||"",legendary:legend.length?(mon.legN||3):0,resistance:lr?+lr[1]:0,actions:lair.map((a,i)=>({name:Array.isArray(a)?a[0]:"Lair action "+(i+1),text:Array.isArray(a)?a[1]:a})),powers:[],objects:[],clocks:[],phases:[]});
+  return bossConfig({name:mon?.n||"Encounter mechanics",owner:m?.id||"",legendary:legend.length?(mon.legN||3):0,resistance:lr?+lr[1]:0,slots,actions:lair.map((a,i)=>({name:Array.isArray(a)?a[0]:"Lair action "+(i+1),text:Array.isArray(a)?a[1]:a})),powers:[],objects:[],clocks:[],phases:[]});
 }
 function bossButton(action,label,id="",disabled=false) { return '<button type="button" class="btn sm" data-boss="'+esc(action)+'" data-bid="'+esc(id)+'" '+(disabled?'disabled':'')+'>'+esc(label)+'</button>'; }
 function bossPanel(c,e) {
   const b=e.bossKit, selected=FIGHT.sel?.startsWith("foe:")?FIGHT.sel.slice(4):"";
   if(!b) return '<section class="boss-panel"><h3>Boss &amp; lair</h3><p class="muted">Configure initiative actions, resources, objects and objectives for this encounter.</p>'+bossButton("setup","Configure",selected)+'</section>';
   const cfg=b.config,s=b.state,m=bossOwner(e), btn=bossButton, txt=t=>'<p style="white-space:pre-wrap">'+esc(t)+'</p>', row=(t,buttons)=>'<div class="boss-row"><span>'+t+'</span><div>'+buttons+'</div></div>';
-  let h='<section class="boss-panel"><h3>'+esc(cfg.name)+'</h3>'+row(esc(m?.name||"Environmental encounter"),btn("edit","Edit / import")+btn("export","Export"))+
+  let h='<section class="boss-panel"><h3>'+esc(cfg.name)+'</h3>'+row(esc(m?.name||"Environmental encounter"),btn("edit","Edit / import")+btn("export","Export")+btn("remove","Remove kit"))+
   '<h4>Lair · initiative '+cfg.initiative+'</h4><p role="status">'+(s.pending?'Resolve round '+s.pending+' before advancing.':s.resolved===e.round&&e.round?'Resolved this round.':'Waiting for initiative.')+'</p>';
   for(const a of cfg.actions) h+='<details><summary>'+esc(a.name)+(bossAvailable(e,a)?'':' · unavailable')+'</summary>'+txt(a.text)+btn("action","Use",a.id,!s.pending||!bossAvailable(e,a))+'</details>';
   if(s.pending)h+=btn("skip","Skip lair turn");
   if(cfg.legendary||cfg.resistance||cfg.slots.some(Boolean)||cfg.powers.length) h+='<h4>Boss resources</h4>';
-  if(cfg.legendary)h+=row('Legendary actions '+s.legendary+'/'+cfg.legendary,btn("legend","Spend 1","",!s.legendary||!bossCanAct(e))+btn("legend2","Spend 2","",s.legendary<2||!bossCanAct(e)));
+  if(cfg.legendary)h+=row('Legendary actions '+s.legendary+'/'+cfg.legendary,btn("legend","Spend 1","",!s.legendary||!bossCanAct(e)||e.turn===cfg.owner)+btn("legend2","Spend 2","",s.legendary<2||!bossCanAct(e)||e.turn===cfg.owner));
   if(cfg.resistance)h+=row('Legendary resistance '+s.resistance+'/'+cfg.resistance,btn("resist","Use","",!s.resistance||!m||m.hp<=0));
   cfg.slots.forEach((n,i)=>{if(n)h+=row('Spell level '+(i+1)+' · '+s.slots[i]+'/'+n,btn("slot","Spend",String(i),!s.slots[i]||!bossCanAct(e))+btn("slotBack","Restore",String(i),s.slots[i]>=n));});
   for(const p of cfg.powers)h+='<details><summary>'+esc(p.name)+' · '+s.powers[p.id]+'/'+p.max+'</summary>'+txt(p.text)+btn("power","Spend",p.id,!s.powers[p.id]||!bossCanAct(e))+btn("powerBack","Restore",p.id,s.powers[p.id]>=p.max)+'</details>';
@@ -92,12 +94,13 @@ document.addEventListener("click",ev=>{
   const c=curCamp(),e=c&&findEnc(c,FIGHT.eid);if(!e)return;
   const a=el.dataset.boss,id=el.dataset.bid,b=e.bossKit;
   if(a==="setup"||a==="edit"){bossEditor(c,e,id);return;}if(!b)return;
-  if(a==="export"){saveFile("boss-kit.json",new Blob([JSON.stringify(b.config,null,2)],{type:"application/json"}));return;}
+  if(a==="remove"){const before=combatSnapshot(e);e.bossKit=null;combatRecord(e,before,"Removed boss mechanics");Store.save(c);rerenderEnc(c,e);return;}
+  if(a==="export"){saveFile("boss-kit.json",new Blob([JSON.stringify({...b.config,owner:""},null,2)],{type:"application/json"}));return;}
   const s=b.state,cfg=b.config,before=combatSnapshot(e),o=cfg.objects.find(x=>x.id===id),k=cfg.clocks.find(x=>x.id===id),p=cfg.powers.find(x=>x.id===id),v=s.objects[id],cl=s.clocks[id];
   try{
     if(a==="action"){const act=cfg.actions.find(x=>x.id===id);if(!act)return;bossResolve(e,act);}
     else if(a==="skip")bossResolve(e,null);
-    else if(a==="legend"||a==="legend2"){const n=a==="legend"?1:2;if(!bossCanAct(e)||s.legendary<n)return;s.legendary-=n;}
+    else if(a==="legend"||a==="legend2"){const n=a==="legend"?1:2;if(!bossCanAct(e)||s.legendary<n||e.turn===cfg.owner)return;s.legendary-=n;}
     else if(a==="resist"&&s.resistance>0)s.resistance--;
     else if(a==="slot"&&s.slots[+id]>0&&bossCanAct(e))s.slots[+id]--;
     else if(a==="slotBack"&&s.slots[+id]<cfg.slots[+id])s.slots[+id]++;

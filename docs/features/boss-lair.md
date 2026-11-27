@@ -84,3 +84,5 @@ Example JSON:
 ```
 
 Current limits: manual JSON authoring rather than a full visual builder; no automated spell resolution, spatial hazards, PC condition expiry tied to lair actions, regional simulation or player-screen overlays. This is a general encounter tool, not an automatic rules engine.
+
+Monster Bulk Import JSON rows can include a structured `boss_kit` object and `legendary_actions_per_round`. The monster editor also accepts an optional boss-kit JSON and saves it with the monster. Open a fight, select the monster, and Configure seeds its kit. Encounter templates preserve configuration with the owner remapped to the copied enemy. A plain stat block can include a Lair Actions heading followed by named actions. Exported kits omit the encounter-local owner ID; choose the owner at import.
