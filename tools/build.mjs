@@ -29,6 +29,7 @@ import { recoveryCoverage } from "./recovery-coverage.mjs";
 import {verifyLegacyItemArchive,correctLegacyItemMetadata,verifyAndAnnotateLegacyItemLinks} from "./ref-srd-items.mjs";
 import {correctRevisedItemVariants} from "./ref-srd-2024-item-variants.mjs";
 import {correctRevisedItemTables} from "./ref-srd-2024-item-tables.mjs";
+import {correctRevisedItemFamilies} from "./ref-srd-2024-item-families.mjs";
 
 if (process.env.DMFORGE_BUILT === "1") process.exit(0); // npm run test:all builds once, then skips this in each check
 
@@ -75,7 +76,7 @@ const approvedRecovery = validateRecoveryManifest(JSON.parse(read("data/recovere
 const srdSpellLinks = validateSrdSpellLinks(JSON.parse(read("data/reference-srd-spells.json")), bookReferences, JSON.parse(read("data/spells.json")));
 const rawItems = JSON.parse(read("data/items.json"));
 verifyLegacyItemArchive(rawItems);
-const correctedItems = correctRevisedItemTables(correctRevisedItemVariants(correctLegacyItemMetadata(rawItems)));
+const correctedItems = correctRevisedItemFamilies(correctRevisedItemTables(correctRevisedItemVariants(correctLegacyItemMetadata(rawItems))));
 const emittedCatalogs = {};
 for (const [name, key] of [["spells", "spellData"], ["monsters", "monsterData"], ["items", "itemData"],
   ["extra-spells", "spellExtra"], ["extra-monsters", "monsterExtra"], ["extra-items", "itemExtra"], ["extra-options", "optionExtra"], ["extra-books", "bookData"], ["book-references", "bookReferences"]]) {

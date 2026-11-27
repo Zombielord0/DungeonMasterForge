@@ -47,8 +47,26 @@ const server = http.createServer((req, res) => {
         const c = corrections[s.n]; return {...s,...c,type:s.type.replace(/^Staff, very rare\b/i,"Staff, "+c.r.toLowerCase())};
       });
     }
+    if(name==="items"){
+      // Independently verify the legacy fix above; apply the documented revised normalization
+      // before exact asset comparison. Each normalizer has separate rule-table and identity tests.
+      const {correctRevisedItemVariants}=await import("../../tools/ref-srd-2024-item-variants.mjs");
+      const {correctRevisedItemTables}=await import("../../tools/ref-srd-2024-item-tables.mjs");
+      const {correctRevisedItemFamilies}=await import("../../tools/ref-srd-2024-item-families.mjs");
+      const corrected=correctRevisedItemFamilies(correctRevisedItemTables(correctRevisedItemVariants(expected)));
+      const revised=corrected["2024"].mi, original=expected["2024"].mi;
+      check("revised item corrections preserve every source and catalog position",
+        JSON.stringify(revised.map(x=>[x.n,x.src,x.page]))===JSON.stringify(original.map(x=>[x.n,x.src,x.page])) &&
+        corrected["2014"]===expected["2014"] && corrected["2024"].eq===expected["2024"].eq);
+      check("revised item recovery counts and independent scroll/ring rules",
+        original.filter(x=>x.d.includes("See the sourcebook")).length===350 &&
+        revised.filter(x=>x.d.includes("See the sourcebook")).length===228 &&
+        revised.find(x=>x.n==="Spell Scroll (Cantrip)").scrollSaveDC===13 &&
+        revised.find(x=>x.n==="Ring of Elemental Command (Air)").spellChargeCosts["Feather Fall"]===0);
+      expected["2024"]=corrected["2024"];
+    }
     const same = w.DMDATA && JSON.stringify(JSON.parse(w.DMDATA[key])) === JSON.stringify(expected);
-    check(`${name}: public${f} matches source data with documented legacy corrections and grants`, !!same);
+    check(`${name}: public${f} matches source data with documented edition corrections and grants`, !!same);
     check(`${name}: the file name's fingerprint matches its contents`, !!f && f.includes("." + crypto.createHash("sha256").update(js).digest("hex").slice(0, 10) + "."));
     check(`${name}: the service worker keeps it for offline use`, !!f && sw.includes(`"${f}"`));
   }

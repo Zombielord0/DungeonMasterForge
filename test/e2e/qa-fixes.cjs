@@ -180,6 +180,13 @@ const ZOOK = fs.readFileSync(path.join(FIX, "companion-zook.json"), "utf8");
     g("Carpet of Flying, 3 ft. × 5 ft.").d.includes("200 lb."),g("Black Dragon Scale Mail").d.includes("Acid"),
     g("Elemental Gem, Blue Sapphire").d.includes("Air Elemental"),g("Manual of Iron Golems").d.includes("100000 GP")];});
   check("revised magic item tables resolve exact mechanics in built catalog",tableCheck.every(Boolean),JSON.stringify(tableCheck));
+  const familyCheck=await p.evaluate(()=>{itLoad();const g=n=>IT.data["2024"].find(x=>x.n===n&&x.kind!=="gear");return [
+    g("Ring of Elemental Command (Air)").d.includes("Feather Fall (0)"),
+    g("Figurine of Wondrous Power, Ebony Fly").d.includes("HP 19"),
+    g("Figurine of Wondrous Power, Ivory Goats").d.includes("24 charges"),
+    g("Quaal's Feather Token, Whip").d.includes("1d6 + 5 Force"),
+    g("Sending Stones").d.includes("next dawn"),g("Sentinel Shield").d.includes("Initiative")];});
+  check("recovered revised item families appear in built catalog",familyCheck.every(Boolean),JSON.stringify(familyCheck));
   check("reference spells: a spell the Forge already has isn't added twice (Fireball)", refs["2014fireball"] === 1 && refs["2024fireball"] === 1, JSON.stringify([refs["2014fireball"], refs["2024fireball"]]));
   const sb = await p.evaluate(txt => { const j = JSON.parse(txt); j.spells = [...j.spells, { name: "Silvery Barbs", level: 1 }]; const D = compImport(j, "2014");
     return { prep: D.extras.prepared.map(s => s.n), hb: D.homebrew.filter(x => x.kind === "spell").map(x => x.name) }; }, ZOOK);
