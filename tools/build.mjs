@@ -27,6 +27,7 @@ import { appendReferenceSpells, validateRecoveryManifest, applyRecoveredContent,
 import { validateSrdSpellLinks, fillSrdSpellReferences, joinSrdSpellReferences, correctLegacySpellMetadata } from "./ref-srd-spells.mjs";
 import { recoveryCoverage } from "./recovery-coverage.mjs";
 import {verifyLegacyItemArchive,correctLegacyItemMetadata,verifyAndAnnotateLegacyItemLinks} from "./ref-srd-items.mjs";
+import {addSrdWandChargeContracts} from "./ref-srd-item-charges.mjs";
 import {correctRevisedItemVariants} from "./ref-srd-2024-item-variants.mjs";
 import {correctRevisedItemTables} from "./ref-srd-2024-item-tables.mjs";
 import {correctRevisedItemFamilies} from "./ref-srd-2024-item-families.mjs";
@@ -77,7 +78,7 @@ const approvedRecovery = validateRecoveryManifest(JSON.parse(read("data/recovere
 const srdSpellLinks = validateSrdSpellLinks(JSON.parse(read("data/reference-srd-spells.json")), bookReferences, JSON.parse(read("data/spells.json")));
 const rawItems = JSON.parse(read("data/items.json"));
 verifyLegacyItemArchive(rawItems);
-const correctedItems = applyRecoveredCoreItems(correctRevisedItemEquipment(correctRevisedItemFamilies(correctRevisedItemTables(correctRevisedItemVariants(correctLegacyItemMetadata(rawItems))))), approvedRecovery);
+const correctedItems = applyRecoveredCoreItems(addSrdWandChargeContracts(correctRevisedItemEquipment(correctRevisedItemFamilies(correctRevisedItemTables(correctRevisedItemVariants(correctLegacyItemMetadata(rawItems)))))), approvedRecovery);
 const emittedCatalogs = {};
 for (const [name, key] of [["spells", "spellData"], ["monsters", "monsterData"], ["items", "itemData"],
   ["extra-spells", "spellExtra"], ["extra-monsters", "monsterExtra"], ["extra-items", "itemExtra"], ["extra-options", "optionExtra"], ["extra-books", "bookData"], ["book-references", "bookReferences"]]) {

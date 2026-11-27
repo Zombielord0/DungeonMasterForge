@@ -52,7 +52,7 @@ function inventoryEnhancement(i, ref, target) {
 function itemChargeContract(ref){
  if(!ref||itemRulesIncomplete(ref)||!Number.isSafeInteger(ref.maxCharges)||ref.maxCharges<1||ref.maxCharges>100)return null;
  const recharge=ref.chargeRecharge;
- if(!recharge||recharge.at!=="dawn"||![0,3,4].includes(recharge.dice)||!Number.isSafeInteger(recharge.add)||recharge.add<0||recharge.add>ref.maxCharges)return null;
+ if(!recharge||recharge.at!=="dawn"||![0,3,4,6].includes(recharge.dice)||!Number.isSafeInteger(recharge.add)||recharge.add<0||recharge.add>ref.maxCharges)return null;
  const actions=[...Object.entries(ref.chargeActions||{}).map(([name,cost])=>({name,cost,kind:"action"})),...Object.entries(ref.spellChargeCosts||{}).map(([name,cost])=>({name,cost,kind:"spell"}))];
  if(!actions.length||actions.some(a=>!a.name||!Number.isSafeInteger(a.cost)||a.cost<0||a.cost>ref.maxCharges))return null;
  return {key:JSON.stringify([ref.id,ref.ed,ref.src,ref.n,ref.maxCharges]),max:ref.maxCharges,recharge,actions,vanish:ref.lastChargeVanish===true,dc:ref.spellSaveDC};
@@ -93,7 +93,7 @@ function itemConsumableReady(i,ref){
  // Exclude scroll families, ammunition and other uncertain uses: player must resolve
  // exact single-use potion or level-specific scroll rules before recording consumption.
  return !!ref&&!itemRulesIncomplete(ref)&&ref.cons===true&&Number.isSafeInteger(+i.qty)&&+i.qty>0&&(!inventoryNeedsAttunement(i,ref)||i.attuned)&&
-  (ref.cat==="Potion"||(/^Spell Scroll \(Level [1-9]\)|^Spell Scroll \(Cantrip\)$/.test(ref.n)&&ref.cat==="Scroll"));
+  (ref.cat==="Potion"||(/^Spell Scroll \((?:Level [1-9]|Cantrip)\)$/.test(ref.n)&&ref.cat==="Scroll"));
 }
 function itemConsume(i,ref){
  if(!itemConsumableReady(i,ref))return false;
@@ -196,24 +196,27 @@ function openInventoryDetails(c, i, trigger) {
     ${i.note ? `<h3>Inventory notes</h3>${spFormat(String(i.note))}` : ""}`, trigger);
   const refresh=()=>{pcPersist();renderRosterMain();const next=$("[data-item-details]",$("#rosterMain")).find(b=>b.dataset.itemDetails===i.id);openInventoryDetails(c,i,next);};
   const roll=s=>1+Math.floor(Math.random()*s);
+  // The shared confirmation overlay is outside the modal dialog; close the dialog first.
+  // Reopen on cancellation or stale state so keyboard and pointer users can continue.
+  const confirmItem=async(title,message,label)=>{dialog.close();const yes=await confirmBox(title,message,label);if(!yes)refresh();return yes;};
   $("[data-item-init]",dialog)?.addEventListener("click",()=>{
     const value=$("[data-item-charge-start]",dialog).value;
     if(value.trim()!==""&&itemChargeInitialize(i,ref,Number(value)))refresh();
   });
   $("[data-item-use]",dialog).forEach(b=>b.addEventListener("click",async()=>{
     const q=itemChargeContract(ref),a=q?.actions[+b.dataset.itemUse];if(!a)return;
-    if(!await confirmBox("Record item use?",a.name+" — resolve the effect manually and spend "+a.cost+" item charges.","Record use"))return;
+    if(!await confirmItem("Record item use?",a.name+" — resolve the effect manually and spend "+a.cost+" item charges.","Record use"))return;
     const r=itemChargeUse(i,inventoryCatalogItem(i,edOf(c)),+b.dataset.itemUse,roll);
-    if(!r)return;
-    refresh();toast(r.name+": "+r.left+" charges left"+(r.lastRoll!==null?" · final-charge d20: "+r.lastRoll+(r.vanished?" — rod vanished":""):"")+".");
+    if(!r){refresh();return;}
+    refresh();toast(r.name+": "+r.left+" charges left"+(r.lastRoll!==null?" · final-charge d20: "+r.lastRoll+(r.vanished?" — item destroyed":""):"")+".");
   }));
   $("[data-item-dawn]",dialog)?.addEventListener("click",async()=>{
-    if(!await confirmBox("Record dawn recharge?","Confirm that a new dawn has occurred in the campaign and this item has not already recharged for that dawn.","Recharge"))return;
-    const r=itemChargeDawn(i,inventoryCatalogItem(i,edOf(c)),roll);if(r){refresh();toast(r.gained+" charges regained.");}
+    if(!await confirmItem("Record dawn recharge?","Confirm that a new dawn has occurred in the campaign and this item has not already recharged for that dawn.","Recharge"))return;
+    const r=itemChargeDawn(i,inventoryCatalogItem(i,edOf(c)),roll);refresh();if(r)toast(r.gained+" charges regained.");
   });
   $("[data-item-consume]",dialog)?.addEventListener("click",async()=>{
-    if(!await confirmBox("Record consumption?","Confirm this item was expended under its rules. No spell slot, healing, or other effect is applied automatically.","Consume one"))return;
-    if(itemConsume(i,inventoryCatalogItem(i,edOf(c))))refresh();
+    if(!await confirmItem("Record consumption?","Confirm this item was expended under its rules. No spell slot, healing, or other effect is applied automatically.","Consume one"))return;
+    itemConsume(i,inventoryCatalogItem(i,edOf(c)));refresh();
   });
   $("[data-item-base]", dialog)?.addEventListener("change", e => {
     i[field] = e.target.value;
