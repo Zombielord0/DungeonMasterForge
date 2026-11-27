@@ -44,6 +44,70 @@ function inventoryEnhancement(i, ref, target) {
   return Number(match?.[1] || named?.[1] || 0);
 }
 
+// Explicit item resources only: no inferred charges from prose or class spell slots.
+// Existing characters start uninitialized; the DM/player confirms their current charge count.
+// Single physical charged items need individual inventory rows.
+function itemChargeContract(ref){
+ if(!ref||itemRulesIncomplete(ref)||!Number.isSafeInteger(ref.maxCharges)||ref.maxCharges<1||ref.maxCharges>100)return null;
+ const recharge=ref.chargeRecharge;
+ if(!recharge||recharge.at!=="dawn"||![0,3,4].includes(recharge.dice)||!Number.isSafeInteger(recharge.add)||recharge.add<0||recharge.add>ref.maxCharges)return null;
+ const actions=[...Object.entries(ref.chargeActions||{}).map(([name,cost])=>({name,cost,kind:"action"})),...Object.entries(ref.spellChargeCosts||{}).map(([name,cost])=>({name,cost,kind:"spell"}))];
+ if(!actions.length||actions.some(a=>!a.name||!Number.isSafeInteger(a.cost)||a.cost<0||a.cost>ref.maxCharges))return null;
+ return {key:JSON.stringify([ref.id,ref.ed,ref.src,ref.n,ref.maxCharges]),max:ref.maxCharges,recharge,actions,vanish:ref.lastChargeVanish===true,dc:ref.spellSaveDC};
+}
+function itemChargeState(i,ref){
+ const q=itemChargeContract(ref);
+ if(!q||+i.qty!==1)return null;
+ const s=i.itemCharge;
+ return s?.key===q.key&&Number.isSafeInteger(s.left)&&s.left>=0&&s.left<=q.max?s:null;
+}
+function itemChargeInitialize(i,ref,left){
+ const q=itemChargeContract(ref);
+ if(!q||+i.qty!==1||itemChargeState(i,ref)||!Number.isSafeInteger(left)||left<0||left>q.max)return false;
+ i.itemCharge={key:q.key,left};return true;
+}
+function itemChargeUse(i,ref,index,roll){
+ const q=itemChargeContract(ref),s=itemChargeState(i,ref),a=q?.actions[index];
+ if(!s||!a||!inventoryEffectActive(i,ref)||s.left<a.cost)return null;
+ let vanished=false,lastRoll=null;
+ if(q.vanish&&a.cost>0&&s.left===a.cost){
+  lastRoll=roll(20);
+  if(!Number.isSafeInteger(lastRoll)||lastRoll<1||lastRoll>20)return null;
+  vanished=lastRoll===1;
+ }
+ s.left-=a.cost;
+ if(vanished){i.qty=0;i.eq=false;i.attuned=false;}
+ return {name:a.name,kind:a.kind,cost:a.cost,left:s.left,vanished,lastRoll,dc:q.dc};
+}
+function itemChargeDawn(i,ref,roll){
+ const q=itemChargeContract(ref),s=itemChargeState(i,ref);
+ if(!s||s.left>=q.max)return null;
+ const r=q.recharge.dice?roll(q.recharge.dice):0;
+ if(!Number.isSafeInteger(r)||r<(q.recharge.dice?1:0)||r>q.recharge.dice)return null;
+ const gained=Math.min(q.max-s.left,r+q.recharge.add);s.left+=gained;
+ return {gained,left:s.left};
+}
+function itemConsumableReady(i,ref){
+ // Exclude scroll families, ammunition and other uncertain uses: player must resolve
+ // exact single-use potion or level-specific scroll rules before recording consumption.
+ return !!ref&&!itemRulesIncomplete(ref)&&ref.cons===true&&Number.isSafeInteger(+i.qty)&&+i.qty>0&&(!inventoryNeedsAttunement(i,ref)||i.attuned)&&
+  (ref.cat==="Potion"||(/^Spell Scroll \(Level [1-9]\)|^Spell Scroll \(Cantrip\)$/.test(ref.n)&&ref.cat==="Scroll"));
+}
+function itemConsume(i,ref){
+ if(!itemConsumableReady(i,ref))return false;
+ i.qty=+i.qty-1;if(i.qty===0){i.eq=false;i.attuned=false;}return true;
+}
+function inventoryItemResourceHTML(i,ref){
+ const q=itemChargeContract(ref),s=itemChargeState(i,ref);
+ let html="";
+ if(q){
+  if(+i.qty!==1)html='<p class="hint">Charge tracking requires one physical item per inventory row. Separate multiple copies before tracking charges.</p>';
+  else if(!s)html='<div class="actions"><label>Current charges (confirm with DM)<input type="number" min="0" max="'+q.max+'" step="1" data-item-charge-start value="'+q.max+'"></label><button class="btn sm" type="button" data-item-init>Set current charges</button></div>';
+  else html='<div><p><b>Charges: '+s.left+' / '+q.max+'</b></p><p class="hint">Resolve the effect using the item rules. These controls track charges only, not spell slots, targeting, concentration, or duration. Dawn is a campaign event, not a long rest.</p><div class="actions">'+q.actions.map((a,k)=>'<button class="btn sm" type="button" data-item-use="'+k+'" '+(inventoryEffectActive(i,ref)&&s.left>=a.cost?'':'disabled')+'>'+esc(a.name)+' ('+a.cost+' charges)</button>').join("")+'<button class="btn sm" type="button" data-item-dawn '+(s.left===q.max?'disabled':'')+'>Record dawn recharge</button></div></div>';
+ }
+ if(itemConsumableReady(i,ref))html+='<p class="hint">Resolve the potion or scroll manually first. Record consumption only when the rules expend it.</p><button class="btn sm" type="button" data-item-consume>Record one consumed</button>';
+ return html;
+}
 function inventoryDetailsButton(i, label = "Item details") {
   return `<button class="btn sm" type="button" data-item-details="${esc(i.id)}" aria-label="${esc(label + (i.n ? " for " + i.n : ""))}">${esc(label)}</button>`;
 }
@@ -125,8 +189,30 @@ function openInventoryDetails(c, i, trigger) {
     <div class="sp-stats">${stats.filter(([, value]) => value !== "" && value != null).map(([label, value]) => `<div><span>${esc(label)}</span>${esc(value)}</div>`).join("")}</div>
     ${itemRuleNotice(ref)?'<p class="hint">'+esc(itemRuleNotice(ref))+'</p>':""}
     ${ref?.rulesSource?'<p class="hint">Rules source: '+esc(ref.rulesSource)+(ref.rulesSourcePage?' · page '+esc(String(ref.rulesSourcePage)):'')+'</p>':""}
+    ${inventoryItemResourceHTML(i,ref)}
     ${ref?.d ? spFormat(String(ref.d)) : !i.note ? '<p class="hint">No rules description is available for this item.</p>' : ""}
     ${i.note ? `<h3>Inventory notes</h3>${spFormat(String(i.note))}` : ""}`, trigger);
+  const refresh=()=>{pcPersist();renderRosterMain();const next=$("[data-item-details]",$("#rosterMain")).find(b=>b.dataset.itemDetails===i.id);openInventoryDetails(c,i,next);};
+  const roll=s=>1+Math.floor(Math.random()*s);
+  $("[data-item-init]",dialog)?.addEventListener("click",()=>{
+    const value=$("[data-item-charge-start]",dialog).value;
+    if(value.trim()!==""&&itemChargeInitialize(i,ref,Number(value)))refresh();
+  });
+  $("[data-item-use]",dialog).forEach(b=>b.addEventListener("click",async()=>{
+    const q=itemChargeContract(ref),a=q?.actions[+b.dataset.itemUse];if(!a)return;
+    if(!await confirmBox("Record item use?",a.name+" — resolve the effect manually and spend "+a.cost+" item charges.","Record use"))return;
+    const r=itemChargeUse(i,inventoryCatalogItem(i,edOf(c)),+b.dataset.itemUse,roll);
+    if(!r)return;
+    refresh();toast(r.name+": "+r.left+" charges left"+(r.lastRoll!==null?" · final-charge d20: "+r.lastRoll+(r.vanished?" — rod vanished":""):"")+".");
+  }));
+  $("[data-item-dawn]",dialog)?.addEventListener("click",async()=>{
+    if(!await confirmBox("Record dawn recharge?","Confirm that a new dawn has occurred in the campaign and this item has not already recharged for that dawn.","Recharge"))return;
+    const r=itemChargeDawn(i,inventoryCatalogItem(i,edOf(c)),roll);if(r){refresh();toast(r.gained+" charges regained.");}
+  });
+  $("[data-item-consume]",dialog)?.addEventListener("click",async()=>{
+    if(!await confirmBox("Record consumption?","Confirm this item was expended under its rules. No spell slot, healing, or other effect is applied automatically.","Consume one"))return;
+    if(itemConsume(i,inventoryCatalogItem(i,edOf(c))))refresh();
+  });
   $("[data-item-base]", dialog)?.addEventListener("change", e => {
     i[field] = e.target.value;
     pcPersist();

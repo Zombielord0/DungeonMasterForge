@@ -220,6 +220,19 @@ const ZOOK = fs.readFileSync(path.join(FIX, "companion-zook.json"), "utf8");
     return checks;
   });
   check("incomplete item acquisitions fail closed and imports retain exact variant identities",itemGate.every(Boolean),JSON.stringify(itemGate));
+  const chargeChecks=await p.evaluate(()=>{
+    itLoad();const g=n=>IT.data["2024"].find(x=>x.n===n&&x.rulesSource);
+    const air=g("Ring of Elemental Command (Air)"),rod=g("Rod of Resurrection"),cloak=g("Cloak of Invisibility"),pot=g("Potion of Supreme Healing");
+    const i={qty:1,eq:true,attuned:true},r={qty:1,eq:true,attuned:true},p={qty:2,eq:false};
+    const q=itemChargeContract(air),free=q.actions.findIndex(a=>a.name==="Feather Fall"),cost=q.actions.findIndex(a=>a.name==="Chain Lightning");
+    return [!itemChargeState(i,air),itemChargeInitialize(i,air,3),!itemChargeInitialize(i,air,5),
+      itemChargeUse(i,air,free,()=>1).left===3,itemChargeUse(i,air,cost,()=>1).left===0,!itemChargeUse(i,air,cost,()=>1),
+      itemChargeDawn(i,air,()=>4).left===5,itemChargeState(JSON.parse(JSON.stringify(i)),air).left===5,
+      !itemChargeState(i,cloak),itemChargeInitialize(r,rod,5),
+      itemChargeUse(r,rod,itemChargeContract(rod).actions.findIndex(a=>a.name==="Resurrection"),()=>1).vanished&&r.qty===0,
+      itemConsume(p,pot)&&p.qty===1,itemConsume(p,pot)&&p.qty===0,!itemConsume(p,pot)];
+  });
+  check("explicit item charges, zero-cost spells, dawn recharge, persistence and consumption",chargeChecks.every(Boolean),JSON.stringify(chargeChecks));
   check("reference spells: a spell the Forge already has isn't added twice (Fireball)", refs["2014fireball"] === 1 && refs["2024fireball"] === 1, JSON.stringify([refs["2014fireball"], refs["2024fireball"]]));
   const sb = await p.evaluate(txt => { const j = JSON.parse(txt); j.spells = [...j.spells, { name: "Silvery Barbs", level: 1 }]; const D = compImport(j, "2014");
     return { prep: D.extras.prepared.map(s => s.n), hb: D.homebrew.filter(x => x.kind === "spell").map(x => x.name) }; }, ZOOK);

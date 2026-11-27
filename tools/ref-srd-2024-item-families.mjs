@@ -14,7 +14,7 @@ export function correctRevisedItemFamilies(items){
   Water:["Know Aquan, have a Swim Speed of 60 feet, and can breathe underwater.",{"Create or Destroy Water":1,"Ice Storm":2,Tsunami:5,"Wall of Ice":3,"Water Walk":2}]
  };
  const ringText=(plane,[focus,spells])=>plane+": "+focus+"\nSpells (charges): "+Object.entries(spells).map(([n,c])=>n+" ("+c+")").join(", ")+".";
- for(const [plane,data] of Object.entries(rings))add("Ring of Elemental Command ("+plane+")",shared+"\n\n"+ringText(plane,data),"Legendary","Required",false,{elementalPlane:plane,spellChargeCosts:data[1],maxCharges:5,spellSaveDC:18});
+ for(const [plane,data] of Object.entries(rings))add("Ring of Elemental Command ("+plane+")",shared+"\n\n"+ringText(plane,data),"Legendary","Required",false,{elementalPlane:plane,spellChargeCosts:data[1],maxCharges:5,spellSaveDC:18,chargeRecharge:{at:"dawn",dice:4,add:1}});
  add("Ring of Elemental Command","The GM selects or randomly determines the linked Elemental Plane.\n"+shared+"\n\n"+Object.entries(rings).map(([p,d])=>ringText(p,d)).join("\n\n"),"Legendary","Required",false);
  // Reuse already archived open-rules parent text, preserving each variant's limits.
  const fig=parent("Figurine of Wondrous Power").replaceAll("wouldappear","would appear").replaceAll("com-mands","commands").replaceAll("can'tbe","can't be").replaceAll("haspassed","has passed").replaceAll("goatmust","goat must").replaceAll("goat,any","goat, any").replaceAll("follows:Goat","follows:\nGoat").replaceAll("passed.Goat","passed.\nGoat");
@@ -39,10 +39,10 @@ export function correctRevisedItemFamilies(items){
   add("Quaal's Feather Token, "+m[1],d,m[2],"",true);
  }
  add("Feather Token",fc+"\n\n"+parts.join("\n\n")+"\n\nRoll d100: 01–20 Anchor; 21–35 Bird; 36–50 Fan; 51–65 Swan Boat; 66–90 Tree; 91–100 Whip.","Rarity Varies","",true);
- add("Cloak of Invisibility","This attuned cloak has 3 charges, recovering 1d3 spent charges each dawn. While wearing it, take a Magic action to raise the hood and spend one charge to become Invisible for 1 hour. Lowering the hood (no action required) or removing the cloak ends the effect early.","Legendary","Required",false,{maxCharges:3});
+ add("Cloak of Invisibility","This attuned cloak has 3 charges, recovering 1d3 spent charges each dawn. While wearing it, take a Magic action to raise the hood and spend one charge to become Invisible for 1 hour. Lowering the hood (no action required) or removing the cloak ends the effect early.","Legendary","Required",false,{maxCharges:3,chargeRecharge:{at:"dawn",dice:3,add:0},chargeActions:{"Raise hood":1}});
  add("Sending Stones","The two stones have matching carvings. Touch either to cast Sending to the bearer of the other. If it has no bearer, you learn this immediately and no spell is cast. After either casts Sending, neither can do so until the next dawn. Destroying one makes the other nonmagical.","Uncommon");
  add("Sentinel Shield","This shield bears an eye emblem. While holding it, you have Advantage on Initiative rolls and Wisdom (Perception) checks.","Uncommon");
- add("Rod of Resurrection","This attuned rod has 5 charges. While holding it, expend 1 to cast Heal or 5 to cast Resurrection. It restores one expended charge at dawn each day. When its last charge is used, roll d20; on a 1 it vanishes in a harmless flash of light.","Legendary","Required",false,{maxCharges:5,spellChargeCosts:{Heal:1,Resurrection:5}});
+ add("Rod of Resurrection","This attuned rod has 5 charges. While holding it, expend 1 to cast Heal or 5 to cast Resurrection. It restores one expended charge at dawn each day. When its last charge is used, roll d20; on a 1 it vanishes in a harmless flash of light.","Legendary","Required",false,{maxCharges:5,spellChargeCosts:{Heal:1,Resurrection:5},chargeRecharge:{at:"dawn",dice:0,add:1},lastChargeVanish:true});
  const mi=rows.map(x=>{const v=fixes.get(x.n);if(!v||(x.src&&x.src!=="dmg-2024"))return x;if(seen.has(x.n))throw Error("Ambiguous revised family target "+x.n);seen.add(x.n);return {...x,...v};});
  if(seen.size!==fixes.size)throw Error("Missing targets: "+[...fixes.keys()].filter(n=>!seen.has(n)).join(", "));
  return {...items,"2024":{...items["2024"],mi}};
