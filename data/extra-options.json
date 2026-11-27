@@ -16872,14 +16872,8 @@
       },
       {
         "l": 3,
-        "n": "Primal Knowledge",
-        "d": "",
-        "fx": []
-      },
-      {
-        "l": 3,
         "n": "Totems",
-        "d": "",
+        "d": "Replaces Barbarian Primal Knowledge. Bonus Action places one Small totem (AC 10, HP 1) in a visible empty space within 10 feet; lasts 1 minute, until destroyed or replaced. At the end of each of your turns it pulses in a 30-foot emanation. Earthbind: enemies lose 10 feet Speed until your next turn ends. Primal Knowledge: allies may use Strength for Acrobatics, Intimidation, Perception, Stealth and Survival until your next turn ends; once per Long Rest, or restore the use by spending Rage without action. Tremor: allies are immune to Charmed/Frightened until your next turn ends; existing instances are suppressed until the affected ally's next turn ends. Wind Rush: allies gain 10 feet Speed until your next turn ends.",
         "fx": []
       },
       {
@@ -16949,7 +16943,14 @@
         "fx": []
       }
     ],
-    "alwaysPrepared": {}
+    "alwaysPrepared": {},
+    "featureSourceReview": {
+      "status": "drive_transcription_mechanics_reviewed",
+      "reference": "World of Warcraft.md",
+      "primaryVerified": false,
+      "runtimeVerified": false,
+      "note": "Totems verified as replacement, not additive; remaining inherited features not certified."
+    }
   },
   {
     "id": "book-wow-subclass-shaman-path-of-the-berserker",
