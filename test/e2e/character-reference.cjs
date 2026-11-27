@@ -630,6 +630,37 @@ const { chromium } = require("playwright");
       assert.deepEqual([result.parry,result.rally,result.precision,result.trip,result.riposte,result.used],["string","temp","string","damage","string",5]);
     }
     assert.equal(battleMasterAudit.legacy.choices.includes("ambush"),false);assert.equal(battleMasterAudit.revised.choices.includes("ambush"),true);
+    const psiAudit=await page.evaluate(()=>{
+      const make=(ed,cls,level,subclass,multi=[])=>pcEnsure(generateCharacter({seed:"PSIONIC-AUDIT",ed,cls,level,subclass,race:"Human",bg:"Sage",multi}));
+      const dual=ed=>make(ed,"Fighter",11,"Psi Warrior",[{cls:"Rogue",lv:9,subclass:"Soulknife"}]);
+      const run=ed=>{
+        const c=dual(ed);c.used={"sub:psionic-power":2};
+        const resources=pcResources(c),F=resources.find(x=>x.key==="psiFighter"),R=resources.find(x=>x.key==="psiRogue"),migration=[c.used.psiFighter,c.used.psiRogue];
+        c.used={};c.active={};
+        const field=actRun(c,"Protective Field"),strike=actRun(c,"Psionic Strike"),separate=[c.used.psiFighter,c.used.psiRogue||0];
+        actRun(c,"Psi-Bolstered Knack","roll");actRun(c,"Psi-Bolstered Knack","failure");const failed=c.used.psiRogue||0;
+        actRun(c,"Homing Strikes","roll");actRun(c,"Homing Strikes","success");const success=c.used.psiRogue;
+        actRun(c,"Psychic Whispers");const free=[c.used.psiWhispers,c.used.psiRogue];actRun(c,"Psychic Whispers");const paid=c.used.psiRogue;
+        actRun(c,"Telekinetic Movement");const freeMove=c.used.psiFighter;actRun(c,"Restore Telekinetic Movement");const restore=[c.used.psiFighter,c.used.psiMovement];
+        actRun(c,"Psi-Bolstered Knack","roll");pcRest(c,"short");const afterShort=[c.used.psiFighter,c.used.psiRogue,!!c.psiPending];
+        if(ed==="2014"){actRun(c,"Psi Warrior: Recover die");actRun(c,"Psi Warrior: Recover die");}
+        const afterRecovery=[c.used.psiFighter,c.used.psiRogue];
+        pcRest(c,"long");const afterLong=[c.used.psiFighter||0,c.used.psiRogue||0,c.used.psiWhispers||0];
+        return {pools:[F.max,R.max],dice:[psiDie(c,"Fighter"),psiDie(c,"Rogue")],migration,separate,failed,success,free,paid,freeMove,restore,afterShort,afterRecovery,afterLong,field:typeof field,strike:strike.kind,resistance:pcFx(c).res.has("psychic")};
+      };
+      const r=make("2024","Rogue",17,"Soulknife");r.used={};actRun(r,"Rend Mind");actRun(r,"Restore Rend Mind");const rend=[r.used.psiRogue,r.used.psiRend];
+      actRun(r,"Psychic Veil");const veil=!!r.active["Psychic Veil"];actRun(r,"Psychic Veil");actRun(r,"Restore Psychic Veil");const veilRestore=[r.used.psiRogue,r.used.psiVeil];
+      r.subclass="Thief";pcSubSync(r);const removed=!pcResources(r).some(x=>x.key==="psiRogue")&&!pcAbilities(r).some(x=>x.name==="Psychic Whispers");
+      return {legacy:run("2014"),revised:run("2024"),rend,veil,veilRestore,removed};
+    });
+    for(const result of [psiAudit.legacy,psiAudit.revised]){
+      assert.deepEqual(result.dice,[10,8]);assert.deepEqual(result.migration,[2,2]);assert.deepEqual(result.separate,[2,0]);
+      assert.equal(result.failed,0);assert.equal(result.success,1);assert.deepEqual(result.free,[1,1]);assert.equal(result.paid,2);assert.equal(result.freeMove,2);
+      assert.deepEqual(result.restore,[3,0]);assert.deepEqual(result.afterLong,[0,0,0]);assert.equal(result.field,"string");assert.equal(result.strike,"damage");assert.equal(result.resistance,true);
+    }
+    assert.deepEqual(psiAudit.revised.pools,[8,8]);assert.deepEqual(psiAudit.legacy.pools,[12,12]);
+    assert.deepEqual(psiAudit.revised.afterShort,[2,1,false]);assert.deepEqual(psiAudit.legacy.afterShort,[3,2,false]);assert.deepEqual(psiAudit.legacy.afterRecovery,[2,2]);
+    assert.deepEqual(psiAudit.rend,[3,0]);assert.equal(psiAudit.veil,true);assert.deepEqual(psiAudit.veilRestore,[4,0]);assert.equal(psiAudit.removed,true);
     const subclassPassiveAudit=await page.evaluate(()=>{
       const make=(ed,cls,level,subclass)=>pcEnsure(generateCharacter({seed:"PASSIVE-SUB",ed,cls,level,subclass,race:"Human",bg:"Sage"}));
       const old=make("2014","Druid",14,"Circle of the Land");old.active={};old.used={};actRun(old,"Nature's Sanctuary");const passive=!old.active["Nature's Sanctuary"]&&!old.used.wild;
