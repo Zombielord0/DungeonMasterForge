@@ -5975,34 +5975,41 @@
       {
         "l": 2,
         "n": "Bladesinger Styles",
-        "d": "See Sword Coast Adventurer’s Guide, p. 141."
+        "d": "Roleplaying styles correspond to weapon traditions: cat (lion longsword, leopard shortsword, red tiger scimitar), bird (eagle handaxe, raven war pick), snake (viper whip). Styles do not grant extra mechanical benefits; weapon proficiency comes from Training in War and Song."
       },
       {
         "l": 2,
         "n": "Bladesong",
-        "d": "See Sword Coast Adventurer’s Guide, p. 141."
+        "d": "Bonus Action for 1 minute, only without medium/heavy armor or shield. Ends if incapacitated, equipping such armor or shield, making a two-handed weapon attack, or dismissing freely. Gain INT bonus to AC and Constitution saves to maintain concentration (each minimum +1), +10 feet walking speed and advantage on Acrobatics. Supplied transcription uses proficiency bonus uses per Long Rest; verify original SCAG printing separately because this text includes later revisions."
       },
       {
         "l": 2,
         "n": "Training in War and Song (Bladesinging)",
-        "d": "See Sword Coast Adventurer’s Guide, p. 141."
+        "d": "Gain light armor proficiency, proficiency with one chosen one-handed melee weapon type, and Performance proficiency if not already proficient."
       },
       {
         "l": 6,
         "n": "Extra Attack",
-        "d": "See Sword Coast Adventurer’s Guide, p. 141."
+        "d": "The provided transcription grants two attacks per Attack action on your turn, allowing one to be replaced by a cantrip; original SCAG printing needs separate review for later revisions."
       },
       {
         "l": 10,
         "n": "Song of Defense",
-        "d": "See Sword Coast Adventurer’s Guide, p. 141."
+        "d": "While Bladesong active, when taking damage use Reaction and expend a spell slot to reduce damage by five times the slot level."
       },
       {
         "l": 14,
         "n": "Song of Victory",
-        "d": "See Sword Coast Adventurer’s Guide, p. 141."
+        "d": "While Bladesong active, add Intelligence modifier (minimum +1) to melee weapon attack damage."
       }
-    ]
+    ],
+    "featureSourceReview": {
+      "status": "drive_transcription_mechanics_reviewed",
+      "reference": "Sword Coast Adventurer's Guide.md",
+      "primaryVerified": false,
+      "runtimeVerified": false,
+      "note": "Transcription includes later revisions; original printing not certified."
+    }
   },
   {
     "id": "reference-vrgr-bard-college-of-spirits",
@@ -6018,29 +6025,35 @@
       {
         "l": 3,
         "n": "Guiding Whispers",
-        "d": "See Van Richten’s Guide to Ravenloft, p. 28."
+        "d": "Learn Guidance without counting against Bard cantrips known; range becomes 60 feet."
       },
       {
         "l": 3,
         "n": "Spiritual Focus",
-        "d": "See Van Richten’s Guide to Ravenloft, p. 28."
+        "d": "A candle, crystal ball, skull, spirit board or tarokka deck may focus Bard spells. At Bard 6, when casting a damaging or healing Bard spell through this focus, add 1d6 to one damage or healing roll."
       },
       {
         "l": 3,
         "n": "Tales from Beyond",
-        "d": "See Van Richten’s Guide to Ravenloft, p. 28."
+        "d": "While holding Spiritual Focus, spend a Bardic Inspiration use as Bonus Action and roll its die for one tale; keep until bestowed or Short/Long Rest. Action bestows on one visible creature within 30 feet (including self). Cannot reuse without rolling; rolling replaces prior tale and ends its effect. Saves use Bard spell DC. Outcomes: 1 Clever Animal: 10 min, add BI die to INT/WIS/CHA checks immediately after d20. 2 Renowned Duelist: melee spell attack, 2 BI dice + CHA Force on hit. 3 Beloved Friends: target and chosen visible creature within 5 ft of it gain BI die + CHA temporary HP. 4 Runaway: target may react to teleport up to 30 ft to visible empty space; may invite up to CHA modifier (min 0) visible creatures within 30 ft to use same Reaction. 5 Avenger: for 1 min, melee attackers that hit target take BI die Force. 6 Traveler: BI die + Bard level temporary HP; while they last +10 walking speed and +1 AC. 7 Beguiler: WIS save or 2 BI dice Psychic and Incapacitated until end of target's next turn. 8 Phantom: Invisible until next turn ends or hits with attack; that hit adds BI die Necrotic and frightens victim until victim's next turn ends. 9 Brute: chosen visible creatures within 30 ft of target make STR save, 3 BI dice Thunder and Prone on failure, half damage/no prone on success. 10 Dragon: target breathes 30-ft cone, DEX save, 4 BI dice Fire or half. 11 Angel: heal 2 BI dice + CHA and end one of Blinded, Deafened, Paralyzed, Petrified, Poisoned. 12 Mind-Bender: INT save or 3 BI dice Psychic and Stunned until end of next turn."
       },
       {
         "l": 6,
         "n": "Spirit Session",
-        "d": "See Van Richten’s Guide to Ravenloft, p. 28."
+        "d": "Conduct 1-hour ritual with Spiritual Focus, during rest if desired, with willing creatures numbering your proficiency bonus including you. Learn one Divination or Necromancy spell from any class, spell level no higher than participant count and a level you can cast. Counts as Bard spell without counting against spells known. Spell and ritual availability reset at start of Long Rest."
       },
       {
         "l": 14,
         "n": "Mystical Connection",
-        "d": "See Van Richten’s Guide to Ravenloft, p. 28."
+        "d": "When rolling Spirit Tales, roll twice and choose one outcome. On matching dice, choose any tale in the table."
       }
-    ]
+    ],
+    "featureSourceReview": {
+      "status": "drive_transcription_mechanics_reviewed",
+      "reference": "Van Richten's Guide to Ravenloft.md",
+      "primaryVerified": false,
+      "runtimeVerified": false
+    }
   },
   {
     "id": "reference-vrgr-warlock-the-undead",
@@ -6056,24 +6069,30 @@
       {
         "l": 1,
         "n": "Form of Dread",
-        "d": "See Van Richten’s Guide to Ravenloft, p. 30."
+        "d": "Bonus Action transforms for 1 minute, gains 1d10 + Warlock level temporary HP, fear immunity, and once on each own turn when hitting an attack may force target Wisdom save against spell DC or Frightened until your next turn ends. Proficiency bonus uses per Long Rest."
       },
       {
         "l": 6,
         "n": "Grave Touched",
-        "d": "See Van Richten’s Guide to Ravenloft, p. 30."
+        "d": "No need to eat, drink or breathe. Once on your turn on a damaging attack hit, optionally convert damage to necrotic; during Form of Dread roll one extra damage die for that necrotic damage."
       },
       {
         "l": 10,
         "n": "Necrotic Husk",
-        "d": "See Van Richten’s Guide to Ravenloft, p. 30."
+        "d": "Necrotic resistance, upgraded to immunity during Form of Dread. When reduced to 0 HP, Reaction to remain at 1 HP; chosen creatures within 30 feet take 2d10 + Warlock level necrotic damage, and you gain one exhaustion level. Recharge after 1d4 Long Rests."
       },
       {
         "l": 14,
         "n": "Spirit Projection",
-        "d": "See Van Richten’s Guide to Ravenloft, p. 30."
+        "d": "Action projects spirit for up to 1 hour with concentration; body unconscious, suspended; spirit copies stats but not possessions, effects/damage to either affect both. End by returning spirit or teleporting body to its space. Both resist B/P/S; Conjuration and Necromancy spells omit V/S and unpriced materials. Fly/hover at walking speed; move through objects/creatures as difficult terrain, take 1d10 Force when ending turn inside one. While also in Form of Dread, once on your turn heal half necrotic damage you deal to one creature. Once per Long Rest."
       }
-    ]
+    ],
+    "featureSourceReview": {
+      "status": "drive_transcription_mechanics_reviewed",
+      "reference": "Van Richten's Guide to Ravenloft.md",
+      "primaryVerified": false,
+      "runtimeVerified": false
+    }
   },
   {
     "id": "reference-tce-artificer",
@@ -9476,10 +9495,16 @@
       {
         "l": 17,
         "n": "Death's Friend",
-        "d": "See the sourcebook for complete rules."
+        "d": "Wails from the Grave may deal its Necrotic damage to both initial and secondary creatures. When rolling Initiative with no soul trinkets remaining, gain one for Tokens of the Departed."
       }
     ],
-    "page": 21
+    "page": 21,
+    "featureSourceReview": {
+      "status": "drive_transcription_mechanics_reviewed",
+      "reference": "Ravenloft_ The Horrors Within.md",
+      "primaryVerified": false,
+      "runtimeVerified": false
+    }
   },
   {
     "id": "reference-rthw-shadow-sorcery",
@@ -9600,10 +9625,16 @@
       {
         "l": 17,
         "n": "Magical Mastery",
-        "d": "See the sourcebook for complete rules."
+        "d": "Choose four Wizard spells, one at each spell level 6–9; always prepared. Each Cleric level may replace one with another Wizard spell of same level."
       }
     ],
-    "page": 8
+    "page": 8,
+    "featureSourceReview": {
+      "status": "drive_transcription_mechanics_reviewed",
+      "reference": "Arcana Unleashed.md",
+      "primaryVerified": false,
+      "runtimeVerified": false
+    }
   },
   {
     "id": "reference-au-arcane-archer",
@@ -9628,7 +9659,7 @@
       {
         "l": 3,
         "n": "Arcane Shot Options",
-        "d": "See the sourcebook for complete rules."
+        "d": "Choose from these options as granted by Arcane Shot. All saves use its DC; die means Arcane Shot Die. Banishing: 1 die Psychic extra, CHA save or banished (Incapacitated, Speed 0) until target's next turn ends, then return to original or nearest empty space. Beguiling: 2 dice Psychic extra, WIS save or Charmed by you or chosen ally within 30 ft of target until your next turn starts; ends if charmer attacks, damages or forces save. Bursting: after hit damage, target and all creatures within 10-ft emanation from it take 2 dice Force. Enfeebling: 2 dice Necrotic extra, CON save or Poisoned until target's next turn ends; subtract 1 die from each attack damage roll while so Poisoned. Grasping: 1 die Slashing extra, STR save or Restrained for 1 minute or until reused; target or adjacent creature can use Action for Athletics against shot DC to remove. Piercing: no attack roll, 30-ft-by-1-ft line ignoring cover; DEX save for normal hit damage plus 2 dice Piercing, half on success. Seeking: no attack roll, choose creature seen in last minute, ammunition navigates corners and ignores Half/Three-Quarters Cover; within long range DEX save for normal hit damage + 2 dice Force and learn location, half only on success; beyond range disappears. Shadow: 1 die Psychic extra, WIS save or Blinded through target's next turn."
       },
       {
         "l": 7,
@@ -9656,7 +9687,13 @@
         "d": "Actions: opportunity attack. See the sourcebook for complete rules."
       }
     ],
-    "page": 9
+    "page": 9,
+    "featureSourceReview": {
+      "status": "drive_transcription_mechanics_reviewed",
+      "reference": "Arcana Unleashed.md",
+      "primaryVerified": false,
+      "runtimeVerified": false
+    }
   },
   {
     "id": "reference-au-warrior-of-the-mystic-arts",
@@ -9681,20 +9718,26 @@
       {
         "l": 6,
         "n": "Mystic Focus",
-        "d": "See the sourcebook for complete rules."
+        "d": "Expend a spell slot without action to recover expended Focus Points equal to its level. When completing Short Rest or using Uncanny Metabolism, recover one expended slot by paying Focus Points: level 1 costs 2 (Monk 6+), level 2 costs 3 (Monk 7+), level 3 costs 5 (Monk 13+), level 4 costs 6 (Monk 19+). No slots above 4."
       },
       {
         "l": 11,
         "n": "Focused Strike",
-        "d": "See the sourcebook for complete rules."
+        "d": "Whenever you use Stunning Strike, regardless of save outcome, target has disadvantage on saves against your spells until your next turn starts."
       },
       {
         "l": 17,
         "n": "Improved Mystic Fighting Style",
-        "d": "See the sourcebook for complete rules."
+        "d": "When using Flurry of Blows, replace two Unarmed Strikes with casting one of your level 1 or 2 Sorcerer spells whose casting time is an Action; cast within the same Bonus Action."
       }
     ],
-    "page": 11
+    "page": 11,
+    "featureSourceReview": {
+      "status": "drive_transcription_mechanics_reviewed",
+      "reference": "Arcana Unleashed.md",
+      "primaryVerified": false,
+      "runtimeVerified": false
+    }
   },
   {
     "id": "reference-au-vestige-patron",
@@ -9859,7 +9902,7 @@
       {
         "l": 10,
         "n": "Harvest Undead",
-        "d": "See the sourcebook for complete rules."
+        "d": "Immediately after damage causes you to become Bloodied without reaching 0 HP, use Reaction to reduce a visible Undead under your control to 0 HP and immediately heal HP equal to Wizard level."
       },
       {
         "l": 14,
@@ -9867,7 +9910,13 @@
         "d": "Dice: 1d6. Distances: 60 feet, 10-foot. See the sourcebook for complete rules."
       }
     ],
-    "page": 17
+    "page": 17,
+    "featureSourceReview": {
+      "status": "drive_transcription_mechanics_reviewed",
+      "reference": "Arcana Unleashed.md",
+      "primaryVerified": false,
+      "runtimeVerified": false
+    }
   },
   {
     "id": "reference-au-transmuter",
@@ -9989,7 +10038,7 @@
       {
         "l": 3,
         "n": "Bonus Proficiencies",
-        "d": "See the sourcebook for complete rules."
+        "d": "Gain Performance proficiency; if already proficient, choose one skill from the level-1 Monk skill list instead. Gain Brewer's Supplies proficiency if not already proficient."
       },
       {
         "l": 3,
@@ -10037,7 +10086,13 @@
         "d": "Combine two recipes in one drink."
       }
     ],
-    "page": null
+    "page": null,
+    "featureSourceReview": {
+      "status": "drive_transcription_mechanics_reviewed",
+      "reference": "World of Warcraft.md",
+      "primaryVerified": false,
+      "runtimeVerified": false
+    }
   },
   {
     "id": "reference-wow-oath-of-the-holy",
@@ -16733,14 +16788,20 @@
       {
         "l": 10,
         "n": "Primordial Bond",
-        "d": "See the sourcebook for complete rules."
+        "d": "While Rage is active, resist Cold, Fire and Lightning damage. This option is identified in the supplied source as a Barbarian subclass used by the Shaman build; do not interpret it as a separate printed Shaman class feature."
       },
       {
         "l": 14,
         "n": "Elemental Overload",
         "d": "Distances: 10 feet, 30 feet. See the sourcebook for complete rules."
       }
-    ]
+    ],
+    "featureSourceReview": {
+      "status": "drive_transcription_mechanics_reviewed",
+      "reference": "World of Warcraft.md",
+      "primaryVerified": false,
+      "runtimeVerified": false
+    }
   },
   {
     "id": "book-wow-subclass-shaman-path-of-the-spiritual-guardian",
