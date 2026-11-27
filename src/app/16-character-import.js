@@ -158,6 +158,26 @@ function impGear(ed, raw) {
   if (fz) { const g = G.find(x => x.n === fz.name); if (g) return { g, n: g.n, qty }; }
   return { g: null, n: own, qty };
 }
+/* a magic item by its exact name (any case; letters only), the free rules first, then the extra books (owner, 2026-11-27) */
+function impMagic(ed, name) {
+  itLoad(); const k = impLetters(name); if (k.length < 4) return null;
+  const L = (IT.data[ed === "2014" ? "2014" : "2024"] || []).filter(x => x.kind === "magic");
+  return L.find(x => !x.src && impLetters(x.n) === k) || L.find(x => x.src && impLetters(x.n) === k) || null;
+}
+/* feats named in a sheet's features text, one per line ("Alert", "• Lucky: …", "Feat: War Caster (PHB)"). Exact names only,
+   from the built-in, book and campaign feats; fighting styles are left to the class, and a background's own feat isn't
+   added twice (owner, 2026-11-27) */
+function impFeatsFromText(ed, text, bg, D) {
+  const L = featList(ed).filter(F => F[4] !== "f"), bgFeat = ed === "2024" ? ((bgInfo(ed, bg) || {}).feat || "") : "", out = [];
+  String(text || "").split(/\n/).forEach(line => {
+    const t = line.replace(/^[\s\-•*·]+/, "").replace(/^feats?\s*[:\-–—]\s*/i, "").split(/\s*(?::|\s[-–—]\s|\(|\.|,)/)[0].trim();
+    if (!t || t.length > 40) return;
+    const k = impLetters(t), F = L.find(f => impLetters(f[0]) === k);
+    if (!F || F[0] === bgFeat || out.some(b => b.n === F[0])) return;
+    out.push({ n: F[0], l: 1 }); D.report.matched.push(`Feat: ${F[0]}`);
+  });
+  return out;
+}
 // spells: an exact name (any case) in this rule set, then the other one
 // spells: exact letters first, then a name that starts a built-in name, then up to 2 letters different (names of 6+ letters)
 const impLetters = s => String(s || "").toLowerCase().replace(/\([^)]*\)/g, "").replace(/[^a-z]/g, "");
@@ -481,6 +501,8 @@ function importBuild(D) {
     Object.assign(c, { id: uid("pc"), kit: [], kitMoved: true, goldAdded: true, inv: X.inv || [], coins: X.coins || { cp: 0, sp: 0, ep: 0, gp: 0, pp: 0 }, prepared: X.prepared || [], importedFrom: { app: D.src, at: Date.now() }, ...(D.mwId ? { mwId: D.mwId } : {}) });
     ["align", "xp", "player", "trait", "ideal", "bond", "flaw", "notes", "langs", "toolsChosen", "look"].forEach(k => { if (X[k] !== undefined && X[k] !== "") c[k] = X[k]; });
     if (X.fightStyles && X.fightStyles.length) c.fightStyles = X.fightStyles;
+    /* the feats the file names, kept on the character so a level-up or rebuild keeps them (2026-11-27) */
+    if (D.opts.bonusFeats && D.opts.bonusFeats.length) c.bonusFeats = D.opts.bonusFeats.map(b => ({ ...b }));
     if (X.conds && X.conds.length) c.conds = X.conds;
     if (X.death) c.death = X.death;
     if (+X.acBonus) c.acBonus = +X.acBonus; /* the file's misc AC bonus (Fifth Edition Character Sheet) */
@@ -587,6 +609,7 @@ function pdfImport(F, ed) {
   let bg = bText ? bgList(ed).find(k => impSame(k, bText)) || (impHave("background", bText) || {}).name || null : null;
   if (bg) D.report.matched.push(`Background: ${bg}`);
   else if (bText) { bg = impCut(bText, 60); D.homebrew.push({ id: uid("hb"), kind: "background", src: PDF_SRC, ed, name: bg, desc: "Imported from a PDF; add its feature here.", skills: [], feat: "", gear: "", fx: [] }); D.report.made.push(`${bg} (background, name only)`); }
+  const bonusFeats = impFeatsFromText(ed, feat, bg, D);
   // scores, saves, skills
   for (const a of AB) { const v = num(a.toUpperCase()); if (!(v > 0)) return { error: "This sheet's ability scores aren't filled in." }; D.final[a] = v; }
   D.appSaves = Object.entries(PDF_SAVES).filter(([n]) => on(`Check Box ${n}`)).map(([, a]) => a);
@@ -613,6 +636,11 @@ function pdfImport(F, ed) {
     let note = ""; const pm = t.match(/^(.*?)\s*\((.*)\)\s*$/); if (pm && pm[1]) { t = pm[1]; note = pm[2]; }
     const { g, n, qty } = impGear(ed, t);
     const ex = inv.find(i => i.n.toLowerCase() === n.toLowerCase()); if (ex) { if (eq === null) ex.qty += qty; return; }
+    const mg = !g && impMagic(ed, n); /* "Bag of Holding", "Wand of Magic Missiles": the item list's own entry, with its rules */
+    if (mg) {
+      inv.push({ id: uid("i"), ref: mg.id, itemRules: inventoryRulesSnapshot(mg), n: mg.n, qty, w: mg.w || 0, att: !!mg.att, attuned: false, value: mg.c, note: impCut(note, 300) || `${rarName(mg)} ${String(mg.cat || "").toLowerCase()}`.trim(), eq: false });
+      D.report.matched.push(`Magic item: ${mg.n}`); return;
+    }
     inv.push({ id: uid("i"), ref: g ? g.id : undefined, n: impCut(n, 80), qty, w: impW(g), att: false, attuned: false, value: g ? g.c : undefined, note: impCut(note, 300), eq: eq === null ? eqIsWeapon(g) || eqIsArmor(g) : eq });
   };
   [get("Equipment"), get("Treasure")].join("\n").split(/\n/).forEach(l => addGear(l, null));
@@ -626,7 +654,7 @@ function pdfImport(F, ed) {
   if (get("Features and Traits") || get("Feat+Traits")) D.report.dropped.push("Features and traits text (saved in notes)");
   if ("CHARACTER IMAGE" in fields || "CHARACTERIMAGE" in N) D.report.dropped.push("Portrait not imported");
   D.opts = { seed: impCut(`${get("CharacterName")}|${get("ClassLevel")}`, 120), name: impCut(get("CharacterName"), 80) || "Imported character", ed, bonus: "fixed", method: "array", cls: main.cls, level: main.lv, subclass: main.subclass || "none", race, sub, bg: bg || undefined,
-    multi: more.length ? more.map(x => ({ cls: x.cls, lv: x.lv, subclass: x.subclass })) : undefined, keepSkills, keepExpert };
+    multi: more.length ? more.map(x => ({ cls: x.cls, lv: x.lv, subclass: x.subclass })) : undefined, keepSkills, keepExpert, bonusFeats: bonusFeats.length ? bonusFeats : undefined };
   impGenderSet(D, impGender(Object.fromEntries(Object.entries(fields).filter(([k]) => /gender|^\s*sex\s*$|pronoun/i.test(k))),
     ["Backstory", "PersonalityTraits", "Ideals", "Bonds", "Flaws", "Allies"].map(get)));
   const a = get("Alignment");
