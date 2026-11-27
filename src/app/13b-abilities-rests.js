@@ -185,7 +185,7 @@ function pcResources(c) {
   if (tr("Giant Ancestry")) add("giant", "Giant Ancestry", prof, "long");
   if(ed==="2024"&&characterSubclassLevel(c,"Barbarian","Path of the Berserker")>=14)add("berserkerPresence","Intimidating Presence",1,"long");
   if(ed==="2024"&&characterSubclassLevel(c,"Sorcerer","Draconic Sorcery")>=14)add("draconicWings","Dragon Wings",1,"long");
-  for(const r of psionicPools(c))add(r.key,r.name,r.max,r.recharge);
+  for(const r of psionicPools(c))if(!R.some(x=>x.key===r.key))add(r.key,r.name,r.max,r.recharge);
   if(companionLevel(c,"drake")>=3)add("drakeSummon","Drake summon",1,"long");
   if(companionLevel(c,"steel")>=3)add("steelRepair","Steel Defender repair",3,"long");
   const subSeen=new Set();
@@ -884,7 +884,7 @@ const ACT = {
   "Psi-Powered Leap":{kind:"instant",use:()=> "Fly at twice your Speed until the end of this turn; resolve movement manually."},
   "Psi Warrior: Guarded Mind":{kind:"instant",use:()=> "End all effects giving you Charmed or Frightened; confirm and remove conditions at the table."},
   "Bulwark of Force":{kind:"instant",use:c=> "Choose up to "+Math.max(1,c.mods.int)+" eligible creatures; Half Cover for 1 minute or until Incapacitated."},
-  "Telekinetic Master":{kind:"instant",use:()=> "Record the free Telekinesis casting and Concentration manually; one bonus-action weapon attack on your turns."},
+  "Telekinetic Master":{kind:"instant",dialog:c=>castDialog(c,edOf(c),"Telekinesis")},
   "Restore Telekinetic Movement":{kind:"instant",use:c=>psiRestore(c,"Fighter","psiMovement")},
   "Restore Psi-Powered Leap":{kind:"instant",use:c=>psiRestore(c,"Fighter","psiLeap")},
   "Restore Bulwark of Force":{kind:"instant",use:c=>psiRestore(c,"Fighter","psiBulwark")},
