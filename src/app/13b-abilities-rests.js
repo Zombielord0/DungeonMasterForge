@@ -234,6 +234,7 @@ function pcResources(c) {
   if(ed==="2024"&&clsLv(c,"Artificer")>=1)add("tinkersMagic","Tinker's Magic",Math.max(1,m.int),"long");
   if(ed==="2024"&&clsLv(c,"Artificer")>=2)add("replicateCreation","Replicate Magic Item (rest creation)",artificerPlanLimits("2024",clsLv(c,"Artificer")).active,"long");
   if(ed==="2024"&&clsLv(c,"Artificer")>=6){add("replicateDrain","Drain Magic Item",1,"long");add("replicateTransmute","Transmute Magic Item",1,"long");}
+  if(clsLv(c,"Artificer")>=11)add("artificerStoreSetup","Spell-Storing Item setup",1,"long");
   const stored=artificerStoredSpell(c);if(stored)add("artificerStored","Stored "+stored.spell.n+" · "+stored.item.n,stored.max,"never");
   if (has("Arcane Recovery")) add("arcrec", "Arcane Recovery", 1, "long");
   if (has("Stroke of Luck")) add("luck", "Stroke of Luck", 1, "short");
@@ -347,7 +348,7 @@ function pcAbilities(c) {
   if(artificerInfusionLevel(c)>=20)add("Soul of Artifice survival","Reaction","At 0 HP without outright death, end an active infusion to drop to 1 HP instead.");
   if(ed==="2024"&&clsLv(c,"Artificer")>=20)add("Cheat Death","At 0 HP","Disintegrate selected Uncommon or Rare replicas to regain 20 HP each. Confirm no outright death.");
   if(clsLv(c,"Artificer")>=11){
-    add("Store spell in item","After Long Rest","Choose a qualifying weapon or spellcasting focus in Features, then store an eligible Artificer spell. Confirm long-rest timing; replacing the stored spell ends the previous effect.");
+    add("Store spell in item","After Long Rest","Choose a qualifying weapon or spellcasting focus in Features, then store an eligible Artificer spell. Confirm long-rest timing; replacing the stored spell ends the previous effect.","artificerStoreSetup");
     const stored=artificerStoredSpell(c);if(stored)add("Spell-Storing Item","Action",`${stored.item.n}: ${stored.spell.n}. The holder produces its effects using your spellcasting ability; the holder maintains any required Concentration. No spell slot used. Resolve target, spell effects and concentration manually.`,"artificerStored");
   }
   if (has("Arcane Recovery")) add("Arcane Recovery", "Short rest", `Recover spell slots with a combined level up to ${Math.ceil(CLV("Wizard") / 2)} (none above 5th).`, "arcrec");
@@ -687,11 +688,12 @@ function artificerStoredSpell(c){
   return item&&artificerStoreSpellEligible(s.ed,clsLv(c,"Artificer"),spell)?{item,spell,max:s.max}:null;
 }
 function artificerStore(c,name){
+  if(+c.used?.artificerStoreSetup>=1)return "You already stored a spell since the last Long Rest.";
   if(!artificerStoreOptions(c).some(([n])=>n===name))return "Choose an eligible Artificer spell.";
   const iid=choiceOf(c,"Spell-Storing Item Object")[0];
   if(!artificerStoreItemOptions(c).some(([id])=>id===iid))return "Select a qualifying inventory object in Features first.";
   const max=Math.max(2,2*Math.trunc(+c.mods.int||0));
-  c.artificerStored={ed:edOf(c),name,iid,max};c.used=c.used||{};c.used.artificerStored=0;
+  c.artificerStored={ed:edOf(c),name,iid,max};c.used=c.used||{};c.used.artificerStored=0;c.used.artificerStoreSetup=1;
   return "Stored "+name+" in the selected object with "+max+" uses. Previous storage ends. Confirm the object and Long Rest eligibility.";
 }
 function channelDivinityAction(owner){
@@ -757,7 +759,7 @@ function artificerInfusionKnown(c,name){
 }
 function artificerInfusionObject(c,i,name){
  const spec=LEGACY_INFUSION_CONTRACTS[name],ref=inventoryCatalogItem(i,"2014");
- if(!spec||!i?.id||+i.qty!==1||i.artificerOrigin||i.artificerInfusion||ref?.kind==="magic"||!ref)return false;
+ if(!spec||!i?.id||+i.qty!==1||i.artificerOrigin||i.artificerInfusion||ref?.kind!=="gear"||itemRulesIncomplete(ref))return false;
  const w=eqWeaponOf(i,"2014"),props=w?.st?.find(x=>x[0]==="Properties")?.[1]||"";
  if(spec.kind==="armor")return !!eqArmorOf(i,"2014");
  if(spec.kind==="focus")return /\b(rod|staff|wand)\b/i.test(i.n);
@@ -951,7 +953,7 @@ const ACT = {
  "Drain Magic Item":{kind:"instant",choices:artificerDrainOptions,use:artificerDrain},
  "Transmute Magic Item":{kind:"instant",choices:artificerTransmuteOptions,use:artificerTransmute},
  "Charge Magic Item":{kind:"instant",choices:artificerChargeOptions,use:artificerCharge},
-  "Store spell in item":{kind:"instant",choices:artificerStoreOptions,use:artificerStore},
+  "Store spell in item":{kind:"instant",noCost:true,choices:artificerStoreOptions,use:artificerStore},
   "Spell-Storing Item":{kind:"instant",use:c=>{const x=artificerStoredSpell(c);return x?x.item.n+" produces "+x.spell.n+" at its base level (Artificer Intelligence; DC "+(8+c.prof+c.mods.int)+", spell attack "+sgn(c.prof+c.mods.int)+"). The holder maintains Concentration if required. Resolve the effects manually.":"No eligible stored spell.";}},
   "Cunning Strike":{kind:"instant",choices:cunningStrikeOptions,use:(c,ch)=>{if(!ch)return "Choose an eligible effect.";const critical=ch.endsWith(":crit"),ids=ch.replace(/:crit$/,"").split("+"),p=cunningStrikePlan(clsLv(c,"Rogue"),ids,hasPoisonersKit(c),critical);if(!p)return "Invalid Cunning Strike.";const n=p.dice?rollDice(p.dice+"d6").total:0;return "Cunning Strike: "+n+" extra damage (weapon damage type), "+p.cost+" dice forgone; save DC "+(8+c.mods.dex+c.prof)+". "+p.effects.join(" ");}},
   "Brutal Strike":{kind:"instant",choices:brutalStrikeOptions,use:(c,ch)=>{if(!isActive(c,"Reckless Attack")||!brutalStrikeOptions(c).some(([id])=>id===ch))return "Requires an eligible Reckless Attack; forgo Advantage before rolling.";const critical=ch.endsWith(":crit"),n=(clsLv(c,"Barbarian")>=17?2:1)*(critical?2:1);return rollMsg("Brutal Strike",n+"d10",ch.replace(/:crit$/,"").replaceAll("+"," and ")+"; resolve target and movement effects manually.");}},
