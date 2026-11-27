@@ -67,7 +67,7 @@ function pcRecompute(c) {
       for(const [name,die] of [["Psychic Blade","1d6"],["Psychic Blade (bonus action)","1d4"]])c.attacks.push({name,hit:bm+c.prof,die,mod:bm,dmg:die+sgn(bm),type:"psychic",prof:true,melee:true,ab,alt:"thrown 60 ft"+(edOf(c)==="2024"?"; Vex":"")});
     }
   }
-  if (c.spell) { const b = c.spell.bonus || 0; for (const s of [c.spell,...(c.spell.others || [])]) { if (!AB.includes(s.ab)) continue; s.dc = 8 + c.prof + m[s.ab] + b; s.atk = c.prof + m[s.ab] + b; } }
+  if (c.spell) { const b = c.spell.bonus || 0; for (const s of [c.spell,...(c.spell.others || [])]) { if (!AB.includes(s.ab)) continue; s.dc = 8 + c.prof + m[s.ab] + b; s.atk = c.prof + m[s.ab] + b + artificerFocusAttackBonus(c); } }
   pcACApply(c);
 }
 function pcLevelTo(c, lv) {
