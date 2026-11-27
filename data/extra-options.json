@@ -10154,17 +10154,17 @@
       {
         "l": 6,
         "n": "Enhancing a Magical Beverage",
-        "d": "Timing: 8 hours. See the sourcebook for complete rules."
+        "d": "When creating a magical beverage, spend 1 Focus Point to extend its duration to 8 hours."
       },
       {
         "l": 6,
         "n": "Leap to Your Feet",
-        "d": "Conditions: Prone. Distances: 5 feet. See the sourcebook for complete rules."
+        "d": "Standing from Prone costs only 5 feet of movement."
       },
       {
         "l": 6,
         "n": "Redirect Attack",
-        "d": "Distances: 5 feet. See the sourcebook for complete rules."
+        "d": "When an enemy misses you with a melee attack, use your Reaction and spend 1 Focus Point to cause the attack to hit a different creature you can see within 5 feet of you, excluding the attacker."
       },
       {
         "l": 6,
@@ -10179,7 +10179,7 @@
       {
         "l": 11,
         "n": "Wizened Brewer",
-        "d": "Actions: Opportunity Attack. See the sourcebook for complete rules."
+        "d": "Add beverage choices: Blue Lightning—when taking a Reaction other than an Opportunity Attack or casting a spell, include an Unarmed Strike; Drunkard's Luck—gain Heroic Inspiration if you lack it, and grant yourself Heroic Inspiration when making an ability check or saving throw without it; Stumbling Monk—after taking a Bonus Action other than Patient Defense, you can also use Patient Defense."
       },
       {
         "l": 17,
@@ -10218,7 +10218,7 @@
       {
         "l": 3,
         "n": "Oath of the Holy Spells",
-        "d": "Spells: Cure Wounds, Healing Word, Lesser Restoration, Prayer of Healing, Dispel Magic, Mass Healing Word, Aura of Life, Death Ward, Greater Restoration, Mass Cure Wounds. See the sourcebook for complete rules."
+        "d": "These spells are always prepared upon reaching the indicated class level: 3: Cure Wounds, Healing Word; 5: Lesser Restoration, Prayer of Healing; 9: Dispel Magic, Mass Healing Word; 13: Aura of Life, Death Ward; 17: Greater Restoration, Mass Cure Wounds."
       },
       {
         "l": 7,
@@ -10236,7 +10236,13 @@
         "d": "Your aura sheds sunlight and restores hit points to bloodied allies."
       }
     ],
-    "page": null
+    "page": null,
+    "featureSourceReview": {
+      "status": "drive_transcription_mechanics_reviewed",
+      "reference": "World of Warcraft.md",
+      "primaryVerified": false,
+      "runtimeVerified": false
+    }
   },
   {
     "id": "reference-wow-discipline-domain",
@@ -10256,7 +10262,7 @@
       {
         "l": 3,
         "n": "Discipline Spells",
-        "d": "Spells: Arcane Vigor, Guiding Bolt, Magic Weapon, Shield of Faith, Prayer of Mending, Protection from Energy, Guardian of Faith, Stoneskin, Circle of Power, Destructive Wave. See the sourcebook for complete rules."
+        "d": "These spells are always prepared upon reaching the indicated class level: 3: Arcane Vigor, Guiding Bolt, Magic Weapon, Shield of Faith; 5: Prayer of Mending, Protection from Energy; 7: Guardian of Faith, Stoneskin; 9: Circle of Power, Destructive Wave."
       },
       {
         "l": 3,
@@ -10271,10 +10277,16 @@
       {
         "l": 17,
         "n": "Ultimate Penitence",
-        "d": "Distances: 30 feet. See the sourcebook for complete rules."
+        "d": "Before making the Holy Bolt attack, you may teleport up to 30 feet to an unoccupied space you can see. When using Holy Bolt, you can expend a spell slot as part of that Bonus Action to fire additional bolts equal to the slot's level; make a separate attack for each bolt and distribute them among eligible targets."
       }
     ],
-    "page": null
+    "page": null,
+    "featureSourceReview": {
+      "status": "drive_transcription_mechanics_reviewed",
+      "reference": "World of Warcraft.md",
+      "primaryVerified": false,
+      "runtimeVerified": false
+    }
   },
   {
     "id": "reference-wow-shadow-domain",
@@ -10294,7 +10306,7 @@
       {
         "l": 3,
         "n": "Shadow Spells",
-        "d": "Spells: Crown of Madness, Dissonant Whispers, Mind Spike, Shadow Word: Pain, Summon Undead, Vampiric Touch, Evard's Black Tentacles, Psychic Horror, Dominate Person, Void Eruption. See the sourcebook for complete rules."
+        "d": "These spells are always prepared upon reaching the indicated class level: 3: Crown of Madness, Dissonant Whispers, Mind Spike, Shadow Word: Pain; 5: Summon Undead, Vampiric Touch; 7: Evard's Black Tentacles, Psychic Horror; 9: Dominate Person, Void Eruption."
       },
       {
         "l": 3,
@@ -10309,10 +10321,16 @@
       {
         "l": 17,
         "n": "Vampiric Embrace",
-        "d": "Dice: 1d6. Distances: 30 feet. See the sourcebook for complete rules."
+        "d": "While Shadowform is active, whenever you roll the additional 1d6 spell damage it grants, choose one creature within 30 feet to regain Hit Points equal to that roll."
       }
     ],
-    "page": null
+    "page": null,
+    "featureSourceReview": {
+      "status": "drive_transcription_mechanics_reviewed",
+      "reference": "World of Warcraft.md",
+      "primaryVerified": false,
+      "runtimeVerified": false
+    }
   },
   {
     "id": "reference-wow-swashbuckler",
@@ -10337,20 +10355,26 @@
       {
         "l": 9,
         "n": "Panache",
-        "d": "Conditions: Charmed. Actions: opportunity attack. Distances: 30 feet. See the sourcebook for complete rules."
+        "d": "Gain Cunning Strike options: Goad (1d6), target makes a Wisdom save or has Disadvantage on attacks against creatures other than you and cannot make Opportunity Attacks against others until the end of its next turn; Awe (3d6), creatures of your choice within 30 feet make Wisdom saves or become Charmed by you until the end of your next turn. Use the Cunning Strike DC."
       },
       {
         "l": 13,
         "n": "Dashing Strikes",
-        "d": "Dice: 1d6. Distances: 30 feet. See the sourcebook for complete rules."
+        "d": "Gain Cunning Strike options: Invigorate (2d6), choose a creature you can see within 30 feet; it adds 1d6 to each attack roll and saving throw until the end of its next turn; Parrying Stance (2d6), roll 1d6 and add the result to your AC until the start of your next turn."
       },
       {
         "l": 17,
         "n": "Master Duelist",
-        "d": "Distances: 5 feet. See the sourcebook for complete rules."
+        "d": "Immediately after using Sneak Attack, make another attack against the same target if you are within 5 feet of it and no other creatures are within 5 feet of you."
       }
     ],
-    "page": null
+    "page": null,
+    "featureSourceReview": {
+      "status": "drive_transcription_mechanics_reviewed",
+      "reference": "World of Warcraft.md",
+      "primaryVerified": false,
+      "runtimeVerified": false
+    }
   },
   {
     "id": "reference-wow-path-of-the-spiritual-guardian",
@@ -10403,7 +10427,7 @@
       {
         "l": 6,
         "n": "Echo of the Elements",
-        "d": "Spells: Elementalism, Daylight, Water Walk, Wind Wall. See the sourcebook for complete rules."
+        "d": "Learn Elementalism. Expend a use of Rage to cast Daylight, Water Walk, or Wind Wall using Wisdom as your spellcasting ability."
       },
       {
         "l": 10,
@@ -10413,7 +10437,7 @@
       {
         "l": 14,
         "n": "Elemental Overload",
-        "d": "Distances: 10 feet, 30 feet. See the sourcebook for complete rules."
+        "d": "Icefury, regardless of hit or miss, subtracts half the rolled amount (round down) from the target's next damage roll before the start of your next turn. Lava Burst causes its target and enemies within 10 feet of it to begin burning, regardless of the saving throw. Lightning Bolt, regardless of the initial saving throw, jumps to another creature you can see within 30 feet of the first target; the second creature makes a Dexterity save, taking Lightning damage equal to the original roll on failure or half on success."
       }
     ],
     "page": null,
@@ -10437,7 +10461,7 @@
       {
         "l": 3,
         "n": "Alchemist Spells",
-        "d": "Spells: Healing Word, Ray of Sickness, Flaming Sphere, Melf's Acid Arrow, Gaseous Form, Mass Healing Word, Death Ward, Vitriolic Sphere, Cloudkill, Raise Dead. See the sourcebook for complete rules."
+        "d": "These spells are always prepared upon reaching the indicated class level: 3: Healing Word, Ray of Sickness; 5: Flaming Sphere, Melf's Acid Arrow; 9: Gaseous Form, Mass Healing Word; 13: Death Ward, Vitriolic Sphere; 17: Cloudkill, Raise Dead."
       },
       {
         "l": 3,
@@ -10496,22 +10520,22 @@
       {
         "l": 3,
         "n": "Armorer Spells",
-        "d": "Spells: Magic Missile, Thunderwave, Mirror Image, Shatter, Hypnotic Pattern, Lightning Bolt, Fire Shield, Greater Invisibility, Passwall, Wall of Force. See the sourcebook for complete rules."
+        "d": "These spells are always prepared upon reaching the indicated class level: 3: Magic Missile, Thunderwave; 5: Mirror Image, Shatter; 9: Hypnotic Pattern, Lightning Bolt; 13: Fire Shield, Greater Invisibility; 17: Passwall, Wall of Force."
       },
       {
         "l": 3,
         "n": "Dreadnaught",
-        "d": "Dice: 1d10. Distances: 10 feet, 5 feet. Timing: 1 minute. See the sourcebook for complete rules."
+        "d": "Force Demolisher is a Simple Melee weapon with Reach dealing 1d10 Force. On hitting a target at least one size smaller than you, optionally push or pull it up to 10 feet. Giant Stature: as a Bonus Action for 1 minute, your reach increases by 5 feet and you become Large if smaller (including worn equipment), provided sufficient room exists. Uses equal Intelligence modifier (minimum 1), restored on a Long Rest. Model weapon attacks and damage may use Intelligence; change models at a Short or Long Rest using Smith's Tools."
       },
       {
         "l": 3,
         "n": "Guardian",
-        "d": "Dice: 1d8. See the sourcebook for complete rules."
+        "d": "Thunder Pulse is a Simple Melee weapon dealing 1d8 Thunder. On a hit, the target has Disadvantage on attacks against creatures other than you until the start of your next turn. Defensive Field: while Bloodied, use a Bonus Action to gain Temporary Hit Points equal to Artificer level; these disappear when you doff the armor. Model weapon attacks and damage may use Intelligence; change models at a Short or Long Rest using Smith's Tools."
       },
       {
         "l": 3,
         "n": "Infiltrator",
-        "d": "Dice: 1d6. Distances: 90 feet, 300 feet, 5 feet. See the sourcebook for complete rules."
+        "d": "Lightning Launcher is a Simple Ranged weapon (90/300 feet) dealing 1d6 Lightning; once per turn on your turn when you hit, deal an extra 1d6 Lightning. Speed increases by 5 feet and you have Advantage on Dexterity (Stealth) checks (cancels armor-imposed Disadvantage). Model weapon attacks and damage may use Intelligence; change models at a Short or Long Rest using Smith's Tools."
       },
       {
         "l": 3,
@@ -10555,7 +10579,7 @@
       {
         "l": 3,
         "n": "Artillerist Spells",
-        "d": "Spells: Shield, Thunderwave, Scorching Ray, Shatter, Fireball, Wind Wall, Ice Storm, Wall of Fire, Cone of Cold, Wall of Force. See the sourcebook for complete rules."
+        "d": "These spells are always prepared upon reaching the indicated class level: 3: Shield, Thunderwave; 5: Scorching Ray, Shatter; 9: Fireball, Wind Wall; 13: Ice Storm, Wall of Fire; 17: Cone of Cold, Wall of Force."
       },
       {
         "l": 3,
@@ -10609,7 +10633,7 @@
       {
         "l": 3,
         "n": "Battle Smith Spells",
-        "d": "Spells: Heroism, Shield, Shining Smite, Warding Bond, Aura of Vitality, Conjure Barrage, Aura of Purity, Fire Shield, Banishing Smite, Mass Cure Wounds. See the sourcebook for complete rules."
+        "d": "These spells are always prepared upon reaching the indicated class level: 3: Heroism, Shield; 5: Shining Smite, Warding Bond; 9: Aura of Vitality, Conjure Barrage; 13: Aura of Purity, Fire Shield; 17: Banishing Smite, Mass Cure Wounds."
       },
       {
         "l": 3,
@@ -16674,7 +16698,7 @@
       {
         "l": 3,
         "n": "Discipline Spells",
-        "d": "Spells: Arcane Vigor, Guiding Bolt, Magic Weapon, Shield of Faith, Prayer of Mending, Protection from Energy, Guardian of Faith, Stoneskin, Circle of Power, Destructive Wave. See the sourcebook for complete rules."
+        "d": "These spells are always prepared upon reaching the indicated class level: 3: Arcane Vigor, Guiding Bolt, Magic Weapon, Shield of Faith; 5: Prayer of Mending, Protection from Energy; 7: Guardian of Faith, Stoneskin; 9: Circle of Power, Destructive Wave."
       },
       {
         "l": 3,
@@ -16689,9 +16713,15 @@
       {
         "l": 17,
         "n": "Ultimate Penitence",
-        "d": "Distances: 30 feet. See the sourcebook for complete rules."
+        "d": "Before making the Holy Bolt attack, you may teleport up to 30 feet to an unoccupied space you can see. When using Holy Bolt, you can expend a spell slot as part of that Bonus Action to fire additional bolts equal to the slot's level; make a separate attack for each bolt and distribute them among eligible targets."
       }
-    ]
+    ],
+    "featureSourceReview": {
+      "status": "drive_transcription_mechanics_reviewed",
+      "reference": "World of Warcraft.md",
+      "primaryVerified": false,
+      "runtimeVerified": false
+    }
   },
   {
     "id": "book-wow-subclass-priest-life-domain",
@@ -16723,7 +16753,7 @@
       {
         "l": 3,
         "n": "Shadow Spells",
-        "d": "Spells: Crown of Madness, Dissonant Whispers, Mind Spike, Shadow Word: Pain, Summon Undead, Vampiric Touch, Evard's Black Tentacles, Psychic Horror, Dominate Person, Void Eruption. See the sourcebook for complete rules."
+        "d": "These spells are always prepared upon reaching the indicated class level: 3: Crown of Madness, Dissonant Whispers, Mind Spike, Shadow Word: Pain; 5: Summon Undead, Vampiric Touch; 7: Evard's Black Tentacles, Psychic Horror; 9: Dominate Person, Void Eruption."
       },
       {
         "l": 3,
@@ -16738,9 +16768,15 @@
       {
         "l": 17,
         "n": "Vampiric Embrace",
-        "d": "Dice: 1d6. Distances: 30 feet. See the sourcebook for complete rules."
+        "d": "While Shadowform is active, whenever you roll the additional 1d6 spell damage it grants, choose one creature within 30 feet to regain Hit Points equal to that roll."
       }
-    ]
+    ],
+    "featureSourceReview": {
+      "status": "drive_transcription_mechanics_reviewed",
+      "reference": "World of Warcraft.md",
+      "primaryVerified": false,
+      "runtimeVerified": false
+    }
   },
   {
     "id": "book-wow-subclass-priest-war-domain",
@@ -16919,7 +16955,7 @@
       {
         "l": 6,
         "n": "Echo of the Elements",
-        "d": "Spells: Elementalism, Daylight, Water Walk, Wind Wall. See the sourcebook for complete rules."
+        "d": "Learn Elementalism. Expend a use of Rage to cast Daylight, Water Walk, or Wind Wall using Wisdom as your spellcasting ability."
       },
       {
         "l": 10,
@@ -16929,7 +16965,7 @@
       {
         "l": 14,
         "n": "Elemental Overload",
-        "d": "Distances: 10 feet, 30 feet. See the sourcebook for complete rules."
+        "d": "Icefury, regardless of hit or miss, subtracts half the rolled amount (round down) from the target's next damage roll before the start of your next turn. Lava Burst causes its target and enemies within 10 feet of it to begin burning, regardless of the saving throw. Lightning Bolt, regardless of the initial saving throw, jumps to another creature you can see within 30 feet of the first target; the second creature makes a Dexterity save, taking Lightning damage equal to the original roll on failure or half on success."
       }
     ],
     "featureSourceReview": {
