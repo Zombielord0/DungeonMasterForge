@@ -223,6 +223,18 @@ spFiltersSync();
     if (e.target.closest("[data-deathsave]")) { deathSave(c); pcRecompute(c); pcPersist(); renderRosterMain(); return; }
     if (e.target.closest("[data-stabilize]")) { c.death = { s: 0, f: 0, stable: true }; pcPersist(); renderRosterMain(); toast(`${c.name} is stable at 0 hit points.`); return; }
     if (e.target.closest("[data-revive]")) { c.death = { s: 0, f: 0 }; c.hpCur = 1; pcHealed(c, true); pcRecompute(c); pcPersist(); renderRosterMain(); return; }
+    const comp=e.target.closest("[data-companion-op]");
+    if(comp){
+      const key=comp.dataset.companionKey,op=comp.dataset.companionOp;if(!Object.hasOwn(SUB_COMPANIONS,key))return;
+      let msg="";
+      if(op==="summon")msg=companionSummon(c,key,$('[data-companion-form="'+key+'"]',main)?.value,$('[data-companion-pay="'+key+'"]',main)?.value);
+      else if(op==="revive")msg=companionRevive(c,key,$('[data-companion-revive="'+key+'"]',main)?.value);
+      else if(op==="finish")msg=companionFinishRevive(c,key);
+      else if(op==="dismiss"&&["drake","wildfire"].includes(key)&&c.subCompanions){delete c.subCompanions[key];msg="Summon ended.";}
+      else msg=companionRoll(c,key,op);
+      pcPersist();renderRosterMain();
+      if(msg&&typeof msg==="object"){if(msg.amount)actResultDialog(c,msg);else toast(msg.msg);}else if(msg)toast(msg);return;
+    }
     const ab = e.target.closest("[data-act]");
     if (ab) { const msg = actRun(c, ab.dataset.act, (($(`[data-actsel="${CSS.escape(ab.dataset.act)}"]`, main) || {}).value) || null); pcRecompute(c); pcPersist(); renderRosterMain(); if (msg && typeof msg === "object") { if (msg.aoe) actAoeDialog(c, msg); else if (msg.amount) actResultDialog(c, msg); else toast(msg.msg); } else if (msg) toast(msg); return; }
     const u = e.target.closest("[data-use]");
@@ -238,6 +250,7 @@ spFiltersSync();
   });
   main.addEventListener("change", e => {
     const t = e.target, c = rosterCur(); if (!c) return;
+    if(t.dataset.companionHp){companionSetHP(c,t.dataset.companionHp,t.value);pcPersist();renderRosterMain();return;}
     if(t.hasAttribute("data-wizard-book-add")){if(t.value&&wizardBookAdd(c,t.value)){syncGrantedSpells(c);pcPersist();renderRosterMain();}}
     else if (t.dataset.left) resSet(c, t.dataset.left, parseInt(t.value) || 0);
     else if (t.dataset.fstyle !== undefined) { c.fightStyles = c.fightStyles || []; c.fightStyles[+t.dataset.fstyle] = t.value; pcRecompute(c); pcPersist(); renderRosterMain(); }
