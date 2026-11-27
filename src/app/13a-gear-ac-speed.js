@@ -396,9 +396,9 @@ function pcAttacks(c) {
   (c.inv || []).filter(i => i.eq && (+i.qty || 0) > 0).forEach(i => { const w = eqWeaponOf(i, ed), a = w && eqAttack(c, i, w); if (a) out.push(a); });
   if (c.cls === "Monk") { const wm = Math.max(m.str, m.dex); out.push({ name: "Unarmed strike", hit: wm + c.prof, die: "1d" + maDie(c), mod: wm, type: "bludgeoning", prof: true, melee: true, unarmed: true, ab: m.dex > m.str ? "dex" : "str" }); }
   else if (!out.length) out.push({ name: "Unarmed strike", hit: m.str + c.prof, die: "", mod: 1 + m.str, type: "bludgeoning", prof: true, melee: true, unarmed: true, ab: "str" });
-  if ((c.feats || []).some(f => f.sub && f.f === "Psychic Blades")) {
+  if (characterSubclassLevel(c,"Rogue","Soulknife")>=3) {
     const bm = Math.max(m.str, m.dex), ab = m.dex > m.str ? "dex" : "str";
-    out.push({ name: "Psychic Blade", hit: bm + c.prof, die: "1d6", mod: bm, type: "psychic", altNote: "thrown 60 ft", prof: true, melee: true, ab });
+    out.push({ name: "Psychic Blade", hit: bm + c.prof, die: "1d6", mod: bm, type: "psychic", altNote: "thrown 60 ft"+(ed==="2024"?"; Vex; opportunity attack eligible":""), prof: true, melee: true, ab });
     out.push({ name: "Psychic Blade (bonus action)", hit: bm + c.prof, die: "1d4", mod: bm, type: "psychic", prof: true, melee: true, ab });
   }
   F.attacks.forEach(a => out.push({ prof: true, ...a }));
