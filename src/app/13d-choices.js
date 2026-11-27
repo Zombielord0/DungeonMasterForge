@@ -15,6 +15,8 @@ const MANEUVERS = [
   ["trip", "Trip Attack", "Add the die to damage; a Large or smaller target makes a STR save or falls prone."]
 ];
 const INVOCATIONS = [
+  ["depths","Gift of the Depths","Breathe underwater, gain a Swim Speed equal to your Speed, and cast Water Breathing without a slot once per Long Rest.",5,"2024"],
+  ["investment","Investment of the Chain Master","When casting Find Familiar, choose Fly or Swim Speed 40 feet for the familiar. Command its Attack action as a Bonus Action; choose Necrotic or Radiant instead of its physical damage; its saves use your spell save DC; react to grant it Resistance to incoming damage.",5,"2024"],
   ["mind","Eldritch Mind","Advantage on Constitution saves to maintain Concentration.",1,"2024"],
   ["smite","Eldritch Smite","On a pact weapon hit, once per turn expend a Pact Magic slot for 1d8 plus 1d8 per slot level Force damage. May knock a Huge or smaller target Prone.",5,"2024"],
   ["agonizing", "Agonizing Blast", "Add your Charisma modifier to the damage of each Eldritch Blast beam (applied when you cast it).", 1], ["armor", "Armor of Shadows", "Cast Mage Armor on yourself at will (use the Mage Armor toggle).", 1],
@@ -202,7 +204,7 @@ function invocationEligible(c,id,seen=new Set()){
   if(ed==="2024"&&["sight","rune"].includes(id))return false;
   const selected=choiceOf(c,"Eldritch Invocations");
   if(ed==="2024"){
-    const need={thirst:"blade",lifedrinker:"blade",devouring:"thirst",gift:"tome",smite:"blade"}[base];
+    const need={thirst:"blade",lifedrinker:"blade",devouring:"thirst",gift:"tome",smite:"blade",investment:"chain"}[base];
     if(need&&(!selected.includes(need)||!invocationEligible(c,need,new Set([...seen,id]))))return false;
   }else{
     const boon=choiceOf(c,"Pact Boon")[0];
@@ -246,6 +248,7 @@ const choiceSpellOptions = (c, filter) => {
   return opt3([...new Set((SP.data[edOf(c)] || []).filter(s => !s.pend && filter(s)).map(s => s.n))].sort());
 };
 Object.assign(CHOICES, {
+  "Chain Master Movement":{label:"Familiar movement",n:c=>edOf(c)==="2024"&&hasChoice(c,"Eldritch Invocations","investment")?1:0,opts:()=>opt3(["Fly 40 feet","Swim 40 feet"])},
  "Replicate Magic Item":{label:"Known catalog-backed plans (named plans only)",n:c=>edOf(c)==="2024"?artificerPlanLimits("2024",clsLv(c,"Artificer")).known:0,opts:artificerPlanOptions},
  "Infuse Item":{label:"Known legacy infusions (manual effects)",n:c=>edOf(c)==="2014"?artificerPlanLimits("2014",clsLv(c,"Artificer")).known:0,opts:c=>opt3(Object.entries(ARTIFICER_INFUSIONS).filter(([min])=>clsLv(c,"Artificer")>=+min).flatMap(([,names])=>names).concat("Replicate Magic Item (DM-recorded variant)"))},
   "Spell-Storing Item Object":{label:"Qualifying weapon or spellcasting focus (confirm eligibility)",n:c=>clsLv(c,"Artificer")>=11?1:0,opts:artificerStoreItemOptions},
@@ -311,7 +314,7 @@ for(const cls of MASTERY_CLASSES)CHOICES[masteryKey(cls)]={label:cls+" weapon ma
 const additionalFeatureChoices = {
   "Spell-Storing Item":["Spell-Storing Item Object"],
   "Pact Boon":["Pact Weapon","Pact Tome Cantrips"],
-  "Eldritch Invocations":["Pact Weapon","Pact Weapon Ability","Pact Weapon Damage","Pact Tome Cantrips","Pact Tome Rituals"],
+  "Eldritch Invocations":["Pact Weapon","Pact Weapon Ability","Pact Weapon Damage","Pact Tome Cantrips","Pact Tome Rituals","Chain Master Movement"],
   "Weapon Mastery":MASTERY_CLASSES.map(masteryKey),
   "Mystic Arcanum":[6,7,8,9].map(l=>"Mystic Arcanum "+l),
   "Divine Order":["Divine Order Cantrip"],

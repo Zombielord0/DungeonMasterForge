@@ -490,6 +490,22 @@ const { chromium } = require("playwright");
     });
     assert.deepEqual([artificerCraftAudit.count,artificerCraftAudit.duplicate,artificerCraftAudit.transformed,artificerCraftAudit.charged,artificerCraftAudit.spent,artificerCraftAudit.created,artificerCraftAudit.remaining,artificerCraftAudit.short,artificerCraftAudit.long,artificerCraftAudit.ropeShort,artificerCraftAudit.ropeLong],[1,false,true,2,1,1,0,1,0,true,false]);
     assert.deepEqual(artificerCraftAudit.limits.map(x=>x.map(y=>y.known)),[[0,4,6,8,10,12],[0,4,5,6,7,8]]);
+    const invocationLifecycleAudit=await page.evaluate(()=>{
+      const w=pcEnsure(generateCharacter({seed:"WAR-REMAIN",ed:"2024",cls:"Warlock",level:9,race:"Human",bg:"Sage",subclass:"none"}));
+      w.choices={"Eldritch Invocations":["chain","investment","depths","vigor","armor","shadows","leap"],"Chain Master Movement":["Fly 40 feet"]};syncGrantedSpells(w);
+      const resources=pcResources(w),keys=resources.filter(x=>x.key.startsWith("invocation:")).map(x=>x.key);
+      const depth=resources.find(x=>x.key==="invocation:depths"),max=depth.max;
+      const moves=pcSpeed(w).other.join(" ");
+      const valid=invocationEligible(w,"investment");
+      w.choices["Eldritch Invocations"]=w.choices["Eldritch Invocations"].filter(x=>x!=="chain");syncGrantedSpells(w);
+      const removed=!invocationEligible(w,"investment"),noFamiliar=!pcResources(w).some(x=>x.key==="pactChainFamiliar");
+      const old=pcEnsure(generateCharacter({seed:"WAR-OLD",ed:"2014",cls:"Warlock",level:9,race:"Human",bg:"Sage",subclass:"none"}));old.choices={"Eldritch Invocations":["shadows","depths","vigor"]};syncGrantedSpells(old);
+      return {keys,max,moves,valid,removed,noFamiliar,oldKeys:pcResources(old).map(x=>x.key)};
+    });
+    assert.ok(["invocation:depths","invocation:vigor","invocation:armor","invocation:shadows","invocation:leap"].every(k=>invocationLifecycleAudit.keys.includes(k)));
+    assert.equal(invocationLifecycleAudit.max,1);assert.match(invocationLifecycleAudit.moves,/Breathe underwater/);
+    assert.deepEqual([invocationLifecycleAudit.valid,invocationLifecycleAudit.removed,invocationLifecycleAudit.noFamiliar],[true,true,true]);
+    assert.ok(!invocationLifecycleAudit.oldKeys.includes("invocation:depths")&&!invocationLifecycleAudit.oldKeys.includes("invocation:shadows"));
     const expansion = await page.evaluate(() => {
       const subclasses = hbBook("subclass").filter(x => ["tce", "xge"].includes(x.src));
       const armorer = generateCharacter({ seed: "ARMOR", ed: "2014", cls: "Artificer", subclass: "Armorer", level: 5 });

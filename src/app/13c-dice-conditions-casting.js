@@ -287,7 +287,12 @@ function castPreview(c, sp, how, ed = edOf(c)) {
   if (spellManualResolution(sp) && sp.sv) parts.push(`${sp.sv.toUpperCase()} save DC ${K.dc}`);
   if (spellManualResolution(sp) && sp.at) parts.push(`Spell attack ${sgn(K.atk)}`);
   if (P.attack) parts.push(`Spell attack ${sgn(K.atk)}${K.innateSorcery?" with advantage":""}`); else if (P.save) parts.push(`${P.save.toUpperCase()} save against DC ${K.dc}`);
-  if(how==="pactChainFamiliar")parts.push("Pact of the Chain: cast as a Magic action; choose a permitted familiar form.");
+  if(how==="pactChainFamiliar"){
+    parts.push("Pact of the Chain: cast as a Magic action; choose a permitted familiar form.");
+    if(hasChoice(c,"Eldritch Invocations","investment"))parts.push("Investment of the Chain Master: "+(choiceOf(c,"Chain Master Movement")[0]||"choose Fly or Swim 40 feet")+"; familiar save DC "+K.dc+".");
+  }
+  if(["invocation:armor","invocation:vigor","invocation:ascend","invocation:leap","invocation:shadows"].includes(how))parts.push("Self only"+(how==="invocation:shadows"?"; confirm Dim Light or Darkness":""));
+  if(how==="invocation:vigor"&&ed==="2024")parts.push("12 temporary HP (maximum roll)");
   if(how==="freeContactPatron"&&sp.n==="Contact Other Plane")parts.push("Contact your patron; automatically succeed on the spell’s saving throw.");
   if (P.dice) parts.push(`${P.heal ? "heals" : "deals"} ${spellDice(c, sp, P, slot, K)}${P.type && !P.heal ? " " + P.type.toLowerCase() : ""}${count > 1 ? ` × ${count}` : ""}`);
   if (sp.l && up && (P.per || P.countPer)) parts.push(`upcast +${up} level${up === 1 ? "" : "s"}`);
@@ -356,7 +361,13 @@ function castGo() {
     if (grant.max !== Infinity) c.used[how] = (+c.used[how] || 0) + 1;
   }
   const notes = [`${c.name} casts ${sp.n}${sp.l ? ` at level ${slot}` : ""}${how === "ritual" ? " as a ritual" : ""}.`];
-  if(how==="pactChainFamiliar")notes.push("Pact of the Chain: Magic action; choose a permitted familiar form and manage the familiar manually.");
+  if(how==="pactChainFamiliar"){
+    notes.push("Pact of the Chain: Magic action; choose a permitted familiar form and manage the familiar manually.");
+    if(hasChoice(c,"Eldritch Invocations","investment"))notes.push("Investment of the Chain Master: "+(choiceOf(c,"Chain Master Movement")[0]||"choose Fly or Swim 40 feet")+"; familiar save DC "+K.dc+"; apply attacks, damage choices and resistance manually.");
+  }
+  if(["invocation:armor","invocation:vigor","invocation:ascend","invocation:leap","invocation:shadows"].includes(how))notes.push("Self only"+(how==="invocation:shadows"?"; confirm Dim Light or Darkness.":"."));
+  if(how==="invocation:vigor"){const n=ed==="2024"?12:rollDice("1d4+4").total;giveTemp(c,n);notes.push("False Life: "+n+" temporary HP offered; higher existing temporary HP retained.");}
+  if(how==="invocation:armor"){c.fx={...(c.fx||{}),mageArmor:true};pcACApply(c);notes.push("Mage Armor effect active if unarmored; end manually when the spell expires.");}
   if(how==="freeContactPatron"&&sp.n==="Contact Other Plane")notes.push("Contact your patron; the spell’s saving throw automatically succeeds.");
   if (sp.co) { const ended = concStart(c, sp.n); if (ended) notes.push(ended); notes.push(`Concentrating on ${sp.n}.`); }
   rollLog(c, { label: `Cast ${sp.n}`, total: sp.l ? `L${slot}` : "✦", note: how === "free" ? "no slot" : how === "ritual" ? "ritual" : "" });

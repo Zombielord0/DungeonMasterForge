@@ -85,7 +85,7 @@ function pcInvUpgrade(c) {
   if (c.kitMoved) return false;
   const ed = edOf(c);
   (c.kit || []).forEach(line => eqParseKit(line, ed).forEach(({ n, qty, g }) => {
-    const ex = c.inv.find(i => i.n.toLowerCase() === n.toLowerCase()&&(!g?.packQty||i.ammunitionUnits===true));
+    const ex = c.inv.find(i => !i.artificerOrigin&&i.n.toLowerCase() === n.toLowerCase()&&(!g?.packQty||i.ammunitionUnits===true));
     if (ex) { ex.qty = (+ex.qty || 0) + qty; return; }
     c.inv.push({ id: uid("i"), ref: g ? g.id : undefined, n, qty, w: g ? (g.w || 0)/(g.packQty||1) : 0, ...(g?.packQty?{ammunitionUnits:true}:{}), att: false, attuned: false, value: g ? g.c+(g.packQty?" per "+g.packQty:"") : undefined, note: "", eq: eqIsWeapon(g) || eqIsArmor(g) });
   }));
@@ -314,7 +314,9 @@ function pcSpeed(c, A) {
   const fly = Math.max(fx.fly ? 60 : 0, F.fly != null ? mv(F.fly) || 0 : 0);
   if (fly) other.push(`Fly ${fly} ft`);
   if (F.climb != null || roving) other.push(`Climb ${Math.max(roving?sp:0,F.climb!=null?mv(F.climb):0)} ft`);
-  if (F.swim != null || roving) other.push(`Swim ${Math.max(roving?sp:0,F.swim!=null?mv(F.swim):0)} ft`);
+  const depths=hasChoice(c,"Eldritch Invocations","depths");
+  if (F.swim != null || roving || depths) other.push(`Swim ${Math.max(roving||depths?sp:0,F.swim!=null?mv(F.swim):0)} ft`);
+  if(depths)other.push("Breathe underwater (Gift of the Depths)");
   if (c.subclass === "Thief" && ed === "2024" && lv >= 3) other.push(`Climb ${sp} ft`);
   if (c.subclass === "Circle of the Sea" && lv >= 6) other.push(`Swim ${sp} ft`);
   if (has("Unarmored Movement") && clsLv(c, "Monk") >= 9 && !A.bodyKind && !A.shieldOn) other.push("Run up walls and across liquids on your turn");

@@ -311,7 +311,11 @@ function syncGrantedSpells(c) {
         add({1:[...cantrips,...rituals]},lv,{...classSource,feature:"Pact of the Tome"},()=>({known:ed==="2014"}));
       }
       // At-will spells without self-target or special-use caveats. Others remain manual.
-      const atWill={mask:"Disguise Self",misty:"Silent Image",grave:"Speak with Dead",visions:"Arcane Eye",sight:"Detect Magic",beast:"Speak with Animals",myriad:"Alter Self"};
+      const atWill={mask:"Disguise Self",misty:"Silent Image",grave:"Speak with Dead",visions:"Arcane Eye",sight:"Detect Magic",beast:"Speak with Animals",myriad:"Alter Self",armor:"Mage Armor",vigor:"False Life",ascend:"Levitate",leap:"Jump",...(ed==="2024"?{shadows:"Invisibility"}:{})};
+      if(hasChoice(c,"Eldritch Invocations","depths")){
+        const sp=spellOf(ed,"Water Breathing");
+        if(sp&&!sp.ref&&!sp.referenceOnly&&!sp.pend&&!sp.rulesSummary&&!sp.shadow&&!sp.hb)add({1:[sp.n]},lv,{...classSource,feature:"Gift of the Depths"},()=>({free:"invocation:depths",uses:1}));
+      }
       for(const [id,name] of Object.entries(atWill))if(hasChoice(c,"Eldritch Invocations",id)){
         const sp=spellOf(ed,name);
         if(sp&&!sp.ref&&!sp.referenceOnly&&!sp.pend&&!sp.rulesSummary&&!sp.shadow&&!sp.hb)

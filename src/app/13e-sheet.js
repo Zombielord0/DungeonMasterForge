@@ -195,7 +195,7 @@ spFiltersSync();
     if(e.target.closest("[data-wizard-book-start]")){if(wizardBookStart(c)){syncGrantedSpells(c);pcPersist();renderRosterMain();}return;}
     const wr=e.target.closest("[data-wizard-book-remove]");if(wr){if(wizardBookRemove(c,wr.dataset.wizardBookRemove)){syncGrantedSpells(c);pcPersist();renderRosterMain();}else toast("Remove this spell from prepared and class-feature choices first.");return;}
     const cr = e.target.closest("[data-choicerm]");
-    if (cr) { const [k, ...id] = cr.dataset.choicerm.split("|"); c.choices = { ...(c.choices || {}) }; c.choices[k] = choiceOf(c, k).filter(x => x !== id.join("|")); syncGrantedSpells(c); pcRecompute(c); pcPersist(); renderRosterMain(); return; }
+    if (cr) { const [k, ...id] = cr.dataset.choicerm.split("|"); c.choices = { ...(c.choices || {}) }; c.choices[k] = choiceOf(c, k).filter(x => x !== id.join("|")); if(k==="Replicate Magic Item")artificerForgetPlan(c,id.join("|")); syncGrantedSpells(c); pcRecompute(c); pcPersist(); renderRosterMain(); return; }
     const mr = e.target.closest("[data-mirm]");
     if (mr) { const k = "Feat: Magic Initiate"; c.choices = { ...(c.choices || {}) }; c.choices[k] = choiceOf(c, k).filter(x => x !== mr.dataset.mirm); syncGrantedSpells(c); pcRecompute(c); pcPersist(); renderRosterMain(); return; }
     const cb = e.target.closest("[data-spell]");
@@ -284,6 +284,7 @@ spFiltersSync();
     if (t.dataset.rcoin) { c.coins[t.dataset.rcoin] = Math.max(0, +t.value || 0); pcACApply(c); const sl = $("#rcSpeedLine"); if (sl) sl.innerHTML = rcSpeedLine(c); const sp = $('[data-rf="speed"]', main); if (sp && !c.speedManual) sp.value = c.speed; pcPersist(); return; }
     if (t.dataset.rinv) {
       const i = c.inv.find(x => x.id === t.dataset.iid); if (!i) return; const f = t.dataset.rinv;
+      if(i.artificerOrigin&&["qty","n"].includes(f)){t.value=i[f];toast("Class-created items are individual objects. Remove the item or use its class feature instead.");return;}
       if(f==="attuned"&&t.checked&&!i.attuned&&artificerAttunedCount(c)>=artificerAttunementLimit(c)){t.checked=false;toast("Attunement limit reached.");return;}
       i[f] = f === "attuned" || f === "eq" ? t.checked : f === "qty" ? Math.max(0, +t.value || 0) : t.value;
       c.attacks = pcAttacks(c); pcACApply(c); pcPersist();

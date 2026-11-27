@@ -437,7 +437,10 @@ function artificerReplicas(c){return (c.inv||[]).filter(i=>i.artificerOrigin?.ki
 function artificerInventoryItem(c,x,kind){
  return {id:uid("i"),ref:x.id,n:x.n,qty:1,w:x.w||0,att:!!x.att,attuned:false,value:x.c,note:kind==="replica"?"Artificer replica; not permanent":"Tinker's Magic; vanishes on Long Rest",artificerOrigin:{kind,owner:c.id,plan:x.id}};
 }
-function artificerRemove(c,i){c.inv=(c.inv||[]).filter(x=>x.id!==i.id);}
+function artificerRemove(c,i){c.inv=(c.inv||[]).filter(x=>x.id!==i.id);if(c.artificerStored?.iid===i.id){delete c.artificerStored;if(c.used)delete c.used.artificerStored;}}
+function artificerForgetPlan(c,id){
+ for(const i of artificerReplicas(c).filter(x=>x.ref===id))artificerRemove(c,i);
+}
 function artificerTinkerOptions(c){
  if(edOf(c)!=="2024"||clsLv(c,"Artificer")<1)return [];
  itLoad();return IT.data["2024"].filter(x=>x.kind==="gear"&&TINKER_GEAR.includes(x.n)&&!itemRulesIncomplete(x)).map(x=>[x.id,x.n]);
