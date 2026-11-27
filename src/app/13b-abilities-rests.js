@@ -33,19 +33,31 @@ const SUB_COMPANIONS={
   primal:{cls:"Ranger",sub:"Beast Master",ed:"2024",lv:3,forms:["land","sea","sky"]},
   drake:{cls:"Ranger",sub:"Drakewarden",ed:"2014",lv:3,forms:["acid","cold","fire","lightning","poison"]},
   steel:{cls:"Artificer",sub:"Battle Smith",ed:"2014",lv:3,forms:["steel"]},
+  steel24:{cls:"Artificer",sub:"Battle Smith",ed:"2024",lv:3,forms:["steel"]},
+  beast14:{cls:"Ranger",sub:"Beast Master",ed:"2014",lv:3,forms:[]},
   wildfire:{cls:"Druid",sub:"Circle of Wildfire",ed:"2014",lv:2,forms:["fire"]}
 };
 function companionLevel(c,key){
   const d=SUB_COMPANIONS[key];return d&&edOf(c)===d.ed?characterSubclassLevel(c,d.cls,d.sub):0;
 }
+function legacyBeastOptions(){
+  bsLoad();return (BS.data["2014"]||[]).filter(m=>m.type==="beast"&&Number.isFinite(m.cr)&&m.cr<=0.25&&/^(tiny|small|medium)$/i.test(m.size||"")&&!m.referenceOnly&&!m.rulesSummary&&!m.pend&&m.ac>0&&m.hp>0).sort((a,b)=>a.n.localeCompare(b.n));
+}
+function companionForms(key){return key==="beast14"?legacyBeastOptions().map(m=>[m.id,m.n+" (CR "+m.cr+")"]):SUB_COMPANIONS[key].forms.map(x=>[x,x]);}
 function companionStats(c,key,form){
-  const d=SUB_COMPANIONS[key],l=companionLevel(c,key);if(!d||l<d.lv||!d.forms.includes(form))return null;
+  const d=SUB_COMPANIONS[key],l=companionLevel(c,key);if(!d||l<d.lv||!companionForms(key).some(x=>x[0]===form))return null;
   const p=c.prof,w=c.mods.wis,i=c.mods.int,dc=8+p+w;
   if(key==="primal"){
     const sky=form==="sky",sea=form==="sea",hp=(sky?4:5)*(1+l);
     return {name:"Beast of the "+form.charAt(0).toUpperCase()+form.slice(1),hp,ac:13+w,hd:l+"d"+(sky?6:8),speed:sky?"10 ft; fly 60 ft":sea?"5 ft; swim 60 ft":"40 ft; climb 40 ft",size:sky?"Small":"Medium",scores:sky?[6,16,13,8,14,11]:[14,14,15,8,14,11],hit:p+w,damage:"1d"+(sky?4:sea?6:8)+sgn((sky?3:2)+w),type:sky?"slashing":sea?"bludgeoning or piercing":"bludgeoning, piercing or slashing",attacks:l>=11?2:1,dc,notes:["Acts during your turn; Dodge unless commanded (Bonus Action or replace one attack for Beast's Strike).","Proficiency bonus applies to all ability checks and saves.",sky?"Flyby.":sea?"Amphibious; hit grapples (escape DC "+dc+").":"Charge: after moving 20 ft straight toward a target before the hit, extra 1d6 damage; Large or smaller target falls Prone.",l>=7?"May choose Force damage; Bonus Action commands can also grant beast Dash, Disengage, Dodge or Help.":"",l>=11?"First hit each turn against your Hunter's Mark target adds the mark damage as Force.":"",l>=15?"Self-targeted spells may also affect beast within 30 ft.":""]};
   }
   if(key==="drake")return {name:"Drake Companion",hp:5+5*l,ac:14+p,hd:l+"d10",speed:l>=7?"40 ft; fly 40 ft":"40 ft",size:l>=15?"Large":l>=7?"Medium":"Small",scores:[16,12,15,8,14,8],hit:3+p,damage:"1d6"+sgn(p),type:"piercing",attacks:1,dc,notes:["Immune to "+form+"; reaction adds 1d6 "+form+" to a qualifying ally weapon hit.","Acts immediately after your turn; Bonus Action command, otherwise Dodge.",l>=7?"Bite adds "+(l>=15?"2d6":"1d6")+" "+form+"; owner has resistance to that type.":"",l>=15?"Can fly while ridden; reaction resistance to one instance of damage, proficiency uses per Long Rest.":l>=7?"May serve as mount; cannot fly while ridden.":""]};
+  if(key==="beast14"){
+    const B=beastForm(form);if(!B)return null;
+    const m=B.m,attacks=B.attacks.map(a=>({...a,hit:a.hit+p,damage:a.die?a.die+sgn(a.mod+p):String(a.mod+p)})),first=attacks[0];
+    return {name:m.n,hp:Math.max(m.hp,4*l),ac:m.ac+p,hd:m.hd||"See original stat block",speed:String(m.speed),size:m.size,scores:m.scores||[],hit:first?.hit??0,damage:first?.damage||"—",type:first?.type||"",attacks:l>=11?2:1,attackOptions:attacks,notes:["Acts on your initiative; verbally direct movement freely. Action commands Attack, Dash, Disengage, Dodge or Help.",l>=5?"When commanding Attack you can make one weapon attack yourself.":"",l>=7?"Exceptional Training: Bonus Action Dash, Disengage, Dodge or Help on a turn when beast does not attack; attacks count as magical for overcoming resistance/immunity.":"",l>=11?"Bestial Fury: two attacks or Multiattack when commanded to Attack.":"",l>=15?"Share Spells: self-target spell may also affect beast within 30 ft.":"","Add your PB to proficient saves and skills; use the original stat block for traits, senses and additional effects.",...((m.traits||[]).map(t=>t.join(": "))),...((m.actions||[]).map(t=>t.join(": ")))]};
+  }
+  if(key==="steel24")return {name:"Steel Defender (2024)",hp:5+5*l,ac:12+i,hd:l+"d8",speed:"40 ft",size:"Medium",scores:[14,12,14,4,10,6],hit:p+i,damage:"1d8"+sgn(2+i),type:"force",attacks:1,notes:["Poison damage immunity; Charmed, Exhaustion and Poisoned immunity. Darkvision 60 ft; passive Perception 10.","Steel Bond: add your PB to every ability check and save. Understands your languages.","Acts during your turn; moves and reacts independently, otherwise Dodge unless commanded with Bonus Action. If you are Incapacitated it acts independently.",l>=5?"May replace one of your Attack-action attacks with a command to Rend.":"","Deflect Attack: visible creature within 5 ft of defender attacks another creature; impose Disadvantage.",l>=15?"Improved Deflection: attacker also takes 1d4 + INT Force.":"","Repair 3/day: 2d8 + INT healing to self or visible Construct/object within 5 ft."]};
   if(key==="steel")return {name:"Steel Defender",hp:Math.max(1,2+i+5*l),ac:l>=15?17:15,hd:l+"d8",speed:"40 ft",size:"Medium",scores:[14,12,14,4,10,6],hit:p+i,damage:"1d8"+sgn(p),type:"force",attacks:1,notes:["Immune to poison; Charmed, Exhaustion and Poisoned. Cannot be surprised.","Acts immediately after your turn; Bonus Action command, otherwise Dodge.","Deflect Attack reaction imposes disadvantage against an ally within reach of the attacker.",l>=15?"Deflect Attack also inflicts 1d4 + INT Force damage.":"","Repair 3/day: 2d8 + PB healing to self or adjacent construct/object. Mending restores 2d6 HP."]};
   return {name:"Wildfire Spirit",hp:5+5*l,ac:13,hd:"—",speed:"30 ft; fly 30 ft (hover)",size:"Small",scores:[10,14,14,13,15,11],hit:p+w,damage:"1d6"+sgn(p),type:"fire",attacks:1,dc,notes:["Fire immunity; Charmed, Frightened, Grappled, Prone and Restrained immunity.","Flame Seed range 60 ft; Fiery Teleportation moves willing nearby creatures up to 15 ft, DEX save DC "+dc+" for 1d6 + PB Fire at departure.","Acts immediately after your turn; Bonus Action command, otherwise Dodge.","Duration 1 hour; summoning burst 2d6 Fire, DEX save DC "+dc+" to avoid.",l>=6?"Enhanced Bond: add 1d8 to one fire damage or healing roll; non-self spell may originate at spirit.":""]};
 }
@@ -60,7 +72,10 @@ function companionSummon(c,key,form,pay){
   const s=companionStats(c,key,form);if(!s)return "Companion unavailable.";
   c.used=c.used||{};c.subCompanions=c.subCompanions||{};c.companionRest=c.companionRest||{};
   const existing=companionState(c,key);
-  if(key==="primal"||key==="steel"){
+  if(key==="beast14"){
+    if(existing&&existing.current>0)return "An existing living companion is already bonded.";
+    if(pay!=="bond")return "Confirm initial choice or eight hours bonding with a nonhostile replacement beast.";
+  }else if(key==="primal"||key==="steel"||key==="steel24"){
     if(existing&& !c.companionRest[key])return "Replacement requires a completed Long Rest (or the applicable revival procedure).";
     if(pay!=="free")return "Choose the free creation option.";
     c.companionRest[key]=false;
@@ -83,7 +98,7 @@ function companionSetHP(c,key,hp){
   c.subCompanions[key].hp=Math.max(0,Math.min(s.hp,Math.trunc(+hp)));return true;
 }
 function companionRevive(c,key,pay){
-  const s=companionState(c,key);if(!s||s.current!==0||s.pending||!["primal","steel"].includes(key))return "No eligible dead companion.";
+  const s=companionState(c,key);if(!s||s.current!==0||s.pending||!["primal","steel","steel24"].includes(key))return "No eligible dead companion.";
   const r=companionSlots(c).find(x=>x.key===pay);if(!r)return "An available spell slot is required.";
   c.used=c.used||{};c.used[r.key]=(+c.used[r.key]||0)+1;c.subCompanions[key].pending=true;return "Revival started. Confirm death within the last hour, touch/tools and required action; finish after 1 minute.";
 }
@@ -93,11 +108,16 @@ function companionFinishRevive(c,key){
 }
 function companionRoll(c,key,kind){
   const s=companionState(c,key);if(!s||s.current<1||s.pending)return "Companion not active.";
+  if(key==="beast14"){
+    const match=String(kind).match(/^(attack|damage):(\d+)$/),a=match&&s.attackOptions[+match[2]];
+    if(!a)return "Choose a supported beast attack.";
+    return match[1]==="attack"?rollMsg(s.name+" · "+a.name,"1d20"+sgn(a.hit),"Confirm command and target."):roll(s.name+" · "+a.name,a.damage,"damage",a.type+"; resolve original attack riders separately.");
+  }
   if(kind==="attack")return rollMsg(s.name+" attack","1d20"+sgn(s.hit),"Confirm command, target and hit.");
   if(kind==="damage")return roll(s.name+" damage",s.damage,"damage",s.type+"; resolve extra riders and damage type choice separately.");
-  if(key==="steel"&&kind==="repair"){
+  if(["steel","steel24"].includes(key)&&kind==="repair"){
     c.used=c.used||{};if((+c.used.steelRepair||0)>=3)return "No repair uses left.";
-    c.used.steelRepair=(+c.used.steelRepair||0)+1;const r=rollDice("2d8"+sgn(c.prof));companionSetHP(c,key,s.current+r.total);return "Repair: "+r.text+". Defender now "+companionState(c,key).current+"/"+s.hp+" HP.";
+    c.used.steelRepair=(+c.used.steelRepair||0)+1;const r=rollDice("2d8"+sgn(key==="steel24"?c.mods.int:c.prof));companionSetHP(c,key,s.current+r.total);return "Repair: "+r.text+". Defender now "+companionState(c,key).current+"/"+s.hp+" HP.";
   }
   if(key==="steel"&&kind==="mending"){const r=rollDice("2d6");companionSetHP(c,key,s.current+r.total);return "Mending: "+r.text+". Confirm a completed casting.";}
   return "Unavailable.";
@@ -105,17 +125,17 @@ function companionRoll(c,key,kind){
 function companionRestUpdate(c,kind){
   if(kind!=="long")return;
   c.companionRest=c.companionRest||{};
-  for(const key of ["primal","steel"])if(companionLevel(c,key)>=SUB_COMPANIONS[key].lv)c.companionRest[key]=true;
+  for(const key of ["primal","steel","steel24"])if(companionLevel(c,key)>=SUB_COMPANIONS[key].lv)c.companionRest[key]=true;
   if(c.subCompanions)delete c.subCompanions.wildfire;
 }
 function rcCompanionsHTML(c){
   const slots=companionSlots(c),opts=slots.map(r=>'<option value="'+esc(r.key)+'">'+esc(r.name)+'</option>').join("");
   return Object.keys(SUB_COMPANIONS).map(key=>{
     const d=SUB_COMPANIONS[key];if(companionLevel(c,key)<d.lv)return "";
-    const s=companionState(c,key),forms=d.forms.map(f=>'<option value="'+esc(f)+'" '+(s?.form===f?"selected":"")+'>'+esc(f)+'</option>').join("");
-    const pay=key==="wildfire"?'<option value="wild">Wild Shape</option>':key==="drake"?((c.used?.drakeSummon?"":'<option value="free">Free summon</option>')+opts):'<option value="free">Create / replace</option>';
+    const s=companionState(c,key),forms=companionForms(key).map(([f,label])=>'<option value="'+esc(f)+'" '+(s?.form===f?"selected":"")+'>'+esc(label)+'</option>').join("");
+    const pay=key==="beast14"?'<option value="bond">Confirm bond (8 hours for replacement)</option>':key==="wildfire"?'<option value="wild">Wild Shape</option>':key==="drake"?((c.used?.drakeSummon?"":'<option value="free">Free summon</option>')+opts):'<option value="free">Create / replace</option>';
     const btn=(op,label)=>'<button type="button" class="btn sm" data-companion-op="'+op+'" data-companion-key="'+key+'">'+label+'</button>';
-    const card=s?'<p><b>'+esc(s.name)+'</b> · '+esc(s.size)+' · AC '+s.ac+' · '+esc(s.speed)+' · HD '+esc(s.hd)+'</p><label>HP <input type="number" min="0" max="'+s.hp+'" value="'+s.current+'" data-companion-hp="'+key+'" '+(s.pending||!s.current?"disabled":"")+'> / '+s.hp+'</label><p>'+esc(s.scores.join(" / "))+' (STR / DEX / CON / INT / WIS / CHA)</p><p>Attack '+sgn(s.hit)+' · '+esc(s.damage+" "+s.type)+' · '+s.attacks+' attack(s)</p><p>'+s.notes.filter(Boolean).map(esc).join('<br>')+'</p>'+ (s.current>0?btn("attack","Roll attack")+btn("damage","Roll damage")+(key==="steel"?btn("repair","Repair ("+Math.max(0,3-(+c.used?.steelRepair||0))+")")+btn("mending","Mending"):""):"<p>At 0 HP</p>")+(s.pending?btn("finish","Confirm 1 minute elapsed"):s.current===0&&["primal","steel"].includes(key)&&opts?'<select data-companion-revive="'+key+'">'+opts+'</select>'+btn("revive","Begin revival"):"")+(key==="wildfire"||key==="drake"?btn("dismiss","End summon"):""):"<p>No companion recorded.</p>";
+    const card=s?'<p><b>'+esc(s.name)+'</b> · '+esc(s.size)+' · AC '+s.ac+' · '+esc(s.speed)+' · HD '+esc(s.hd)+'</p><label>HP <input type="number" min="0" max="'+s.hp+'" value="'+s.current+'" data-companion-hp="'+key+'" '+(s.pending||!s.current?"disabled":"")+'> / '+s.hp+'</label><p>'+esc(s.scores.join(" / "))+' (STR / DEX / CON / INT / WIS / CHA)</p><p>Attack '+sgn(s.hit)+' · '+esc(s.damage+" "+s.type)+' · '+s.attacks+' attack(s)</p><p>'+s.notes.filter(Boolean).map(esc).join('<br>')+'</p>'+ (s.current>0?(key==="beast14"?s.attackOptions.map((a,i)=>btn("attack:"+i,esc(a.name)+" attack")+btn("damage:"+i,esc(a.name)+" damage")).join(""):btn("attack","Roll attack")+btn("damage","Roll damage"))+(["steel","steel24"].includes(key)?btn("repair","Repair ("+Math.max(0,3-(+c.used?.steelRepair||0))+")")+(key==="steel"?btn("mending","Mending"):""):""):"<p>At 0 HP</p>")+(s.pending?btn("finish","Confirm 1 minute elapsed"):s.current===0&&["primal","steel","steel24"].includes(key)&&opts?'<select data-companion-revive="'+key+'">'+opts+'</select>'+btn("revive","Begin revival"):"")+(key==="wildfire"||key==="drake"?btn("dismiss","End summon"):""):"<p>No companion recorded.</p>";
     return '<div class="abl"><div class="abl-h"><b>'+esc(d.sub)+' companion</b></div><div class="ft-desc">'+card+'<div class="row" style="flex-wrap:wrap"><select aria-label="Companion form" data-companion-form="'+key+'">'+forms+'</select><select aria-label="Creation resource" data-companion-pay="'+key+'">'+pay+'</select>'+btn("summon","Create / summon")+'</div><p class="hint">Confirm commands, combat timing, range, revival eligibility and placement with the DM. Source-specific companion only.</p></div></div>';
   }).join("");
 }
@@ -255,7 +275,8 @@ function pcResources(c) {
   for(const r of psionicPools(c))if(!R.some(x=>x.key===r.key))add(r.key,r.name,r.max,r.recharge);
   for(const r of legacyMonkPools(c))add(r.key,r.name,r.max,r.recharge);
   if(companionLevel(c,"drake")>=3)add("drakeSummon","Drake summon",1,"long");
-  if(companionLevel(c,"steel")>=3)add("steelRepair","Steel Defender repair",3,"long");
+  if(companionLevel(c,"steel")>=3||companionLevel(c,"steel24")>=3)add("steelRepair","Steel Defender repair",3,"long");
+  if(battleSmithLevel(c)>=9)add("arcaneJolt","Arcane Jolt",Math.max(1,c.mods.int),"long");
   const subSeen=new Set();
   for(const f of (c.feats||[]).filter(f=>(f.sub||f.mcsub||f.bookSub)&&SUB_ABL[f.f]?.res)){
     const o=subclassFeatureOwner(c,f),S=SUB_ABL[f.f];
@@ -359,6 +380,7 @@ function pcAbilities(c) {
   }
   if(artificerInfusionLevel(c)>=20)add("Soul of Artifice survival","Reaction","At 0 HP without outright death, end an active infusion to drop to 1 HP instead.");
   if(ed==="2024"&&clsLv(c,"Artificer")>=20)add("Cheat Death","At 0 HP","Disintegrate selected Uncommon or Rare replicas to regain 20 HP each. Confirm no outright death.");
+  if(battleSmithLevel(c)>=9)add("Arcane Jolt","On qualifying hit","Once per turn: "+(battleSmithLevel(c)>=15?"4d6":"2d6")+" extra Force damage or healing within 30 feet of target.","arcaneJolt","Battle Smith");
   if(clsLv(c,"Artificer")>=11){
     add("Store spell in item","After Long Rest","Choose a qualifying weapon or spellcasting focus in Features, then store an eligible Artificer spell. Confirm long-rest timing; replacing the stored spell ends the previous effect.","artificerStoreSetup");
     const stored=artificerStoredSpell(c);if(stored)add("Spell-Storing Item","Action",`${stored.item.n}: ${stored.spell.n}. The holder produces its effects using your spellcasting ability; the holder maintains any required Concentration. No spell slot used. Resolve target, spell effects and concentration manually.`,"artificerStored");
@@ -977,7 +999,15 @@ function shamanTotemRestore(c){
  c.used.totemPrimal=0;return "Primal Knowledge Totem use restored.";
 }
 
+function battleSmithLevel(c){return characterSubclassLevel(c,"Artificer","Battle Smith");}
+function arcaneJoltChoices(c){return battleSmithLevel(c)>=9&&!c.arcaneJoltThisTurn?[["damage","Extra Force damage (confirm hit)"],["heal","Heal creature/object within 30 ft of hit target"]]:[];}
+function arcaneJoltUse(c,ch){
+ if(!arcaneJoltChoices(c).some(x=>x[0]===ch)||!monkPay(c,"arcaneJolt",1))return "No eligible Arcane Jolt use.";
+ c.arcaneJoltThisTurn=true;
+ return roll("Arcane Jolt",(battleSmithLevel(c)>=15?4:2)+"d6",ch==="heal"?"heal":"damage",ch==="heal"?"Confirm qualifying hit and recipient within 30 feet.":"Extra Force damage on confirmed magic weapon or defender hit.");
+}
 const ACT = {
+ "Arcane Jolt":{kind:"instant",noCost:true,choices:arcaneJoltChoices,use:arcaneJoltUse},
  "Totems":{kind:"instant",choices:shamanTotemOptions,use:shamanTotemCreate},
  "Restore Primal Knowledge Totem":{kind:"instant",use:shamanTotemRestore},
  "End Totem":{kind:"instant",use:c=>{delete c.shamanTotem;return "Totem ended.";}},
