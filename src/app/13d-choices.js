@@ -578,6 +578,7 @@ function rcSlotsHTML(c) {
 function pcRest(c, kind) {
   c.used = c.used || {};
   delete c.dragonPresencePending; delete c.dragonFuryPending;
+  delete c.shamanTotem; // its one-minute duration cannot survive either rest
   const back = [];
   pcResources(c).forEach(r => {
     if(r.recharge==="never")return; // Stored item uses do not refill automatically.
