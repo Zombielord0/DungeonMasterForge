@@ -164,16 +164,32 @@ function impMagic(ed, name) {
   const L = (IT.data[ed === "2014" ? "2014" : "2024"] || []).filter(x => x.kind === "magic");
   return L.find(x => !x.src && impLetters(x.n) === k) || L.find(x => x.src && impLetters(x.n) === k) || null;
 }
-/* feats named in a sheet's features text, one per line ("Alert", "• Lucky: …", "Feat: War Caster (PHB)"). Exact names only,
-   from the built-in, book and campaign feats; fighting styles are left to the class, and a background's own feat isn't
-   added twice (owner, 2026-11-27) */
+/* feats named in a sheet's features text, one per line ("Alert", "• Alert: …", "Feat: War Caster (PHB)"). Exact names only,
+   from the built-in, book and campaign feats (owner, 2026-11-27). Some feat names are also class or species features
+   ("Lucky" for a Halfling, "Ability Score Improvement", "Archery"): a bare line with one of those names is skipped, with a
+   note, and is only read as a feat when it says so ("Feat: Lucky", or under a "Feats" heading). A 2024 background's own
+   feat isn't added twice. */
+function impFeatClash() {
+  const S = new Set(["abilityscoreimprovement", ...Object.keys(FIGHT_STYLES), ...Object.keys(FEAT_DESC), ...Object.keys(SUB_DESC)].map(impLetters));
+  for (const ed of ["2014", "2024"]) for (const r of Object.values(PC_RACES[ed] || {})) {
+    (r.traits || []).forEach(t => S.add(impLetters(t)));
+    Object.values(r.subs || {}).forEach(x => (x.traits || []).forEach(t => S.add(impLetters(t))));
+  }
+  return S;
+}
 function impFeatsFromText(ed, text, bg, D) {
-  const L = featList(ed).filter(F => F[4] !== "f"), bgFeat = ed === "2024" ? ((bgInfo(ed, bg) || {}).feat || "") : "", out = [];
+  const L = featList(ed).filter(F => F[4] !== "f"), bgFeat = ed === "2024" ? ((bgInfo(ed, bg) || {}).feat || "") : "", out = [], clash = impFeatClash();
+  let inFeats = false;
   String(text || "").split(/\n/).forEach(line => {
-    const t = line.replace(/^[\s\-•*·]+/, "").replace(/^feats?\s*[:\-–—]\s*/i, "").split(/\s*(?::|\s[-–—]\s|\(|\.|,)/)[0].trim();
+    const raw = line.trim();
+    if (!raw) { inFeats = false; return; }
+    if (/^[=#*\s-]*feats?[=#*\s:-]*$/i.test(raw)) { inFeats = true; return; } /* a "Feats" heading */
+    const said = /^[\s\-•*·]*feats?\s*[:\-–—]\s*/i.test(raw) || inFeats;
+    const t = raw.replace(/^[\s\-•*·]+/, "").replace(/^feats?\s*[:\-–—]\s*/i, "").split(/\s*(?::|\s[-–—]\s|\(|\.|,)/)[0].trim();
     if (!t || t.length > 40) return;
     const k = impLetters(t), F = L.find(f => impLetters(f[0]) === k);
     if (!F || F[0] === bgFeat || out.some(b => b.n === F[0])) return;
+    if (!said && clash.has(k)) { D.report.differ.push(`“${F[0]}” is a feat and also a class or species feature, so it wasn't added as a feat. If it is the feat, add it on the Feats tab`); return; }
     out.push({ n: F[0], l: 1 }); D.report.matched.push(`Feat: ${F[0]}`);
   });
   return out;
