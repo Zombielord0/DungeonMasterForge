@@ -661,6 +661,22 @@ const { chromium } = require("playwright");
     assert.deepEqual(psiAudit.revised.pools,[8,8]);assert.deepEqual(psiAudit.legacy.pools,[12,12]);
     assert.deepEqual(psiAudit.revised.afterShort,[2,1,false]);assert.deepEqual(psiAudit.legacy.afterShort,[3,2,false]);assert.deepEqual(psiAudit.legacy.afterRecovery,[2,2]);
     assert.deepEqual(psiAudit.rend,[3,0]);assert.equal(psiAudit.veil,true);assert.deepEqual(psiAudit.veilRestore,[4,0]);assert.equal(psiAudit.removed,true);
+    const companionAudit=await page.evaluate(()=>{
+      const make=(ed,cls,level,subclass,multi=[])=>pcEnsure(generateCharacter({seed:"COMPANION-AUDIT",ed,cls,level,subclass,race:"Human",bg:"Sage",multi}));
+      const r=make("2024","Fighter",2,"none",[{cls:"Ranger",lv:11,subclass:"Beast Master"}]);r.used={};
+      const stat=companionStats(r,"primal","sky"),before=companionState(r,"primal");
+      companionSummon(r,"primal","sky","free");companionSetHP(r,"primal",0);const blocked=companionSetHP(r,"primal",5),replace=companionSummon(r,"primal","land","free");
+      const slot=companionSlots(r)[0].key;companionRevive(r,"primal",slot);const pending=companionState(r,"primal").pending;companionFinishRevive(r,"primal");const revived=companionState(r,"primal").current;
+      pcRest(r,"long");companionSummon(r,"primal","sea","free");const sea=companionState(r,"primal");
+      const d=make("2014","Ranger",15,"Drakewarden");d.used={};companionSummon(d,"drake","cold","free");const drake=companionState(d,"drake"),noFree=companionSummon(d,"drake","fire","free");const pay=companionSlots(d)[0].key;companionSummon(d,"drake","fire",pay);const paid=d.used[pay];
+      const a=make("2014","Artificer",15,"Battle Smith");a.used={};companionSummon(a,"steel","steel","free");const steel=companionState(a,"steel");companionSetHP(a,"steel",1);for(let j=0;j<4;j++)companionRoll(a,"steel","repair");const repair=a.used.steelRepair;
+      const w=make("2014","Druid",6,"Circle of Wildfire");w.used={};companionSummon(w,"wildfire","fire","wild");const fire=companionState(w,"wildfire"),wild=w.used.wild;pcRest(w,"long");const expired=!companionState(w,"wildfire");
+      const rogue=make("2024","Fighter",2,"none",[{cls:"Rogue",lv:3,subclass:"Soulknife"}]);pcRecompute(rogue);const blades=rogue.attacks.filter(x=>x.name.startsWith("Psychic Blade")).length;
+      return {stat:[stat.hp,stat.ac,stat.attacks,stat.hit],expected:[48,13+r.mods.wis,2,r.prof+r.mods.wis],before,blocked,replace,pending,revived,spent:r.used[slot]||0,sea:sea.hp,drake:[drake.hp,drake.size,drake.ac],drakeAC:14+d.prof,noFree,paid,steel:[steel.hp,steel.ac],steelHP:Math.max(1,77+a.mods.int),repair,fire:fire.hp,wild,expired,blades,editionGuard:companionStats(d,"primal","land")===null,grant:d.prepared.some(x=>x.n==="Thaumaturgy")};
+    });
+    assert.deepEqual(companionAudit.stat,companionAudit.expected);assert.equal(companionAudit.before,null);assert.equal(companionAudit.blocked,false);assert.match(companionAudit.replace,/Long Rest/);assert.equal(companionAudit.pending,true);assert.equal(companionAudit.revived,48);assert.equal(companionAudit.spent,0);assert.equal(companionAudit.sea,60);
+    assert.deepEqual(companionAudit.drake,[80,"Large",companionAudit.drakeAC]);assert.match(companionAudit.noFree,/already used/);assert.equal(companionAudit.paid,1);
+    assert.deepEqual(companionAudit.steel,[companionAudit.steelHP,17]);assert.equal(companionAudit.repair,3);assert.deepEqual([companionAudit.fire,companionAudit.wild,companionAudit.expired,companionAudit.blades,companionAudit.editionGuard,companionAudit.grant],[35,1,true,2,true,true]);
     const subclassPassiveAudit=await page.evaluate(()=>{
       const make=(ed,cls,level,subclass)=>pcEnsure(generateCharacter({seed:"PASSIVE-SUB",ed,cls,level,subclass,race:"Human",bg:"Sage"}));
       const old=make("2014","Druid",14,"Circle of the Land");old.active={};old.used={};actRun(old,"Nature's Sanctuary");const passive=!old.active["Nature's Sanctuary"]&&!old.used.wild;
