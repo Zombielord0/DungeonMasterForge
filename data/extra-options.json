@@ -9458,12 +9458,12 @@
       {
         "l": 3,
         "n": "Circle of Mortality",
-        "d": "Dice: 1d4, 1d6, 2d4. Spells: Spare the Dying. See the sourcebook for complete rules."
+        "d": "Once per turn when a damaging spell or attack damages a creature below maximum HP, add 1d4 Necrotic (1d6 from Cleric 11). Cast Spare the Dying as Bonus Action. For spell or Channel Divinity healing of a creature at 0 HP, maximize each healing die."
       },
       {
         "l": 3,
         "n": "Grave Domain Spells",
-        "d": "Spells: Detect Evil and Good, False Life, Gentle Repose, Ray of Enfeeblement, Spare the Dying, Revivify, Vampiric Touch, Blight, Death Ward, Dispel Evil and Good, Raise Dead. See the sourcebook for complete rules."
+        "d": "Always prepared: Cleric 3 Detect Evil and Good, False Life, Gentle Repose, Ray of Enfeeblement, Spare the Dying; 5 Revivify, Vampiric Touch; 7 Blight, Death Ward; 9 Dispel Evil and Good, Raise Dead."
       },
       {
         "l": 3,
@@ -9478,10 +9478,16 @@
       {
         "l": 17,
         "n": "Divine Reaper",
-        "d": "Conditions: Incapacitated. Distances: 60 feet. See the sourcebook for complete rules."
+        "d": "Spend Channel Divinity when casting a level 5 or lower single-target Necromancy spell or a Grave Domain spell to add a second target in range; supply costly/consumed materials for both. When an enemy dies within 60 feet, heal yourself or one visible creature within 60 feet for twice Cleric level; unavailable while Incapacitated, once per Short/Long Rest or restore using level 6+ slot without action."
       }
     ],
-    "page": 19
+    "page": 19,
+    "featureSourceReview": {
+      "status": "drive_transcription_mechanics_reviewed",
+      "reference": "Ravenloft_ The Horrors Within.md",
+      "primaryVerified": false,
+      "runtimeVerified": false
+    }
   },
   {
     "id": "reference-rthw-hollow-warden",
@@ -9496,17 +9502,17 @@
       {
         "l": 3,
         "n": "Hollow Warden Spells",
-        "d": "Spells: Wrathful Smite, Alter Self, Phantom Steed, Dominate Beast, Steel Wind Strike. See the sourcebook for complete rules."
+        "d": "Always prepared at Ranger 3 Wrathful Smite; 5 Alter Self; 9 Phantom Steed; 13 Dominate Beast; 17 Steel Wind Strike."
       },
       {
         "l": 3,
         "n": "Wrath of the Wild",
-        "d": "Conditions: Incapacitated, Frightened. Actions: Opportunity Attack. Distances: 5 feet, 10-foot. Timing: 1 minute. See the sourcebook for complete rules."
+        "d": "Bonus Action spend Favored Enemy use to transform for 1 minute, until Incapacitated, death or free dismissal. AC +1 (+2 at Ranger 11); immediately after visible creature within 5 feet damages you or ally, may Opportunity Attack it. On transformation and each turn start, chosen creatures in 10-foot emanation WIS save vs spell DC or Frightened until your next turn starts."
       },
       {
         "l": 7,
         "n": "Hungering Might",
-        "d": "Dice: 1d10. See the sourcebook for complete rules."
+        "d": "Add WIS modifier (min +1) to CON saves. Once per turn while transformed and Bloodied, an attack hit heals you for 1d10 + WIS."
       },
       {
         "l": 11,
@@ -9516,7 +9522,7 @@
       {
         "l": 15,
         "n": "Ancient Might",
-        "d": "Conditions: Frightened, Exhaustion. See the sourcebook for complete rules."
+        "d": "Attack hits on Frightened creatures add WIS modifier damage. If reduced to 0 HP while transformed without outright death, set HP to twice Ranger level instead; once per Long Rest or restore with level 4+ slot without action. Exhaustion immunity."
       }
     ],
     "page": 20,
@@ -9555,7 +9561,7 @@
       {
         "l": 9,
         "n": "Voice of Death",
-        "d": "Spells: Speak with Dead. See the sourcebook for complete rules."
+        "d": "Cast Speak with Dead without slot or components, using DEX for spellcasting; once per Short or Long Rest."
       },
       {
         "l": 13,
@@ -9589,17 +9595,17 @@
       {
         "l": 3,
         "n": "Power of Shadow",
-        "d": "Save DC: 5. Distances: 120 feet, 10 feet. See the sourcebook for complete rules."
+        "d": "Darkvision 120 ft, Blindsight 10 ft, see through Darkness created by own spells. When dropping to 0 HP without outright death, CHA save DC 5 + damage taken; on success set HP to CHA modifier + Sorcerer level. Successful use recharges on Long Rest."
       },
       {
         "l": 3,
         "n": "Shadow Spells",
-        "d": "Spells: Bane, Darkness, Inflict Wounds, Pass Without Trace, Hunger of Hadar, Nondetection, Greater Invisibility, Phantasmal Killer, Contagion, Creation. See the sourcebook for complete rules."
+        "d": "Always prepared: Sorcerer 3 Bane, Darkness, Inflict Wounds, Pass Without Trace; 5 Hunger of Hadar, Nondetection; 7 Greater Invisibility, Phantasmal Killer; 9 Contagion, Creation."
       },
       {
         "l": 6,
         "n": "Beasts of Ill Omen",
-        "d": "Spells: Summon Beast. Distances: 5 feet. Timing: 1 minute. See the sourcebook for complete rules."
+        "d": "Spend 3 Sorcery Points to cast Summon Beast as Bonus Action without slot, preparation or material components. Shadow beast gives enemies within 5 ft disadvantage on saves against your spells. For any casting you may remove Concentration, changing duration to 1 minute and ending it on recast."
       },
       {
         "l": 14,
@@ -9609,10 +9615,16 @@
       {
         "l": 18,
         "n": "Umbral Form",
-        "d": "Dice: 1d10. See the sourcebook for complete rules."
+        "d": "When activating Innate Sorcery, optionally assume form until Innate Sorcery ends or free dismissal; move through creatures/objects as Difficult Terrain, take 1d10 Force on ending turn inside one. Resist all damage except Force and Radiant. Once per Long Rest or restore use with 6 Sorcery Points without action."
       }
     ],
-    "page": 23
+    "page": 23,
+    "featureSourceReview": {
+      "status": "drive_transcription_mechanics_reviewed",
+      "reference": "Ravenloft_ The Horrors Within.md",
+      "primaryVerified": false,
+      "runtimeVerified": false
+    }
   },
   {
     "id": "reference-rthw-undead-patron",
@@ -9632,25 +9644,31 @@
       {
         "l": 3,
         "n": "Undead Spells",
-        "d": "Spells: Bane, Blindness/Deafness, Phantasmal Force, Ray of Sickness, Speak with Dead, Summon Undead, Greater Invisibility, Phantasmal Killer, Antilife Shell, Cloudkill. See the sourcebook for complete rules."
+        "d": "Always prepared: Warlock 3 Bane, Blindness/Deafness, Phantasmal Force, Ray of Sickness; 5 Speak with Dead, Summon Undead; 7 Greater Invisibility, Phantasmal Killer; 9 Antilife Shell, Cloudkill."
       },
       {
         "l": 6,
         "n": "Grave Touched",
-        "d": "Conditions: Exhaustion. See the sourcebook for complete rules."
+        "d": "Necrotic damage from your attacks, Warlock spells/features ignores Resistance; once per turn change damaging spell to Necrotic. Once per turn while Form of Dread active, a Necrotic attack hit adds one damage die. No Exhaustion from dehydration, malnutrition or suffocation; no sleep needed, immune to magical sleep."
       },
       {
         "l": 10,
         "n": "Necrotic Husk",
-        "d": "Dice: 2d10. Conditions: Exhaustion. Distances: 30-foot. See the sourcebook for complete rules."
+        "d": "Necrotic resistance, immunity in Form of Dread. On dropping to 0 HP without outright death, chosen creatures in 30-foot emanation CON save vs spell DC for 2d10 + CHA Necrotic, half on success. Set own HP to twice Warlock level, gain 1 Exhaustion. Once per Short/Long Rest."
       },
       {
         "l": 14,
         "n": "Superior Dread",
-        "d": "Dice: 1d10. See the sourcebook for complete rules."
+        "d": "During Form of Dread, resist Bludgeoning/Piercing/Slashing, fly at Speed with hover, pass through objects/creatures as Difficult Terrain and take 1d10 Force if ending turn inside one. Warlock Conjuration/Necromancy spells omit V/S/M except costly or consumed materials."
       }
     ],
-    "page": 24
+    "page": 24,
+    "featureSourceReview": {
+      "status": "drive_transcription_mechanics_reviewed",
+      "reference": "Ravenloft_ The Horrors Within.md",
+      "primaryVerified": false,
+      "runtimeVerified": false
+    }
   },
   {
     "id": "reference-au-arcana-domain",
@@ -9665,7 +9683,7 @@
       {
         "l": 3,
         "n": "Arcana Domain Spells",
-        "d": "Spells: Detect Magic, Magic Missile, Magic Weapon, Nystul's Magic Aura, Counterspell, Dispel Magic, Arcane Eye, Leomund's Secret Chest, Bigby's Hand, Teleportation Circle. See the sourcebook for complete rules."
+        "d": "Always prepared: Cleric 3 Detect Magic, Magic Missile, Magic Weapon, Nystul's Magic Aura; 5 Counterspell, Dispel Magic; 7 Arcane Eye, Leomund's Secret Chest; 9 Bigby's Hand, Teleportation Circle."
       },
       {
         "l": 3,
@@ -9680,12 +9698,12 @@
       {
         "l": 3,
         "n": "Fortifying Spell",
-        "d": "Dice: 2d8. See the sourcebook for complete rules."
+        "d": "Modify Magic option: while casting, expend one Channel Divinity use without action to give one spell target 2d8 + Cleric level temporary HP."
       },
       {
         "l": 3,
         "n": "Tenacious Spell",
-        "d": "Dice: 1d6. See the sourcebook for complete rules."
+        "d": "Modify Magic option: while casting, expend Channel Divinity without action; when a visible creature succeeds on a save against that spell, roll 1d6 and subtract from its first save against spell effect."
       },
       {
         "l": 6,
@@ -9739,7 +9757,7 @@
       {
         "l": 7,
         "n": "Magical Ammunition",
-        "d": "Actions: Magic. Distances: 15-foot, 300 feet, 120-foot. Timing: 1 minute, 10 minutes. See the sourcebook for complete rules."
+        "d": "Magic action imbues nonmagical ammunition and shoots it at visible solid surface within weapon range; effects start on impact and ammunition stays attached. Magic action may remove it to end early; destroyed when effect ends. Once per Short/Long Rest or restore via Second Wind use without action. Darkening: 15-ft emanation 1 min, extinguish nonmagical flames, -5 Perception checks/passive. Unlocking: 15-ft emanation unlocks nonmagical locks (one per object) and frees stuck/barred objects, sound audible 300 ft. Vine: climbable 120-ft vine lasts 10 min."
       },
       {
         "l": 10,
@@ -9749,12 +9767,12 @@
       {
         "l": 15,
         "n": "Indomitable Teleport",
-        "d": "Distances: 60 feet. See the sourcebook for complete rules."
+        "d": "After successful save using Indomitable, may teleport to visible empty space up to 60 feet."
       },
       {
         "l": 18,
         "n": "Masterful Shots",
-        "d": "Actions: opportunity attack. See the sourcebook for complete rules."
+        "d": "When visible creature misses you with attack, Reaction moves you away up to half Speed without Opportunity Attacks, then make ranged attack against attacker if in range."
       }
     ],
     "page": 9,
@@ -9783,7 +9801,7 @@
       {
         "l": 6,
         "n": "Mystic Fighting Style",
-        "d": "Actions: Attack. See the sourcebook for complete rules."
+        "d": "During your Attack action on your turn, replace one Unarmed Strike with one Sorcerer cantrip with Action casting time."
       },
       {
         "l": 6,
@@ -9837,7 +9855,7 @@
       {
         "l": 10,
         "n": "Vestige Recovery",
-        "d": "Distances: 30 feet. See the sourcebook for complete rules."
+        "d": "When Vestige Companion would drop to 0 HP, Reaction and Pact Magic slot to instead set it to maximum HP, then teleport it to visible empty space within 30 feet of it. Once per Long Rest."
       },
       {
         "l": 14,
@@ -9845,7 +9863,13 @@
         "d": "Transform the companion into a stronger manifestation."
       }
     ],
-    "page": 13
+    "page": 13,
+    "featureSourceReview": {
+      "status": "drive_transcription_mechanics_reviewed",
+      "reference": "Arcana Unleashed.md",
+      "primaryVerified": false,
+      "runtimeVerified": false
+    }
   },
   {
     "id": "reference-au-conjurer",
@@ -9919,7 +9943,7 @@
       {
         "l": 3,
         "n": "Hypnotic Presence",
-        "d": "Conditions: Charmed, Incapacitated. Actions: Magic. Distances: 10 feet. Timing: 1 minute. See the sourcebook for complete rules."
+        "d": "Magic action choose visible creature within 10 ft that sees or hears you; WIS save vs spell DC or Charmed for up to 1 min and while Charmed Incapacitated, Speed 0. Ends if beyond 10 ft, cannot see or hear you, or takes damage. INT modifier uses (min 1) per Long Rest."
       },
       {
         "l": 6,
@@ -9934,10 +9958,16 @@
       {
         "l": 14,
         "n": "Alter Memories",
-        "d": "Conditions: Charmed. Actions: Magic. Timing: 1 hour. See the sourcebook for complete rules."
+        "d": "When casting a slotted Enchantment spell that imposes Charmed, choose one target unaware of your charm. Once before spell ends, Magic action forces INT save vs spell DC; on failure erase up to 1 + INT hours (minimum maximum of 1 hour), not exceeding spell duration; may erase less."
       }
     ],
-    "page": 16
+    "page": 16,
+    "featureSourceReview": {
+      "status": "drive_transcription_mechanics_reviewed",
+      "reference": "Arcana Unleashed.md",
+      "primaryVerified": false,
+      "runtimeVerified": false
+    }
   },
   {
     "id": "reference-au-necromancer",
@@ -9962,12 +9992,12 @@
       {
         "l": 6,
         "n": "Grave Power",
-        "d": "Conditions: Exhaustion. See the sourcebook for complete rules."
+        "d": "While holding spellbook, Arcane Recovery reduces Exhaustion by 1 if any; Wizard spell/feature Necrotic damage ignores Resistance."
       },
       {
         "l": 6,
         "n": "Undead Thralls",
-        "d": "Spells: Animate Dead. Distances: 60 feet. See the sourcebook for complete rules."
+        "d": "Always prepare Animate Dead; free once per Long Rest; optionally increase effective casting level by 1 for any casting. While holding spellbook, Necromancy spells creating/summoning Undead increase its maximum/current HP by INT + half Wizard level (round down). Each controlled Undead within 60 ft adds INT Necrotic (min 1) on attack hits."
       },
       {
         "l": 10,
@@ -9977,7 +10007,7 @@
       {
         "l": 14,
         "n": "Death's Master",
-        "d": "Dice: 1d6. Distances: 60 feet, 10-foot. See the sourcebook for complete rules."
+        "d": "While holding spellbook, Bonus Action grants chosen Necromancy-created/summoned Undead within 60 ft temporary HP equal to Wizard level, once per Long Rest. When visible Undead reaches 0 HP, optionally explode it: roll d6s equal to half unspent Hit Dice rounded up (min 1); creatures in 10-ft emanation DEX save for that Necrotic damage and no Reactions until their next turn starts, or half damage only on success. For uncontrolled Undead, spend Reaction and level 5+ slot."
       }
     ],
     "page": 17,
@@ -10011,30 +10041,36 @@
       {
         "l": 3,
         "n": "Wondrous Alteration",
-        "d": "Dice: 2d6. Spells: Alter Self. Actions: Dash. See the sourcebook for complete rules."
+        "d": "Always prepare Alter Self; free once per Long Rest. Under its effects: Aquatic Adaptation grants Bonus Action Dash underwater; Change Appearance grants advantage on Deception; Natural Weapons damage becomes 2d6 of associated type, plus advantage on CON concentration saves."
       },
       {
         "l": 6,
         "n": "Empowered Transmutation",
-        "d": "Spells: Fly, Magic Weapon. See the sourcebook for complete rules."
+        "d": "When slotted Transmutation spell has neither attack roll nor save, optionally increase effective level by 1. INT modifier uses (min 1) per Long Rest."
       },
       {
         "l": 10,
         "n": "Potent Stone",
-        "d": "Distances: 30 feet. See the sourcebook for complete rules."
+        "d": "Choose up to two Transmuter's Stone benefits on creation; each only once except Resistance twice with different types. Change either/both on casting slotted Transmutation. Add options Mighty Build (advantage on STR saves; count one size larger for carry capacity) and Tremorsense 30 ft."
       },
       {
         "l": 10,
         "n": "Shape-Shifter",
-        "d": "Spells: Polymorph. See the sourcebook for complete rules."
+        "d": "Always prepare Polymorph; free once per Long Rest. Once per Long Rest when targeting self, modify to retain memory, communication, INT/WIS/CHA, proficiencies, class features and feats in addition to spell's retained statistics. May cast Transmutation spells lacking costly/consumed materials while transformed."
       },
       {
         "l": 14,
         "n": "Master Transmuter",
-        "d": "Dice: 3d10. Spells: Raise Dead. Conditions: Poisoned, Petrified, Exhaustion. Actions: Magic. Distances: 10-foot, 5-foot. Timing: 10 minutes. See the sourcebook for complete rules."
+        "d": "Carry stone, Magic action choose one effect; stone crumbles unless spend level 7+ slot as part of action. Major Transformation: handle nonmagical object ≤10-ft cube or eight joined 5-ft cubes for 10 min; convert to nonmagical object of similar mass/size and no greater value. Panacea: touch creature, heal half maximum HP (round down), remove magical contagions, curses including cursed attunement, Poisoned and Petrified. Restore Life: Raise Dead without slot, stone substitutes materials. Restore Youth: willing touched creature loses all Exhaustion and permanently looks 3d10 years younger, minimum young adult."
       }
     ],
-    "page": 19
+    "page": 19,
+    "featureSourceReview": {
+      "status": "drive_transcription_mechanics_reviewed",
+      "reference": "Arcana Unleashed.md",
+      "primaryVerified": false,
+      "runtimeVerified": false
+    }
   },
   {
     "id": "reference-wow-oath-of-the-ebon-blade",
@@ -10675,12 +10711,12 @@
       {
         "l": 3,
         "n": "Reanimator Spells",
-        "d": "Spells: False Life, Spare the Dying, Witch Bolt, Blindness/Deafness, Enhance Ability, Animate Dead, Lightning Bolt, Blight, Death Ward, Antilife Shell, Raise Dead. See the sourcebook for complete rules."
+        "d": "Always prepared: Artificer 3 False Life, Spare the Dying, Witch Bolt; 5 Blindness/Deafness, Enhance Ability; 9 Animate Dead, Lightning Bolt; 13 Blight, Death Ward; 17 Antilife Shell, Raise Dead."
       },
       {
         "l": 3,
         "n": "Reanimator's Skill Set",
-        "d": "Dice: 2d4, 1d4, 3d4, 4d4. Spells: Spare the Dying. Distances: 10-foot. See the sourcebook for complete rules."
+        "d": "When casting Spare the Dying, optionally heal target for Artificer level and chosen creatures in 10-foot emanation around target DEX save vs spell DC for 2d4 Lightning (3d4 at 11, 4d4 at 17), half on success. INT modifier uses per Long Rest. Gain Alchemist's Supplies proficiency or another chosen Artisan's Tools proficiency if already known."
       },
       {
         "l": 5,
@@ -10695,15 +10731,21 @@
       {
         "l": 9,
         "n": "Macabre Modifications",
-        "d": "Conditions: Frightened. Distances: 10 feet, 45 feet, 10-foot. See the sourcebook for complete rules."
+        "d": "Create companion with two Strange Modification options; additional options: Bloated (Large; Swipe pushes Large or smaller hit targets up to 10 ft; add INT to Death Burst damage); Gaunt (Speed/climb 45 ft, ceiling climb without check; chosen creatures starting within 10 ft WIS save vs spell DC or Frightened until their next turn starts); Moist (swim at Speed, pass 1-inch gaps without extra movement, attackers within 10 ft that hit it take INT Acid)."
       },
       {
         "l": 15,
         "n": "Refined Reanimation",
-        "d": "Spells: Raise Dead. See the sourcebook for complete rules."
+        "d": "Cast Raise Dead without slot or materials using proficient Artisan's Tools focus, once per Long Rest. Reaction when you or companion takes damage to heal yourself by its current HP, then reduce companion to 0 HP, killing it and triggering Death Burst. Created companions choose three Strange Modifications."
       }
     ],
-    "page": 15
+    "page": 15,
+    "featureSourceReview": {
+      "status": "drive_transcription_mechanics_reviewed",
+      "reference": "Ravenloft_ The Horrors Within.md",
+      "primaryVerified": false,
+      "runtimeVerified": false
+    }
   },
   {
     "id": "reference-au-arcane-infiltrator",
