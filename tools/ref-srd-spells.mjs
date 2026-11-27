@@ -11,7 +11,8 @@ export function validateSrdSpellLinks(manifest,refs,core) {
  if(!manifest||manifest.version!==1||!Array.isArray(manifest.entries))fail("invalid manifest");
  const seen=new Set(),out=[];
  for(const e of manifest.entries) {
-  if(e.ed!=="2014"||e.src!=="phb-2014"||typeof e.stableId!=="string"||!e.stableId.startsWith("cmp:"))fail("unsupported edition or source");
+  const existing=e.mode==="existing";
+  if(e.ed!=="2014"||e.src!=="phb-2014"||(existing ? e.name!==e.target || e.archiveSourceKey!=="SRD 5.1|2014|Spell|"+e.target : e.mode!==undefined || typeof e.stableId!=="string" || !e.stableId.startsWith("cmp:")))fail("unsupported edition, source or link identity");
   const id=JSON.stringify([e.name,e.src,e.ed]);if(seen.has(id))fail("duplicate link");seen.add(id);
   const ref=refs.filter(r=>r.kind==="Spell"&&r.name===e.name&&r.src===e.src&&(r.ed||"2014")===e.ed);
   const target=core[e.ed].filter(s=>s.n===e.target&&!s.src&&!s.ref);
@@ -29,6 +30,7 @@ export function validateSrdSpellLinks(manifest,refs,core) {
 export function fillSrdSpellReferences(rows,links) {
  const out=rows.slice();
  for(const {entry:e,payload:p,reference:r} of links) {
+  if(e.mode==="existing")continue; // Canonical spell already exists; link the book-reference detail only.
   const hits=out.map((x,i)=>({x,i})).filter(({x})=>x.n===e.name&&x.src===e.src&&x.ed===e.ed);
   if(hits.length!==1||!hits[0].x.ref||!hits[0].x.referenceOnly)fail("expected one reference shell: "+e.name);
   const {i}=hits[0];
