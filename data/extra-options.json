@@ -5466,29 +5466,36 @@
       {
         "l": 3,
         "n": "Silver Tongue",
-        "d": "See Mythic Odysseys of Theros, p. 28."
+        "d": "For Charisma (Persuasion or Deception) checks treat a natural d20 result below 10 as 10."
       },
       {
         "l": 3,
         "n": "Unsettling Words",
-        "d": "See Mythic Odysseys of Theros, p. 28."
+        "d": "Bonus Action, spend a Bardic Inspiration use and roll its die. One visible creature within 60 feet subtracts result from next saving throw before your next turn starts."
       },
       {
         "l": 6,
         "n": "Unfailing Inspiration",
-        "d": "See Mythic Odysseys of Theros, p. 28."
+        "d": "A recipient who adds your Bardic Inspiration die to a check, attack or save that still fails keeps the die."
       },
       {
         "l": 6,
         "n": "Universal Speech",
-        "d": "See Mythic Odysseys of Theros, p. 28."
+        "d": "Action, choose up to Charisma modifier creatures (minimum one) within 60 feet; they understand your speech regardless of language for 1 hour. Free once per Long Rest; spend any spell slot for further use."
       },
       {
         "l": 14,
         "n": "Infectious Inspiration",
-        "d": "See Mythic Odysseys of Theros, p. 28."
+        "d": "When a creature within 60 feet succeeds after adding your Bardic Inspiration to a check, attack or save, use Reaction to give a different creature (not yourself) within 60 feet that hears you one Inspiration die without consuming usual uses. Charisma modifier uses (minimum one) per Long Rest."
       }
-    ]
+    ],
+    "featureSourceReview": {
+      "status": "later_printing_candidate",
+      "reference": "Tashas_Cauldron_of_Everything (1).pdf; https://www.dndbeyond.com/posts/864-bard-101-college-of-eloquence",
+      "primaryVerified": false,
+      "runtimeVerified": false,
+      "note": "The later Tasha printing supplies detailed mechanics; Theros printing requires direct comparison."
+    }
   },
   {
     "id": "reference-mot-paladin-oath-of-glory",
@@ -5504,44 +5511,51 @@
       {
         "l": 3,
         "n": "Channel Divinity",
-        "d": "See Mythic Odysseys of Theros, p. 29."
+        "d": "Spend one Channel Divinity use for either Peerless Athlete or Inspiring Smite."
       },
       {
         "l": 3,
         "n": "Oath Spells",
-        "d": "See Mythic Odysseys of Theros, p. 29."
+        "d": "Always prepared at Paladin 3: Guiding Bolt, Heroism; 5: Enhance Ability, Magic Weapon; 9: Haste, Protection from Energy; 13: Compulsion, Freedom of Movement; 17: Commune, Flame Strike."
       },
       {
         "l": 3,
         "n": "Tenets of Glory",
-        "d": "See Mythic Odysseys of Theros, p. 29."
+        "d": "Pursue heroic deeds rather than mere claims, meet challenges courageously, train your body and discipline your spirit."
       },
       {
         "l": 3,
         "n": "Inspiring Smite",
-        "d": "See Mythic Odysseys of Theros, p. 29."
+        "d": "Immediately after damaging a creature using Divine Smite, use Bonus Action and Channel Divinity to divide 2d8 + Paladin level temporary HP among chosen creatures within 30 feet, including yourself if desired."
       },
       {
         "l": 3,
         "n": "Peerless Athlete",
-        "d": "See Mythic Odysseys of Theros, p. 29."
+        "d": "Bonus Action and Channel Divinity for 10 minutes: advantage on Athletics and Acrobatics; double carry, push, drag and lift weight; add 10 feet to long/high jumps, paying normal movement cost."
       },
       {
         "l": 7,
         "n": "Aura of Alacrity",
-        "d": "See Mythic Odysseys of Theros, p. 29."
+        "d": "Your walking speed increases by 10 feet. While not Incapacitated, allies starting turn within 5 feet gain +10 walking speed through their turn; range becomes 10 feet at Paladin 18."
       },
       {
         "l": 15,
         "n": "Glorious Defense",
-        "d": "See Mythic Odysseys of Theros, p. 29."
+        "d": "When you or visible creature within 10 feet is hit by attack, use Reaction to add CHA modifier (minimum +1) to its AC against that attack. If this causes miss, make one weapon attack against attacker as part of Reaction if within weapon range. CHA modifier uses (minimum one) per Long Rest."
       },
       {
         "l": 20,
         "n": "Living Legend",
-        "d": "See Mythic Odysseys of Theros, p. 29."
+        "d": "Bonus Action for 1 minute: advantage on CHA checks; once on each own turn convert a missed weapon attack into hit; after failing save, Reaction rerolls it and must use new result. Once per Long Rest or expend level 5 slot to use again."
       }
-    ]
+    ],
+    "featureSourceReview": {
+      "status": "later_printing_candidate",
+      "reference": "Tashas_Cauldron_of_Everything (1).pdf",
+      "primaryVerified": false,
+      "runtimeVerified": false,
+      "note": "Later printing mechanics candidate, original Theros text not found in supplied export."
+    }
   },
   {
     "id": "reference-scag-barbarian-path-of-the-battlerager",
@@ -9025,25 +9039,32 @@
       {
         "l": 3,
         "n": "Moon's Inspiration",
-        "d": "Conditions: Invisible. Distances: 30 feet, 10 feet. See the sourcebook for complete rules."
+        "d": "When using Bonus Action to give Bardic Inspiration, optionally teleport to visible empty space within 30 feet and become Invisible until your next turn starts, ending early on attack roll, dealing damage or casting. Once per turn when healing with spell, expend Inspiration use to add die to healing and increase recipient Speed 10 feet through its next turn."
       },
       {
         "l": 3,
         "n": "Primal Lore",
-        "d": "See the sourcebook for complete rules."
+        "d": "Learn Druidic and choose one Druid cantrip as an extra Bard cantrip; may change it on gaining Bard level. Choose proficiency in Animal Handling, Insight, Medicine, Nature, Perception or Survival."
       },
       {
         "l": 6,
         "n": "Blessing of Moonlight",
-        "d": "Dice: 2d4. Spells: Moonbeam. Distances: 5 feet, 60 feet. See the sourcebook for complete rules."
+        "d": "Always prepare Moonbeam. Once per Long Rest modify its casting: emit Dim Light 5 feet for duration and whenever a creature fails that Moonbeam save, heal another visible creature within 60 feet by 2d4."
       },
       {
         "l": 14,
         "n": "Eventide's Splendor",
-        "d": "Dice: 1d6. Conditions: Invisible. Distances: 30 feet. See the sourcebook for complete rules."
+        "d": "Inspired Eclipse also lets Inspiration recipient become Invisible until its next turn starts and immediately teleport up to 30 feet to visible empty space using Reaction. Lunar Vitality may roll 1d6 instead of spending Inspiration."
       }
     ],
-    "page": 16
+    "page": 16,
+    "featureSourceReview": {
+      "status": "secondary_mechanics_candidate",
+      "reference": "https://dnd2024.wikidot.com/bard:college-of-the-moon",
+      "primaryVerified": false,
+      "runtimeVerified": false,
+      "note": "Final-release secondary reference; supplied Heroes of Faerûn Markdown lacks subclass section."
+    }
   },
   {
     "id": "reference-hof-knowledge-domain",
@@ -9058,30 +9079,37 @@
       {
         "l": 3,
         "n": "Blessings of Knowledge",
-        "d": "See the sourcebook for complete rules."
+        "d": "Choose one Artisan's Tools proficiency, plus proficiency and Expertise in two of Arcana, History, Nature or Religion."
       },
       {
         "l": 3,
         "n": "Knowledge Domain Spells",
-        "d": "Prepare divinations and other magic for uncovering secrets and controlling minds."
+        "d": "Always prepared at Cleric 3: Command, Comprehend Languages, Detect Magic, Detect Thoughts, Identify, Mind Spike; 5: Dispel Magic, Nondetection, Tongues; 7: Arcane Eye, Banishment, Confusion; 9: Legend Lore, Scrying, Synaptic Static."
       },
       {
         "l": 3,
         "n": "Mind Magic",
-        "d": "Actions: Magic. See the sourcebook for complete rules."
+        "d": "Magic action, expend Channel Divinity to cast one prepared Divination spell from Knowledge Domain list without slot or Material components."
       },
       {
         "l": 6,
         "n": "Unfettered Mind",
-        "d": "Distances: 60 feet. See the sourcebook for complete rules."
+        "d": "Telepathy 60 feet, simultaneously contact up to WIS modifier creatures (minimum one). Gain INT saving throw proficiency; if already proficient choose an ability save in which you lack proficiency instead."
       },
       {
         "l": 17,
         "n": "Divine Foreknowledge",
-        "d": "Timing: 1 hour. See the sourcebook for complete rules."
+        "d": "Bonus Action gives advantage on D20 Tests for 1 hour. Recharge on Long Rest or restore use by spending level 6+ slot (no action)."
       }
     ],
-    "page": 18
+    "page": 18,
+    "featureSourceReview": {
+      "status": "secondary_mechanics_candidate",
+      "reference": "https://dnd2024.wikidot.com/cleric:knowledge-domain",
+      "primaryVerified": false,
+      "runtimeVerified": false,
+      "note": "Final-release secondary reference; supplied Heroes of Faerûn Markdown lacks subclass section."
+    }
   },
   {
     "id": "reference-hof-banneret",
@@ -9096,35 +9124,42 @@
       {
         "l": 3,
         "n": "Group Recovery",
-        "d": "Dice: 1d4. Distances: 30-foot. See the sourcebook for complete rules."
+        "d": "When healing with Second Wind, choose up to CHA modifier allies (minimum one) within 30-foot emanation. Each heals 1d4 + Fighter level. Once per Short or Long Rest."
       },
       {
         "l": 3,
         "n": "Knightly Envoy",
-        "d": "Spells: Comprehend Languages. Timing: 24 hours. See the sourcebook for complete rules."
+        "d": "Cast Comprehend Languages only as Ritual using CHA. Learn one language from PHB or Heroes of Faerûn language tables; on Long Rest may replace this learned language with one heard, seen signed or read in preceding 24 hours. Choose proficiency in Insight, Intimidation, Persuasion or Performance."
       },
       {
         "l": 7,
         "n": "Team Tactics",
-        "d": "See the sourcebook for complete rules."
+        "d": "Each ally selected for Group Recovery gains advantage on D20 Tests until your next turn starts."
       },
       {
         "l": 10,
         "n": "Rallying Surge",
-        "d": "Actions: Opportunity Attack. Distances: 30-foot. See the sourcebook for complete rules."
+        "d": "When using Action Surge, choose up to CHA modifier allies (minimum one) in 30-foot emanation; each may immediately use Reaction to make one weapon or unarmed attack or move up to half Speed without provoking Opportunity Attacks."
       },
       {
         "l": 15,
         "n": "Shared Resilience",
-        "d": "Distances: 60 feet. See the sourcebook for complete rules."
+        "d": "When visible ally within 60 feet fails a save, spend Indomitable use and Reaction to let ally reroll with Fighter level bonus; must use new result."
       },
       {
         "l": 18,
         "n": "Inspiring Commander",
-        "d": "Conditions: Charmed, Frightened. Distances: 60-foot. See the sourcebook for complete rules."
+        "d": "Group Recovery and Rallying Surge emanations expand to 60 feet; you gain immunity to Charmed and Frightened."
       }
     ],
-    "page": 19
+    "page": 19,
+    "featureSourceReview": {
+      "status": "secondary_mechanics_candidate",
+      "reference": "https://dnd2024.wikidot.com/fighter:banneret",
+      "primaryVerified": false,
+      "runtimeVerified": false,
+      "note": "Final-release secondary reference; supplied Heroes of Faerûn Markdown lacks subclass section."
+    }
   },
   {
     "id": "reference-hof-oath-of-the-noble-genies",
@@ -9139,55 +9174,62 @@
       {
         "l": 3,
         "n": "Dao's Crush",
-        "d": "Conditions: Grappled, Restrained. See the sourcebook for complete rules."
+        "d": "Elemental Smite option: Divine Smite target becomes Grappled (escape DC = spell save DC) and Restrained while grapple persists."
       },
       {
         "l": 3,
         "n": "Djinni's Escape",
-        "d": "Conditions: Grappled, Prone, Restrained. Distances: 30 feet. See the sourcebook for complete rules."
+        "d": "Elemental Smite option: teleport to visible unoccupied space within 30 feet; resist B/P/S and gain immunity to Grappled, Prone, Restrained through your next turn."
       },
       {
         "l": 3,
         "n": "Efreeti's Fury",
-        "d": "Dice: 2d4. Distances: 30 feet. See the sourcebook for complete rules."
+        "d": "Elemental Smite option: smite target and another visible creature within 30 feet each take 2d4 Fire."
       },
       {
         "l": 3,
         "n": "Elemental Smite",
-        "d": "Spells: Divine Smite. See the sourcebook for complete rules."
+        "d": "Immediately after casting Divine Smite, spend Channel Divinity for one option: Dao's Crush, Djinni's Escape, Efreeti's Fury or Marid's Surge."
       },
       {
         "l": 3,
         "n": "Genie Spells",
-        "d": "Spells: Chromatic Orb, Elementalism, Thunderous Smite, Mirror Image, Phantasmal Force, Fly, Gaseous Form, Conjure Minor Elementals, Summon Elemental, Banishing Smite, Contact Other Plane. See the sourcebook for complete rules."
+        "d": "Always prepared: Paladin 3 Chromatic Orb, Elementalism, Thunderous Smite; 5 Mirror Image, Phantasmal Force; 9 Fly, Gaseous Form; 13 Conjure Minor Elementals, Summon Elemental; 17 Banishing Smite, Contact Other Plane."
       },
       {
         "l": 3,
         "n": "Genie's Splendor",
-        "d": "When unarmored, calculate your Armor Class using Dexterity and Charisma."
+        "d": "Unarmored AC 10 + DEX + CHA; shield allowed. Choose proficiency in Acrobatics, Intimidation, Performance or Persuasion."
       },
       {
         "l": 3,
         "n": "Marid's Surge",
-        "d": "Conditions: Prone. Distances: 10-foot, 15 feet. See the sourcebook for complete rules."
+        "d": "Elemental Smite option: smite target and chosen creatures in 10-foot emanation make STR save vs spell DC or are pushed straight away 15 feet and knocked Prone."
       },
       {
         "l": 7,
         "n": "Aura of Elemental Shielding",
-        "d": "See the sourcebook for complete rules."
+        "d": "Choose Acid, Cold, Fire, Lightning or Thunder resistance for yourself and allies inside Aura of Protection. Change selection at start of your turns without action."
       },
       {
         "l": 15,
         "n": "Elemental Rebuke",
-        "d": "Reduce damage from an attacker and respond with elemental power."
+        "d": "On attack hit against you, Reaction halves its damage (round down) and attacker DEX save vs spell DC for 2d10 + CHA Acid/Cold/Fire/Lightning/Thunder (chosen), half on success. CHA modifier uses (min one) per Long Rest."
       },
       {
         "l": 20,
         "n": "Noble Scion",
-        "d": "Take flight and use your supernatural authority to bend fate."
+        "d": "Bonus Action for 10 minutes (or dismiss freely): fly 60 feet with hover; when you or ally inside Aura of Protection fails D20 Test, Reaction turns failure into success. Once per Long Rest; restore by expending level 5 slot without action."
       }
     ],
-    "page": 20
+    "page": 20,
+    "featureSourceReview": {
+      "status": "secondary_mechanics_candidate",
+      "reference": "https://dnd2024.wikidot.com/paladin:oath-of-the-noble-genies",
+      "primaryVerified": false,
+      "runtimeVerified": false,
+      "note": "Final-release secondary reference; supplied Heroes of Faerûn Markdown lacks subclass section."
+    }
   },
   {
     "id": "reference-hof-winter-walker",
@@ -9245,30 +9287,37 @@
       {
         "l": 3,
         "n": "Bloodthirst",
-        "d": "Draw on the Dead Three and use supernatural mobility to close with wounded foes."
+        "d": "When damage makes a visible enemy Bloodied without killing it, use Reaction to teleport up to 30 feet beside it and make one melee attack against it. Intelligence modifier uses (minimum one) per Long Rest."
       },
       {
         "l": 3,
         "n": "Dread Allegiance",
-        "d": "Spells: Minor Illusion, Blade Ward, Chill Touch. See the sourcebook for complete rules."
+        "d": "Choose Bane (Psychic resistance, Minor Illusion), Bhaal (Poison resistance, Blade Ward), or Myrkul (Necrotic resistance, Chill Touch); use INT for cantrip. May change allegiance on Long Rest."
       },
       {
         "l": 9,
         "n": "Strike Fear",
-        "d": "Conditions: Frightened. Timing: 1 minute. See the sourcebook for complete rules."
+        "d": "Terrify Cunning Strike option costs 1d6 Sneak Attack damage; WIS save or Frightened for 1 minute, repeat at each turn end. Attack benefit against frightened target requires final text verification."
       },
       {
         "l": 13,
         "n": "Aura of Malevolence",
-        "d": "Distances: 10 feet. See the sourcebook for complete rules."
+        "d": "On Bloodthirst teleport, choose creatures within 10 feet of starting or landing space; deal Intelligence modifier damage of Dread Allegiance's resistance type, ignoring Resistance."
       },
       {
         "l": 17,
         "n": "Dread Incarnate",
-        "d": "See the sourcebook for complete rules."
+        "d": "Cutthroat: recover one Bloodthirst use on Short Rest. Murderous Intent: each Sneak Attack die showing 1 or 2 counts as 3."
       }
     ],
-    "page": 23
+    "page": 23,
+    "featureSourceReview": {
+      "status": "secondary_mechanics_candidate",
+      "reference": "https://dnd-wiki.org/wiki/Scion_of_the_Three_(5e24); https://www.wargamer.com/dnd/scion-of-the-three-subclass",
+      "primaryVerified": false,
+      "runtimeVerified": false,
+      "note": "Final-version secondary descriptions, not UA. Exact Bloodthirst range and Terrify modifiers still need primary confirmation."
+    }
   },
   {
     "id": "reference-hof-spellfire-sorcery",
@@ -9331,30 +9380,37 @@
       {
         "l": 3,
         "n": "Bladesong",
-        "d": "Enter an arcane fighting stance that improves your defense, mobility, and concentration."
+        "d": "Bonus Action for 1 minute if no armor/shield; ends on Incapacitated, donning armor/shield, two-handed weapon attack or free dismissal. AC increases by INT (min +1), Speed +10, advantage Acrobatics; may use INT for proficient weapon attacks/damage, add INT to concentration saves. INT modifier uses (min one) per Long Rest; Arcane Recovery restores one."
       },
       {
         "l": 3,
         "n": "Training in War and Song",
-        "d": "See the sourcebook for complete rules."
+        "d": "Gain proficiency with Martial Melee weapons lacking Heavy and Two-Handed; proficient melee weapon may focus Wizard spells. Choose Acrobatics, Athletics, Performance or Persuasion proficiency."
       },
       {
         "l": 6,
         "n": "Extra Attack",
-        "d": "Actions: Attack. See the sourcebook for complete rules."
+        "d": "Two attacks when taking Attack action on your turn; may substitute one attack with an Action-casting-time Wizard cantrip."
       },
       {
         "l": 10,
         "n": "Song of Defense",
-        "d": "See the sourcebook for complete rules."
+        "d": "While Bladesong active, Reaction on damage; spend spell slot to reduce damage by five times slot level."
       },
       {
         "l": 14,
         "n": "Song of Victory",
-        "d": "See the sourcebook for complete rules."
+        "d": "After casting a spell with an Action casting time, make one weapon attack as Bonus Action."
       }
     ],
-    "page": 26
+    "page": 26,
+    "featureSourceReview": {
+      "status": "secondary_mechanics_candidate",
+      "reference": "https://dnd2024.wikidot.com/wizard:bladesinger",
+      "primaryVerified": false,
+      "runtimeVerified": false,
+      "note": "Final-release secondary reference; supplied Heroes of Faerûn Markdown lacks subclass section."
+    }
   },
   {
     "id": "reference-rthw-college-of-spirits",
