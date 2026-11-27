@@ -262,7 +262,7 @@ Object.assign(CHOICES, {
   "Pact Tome Rituals":{label:"Book of Shadows rituals",n:c=>edOf(c)==="2024"&&warlockPact(c,"tome")?2:0,opts:c=>pactTomeOptions(c,1)},
   "Divine Order Cantrip":{label:"Extra Cleric cantrip",n:c=>revisedOrder(c,"Cleric")==="Thaumaturge"?1:0,opts:c=>choiceSpellOptions(c,s=>s.l===0&&s.c.includes("Cleric")&&!s.referenceOnly&&!s.rulesSummary)},
   "Primal Order Cantrip":{label:"Extra Druid cantrip",n:c=>revisedOrder(c,"Druid")==="Magician"?1:0,opts:c=>choiceSpellOptions(c,s=>s.l===0&&s.c.includes("Druid")&&!s.referenceOnly&&!s.rulesSummary)},
-  "Giant Power": choiceList("Cantrip", ["Thaumaturgy", "Druidcraft"]),
+  "Giant Power":{label:"Giant Power cantrip",n:c=>characterSubclassLevel(c,"Barbarian","Path of the Giant")>=3?1:0,opts:()=>opt3(["Thaumaturgy","Druidcraft"])},
   "Giant Power language": choiceList("Language", FEATURE_CHOICE_LANGUAGES),
   "Draconic Gift": choiceList("Language", FEATURE_CHOICE_LANGUAGES),
   "Draconic Disciple": choiceList("Language", FEATURE_CHOICE_LANGUAGES),

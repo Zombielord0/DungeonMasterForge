@@ -236,7 +236,7 @@ function spellCaster(c, sp, how, ed = edOf(c)) {
   const sources = spellPreparationSources(c, sp.n, ed);
   const source = sources.find(g => how && g.free === how) || sources.find(g => own.some(x => x.cls === g.cls))
     || sources.find(g => g.kind === "feat" && !g.ritualOnly && !g.slotClass) || sources[0];
-  if (source?.kind === "species" || source?.kind === "feat") {
+  if (source?.kind === "species" || source?.kind === "feat" || source?.kind==="subclass"&&source.innate&&source.ab) {
     const ab = source.ab || (source.name === "Aasimar" ? "cha" : speciesSpellAbility(c));
     return { cls: source.name, ab, dc: 8 + c.prof + c.mods[ab], atk: c.prof + c.mods[ab] };
   }

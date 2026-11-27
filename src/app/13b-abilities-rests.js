@@ -555,6 +555,16 @@ function quiveringPalmUse(c,ch){
  const rr=rollDice("10d10");return "Quivering Palm: CON save DC "+dc+". Failure reduces the marked target to 0 HP; success takes "+rr.total+" Necrotic damage ("+rr.text+"). Apply the appropriate result manually.";
 }
 const ACT = {
+ "Touch of Death":{kind:"instant",use:c=>{const n=Math.max(1,clsLv(c,"Monk")+c.mods.wis);giveTemp(c,n);return "Touch of Death: "+n+" temporary HP offered. Confirm you reduced a creature within 5 feet to 0 HP."}},
+ "Hour of Reaping":{kind:"instant",use:c=>"Every creature within 30 feet that sees you makes a Wisdom save (DC "+(8+c.prof+c.mods.wis)+") or becomes Frightened of you until the end of your next turn."},
+ "Mastery of Death":{kind:"instant",noCost:true,use:c=>{
+  if(+c.hpCur!==0||c.hpCur==="")return "Use only when reduced to 0 HP.";
+  const r=pcResources(c).find(x=>x.key==="ki");if(!r||resLeft(c,r)<1)return "Not enough ki or Focus Points.";
+  c.used=c.used||{};c.used.ki=(+c.used.ki||0)+1;c.hpCur=1;pcHealed(c,true);return "Mastery of Death: spend 1 point and remain at 1 HP.";
+ }},
+ "Touch of the Long Death":{kind:"instant",choices:c=>{const r=pcResources(c).find(x=>x.key==="ki");return Array.from({length:Math.min(10,r?resLeft(c,r):0)},(_,i)=>[String(i+1),i+1+" points · "+(2*(i+1))+"d10"]);},cost:(c,ch)=>+ch,use:(c,ch)=>roll("Touch of the Long Death",2*(+ch)+"d10","damage","Necrotic damage; CON save DC "+(8+c.prof+c.mods.wis)+" for half. Confirm target within 5 feet.",true)},
+ "Mighty Impel":{kind:"instant",use:c=>{if(!c.active?.Rage)return "Rage must be active.";return "Move one "+(clsLv(c,"Barbarian")>=14?"Large":"Medium")+" or smaller creature within reach to a visible unoccupied space within 30 feet. Unwilling: STR save DC "+(8+c.prof+c.mods.str)+". Resolve movement, falling and prone manually.";}},
+
  "Restore Intimidating Presence":{kind:"instant",use:c=>restoreSubclassUse(c,"Restore Intimidating Presence")},
  "Restore Dragon Wings":{kind:"instant",use:c=>restoreSubclassUse(c,"Restore Dragon Wings")},
  "Restore Holy Nimbus":{kind:"instant",use:c=>restoreSubclassUse(c,"Restore Holy Nimbus")},

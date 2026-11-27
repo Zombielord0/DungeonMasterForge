@@ -26,6 +26,7 @@ import { joinSummaries, joinSrdItems } from "./ref-summaries.mjs";
 import { appendReferenceSpells, validateRecoveryManifest, applyRecoveredContent, validateRecoveredBackgroundDependencies, applyRecoveredCoreItems, applyRecoveredCoreSpells, applyRecoveredCoreMonsters, validateRecoveredCatalogDependencies } from "./recovered-content.mjs";
 import { validateSrdSpellLinks, fillSrdSpellReferences, joinSrdSpellReferences, correctLegacySpellMetadata } from "./ref-srd-spells.mjs";
 import { recoveryCoverage } from "./recovery-coverage.mjs";
+import {recoverSubclassPointers} from "./ref-subclass-pointers.mjs";
 import {verifyLegacyItemArchive,correctLegacyItemMetadata,verifyAndAnnotateLegacyItemLinks} from "./ref-srd-items.mjs";
 import {addSrdWandChargeContracts} from "./ref-srd-item-charges.mjs";
 import {buildRevisedGlossary} from "./ref-srd-2024-glossary.mjs";
@@ -104,6 +105,7 @@ for (const [name, key] of [["spells", "spellData"], ["monsters", "monsterData"],
     data = applyRecoveredContent(name, data, approvedRecovery, bookReferences);
   }
   if (name === "extra-options") {
+    data=recoverSubclassPointers(data);
     validateRecoveredBackgroundDependencies(approvedRecovery, {...emittedCatalogs,"extra-options":data});
     const ids = new Set(data.map(option => option.id));
     for (const id of Object.keys(spellGrants.options)) {

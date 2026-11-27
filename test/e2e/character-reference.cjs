@@ -601,6 +601,16 @@ const { chromium } = require("playwright");
     assert.ok(subclassResourceAudit.recovery.every(x=>x[0]&&x[1]===1&&x[2]===0&&x[3]===x[4]&&x[5]));
     assert.deepEqual([subclassResourceAudit.set,subclassResourceAudit.released,subclassResourceAudit.noMark,subclassResourceAudit.q,subclassResourceAudit.wild],[4,4,true,"damage",1]);
     assert.deepEqual(subclassResourceAudit.L,{bonus:5,maximum:true,blessed:5});assert.deepEqual(subclassResourceAudit.F,{bonus:0,maximum:true,blessed:0});assert.equal(subclassResourceAudit.max,24);
+    const recoveredSubclassAudit=await page.evaluate(()=>{
+      const cases=[["Barbarian","Path of the Giant","bgg",5],["Barbarian","Path of the Battlerager","scag",5],["Fighter","Purple Dragon Knight (Banneret)","scag",6],["Monk","Way of the Long Death","scag",4]];
+      const rows=cases.map(([cls,name,src,n])=>{const x=subclassEntry("2014",cls,name);return [x.src,x.features.length,x.features.every(f=>f.d&&!/^See /.test(f.d)),x.featureSourceReview?.primaryVerified===false,n];});
+      const make=(cls,level,subclass)=>pcEnsure(generateCharacter({seed:"LEGACY-RECOVERY",ed:"2014",cls,level,subclass,race:"Human",bg:"Sage"}));
+      const monk=make("Monk",17,"Way of the Long Death");monk.used={};monk.hpTemp=0;actRun(monk,"Touch of Death");const temp=monk.hpTemp,expected=17+monk.mods.wis;monk.hpCur=0;actRun(monk,"Mastery of Death");const hp=monk.hpCur;const r=actRun(monk,"Touch of the Long Death","4");const used=monk.used.ki;
+      const giant=make("Barbarian",6,"Path of the Giant");giant.choices={"Giant Power":["Druidcraft"]};syncGrantedSpells(giant);const spell=spellOf("2014","Druidcraft"),grant=spellPreparationSources(giant,"Druidcraft","2014").some(s=>s.feature==="Giant Power"),ab=spellCaster(giant,spell,"free","2014").ab;
+      return {rows,temp,expected,hp,used,damage:r?.kind,grant,ab};
+    });
+    assert.ok(recoveredSubclassAudit.rows.every(x=>x[1]===x[4]&&x[2]&&x[3]));
+    assert.equal(recoveredSubclassAudit.temp,Math.max(1,recoveredSubclassAudit.expected));assert.deepEqual([recoveredSubclassAudit.hp,recoveredSubclassAudit.used,recoveredSubclassAudit.damage,recoveredSubclassAudit.grant,recoveredSubclassAudit.ab],[1,5,"damage",true,"wis"]);
     const expansion = await page.evaluate(() => {
       const subclasses = hbBook("subclass").filter(x => ["tce", "xge"].includes(x.src));
       const armorer = generateCharacter({ seed: "ARMOR", ed: "2014", cls: "Artificer", subclass: "Armorer", level: 5 });
