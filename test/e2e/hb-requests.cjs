@@ -54,9 +54,19 @@ const check = (name, ok, extra = "") => { console.log((ok ? "PASS " : "FAIL ") +
     await pl.click('#hbMain [data-hbact="save"]');
     await pl.waitForFunction(() => /Infinite Gold/.test(document.querySelector("#hbMyReqs").textContent));
 
+    // ---- the DM is alerted wherever they are: a count on the side menu and a banner
+    await dm.evaluate(() => { location.hash = "#roster"; });
+    await dm.evaluate(() => Portal.reloadHomebrew());
+    await dm.waitForSelector("#hbAlert", { timeout: 10000 });
+    check("the side menu's Homebrew link shows 2", await dm.evaluate(() => { const n = document.querySelector("#hbN"); return !n.hidden && n.textContent === "2"; }));
+    check("the banner names the player and the entry, with 1 more", await dm.evaluate(() => { const t = document.querySelector("#hbAlert").textContent; return /Pia/.test(t) && /Infinite Gold|Lucky Hat/.test(t) && /\+1 more/.test(t); }));
+    check("the player gets no banner or count", await pl.evaluate(() => !document.querySelector("#hbAlert") && document.querySelector("#hbN").hidden));
+    await dm.click('#hbAlert [data-hba="later"]');
+    check("Later closes the banner but keeps the count", await dm.evaluate(() => !document.querySelector("#hbAlert") && document.querySelector("#hbN").textContent === "2"));
+    await dm.evaluate(() => Portal.reloadHomebrew());
+    check("a seen request doesn't bring the banner back", await dm.evaluate(() => !document.querySelector("#hbAlert")));
     // ---- the DM sees both, with who sent them
     await dm.evaluate(() => { location.hash = "#party"; });
-    await dm.evaluate(() => Portal.reloadHomebrew());
     await dm.waitForSelector("#partyHbReqs", { timeout: 10000 });
     check("the Party tab says homebrew is waiting", /2 homebrew from players/.test(await dm.textContent("#partyHbReqs")));
     await dm.click("#partyHbReqs a");
@@ -68,6 +78,7 @@ const check = (name, ok, extra = "") => { console.log((ok ? "PASS " : "FAIL ") +
     await dm.click('#hbReqBox [data-reqact="no"]');
     await dm.click("#modalYes");
     await dm.waitForFunction(() => !document.querySelector("#hbReqBox"));
+    check("the side menu count goes once both are handled", await dm.evaluate(() => document.querySelector("#hbN").hidden));
     check("turning one down removes it and adds nothing", await dm.evaluate(() => !HB.list.some(x => x.name === "Infinite Gold") && !Portal.hbReqs().length));
 
     // ---- the player picks it up
@@ -82,6 +93,14 @@ const check = (name, ok, extra = "") => { console.log((ok ? "PASS " : "FAIL ") +
     await pl.click('#hbMain [data-hbact="save"]');
     await pl.waitForSelector("#hbMyReqs");
     check("the campaign's entry is unchanged until the DM approves", await pl.evaluate(() => HB.list.find(x => x.name === "Lucky Hat").desc === "Reroll once a day."));
+    // a changed request alerts the DM again, and Open takes them to the Homebrew tab
+    await dm.evaluate(() => { location.hash = "#roster"; });
+    await dm.evaluate(() => Portal.reloadHomebrew());
+    await dm.waitForSelector("#hbAlert", { timeout: 10000 });
+    check("a suggested change is called a change in the banner", /a change to the campaign's entry/.test(await dm.textContent("#hbAlert")));
+    await dm.click('#hbAlert [data-hba="open"]');
+    await dm.waitForFunction(() => location.hash === "#homebrew" && !document.querySelector("#hbAlert"));
+    check("Open goes to the Homebrew tab and closes the banner", true);
     // and the player can withdraw it
     await pl.click('#hbMain [data-hbact="withdraw"]');
     await pl.click("#modalYes");

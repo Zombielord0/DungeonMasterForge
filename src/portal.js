@@ -383,7 +383,7 @@ async function startCloud() {
   setBadgeText("Loading characters…");
   applyMode(S.camp);
   hbSet([]); // this browser's own homebrew stays out of the campaign
-  S.hbReqs = [];
+  S.hbReqs = []; hbReqAlert();
   await loadHomebrew();
 
   const r = await api(campPath("characters"));
@@ -416,7 +416,7 @@ async function startCloud() {
   else { syncTracker(); loadParty(); }
 }
 
-function stopLoops() { clearTimeout(S.pollTimer); stopChat(); clearInterval(S.hbTimer); clearTimeout(S.saveTimer); clearTimeout(S.sharedTimer); S.shared = {}; S.published = {}; renderTurnBar(); }
+function stopLoops() { clearTimeout(S.pollTimer); stopChat(); clearInterval(S.hbTimer); clearTimeout(S.saveTimer); clearTimeout(S.sharedTimer); S.hbReqs = []; hbReqAlert(); S.shared = {}; S.published = {}; renderTurnBar(); }
 
 /* Every character from the database, yours too (a DM can edit your sheet): fix its numbers and rules edition before
    anything reads or remembers it (pcIncoming, in the app; lossless). Text stays as typed; the page guard and esc() keep
@@ -560,7 +560,45 @@ async function loadHbReqs() {
 function hbReqsChanged() {
   if (location.hash === "#homebrew" && typeof renderHomebrew === "function") renderHomebrew();
   if (isDM() && location.hash === "#party") renderParty(true);
+  hbReqAlert();
 }
+/* The DM's alerts (owner, 2026-11-27): a count on the side menu's Homebrew link, and a banner for requests the DM
+   hasn't seen yet. "Seen" is kept per campaign in this browser (a UI choice, not in backups); a changed request counts as new. */
+const HB_SEEN_KEY = "dmforge.hbSeen.";
+const hbReqKey = q => `${q.userId}|${q.id}|${q.updatedAt || ""}`;
+function hbSeen() { try { return new Set(JSON.parse(localStorage.getItem(HB_SEEN_KEY + S.camp.id) || "[]")); } catch { return new Set(); } }
+function hbMarkSeen() { if (S.camp) try { localStorage.setItem(HB_SEEN_KEY + S.camp.id, JSON.stringify(S.hbReqs.map(hbReqKey))); } catch { } }
+function hbReqAlert() {
+  const n = $("#hbN"), dm = Portal.cloud && isDM(), count = dm ? S.hbReqs.length : 0;
+  if (n) { n.textContent = count || ""; n.hidden = !count; }
+  let bar = $("#hbAlert");
+  if (dm && location.hash === "#homebrew") hbMarkSeen(); /* the DM is looking at them */
+  const seen = dm ? hbSeen() : new Set(), fresh = dm ? S.hbReqs.filter(q => !seen.has(hbReqKey(q))) : [];
+  if (!fresh.length) { if (bar) bar.remove(); return; }
+  const q = fresh[fresh.length - 1], sig = fresh.map(hbReqKey).join(",");
+  if (bar && bar.dataset.sig === sig) return;
+  const isNew = !bar;
+  if (!bar) {
+    bar = document.createElement("div"); bar.id = "hbAlert"; bar.setAttribute("role", "alertdialog");
+    bar.setAttribute("aria-labelledby", "hbaTitle"); bar.setAttribute("aria-describedby", "hbaBody");
+    document.body.appendChild(bar);
+  }
+  bar.dataset.sig = sig;
+  const kind = { class: "class", subclass: "subclass", background: "background", feat: "feat", species: "species", spell: "spell" }[q.data && q.data.kind] || "homebrew";
+  bar.innerHTML = `<div class="wa-box">
+    <div class="wa-head"><h3 id="hbaTitle">⚗️ Homebrew to approve</h3></div>
+    <p id="hbaBody"><b>${esc(q.userName)}</b> sent ${/^[aeiou]/.test(kind) ? "an" : "a"} ${esc(kind)}: <b>${esc((q.data && q.data.name) || "")}</b>${HB.list.some(x => x.id === q.id) ? " (a change to the campaign's entry)" : ""}</p>
+    <div class="row wa-actions">${fresh.length > 1 ? `<small class="muted">+${fresh.length - 1} more</small>` : "<span></span>"}
+      <button class="btn sm" type="button" data-hba="later">Later</button>
+      <button class="btn primary sm" type="button" data-hba="open">Open Homebrew</button></div></div>`;
+  if (isNew) { bar.classList.remove("ping"); void bar.offsetWidth; bar.classList.add("ping"); }
+}
+document.addEventListener("click", e => {
+  const b = e.target.closest("[data-hba]"); if (!b) return;
+  hbMarkSeen(); hbReqAlert();
+  if (b.dataset.hba === "open") location.hash = "#homebrew";
+});
+window.addEventListener("hashchange", () => { if (location.hash === "#homebrew") hbReqAlert(); });
 async function hbReqPut(item) {
   const r = await api(campPath("hbrequests/" + encodeURIComponent(item.id)), { method: "PUT", body: { data: item } });
   if (!r.ok) { toast(r.data.error || "Couldn't send that to your DM"); return false; }
