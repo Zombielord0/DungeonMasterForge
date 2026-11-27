@@ -771,7 +771,7 @@ function artificerInfusionOptions(c){
  const active=new Set(artificerInfusions(c).map(i=>i.artificerInfusion.name));
  return Object.keys(LEGACY_INFUSION_CONTRACTS).filter(n=>artificerInfusionKnown(c,n)&&!active.has(n)).flatMap(n=>(c.inv||[]).filter(i=>artificerInfusionObject(c,i,n)).map(i=>[JSON.stringify([n,i.id]),n+" · "+i.n]));
 }
-function artificerEndInfusion(c,i){if(i?.artificerInfusion?.owner!==c.id)return false;delete i.artificerInfusion;return true;}
+function artificerEndInfusion(c,i){if(i?.artificerInfusion?.owner!==c.id)return false;const att=LEGACY_INFUSION_CONTRACTS[i.artificerInfusion.name]?.att;delete i.artificerInfusion;if(att&&!inventoryNeedsAttunement(i,inventoryCatalogItem(i,edOf(c))))i.attuned=false;return true;}
 function artificerApplyInfusion(c,key){
  if(!artificerInfusionOptions(c).some(x=>x[0]===key))return "Select a known infusion and eligible nonmagical individual item.";
  const [name,id]=JSON.parse(key),i=c.inv.find(x=>x.id===id),active=artificerInfusions(c),cap=artificerPlanLimits("2014",artificerInfusionLevel(c)).active;
@@ -792,12 +792,13 @@ function artificerLegacyDeath(c,id){
  if(!artificerLegacyDeathOptions(c).some(x=>x[0]===id))return "Requires 0 HP without outright death and an active infusion.";
  const i=c.inv.find(x=>x.id===id);artificerEndInfusion(c,i);c.hpCur=1;pcHealed(c,true);return "Soul of Artifice: ended infusion on "+i.n+"; restored to 1 HP. Confirm Reaction and no outright death.";
 }
-function artificerInfusionCleanup(c){for(const i of c.inv||[])if(i.artificerInfusion?.owner===c.id&&!artificerInfusionKnown(c,i.artificerInfusion.name))artificerEndInfusion(c,i);}
+function artificerInfusionCleanup(c){for(const i of c.inv||[])if(i.artificerInfusion?.owner===c.id&&(!artificerInfusionKnown(c,i.artificerInfusion.name)||+i.qty!==1))artificerEndInfusion(c,i);}
+function artificerFocusAttackBonus(c){return Math.max(0,...(c.inv||[]).filter(i=>i.eq&&+i.qty===1).map(i=>artificerInfusionBonus(c,i,"focus")));}
 
 function artificerPlanEligible(lv,x){
  if(lv<2||!x||x.kind!=="magic"||x.ed!=="2024"||!x.id?.startsWith("2024-")||!x.d?.trim()||x.referenceOnly||x.rulesSummary||x.pend||itemRulesIncomplete(x))return false;
- // Generic rarity options exclude cursed items; explicit curse metadata is not
- // available for every item. Require a DM-reviewed plan in that case instead.
+ // Generic plans are filtered by catalog rarity/category and obvious curse metadata/text.
+ // A DM must confirm remaining eligibility; absence of a curse field is not proof.
  return Object.entries(ARTIFICER_PLAN_TIERS).some(([min,names])=>lv>=+min&&names.includes(x.n))||artificerGenericPlanEligible(lv,x);
 }
 function artificerPlanOptions(c){
