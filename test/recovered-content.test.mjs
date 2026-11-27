@@ -35,3 +35,11 @@ test("structured background selection schema rejects invalid counts, duplicate v
   assert.throws(()=>validateRecoveryManifest(manifest([{...bg,payload:{...bg.payload,choices:[{...bg.payload.choices[0],selection:bad}]}}]),books));
  }
 });
+
+test("open language and deferred equipment choice schema",()=>{
+ const bg={...entry,kind:"Background",name:"Fixture Guild",action:"promote",payload:{kind:"background",name:"Fixture Guild",src:"fixture",ed:"2014",id:"fixture-bg",book:true,skills:["Arcana","Insight"],desc:"Synthetic fixture.",feature:["Feature","Synthetic mechanics."],tools:"",lang:"Choose a language.",gearItems:["Book"],gp:5,deferStartingEquipment:true,choices:[{id:"language",label:"Language",rules:"Choose one.",selection:{effect:"language",count:1,open:true,options:[]}},{id:"tool",label:"Tool",rules:"Choose a tool.",selection:{effect:"tool",count:1,options:["Lute"],equipment:{Lute:"Lute"}}}]}};
+ assert.equal(validateRecoveryManifest(manifest([bg]),books).length,1);
+ assert.throws(()=>validateRecoveryManifest(manifest([{...bg,payload:{...bg.payload,deferStartingEquipment:undefined}}]),books));
+ assert.throws(()=>validateRecoveryManifest(manifest([{...bg,payload:{...bg.payload,choices:[{...bg.payload.choices[1],selection:{...bg.payload.choices[1].selection,open:true}}]}}]),books));
+ assert.throws(()=>validateRecoveryManifest(manifest([{...bg,payload:{...bg.payload,choices:[{...bg.payload.choices[1],selection:{...bg.payload.choices[1].selection,equipment:{}}}]}}]),books));
+});

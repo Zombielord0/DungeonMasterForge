@@ -189,6 +189,7 @@ spFiltersSync();
       }
       return;
     }
+    if(e.target.closest("[data-bgkit]")){if(backgroundEquipmentClaim(c)){pcRecompute(c);pcPersist();renderRosterMain();toast("Background starting equipment added.");}return;}
     const br=e.target.closest("[data-bgchoice-remove]");
     if(br){if(backgroundSelectionChange(c,br.dataset.bgchoiceRemove,br.dataset.bgchoiceValue,true)){pcPersist();renderRosterMain();}return;}
     const cr = e.target.closest("[data-choicerm]");

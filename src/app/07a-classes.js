@@ -73,7 +73,7 @@ function bgInfo(ed, name) {
   if (H) {
     if (H.book && H.recoveryId && H.ed === "2014") {
       if (ed !== H.ed) return null;
-      return {sk:H.skills, tools:H.tools, lang:H.lang, gear:H.gearItems.slice(), gp:H.gp, feature:H.feature, choices:H.choices, spellListExtensions:H.spellListExtensions||[], hb:true};
+      return {sk:H.skills, tools:H.tools, lang:H.lang, gear:H.gearItems.slice(), gp:H.gp, feature:H.feature, choices:H.choices, spellListExtensions:H.spellListExtensions||[], deferStartingEquipment:H.deferStartingEquipment===true, equipmentOrigin:JSON.stringify([ed,H.src,H.recoveryId]), hb:true};
     }
     const revisedBook = ed === "2024" && H.book && H.ed === "2024";
     return { sk: BACKGROUNDS[name] || [], tools: revisedBook ? H.tools || "" : "", lang: "",

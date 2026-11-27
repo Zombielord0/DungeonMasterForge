@@ -242,17 +242,28 @@ function backgroundSelectionRules(c) {
   if(!bg?.book||!bg.recoveryId||bg.pend||bg.ed!==ed||ed!=="2014") return [];
   return (bg.choices||[]).filter(q=>q.selection).map(q=>({...q,...q.selection,key:JSON.stringify(["background",ed,bg.src,bg.recoveryId,q.id])}));
 }
+function backgroundSelectionValue(q,v) {
+  if(typeof v!=="string")return "";
+  const x=v.trim().replace(/\s+/g," ");
+  const option=q.options.find(o=>o.toLowerCase()===x.toLowerCase());
+  if(option)return option;
+  // Open language choices are campaign-specific; preserve names but not markup or arbitrary long data.
+  return q.open===true&&q.effect==="language"&&x.length<=80&&/^[\p{L}][\p{L}\p{M}0-9 .’'()\-]*$/u.test(x)?x:"";
+}
 function backgroundSelectionValues(c,q) {
-  const raw=c.choices?.[q.key];
-  return Array.isArray(raw)?[...new Set(raw.filter(x=>q.options.includes(x)))].slice(0,q.count):[];
+  const raw=c.choices?.[q.key], values=[],seen=new Set();
+  if(Array.isArray(raw))for(const v of raw){const x=backgroundSelectionValue(q,v),k=x.toLowerCase();if(x&&!seen.has(k)){seen.add(k);values.push(x);}}
+  return values.slice(0,q.count);
 }
 function backgroundSelectionChange(c,key,value,remove=false) {
   const q=backgroundSelectionRules(c).find(x=>x.key===key);
-  if(!q||!q.options.includes(value))return false;
-  const have=backgroundSelectionValues(c,q);
-  if(!remove&&(have.includes(value)||have.length>=q.count))return false;
-  if(remove&&!have.includes(value))return false;
-  c.choices={...(c.choices||{}),[key]:remove?have.filter(x=>x!==value):[...have,value]};
+  if(!q)return false;
+  if(q.equipment&&c.backgroundEquipmentClaimed)return false;
+  value=backgroundSelectionValue(q,value);if(!value)return false;
+  const have=backgroundSelectionValues(c,q), same=x=>x.toLowerCase()===value.toLowerCase();
+  if(!remove&&(have.some(same)||have.length>=q.count))return false;
+  if(remove&&!have.some(same))return false;
+  c.choices={...(c.choices||{}),[key]:remove?have.filter(x=>!same(x)):[...have,value]};
   return true;
 }
 function backgroundSelectionEffects(c) {
@@ -260,14 +271,42 @@ function backgroundSelectionEffects(c) {
   for(const q of backgroundSelectionRules(c))result[q.effect].push(...backgroundSelectionValues(c,q));
   return result;
 }
+// A newly forged character gets a single source-bound starting-equipment entitlement.
+// Never grant retroactively to imported or preexisting characters; never regrant on level changes.
+function backgroundEquipmentPlan(c) {
+  const bg=HB_BG[c.bg],ed=edOf(c);
+  if(!bg?.book||bg.pend||bg.ed!==ed||!bg.recoveryId||!bg.deferStartingEquipment)return null;
+  const origin=JSON.stringify([ed,bg.src,bg.recoveryId]);
+  if(c.backgroundEquipmentOrigin!==origin||c.importedFrom||c.backgroundEquipmentClaimed)return null;
+  const gear=bg.gearItems.slice(),gp=bg.gp;
+  const rules=backgroundSelectionRules(c).filter(q=>q.equipment);
+  for(const q of rules){const have=backgroundSelectionValues(c,q);if(have.length!==q.count)return {ready:false};for(const v of have)gear.push(q.equipment[v]);}
+  return {ready:true,gear,gp,origin};
+}
+function backgroundEquipmentClaim(c) {
+  const plan=backgroundEquipmentPlan(c);
+  if(!plan?.ready||!c.kitMoved||!Array.isArray(c.inv))return false;
+  const ed=edOf(c), additions=plan.gear.flatMap(line=>eqParseKit(line,ed)).map(({n,qty,g})=>({id:uid("i"),ref:g?g.id:undefined,n,qty,w:g?g.w||0:0,att:false,attuned:false,value:g?g.c:undefined,note:"Background starting equipment",eq:false}));
+  // Prepare the complete batch before changing the character. No generic placeholder items.
+  c.inv.push(...additions);
+  c.coins={...(c.coins||{}),gp:(+c.coins?.gp||0)+plan.gp};
+  c.backgroundEquipmentClaimed=plan.origin;
+  return true;
+}
+function backgroundEquipmentHTML(c) {
+  const plan=backgroundEquipmentPlan(c);
+  if(!plan)return "";
+  return plan.ready?'<button type="button" class="btn sm" data-bgkit>Claim background starting equipment (once)</button>':'<p class="hint">Finish the equipment choices before claiming the background starting kit.</p>';
+}
+
 function backgroundSelectionsHTML(c) {
-  const rules=backgroundSelectionRules(c);if(!rules.length)return "";
+  const rules=backgroundSelectionRules(c),claim=backgroundEquipmentHTML(c);if(!rules.length&&!claim)return "";
   return '<div class="sec"><div class="sec-h"><h3>Background choices</h3></div>'+rules.map(q=>{
-    const have=backgroundSelectionValues(c,q), key=esc(q.key);
+    const have=backgroundSelectionValues(c,q), key=esc(q.key),locked=!!(q.equipment&&c.backgroundEquipmentClaimed);
     return '<div class="choice"><span class="lbl">'+esc(q.label)+' ('+have.length+'/'+q.count+')</span><p class="hint">'+esc(q.rules)+'</p>'+
-      have.map(v=>'<span class="tag gold">'+esc(v)+'<button type="button" class="icon-btn" data-bgchoice-remove="'+key+'" data-bgchoice-value="'+esc(v)+'" aria-label="Remove '+esc(v)+'">✕</button></span>').join("")+
-      (have.length<q.count?'<select data-bgchoice="'+key+'" aria-label="'+esc(q.label)+'"><option value="">Choose…</option>'+q.options.filter(v=>!have.includes(v)).map(v=>'<option value="'+esc(v)+'">'+esc(v)+'</option>').join("")+'</select>':'')+'</div>';
-  }).join("")+'</div>';
+      have.map(v=>'<span class="tag gold">'+esc(v)+(locked?'':'<button type="button" class="icon-btn" data-bgchoice-remove="'+key+'" data-bgchoice-value="'+esc(v)+'" aria-label="Remove '+esc(v)+'">✕</button>')+'</span>').join("")+
+      (!locked&&have.length<q.count?(q.open?'<input type="text" maxlength="80" data-bgchoice="'+key+'" aria-label="'+esc(q.label)+'" placeholder="Enter a campaign-approved language">':'<select data-bgchoice="'+key+'" aria-label="'+esc(q.label)+'"><option value="">Choose…</option>'+q.options.filter(v=>!have.includes(v)).map(v=>'<option value="'+esc(v)+'">'+esc(v)+'</option>').join("")+'</select>'):'')+'</div>';
+  }).join("")+claim+'</div>';
 }
 
 function characterReadiness(c) {

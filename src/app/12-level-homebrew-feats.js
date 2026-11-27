@@ -674,7 +674,7 @@ function profInfo(c) {
   if (B.lang && !bgRules.some(q=>q.effect==="language")) picks.push(`${B.lang.toLowerCase()} (background)`);
   for(const q of bgRules.filter(q=>q.effect==="language"||q.effect==="tool")){
     const left=q.count-backgroundSelectionValues(c,q).length;
-    if(left>0)picks.push(left+" outstanding "+q.label.toLowerCase()+" (background)");
+    if(left>0){const text=left+" outstanding "+q.label.toLowerCase()+" (background)";if(q.effect==="language")picks.push(text);else tools.push(text);}
   }
   if (choiceOf(c, "Feat: Skilled").length) tools.push(...choiceOf(c, "Feat: Skilled"));
   return { armor, weapons, tools, langs, picks };

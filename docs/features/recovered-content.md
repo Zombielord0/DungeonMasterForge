@@ -25,3 +25,6 @@ Approved 2014 background payloads can be promoted or replaced in extra-options w
 
 ## Background selections
 Optional `choice.selection` carries `effect` (language, tool, detail), `count` and finite string `options`. The sheet stores validated values in existing character choices under a source/edition/recovery-ID namespace and lists outstanding selections in readiness. Selected proficiencies are derived in the proficiency section. Inventory grants, unrestricted language/setting choices and Dimir cover-guild inheritance are not automated by this adapter. No recovered payloads are published.
+
+## Open language choices and deferred equipment
+A reviewed background may declare open language choices (`open:true`, language effect only) and finite equipment choices with an exact value-to-item mapping. `deferStartingEquipment:true` defers the background kit and money for newly forged characters until the selections are complete and the player explicitly claims the kit. The source-bound entitlement is single-use; imports and old characters require manual reconciliation, and equipment choices lock after claim. The adapter does not yet implement cover-guild inheritance or platinum-denominated starting currency. No private recovery payloads are published.

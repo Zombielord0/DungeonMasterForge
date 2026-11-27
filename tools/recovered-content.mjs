@@ -38,9 +38,14 @@ export function validateRecoveryManifest(m,books) {
     if(c.selection===undefined) continue; // noninteractive contract remains a review requirement
     const s=c.selection;
     if(!s||!["language","tool","detail"].includes(s.effect)||!Number.isInteger(s.count)||s.count<1||
-       !Array.isArray(s.options)||s.options.length<s.count||
-       s.options.some(o=>!okText(o)||o.length>120)||new Set(s.options).size!==s.options.length) fail("invalid background selection: "+e.name+" / "+c.id);
+       !Array.isArray(s.options)||(!s.open&&s.options.length<s.count)||
+       (s.open!==undefined&&(s.open!==true||s.effect!=="language"))||
+       s.options.some(o=>!okText(o)||o.length>120)||new Set(s.options.map(o=>o.toLowerCase())).size!==s.options.length||
+       (s.equipment!==undefined&&(s.open||!["tool","detail"].includes(s.effect)||!s.equipment||typeof s.equipment!=="object"||Array.isArray(s.equipment)||
+         Object.keys(s.equipment).length!==s.options.length||s.options.some(o=>!Object.hasOwn(s.equipment,o)||!okText(s.equipment[o]))))) fail("invalid background selection: "+e.name+" / "+c.id);
    }
+   if(p.choices.some(c=>c.selection?.equipment)&&p.deferStartingEquipment!==true) fail("choice equipment must be deferred: "+e.name);
+   if(p.deferStartingEquipment!==undefined&&p.deferStartingEquipment!==true) fail("invalid deferred equipment contract: "+e.name);
    if(p.spellListExtensions!==undefined&&(!Array.isArray(p.spellListExtensions)||!p.spellListExtensions.length||
       p.spellListExtensions.some(s=>!s||!okText(s.name)||!(s.src==="srd"||Object.hasOwn(books,s.src))||!Number.isInteger(s.level)||s.level<0||s.level>9)||
       new Set(p.spellListExtensions.map(s=>JSON.stringify([s.name,s.src,s.level]))).size!==p.spellListExtensions.length)) fail("invalid background spell dependencies: "+e.name);
