@@ -611,6 +611,16 @@ const { chromium } = require("playwright");
     });
     assert.ok(recoveredSubclassAudit.rows.every(x=>x[1]===x[4]&&x[2]&&x[3]));
     assert.equal(recoveredSubclassAudit.temp,Math.max(1,recoveredSubclassAudit.expected));assert.deepEqual([recoveredSubclassAudit.hp,recoveredSubclassAudit.used,recoveredSubclassAudit.damage,recoveredSubclassAudit.grant,recoveredSubclassAudit.ab],[1,5,"damage",true,"wis"]);
+    const subclassPassiveAudit=await page.evaluate(()=>{
+      const make=(ed,cls,level,subclass)=>pcEnsure(generateCharacter({seed:"PASSIVE-SUB",ed,cls,level,subclass,race:"Human",bg:"Sage"}));
+      const old=make("2014","Druid",14,"Circle of the Land");old.active={};old.used={};actRun(old,"Nature's Sanctuary");const passive=!old.active["Nature's Sanctuary"]&&!old.used.wild;
+      const cleric=make("2014","Cleric",1,"Order Domain");cleric.choices={"Order Bonus Proficiency":["Persuasion"]};cleric.skills.find(s=>s.s==="Persuasion").p=false;pcRecompute(cleric);const granted=cleric.skills.find(s=>s.s==="Persuasion").orderGranted;cleric.subclass="Life Domain";pcSubSync(cleric);pcRecompute(cleric);const removed=!cleric.skills.find(s=>s.s==="Persuasion").p;
+      const fighter=make("2014","Fighter",7,"Purple Dragon Knight (Banneret)");const persuasion=fighter.skills.find(s=>s.s==="Persuasion");persuasion.p=false;persuasion.x=false;pcRecompute(fighter);const newSkill=[persuasion.p,persuasion.x,persuasion.envoyGranted];pcRecompute(fighter);
+      fighter.subclass="Champion";pcSubSync(fighter);pcRecompute(fighter);
+      return {passive,granted,removed,newSkill,removedEnvoy:[persuasion.p,persuasion.x]};
+    });
+    assert.deepEqual([subclassPassiveAudit.passive,subclassPassiveAudit.granted,subclassPassiveAudit.removed],[true,true,true]);
+    assert.deepEqual(subclassPassiveAudit.newSkill,[true,true,true]);assert.deepEqual(subclassPassiveAudit.removedEnvoy,[false,false]);
     const expansion = await page.evaluate(() => {
       const subclasses = hbBook("subclass").filter(x => ["tce", "xge"].includes(x.src));
       const armorer = generateCharacter({ seed: "ARMOR", ed: "2014", cls: "Artificer", subclass: "Armorer", level: 5 });

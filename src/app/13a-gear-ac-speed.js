@@ -18,8 +18,24 @@ function applyCoreSkillChoices(c){
     if(s.scholarGranted){s.x=false;delete s.scholarGranted;}
     if(s.primalGranted){s.p=false;s.x=false;delete s.primalGranted;}
     if(s.loreGranted){s.p=false;s.x=false;delete s.loreGranted;}
+    if(s.orderGranted){s.p=false;s.x=false;delete s.orderGranted;}
+    if(s.envoyExpert){s.x=false;delete s.envoyExpert;}
+    if(s.envoyGranted){s.p=false;s.x=false;delete s.envoyGranted;}
   }
   if(characterSubclassLevel(c,"Bard","College of Lore")>=3){const options=new Set(CHOICES["Lore Bonus Proficiencies"].opts(c).map(x=>x[0]));for(const name of [...new Set(choiceOf(c,"Lore Bonus Proficiencies"))].filter(n=>options.has(n)).slice(0,3)){const s=c.skills.find(x=>x.s===name);if(s&&!s.p){s.p=true;s.loreGranted=true;}}}
+  const skills=c.skills||[],choose=(name,flag)=>{const s=skills.find(x=>x.s===name);if(s&&!s.p){s.p=true;s[flag]=true;}};
+  if(characterSubclassLevel(c,"Cleric","Order Domain")){
+    const selection=choiceOf(c,"Order Bonus Proficiency")[0]||choiceOf(c,"Bonus Proficiencies")[0];
+    if(["Intimidation","Persuasion"].includes(selection))choose(selection,"orderGranted");
+  }
+  if(characterSubclassLevel(c,"Fighter","Purple Dragon Knight (Banneret)")>=7){
+    const p=skills.find(s=>s.s==="Persuasion");
+    if(p){
+      if(!p.p){p.p=true;p.envoyGranted=true;}
+      else{const selected=choiceOf(c,"Royal Envoy")[0];if(["Animal Handling","Insight","Intimidation","Performance"].includes(selected))choose(selected,"envoyGranted");}
+      if(!p.x){p.x=true;p.envoyExpert=true;}
+    }
+  }
   if(edOf(c)!=="2024")return;
   const apply=(key,flag,attr,cls,level,eligible)=>{
     if(clsLv(c,cls)<level)return;

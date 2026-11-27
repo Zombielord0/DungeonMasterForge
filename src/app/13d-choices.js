@@ -272,6 +272,7 @@ Object.assign(CHOICES, {
   "Elemental Cleaver": choiceList("Weapon damage (choose each rage)", DRAGON_FEATURE_ELEMENTS.concat("Thunder").filter(x => x !== "Poison")),
   "Aspect of the Wyrm": choiceList("Aura (choose each use)", ["Frightful Presence", ...DRAGON_FEATURE_ELEMENTS.map(x => x + " resistance")]),
   "Order Bonus Proficiency":{label:"Order Domain skill",n:c=>characterSubclassLevel(c,"Cleric","Order Domain")?1:0,opts:()=>opt3(["Intimidation","Persuasion"])},
+  "Royal Envoy":{label:"Additional Royal Envoy proficiency",n:c=>characterSubclassLevel(c,"Fighter","Purple Dragon Knight (Banneret)")>=7&&(c.skills||[]).some(s=>s.s==="Persuasion"&&s.p&&!s.envoyGranted)?1:0,opts:c=>opt3((c.skills||[]).filter(s=>["Animal Handling","Insight","Intimidation","Performance"].includes(s.s)&&(!s.p||s.envoyGranted)).map(s=>s.s))},
   "Arcane Initiate": { label: "Wizard cantrips", n: () => 2, opts: c => choiceSpellOptions(c, s => s.l === 0 && s.c.includes("Wizard")) },
   "Spirit Session": { label: "Session spell", n: () => 1, opts: c => choiceSpellOptions(c, s => s.l > 0 && s.l <= Math.min(c.prof, Math.ceil(clsLv(c, "Bard") / 2)) && ["Divination", "Necromancy"].includes(s.s)) },
   "Training in War and Song (Bladesinging)": choiceList("One-handed melee weapon proficiency", ["Club", "Dagger", "Handaxe", "Javelin", "Light Hammer", "Mace", "Sickle", "Spear", "Battleaxe", "Flail", "Longsword", "Morningstar", "Rapier", "Scimitar", "Shortsword", "Trident", "War Pick", "Warhammer", "Whip"]),

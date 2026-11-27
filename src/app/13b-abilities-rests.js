@@ -201,6 +201,8 @@ function pcAbilities(c) {
     const S=SUB_ABL[f.f]||{when:ACT[f.f].kind==="persist"?"Your choice":ACT[f.f].kind==="toggle"?"Activated":"Use"};
     const desc=subFeatDesc(f.f,c,f);if(!desc&&!S.text)return;
     const revised=ed==="2024"&&f.subEdition!=="2014";
+    // Legacy Nature’s Sanctuary is passive and never consumes Wild Shape.
+    if(f.f==="Nature's Sanctuary"&&!revised)return;
     const special=revised&&f.f==="Intimidating Presence"?"berserkerPresence":revised&&f.f==="Dragon Wings"?"draconicWings":null;
     const when=revised&&["Intimidating Presence","Wholeness of Body","Holy Nimbus"].includes(f.f)?"Bonus action":S.when;
     add(f.f,when,S.text?S.text({...c,level:o.level}):desc,special||(S.res?subAblKey(f.f):S.uses==="channel"?channelKey(c,o.cls):S.uses),o.name);
