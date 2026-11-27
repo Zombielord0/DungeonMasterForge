@@ -568,7 +568,7 @@ function rcAbilitiesHTML(c) {
     const ref = a.res && !r && R[a.res] ? ` <span class="muted" style="font-size:13px">uses ${esc(R[a.res].name.toLowerCase())}</span>` : "";
     return `<div class="abl${(c.active || {})[a.name] && actSpec(a) && actSpec(a).kind === "toggle" ? " on" : ""}"><div class="abl-h"><b>${esc(a.name)}</b><span class="tag">${esc(a.when)}</span>${a.src ? `<span class="muted" style="font-size:13px">${esc(a.src)}</span>` : ""}${ref}<span class="sp"></span>${r ? `<span class="muted" style="font-size:13px">${esc(r.name)}</span>${resCtr(c, r)}` : ""}${actControls(c, a, R)}</div><div class="ft-desc">${esc(a.text)}</div></div>`;
   });
-  return rcActiveHTML(c) + (rows.length ? rows.join("") : `<p class="muted">No active class abilities at this level yet.</p>`);
+  return rcActiveHTML(c) + rcCompanionsHTML(c) + (rows.length ? rows.join("") : `<p class="muted">No active class abilities at this level yet.</p>`);
 }
 function rcSlotsHTML(c) {
   const R = pcResources(c).filter(r => r.key === "pact" || r.key.startsWith("slot"));
@@ -590,6 +590,7 @@ function pcRest(c, kind) {
   if (kind === "long") { const z = +c.hpCur === 0; c.hpCur = c.hp; c.hpTemp = ""; pcHealed(c, z); c.death = { s: 0, f: 0 }; if (c.conc) { delete c.conc; delete c.concCheck; c.fxEnded = true; } if (exhOf(c)) { c.exh = exhOf(c) - 1; back.push("Exhaustion level"); } if (c.fx && Object.values(c.fx).some(Boolean)) { c.fx = {}; c.fxEnded = true; } }
   delete c.apotheosisUsedThisTurn;
   delete c.psiPending; // an unresolved check or attack cannot carry across a rest
+  companionRestUpdate(c,kind);
   if(kind==="long"){
     if(c.createdSlots){delete c.createdSlots;back.push("Temporary spell slots expired");}
     if(artificerExpire(c))back.push("Tinker's Magic gear expired");
