@@ -661,6 +661,15 @@ const { chromium } = require("playwright");
     assert.deepEqual(psiAudit.revised.pools,[8,8]);assert.deepEqual(psiAudit.legacy.pools,[12,12]);
     assert.deepEqual(psiAudit.revised.afterShort,[2,1,false]);assert.deepEqual(psiAudit.legacy.afterShort,[3,2,false]);assert.deepEqual(psiAudit.legacy.afterRecovery,[2,2]);
     assert.deepEqual(psiAudit.rend,[3,0]);assert.equal(psiAudit.veil,true);assert.deepEqual(psiAudit.veilRestore,[4,0]);assert.equal(psiAudit.removed,true);
+    const telekineticMasterAudit=await page.evaluate(()=>{
+      const c=pcEnsure(generateCharacter({seed:"PSI-MASTER",ed:"2024",cls:"Fighter",level:18,subclass:"Psi Warrior",race:"Human",bg:"Sage"}));
+      syncGrantedSpells(c);const sp=spellOf("2024","Telekinesis"),sources=spellPreparationSources(c,"Telekinesis","2024");
+      const resources=pcResources(c).filter(r=>r.key==="psiMaster");const options=castOpts(c,sp,"2024").map(x=>x[0]);const caster=spellCaster(c,sp,"psiMaster","2024");
+      c.used={psiMaster:1};const before=castOpts(c,sp,"2024").find(x=>x[0]==="psiMaster")?.[3];
+      actRun(c,"Restore Telekinetic Master");const restored=castOpts(c,sp,"2024").find(x=>x[0]==="psiMaster")?.[3];
+      return {sources:sources.some(g=>g.feature==="Telekinetic Master"&&g.ab==="int"),resources:resources.length,options,caster:caster.ab,before,restored,spent:c.used.psiFighter};
+    });
+    assert.deepEqual(telekineticMasterAudit,{sources:true,resources:1,options:["psiMaster"],caster:"int",before:true,restored:false,spent:1});
     const companionAudit=await page.evaluate(()=>{
       const make=(ed,cls,level,subclass,multi=[])=>pcEnsure(generateCharacter({seed:"COMPANION-AUDIT",ed,cls,level,subclass,race:"Human",bg:"Sage",multi}));
       const r=make("2024","Fighter",2,"none",[{cls:"Ranger",lv:11,subclass:"Beast Master"}]);r.used={};
