@@ -174,6 +174,12 @@ const ZOOK = fs.readFileSync(path.join(FIX, "companion-zook.json"), "utf8");
       eqGear("2014","Wrought-iron hooded lantern")?.n==="Lantern, hooded",eqGear("2014","Dark common clothes")?.n==="Clothes, common"];
   });
   check("revised magic-item variants and recovered kit aliases resolve in the built app",variantCheck.every(Boolean),JSON.stringify(variantCheck));
+  const tableCheck=await p.evaluate(()=>{itLoad();const g=n=>IT.data["2024"].find(x=>x.n===n&&x.kind!=="gear");return [
+    g("Potion of Giant Strength").d.includes("Storm: 29"),!g("Potion of Giant Strength").d.includes("Bless"),
+    g("Potion of Heroism").d.includes("10 Temporary Hit Points"),g("Potion of Supreme Healing").d.includes("10d4 + 20"),
+    g("Carpet of Flying, 3 ft. × 5 ft.").d.includes("200 lb."),g("Black Dragon Scale Mail").d.includes("Acid"),
+    g("Elemental Gem, Blue Sapphire").d.includes("Air Elemental"),g("Manual of Iron Golems").d.includes("100000 GP")];});
+  check("revised magic item tables resolve exact mechanics in built catalog",tableCheck.every(Boolean),JSON.stringify(tableCheck));
   check("reference spells: a spell the Forge already has isn't added twice (Fireball)", refs["2014fireball"] === 1 && refs["2024fireball"] === 1, JSON.stringify([refs["2014fireball"], refs["2024fireball"]]));
   const sb = await p.evaluate(txt => { const j = JSON.parse(txt); j.spells = [...j.spells, { name: "Silvery Barbs", level: 1 }]; const D = compImport(j, "2014");
     return { prep: D.extras.prepared.map(s => s.n), hb: D.homebrew.filter(x => x.kind === "spell").map(x => x.name) }; }, ZOOK);
