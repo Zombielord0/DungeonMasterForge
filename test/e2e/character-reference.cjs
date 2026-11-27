@@ -352,6 +352,26 @@ const { chromium } = require("playwright");
     assert.deepEqual(fullClassMatrix.rest1,[1,1]);assert.deepEqual(fullClassMatrix.rest2,[0,0]);
     assert.ok(fullClassMatrix.companion.startsWith("Wild Companion:")&&fullClassMatrix.active&&fullClassMatrix.ended);
     assert.equal(fullClassMatrix.spent,1);
+    const supplementalClassAudit=await page.evaluate(()=>{
+      const classes=["Death Knight","Demon Hunter","Evoker","Hunter","Mage","Priest","Shaman","Warrior"],errors=[];
+      let builds=0;
+      for(const cls of classes)for(let level=1;level<=20;level++){
+        const c=generateCharacter({seed:"WOW-MATRIX-"+cls,ed:"2024",cls,level,race:"Human",bg:"Sage",subclass:"none"});builds++;
+        const key=cls+" "+level,expected=classData("2024",cls);
+        if(!expected||c.cls!==cls||c.ed!=="2024"||c.level!==level||c.prof!==2+Math.floor((level-1)/4)||!Number.isFinite(c.hp)||c.hp<1||!AB.every(a=>Number.isFinite(c.mods[a])))errors.push(key+": invalid character contract");
+        if(expected)for(const [l,names] of Object.entries(expected.f||{}))if(+l<=level)for(const n of names)if(!c.feats.some(f=>f.f===n))errors.push(key+": missing "+n);
+      }
+      const s=pcEnsure(generateCharacter({seed:"TOTEM-AUDIT",ed:"2024",cls:"Shaman",level:3,race:"Human",bg:"Sage",subclass:"none"}));s.used={};
+      const replaced=s.feats.some(f=>f.f==="Totems")&&!s.feats.some(f=>f.f==="Primal Knowledge");
+      shamanTotemCreate(s,"Primal Knowledge Totem");const spent=s.used.totemPrimal,blocked=!shamanTotemOptions(s).some(x=>x[0]==="Primal Knowledge Totem");
+      shamanTotemRestore(s);const rage=s.used.rage,restored=s.used.totemPrimal;
+      shamanTotemCreate(s,"Earthbind Totem");const earth=s.shamanTotem.name;
+      pcRest(s,"short");const expired=!s.shamanTotem;
+      const warrior=pcEnsure(generateCharacter({seed:"WARRIOR-AUDIT",ed:"2024",cls:"Warrior",level:20,race:"Human",bg:"Sage",subclass:"none"}));const extra=pcAbilities(warrior).find(a=>a.name==="Extra Attack")?.text;
+      return {builds,errors,replaced,spent,blocked,rage,restored,earth,expired,extra};
+    });
+    assert.equal(supplementalClassAudit.builds,160);assert.deepEqual(supplementalClassAudit.errors,[]);
+    assert.deepEqual([supplementalClassAudit.replaced,supplementalClassAudit.spent,supplementalClassAudit.blocked,supplementalClassAudit.rage,supplementalClassAudit.restored,supplementalClassAudit.earth,supplementalClassAudit.expired],[true,1,true,1,0,"Earthbind Totem",true]);assert.match(supplementalClassAudit.extra,/4 attacks/);
     const multiclassMatrix=await page.evaluate(()=>{
       const classes=["Artificer","Barbarian","Bard","Cleric","Druid","Fighter","Monk","Paladin","Ranger","Rogue","Sorcerer","Warlock","Wizard"];
       let builds=0;const errors=[];
