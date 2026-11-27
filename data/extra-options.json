@@ -6179,61 +6179,68 @@
       {
         "l": 1,
         "n": "Magical Tinkering",
-        "d": "Imbue tiny objects with minor sensory effects."
+        "d": "With Thieves' Tools or Artisan's Tools in hand, use an action to touch a Tiny nonmagical object and grant one property: bright light 5 feet plus dim light 5 more; a recorded spoken message lasting up to six seconds, audible within 10 feet when tapped; continuous odor or nonverbal sound perceptible within 10 feet; or a static image, shapes, lines, and/or up to 25 words on one surface. The effect lasts until you touch the object and use an action to end it or exceed your limit. One property per object; maximum active objects equal Intelligence modifier (minimum one); the oldest effect ends when exceeding the cap."
       },
       {
         "l": 1,
         "n": "Spellcasting",
-        "d": "Prepare Intelligence-based spells and cast them through tools."
+        "d": "Intelligence is your spellcasting ability (DC 8 + proficiency + INT; spell attack proficiency + INT). Have proficient Thieves' Tools or Artisan's Tools in hand as the required focus for every Artificer spell; from level 2 an infused item also works. Know two Artificer cantrips at level 1, three at 10, four at 14; replace one known cantrip when gaining an Artificer level. Prepare Artificer spells of levels for which you have slots: half Artificer level rounded down + INT modifier, minimum one. Change prepared list after Long Rest, with at least one minute per spell level for each spell in the new list. Slots follow Artificer class progression and recover on Long Rest; ritual-cast prepared Artificer spells with the ritual tag. Multiclass slots use half Artificer level rounded up."
       },
       {
         "l": 2,
         "n": "Infuse Item",
-        "d": "Learn infusions and turn suitable objects into magic items."
+        "d": "Learn four infusions at level 2, six at 6, eight at 10, ten at 14, twelve at 18. Replace one known infusion on gaining an Artificer level. At end of Long Rest touch eligible nonmagical objects, one infusion per object and one object per known infusion (each selected Replicate Magic Item variant counts separately). Active maximum is two at 2, three at 6, four at 10, five at 14, six at 18. Exceeding cap ends oldest first; forgetting infusion ends it immediately. Effects otherwise persist indefinitely or until INT modifier days after death (minimum 1). Container contents appear safely when infusion ends. May immediately attune to an infused item that requires it."
       },
       {
         "l": 3,
         "n": "The Right Tool for the Job",
-        "d": "Use your tools to create a set of artisan’s tools."
+        "d": "With Thieves' Tools or Artisan's Tools in hand, spend one uninterrupted hour (may coincide with Short or Long Rest) to create a nonmagical set of Artisan's Tools in empty space within 5 feet. Previous set from this feature vanishes upon creating another."
       },
       {
         "l": 6,
         "n": "Tool Expertise",
-        "d": "Double your proficiency bonus on proficient tool checks."
+        "d": "Double your proficiency bonus for ability checks that use a tool in which you are proficient."
       },
       {
         "l": 7,
         "n": "Flash of Genius",
-        "d": "React to boost a nearby ability check or save by your Intelligence modifier."
+        "d": "When you or a visible creature within 30 feet makes an ability check or saving throw, use Reaction to add your Intelligence modifier to the roll. Intelligence modifier uses (minimum one) per Long Rest."
       },
       {
         "l": 10,
         "n": "Magic Item Adept",
-        "d": "Attune to four items and craft common or uncommon items faster and more cheaply."
+        "d": "Attunement maximum becomes four. When crafting Common or Uncommon magic items, use one-quarter normal crafting time and half normal gold cost."
       },
       {
         "l": 11,
         "n": "Spell-Storing Item",
-        "d": "Store a qualifying 1st- or 2nd-level artificer spell in an object for repeated use."
+        "d": "After Long Rest touch a Simple/Martial weapon or valid spellcasting focus and store one level 1 or 2 Artificer spell with action casting time (does not have to be prepared). Holder uses action to produce effects using your spellcasting ability; holder maintains any required concentration. Uses equal twice INT modifier (minimum two); ends when used up or replaced by another stored spell."
       },
       {
         "l": 14,
         "n": "Magic Item Savant",
-        "d": "Attune to five items and ignore specified restrictions when using magic items."
+        "d": "Attunement maximum becomes five; ignore class, race, spell and level prerequisites for attuning to or using a magic item."
       },
       {
         "l": 18,
         "n": "Magic Item Master",
-        "d": "Attune to six items."
+        "d": "Attunement maximum becomes six."
       },
       {
         "l": 20,
         "n": "Soul of Artifice",
-        "d": "Gain a save bonus for each attuned item and end an infusion to avoid dropping to 0 HP."
+        "d": "Gain +1 to all saving throws for each magic item you are attuned to. When reduced to 0 HP without outright death, use Reaction to end one of your active Artificer infusions and remain at 1 HP instead."
       }
     ],
     "page": 9,
-    "desc": "An Intelligence-based spellcaster who uses tools and infusions to create magic items."
+    "desc": "An Intelligence-based spellcaster who uses tools and infusions to create magic items.",
+    "featureSourceReview": {
+      "status": "drive_pdf_mechanics_reviewed",
+      "reference": "Tashas_Cauldron_of_Everything (1).pdf",
+      "primaryVerified": false,
+      "runtimeVerified": false,
+      "note": "Descriptions paraphrase supplied PDF rules; full spell/infusion/plan catalogs and runtime still require independent validation."
+    }
   },
   {
     "id": "reference-tce-artificer-alchemist",
@@ -8975,56 +8982,63 @@
       {
         "l": 1,
         "n": "Spellcasting",
-        "d": "Prepare a fixed number of Intelligence-based spells. Cast them using a proficient tool as a focus, and replace one cantrip after a long rest."
+        "d": "Intelligence determines spell DC (8 + proficiency + INT) and attack bonus (proficiency + INT). Must hold Thieves' Tools, Tinker's Tools or proficient Artisan's Tools as focus for all Artificer spells; a replicated wand or weapon qualifies from level 2. Learn two Artificer cantrips at 1, three at 10, four at 14; change one after Long Rest. Prepared spell limits at levels 1–20: 2,3,4,5,6,6,7,7,9,9,10,10,11,11,12,12,14,14,15,15. Select spells of eligible slot levels; replace prepared choices on Long Rest; always-prepared grants do not count against limit. Slots use Artificer progression; recover on Long Rest; multiclass count half Artificer levels rounded up."
       },
       {
         "l": 1,
         "n": "Tinker's Magic",
-        "d": "Learn Mending and use tinker’s tools to create temporary mundane gear."
+        "d": "Know Mending in addition to your selected cantrips. With Tinker's Tools held, use Magic action to create an item in empty space within 5 feet: Ball Bearings, Basket, Bedroll, Bell, Blanket, Block and Tackle, Glass Bottle, Bucket, Caltrops, Candle, Crowbar, Flask, Grappling Hook, Hunting Trap, Jug, Lamp, Manacles, Net, Oil, Paper, Parchment, Pole, Pouch, Rope, Sack, Shovel, Iron Spikes, String, Tinderbox, Torch or Vial. Item vanishes on your next Long Rest; INT modifier uses (minimum one) per Long Rest."
       },
       {
         "l": 2,
         "n": "Replicate Magic Item",
-        "d": "Learn blueprints at qualifying levels and use them after a long rest to create magic items."
+        "d": "Learn four plans at 2, five at 6, six at 10, seven at 14, eight at 18; learn from eligible level 2/6/10/14 tables and replace one on gaining Artificer level. Generic plans: at 2 any noncursed Common item excluding potions/scrolls; at 10 any noncursed Uncommon Wondrous Item; at 14 any noncursed Rare Wondrous Item. Each distinct generic item is a separate plan. With Tinker's Tools at end of Long Rest create distinct items based on known plans; maximum creations and simultaneous items 2 at 2, 3 at 6, 4 at 10, 5 at 14, 6 at 18. Excess ends oldest. May immediately attune upon creation. Items vanish 1d4 days after your death or immediately if plan replaced; container contents appear safely. Replicated wands/weapons serve as Artificer focus. Permanent crafted items are not replicas."
       },
       {
         "l": 6,
         "n": "Magic Item Tinker",
-        "d": "Recharge a replicated item with a slot, reclaim a slot from one, or trade it for another plan."
+        "d": "Charge: Bonus Action touch your replica within 5 feet that has charges, spend level 1+ spell slot and restore charges equal to slot level, up to its maximum. Drain: Bonus Action touch replica within 5 feet, destroy it and gain temporary level 1 slot for Common or level 2 slot for Uncommon/Rare; once per Long Rest; slot expires next Long Rest. Transmute: Magic action touch your replica within 5 feet and replace with different known item plan; once per Long Rest."
       },
       {
         "l": 7,
         "n": "Flash of Genius",
-        "d": "When you or an eligible creature fails a check or save, react to add your Intelligence modifier."
+        "d": "When you or a visible creature within 30 feet fails an ability check or saving throw, use Reaction to add INT modifier (minimum +1), potentially turning failure into success. INT modifier uses (minimum one) per Long Rest."
       },
       {
         "l": 10,
         "n": "Magic Item Adept",
-        "d": "Attune to up to four magic items."
+        "d": "Attunement maximum becomes four."
       },
       {
         "l": 11,
         "n": "Spell-Storing Item",
-        "d": "Store a qualifying artificer spell of level 1 through 3 in an item for repeated use."
+        "d": "At end of Long Rest store an Artificer spell of level 1–3 with Action casting time and no consumed material component in one Simple/Martial weapon or valid spellcasting focus; preparation unnecessary. Holder uses Magic action to produce effect using your spellcasting ability and maintains any concentration; object cannot be used again until start of that holder's next turn. Twice INT modifier uses (minimum two); expires after all uses or when you store another spell."
       },
       {
         "l": 14,
         "n": "Advanced Artifice",
-        "d": "Attune to five items and regain one use of Flash of Genius on a short rest."
+        "d": "Attunement maximum becomes five. On Short Rest regain one expended Flash of Genius use."
       },
       {
         "l": 18,
         "n": "Magic Item Master",
-        "d": "Attune to up to six magic items."
+        "d": "Attunement maximum becomes six."
       },
       {
         "l": 20,
         "n": "Soul of Artifice",
-        "d": "Sacrifice replicated items to survive at 0 hit points, and recover all Flash of Genius uses on a short rest while attuned."
+        "d": "When reduced to 0 HP but not killed outright, disintegrate any number of Uncommon/Rare items you created via Replicate Magic Item and set HP to 20 times number disintegrated. When you finish Short Rest while attuned to at least one magic item, regain all spent Flash of Genius uses."
       }
     ],
     "page": null,
-    "desc": "Replicate magic items and cast spells through tools."
+    "desc": "Replicate magic items and cast spells through tools.",
+    "featureSourceReview": {
+      "status": "drive_pdf_mechanics_reviewed",
+      "reference": "Eberron Forge of the Artificer Wizard-of-the-CoastDnDB-PrintOCR (1).pdf",
+      "primaryVerified": false,
+      "runtimeVerified": false,
+      "note": "Descriptions paraphrase supplied PDF rules; full spell/infusion/plan catalogs and runtime still require independent validation."
+    }
   },
   {
     "id": "reference-hof-college-of-the-moon",
