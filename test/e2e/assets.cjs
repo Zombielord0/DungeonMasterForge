@@ -189,7 +189,7 @@ const server = http.createServer((req, res) => {
   check("revised glossary definition displays actual conditions and source attribution",
     /SRD 5\.2\.1/.test(await glossaryDialog.innerText()) &&
     /2 times your Exhaustion level/.test((await glossaryDialog.innerText()).replace(/\s+/g," ")) &&
-    /5 feet times your Exhaustion level/.test((await glossaryDialog.innerText()).replace(/\s+/g," ")));
+    /5 times your Exhaustion level/.test((await glossaryDialog.innerText()).replace(/\s+/g," ")));
   await glossaryDialog.getByRole("button", {name:"Close"}).click();
   const glossaryAudit=await p.evaluate(async()=>({
     revised:(await compendiumMatches({ed:"2024",type:"Other rules"})).rows.filter(x=>x.group==="Rules glossary").length,
