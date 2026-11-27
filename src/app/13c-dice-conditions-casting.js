@@ -291,10 +291,21 @@ function rollLifeHealing(expr,life){
  const rr=life.maximum&&m?{total:+m[1]*+m[2]+ +(m[3]||0),text:expr+" (maximum dice)"}:rollDice(expr);
  return {total:Math.max(0,rr.total+life.bonus),text:rr.text+(life.bonus?" + "+life.bonus+" (Disciple of Life)":"")};
 }
+function feySummonOption(c,sp,ed=edOf(c)){
+  return ed===edOf(c)&&sp?.n==="Summon Fey"&&characterSubclassLevel(c,"Ranger","Fey Wanderer")>=11;
+}
+function feyTeleportOptions(c,sp,ed=edOf(c)){
+  if(ed!==edOf(c)||sp?.n!=="Misty Step")return [];
+  const out=[];
+  if(characterSubclassLevel(c,"Ranger","Fey Wanderer")>=15)out.push("Misty Wanderer: optionally take a visible willing creature within 5 ft; choose a free space within 5 ft of your destination.");
+  const l=ed==="2024"?characterSubclassLevel(c,"Warlock","Archfey Patron"):0;
+  if(l>=3)out.push("Steps of the Fey: choose Refreshing Step (1d10 temporary HP to yourself or a visible creature within 10 ft) or Taunting Step (near departure, Wisdom save or disadvantage against others until your next turn)."+(l>=6?" You may instead use Disappearing Step (brief invisibility, ends on attack, damage or casting) or Dreadful Step (Wisdom save or 2d10 psychic within 5 ft of departure or arrival). Reaction casting after taking damage is available; confirm timing.":""));
+  return out;
+}
 function castPreview(c, sp, how, ed = edOf(c)) {
   const P = spellTweak(c, sp, spellPlan(sp)), K = spellCaster(c, sp, how, ed), slot = castSlotLevel(c, sp, how, ed), up = Math.max(0, slot - sp.l);
   const spirit=summonSpiritDefinition(sp,ed);
-  if(spirit&&!spellManualResolution(sp))return `At ${ordinal(slot)}: summon ${spirit.name}; resolve its stat block and attacks after casting${sp.co?" · needs concentration":""}.`;
+  if(spirit&&!spellManualResolution(sp))return `At ${ordinal(slot)}: summon ${spirit.name}; resolve its stat block and attacks after casting${feySummonOption(c,sp,ed)?" · no material component; optional one-minute non-concentration cast":sp.co?" · needs concentration":""}.`;
   const count = P.count + (P.countPer ? up : 0), parts = [];
   if (spellManualResolution(sp) && sp.sv) parts.push(`${sp.sv.toUpperCase()} save DC ${K.dc}`);
   if (spellManualResolution(sp) && sp.at) parts.push(`Spell attack ${sgn(K.atk)}`);
@@ -316,7 +327,9 @@ function castPreview(c, sp, how, ed = edOf(c)) {
   if (sp.manualRoll || sp.manualEffects) parts.push("Resolve all rolls and effects manually using the complete spell rules");
   if(sp.l===0&&invocationAffects(c,"spear",sp.n))parts.push(ed==="2024"?"Eldritch Spear: +"+30*clsLv(c,"Warlock")+" ft range":"Eldritch Spear: 300 ft range");
   if(sp.l===0&&invocationAffects(c,"repel",sp.n))parts.push(ed==="2024"?"Repelling Blast: push Large or smaller target up to 10 ft on hit":"Repelling Blast: push target up to 10 ft on hit");
-  if (sp.co) parts.push(`needs concentration${c.conc ? ` (ends ${c.conc.spell})` : ""}`);
+  if(feySummonOption(c,sp,ed))parts.push("No material component; optional one-minute non-concentration cast");
+  else if (sp.co) parts.push(`needs concentration${c.conc ? ` (ends ${c.conc.spell})` : ""}`);
+  parts.push(...feyTeleportOptions(c,sp,ed));
   return (sp.l ? `At ${ordinal(slot)}: ` : "") + (parts.join(" · ") || "No dice to roll.");
 }
 function castPick(how) {
@@ -350,6 +363,7 @@ function castDialog(c, ed, name, o = {}) {
     const first = opts.find(x => !x[3] && (sp.l === 0 || /^slot\d$|^pact$/.test(x[0])));
     cast = `<div class="cast-box"><div class="cast-h">${sp.l ? "Cast at level" : "Cast"}</div>
       ${sp.l ? `<div class="cast-lvs" role="group" aria-label="Cast at level">${opts.map(([v, l, sub, dis]) => `<button type="button" class="cast-lv" data-castlv="${esc(v)}" aria-pressed="${!!(first && first[0] === v)}" ${dis ? "disabled" : ""}><b>${esc(l)}</b><span>${esc(sub)}</span></button>`).join("")}</div>` : ""}
+      ${feySummonOption(c,sp,ed)?`<label class="hint"><input type="checkbox" id="feyNoConcentration"> Fey Reinforcements: cast without concentration (duration 1 minute)</label>`:""}
       <input type="hidden" id="castSlot" value="${first ? esc(first[0]) : ""}">
       <p id="castFx" class="cast-fx">${esc(first ? castPreview(c, sp, first[0], ed) : opts.some(x => !x[3]) ? "No slots left for this spell. Choose another way to cast." : "No cast available. Finish a rest to regain uses.")}</p></div>
       <div class="row" style="justify-content:flex-end;margin-top:12px"><button class="btn" type="button" data-actclose style="flex:0 0 auto">Close</button><button class="btn primary" type="button" data-castgo style="flex:0 0 auto" ${first ? "" : "disabled"}>✦ Cast</button></div>`;
@@ -385,7 +399,11 @@ function castGo() {
   if(how==="invocation:vigor"){const n=ed==="2024"?12:rollDice("1d4+4").total;giveTemp(c,n);notes.push("False Life: "+n+" temporary HP offered; higher existing temporary HP retained.");}
   if(how==="invocation:armor"){c.fx={...(c.fx||{}),mageArmor:true};pcACApply(c);notes.push("Mage Armor effect active if unarmored; end manually when the spell expires.");}
   if(how==="freeContactPatron"&&sp.n==="Contact Other Plane")notes.push("Contact your patron; the spell’s saving throw automatically succeeds.");
-  if (sp.co) { const ended = concStart(c, sp.n); if (ended) notes.push(ended); notes.push(`Concentrating on ${sp.n}.`); }
+  const feySummon=feySummonOption(c,sp,ed),feyNoConc=feySummon&&!!$("#feyNoConcentration")?.checked;
+  if(feySummon)notes.push("Fey Reinforcements: no material component required.");
+  if(feyNoConc)notes.push("Duration 1 minute without concentration; track expiry manually.");
+  else if (sp.co) { const ended = concStart(c, sp.n); if (ended) notes.push(ended); notes.push(`Concentrating on ${sp.n}.`); }
+  notes.push(...feyTeleportOptions(c,sp,ed));
   rollLog(c, { label: `Cast ${sp.n}`, total: sp.l ? `L${slot}` : "✦", note: how === "free" ? "no slot" : how === "ritual" ? "ritual" : "" });
   pcPersist();
   const dice = spellDice(c, sp, P, slot, K), count = P.count + (P.countPer ? Math.max(0, slot - sp.l) : 0), type = P.type ? ` ${P.type.toLowerCase()}` : "";
@@ -403,7 +421,7 @@ function castGo() {
       <button class="btn" type="button" data-actclose>Close</button>`);
     return;
   }
-  if (!dice) { actClose(); toast(notes.join(" ")); return; }
+  if (!dice) { if(feyTeleportOptions(c,sp,ed).length){actDialog(`<h3 id="actTitle">${esc(sp.n)}</h3><p>${esc(notes.join(" "))}</p><button class="btn" type="button" data-actclose>Close</button>`);return;} actClose(); toast(notes.join(" ")); return; }
   if (P.heal) { const life=revisedLifeHealing(c,P,slot,how),r=rollLifeHealing(dice,life); actResultDialog(c,{title:sp.n,msg:`${notes.join(" ")} Healing ${r.text}. Total ${r.total} HP.${life.blessed?" If you restore HP to another creature, regain "+life.blessed+" HP yourself (apply manually).":""}`,amount:r.total,kind:"heal"});return; }
   if (P.attack) {
     const lines = []; let tot = 0;

@@ -798,6 +798,21 @@ const { chromium } = require("playwright");
       return {peaceGranted,peaceRemoved,fey,arch,archRemoved:!skill.p&&!archer.prepared.some(p=>p.sources?.some(s=>s.feature==="Arcane Archer Lore")),mastery,masteryRemoved};
     });
     assert.deepEqual(choiceGrantAudit,{peaceGranted:true,peaceRemoved:true,fey:[[true,true,1],[false,false],[true,true,1],[false,false]],arch:[true,true,true],archRemoved:true,mastery:[6,7,8,9],masteryRemoved:true});
+    const feyCastAudit=await page.evaluate(()=>{
+      const make=(ed,cls,level,subclass)=>pcEnsure(generateCharacter({seed:"FEY-CAST",ed,cls,level,subclass,race:"Human",bg:"Sage"}));
+      const out=[];
+      for(const ed of ["2014","2024"]){
+        const c=make(ed,"Ranger",15,"Fey Wanderer");c.scores.wis=8;pcRecompute(c);syncGrantedSpells(c);
+        const key=subAblKey("Misty Wanderer"),summon=subAblKey("Fey Reinforcements"),sp=spellOf(ed,"Misty Step");
+        const resources=pcResources(c);out.push([resources.filter(r=>r.key===key).length,resources.find(r=>r.key===key)?.max,resources.find(r=>r.key===summon)?.max,castOpts(c,sp,ed).some(o=>o[0]===key&&!o[3]),feySummonOption(c,{n:"Summon Fey"},ed)]);
+        c.used={...c.used,[key]:1};out.push(castOpts(c,sp,ed).some(o=>o[0]===key&&o[3]));
+        c.scores.wis=18;pcRecompute(c);out.push(pcResources(c).find(r=>r.key===key)?.max);
+        c.subclass="Hunter";pcSubSync(c);syncGrantedSpells(c);out.push(!pcResources(c).some(r=>r.key===key||r.key===summon));
+      }
+      const a=make("2024","Warlock",6,"Archfey Patron");a.scores.cha=18;pcRecompute(a);syncGrantedSpells(a);const key=subAblKey("Steps of the Fey"),r=pcResources(a).filter(r=>r.key===key);
+      const celestial=make("2024","Warlock",6,"Celestial Patron");celestial.scores.cha=16;pcRecompute(celestial);celestial.used={};const hk=subAblKey("Healing Light");const opts=actChoices(celestial,ACT["Healing Light"]).map(x=>x[0]);const result=actRun(celestial,"Healing Light","3");const blocked=actRun(celestial,"Healing Light","4");return {out,arch:[r.length,r[0]?.max,feyTeleportOptions(a,{n:"Misty Step"}).length],heal:[opts,celestial.used[hk],result?.amount>=3&&result?.amount<=18,typeof blocked==="string"]};
+    });
+    assert.deepEqual(feyCastAudit.out,[[1,1,1,true,true],true,4,true,[1,1,1,true,true],true,4,true]);assert.deepEqual(feyCastAudit.arch,[1,4,1]);assert.deepEqual(feyCastAudit.heal,[["1","2","3"],3,true,true]);
     const expansion = await page.evaluate(() => {
       const subclasses = hbBook("subclass").filter(x => ["tce", "xge"].includes(x.src));
       const armorer = generateCharacter({ seed: "ARMOR", ed: "2014", cls: "Artificer", subclass: "Armorer", level: 5 });

@@ -447,6 +447,13 @@ function syncGrantedSpells(c) {
       const choice = choiceOf(c, entry.spellTrackChoice)[0];
       if (choice && choice !== "All" && Object.hasOwn(entry.spellTracks, choice)) add(entry.spellTracks[choice], lv, { ...source, feature: choice });
     }
+    if(cls==="Ranger"&&subclass==="Fey Wanderer"){
+      if(lv>=11)add({11:["Summon Fey"]},lv,{...source,feature:"Fey Reinforcements",known:legacy},()=>({free:subAblKey("Fey Reinforcements"),uses:1}));
+      if(lv>=15)add({15:["Misty Step"]},lv,{...source,feature:"Misty Wanderer",known:legacy},()=>({free:subAblKey("Misty Wanderer"),uses:"wisdom"}));
+    }
+    if(ed==="2024"&&!legacy&&cls==="Warlock"&&subclass==="Archfey Patron"){
+      add({3:["Misty Step"]},lv,{...source,feature:"Steps of the Fey"},()=>({free:subAblKey("Steps of the Fey"),uses:"charisma"}));
+    }
     if (cls === "Druid" && subclass === "Circle of Stars") {
       add({ 2: ["Guidance", "Guiding Bolt"] }, lv, { ...source, feature: "Star Map" }, spell => spell.l ? {
         free: "starMapGuidingBolt", uses: ed === "2014" ? "proficiency" : Math.max(1, c.mods?.wis || 0),

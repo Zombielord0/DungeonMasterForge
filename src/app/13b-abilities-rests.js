@@ -221,7 +221,7 @@ function pcResources(c) {
     if (!spell.bookGrant) continue;
     for (const source of spell.sources || []) {
       if (source.free && source.uses) {
-        const uses = source.uses === "proficiency" ? prof : source.uses === "atWill" ? Infinity : source.uses;
+        const uses = source.uses === "proficiency" ? prof : source.uses === "atWill" ? Infinity : source.uses === "wisdom" ? Math.max(1,m.wis) : source.uses === "charisma" ? Math.max(1,m.cha) : source.uses;
         if(!R.some(r=>r.key===source.free))add(source.free, source.sharedResource||`${source.feature || source.name} · ${spell.n}`, uses, source.recharge || "long");
       }
     }
@@ -286,7 +286,7 @@ function pcResources(c) {
     const o=subclassFeatureOwner(c,f),S=SUB_ABL[f.f];
     if(!o.level||+f.l>o.level||f.bookSub&&!S.text&&!ACT[f.f])continue;
     if(isPsionicOwner(o)&&PSIONIC_FEATURES.has(f.f))continue;
-    const key=subAblKey(f.f);if(subSeen.has(key))continue;subSeen.add(key);
+    const key=subAblKey(f.f);if(subSeen.has(key)||R.some(r=>r.key===key))continue;subSeen.add(key);
     const [n,mx,rc]=S.res,ctx={...c,level:o.level,cls:o.cls,subclass:o.name};
     add(key,n,mx(ctx),typeof rc==="function"?rc(ctx):rc);
   }
@@ -1224,8 +1224,9 @@ const ACT = {
   // ---------- Ranger
   "Hunter's Mark": { kind: "toggle", fx: c => ({ atk: [{ f: "weapon", extra: `${(c.feats || []).some(f => f.f === "Foe Slayer") ? "1d10" : "1d6"} force vs marked`, label: "Hunter's Mark" }] }), start: () => "Hunter's Mark cast without a spell slot." },
   "Dread Ambusher": { kind: "instant", use: c => roll("Dread Ambusher", (c.feats || []).some(f => f.f === "Stalker's Flurry") ? "2d8" : "2d6", "damage", "Psychic damage on this hit") },
-  "Fey Reinforcements": { kind: "instant", use: () => "Summon fey cast without a spell slot." },
-  "Misty Wanderer": { kind: "instant", use: () => "Misty step cast without a spell slot." },
+  "Fey Reinforcements": { kind: "instant", dialog: c => castDialog(c,edOf(c),"Summon Fey") },
+  "Misty Wanderer": { kind: "instant", dialog: c => castDialog(c,edOf(c),"Misty Step") },
+  "Steps of the Fey": { kind: "instant", dialog: c => castDialog(c,edOf(c),"Misty Step") },
   // ---------- Rogue
   "Psychic Veil": { kind: "toggle", fx: () => ({ notes: ["Psychic Veil: invisible for 1 hour, until you damage a creature or force a save"] }) },
   "Rend Mind": { kind: "instant", use: c => `Rend Mind: the target makes a WIS save (DC ${8 + c.prof + c.mods.dex}) or is stunned for 1 minute; repeat the save at the end of each target turn.` },
@@ -1246,7 +1247,11 @@ const ACT = {
   "Fiendish Resilience": { kind: "persist", choices: c=>DMG_LIST.filter(d=>edOf(c)!=="2024"||d!=="force").map(d=>[d,d.charAt(0).toUpperCase()+d.slice(1)]), fx: (c,ch)=>({res:DMG_LIST.includes(ch)&&(edOf(c)!=="2024"||ch!=="force")?[ch]:[]}) },
   "Dark One's Blessing": { kind: "instant", use: c => { const n = Math.max(1, c.mods.cha + clsLv(c,"Warlock")); giveTemp(c, n); return `Dark One's Blessing: ${n} temporary hit points.`; } },
   "Dark One's Own Luck": { kind: "instant", use: () => rollMsg("Dark One's Own Luck", "1d10", "Add it to the check or save") },
-  "Healing Light": { kind: "instant", use: () => roll("Healing Light", "1d6", "heal", "Hit points restored (use it again to spend more dice)") },
+  "Healing Light": { kind: "instant", choices: c => {
+    const r=pcResources(c).find(r=>r.key===subAblKey("Healing Light"));
+    const n=r?Math.min(Math.max(1,c.mods.cha),resLeft(c,r)):0;
+    return Array.from({length:n},(_,i)=>[String(i+1),(i+1)+"d6"]);
+  }, cost: (c,ch)=>+ch, use: (c,ch,spent)=>roll("Healing Light",spent+"d6","heal","Restore HP to yourself or one visible creature within 60 ft; confirm Bonus Action and recipient.") },
   "Searing Vengeance": { kind: "instant", use: c => area("Searing Vengeance", `2d8${sgn(c.mods.cha)}`, null, 0, "Radiant", "The creature stands up with half its hit points. Each creature of your choice within 30 ft takes radiant damage and is blinded until the end of the turn.") },
   "Hurl Through Hell": { kind: "instant", use: c => edOf(c) === "2024" ? roll("Hurl Through Hell", "8d10", "damage", `Psychic damage if the target fails a CHA save (DC ${8 + c.prof + c.mods.cha}); it is incapacitated until the end of your next turn`) : roll("Hurl Through Hell", "10d10", "damage", "Psychic damage when the creature returns (none if it is a fiend)") },
   "Celestial Resilience": { kind: "instant", use: c => { const n = clsLv(c,"Warlock") + c.mods.cha; giveTemp(c, n); return `Celestial Resilience: ${n} temporary hit points.`; } },
