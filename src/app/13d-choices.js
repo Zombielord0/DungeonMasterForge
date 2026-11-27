@@ -240,7 +240,16 @@ function featSpellChoicesHTML(c, name) {
 function backgroundSelectionRules(c) {
   const ed=edOf(c), bg=HB_BG[c.bg];
   if(!bg?.book||!bg.recoveryId||bg.pend||bg.ed!==ed||ed!=="2014") return [];
-  return (bg.choices||[]).filter(q=>q.selection).map(q=>({...q,...q.selection,key:JSON.stringify(["background",ed,bg.src,bg.recoveryId,q.id])}));
+  const own=(bg.choices||[]).filter(q=>q.selection).map(q=>({...q,...q.selection,coverChoice:q.id===bg.coverGuildChoice,key:JSON.stringify(["background",ed,bg.src,bg.recoveryId,q.id])}));
+  const selected=own.find(q=>q.coverChoice), cover=selected&&backgroundCoverGuild(c,bg,backgroundSelectionValues(c,selected)[0]);
+  if(!cover)return own;
+  // The secondary guild supplies equipment only, not its tool/language proficiencies or spell list.
+  const inherited=(cover.choices||[]).filter(q=>q.selection?.equipment).map(q=>({...q,...q.selection,effect:"detail",label:cover.name+" equipment: "+q.label,inherited:true,key:JSON.stringify(["background",ed,bg.src,bg.recoveryId,"cover",cover.recoveryId,q.id])}));
+  return [...own,...inherited];
+}
+function backgroundCoverGuild(c,bg,name) {
+  const declared=(bg.coverGuilds||[]).find(g=>g.name===name),cover=declared&&HB_BG[declared.name];
+  return cover?.book&&!cover.pend&&cover.recoveryId&&cover.ed===edOf(c)&&cover.src===declared.src&&cover!==bg&&!cover.coverGuilds?cover:null;
 }
 function backgroundSelectionValue(q,v) {
   if(typeof v!=="string")return "";
@@ -258,7 +267,7 @@ function backgroundSelectionValues(c,q) {
 function backgroundSelectionChange(c,key,value,remove=false) {
   const q=backgroundSelectionRules(c).find(x=>x.key===key);
   if(!q)return false;
-  if(q.equipment&&c.backgroundEquipmentClaimed)return false;
+  if((q.equipment||q.coverChoice)&&c.backgroundEquipmentClaimed)return false;
   value=backgroundSelectionValue(q,value);if(!value)return false;
   const have=backgroundSelectionValues(c,q), same=x=>x.toLowerCase()===value.toLowerCase();
   if(!remove&&(have.some(same)||have.length>=q.count))return false;
@@ -278,18 +287,25 @@ function backgroundEquipmentPlan(c) {
   if(!bg?.book||bg.pend||bg.ed!==ed||!bg.recoveryId||!bg.deferStartingEquipment)return null;
   const origin=JSON.stringify([ed,bg.src,bg.recoveryId]);
   if(c.backgroundEquipmentOrigin!==origin||c.importedFrom||c.backgroundEquipmentClaimed)return null;
-  const gear=bg.gearItems.slice(),gp=bg.gp;
-  const rules=backgroundSelectionRules(c).filter(q=>q.equipment);
-  for(const q of rules){const have=backgroundSelectionValues(c,q);if(have.length!==q.count)return {ready:false};for(const v of have)gear.push(q.equipment[v]);}
-  return {ready:true,gear,gp,origin};
+  const gear=bg.gearItems.slice(),coins={cp:0,sp:0,ep:0,gp:0,pp:0};
+  const addCoins=b=>{for(const k of Object.keys(coins))coins[k]+=b.startingCoins?.[k]??(k==="gp"?(+b.gp||0):0);};
+  addCoins(bg);
+  const all=backgroundSelectionRules(c);
+  if(bg.coverGuilds){
+    const selected=all.find(q=>q.coverChoice),cover=selected&&backgroundCoverGuild(c,bg,backgroundSelectionValues(c,selected)[0]);
+    if(!cover)return {ready:false};
+    gear.push(...cover.gearItems);addCoins(cover);
+  }
+  for(const q of all.filter(q=>q.equipment)){const have=backgroundSelectionValues(c,q);if(have.length!==q.count)return {ready:false};for(const v of have)gear.push(q.equipment[v]);}
+  return {ready:true,gear,coins,origin};
 }
 function backgroundEquipmentClaim(c) {
   const plan=backgroundEquipmentPlan(c);
   if(!plan?.ready||!c.kitMoved||!Array.isArray(c.inv))return false;
-  const ed=edOf(c), additions=plan.gear.flatMap(line=>eqParseKit(line,ed)).map(({n,qty,g})=>({id:uid("i"),ref:g?g.id:undefined,n,qty,w:g?g.w||0:0,att:false,attuned:false,value:g?g.c:undefined,note:"Background starting equipment",eq:false}));
+  const ed=edOf(c), additions=plan.gear.flatMap(line=>eqParseKit(line,ed)).map(({n,qty,g})=>({id:uid("i"),ref:g?g.id:undefined,n,qty,w:g?(g.w||0)/(g.packQty||1):0,...(g?.packQty?{ammunitionUnits:true}:{}),att:false,attuned:false,value:g?g.c:undefined,note:"Background starting equipment",eq:false}));
   // Prepare the complete batch before changing the character. No generic placeholder items.
   c.inv.push(...additions);
-  c.coins={...(c.coins||{}),gp:(+c.coins?.gp||0)+plan.gp};
+  c.coins={...(c.coins||{}),...Object.fromEntries(Object.entries(plan.coins).map(([k,v])=>[k,(+c.coins?.[k]||0)+v]))};
   c.backgroundEquipmentClaimed=plan.origin;
   return true;
 }
@@ -302,7 +318,7 @@ function backgroundEquipmentHTML(c) {
 function backgroundSelectionsHTML(c) {
   const rules=backgroundSelectionRules(c),claim=backgroundEquipmentHTML(c);if(!rules.length&&!claim)return "";
   return '<div class="sec"><div class="sec-h"><h3>Background choices</h3></div>'+rules.map(q=>{
-    const have=backgroundSelectionValues(c,q), key=esc(q.key),locked=!!(q.equipment&&c.backgroundEquipmentClaimed);
+    const have=backgroundSelectionValues(c,q), key=esc(q.key),locked=!!((q.equipment||q.coverChoice)&&c.backgroundEquipmentClaimed);
     return '<div class="choice"><span class="lbl">'+esc(q.label)+' ('+have.length+'/'+q.count+')</span><p class="hint">'+esc(q.rules)+'</p>'+
       have.map(v=>'<span class="tag gold">'+esc(v)+(locked?'':'<button type="button" class="icon-btn" data-bgchoice-remove="'+key+'" data-bgchoice-value="'+esc(v)+'" aria-label="Remove '+esc(v)+'">✕</button>')+'</span>').join("")+
       (!locked&&have.length<q.count?(q.open?'<input type="text" maxlength="80" data-bgchoice="'+key+'" aria-label="'+esc(q.label)+'" placeholder="Enter a campaign-approved language">':'<select data-bgchoice="'+key+'" aria-label="'+esc(q.label)+'"><option value="">Choose…</option>'+q.options.filter(v=>!have.includes(v)).map(v=>'<option value="'+esc(v)+'">'+esc(v)+'</option>').join("")+'</select>'):'')+'</div>';

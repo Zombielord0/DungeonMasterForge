@@ -58,7 +58,7 @@ function eqParseKit(line, ed) {
     const m = t.match(/^(\d+|a|an|one|two|three|four|five|six|ten|twenty)\s+(.+)$/i);
     if (m) { qty = /^\d+$/.test(m[1]) ? +m[1] : EQ_COUNT[m[1].toLowerCase()]; t = m[2]; }
     const g = eqGear(ed, t);
-    return { n: g ? g.n : t.charAt(0).toUpperCase() + t.slice(1), qty, g };
+    return { n: g ? g.n : t.charAt(0).toUpperCase() + t.slice(1), qty: !m&&g?.packQty?g.packQty:qty, g };
   });
 }
 // move an older character's starting-equipment list into its inventory, once
@@ -67,9 +67,9 @@ function pcInvUpgrade(c) {
   if (c.kitMoved) return false;
   const ed = edOf(c);
   (c.kit || []).forEach(line => eqParseKit(line, ed).forEach(({ n, qty, g }) => {
-    const ex = c.inv.find(i => i.n.toLowerCase() === n.toLowerCase());
+    const ex = c.inv.find(i => i.n.toLowerCase() === n.toLowerCase()&&(!g?.packQty||i.ammunitionUnits===true));
     if (ex) { ex.qty = (+ex.qty || 0) + qty; return; }
-    c.inv.push({ id: uid("i"), ref: g ? g.id : undefined, n, qty, w: g ? g.w || 0 : 0, att: false, attuned: false, value: g ? g.c : undefined, note: "", eq: eqIsWeapon(g) || eqIsArmor(g) });
+    c.inv.push({ id: uid("i"), ref: g ? g.id : undefined, n, qty, w: g ? (g.w || 0)/(g.packQty||1) : 0, ...(g?.packQty?{ammunitionUnits:true}:{}), att: false, attuned: false, value: g ? g.c : undefined, note: "", eq: eqIsWeapon(g) || eqIsArmor(g) });
   }));
   c.kit = []; c.kitMoved = true;
   if (+c.startGold && !c.goldAdded) { c.coins = c.coins || { cp: 0, sp: 0, ep: 0, gp: 0, pp: 0 }; c.coins.gp = (+c.coins.gp || 0) + +c.startGold; c.goldAdded = true; }

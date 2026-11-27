@@ -96,7 +96,7 @@ for (const [name, key] of [["spells", "spellData"], ["monsters", "monsterData"],
     data = applyRecoveredContent(name, data, approvedRecovery, bookReferences);
   }
   if (name === "extra-options") {
-    validateRecoveredBackgroundDependencies(approvedRecovery, emittedCatalogs);
+    validateRecoveredBackgroundDependencies(approvedRecovery, {...emittedCatalogs,"extra-options":data});
     const ids = new Set(data.map(option => option.id));
     for (const id of Object.keys(spellGrants.options)) {
       if (!ids.has(id)) throw new Error(`Unknown spell-grant option: ${id}`);

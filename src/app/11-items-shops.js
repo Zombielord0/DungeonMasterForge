@@ -30,7 +30,7 @@ function itLoad() {
   IT.data = {};
   for (const ed of Object.keys(raw)) {
     const L = [];
-    raw[ed].eq.forEach((e, i) => L.push({ id: `${ed}-g${i}`, kind: "gear", n: e.n, cat: e.cat, g: e.g, c: e.c, gp: e.gp, w: e.w, st: e.st, d: e.d, rk: -2 }));
+    raw[ed].eq.forEach((e, i) => L.push({ id: `${ed}-g${i}`, kind: "gear", n: e.n, cat: e.cat, g: e.g, c: e.c, gp: e.gp, w: e.w, st: e.st, d: e.d, packQty: e.packQty, rk: -2 }));
     raw[ed].mi.forEach((m, i) => { const p = magicPrice(m); L.push({ id: m.k ? `${ed}-${m.k}` : `${ed}-m${i}`, src: m.src, page: m.page, kind: "magic", n: m.n, cat: m.cat, type: m.type, r: m.r, rk: m.rk, att: m.att, cons: m.cons, base: m.base, c: p.text, gp: p.gp, st: [], d: m.d }); });
     L.forEach(x => { x.hay = x.n.toLowerCase(); x.hayD = (x.n + " " + x.cat + " " + (x.type || "") + " " + x.d).toLowerCase(); });
     IT.data[ed] = L;
@@ -93,6 +93,7 @@ function itStats(x) {
   (x.st || []).forEach(s => st.push(s));
   if (x.kind !== "gear") st.push(["Attunement", x.att ? "Required" + x.att.replace(/^Required/, "") : "Not required"]);
   st.push([x.kind === "gear" ? "Cost" : "Price", x.c]);
+  if (x.packQty) st.push(["Sold in lots of", String(x.packQty)]);
   if (x.w) st.push(["Weight", x.w + " lb"]);
   return st;
 }
@@ -314,9 +315,10 @@ function itGive(x, quiet) {
   const c = PCS.roster.find(r => r.id === $("#itTarget").value);
   if (!c) { toast("Save a character on the Characters tab first"); return; }
   c.inv = c.inv || [];
-  const ex = c.inv.find(i => i.ref === x.id);
-  if (ex) ex.qty = (+ex.qty || 1) + 1;
-  else c.inv.push({ id: uid("i"), ref: x.id, itemRules: inventoryRulesSnapshot(x), n: x.n, qty: 1, w: x.w || 0, att: !!x.att, attuned: false, value: x.c, note: x.kind === "gear" ? "" : `${rarName(x)} ${String(x.cat).toLowerCase()}` });
+  const lot=x.kind==="gear"&&x.packQty?x.packQty:1, units=lot>1;
+  const ex = c.inv.find(i => i.ref === x.id&&(!units||i.ammunitionUnits===true));
+  if (ex) ex.qty = (+ex.qty || 0) + lot;
+  else c.inv.push({ id: uid("i"), ref: x.id, itemRules: inventoryRulesSnapshot(x), n: x.n, qty: lot, w: (x.w || 0)/lot, ...(units?{ammunitionUnits:true}:{}), att: !!x.att, attuned: false, value: units?x.c+" per "+lot:x.c, note: x.kind === "gear" ? "" : `${rarName(x)} ${String(x.cat).toLowerCase()}` });
   pcPersist(); if (!quiet) toast(`${x.n} given to ${c.name}`);
 }
 function itLoot(x) {

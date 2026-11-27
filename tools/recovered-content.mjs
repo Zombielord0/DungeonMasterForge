@@ -46,6 +46,13 @@ export function validateRecoveryManifest(m,books) {
    }
    if(p.choices.some(c=>c.selection?.equipment)&&p.deferStartingEquipment!==true) fail("choice equipment must be deferred: "+e.name);
    if(p.deferStartingEquipment!==undefined&&p.deferStartingEquipment!==true) fail("invalid deferred equipment contract: "+e.name);
+   if(p.startingCoins!==undefined&&(!p.deferStartingEquipment||p.gp!==0||!p.startingCoins||typeof p.startingCoins!=="object"||Array.isArray(p.startingCoins)||Object.keys(p.startingCoins).some(k=>!["cp","sp","ep","gp","pp"].includes(k)||!Number.isSafeInteger(p.startingCoins[k])||p.startingCoins[k]<0))) fail("invalid starting coin denomination: "+e.name);
+   if(p.coverGuilds!==undefined){
+    const q=p.choices.find(c=>c.id===p.coverGuildChoice)?.selection;
+    if(!p.deferStartingEquipment||!Array.isArray(p.coverGuilds)||!p.coverGuilds.length||p.coverGuilds.some(g=>!g||!okText(g.name)||g.name===e.name||g.src!==e.src)||
+      new Set(p.coverGuilds.map(g=>g.name)).size!==p.coverGuilds.length||!q||q.effect!=="detail"||q.count!==1||q.open||q.equipment||
+      q.options.length!==p.coverGuilds.length||p.coverGuilds.some(g=>!q.options.includes(g.name))) fail("invalid cover guild equipment contract: "+e.name);
+   }
    if(p.spellListExtensions!==undefined&&(!Array.isArray(p.spellListExtensions)||!p.spellListExtensions.length||
       p.spellListExtensions.some(s=>!s||!okText(s.name)||!(s.src==="srd"||Object.hasOwn(books,s.src))||!Number.isInteger(s.level)||s.level<0||s.level>9)||
       new Set(p.spellListExtensions.map(s=>JSON.stringify([s.name,s.src,s.level]))).size!==p.spellListExtensions.length)) fail("invalid background spell dependencies: "+e.name);
@@ -110,6 +117,10 @@ export function appendReferenceSpells(data,core,legacy,refs,told,books) {
 export function validateRecoveredBackgroundDependencies(entries,catalogs) {
  for(const e of entries.filter(x=>x.kind==="Background")) {
   const rows=[...(catalogs.spells?.[e.ed]||[]),...(catalogs["extra-spells"]||[]).filter(s=>!s.ed||s.ed===e.ed)];
+  for(const cover of e.payload.coverGuilds||[]) {
+   const options=(catalogs["extra-options"]||[]).filter(g=>g.kind==="background"&&g.name===cover.name&&g.src===cover.src&&g.ed===e.ed&&g.book===true&&g.recoveryId&&!g.coverGuilds);
+   if(options.length!==1)fail("unresolved or recursive cover guild equipment: "+e.name+" / "+cover.name);
+  }
   for(const dep of e.payload.spellListExtensions||[]) {
    const matches=rows.filter(s=>s.n===dep.name&&(s.src||"srd")===dep.src&&s.l===dep.level&&!s.ref&&!s.referenceOnly&&!s.pend&&!s.rulesSummary&&!s.shadow);
    if(matches.length!==1) fail("unresolved or ambiguous complete background spell dependency: "+e.name+" / "+dep.name);

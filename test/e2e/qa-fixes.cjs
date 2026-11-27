@@ -157,6 +157,13 @@ const ZOOK = fs.readFileSync(path.join(FIX, "companion-zook.json"), "utf8");
     }finally{if(prior)HB_BG[name]=prior;else delete HB_BG[name];}
   });
   check("background choices enforce valid counts, serialize and isolate source identities",bgChoices.every(Boolean),JSON.stringify(bgChoices));
+  const gearFix=await p.evaluate(()=>{itLoad();const g=(ed,n)=>IT.data[ed].find(x=>x.kind==="gear"&&x.n===n);return [
+    g("2014","Caltrops").gp===1,g("2014","Barding: Ring mail").gp===120,g("2014","Dragonchess Set").w===0.5,
+    g("2024","Hide Armor").cat==="Medium Armor",g("2024","Longbow").gp===50,g("2024","Hand Crossbow").gp===75,
+    g("2024","Sling").st.some(([k,v])=>k==="Damage"&&v==="1d4 bludgeoning"),
+    g("2024","Airship").st.some(([k,v])=>k==="HP"&&v==="300"),
+    g("2014","Arrow").packQty===20,eqParseKit("20 arrows","2014")[0].qty===20,eqParseKit("Arrows","2024")[0].qty===20];});
+  check("source-verified equipment metadata and ammunition quantities",gearFix.every(Boolean),JSON.stringify(gearFix));
   check("reference spells: a spell the Forge already has isn't added twice (Fireball)", refs["2014fireball"] === 1 && refs["2024fireball"] === 1, JSON.stringify([refs["2014fireball"], refs["2024fireball"]]));
   const sb = await p.evaluate(txt => { const j = JSON.parse(txt); j.spells = [...j.spells, { name: "Silvery Barbs", level: 1 }]; const D = compImport(j, "2014");
     return { prep: D.extras.prepared.map(s => s.n), hb: D.homebrew.filter(x => x.kind === "spell").map(x => x.name) }; }, ZOOK);

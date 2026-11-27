@@ -43,3 +43,14 @@ test("open language and deferred equipment choice schema",()=>{
  assert.throws(()=>validateRecoveryManifest(manifest([{...bg,payload:{...bg.payload,choices:[{...bg.payload.choices[1],selection:{...bg.payload.choices[1].selection,open:true}}]}}]),books));
  assert.throws(()=>validateRecoveryManifest(manifest([{...bg,payload:{...bg.payload,choices:[{...bg.payload.choices[1],selection:{...bg.payload.choices[1].selection,equipment:{}}}]}}]),books));
 });
+
+test("denominated coins and cover guilds reject unsafe or missing contracts",()=>{
+ const bg={...entry,kind:"Background",name:"Fixture Guild",action:"promote",payload:{kind:"background",name:"Fixture Guild",src:"fixture",ed:"2014",id:"fixture-bg",book:true,skills:["Arcana","Insight"],desc:"Synthetic fixture.",feature:["Feature","Synthetic mechanics."],tools:"",lang:"",gearItems:["Book"],gp:0,deferStartingEquipment:true,startingCoins:{pp:1},coverGuildChoice:"cover",coverGuilds:[{name:"Cover",src:"fixture"}],choices:[{id:"cover",label:"Cover",rules:"Choose one.",selection:{effect:"detail",count:1,options:["Cover"]}}]}};
+ const approved=validateRecoveryManifest(manifest([bg]),books);
+ assert.equal(approved.length,1);
+ for(const startingCoins of [{pp:-1},{pp:1.5},{xx:1}])assert.throws(()=>validateRecoveryManifest(manifest([{...bg,payload:{...bg.payload,startingCoins}}]),books));
+ assert.throws(()=>validateRecoveryManifest(manifest([{...bg,payload:{...bg.payload,gp:10}}]),books));
+ assert.throws(()=>validateRecoveredBackgroundDependencies(approved,{"extra-options":[]}));
+ validateRecoveredBackgroundDependencies(approved,{"extra-options":[{kind:"background",name:"Cover",src:"fixture",ed:"2014",book:true,recoveryId:"cmp:cover"}]});
+ assert.throws(()=>validateRecoveredBackgroundDependencies(approved,{"extra-options":[{kind:"background",name:"Cover",src:"fixture",ed:"2014",book:true,recoveryId:"cmp:cover",coverGuilds:[]}]}));
+});
