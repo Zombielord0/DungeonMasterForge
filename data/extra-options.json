@@ -5361,39 +5361,46 @@
       {
         "l": 1,
         "n": "Bonus Proficiencies",
-        "d": "See Guildmasters’ Guide to Ravnica, p. 25."
+        "d": "Gain heavy armor proficiency and choose Intimidation or Persuasion proficiency."
       },
       {
         "l": 1,
         "n": "Voice of Authority",
-        "d": "See Guildmasters’ Guide to Ravnica, p. 25."
+        "d": "After casting a spell using a level 1+ slot that targets an ally, choose one targeted ally to immediately use its Reaction for one weapon attack against a creature you can see and designate."
       },
       {
         "l": 2,
         "n": "Channel Divinity: Order's Demand",
-        "d": "See Guildmasters’ Guide to Ravnica, p. 25."
+        "d": "Action and Channel Divinity; present holy symbol. Chosen creatures within 30 feet able to see or hear you make Wisdom saves against spell DC or become Charmed by you until your next turn ends or they take any damage. On failed save you may also make affected targets drop held items."
       },
       {
         "l": 6,
         "n": "Embodiment of the Law",
-        "d": "See Guildmasters’ Guide to Ravnica, p. 25."
+        "d": "When casting a level 1+ slotted Enchantment spell whose normal casting time is one Action, change it to Bonus Action for this cast. Wisdom modifier uses (minimum 1) per Long Rest."
       },
       {
         "l": 8,
         "n": "Blessed Strikes",
-        "d": "See Guildmasters’ Guide to Ravnica, p. 25."
+        "d": "Optional replacement introduced in Tasha's, not a feature in the original Ravnica printing. At Cleric 8, once until your next turn starts, when a creature takes damage from one of your cantrips or weapon attacks you may add 1d8 Radiant damage. Do not grant alongside Divine Strike."
       },
       {
         "l": 8,
         "n": "Divine Strike",
-        "d": "See Guildmasters’ Guide to Ravnica, p. 25."
+        "d": "Once on each own turn on a weapon hit, add 1d8 Psychic damage, increasing to 2d8 at Cleric 14."
       },
       {
         "l": 17,
         "n": "Order's Wrath",
-        "d": "See Guildmasters’ Guide to Ravnica, p. 25."
+        "d": "Once per turn when dealing Divine Strike damage, curse target until your next turn starts. Next allied attack hit against target deals an additional 2d8 Psychic and ends curse."
       }
-    ]
+    ],
+    "featureSourceReview": {
+      "status": "drive_pdf_mechanics_reviewed",
+      "reference": "D&D 5e - Guildmasters' Guide to Ravnica.pdf",
+      "primaryVerified": false,
+      "runtimeVerified": false,
+      "note": "Original Ravnica Spores poison damage preserved; optional Blessed Strikes is a later-source replacement, not original printing."
+    }
   },
   {
     "id": "reference-ggr-druid-circle-of-spores",
@@ -5409,34 +5416,41 @@
       {
         "l": 2,
         "n": "Circle Spells",
-        "d": "See Guildmasters’ Guide to Ravnica, p. 26."
+        "d": "At Druid 2 learn Chill Touch. Always prepare: 3 Blindness/Deafness, Gentle Repose; 5 Animate Dead, Gaseous Form; 7 Blight, Confusion; 9 Cloudkill, Contagion. These count as Druid spells and do not count against preparation limit."
       },
       {
         "l": 2,
         "n": "Halo of Spores",
-        "d": "See Guildmasters’ Guide to Ravnica, p. 26."
+        "d": "Reaction when visible creature enters within 10 feet or starts turn there; Constitution save vs spell DC or 1d4 Necrotic, increasing to d6 at Druid 6, d8 at 10 and d10 at 14. No damage on success."
       },
       {
         "l": 2,
         "n": "Symbiotic Entity",
-        "d": "See Guildmasters’ Guide to Ravnica, p. 26."
+        "d": "Action, expend one Wild Shape use instead of transformation; gain 4 temporary HP per Druid level. While active double Halo of Spores dice and add 1d6 Poison damage to melee weapon hits (original Ravnica printing). Ends after 10 minutes, losing those temporary HP or using Wild Shape again."
       },
       {
         "l": 6,
         "n": "Fungal Infestation",
-        "d": "See Guildmasters’ Guide to Ravnica, p. 26."
+        "d": "Reaction when Small or Medium beast or humanoid dies within 10 feet: animate corpse as Zombie with 1 HP for 1 hour, then collapses and dies. Acts immediately after you, follows mental commands, only Attack action with one melee attack. Wisdom modifier uses (minimum 1) per Long Rest."
       },
       {
         "l": 10,
         "n": "Spreading Spores",
-        "d": "See Guildmasters’ Guide to Ravnica, p. 26."
+        "d": "While Symbiotic Entity active, Bonus Action sends spores up to 30 feet into 10-foot cube for 1 minute. A creature entering cube or starting turn there makes Constitution save vs spell DC or takes Halo of Spores damage, at most once per turn. Cannot use Halo Reaction while cube persists. Ends on reuse, Bonus Action dismissal or Symbiotic Entity ending."
       },
       {
         "l": 14,
         "n": "Fungal Body",
-        "d": "See Guildmasters’ Guide to Ravnica, p. 26."
+        "d": "Immune to Blinded, Deafened, Frightened and Poisoned. Incoming critical hits count as normal hits unless you are Incapacitated."
       }
-    ]
+    ],
+    "featureSourceReview": {
+      "status": "drive_pdf_mechanics_reviewed",
+      "reference": "D&D 5e - Guildmasters' Guide to Ravnica.pdf",
+      "primaryVerified": false,
+      "runtimeVerified": false,
+      "note": "Original Ravnica Spores poison damage preserved; optional Blessed Strikes is a later-source replacement, not original printing."
+    }
   },
   {
     "id": "reference-mot-bard-college-of-eloquence",
