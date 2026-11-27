@@ -686,6 +686,24 @@ const { chromium } = require("playwright");
     assert.deepEqual(companionAudit.stat,companionAudit.expected);assert.equal(companionAudit.before,null);assert.equal(companionAudit.blocked,false);assert.match(companionAudit.replace,/Long Rest/);assert.equal(companionAudit.pending,true);assert.equal(companionAudit.revived,48);assert.equal(companionAudit.spent,0);assert.equal(companionAudit.sea,60);
     assert.deepEqual(companionAudit.drake,[80,"Large",companionAudit.drakeAC]);assert.match(companionAudit.noFree,/already used/);assert.equal(companionAudit.paid,1);
     assert.deepEqual(companionAudit.steel,[companionAudit.steelHP,17]);assert.equal(companionAudit.repair,3);assert.deepEqual([companionAudit.fire,companionAudit.wild,companionAudit.expired,companionAudit.blades,companionAudit.editionGuard,companionAudit.grant],[35,1,true,2,true,true]);
+    const monkSubclassAudit=await page.evaluate(()=>{
+      const make=(subclass)=>pcEnsure(generateCharacter({seed:"MONK-SUBCLASS",ed:"2014",cls:"Monk",level:17,subclass,race:"Human",bg:"Sage"}));
+      const d=make("Way of the Ascendant Dragon"); d.used={};d.active={};
+      const pools=legacyMonkPools(d).map(r=>[r.key,r.max]);
+      actRun(d,"Breath of the Dragon","fire:cone:normal");const first=[d.used.dragonBreath||0,d.used.ki||0];
+      d.used.dragonBreath=d.prof;actRun(d,"Breath of the Dragon","fire:cone:augmented");const paid=d.used.ki||0;
+      actRun(d,"Aspect of the Wyrm","fire");const aura=!!d.active["Aspect of the Wyrm"];
+      actRun(d,"Explosive Fury (Wyrm)","fire");const pending=!!d.dragonFuryPending;const again=actRun(d,"Explosive Fury (Wyrm)","fire");
+      actRun(d,"Aspect of the Wyrm");actRun(d,"Aspect of the Wyrm","fear");const auraPaid=d.used.ki||0;
+      actRun(d,"Draconic Presence","persuasion");actRun(d,"Draconic Presence","failure");const failed=d.used.dragonPresence||0;
+      actRun(d,"Draconic Presence","persuasion");actRun(d,"Draconic Presence","success");const succeeded=d.used.dragonPresence||0;
+      pcRest(d,"long");const restored=[d.used.ki||0,d.used.dragonBreath||0,d.used.dragonAura||0,d.used.dragonPresence||0];
+      const sun=make("Way of the Sun Soul");sun.used={};actRun(sun,"Searing Arc Strike","2");actRun(sun,"Searing Sunburst","3");const sunPaid=sun.used.ki||0;
+      return {pools,prof:d.prof,first,paid,aura,pending,again,auraPaid,failed,succeeded,restored,sunPaid};
+    });
+    assert.deepEqual(monkSubclassAudit.pools,[["dragonPresence",1],["dragonBreath",monkSubclassAudit.prof],["dragonWings",monkSubclassAudit.prof],["dragonAura",1]]);
+    assert.deepEqual(monkSubclassAudit.first,[1,0]);assert.equal(monkSubclassAudit.paid,3);assert.equal(monkSubclassAudit.aura,true);assert.equal(monkSubclassAudit.pending,false);assert.match(monkSubclassAudit.again,/eligible|unavailable/i);
+    assert.equal(monkSubclassAudit.auraPaid,6);assert.deepEqual([monkSubclassAudit.failed,monkSubclassAudit.succeeded],[0,1]);assert.deepEqual(monkSubclassAudit.restored,[0,0,0,0]);assert.equal(monkSubclassAudit.sunPaid,5);
     const subclassPassiveAudit=await page.evaluate(()=>{
       const make=(ed,cls,level,subclass)=>pcEnsure(generateCharacter({seed:"PASSIVE-SUB",ed,cls,level,subclass,race:"Human",bg:"Sage"}));
       const old=make("2014","Druid",14,"Circle of the Land");old.active={};old.used={};actRun(old,"Nature's Sanctuary");const passive=!old.active["Nature's Sanctuary"]&&!old.used.wild;
