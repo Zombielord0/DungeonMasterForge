@@ -6424,7 +6424,7 @@
       {
         "l": 3,
         "n": "Battle Ready",
-        "d": "Gain martial weapon proficiency and use Intelligence with magic weapons."
+        "d": "Gain Martial weapon proficiency. When attacking with a magic weapon, may use INT instead of STR or DEX for attack and damage."
       },
       {
         "l": 3,
@@ -6434,30 +6434,37 @@
       {
         "l": 3,
         "n": "Steel Defender",
-        "d": "Build a companion that attacks on command and can hinder attacks against others."
+        "d": "Gain a friendly obedient Medium Construct; choose appearance and two or four legs without changing stats. AC 15 (+2 at Artificer 15); HP 2 + INT + five times Artificer level; Hit Dice d8 equal to Artificer level; Speed 40 ft. STR 14, DEX 12, CON 14, INT 4, WIS 10, CHA 6; DEX save +1+PB, CON +2+PB, Athletics +2+PB, Perception +2PB. Immune to Poison damage and Charmed, Exhaustion, Poisoned; Darkvision 60 ft, passive Perception 10+2PB, understands your languages, cannot be surprised. Force-Empowered Rend: melee spell attack modifier, reach 5 ft, visible target, 1d8+PB Force. Repair 3/day: heal self or one Construct/object within 5 ft for 2d8+PB. Deflect Attack Reaction: impose Disadvantage on attack by visible creature within 5 ft of defender against another creature. Shares initiative, acts just after you; moves/reacts independently, Dodge unless Bonus Action command; when you are Incapacitated may act freely. Mending restores 2d6 HP. Within one hour of death, use Smith's Tools as action within 5 ft and spend level 1+ slot; returns at full HP after 1 minute. With Smith's Tools create new defender after Long Rest, replacing old one; defender dies if you die."
       },
       {
         "l": 3,
         "n": "Tool Proficiency",
-        "d": "Gain smith’s tools proficiency or another artisan’s tool proficiency if needed."
+        "d": "Gain Smith's Tools proficiency or choose another Artisan's Tools proficiency if you already have it."
       },
       {
         "l": 5,
         "n": "Extra Attack",
-        "d": "Attack twice with the Attack action."
+        "d": "Make two attacks instead of one when taking Attack action on your turn."
       },
       {
         "l": 9,
         "n": "Arcane Jolt",
-        "d": "On a qualifying hit, deal extra force damage or heal a nearby creature or object."
+        "d": "When you hit with a magic weapon or your Steel Defender hits a target, choose to deal an additional 2d6 Force damage to that target or heal a visible creature or object within 30 feet of it for 2d6 HP. Intelligence modifier uses (minimum one) per Long Rest, at most once per turn. At Artificer 15 the damage and healing increase to 4d6."
       },
       {
         "l": 15,
         "n": "Improved Defender",
-        "d": "Boost Arcane Jolt and your defender’s armor, and make its defensive reaction damage the attacker."
+        "d": "Arcane Jolt damage/healing increases to 4d6; defender gains +2 AC; when it uses Deflect Attack, attacker takes 1d4 + your Intelligence modifier Force damage."
       }
     ],
-    "page": 18
+    "page": 18,
+    "featureSourceReview": {
+      "status": "drive_pdf_mechanics_reviewed",
+      "reference": "Tashas_Cauldron_of_Everything (1).pdf",
+      "primaryVerified": false,
+      "runtimeVerified": false,
+      "note": "Core Battle Smith features compared against corresponding supplied PDFs; full runtime and distribution-rights review pending."
+    }
   },
   {
     "id": "reference-xge-barbarian-path-of-the-ancestral-guardian",
@@ -10654,7 +10661,7 @@
       {
         "l": 3,
         "n": "Battle Ready",
-        "d": "Use Intelligence with qualifying magic weapons."
+        "d": "Gain Martial weapon proficiency and may use any weapon with which you are proficient as Artificer spellcasting focus. When attacking with a magic weapon, may use INT instead of STR or DEX for attack and damage."
       },
       {
         "l": 3,
@@ -10664,7 +10671,7 @@
       {
         "l": 3,
         "n": "Steel Defender",
-        "d": "Build a defender that fights alongside you and protects allies."
+        "d": "Gain a friendly obedient Neutral Medium Construct; choose appearance and two/four legs without altering stats. AC 12+INT; HP 5+5 times Artificer level; Hit Dice d8 equal to Artificer level; Speed 40 ft. STR 14, DEX 12, CON 14, INT 4, WIS 10, CHA 6. Steel Bond adds your PB to every ability check and saving throw. Immune to Poison damage and Charmed, Exhaustion, Poisoned; Darkvision 60 ft, passive Perception 10; understands languages you know. Rend: melee attack using your spell attack modifier, reach 5 ft, 1d8+2+INT Force on hit. Repair 3/day: heal self or visible Construct/object within 5 ft for 2d8+INT. Deflect Attack Reaction: visible creature within 5 ft of defender attacks another creature; impose Disadvantage. Acts during your turn; moves/reacts independently, Dodge unless Bonus Action command; acts independently if you are Incapacitated. Within one hour of death, Magic action touch defender and spend spell slot; returns at full HP after 1 minute. Create replacement on Long Rest with Smith's Tools, previous vanishes; vanishes when you die."
       },
       {
         "l": 3,
@@ -10674,17 +10681,17 @@
       {
         "l": 5,
         "n": "Extra Attack",
-        "d": "Attack twice when you take the Attack action."
+        "d": "Make two attacks instead of one when taking Attack action on your turn. May forgo one of those attacks to command your Steel Defender to use Force-Empowered Rend."
       },
       {
         "l": 9,
         "n": "Arcane Jolt",
-        "d": "Channel extra damage or healing through qualifying hits."
+        "d": "When you hit with a magic weapon or your Steel Defender hits a target, choose to deal an additional 2d6 Force damage to that target or heal a visible creature or object within 30 feet of it for 2d6 HP. Intelligence modifier uses (minimum one) per Long Rest, at most once per turn. At Artificer 15 the damage and healing increase to 4d6."
       },
       {
         "l": 15,
         "n": "Improved Defender",
-        "d": "Improve your defender and strengthen Arcane Jolt."
+        "d": "Arcane Jolt damage and healing increase to 4d6. When Steel Defender uses Deflect Attack, attacker takes 1d4+INT Force damage. No bonus AC from this feature in revised rules."
       }
     ],
     "page": 18,
@@ -10692,7 +10699,8 @@
       "status": "drive_pdf_mechanics_reviewed",
       "reference": "Eberron Forge of the Artificer Wizard-of-the-CoastDnDB-PrintOCR (1).pdf",
       "primaryVerified": false,
-      "runtimeVerified": false
+      "runtimeVerified": false,
+      "note": "Core Battle Smith features compared against corresponding supplied PDFs; full runtime and distribution-rights review pending."
     }
   },
   {
