@@ -192,6 +192,16 @@ const ZOOK = fs.readFileSync(path.join(FIX, "companion-zook.json"), "utf8");
    g("Shield of the Cavalier").d.includes("stationary 5-foot Emanation"),g("Shield of the Cavalier").d.includes("Concentration up to 1 minute"),
    g("Thunderous Greatclub").d.includes("50 Bludgeoning"),g("Thunderous Greatclub").d.includes("DC 20 Constitution")];});
   check("revised weapon and shield rules are complete in the built catalog",equipmentCheck.every(Boolean),JSON.stringify(equipmentCheck));
+  const itemSafety=await p.evaluate(()=>{
+    itLoad();const get=n=>IT.data["2024"].find(x=>x.n===n&&x.src==="dmg-2024"),manual=get("Quarterstaff of the Acrobat"),shield=get("Shield of the Cavalier"),blocked=get("+1 Rod of the Pact Keeper");
+    const i={n:"+3 synthetic",qty:1,eq:true,attuned:true};
+    return [manual.manualEffects===true,manual.rulesSourcePage===237,inventoryEnhancement(i,manual,"weapon")===2,
+      inventoryEnhancement(i,shield,"armor")===0,itemRulesIncomplete(blocked),
+      !inventoryEffectActive(i,blocked),inventoryEnhancement(i,blocked,"weapon")===0,
+      inventoryEnhancement(i,{kind:"custom",d:"+2 bonus to attack and damage rolls"},"weapon")===2,
+      itemRuleNotice(manual).includes("manual resolution"),itemRuleNotice(blocked).includes("Reference only")];
+  });
+  check("item provenance, manual effects and incomplete-reference guards survive catalog loading",itemSafety.every(Boolean),JSON.stringify(itemSafety));
   check("reference spells: a spell the Forge already has isn't added twice (Fireball)", refs["2014fireball"] === 1 && refs["2024fireball"] === 1, JSON.stringify([refs["2014fireball"], refs["2024fireball"]]));
   const sb = await p.evaluate(txt => { const j = JSON.parse(txt); j.spells = [...j.spells, { name: "Silvery Barbs", level: 1 }]; const D = compImport(j, "2014");
     return { prep: D.extras.prepared.map(s => s.n), hb: D.homebrew.filter(x => x.kind === "spell").map(x => x.name) }; }, ZOOK);

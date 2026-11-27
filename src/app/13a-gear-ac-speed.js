@@ -155,6 +155,7 @@ const PROT_ITEMS = [["ring of protection", 1, 1, false], ["cloak of protection",
 function protItems(c, armored) {
   const out = [];
   (c.inv || []).filter(i => i.eq && (+i.qty || 0) > 0).forEach(i => {
+    if(itemRulesIncomplete(inventoryCatalogItem(i,edOf(c))))return;
     const t = i.n.toLowerCase(), P = PROT_ITEMS.find(([k]) => t.includes(k)); if (!P) return;
     const [, ac, save, noArmor] = P, needs = /ioun|ring|cloak|bracers/.test(t) && !i.attuned;
     out.push({ i, ac: needs || (noArmor && armored) ? 0 : ac, save: needs ? 0 : save, why: needs ? "attune to use" : noArmor && armored ? "only without armor or shield" : "" });
@@ -184,7 +185,7 @@ function eqArmorOf(i, ed) {
 }
 function eqArmorBonus(i, ed) {
   const ref = inventoryCatalogItem(i, ed);
-  if (inventoryNeedsAttunement(i, ref) && !i.attuned) return 0;
+  if (itemRulesIncomplete(ref) || (inventoryNeedsAttunement(i, ref) && !i.attuned)) return 0;
   const t = (i.n + " " + (i.note || "")).toLowerCase(), named = inventoryEnhancement(i, ref, "armor");
   return named || Object.entries(ARMOR_MAGIC).reduce((v, [k, b]) => t.includes(k) ? b : v, 0);
 }
@@ -247,7 +248,8 @@ function pcSpeed(c, A) {
   const ed = edOf(c), lv = c.level, fx = c.fx || {}, has = n => (c.feats || []).some(f => f.f === n);
   const freeAction = (c.inv || []).some(i => {
     if (!i.eq || +i.qty <= 0 || !i.attuned) return false;
-    return /^ring of free action$/i.test(inventoryCatalogItem(i, ed)?.n || i.n);
+    const ref=inventoryCatalogItem(i,ed);
+    return !itemRulesIncomplete(ref) && /^ring of free action$/i.test(ref?.n || i.n);
   });
   const R = raceInfo(ed, c.race, c.sub), base = R.speed || 30, parts = [`${raceLabel(c)} ${base}`], other = [];
   let sp = base;

@@ -27,10 +27,15 @@ function inventoryAttunementControl(i, ed) {
 }
 
 function inventoryEffectActive(i, ref) {
-  return +i.qty > 0 && i.eq && (!inventoryNeedsAttunement(i, ref) || i.attuned);
+  return !itemRulesIncomplete(ref) && +i.qty > 0 && i.eq && (!inventoryNeedsAttunement(i, ref) || i.attuned);
 }
 
 function inventoryEnhancement(i, ref, target) {
+  if(itemRulesIncomplete(ref))return 0;
+  // Explicit, equal weapon bonuses are safe; reaction-only or other special effects stay manual.
+  if(target==="weapon" && Number.isInteger(ref?.attackBonus) && ref.attackBonus===ref.damageBonus && ref.attackBonus>=0 && ref.attackBonus<=3)return ref.attackBonus;
+  if(target==="armor" && Number.isInteger(ref?.armorBonus) && ref.armorBonus>=0 && ref.armorBonus<=3)return ref.armorBonus;
+  if(ref?.manualEffects)return 0;
   const rules = String(ref?.d || "");
   const match = target === "weapon"
     ? rules.match(/\+([1-3]) bonus to (?:weapon )?attack (?:rolls )?and damage rolls/i)
@@ -48,7 +53,7 @@ function inventoryEffectsHTML(c) {
     if (!i.eq || +i.qty <= 0) return [];
     const ref = inventoryCatalogItem(i, edOf(c));
     if (!ref || ref.kind === "gear" || !ref.d || !inventoryEffectActive(i, ref)) return [];
-    return [`<details><summary>${esc(i.n)}</summary>${spFormat(String(ref.d))}</details>`];
+    return [`<details><summary>${esc(i.n)}</summary>${itemRuleNotice(ref)?`<p class="hint">${esc(itemRuleNotice(ref))}</p>`:""}${spFormat(String(ref.d))}</details>`];
   });
   return entries.length ? `<div class="inventory-effects"><h4>Magic item effects</h4>${entries.join("")}</div>` : "";
 }
@@ -118,6 +123,8 @@ function openInventoryDetails(c, i, trigger) {
     <p class="hint">${esc(status)}${needsAttunement ? " · Requires attunement" : ""}</p>
     ${choices.length > 1 ? `<label class="field">${weaponChoices.length ? "Base weapon" : "Base armor"}<select data-item-base><option value="">Choose base gear</option>${choices.map(x => `<option value="${esc(x.n)}" ${base?.n === x.n ? "selected" : ""}>${esc(x.n)}</option>`).join("")}</select></label>` : ""}
     <div class="sp-stats">${stats.filter(([, value]) => value !== "" && value != null).map(([label, value]) => `<div><span>${esc(label)}</span>${esc(value)}</div>`).join("")}</div>
+    ${itemRuleNotice(ref)?'<p class="hint">'+esc(itemRuleNotice(ref))+'</p>':""}
+    ${ref?.rulesSource?'<p class="hint">Rules source: '+esc(ref.rulesSource)+(ref.rulesSourcePage?' · page '+esc(String(ref.rulesSourcePage)):'')+'</p>':""}
     ${ref?.d ? spFormat(String(ref.d)) : !i.note ? '<p class="hint">No rules description is available for this item.</p>' : ""}
     ${i.note ? `<h3>Inventory notes</h3>${spFormat(String(i.note))}` : ""}`, trigger);
   $("[data-item-base]", dialog)?.addEventListener("change", e => {

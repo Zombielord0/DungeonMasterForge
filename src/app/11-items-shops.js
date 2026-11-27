@@ -24,6 +24,15 @@ function magicPrice(m) {
   return { gp: v, text: fmtGp(v) + (m.base ? " + base item" : "") };
 }
 const rarName = x => x.rk >= 0 ? RARITY[x.rk] : (x.r || "Rarity varies");
+// Incomplete book records remain visible for reference and keep their saved inventory IDs.
+function itemRulesIncomplete(x) {
+  return !!(x && (x.referenceOnly || x.rulesSummary || (x.kind!=="custom" && /\bsee (?:the )?(?:sourcebook|book) for (?:the )?(?:full|complete) rules\b/i.test(x.d||""))));
+}
+function itemRuleNotice(x) {
+  if(itemRulesIncomplete(x))return "Reference only — complete rules are required before automatic magic effects can be applied.";
+  if(x?.manualEffects)return "Some or all special effects require manual resolution; consult the item rules.";
+  return "";
+}
 function itLoad() {
   if (IT.data) return;
   const raw = dmData("itemData");
@@ -31,7 +40,7 @@ function itLoad() {
   for (const ed of Object.keys(raw)) {
     const L = [];
     raw[ed].eq.forEach((e, i) => L.push({ id: `${ed}-g${i}`, kind: "gear", n: e.n, cat: e.cat, g: e.g, c: e.c, gp: e.gp, w: e.w, st: e.st, d: e.d, packQty: e.packQty, weightBasis:e.weightBasis, contents:e.contents, rk: -2 }));
-    raw[ed].mi.forEach((m, i) => { const p = magicPrice(m); L.push({ id: m.k ? `${ed}-${m.k}` : `${ed}-m${i}`, src: m.src, page: m.page, kind: "magic", n: m.n, cat: m.cat, type: m.type, r: m.r, rk: m.rk, att: m.att, cons: m.cons, base: m.base, c: p.text, gp: p.gp, st: [], d: m.d }); });
+    raw[ed].mi.forEach((m, i) => { const p = magicPrice(m); L.push({ id: m.k ? `${ed}-${m.k}` : `${ed}-m${i}`, src: m.src, page: m.page, kind: "magic", ed, recoveryId:m.recoveryId, rulesSource:m.rulesSource, rulesSourcePage:m.rulesSourcePage, manualEffects:m.manualEffects, referenceOnly:m.referenceOnly, rulesSummary:m.rulesSummary, attackBonus:m.attackBonus, damageBonus:m.damageBonus, armorBonus:m.armorBonus, n: m.n, cat: m.cat, type: m.type, r: m.r, rk: m.rk, att: m.att, cons: m.cons, base: m.base, c: p.text, gp: p.gp, st: [], d: m.d }); });
     L.forEach(x => { x.hay = x.n.toLowerCase(); x.hayD = (x.n + " " + x.cat + " " + (x.type || "") + " " + x.d).toLowerCase(); });
     IT.data[ed] = L;
   }
@@ -127,7 +136,9 @@ function itDetail(x, actions = true) {
   return `<div class="sp-detail">
     <div class="muted"><i>${esc(itTypeLine(x))}</i></div>
     <div class="sp-stats">${itStats(x).map(([k, v]) => `<div><span>${esc(k)}</span>${esc(v)}</div>`).join("")}</div>
+    ${itemRuleNotice(x) ? '<p class="hint">'+esc(itemRuleNotice(x))+'</p>' : ""}
     ${spFormat(x.d || "")}
+    ${x.rulesSource ? '<p class="hint">Rules source: '+esc(x.rulesSource)+(x.rulesSourcePage?' · page '+esc(String(x.rulesSourcePage)):'')+'</p>' : ""}
     ${note ? `<p class="hint">${esc(note)}</p>` : ""}
     ${bookLine(x)}
     ${actions ? `<div class="actions"><button class="btn sm" data-it="card" data-id="${esc(x.id)}">🂠 Export item card</button><button class="btn sm" data-it="copy" data-id="${esc(x.id)}">Copy</button><button class="btn sm primary" data-it="give" data-id="${esc(x.id)}">+ Give to character</button>${x.gp !== null && x.gp !== undefined ? `<button class="btn sm" data-it="buy" data-id="${esc(x.id)}" title="Take the price from the character's coins">🪙 Buy (${esc(fmtGp(+x.gp))})</button>` : ""}<button class="btn sm" data-it="loot" data-id="${esc(x.id)}">+ Campaign loot</button>${x.kind === "custom" ? `<button class="btn sm" data-it="edit" data-id="${esc(x.id)}">✎ Edit</button><button class="btn sm danger" data-it="del" data-id="${esc(x.id)}">✕ Delete</button>` : itCanBase(x) ? `<button class="btn sm" data-it="clone" data-id="${esc(x.id)}">✚ Make a magic version</button>` : ""}</div>` : ""}
