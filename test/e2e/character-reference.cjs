@@ -314,7 +314,7 @@ const { chromium } = require("playwright");
     assert.deepEqual([remainingCoreAudit.before,remainingCoreAudit.after,remainingCoreAudit.free,remainingCoreAudit.monkSaves,remainingCoreAudit.legacySaves],[15,4,15,6,6]);
     assert.ok(remainingCoreAudit.rogueSaves.includes("wis")&&remainingCoreAudit.rogueSaves.includes("cha"));
     assert.deepEqual(remainingCoreAudit.barbarian,[0,1]);
-    assert.deepEqual(remainingCoreAudit.druid,["Recovered one Wild Shape use.",1,2,"Recovered one level 1 slot.",1]);
+    assert.deepEqual(remainingCoreAudit.druid,["Recovered one Wild Shape use.",1,2,"Created one level 1 slot.",1]);
     assert.deepEqual(remainingCoreAudit.incarnate,[2,true]);
     const classChoiceAudit=await page.evaluate(()=>{
       const make=(ed,cls,level)=>pcEnsure(generateCharacter({seed:"CLASS-CHOICE-AUDIT",ed,cls,level,race:"Human",bg:"Sage",subclass:"none"}));
@@ -365,6 +365,19 @@ const { chromium } = require("playwright");
     assert.deepEqual(masteryAudit.counts,[3,4,5,6,6]);assert.deepEqual(masteryAudit.barb,[2,3,4,4]);
     assert.equal(masteryAudit.legacy,0);assert.equal(masteryAudit.mastery,"Sap");assert.equal(masteryAudit.unselected,"");
     assert.deepEqual([masteryAudit.bow,masteryAudit.rogueSword,masteryAudit.before,masteryAudit.after,masteryAudit.devil,masteryAudit.armor],[false,false,true,false,false,true]);
+    const slotAudit=await page.evaluate(()=>{
+      const make=(ed,level)=>pcEnsure(generateCharacter({seed:"SLOT-CREATE",ed,cls:"Sorcerer",level,race:"Human",bg:"Sage",subclass:"none"}));
+      const c=make("2024",5);c.used={sorc:0};const original=pcResources(c).find(r=>r.key==="slot1").max;
+      const result=convertFontOfMagic(c,"make1"),created=pcResources(c).find(r=>r.key==="slot1").max;
+      const points=c.used.sorc;const rejected=convertFontOfMagic(c,"make4");
+      pcRest(c,"short");const afterShort=pcResources(c).find(r=>r.key==="slot1").max;
+      pcRest(c,"long");const afterLong=pcResources(c).find(r=>r.key==="slot1").max;
+      const s=make("2014",3);s.used={sorc:3};const burn=convertFontOfMagic(s,"burn2"),pointsLeft=pcResources(s).find(r=>r.key==="sorc").max-s.used.sorc;
+      return {original,result,created,points,rejected,afterShort,afterLong,burn,pointsLeft};
+    });
+    assert.equal(slotAudit.created,slotAudit.original+1);assert.equal(slotAudit.points,2);
+    assert.match(slotAudit.rejected,/Insufficient/);assert.equal(slotAudit.afterShort,slotAudit.created);assert.equal(slotAudit.afterLong,slotAudit.original);
+    assert.equal(slotAudit.pointsLeft,2);
     const expansion = await page.evaluate(() => {
       const subclasses = hbBook("subclass").filter(x => ["tce", "xge"].includes(x.src));
       const armorer = generateCharacter({ seed: "ARMOR", ed: "2014", cls: "Artificer", subclass: "Armorer", level: 5 });

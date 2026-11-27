@@ -103,3 +103,8 @@ Added a browser validation matrix for all 12 core classes plus Artificer, every 
 ## Weapon mastery and invocation prerequisite batch
 
 Added per-owning-class mastery selections, using the revised equipment catalog's existing mastery properties. Class level, edition, proficiency and Barbarian melee restrictions are checked; selected mastery is shown on inventory attack rows, and Tactical Master alternatives are identified for level 9+ Fighters. Target effects and rest timing remain manual. Corrected existing revised Warlock invocation level minima and pact dependency chains; legacy-only entries do not appear in the revised selection. Ineligible saved choices remain removable, and invalid choice submissions are rejected. Cantrip-specific repeatable invocation choices and full invocation catalog/mechanical implementation remain outstanding. Source: SRD 5.2.1 and D&D Beyond 2024 Basic Rules, https://www.dndbeyond.com/sources/dnd/br-2024/character-classes. CC BY 4.0 SRD attribution retained.
+
+
+## Temporary spell slot creation
+
+Font of Magic now creates a supplemental slot instead of requiring an expended one. Revised minimum class levels and point costs are enforced, and available slots (including Pact Magic) can be converted to points without exceeding the normal point maximum. Created slots persist through short rests and expire at the next long rest. Revised Wild Resurgence likewise creates a level 1 slot rather than only recovering an expended one. The UI uses the existing normal slot counters plus temporary capacity. Timing/action restrictions remain adjudicated manually. Source: SRD 5.2.1 Sorcerer and Druid class features, CC BY 4.0, Wizards of the Coast LLC.

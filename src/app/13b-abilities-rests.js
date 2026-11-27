@@ -64,12 +64,12 @@ function pcResources(c) {
   (c.feats || []).filter(f => (f.sub || f.mcsub) && SUB_ABL[f.f] && SUB_ABL[f.f].res).forEach(f => { const [n, mx, rc] = SUB_ABL[f.f].res; add(subAblKey(f.f), n, mx(c), typeof rc === "function" ? rc(c) : rc); });
   if (c.spell) {
     if (c.spell.note) { const mm = c.spell.note.match(/^(\d+) pact slots? of level (\d+)/); if (mm) add("pact", `Pact slots (level ${mm[2]})`, +mm[1], "short"); }
-    else c.spell.slots.forEach((n, i) => add("slot" + (i + 1), `Level ${i + 1} slots`, n, "long"));
+    else for(let L=1;L<=9;L++){const n=+(c.spell.slots?.[L-1]||0)+temporarySlotCount(c,L);if(n>0)add("slot"+L,`Level ${L} slots`,n,"long");}
     if (c.spell.pact) add("pact", `Pact slots (level ${c.spell.pact.lvl})`, c.spell.pact.n, "short");
   }
   return R;
 }
-const resLeft = (c, r) => r.max === Infinity ? Infinity : Math.max(0, r.max - Math.min(r.max, +((c.used || {})[r.key]) || 0));
+const resLeft = (c, r) => r.max === Infinity ? Infinity : Math.max(0, r.max - Math.max(0,Math.min(r.max, +((c.used || {})[r.key]) || 0)));
 function resCtr(c, r) {
   if (!r) return "";
   if (r.max === Infinity) return `<span class="ctr"><span class="tag">Unlimited</span></span>`;
@@ -201,8 +201,8 @@ function wildResurgence(c,choice){
   c.used=c.used||{};
   if(choice==="create"){
     const first=R.find(x=>x.key==="slot1");
-    if(!first||resLeft(c,wild)<1||resLeft(c,daily)<1||resLeft(c,first)>=first.max)return "Need one Wild Shape use, an expended level 1 slot, and the daily conversion.";
-    c.used.wild=(+c.used.wild||0)+1;c.used.wildResurgence=1;restoreResource(c,"slot1",resLeft(c,first)+1);return "Recovered one level 1 slot.";
+    if(resLeft(c,wild)<1||resLeft(c,daily)<1||temporarySlotCount(c,1)>=999)return "Need one Wild Shape use and the daily conversion.";
+    c.used.wild=(+c.used.wild||0)+1;c.used.wildResurgence=1;createTemporarySlot(c,1);return "Created one level 1 slot.";
   }
   const slot=R.find(x=>x.key===choice&&/^slot[1-9]$/.test(x.key));
   if(!slot||resLeft(c,slot)<1||resLeft(c,wild)!==0)return "Need an available spell slot and no remaining Wild Shape uses.";
@@ -225,6 +225,42 @@ function castWildCompanion(c,key){
   if(!sp||sp.ref||sp.referenceOnly||sp.pend||sp.rulesSummary)return "Complete Find Familiar rules required.";
   c.used=c.used||{};c.used[key]=(+c.used[key]||0)+1;c.wildCompanionActive=true;
   return "Wild Companion: Find Familiar cast. The familiar is Fey and disappears at your next Long Rest; resolve its statistics and presence manually.";
+}
+// Created spell slots supplement the normal slot table until the next Long Rest.
+const SLOT_CREATION_COST=[0,2,3,5,6,7], REVISED_SLOT_MIN_LEVEL=[0,2,3,5,7,9];
+function temporarySlotCount(c,L){
+  if(!Number.isInteger(L)||L<1||L>5)return 0;
+  const level=clsLv(c,"Sorcerer"),druid=edOf(c)==="2024"&&clsLv(c,"Druid")>=5&&L===1;
+  if(level<2&&!druid)return 0;
+  return Math.max(0,Math.min(999,Math.trunc(+c.createdSlots?.[L]||0)));
+}
+function canCreateSorcererSlot(c,L){
+  const lv=clsLv(c,"Sorcerer");
+  return Number.isInteger(L)&&L>=1&&L<=5&&lv>=2&&(edOf(c)!=="2024"||lv>=REVISED_SLOT_MIN_LEVEL[L]);
+}
+function createTemporarySlot(c,L){
+  c.createdSlots={...(c.createdSlots||{}),[L]:temporarySlotCount(c,L)+1};
+}
+function convertFontOfMagic(c,ch){
+  const lv=clsLv(c,"Sorcerer"),R=pcResources(c),sorc=R.find(r=>r.key==="sorc");
+  if(lv<2||!sorc||typeof ch!=="string")return "Font of Magic unavailable.";
+  c.used=c.used||{};
+  const make=ch.match(/^make([1-5])$/);
+  if(make){
+    const L=+make[1],cost=SLOT_CREATION_COST[L];
+    if(!canCreateSorcererSlot(c,L)||resLeft(c,sorc)<cost||temporarySlotCount(c,L)>=999)return "Insufficient Sorcery Points or class level.";
+    c.used.sorc=(+c.used.sorc||0)+cost;createTemporarySlot(c,L);
+    return "Created one level "+L+" slot; it expires at your next Long Rest.";
+  }
+  const burn=ch.match(/^burn([1-9]|pact)$/);
+  if(!burn)return "Invalid slot conversion.";
+  const key=burn[1]==="pact"?"pact":"slot"+burn[1],slot=R.find(r=>r.key===key);
+  if(!slot||resLeft(c,slot)<1)return "No slot available.";
+  const L=key==="pact"?+(slot.name.match(/level (\d)/)||[])[1]:+burn[1];
+  if(!L)return "Unknown slot level.";
+  const gain=Math.min(L,sorc.max-resLeft(c,sorc));if(!gain)return "Sorcery Points already full.";
+  c.used[key]=(+c.used[key]||0)+1;c.used.sorc=Math.max(0,(+c.used.sorc||0)-gain);
+  return "Converted a level "+L+" slot to "+gain+" Sorcery Points.";
 }
 const ACT = {
   "Wild Companion":{kind:"instant",choices:wildCompanionOptions,use:castWildCompanion},
@@ -360,12 +396,7 @@ const ACT = {
   "Spell Thief": { kind: "instant", use: c => `Spell Thief: the caster makes an INT save against DC ${8 + c.prof + c.mods.int}.` },
   "Stroke of Luck": { kind: "instant", use: () => "Stroke of Luck: the miss becomes a hit, or the check's d20 counts as a 20." },
   // ---------- Sorcerer
-  "Font of Magic": { kind: "instant", choices: c => { const slots = pcResources(c).filter(r => /^slot[1-5]$/.test(r.key)); return [...slots.map(r => [`make${r.key.slice(4)}`, `Create a level ${r.key.slice(4)} slot (${[0, 2, 3, 5, 6, 7][+r.key.slice(4)]} points)`]), ...slots.map(r => [`burn${r.key.slice(4)}`, `Turn a level ${r.key.slice(4)} slot into ${r.key.slice(4)} point${r.key.slice(4) === "1" ? "" : "s"}`])]; },
-    noCost: true, use: (c, ch) => {
-      if (!ch) return "You have no spell slots to convert yet."; c.used = c.used || {}; const L = +ch.slice(4), sorc = pcResources(c).find(r => r.key === "sorc"), slot = pcResources(c).find(r => r.key === "slot" + L);
-      if (ch.startsWith("make")) { const cost = [0, 2, 3, 5, 6, 7][L]; if (resLeft(c, sorc) < cost) return `Not enough sorcery points (need ${cost}).`; if (!(+c.used["slot" + L] > 0)) return `All your level ${L} slots are already full.`; c.used.sorc = (+c.used.sorc || 0) + cost; c.used["slot" + L] -= 1; return `Font of Magic: ${cost} sorcery points became a level ${L} spell slot.`; }
-      if (resLeft(c, slot) < 1) return `No level ${L} slot left to convert.`; if (!(+c.used.sorc > 0)) return "Your sorcery points are already full."; c.used["slot" + L] = (+c.used["slot" + L] || 0) + 1; c.used.sorc = Math.max(0, c.used.sorc - L); return `Font of Magic: a level ${L} slot became ${L} sorcery point${L === 1 ? "" : "s"}.`;
-    } },
+  "Font of Magic":{kind:"instant",noCost:true,choices:c=>[...[1,2,3,4,5].filter(L=>canCreateSorcererSlot(c,L)).map(L=>["make"+L,"Create level "+L+" slot ("+SLOT_CREATION_COST[L]+" points)"]),...pcResources(c).filter(r=>(/^slot[1-9]$/.test(r.key)||r.key==="pact")&&resLeft(c,r)>0).map(r=>["burn"+(r.key==="pact"?"pact":r.key.slice(4)),"Convert "+r.name+" to Sorcery Points"])],use:convertFontOfMagic},
   Metamagic: { kind: "instant", choices: c => { const mine = choiceOf(c, "Metamagic"); const all = [["quick", "Quickened Spell (2)"], ["twin1", "Twinned Spell, level 1 (1)"], ["twin2", "Twinned Spell, level 2 (2)"], ["twin3", "Twinned Spell, level 3 (3)"], ["subtle", "Subtle Spell (1)"], ["careful", "Careful Spell (1)"], ["distant", "Distant Spell (1)"], ["empower", "Empowered Spell (1)"], ["extend", "Extended Spell (1)"], ["height", `Heightened Spell (${edOf(c) === "2024" ? 2 : 3})`], ...(edOf(c) === "2024" ? [["seek", "Seeking Spell (1)"], ["trans", "Transmuted Spell (1)"]] : [])]; const map = { quickened: ["quick"], twinned: ["twin1", "twin2", "twin3"], subtle: ["subtle"], careful: ["careful"], distant: ["distant"], empowered: ["empower"], extended: ["extend"], heightened: ["height"], seeking: ["seek"], transmuted: ["trans"] }; const keep = mine.flatMap(id => map[id] || []); return keep.length ? all.filter(o => keep.includes(o[0])) : all; },
     cost: (c, ch) => ({ quick: 2, twin2: 2, twin3: 3, height: edOf(c) === "2024" ? 2 : 3 })[ch] || 1, use: (c, ch, spent) => `Metamagic: ${spent} sorcery point${spent === 1 ? "" : "s"} spent.` },
   "Dragon Wings": { kind: "toggle", fx: c => ({ fly: edOf(c) === "2024" ? 60 : "speed", notes: ["Dragon Wings: you can't use them while wearing armor not made for them"] }) },
