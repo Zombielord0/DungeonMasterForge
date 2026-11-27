@@ -662,8 +662,25 @@ const ACT = {
   "Second Wind": { kind: "instant", use: c => healMsg(c, "Second Wind", rollDice(`1d10+${classFeatureLevel(c, "Fighter")}`)) },
   "Action Surge": { kind: "instant", use: () => "Action Surge: take one additional action this turn." },
   Indomitable: { kind: "instant", use: c => `Indomitable: reroll the failed saving throw${edOf(c) === "2024" ? `, adding +${classFeatureLevel(c, "Fighter")}` : ""}.` },
-  "Combat Superiority": { kind: "instant", choices: c => { const mine = choiceOf(c, "Combat Superiority").map(id => MANEUVERS.find(m => m[0] === id)).filter(Boolean).map(m => [m[0], m[1]]); return mine.length ? mine : [["trip", "Trip Attack"], ["riposte", "Riposte"], ["precision", "Precision Attack"], ["disarm", "Disarming Attack"], ["push", "Pushing Attack"], ["menace", "Menacing Attack"], ["other", "Other maneuver"]]; },
-    use: (c, ch) => { const lv=clsLv(c,"Fighter"),d = lv >= 18 ? 12 : lv >= 10 ? 10 : 8, dc = 8 + c.prof + Math.max(c.mods.str, c.mods.dex), lab = (MANEUVERS.find(m => m[0] === ch) || [, "Maneuver"])[1]; return ch === "precision" ? rollMsg(lab, `1d${d}`, "Add it to the attack roll") : roll(lab, `1d${d}`, "damage", `Extra damage on the hit${["trip", "disarm", "push", "menace"].includes(ch) ? `; the target makes a save against DC ${dc}` : ""}`); } },
+  "Combat Superiority": { kind: "instant", choices: c => {
+    const selected=new Set(choiceOf(c,"Combat Superiority"));
+    return MANEUVERS.filter(m=>selected.has(m[0])&&(!m[3]||m[3]===edOf(c))).map(m=>[m[0],m[1]]);
+  },
+    use: (c,ch) => {
+      const m=MANEUVERS.find(m=>m[0]===ch&&(!m[3]||m[3]===edOf(c)));
+      if(!m)return "That maneuver is unavailable.";
+      const lv=characterSubclassLevel(c,"Fighter","Battle Master"),revised=edOf(c)==="2024",d=lv>=18?12:lv>=10?10:8;
+      const dc=8+c.prof+Math.max(c.mods.str,c.mods.dex),lab=m[1],expr="1d"+d;
+      if(ch==="rally"){
+        const r=roll(lab,expr+sgn(revised?Math.floor(lv/2):c.mods.cha),"temp","Choose an eligible target; temporary hit points do not stack.");
+        r.amount=Math.max(0,r.amount);return r;
+      }
+      if(ch==="parry")return rollMsg(lab,expr+sgn(revised?Math.max(c.mods.str,c.mods.dex):c.mods.dex),"Reduce the triggering damage by this amount (minimum 0); confirm the reaction and qualifying attack.");
+      if(["ambush","presence","tactical","bait","evasive","precision","grapple"].includes(ch))return rollMsg(lab,expr,m[2]+" Confirm the applicable roll or AC bonus manually.");
+      if(["commander","riposte","feint","lunge","sweep"].includes(ch))return rollMsg(lab,expr,m[2]+" Confirm any required attack or hit before applying damage.");
+      const saves={disarm:"STR",push:"STR",trip:"STR",menace:"WIS",goad:"WIS"};
+      return roll(lab,expr,"damage",m[2]+(saves[ch]?" Save: "+saves[ch]+" DC "+dc+".":"")+" Confirm the triggering hit and apply the other effects manually.");
+    } },
   "Psionic Power": { kind: "instant", choices: c => c.subclass === "Soulknife" ? [["knack", "Psi-Bolstered Knack"], ["whisper", "Psychic Whispers"]] : [["field", "Protective Field"], ["strike", "Psionic Strike"], ["move", "Telekinetic Movement"]],
     use: (c, ch) => { const d = `1d${psiDie(c)}`, i = c.mods.int; return ch === "field" ? rollMsg("Protective Field", `${d}${sgn(i)}`, "Reduce the damage by that much") : ch === "strike" ? roll("Psionic Strike", `${d}${sgn(i)}`, "damage", "Force damage to the target") : ch === "knack" ? rollMsg("Psi-Bolstered Knack", d, "Add it to the failed ability check") : ch === "whisper" ? "Psychic Whispers: telepathy with creatures you choose for hours equal to a Psionic Energy die." : "Telekinetic Movement: move a Large or smaller object or willing creature up to 30 ft."; } },
   "Bulwark of Force": { kind: "toggle", fx: () => ({ notes: ["Bulwark of Force: you and chosen allies within 30 ft have half cover"] }) },
