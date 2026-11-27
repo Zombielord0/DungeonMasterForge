@@ -46,6 +46,7 @@ function applyCoreSkillChoices(c){
   apply("Scholar","scholarGranted","x","Wizard",2,s=>s.p&&!s.x&&["Arcana","History","Investigation","Medicine","Nature","Religion"].includes(s.s));
 }
 function pcRecompute(c) {
+  artificerInfusionCleanup(c);
   const m = {}; AB.forEach(a => m[a] = mod(+c.scores[a] || 10)); c.mods = m; const SB = subBonusOf(c);
   c.init = m.dex + (c.initBonus ?? ((c.feats || []).some(f => f.f === "Feat: Alert") ? (edOf(c) === "2024" ? c.prof : 5) : 0)) + SB.init + (SB.athlete ? Math.ceil(c.prof / 2) : 0) + (clsLv(c,"Bard") >= 2 && edOf(c) === "2014" ? Math.floor(c.prof / 2) : 0);
   const jack = clsLv(c,"Bard")>=2;
@@ -157,7 +158,7 @@ function eqAttack(c, i, w) {
   const pact=isPactWeapon(c,i,w),normalAb=/Finesse/.test(props)||monk?(m.dex>m.str?"dex":"str"):ranged?"dex":"str";
   const ab=pact&&edOf(c)==="2024"&&choiceOf(c,"Pact Weapon Ability")[0]==="Charisma"?"cha":normalAb;
   const ref = inventoryCatalogItem(i, edOf(c));
-  const magic = inventoryEnhancement(i, ref, "weapon"), needsAtt = inventoryNeedsAttunement(i, ref) && !i.attuned, bonus = needsAtt ? 0 : magic;
+  const infusion=artificerInfusionBonus(c,i,"weapon"), magic = inventoryEnhancement(i, ref, "weapon")+infusion, needsAtt = inventoryNeedsAttunement(i, ref) && !i.attuned, bonus = needsAtt ? 0 : magic;
   const prof = pact||eqProficient(c, w), mod = m[ab] + bonus, hit = m[ab] + (prof ? c.prof : 0) + bonus;
   const two = (dmgTxt.match(/two-handed (\d+d\d+)/) || [])[1];
   const chosenType=choiceOf(c,"Pact Weapon Damage")[0],type=pact&&edOf(c)==="2024"&&["Necrotic","Psychic","Radiant"].includes(chosenType)?chosenType.toLowerCase():dm[2];
@@ -240,7 +241,7 @@ function eqArmorBonus(i, ed) {
 function pcAC(c) {
   const ed = edOf(c), m = c.mods, eq = (c.inv || []).filter(i => i.eq && (+i.qty || 0) > 0);
   const worn = eq.map(i => ({ i, a: eqArmorOf(i, ed) })).filter(x => x.a);
-  const val = x => { const t = (x.a.st.find(([k]) => k === "Armor Class") || [])[1] || "", mm = t.match(/^\+?(\d+)(\s*\+\s*Dex modifier)?(\s*\(max 2\))?/); if (!mm) return 0; return +mm[1] + (mm[2] ? (mm[3] ? Math.min(m.dex, 2) : m.dex) : 0) + eqArmorBonus(x.i, ed); };
+  const val = x => { const t = (x.a.st.find(([k]) => k === "Armor Class") || [])[1] || "", mm = t.match(/^\+?(\d+)(\s*\+\s*Dex modifier)?(\s*\(max 2\))?/); if (!mm) return 0; return +mm[1] + (mm[2] ? (mm[3] ? Math.min(m.dex, 2) : m.dex) : 0) + eqArmorBonus(x.i, ed) + artificerInfusionBonus(c,x.i,"armor"); };
   const body = worn.filter(x => x.a.cat !== "Shield").sort((a, b) => val(b) - val(a))[0], shield = worn.filter(x => x.a.cat === "Shield").sort((a, b) => val(b) - val(a))[0];
   const parts = [], warn = [], fx = c.fx || {}, T = armorTraining(c), F = pcFx(c);
   let ac, speedPen = 0, stealthDis = false, untrained = false;
