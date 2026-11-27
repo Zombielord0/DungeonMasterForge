@@ -579,6 +579,18 @@ const subclassLevel = (ed, cls) => CLASS_DATA[cls] && CLASS_DATA[cls].hb ? CLASS
 const BOOK_CLASS_VARIANTS = {};
 // Revised SRD 5.2.1 class tables, pp. 31–35, 61–63. Never overwrite legacy or book variants.
 const REVISED_CORE_CLASS_FIELDS = {
+  // SRD 5.2.1 pp. 47–48, 53–60. Keep legacy action identifiers where the runtime uses them.
+  Fighter: {
+    skills:[[...CLASS_DATA.Fighter.skills[0],"Persuasion"],2],
+    f:{1:["Fighting Style","Second Wind","Weapon Mastery"],2:["Action Surge","Tactical Mind"],5:["Extra Attack","Tactical Shift"],9:["Indomitable","Tactical Master"],11:["Extra Attack (2)"],13:["Studied Attacks"],20:["Extra Attack (3)"]},
+  },
+  Paladin: {
+    f:{1:["Lay on Hands","Spellcasting","Weapon Mastery"],2:["Fighting Style","Paladin's Smite"],3:["Channel Divinity"],5:["Extra Attack","Faithful Steed"],6:["Aura of Protection"],9:["Abjure Foes"],10:["Aura of Courage"],11:["Radiant Strikes"],14:["Restoring Touch"],18:["Aura Expansion"]},
+  },
+  Ranger: {
+    expertise:[[2,1],[9,2]],
+    f:{1:["Spellcasting","Favored Enemy","Weapon Mastery"],2:["Deft Explorer","Fighting Style"],5:["Extra Attack"],6:["Roving"],9:["Expertise"],10:["Tireless"],13:["Relentless Hunter"],14:["Nature's Veil"],17:["Precise Hunter"],18:["Feral Senses"],20:["Foe Slayer"]},
+  },
   Bard: {
     expertise: [[2, 2], [9, 2]],
     f: {1:["Spellcasting","Bardic Inspiration"],2:["Expertise","Jack of All Trades"],5:["Font of Inspiration"],7:["Countercharm"],9:["Expertise"],10:["Magical Secrets"],18:["Superior Inspiration"],20:["Words of Creation"]},

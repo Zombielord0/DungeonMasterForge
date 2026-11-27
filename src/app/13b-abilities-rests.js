@@ -36,6 +36,8 @@ function pcResources(c) {
   if (has("Lay on Hands")) add("loh", "Lay on Hands pool", 5 * CLV("Paladin"), "long");
   if (has("Divine Sense") && ed === "2014") add("dsense", "Divine Sense", 1 + Math.max(0, m.cha), "long");
   if (has("Cleansing Touch")) add("cleanse", "Cleansing Touch", Math.max(1, m.cha), "long");
+  if(ed==="2024"&&clsLv(c,"Ranger")>=10)add("rangerTireless","Tireless",Math.max(1,m.wis),"long");
+  if(ed==="2024"&&clsLv(c,"Ranger")>=14)add("rangerVeil","Nature’s Veil",Math.max(1,m.wis),"long");
   if (has("Font of Magic")) add("sorc", "Sorcery points", CLV("Sorcerer"), "long");
   if (has("Favored Enemy") && ed === "2024") add("hmark", "Free Hunter's Mark", CLV("Ranger") >= 17 ? 6 : CLV("Ranger") >= 13 ? 5 : CLV("Ranger") >= 9 ? 4 : CLV("Ranger") >= 5 ? 3 : 2, "long");
   if (has("Arcane Recovery")) add("arcrec", "Arcane Recovery", 1, "long");
@@ -80,7 +82,7 @@ function pcAbilities(c) {
   if (CLV("Paladin") >= 3) add("Channel Divinity", "Action", `Use one of your Sacred Oath's Channel Divinity options${ed === "2024" ? ", or Divine Sense" : ""}.`, "channel");
   if (has("Wild Shape")) add("Wild Shape", ed === "2024" ? "Bonus action" : "Action", (L => `Turn into a beast up to CR ${crText(L.cr)}${L.noFly && L.noSwim ? " (no flying or swimming)" : L.noFly ? " (no flying)" : ""} for ${Math.max(1, Math.floor(CLV("Druid") / 2))} hour${CLV("Druid") >= 4 ? "s" : ""}. Pick the beast, then Activate.`)(wildShapeLimit(c)), "wild");
   if (has("Second Wind")) add("Second Wind", "Bonus action", `Regain 1d10 + ${CLV("Fighter")} hit points.`, "wind");
-  if (has("Action Surge")) add("Action Surge", "Free", "Take one additional action on your turn.", "surge");
+  if (has("Action Surge")) add("Action Surge", "Free", ed==="2024"?"Take one additional action on your turn, except the Magic action.":"Take one additional action on your turn.", "surge");
   if (has("Indomitable")) add("Indomitable", "On a failed save", `Reroll a saving throw you failed${ed === "2024" ? `, adding +${CLV("Fighter")}` : ""}.`, "indom");
   if (has("Martial Arts")) { const wm = Math.max(m.str, m.dex), d = ed === "2024" ? (CLV("Monk") >= 17 ? 12 : CLV("Monk") >= 11 ? 10 : CLV("Monk") >= 5 ? 8 : 6) : (CLV("Monk") >= 17 ? 10 : CLV("Monk") >= 11 ? 8 : CLV("Monk") >= 5 ? 6 : 4); add("Martial Arts", "Bonus action", `After the Attack action, make an unarmed strike: ${sgn(wm + prof)} to hit, 1d${d}${wm ? sgn(wm) : ""} bludgeoning.`); }
   if (has("Ki")) add(ed === "2024" ? "Monk's Focus" : "Ki", "Bonus action", "1 point each: Flurry of Blows (two unarmed strikes), Patient Defense (Dodge), Step of the Wind (Dash or Disengage, double jump).", "ki");
@@ -91,14 +93,17 @@ function pcAbilities(c) {
   if (has("Cunning Action")) add("Cunning Action", "Bonus action", "Dash, Disengage or Hide.");
   if (has("Uncanny Dodge")) add("Uncanny Dodge", "Reaction", "Halve the damage of an attack that hits you from an attacker you can see.");
   if (has("Evasion")) add("Evasion", "Defense", "On a DEX save for half damage, take none on a success and half on a failure.");
-  if (has("Lay on Hands")) add("Lay on Hands", ed === "2024" ? "Bonus action" : "Action", `Touch a creature and restore hit points from your pool of ${5 * CLV("Paladin")}, or spend 5 to cure a disease or poison.`, "loh");
-  if (has("Divine Smite")) add("Divine Smite", "On hit", "Spend a spell slot: +2d8 radiant, +1d8 per slot level above 1st (max 5d8), +1d8 more against undead and fiends.");
+  if (has("Lay on Hands")) add("Lay on Hands", ed === "2024" ? "Bonus action" : "Action", `Touch a creature and restore hit points from your pool of ${5 * CLV("Paladin")}, or spend 5 to ${ed==="2024"?"remove the Poisoned condition":"cure a disease or neutralize a poison"}.`, "loh");
+  if (ed==="2014"&&has("Divine Smite")) add("Divine Smite", "On hit", "Spend a spell slot: +2d8 radiant, +1d8 per slot level above 1st (max 5d8), +1d8 more against undead and fiends.");
   if (has("Divine Sense") && ed === "2014") add("Divine Sense", "Action", "Sense celestials, fiends and undead within 60 ft until the end of your next turn.", "dsense");
   if (has("Aura of Protection")) add("Aura of Protection", "Aura", `You and allies within ${CLV("Paladin") >= 18 ? 30 : 10} ft add +${chaB} to saving throws.`);
   if (has("Aura of Courage")) add("Aura of Courage", "Aura", `You and allies within ${CLV("Paladin") >= 18 ? 30 : 10} ft can't be frightened.`);
-  if (has("Improved Divine Smite")) add(ed === "2024" ? "Radiant Strikes" : "Improved Divine Smite", "On hit", "+1d8 radiant damage on every melee weapon hit.");
-  if (has("Cleansing Touch")) add("Cleansing Touch", "Action", "End one spell on yourself or a willing creature you touch.", "cleanse");
+  if(ed==="2024"&&clsLv(c,"Paladin")>=11)add("Radiant Strikes","On hit","+1d8 radiant damage with a melee weapon or Unarmed Strike.");
+  if(ed==="2014"&&has("Improved Divine Smite"))add("Improved Divine Smite","On hit","+1d8 radiant damage on every melee weapon hit.");
+  if (ed==="2014"&&has("Cleansing Touch")) add("Cleansing Touch", "Action", "End one spell on yourself or a willing creature you touch.", "cleanse");
   if (has("Favored Enemy") && ed === "2024") add("Hunter's Mark", "Bonus action", `Cast without a spell slot: +1d${has("Foe Slayer") ? 10 : 6} damage to the marked creature, advantage to track it.`, "hmark");
+  if(ed==="2024"&&clsLv(c,"Ranger")>=10)add("Tireless","Magic action","Gain temporary HP (1d8 + Wisdom modifier, minimum 1). Short rests also reduce exhaustion by one.","rangerTireless");
+  if(ed==="2024"&&clsLv(c,"Ranger")>=14)add("Nature’s Veil","Bonus action","Gain the Invisible condition through the end of your next turn. Track the condition duration manually.","rangerVeil");
   if (has("Font of Magic")) add("Font of Magic", "Bonus action", "Turn a spell slot into sorcery points, or spend 2/3/5/6/7 points for a level 1–5 slot.", "sorc");
   if (has("Metamagic")) add("Metamagic", "When casting", "Spend sorcery points to change a spell: Quickened (2), Twinned (spell level), Subtle, Careful, Distant, Empowered, Extended (1).", "sorc");
   if (has("Arcane Recovery")) add("Arcane Recovery", "Short rest", `Recover spell slots with a combined level up to ${Math.ceil(CLV("Wizard") / 2)} (none above 5th).`, "arcrec");
@@ -145,6 +150,8 @@ const DMG_LIST = ["acid", "cold", "fire", "lightning", "necrotic", "poison", "ps
    choices: [[id, label]] or (c) => [...]. cost: uses spent (default 1). fx(c, choice): effects while on.
    start(c, choice) / use(c, choice): what happens when activated or used; returns the message to show. */
 const ACT = {
+  "Tireless":{kind:"instant",use:c=>{const n=Math.max(1,rollDice("1d8").total+c.mods.wis);const applied=giveTemp(c,n);return `Tireless: rolled ${n} temporary HP${applied?"; applied.":"; existing temporary HP is at least as high."}`;}},
+  "Nature’s Veil":{kind:"instant",use:c=>{c.conds={...(c.conds||{}),invisible:true};return "Invisible until the end of your next turn; remove the condition then."; }},
   "Telekinetic Shove": { kind: "instant", use: c => `Telekinetic Shove: Strength save DC ${8 + c.prof + c.mods[featCastingAbility(c, "Telekinetic")]}. On a failure, pull or push 5 ft.` },
   // ---------- Barbarian
   Rage: { kind: "toggle", fx: c => ({ atk: [{ f: "strMelee", dmg: rageDmg(c), label: `Rage +${rageDmg(c)}` }], res: ["bludgeoning", "piercing", "slashing"], notes: ["Advantage on Strength checks and Strength saving throws", "You can't cast spells or concentrate while raging"] }),
@@ -233,7 +240,7 @@ const ACT = {
   // ---------- Paladin
   "Lay on Hands": { kind: "instant", choices: [["self", "Heal yourself"], ["5", "5 points to another"], ["10", "10 points to another"], ["cure", "Cure a poison (5 points)"]],
     cost: (c, ch) => ch === "self" ? Math.min(resLeft(c, pcResources(c).find(r => r.key === "loh")), Math.max(0, (+c.hp || 0) - (+c.hpCur || 0))) : ch === "10" ? 10 : 5,
-    use: (c, ch, spent) => ch === "self" ? `Lay on Hands: you regain ${healSelf(c, spent)} hit points (${c.hpCur}/${c.hp}).` : ch === "cure" ? "Lay on Hands: one poison (or disease) ended." : { title: "Lay on Hands", msg: `Lay on Hands: ${spent} hit points from your pool.`, amount: spent, kind: "heal" } },
+    use: (c, ch, spent) => ch === "self" ? `Lay on Hands: you regain ${healSelf(c, spent)} hit points (${c.hpCur}/${c.hp}).` : ch === "cure" ? (edOf(c)==="2024"?"Lay on Hands: remove the Poisoned condition from the touched creature.":"Lay on Hands: one poison or disease ended.") : { title: "Lay on Hands", msg: `Lay on Hands: ${spent} hit points from your pool.`, amount: spent, kind: "heal" } },
   "Divine Smite": { kind: "instant", choices: c => pcResources(c).filter(r => /^slot\d$/.test(r.key) && resLeft(c, r) > 0).map(r => [r.key, `${r.name.replace(" slots", "")} slot`]),
     noCost: true, use: (c, ch) => { if (!ch) return "No spell slots left to smite with."; const L = +ch.slice(4), n = Math.min(5, 1 + L); c.used = c.used || {}; c.used[ch] = (+c.used[ch] || 0) + 1; return roll(`Divine Smite (level ${L} slot)`, `${n}d8`, "damage", "Radiant damage on the hit (roll another 1d8 against undead and fiends)"); } },
   "Divine Sense": { kind: "instant", use: () => "Divine Sense: celestials, fiends and undead within 60 ft revealed." },
@@ -476,7 +483,9 @@ function shortRestRoll() {
   $("#srN").max = left; $("#srN").value = left ? 1 : 0; $("#srN").disabled = !left; $("[data-hdroll]").disabled = !left;
 }
 function shortRestFinish() {
-  const c = ACTX.c, back = pcRest(c, "short"), fxEnded = c.fxEnded; delete c.fxEnded; pcPersist();
+  const c = ACTX.c, back = pcRest(c, "short"), fxEnded = c.fxEnded; delete c.fxEnded;
+  if(edOf(c)==="2024"&&clsLv(c,"Ranger")>=10&&exhOf(c)>0&&exhOf(c)<6&&!c.death?.dead){c.exh=exhOf(c)-1;back.push("one Exhaustion level removed");pcRecompute(c);}
+  pcPersist();
   const healed = ACTX.log.length ? ` Hit points ${c.hpCur}/${c.hp}.` : "";
   toast(`${c.name} takes a short rest${back.length ? `: ${back.join(", ").toLowerCase()} regained` : ""}.${healed}${fxEnded ? " Active abilities ended." : ""}`);
   // offer slot recovery while resting

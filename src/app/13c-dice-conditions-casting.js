@@ -119,7 +119,10 @@ function pcDamaged(c, dmg, wasZero) {
   c.death = c.death || { s: 0, f: 0 };
   if (wasZero && !c.death.dead) { c.death.f = Math.min(3, c.death.f + 1); c.death.stable = false; notes.push(`${c.name} takes a death save failure (${c.death.f}/3)`); if (c.death.f >= 3) { c.death.dead = true; notes.push(`${c.name} dies`); } }
   else if (+c.hpCur === 0) { c.conds = { ...(c.conds || {}), unconscious: true }; c.condAuto = true; c.death = { s: 0, f: 0 }; notes.push(`${c.name} drops to 0 hit points and falls unconscious`); if (c.conc) { notes.push(`concentration on ${c.conc.spell} ends`); delete c.conc; } }
-  if (c.conc && +c.hpCur > 0) { const dc = Math.min(edOf(c) === "2024" ? 30 : 99, Math.max(10, Math.floor(dmg / 2))); c.concCheck = dc; notes.push(`concentration save needed (CON, DC ${dc})`); }
+  if (c.conc && +c.hpCur > 0) {
+    if(edOf(c)==="2024"&&clsLv(c,"Ranger")>=13&&String(c.conc.spell).replaceAll("’","\x27").toLowerCase()==="hunter\x27s mark")notes.push("Relentless Hunter: damage cannot break Concentration on Hunter’s Mark");
+    else {const dc=Math.min(edOf(c)==="2024"?30:99,Math.max(10,Math.floor(dmg/2)));c.concCheck=dc;notes.push(`concentration save needed (CON, DC ${dc})`);}
+  }
   return notes;
 }
 function pcHealed(c, wasZero) {

@@ -265,6 +265,8 @@ function pcSpeed(c, A) {
   }
   if (has("Unarmored Movement") && !A.bodyKind && !A.shieldOn) add("Unarmored Movement", unarmoredMove(clsLv(c, "Monk")));
   if (has("Fast Movement") && A.bodyKind !== "heavy") add("Fast Movement", 10);
+  const roving=ed==="2024"&&clsLv(c,"Ranger")>=6;
+  if(roving&&A.bodyKind!=="heavy")add("Roving",10);
   if (+c.hbSpeed) add("homebrew", +c.hbSpeed);
   if (featTaken(c, "Mobile")) add("Mobile", 10);
   if (featTaken(c, "Speedy")) add("Speedy", 10);
@@ -288,8 +290,8 @@ function pcSpeed(c, A) {
   const mv = v => v === "speed" ? sp : v === "2speed" ? 2 * sp : v;
   const fly = Math.max(fx.fly ? 60 : 0, F.fly != null ? mv(F.fly) || 0 : 0);
   if (fly) other.push(`Fly ${fly} ft`);
-  if (F.climb != null) other.push(`Climb ${mv(F.climb)} ft`);
-  if (F.swim != null) other.push(`Swim ${mv(F.swim)} ft`);
+  if (F.climb != null || roving) other.push(`Climb ${Math.max(roving?sp:0,F.climb!=null?mv(F.climb):0)} ft`);
+  if (F.swim != null || roving) other.push(`Swim ${Math.max(roving?sp:0,F.swim!=null?mv(F.swim):0)} ft`);
   if (c.subclass === "Thief" && ed === "2024" && lv >= 3) other.push(`Climb ${sp} ft`);
   if (c.subclass === "Circle of the Sea" && lv >= 6) other.push(`Swim ${sp} ft`);
   if (has("Unarmored Movement") && clsLv(c, "Monk") >= 9 && !A.bodyKind && !A.shieldOn) other.push("Run up walls and across liquids on your turn");
@@ -362,6 +364,8 @@ function pcAttacks(c) {
   if (hasStyle(c, "Archery")) out.filter(a => a.iid && !a.melee).forEach(a => { a.hit += 2; a.tags.push("Archery +2"); });
   if (hasStyle(c, "Thrown Weapon Fighting")) out.filter(a => a.thrown).forEach(a => { a.thrownB = 2; a.tags.push("Thrown Weapon Fighting +2"); });
   if (hasChoice(c, "Hunter's Prey", "colossus")) out.filter(a => a.iid).forEach(a => a.extra.push("1d8 vs wounded, once per turn"));
+  // Radiant Strikes is an attack rider, never a separate spell-slot cost.
+  if(ed==="2024"&&clsLv(c,"Paladin")>=11)out.filter(a=>a.unarmed||(a.iid&&a.melee)).forEach(a=>a.extra.push("1d8 radiant (Radiant Strikes)"));
   // active abilities
   F.atk.forEach(x => out.filter(ATK_F[x.f] || ATK_F.all).forEach(a => { if (x.hit) a.hit += x.hit; if (x.dmg) a.dmgB += x.dmg; if (x.extra) a.extra.push(x.extra); if (x.adv) a.tags.push(x.adv); else if (x.label) a.tags.push(x.label); }));
   const A = pcAC(c);

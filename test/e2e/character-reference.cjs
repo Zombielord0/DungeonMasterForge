@@ -251,6 +251,29 @@ const { chromium } = require("playwright");
     assert.equal(progressionAudit.up.str,Math.min(25,progressionAudit.before.str+4));
     assert.equal(progressionAudit.up.con,Math.min(25,progressionAudit.before.con+4));
     assert.deepEqual(progressionAudit.down,progressionAudit.before);assert.deepEqual(progressionAudit.again,progressionAudit.up);
+    const revisedMartial=await page.evaluate(()=>{
+      const make=(ed,cls,level)=>pcEnsure(generateCharacter({seed:"REVISED-MARTIAL",ed,cls,level,race:"Human",bg:"Soldier",subclass:"none"}));
+      const feats=(ed,cls,lv)=>make(ed,cls,lv).feats.map(f=>f.f);
+      const r1=make("2024","Ranger",1),r2=make("2024","Ranger",2),r9=make("2024","Ranger",9),r14=make("2024","Ranger",14);
+      const old=make("2014","Ranger",14),p=make("2024","Paladin",11);
+      const resource=c=>pcResources(c).filter(x=>x.key.startsWith("ranger")).map(x=>[x.key,x.max,x.recharge]);
+      const check=(ed,level,spell,hp=10)=>{const c={ed,cls:"Ranger",level,hpCur:hp,name:"Test Ranger",conc:{spell},death:{s:0,f:0}};const notes=pcDamaged(c,24,false);return [c.concCheck||0,!!c.conc,notes.join(" ")];};
+      const fighter=classData("2024","Fighter");
+      return {expertise:[r1,r2,r9].map(c=>c.skills.filter(x=>x.x).length),oldExpertise:old.skills.filter(x=>x.x).length,
+        revisedSkills:fighter.skills[0].includes("Persuasion"),legacySkills:classData("2014","Fighter").skills[0].includes("Persuasion"),
+        fighter:feats("2024","Fighter",13),legacyFighter:feats("2014","Fighter",13),
+        paladin:feats("2024","Paladin",11),legacyPaladin:feats("2014","Paladin",11),oldSmite:pcAbilities(p).some(x=>x.name==="Divine Smite"),
+        resources:resource(r14),legacyResources:resource(old),wis:r14.mods.wis,
+        concentration:[check("2024",12,"Hunter's Mark"),check("2024",13,"Hunter’s Mark"),check("2014",13,"Hunter's Mark"),check("2024",13,"Bless"),check("2024",13,"Hunter's Mark",0)]};
+    });
+    assert.deepEqual(revisedMartial.expertise,[0,1,3]);assert.equal(revisedMartial.oldExpertise,0);
+    assert.equal(revisedMartial.revisedSkills,true);assert.equal(revisedMartial.legacySkills,false);
+    for(const f of ["Tactical Mind","Tactical Shift","Tactical Master","Studied Attacks","Extra Attack (2)"])assert.ok(revisedMartial.fighter.includes(f),f);
+    assert.ok(!revisedMartial.legacyFighter.includes("Tactical Mind"));
+    assert.ok(revisedMartial.paladin.includes("Radiant Strikes")&&!revisedMartial.paladin.includes("Divine Health")&&revisedMartial.legacyPaladin.includes("Improved Divine Smite"));
+    assert.equal(revisedMartial.oldSmite,false);
+    assert.deepEqual(revisedMartial.resources,[["rangerTireless",Math.max(1,revisedMartial.wis),"long"],["rangerVeil",Math.max(1,revisedMartial.wis),"long"]]);assert.deepEqual(revisedMartial.legacyResources,[]);
+    assert.deepEqual(revisedMartial.concentration.map(x=>x.slice(0,2)),[[12,true],[0,true],[12,true],[12,true],[0,false]]);
     const expansion = await page.evaluate(() => {
       const subclasses = hbBook("subclass").filter(x => ["tce", "xge"].includes(x.src));
       const armorer = generateCharacter({ seed: "ARMOR", ed: "2014", cls: "Artificer", subclass: "Armorer", level: 5 });
