@@ -154,6 +154,7 @@ function loreMonster(L) {
       if (/^reactions?$/.test(head)) { list = "reacts"; continue; } if (/^legendary actions?(?:\s*\([^)]*\))?$/.test(head)) { list = "legend"; const n=head.match(/(\d+)\s*(?:per|\/|actions)/); if(n)f.legN=+n[1]; continue; } if (/^lair actions?(?:\s*\([^)]*\))?$/.test(head)) { list = "lair"; continue; }
       const m = line.replace(/\*+|__/g, "").match(/^-?\s*([A-Z][^.\n]{1,58}?)\.\s+(.{3,})$/);
       if (!m || m[1].trim().split(/\s+/).length > 6 || /^(armou?r class|hit points|speed|str|dex|con|int|wis|cha|saving throws|skills|senses|languages|challenge|damage|condition)\b/i.test(m[1])) continue;
+      if(list==="legend"&&/^legendary action budget$/i.test(m[1].trim()))continue;
       f[list].push({ n: impCut(m[1].trim(), 60), t: impCut(m[2], 1000) });
     }
   }

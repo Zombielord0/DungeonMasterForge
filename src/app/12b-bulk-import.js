@@ -162,7 +162,7 @@ const BI_MAKE = {
   },
   monster(g, P) {
     const r = g.rows[0], f = loreMonster({ name: g.name, desc: biStr(r.stat_block) || biStr(r.description), sections: [], tags: [] });
-    if (r.boss_kit) f.bossKit=bossConfig({...JSON.parse(biStr(r.boss_kit)),owner:""});
+    if (r.boss_kit) { f.bossKit=bossConfig({...JSON.parse(biStr(r.boss_kit)),owner:""}); if(!f.lair.length)f.lair=f.bossKit.actions.map(a=>({n:a.name,t:a.text})); }
     if (r.legendary_actions_per_round) f.legN=bossInt(r.legendary_actions_per_round,1,20,3);
     if (f.needsStats) P.probs.push(`${g.name}: no stat block found (it needs Armor Class, Hit Points and the six scores), so it was added with its text only`);
     return { dest: "monster", x: f };

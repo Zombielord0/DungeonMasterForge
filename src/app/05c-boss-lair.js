@@ -9,24 +9,27 @@ function bossConfig(raw) {
   const ids = new Set();
   const id = (v, i, prefix) => { const k = bossText(v, 80) || prefix + (i + 1); if (!/^[a-zA-Z0-9_-]+$/.test(k) || ["__proto__","constructor","prototype"].includes(k)) throw Error("Invalid ID: "+k); if (ids.has(k)) throw Error("Duplicate ID: " + k); ids.add(k); return k; };
   const objects = list(raw.objects, 40, (o, i) => ({ id: id(o.id,i,"object"), name: bossText(o.name,120) || "Object", ac: bossInt(o.ac,1,40,15), hp: bossInt(o.hp,1,9999,30), threshold: bossInt(o.threshold,0,999,0), dc: bossInt(o.dc,0,40,0), immunities: bossText(o.immunities,300), text: bossText(o.text) }));
-  const clocks = list(raw.clocks, 20, (o,i) => ({id:id(o.id,i,"clock"), name:bossText(o.name,120)||"Clock", max:bossInt(o.max,1,100,6), auto:o.auto !== false, text:bossText(o.text)}));
-  const actions = list(raw.actions, 40, (a,i) => ({ id:id(a.id,i,"action"), name:bossText(a.name,120)||"Lair action", text:bossText(a.text), requires:bossText(a.requires,80), uses:bossInt(a.uses,0,99,0), heal:bossInt(a.heal,0,999,0) }));
+  const clocks = list(raw.clocks, 20, (o,i) => ({id:id(o.id,i,"clock"), name:bossText(o.name,120)||"Clock", max:bossInt(o.max,1,100,6), auto:o.auto !== false, stopOnObjects:list(o.stopOnObjects,40,x=>bossText(x,80)).filter(Boolean), stopOnClocks:list(o.stopOnClocks,20,x=>bossText(x,80)).filter(Boolean), text:bossText(o.text)}));
+  const actions = list(raw.actions, 40, (a,i) => ({ id:id(a.id,i,"action"), name:bossText(a.name,120)||"Lair action", text:bossText(a.text), requires:bossText(a.requires,80), uses:bossInt(a.uses,0,99,0), heal:bossInt(a.heal,0,999,0), delay:bossInt(a.delay,0,20,0), duration:bossInt(a.duration,0,20,0) }));
   for (const a of actions) if (a.requires && !objects.some(o=>o.id===a.requires)) throw Error("Unknown required object: "+a.requires);
+  for(const k of clocks){for(const id of k.stopOnObjects)if(!objects.some(o=>o.id===id))throw Error("Unknown stop object: "+id);for(const id of k.stopOnClocks)if(id===k.id||!clocks.some(c=>c.id===id))throw Error("Invalid stop clock: "+id);}
   const phases = list(raw.phases, 12, (p,i) => ({id:id(p.id,i,"phase"),name:bossText(p.name,120)||"Phase",hp:bossInt(p.hp,1,99999,1),text:bossText(p.text)})).sort((a,b)=>b.hp-a.hp);
   const powers = list(raw.powers, 30, (p,i) => ({id:id(p.id,i,"power"),name:bossText(p.name,120)||"Power",text:bossText(p.text),max:bossInt(p.max,1,99,1),reset:["turn","round","manual"].includes(p.reset)?p.reset:"manual"}));
   const slots = Array.from({length:9},(_,i)=>bossInt((raw.slots||[])[i],0,30,0));
   return { app:BOSS_SCHEMA,v:1, name:bossText(raw.name,120)||"Boss & lair", initiative:bossInt(raw.initiative,-50,100,20), repeat:raw.repeat===true, owner:bossText(raw.owner,120), legendary:bossInt(raw.legendary,0,20,0), resistance:bossInt(raw.resistance,0,20,0), slots, actions, objects, clocks, phases, powers, regional:bossText(raw.regional,12000) };
 }
 function bossFresh(config) {
-  return {config, state:{resolved:0,pending:0,last:"",lastRound:0,used:{},objects:Object.fromEntries(config.objects.map(o=>[o.id,{hp:o.hp,disabled:false}])),clocks:Object.fromEntries(config.clocks.map(o=>[o.id,{value:0,stopped:false}])),phases:[],powers:Object.fromEntries(config.powers.map(p=>[p.id,p.max])),legendary:config.legendary,resistance:config.resistance,slots:config.slots.slice()}};
+  return {config, state:{resolved:0,pending:0,last:"",lastRound:0,used:{},effects:[],objects:Object.fromEntries(config.objects.map(o=>[o.id,{hp:o.hp,disabled:false}])),clocks:Object.fromEntries(config.clocks.map(o=>[o.id,{value:0,stopped:false}])),phases:[],powers:Object.fromEntries(config.powers.map(p=>[p.id,p.max])),legendary:config.legendary,resistance:config.resistance,slots:config.slots.slice()}};
 }
 function bossOwner(e) { const id=e.bossKit?.config.owner; return id ? e.enemies.find(m=>m.id===id) : null; }
 function bossCanAct(e) { const b=e.bossKit, m=bossOwner(e); return !b.config.owner || !!m && m.hp>0 && !(m.conds||[]).some(c=>["incapacitated","unconscious","paralyzed","petrified","stunned"].includes(c.k)); }
 function bossAvailable(e,a) { const b=e.bossKit,s=b.state,o=a.requires&&s.objects[a.requires]; return bossCanAct(e)&&(!a.requires||o&&o.hp>0&&!o.disabled)&&(!a.uses||(s.used[a.id]||0)<a.uses)&&(b.config.repeat||s.last!==a.id||s.lastRound!==s.pending-1); }
 function bossMark(e, round) { const b=e.bossKit; if(b&&b.config.actions.length&&round>0&&b.state.resolved<round&&!b.state.pending) b.state.pending=round; }
+function bossDependencies(e){const b=e.bossKit;if(!b)return;const s=b.state;for(const k of b.config.clocks){if((k.stopOnObjects||[]).some(id=>s.objects[id]&&(s.objects[id].disabled||s.objects[id].hp===0))||(k.stopOnClocks||[]).some(id=>{const c=b.config.clocks.find(x=>x.id===id);return c&&s.clocks[id]?.value>=c.max;}))s.clocks[k.id].stopped=true;}s.effects=(s.effects||[]).filter(f=>{const a=b.config.actions.find(x=>x.id===f.id);return a&&(!a.requires||s.objects[a.requires]?.hp>0&&!s.objects[a.requires]?.disabled);});}
 function bossPhase(e) { const b=e.bossKit,m=bossOwner(e); if(!b||!m||m.hp<=0)return; for(const p of b.config.phases) if(m.hp<=p.hp&&!b.state.phases.includes(p.id)) b.state.phases.push(p.id); }
 function bossOnTurn(c,e,prevTurn,prevRound) {
   const b=e.bossKit;if(!b)return;const s=b.state, cfg=b.config, round=e.round||0;
+  bossDependencies(e);
   if(round>prevRound&&prevRound>0) {
     for(const k of cfg.clocks){const v=s.clocks[k.id];if(k.auto&&!v.stopped)v.value=Math.min(k.max,v.value+1);}
     for(const p of cfg.powers)if(p.reset==="round")s.powers[p.id]=p.max;
@@ -47,7 +50,8 @@ function bossGate(c,e) {
 }
 function bossResolve(e,a) {
   const b=e.bossKit,s=b.state;if(!s.pending)throw Error("No pending lair turn.");
-  if(a){if(!bossAvailable(e,a))throw Error("This action is unavailable.");s.used[a.id]=(s.used[a.id]||0)+1;s.last=a.id;s.lastRound=s.pending;const m=bossOwner(e);if(a.heal&&m&&m.hp>0)m.hp=Math.min(m.max,m.hp+a.heal);}
+  s.effects=(s.effects||[]).filter(f=>f.end>s.pending);
+  if(a){if(!bossAvailable(e,a))throw Error("This action is unavailable.");s.used[a.id]=(s.used[a.id]||0)+1;s.last=a.id;s.lastRound=s.pending;const m=bossOwner(e);if(a.heal&&m&&m.hp>0)m.hp=Math.min(m.max,m.hp+a.heal);if(a.delay||a.duration)(s.effects||=([])).push({id:a.id,due:s.pending+(a.delay||0),end:s.pending+(a.delay||0)+(a.duration||0)});}
   s.resolved=s.pending;s.pending=0;
 }
 function bossSeed(e, ownerId) {
@@ -65,6 +69,7 @@ function bossPanel(c,e) {
   const cfg=b.config,s=b.state,m=bossOwner(e), btn=bossButton, txt=t=>'<p style="white-space:pre-wrap">'+esc(t)+'</p>', row=(t,buttons)=>'<div class="boss-row"><span>'+t+'</span><div>'+buttons+'</div></div>';
   let h='<section class="boss-panel"><h3>'+esc(cfg.name)+'</h3>'+row(esc(m?.name||"Environmental encounter"),btn("edit","Edit / import")+btn("export","Export")+btn("remove","Remove kit"))+
   '<h4>Lair · initiative '+cfg.initiative+'</h4><p role="status">'+(s.pending?'Resolve round '+s.pending+' before advancing.':s.resolved===e.round&&e.round?'Resolved this round.':'Waiting for initiative.')+'</p>';
+  for(const f of (s.effects||[])){const a=cfg.actions.find(x=>x.id===f.id);if(!a)continue;h+='<p class="boss-effect"><b>'+esc(a.name)+'</b> · '+(s.pending&&f.due===s.pending?'Resolve effect now':s.pending&&f.end<=s.pending?'Effect expires now':f.due>(e.round||0)?'Scheduled for round '+f.due:'Active until round '+f.end)+'</p>';}
   for(const a of cfg.actions) h+='<details><summary>'+esc(a.name)+(bossAvailable(e,a)?'':' · unavailable')+'</summary>'+txt(a.text)+btn("action","Use",a.id,!s.pending||!bossAvailable(e,a))+'</details>';
   if(s.pending)h+=btn("skip","Skip lair turn");
   if(cfg.legendary||cfg.resistance||cfg.slots.some(Boolean)||cfg.powers.length) h+='<h4>Boss resources</h4>';
@@ -81,12 +86,49 @@ function bossPanel(c,e) {
   if(cfg.regional)h+='<details><summary>Regional effects</summary>'+txt(cfg.regional)+'</details>';
   return h+'<p class="hint">Apply saves, damage, conditions and map effects using the existing fight and map tools. Resource controls record DM decisions; they do not cast spells.</p></section>';
 }
+/* Human-editable form; JSON remains a portable advanced representation. */
+const BOSS_EDIT_FIELDS={
+  actions:[["id","ID"],["name","Name"],["text","Rules","long"],["requires","Required object ID"],["uses","Uses (0 unlimited)","number"],["heal","Healing","number"],["delay","Delay (initiative counts)","number"],["duration","Duration (initiative counts)","number"]],
+  objects:[["id","ID"],["name","Name"],["ac","AC","number"],["hp","HP","number"],["threshold","Damage threshold","number"],["dc","Sabotage DC","number"],["immunities","Damage immunities"],["text","Rules / location","long"]],
+  clocks:[["id","ID"],["name","Name"],["max","Steps","number"],["auto","Advance at round end","check"],["stopOnObjects","Stop if object disabled/destroyed (comma-separated IDs)","array"],["stopOnClocks","Stop if clock completes (comma-separated IDs)","array"],["text","Outcome / rules","long"]],
+  phases:[["id","ID"],["name","Name"],["hp","Trigger HP","number"],["text","Phase rules","long"]],
+  powers:[["id","ID"],["name","Name"],["max","Uses","number"],["reset","Reset: turn, round or manual"],["text","Rules / recharge","long"]]
+};
+function bossEditField(key,label,type,value){
+  const attr=' data-boss-field="'+esc(key)+'"';
+  const ctl=type==="long"?'<textarea rows="3"'+attr+'>'+esc(value||"")+'</textarea>':type==="check"?'<input type="checkbox"'+attr+(value?' checked':'')+'>':'<input type="'+(type==="number"?"number":"text")+'"'+attr+' value="'+esc(type==="array"?(value||[]).join(", "):value??"")+'">';
+  return '<label>'+esc(label)+ctl+'</label>';
+}
+function bossEditHTML(cfg){
+  const field=(key,label,type)=>bossEditField(key,label,type,cfg[key]);
+  let h='<div class="boss-edit-grid">'+field("name","Encounter name")+field("initiative","Lair initiative","number")+field("repeat","Allow consecutive repeat","check")+field("legendary","Legendary actions","number")+field("resistance","Legendary resistance","number")+'</div><details><summary>Spell slots</summary><div class="boss-edit-grid">'+cfg.slots.map((n,i)=>bossEditField("slots."+i,"Level "+(i+1),"number",n)).join("")+'</div></details>';
+  for(const [list,fields] of Object.entries(BOSS_EDIT_FIELDS)){
+    h+='<details open><summary>'+esc(list[0].toUpperCase()+list.slice(1))+' ('+cfg[list].length+')</summary>';
+    cfg[list].forEach((x,i)=>{h+='<details><summary>'+esc(x.name||"New entry")+'</summary><div class="boss-edit-grid">'+fields.map(([k,label,type])=>bossEditField(list+"."+i+"."+k,label,type,x[k])).join("")+'</div>'+bossButton("delEntry","Remove",list+"."+i)+'</details>';});
+    h+=bossButton("addEntry","Add "+({actions:"action",objects:"object",clocks:"clock",phases:"phase",powers:"power"}[list]),list)+'</details>';
+  }
+  return h+field("regional","Regional effects / notes","long");
+}
 function bossEditor(c,e,ownerId) {
-  const config=e.bossKit?.config||bossSeed(e,ownerId), old=document.getElementById("bossConfigEditor");if(old)old.remove();
-  const d=document.createElement("dialog");d.id="bossConfigEditor";d.className="boss-editor";d.innerHTML='<h3>Boss &amp; lair configuration</h3><p>Choose a boss, edit the configuration, or load a boss-kit JSON. Saving resets the kit counters, not the encounter HP. Existing state can be undone.</p><label>Boss<select id="bossOwner"><option value="">Environmental encounter</option>'+e.enemies.map(m=>'<option value="'+esc(m.id)+'" '+(m.id===config.owner?'selected':'')+'>'+esc(m.name)+'</option>').join("")+'</select></label><label>Load JSON <input type="file" id="bossFile" accept=".json,application/json"></label><textarea id="bossJSON" rows="19" spellcheck="false" aria-label="Boss configuration JSON"></textarea><p class="hint">Objects, actions, clocks, phases and powers are arrays. Add an object ID to an action’s requires field to link it. See docs/features/boss-lair.md.</p><p id="bossError" role="alert"></p>'+bossButton("saveConfig","Save configuration")+bossButton("cancelConfig","Cancel");
-  document.body.append(d);d.querySelector("#bossJSON").value=JSON.stringify(config,null,2);
-  d.querySelector("#bossFile").addEventListener("change",async ev=>{try{const f=ev.target.files[0];if(!f)return;if(f.size>300000)throw Error("File too large.");const j=JSON.parse(await f.text());d.querySelector("#bossJSON").value=JSON.stringify(j,null,2);}catch(err){d.querySelector("#bossError").textContent=err.message;}});
-  d.addEventListener("click",ev=>{const a=ev.target.closest("[data-boss]")?.dataset.boss;if(a==="cancelConfig"){d.close();return;}if(a!=="saveConfig")return;try{if(curCamp()?.id!==c.id||findEnc(c,e.id)!==e)throw Error("Encounter changed; reopen the editor.");const raw=JSON.parse(d.querySelector("#bossJSON").value);raw.owner=d.querySelector("#bossOwner").value;const cfg=bossConfig(raw),before=combatSnapshot(e);e.bossKit=bossFresh(cfg);e.bossKit.state.resolved=Math.max(0,(e.round||1)-1);if(e.round)bossOnTurn(c,e,null,e.round);combatRecord(e,before,"Configured boss mechanics");Store.save(c);d.close();rerenderEnc(c,e);}catch(err){d.querySelector("#bossError").textContent=err.message;}});
+  let draft=JSON.parse(JSON.stringify(e.bossKit?.config||bossSeed(e,ownerId)));const old=document.getElementById("bossConfigEditor");if(old)old.remove();
+  const d=document.createElement("dialog");d.id="bossConfigEditor";d.className="boss-editor";d.innerHTML='<h3>Boss &amp; lair configuration</h3><p>Choose a boss and configure mechanics. Saving resets kit counters, not encounter HP; Undo can restore the previous kit.</p><label>Boss<select id="bossOwner"><option value="">Environmental encounter</option>'+e.enemies.map(m=>'<option value="'+esc(m.id)+'" '+(m.id===draft.owner?'selected':'')+'>'+esc(m.name)+'</option>').join("")+'</select></label><label>Load JSON <input type="file" id="bossFile" accept=".json,application/json"></label><div id="bossVisual"></div><details><summary>Advanced JSON</summary><textarea id="bossJSON" rows="12" spellcheck="false" aria-label="Boss configuration JSON"></textarea>'+bossButton("applyJSON","Apply JSON to form")+'</details><p id="bossError" role="alert"></p>'+bossButton("saveConfig","Save configuration")+bossButton("cancelConfig","Cancel");
+  document.body.append(d);const visual=d.querySelector("#bossVisual"),json=d.querySelector("#bossJSON"),error=d.querySelector("#bossError");
+  const refresh=()=>{visual.innerHTML=bossEditHTML(draft);json.value=JSON.stringify(draft,null,2);};
+  const apply=raw=>{draft=bossConfig(raw);draft.owner=d.querySelector("#bossOwner").value;refresh();error.textContent="";};
+  refresh();
+  d.addEventListener("input",ev=>{const el=ev.target,key=el.dataset.bossField;if(!key)return;const ks=key.split("."),last=ks.pop(),target=ks.reduce((o,k)=>o[k],draft);const old=target[last];target[last]=el.type==="checkbox"?el.checked:Array.isArray(old)?el.value.split(",").map(x=>x.trim()).filter(Boolean):el.type==="number"?el.value===""?"":+el.value:el.value;json.value=JSON.stringify(draft,null,2);});
+  d.querySelector("#bossFile").addEventListener("change",async ev=>{try{const f=ev.target.files[0];if(!f)return;if(f.size>300000)throw Error("File too large.");apply(JSON.parse(await f.text()));}catch(err){error.textContent=err.message;}});
+  d.addEventListener("click",ev=>{const el=ev.target.closest("[data-boss]"),a=el?.dataset.boss,id=el?.dataset.bid;
+    try{
+      if(a==="cancelConfig"){d.close();return;}
+      if(a==="applyJSON"){apply(JSON.parse(json.value));return;}
+      if(a==="addEntry"&&BOSS_EDIT_FIELDS[id]){const k=uid("boss");const defaults={actions:{id:k,name:"New action",text:"",requires:"",uses:0,heal:0,delay:0,duration:0},objects:{id:k,name:"New object",ac:15,hp:30,threshold:0,dc:0,immunities:"",text:""},clocks:{id:k,name:"New clock",max:6,auto:true,stopOnObjects:[],stopOnClocks:[],text:""},phases:{id:k,name:"New phase",hp:50,text:""},powers:{id:k,name:"New power",max:1,reset:"manual",text:""}};draft[id].push(defaults[id]);refresh();return;}
+      if(a==="delEntry"){const [list,i]=id.split(".");if(BOSS_EDIT_FIELDS[list]){draft[list].splice(+i,1);refresh();}return;}
+      if(a!=="saveConfig")return;
+      if(curCamp()?.id!==c.id||findEnc(c,e.id)!==e)throw Error("Encounter changed; reopen the editor.");
+      const raw=JSON.parse(json.value);raw.owner=d.querySelector("#bossOwner").value;const cfg=bossConfig(raw),before=combatSnapshot(e);e.bossKit=bossFresh(cfg);e.bossKit.state.resolved=Math.max(0,(e.round||1)-1);if(e.round)bossOnTurn(c,e,null,e.round);combatRecord(e,before,"Configured boss mechanics");Store.save(c);d.close();rerenderEnc(c,e);
+    }catch(err){error.textContent=err.message;}
+  });
   d.addEventListener("close",()=>d.remove());d.showModal();
 }
 document.addEventListener("click",ev=>{
@@ -112,6 +154,6 @@ document.addEventListener("click",ev=>{
     else if(a==="clockMinus"&&k)cl.value=Math.max(0,cl.value-1);
     else if(a==="clockStop"&&k)cl.stopped=!cl.stopped;
     else return;
-    combatRecord(e,before,"Boss: "+(cfg.actions.find(x=>x.id===id)?.name||o?.name||k?.name||p?.name||a));Store.save(c);rerenderEnc(c,e);
+    bossDependencies(e);combatRecord(e,before,"Boss: "+(cfg.actions.find(x=>x.id===id)?.name||o?.name||k?.name||p?.name||a));Store.save(c);rerenderEnc(c,e);
   }catch(err){toast(err.message);}
 });

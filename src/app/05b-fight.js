@@ -111,7 +111,7 @@ function fightReset(c, e) {
 
 /* ---- what's filled in for you: the caster's DC and spells, and the spell's save, condition, timing and concentration ---- */
 function fightMonster(m) {
-  for (const ed of ["2024", "2014"]) { const x = (dmData("monsterData")[ed] || []).find(y => y.n === m.stat); if (x) return { mon: x, ed }; }
+  for (const ed of [fightEd(), fightEd()==="2014"?"2024":"2014"]) { const x = (dmData("monsterData")[ed] || []).find(y => y.n === m.stat); if (x) return { mon: x, ed }; }
   try { bsLoad(); const x = (BS.data.custom || []).find(y => y.n === m.stat); if (x) return { mon: x, ed: "custom" }; } catch (err) { }
   return null;
 }
