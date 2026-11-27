@@ -453,6 +453,22 @@ const { chromium } = require("playwright");
     assert.ok(storedItemAudit.created.startsWith("Stored")&&storedItemAudit.cast.includes("Cure Wounds"));
     assert.equal(storedItemAudit.max,Math.max(2,2*storedItemAudit.int));assert.deepEqual([storedItemAudit.after,storedItemAudit.rested,storedItemAudit.reset,storedItemAudit.removed,storedItemAudit.below],[1,1,0,true,0]);
     assert.deepEqual(storedItemAudit.rules,[true,false,true,false]);
+    const channelAudit=await page.evaluate(()=>{
+      const make=ed=>pcEnsure(generateCharacter({seed:"CHANNEL-MULTI",ed,cls:"Cleric",level:6,race:"Human",bg:"Sage",subclass:"none",multi:[{cls:"Paladin",lv:4,subclass:"none"}]}));
+      const old=make("2014"),now=make("2024");
+      // Explicitly verify the test fixture contains both classes before exercising resources.
+      const levels=[clsLv(old,"Cleric"),clsLv(old,"Paladin"),clsLv(now,"Cleric"),clsLv(now,"Paladin")];
+      const pools=c=>pcResources(c).filter(r=>r.key.startsWith("channel")).map(r=>[r.key,r.max,r.recharge]);
+      now.used={channel:1};const revised=pools(now),migrated=[now.used.channelCleric,now.used.channelPaladin];
+      const names=pcAbilities(now).filter(x=>x.name.startsWith("Channel Divinity (")).map(x=>[x.name,x.res]);
+      actRun(now,"Channel Divinity (Cleric)","turn");const spent=[now.used.channelCleric,now.used.channelPaladin];pcRest(now,"short");const rested=[now.used.channelCleric,now.used.channelPaladin];
+      return {levels,legacy:pools(old),revised,migrated,names,spent,rested};
+    });
+    assert.deepEqual(channelAudit.levels,[6,4,6,4]);
+    assert.deepEqual(channelAudit.legacy,[["channel",2,"short"]]);
+    assert.deepEqual(channelAudit.revised,[["channelCleric",3,"short1"],["channelPaladin",2,"short1"]]);
+    assert.deepEqual(channelAudit.migrated,[1,1]);assert.deepEqual(channelAudit.spent,[2,1]);assert.deepEqual(channelAudit.rested,[1,0]);
+    assert.deepEqual(channelAudit.names,[["Channel Divinity (Cleric)","channelCleric"],["Channel Divinity (Paladin)","channelPaladin"]]);
     const expansion = await page.evaluate(() => {
       const subclasses = hbBook("subclass").filter(x => ["tce", "xge"].includes(x.src));
       const armorer = generateCharacter({ seed: "ARMOR", ed: "2014", cls: "Artificer", subclass: "Armorer", level: 5 });

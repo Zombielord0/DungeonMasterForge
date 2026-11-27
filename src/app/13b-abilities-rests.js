@@ -2,6 +2,31 @@
 
 /* ---- limited-use resources (ki, rages, slots, hit dice…), the Abilities list, and rests ---- */
 // recharge: "long" = back on a long rest; "short" = all back on a short rest; "short1" = one back on a short rest (2024 rules)
+function channelDivinityPools(ed,cleric,paladin){
+  const C=cleric>=2?(ed==="2024"?(cleric>=18?4:cleric>=6?3:2):(cleric>=18?3:cleric>=6?2:1)):0;
+  const P=paladin>=3?(ed==="2024"?(paladin>=11?3:2):1):0;
+  if(!C&&!P)return [];
+  if(ed==="2014"||!C||!P)return [{key:"channel",name:"Channel Divinity",max:Math.max(C,P),recharge:ed==="2024"?"short1":"short"}];
+  return [{key:"channelCleric",name:"Cleric Channel Divinity",max:C,recharge:"short1"},{key:"channelPaladin",name:"Paladin Channel Divinity",max:P,recharge:"short1"}];
+}
+function channelKey(c,cls){
+  return edOf(c)==="2024"&&clsLv(c,"Cleric")>=2&&clsLv(c,"Paladin")>=3?(cls==="Paladin"?"channelPaladin":"channelCleric"):"channel";
+}
+function channelPoolsForCharacter(c){
+  const R=channelDivinityPools(edOf(c),clsLv(c,"Cleric"),clsLv(c,"Paladin"));
+  // Migrate the ambiguous historical counter conservatively. Never grant free
+  // uses by guessing which class spent them; a DM can correct the counters.
+  if(R.length===2&&c.used&&Object.hasOwn(c.used,"channel")){
+    const spent=Math.max(0,+c.used.channel||0);
+    for(const r of R)if(!Object.hasOwn(c.used,r.key))c.used[r.key]=Math.min(spent,r.max);
+    delete c.used.channel;
+  }else if(R.length===1&&c.used&&R[0].key==="channel"&&(Object.hasOwn(c.used,"channelCleric")||Object.hasOwn(c.used,"channelPaladin"))){
+    const spent=edOf(c)==="2024"?clsLv(c,"Cleric")>=2?c.used.channelCleric:c.used.channelPaladin:Math.max(+c.used.channelCleric||0,+c.used.channelPaladin||0);
+    if(!Object.hasOwn(c.used,"channel"))c.used.channel=Math.max(0,Math.min(R[0].max,+spent||0));
+    delete c.used.channelCleric;delete c.used.channelPaladin;
+  }
+  return R;
+}
 function pcResources(c) {
   const ed = edOf(c), lv = c.level, m = c.mods, prof = c.prof, has = n => (c.feats || []).some(f => f.f === n), tr = n => (c.traits || []).includes(n); const CLV = k => classFeatureLevel(c, k), TLV = totalLv(c);
   const R = [], add = (key, name, max, recharge) => R.push({ key, name, max, recharge });
@@ -26,8 +51,7 @@ function pcResources(c) {
   }
   if (has("Rage")) add("rage", "Rages", ed === "2014" && CLV("Barbarian") >= 20 ? Infinity : CLV("Barbarian") >= 17 ? 6 : CLV("Barbarian") >= 12 ? 5 : CLV("Barbarian") >= 6 ? 4 : CLV("Barbarian") >= 3 ? 3 : 2, ed === "2024" ? "short1" : "long");
   if (has("Bardic Inspiration")) add("bardic", "Bardic Inspiration", Math.max(1, m.cha), CLV("Bard") >= 5 ? "short" : "long");
-  if (has("Channel Divinity") && (CLV("Cleric") || CLV("Paladin") < 3)) add("channel", "Channel Divinity", ed === "2024" ? (CLV("Cleric") >= 18 ? 4 : CLV("Cleric") >= 6 ? 3 : 2) : (CLV("Cleric") >= 18 ? 3 : CLV("Cleric") >= 6 ? 2 : 1), ed === "2024" ? "short1" : "short");
-  if (CLV("Paladin") >= 3) add("channel", "Channel Divinity", ed === "2024" ? (CLV("Paladin") >= 11 ? 3 : 2) : 1, ed === "2024" ? "short1" : "short");
+  for(const r of channelPoolsForCharacter(c))R.push(r);
   if (has("Wild Shape")) add("wild", "Wild Shape", ed === "2014" && CLV("Druid") >= 20 ? Infinity : ed === "2024" ? (CLV("Druid") >= 17 ? 4 : CLV("Druid") >= 6 ? 3 : 2) : 2, ed === "2024" ? "short1" : "short");
   if (has("Second Wind")) add("wind", "Second Wind", ed === "2024" ? (CLV("Fighter") >= 10 ? 4 : CLV("Fighter") >= 4 ? 3 : 2) : 1, ed === "2024" ? "short1" : "short");
   if (has("Action Surge")) add("surge", "Action Surge", CLV("Fighter") >= 17 ? 2 : 1, "short");
@@ -92,8 +116,9 @@ function pcAbilities(c) {
   const ea = has("Extra Attack (3)") ? 4 : has("Extra Attack (2)") ? 3 : has("Extra Attack") ? 2 : 0;
   if (ea) add("Extra Attack", "Action", `Make ${ea} attacks when you take the Attack action.`);
   if (has("Bardic Inspiration")) add("Bardic Inspiration", "Bonus action", `Give a creature within 60 ft a d${CLV("Bard") >= 15 ? 12 : CLV("Bard") >= 10 ? 10 : CLV("Bard") >= 5 ? 8 : 6} to add to one attack, check or save.`, "bardic");
-  if (has("Channel Divinity") && (CLV("Cleric") || CLV("Paladin") < 3)) add("Channel Divinity", "Action", `Turn Undead: undead within 30 ft make a WIS save (DC ${wisDC}) or are turned for 1 minute.${ed === "2024" ? ` Divine Spark: heal, or deal radiant or necrotic damage (CON save), ${CLV("Cleric") >= 18 ? 4 : CLV("Cleric") >= 13 ? 3 : CLV("Cleric") >= 7 ? 2 : 1}d8 + ${m.wis}.` : ""} Your domain adds more options.`, "channel");
-  if (CLV("Paladin") >= 3) add("Channel Divinity", "Action", `Use one of your Sacred Oath's Channel Divinity options${ed === "2024" ? ", or Divine Sense" : ""}.`, "channel");
+  const dualChannel=CLV("Cleric")>=2&&CLV("Paladin")>=3;
+  if(CLV("Cleric")>=2)add(dualChannel?"Channel Divinity (Cleric)":"Channel Divinity","Magic action",`Turn Undead: undead within 30 ft make a WIS save (DC ${wisDC}).${ed==="2024"?` Divine Spark: heal or deal radiant/necrotic damage, ${CLV("Cleric")>=18?4:CLV("Cleric")>=13?3:CLV("Cleric")>=7?2:1}d8 + ${m.wis}.`:""} Your domain adds more options.`,channelKey(c,"Cleric"));
+  if(CLV("Paladin")>=3)add(dualChannel?"Channel Divinity (Paladin)":"Channel Divinity","Action",`Use an oath option${ed==="2024"?", Divine Sense"+(CLV("Paladin")>=9?" or Abjure Foes":""):""}.`,channelKey(c,"Paladin"));
   if (has("Wild Shape")) add("Wild Shape", ed === "2024" ? "Bonus action" : "Action", (L => `Turn into a beast up to CR ${crText(L.cr)}${L.noFly && L.noSwim ? " (no flying or swimming)" : L.noFly ? " (no flying)" : ""} for ${Math.max(1, Math.floor(CLV("Druid") / 2))} hour${CLV("Druid") >= 4 ? "s" : ""}. Pick the beast, then Activate.`)(wildShapeLimit(c)), "wild");
   if (has("Second Wind")) add("Second Wind", "Bonus action", `Regain 1d10 + ${CLV("Fighter")} hit points.`, "wind");
   if (has("Action Surge")) add("Action Surge", "Free", ed==="2024"?"Take one additional action on your turn, except the Magic action.":"Take one additional action on your turn.", "surge");
@@ -152,7 +177,7 @@ function pcAbilities(c) {
   if (c.race === "Dragonborn") { const x = (c.extras || []).find(e => e.startsWith("Breath Weapon")); if (x) add("Breath Weapon", ed === "2024" ? "Replaces an attack" : "Action", x.replace(/^Breath Weapon \([^)]*\):\s*/, "").replace(/, (\d+ uses per long rest|once per short or long rest)$/, ""), "breath"); }
   if (tr("Healing Hands")) add("Healing Hands", "Action", `Touch a creature and heal ${prof}d4 hit points.`, "hhands");
   if (tr("Relentless Endurance")) add("Relentless Endurance", "When reduced to 0 HP", "Drop to 1 hit point instead.", "relent");
-  (c.feats || []).filter(f => f.bookSub ? !!(SUB_ABL[f.f] && SUB_ABL[f.f].text) : (f.sub || f.mcsub) && (SUB_ABL[f.f] || (ACT[f.f] && ACT[f.f].kind !== "none"))).forEach(f => { const S = SUB_ABL[f.f] || { when: ACT[f.f].kind === "persist" ? "Your choice" : ACT[f.f].kind === "toggle" ? "Activated" : "Use" }; add(f.f, S.when, S.text ? S.text(c) : subFeatDesc(f.f, c), S.res ? subAblKey(f.f) : S.uses, f.mcsub || c.subclass); });
+  (c.feats || []).filter(f => f.bookSub ? !!(SUB_ABL[f.f] && SUB_ABL[f.f].text) : (f.sub || f.mcsub) && (SUB_ABL[f.f] || (ACT[f.f] && ACT[f.f].kind !== "none"))).forEach(f => { const S = SUB_ABL[f.f] || { when: ACT[f.f].kind === "persist" ? "Your choice" : ACT[f.f].kind === "toggle" ? "Activated" : "Use" }; add(f.f, S.when, S.text ? S.text(c) : subFeatDesc(f.f, c), S.res ? subAblKey(f.f) : S.uses==="channel"?channelKey(c,f.mc||c.cls):S.uses, f.mcsub || c.subclass); });
   if (tr("Large Form") && TLV >= 5) add("Large Form", "Bonus action", "Become Large for 10 minutes: advantage on Strength checks and +10 ft speed.", "large");
   if (tr("Draconic Flight") && TLV >= 5) add("Draconic Flight", "Bonus action", "Spectral wings for 10 minutes: fly at your walking speed.", "dflight");
   if (tr("Adrenaline Rush")) add("Adrenaline Rush", "Bonus action", `Dash, and gain ${prof} temporary hit points.`, "adren");
@@ -357,6 +382,17 @@ function artificerStore(c,name){
   c.artificerStored={ed:edOf(c),name,iid,max};c.used=c.used||{};c.used.artificerStored=0;
   return "Stored "+name+" in the selected object with "+max+" uses. Previous storage ends. Confirm the object and Long Rest eligibility.";
 }
+function channelDivinityAction(owner){
+  return {kind:"instant",choices:c=>owner(c)==="Paladin"?[["oath","Oath option"],...(edOf(c)==="2024"?[["sense","Divine Sense"],...(clsLv(c,"Paladin")>=9?[["abjure","Abjure Foes"]]:[])]:[])]:[["turn","Turn Undead"],...(edOf(c)==="2024"?[["spark","Divine Spark"]]:[])],
+    use:(c,ch)=>{
+      const lv=clsLv(c,"Cleric"),wis=8+c.prof+c.mods.wis,cha=8+c.prof+c.mods.cha;
+      if(ch==="spark")return roll("Divine Spark",`${lv>=18?4:lv>=13?3:lv>=7?2:1}d8${sgn(c.mods.wis)}`,"either",`Heal a creature or deal Radiant or Necrotic damage (CON save DC ${wis} for half).`,true);
+      if(ch==="turn")return edOf(c)==="2024"?`Turn Undead: visible Undead within 30 feet make a WIS save DC ${wis}. On failure Frightened and Incapacitated for 1 minute; try to move away. Effect ends on damage, your Incapacitation or death.${lv>=5?" Sear Undead: roll "+Math.max(1,c.mods.wis)+"d8 Radiant damage for each failed save; this damage does not end the turning.":""}`:`Turn Undead: undead within 30 ft that can see or hear you make a WIS save DC ${wis} or are turned for 1 minute or until damaged.`;
+      if(ch==="sense")return "Divine Sense: sense Celestials, Fiends and Undead within 60 ft for 10 minutes or until Incapacitated.";
+      if(ch==="abjure")return `Abjure Foes: choose up to ${Math.max(1,c.mods.cha)} visible creatures within 60 ft. WIS save DC ${cha}; on failure Frightened for 1 minute or until damaged, limited to one of move, action or Bonus Action each turn.`;
+      return "Channel Divinity: use your oath's option.";
+    }};
+}
 const ACT = {
   "Store spell in item":{kind:"instant",choices:artificerStoreOptions,use:artificerStore},
   "Spell-Storing Item":{kind:"instant",use:c=>{const x=artificerStoredSpell(c);return x?x.item.n+" produces "+x.spell.n+" at its base level (Artificer Intelligence; DC "+(8+c.prof+c.mods.int)+", spell attack "+sgn(c.prof+c.mods.int)+"). The holder maintains Concentration if required. Resolve the effects manually.":"No eligible stored spell.";}},
@@ -399,8 +435,9 @@ const ACT = {
   "Mantle of Majesty": { kind: "toggle", fx: () => ({ notes: ["Mantle of Majesty: cast command as a bonus action each turn (concentration, 1 minute)"] }) },
   "Unbreakable Majesty": { kind: "toggle", fx: () => ({ notes: ["Unbreakable Majesty: a creature that attacks you must make a CHA save or pick a new target"] }) },
   // ---------- Cleric
-  "Channel Divinity": { kind: "instant", choices: c => c.cls === "Paladin" ? [["oath", "Oath option"], ...(edOf(c) === "2024" ? [["sense", "Divine Sense"]] : [])] : [["turn", "Turn Undead"], ...(edOf(c) === "2024" ? [["spark", "Divine Spark"]] : [])],
-    use: (c, ch) => ch === "spark" ? roll("Divine Spark", `${c.level >= 18 ? 4 : c.level >= 13 ? 3 : c.level >= 7 ? 2 : 1}d8${sgn(c.mods.wis)}`, "either", `Heal a creature, or deal radiant or necrotic damage (CON save DC ${8 + c.prof + c.mods.wis} for half)`, true) : ch === "turn" ? `Turn Undead: undead within 30 ft make a WIS save (DC ${8 + c.prof + c.mods.wis}) or are turned for 1 minute.` : ch === "sense" ? "Divine Sense: sense celestials, fiends and undead within 60 ft for 10 minutes." : "Channel Divinity: use your oath's option." },
+  "Channel Divinity": channelDivinityAction(c=>clsLv(c,"Cleric")>=2?"Cleric":"Paladin"),
+  "Channel Divinity (Cleric)":channelDivinityAction(()=>"Cleric"),
+  "Channel Divinity (Paladin)":channelDivinityAction(()=>"Paladin"),
   "Warding Flare": { kind: "instant", use: () => "Warding Flare: impose disadvantage on that attack roll." },
   "Wrath of the Storm": { kind: "instant", use: c => roll("Wrath of the Storm", "2d8", "damage", `Lightning or thunder damage to the attacker (DEX save DC ${8 + c.prof + c.mods.wis} for half)`, true) },
   "War Priest": { kind: "instant", use: () => "War Priest: make one weapon attack as a bonus action." },
