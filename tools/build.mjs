@@ -25,6 +25,7 @@ import vm from "node:vm";
 import { joinSummaries, joinSrdItems } from "./ref-summaries.mjs";
 import { appendReferenceSpells, validateRecoveryManifest, applyRecoveredContent } from "./recovered-content.mjs";
 import { validateSrdSpellLinks, fillSrdSpellReferences, joinSrdSpellReferences } from "./ref-srd-spells.mjs";
+import { recoveryCoverage } from "./recovery-coverage.mjs";
 
 if (process.env.DMFORGE_BUILT === "1") process.exit(0); // npm run test:all builds once, then skips this in each check
 
@@ -69,6 +70,7 @@ const bookReferences = JSON.parse(read("data/book-references.json"));
 const sourceBooks = JSON.parse(read("data/extra-books.json")).books;
 const approvedRecovery = validateRecoveryManifest(JSON.parse(read("data/recovered-content.json")), sourceBooks);
 const srdSpellLinks = validateSrdSpellLinks(JSON.parse(read("data/reference-srd-spells.json")), bookReferences, JSON.parse(read("data/spells.json")));
+const emittedCatalogs = {};
 for (const [name, key] of [["spells", "spellData"], ["monsters", "monsterData"], ["items", "itemData"],
   ["extra-spells", "spellExtra"], ["extra-monsters", "monsterExtra"], ["extra-items", "itemExtra"], ["extra-options", "optionExtra"], ["extra-books", "bookData"], ["book-references", "bookReferences"]]) {
   // stored as text, so the app turns it into objects only when a tab needs it (dmData in src/app/01-core.js)
@@ -115,10 +117,13 @@ for (const [name, key] of [["spells", "spellData"], ["monsters", "monsterData"],
   } else {
     emitCatalog(name, key, data);
   }
+  emittedCatalogs[name] = data;
   if (name === "extra-monsters") {
     emitCatalog("monster-index", "monsterIndex", data.map(({ n, src, ed }) => [n, src, ed || null]), name);
   }
 }
+// Coverage report contains only existing public reference metadata, never private recovery payloads.
+writeFileSync(at("public/compendium-coverage.json"), JSON.stringify(recoveryCoverage(emittedCatalogs["book-references"], emittedCatalogs), null, 2));
 // the credits page for the extra books (each book's notice and licence, and the Open Game License text)
 {
   const { books, ogl } = JSON.parse(read("data/extra-books.json"));
