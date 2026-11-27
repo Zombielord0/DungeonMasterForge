@@ -9254,7 +9254,7 @@
       {
         "l": 3,
         "n": "Winter Walker Spells",
-        "d": "Spells: Ice Knife, Hold Person, Remove Curse, Ice Storm, Cone of Cold. See the sourcebook for complete rules."
+        "d": "Always-prepared Ranger spells by Ranger level: 3—Ice Knife; 5—Hold Person; 9—Remove Curse; 13—Ice Storm; 17—Cone of Cold."
       },
       {
         "l": 7,
@@ -9272,7 +9272,13 @@
         "d": "Take on a ghostly snow form and punish nearby enemies with a blizzard."
       }
     ],
-    "page": 21
+    "page": 21,
+    "featureSourceReview": {
+      "status": "secondary_mechanics_candidate",
+      "reference": "https://dnd2024.wikidot.com/ranger:winter-walker",
+      "primaryVerified": false,
+      "runtimeVerified": false
+    }
   },
   {
     "id": "reference-hof-scion-of-the-three",
@@ -9332,17 +9338,17 @@
       {
         "l": 3,
         "n": "Bolstering Flames",
-        "d": "Dice: 1d4. Distances: 30 feet. See the sourcebook for complete rules."
+        "d": "As the selected Spellfire Burst effect, grant yourself or a visible creature within 30 feet temporary HP of 1d4 + Charisma modifier."
       },
       {
         "l": 3,
         "n": "Radiant Fire",
-        "d": "Dice: 1d4. Distances: 30 feet. See the sourcebook for complete rules."
+        "d": "As the selected Spellfire Burst effect, deal 1d4 Fire or Radiant damage (your choice) to one visible creature within 30 feet."
       },
       {
         "l": 3,
         "n": "Spellfire Burst",
-        "d": "Actions: Magic. See the sourcebook for complete rules."
+        "d": "Once per turn, after spending at least one Sorcery Point as part of a Magic action or Bonus Action on your turn, choose Bolstering Flames or Radiant Fire."
       },
       {
         "l": 3,
@@ -9352,20 +9358,26 @@
       {
         "l": 6,
         "n": "Absorb Spells",
-        "d": "Dice: 1d4. Spells: Counterspell. See the sourcebook for complete rules."
+        "d": "Counterspell is always prepared. If a target fails its saving throw against your Counterspell, recover 1d4 Sorcery Points, subject to your normal maximum."
       },
       {
         "l": 14,
         "n": "Honed Spellfire",
-        "d": "Dice: 1d8. See the sourcebook for complete rules."
+        "d": "Bolstering Flames additionally grants temporary HP equal to Sorcerer level. Radiant Fire's damage die becomes 1d8."
       },
       {
         "l": 18,
         "n": "Crown of Spellfire",
-        "d": "Conditions: Incapacitated. Distances: 60 feet. See the sourcebook for complete rules."
+        "d": "Optionally augment Innate Sorcery when activating it; benefits last for that activation. Once per Long Rest, with additional uses restored by spending 5 Sorcery Points without an action. Once per turn when hit by an attack, spend and roll up to your Charisma modifier in Hit Dice (minimum one) to reduce damage by their sum. Gain 60-foot Fly Speed and hover. For spells or magical effects allowing a save for half damage, instead take none on success and half on failure, unless Incapacitated."
       }
     ],
-    "page": 24
+    "page": 24,
+    "featureSourceReview": {
+      "status": "secondary_mechanics_candidate",
+      "reference": "https://dnd2024.wikidot.com/sorcerer:spellfire-sorcery",
+      "primaryVerified": false,
+      "runtimeVerified": false
+    }
   },
   {
     "id": "reference-hof-bladesinger",
