@@ -333,6 +333,26 @@ const { chromium } = require("playwright");
     await page.reload();
     await page.waitForFunction(() => PCS.roster.some(c => c.name === "Model Tester"));
     assert.deepEqual(await page.evaluate(() => choiceOf(PCS.roster.find(c => c.name === "Model Tester"), "Armor Model")), ["Infiltrator"]);
+    const dragonAudit=await page.evaluate(()=>{
+      const sp=spellOf("2024","Summon Dragon");
+      const rows=[5,6,7,8,9].map(l=>summonSpiritStats(sp,"2024",l,"Dragon"));
+      const html=summonSpiritHTML(sp,"2024",7,{atk:8,dc:16});
+      const legacy=summonSpiritHTML(sp,"2014",7,{atk:8,dc:16});
+      const foreign=summonSpiritHTML({...sp,src:"third-party"},"2024",7);
+      const homebrew=summonSpiritHTML({...sp,hb:true},"2024",7);
+      const invalid=[4,10,6.5].map(l=>summonSpiritStats(sp,"2024",l,"Dragon"));
+      return {rows,html,legacy,foreign,homebrew,invalid,higher:summonHigherRules(sp,"2024")};
+    });
+    assert.deepEqual(dragonAudit.rows.map(x=>[x.ac,x.hp,x.attacks,x.rendDamage,x.breathUses,x.breathDamage]),[
+      [19,50,2,"1d6+9",1,"2d6"],[20,60,3,"1d6+10",1,"2d6"],[21,70,3,"1d6+11",1,"2d6"],[22,80,4,"1d6+12",1,"2d6"],[23,90,4,"1d6+13",1,"2d6"]
+    ]);
+    assert.match(dragonAudit.html,/Draconic Spirit/);assert.match(dragonAudit.html,/AC 21 · HP 70/);
+    assert.match(dragonAudit.html,/Spell attack \+8 · Save DC 16/);
+    assert.match(dragonAudit.html,/Acid, Cold, Fire, Lightning, Poison/);
+    assert.match(dragonAudit.html,/30-foot cone/);assert.match(dragonAudit.html,/SRD 5\.2\.1, p\. 166/);
+    assert.deepEqual(dragonAudit.invalid,[null,null,null]);
+    assert.equal(dragonAudit.legacy+dragonAudit.foreign+dragonAudit.homebrew,"");
+    assert.doesNotMatch(dragonAudit.higher,/MOD SAVE/);
     const summon = await page.evaluate(() => {
       const spell = spellOf("2024", "Summon Celestial");
       return summonSpiritHTML(spell, "2024", 7, { atk: 8, dc: 16 });

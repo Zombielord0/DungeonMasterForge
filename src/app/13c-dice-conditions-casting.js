@@ -269,6 +269,8 @@ function castSlotLevel(c, sp, how, ed = edOf(c)) {
 }
 function castPreview(c, sp, how, ed = edOf(c)) {
   const P = spellTweak(c, sp, spellPlan(sp)), K = spellCaster(c, sp, how, ed), slot = castSlotLevel(c, sp, how, ed), up = Math.max(0, slot - sp.l);
+  const spirit=summonSpiritDefinition(sp,ed);
+  if(spirit&&!spellManualResolution(sp))return `At ${ordinal(slot)}: summon ${spirit.name}; resolve its stat block and attacks after casting${sp.co?" · needs concentration":""}.`;
   const count = P.count + (P.countPer ? up : 0), parts = [];
   if (spellManualResolution(sp) && sp.sv) parts.push(`${sp.sv.toUpperCase()} save DC ${K.dc}`);
   if (spellManualResolution(sp) && sp.at) parts.push(`Spell attack ${sgn(K.atk)}`);
@@ -298,9 +300,10 @@ function castDialog(c, ed, name, o = {}) {
   const sp = spellOf(ed, name); if (!sp) { toast("That spell isn't in the spell list"); return; }
   ACTX.c = c; ACTX.cast = { ed, name };
   const stats = [["Casting time", sp.t], ["Range", sp.r], ["Components", [sp.cp, sp.m ? `(${sp.m})` : ""].filter(Boolean).join(" ")], ["Duration", `${sp.co ? "Concentration, " : ""}${sp.du || ""}`]].filter(([, v]) => v);
+  const higher=summonHigherRules(sp,ed);
   const rules = `<div class="spell-rules"><p class="muted" style="margin:2px 0 8px">${sp.l ? ordinal(sp.l) : "Cantrip"} · ${esc(String(sp.s || "").toLowerCase())}${sp.ri ? " · ritual" : ""}</p>
     <div class="sp-stats">${stats.map(([k, v]) => `<div><span>${esc(k)}</span>${esc(v)}</div>`).join("")}</div>
-    <div class="spell-desc">${spFormat(sp.d || "")}${sp.h ? `<p><b>At higher levels.</b> ${esc(sp.h)}</p>` : ""}</div></div>`;
+    <div class="spell-desc">${spFormat(sp.d || "")}${higher ? `<p><b>At higher levels.</b> ${esc(higher)}</p>` : ""}${summonSpiritHTML(sp,ed)}</div></div>`;
   let cast = "";
   if (spellCastBlocked(c, sp, ed)) cast = '<p class="hint">This spell is reference only or not available to this character. Complete rules or DM approval are required before casting.</p><button class="btn" type="button" data-actclose>Close</button>';
   else if (o.view || c.armorUntrained) cast = `<p class="hint" style="margin:10px 0 0">${esc(c.armorUntrained ? ARMOR_CASTING_WARNING : "Save the character to cast this and track spell slots.")}</p><div class="row" style="justify-content:flex-end;margin-top:12px"><button class="btn" type="button" data-actclose style="flex:0 0 auto">Close</button></div>`;

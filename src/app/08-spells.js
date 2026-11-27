@@ -109,12 +109,13 @@ function spFormat(text) {
 }
 function spDetail(s, { edition = SP.ed, actions = true } = {}) {
   const comps = s.cp.split("").join(", ") + (s.m ? ` (${s.m})` : "");
+  const higher=summonHigherRules(s,edition);
   return `<div class="sp-detail">
     <div class="muted"><i>${s.l ? `Level ${s.l} ${esc(s.s)}` : `${esc(s.s)} cantrip`}${s.ri ? " (ritual)" : ""}${s.c.length ? ` · ${esc(s.c.join(", "))}` : ""}</i></div>
     <div class="sp-stats"><div><span>Casting time</span>${esc(s.t)}${s.ri ? " or ritual" : ""}</div><div><span>Range</span>${esc(s.r)}</div><div><span>Components</span>${esc(comps)}</div><div><span>Duration</span>${s.co && !/concentration/i.test(s.du) ? "Concentration, " : ""}${esc(s.du)}</div></div>
     ${s.srdSpell ? `<p class="hint">Full rules from SRD 5.1 (called ${esc(s.srdSpell)} there).</p>` : ""}
     ${spFormat(s.d)}
-    ${s.h ? `<p><b><i>${edition === "2024" ? "Using a Higher-Level Spell Slot." : "At Higher Levels."}</i></b> ${spFormat(s.h).replace(/^<p>|<\/p>$/g, "")}</p>` : ""}
+    ${higher ? `<p><b><i>${edition === "2024" ? "Using a Higher-Level Spell Slot." : "At Higher Levels."}</i></b> ${spFormat(higher).replace(/^<p>|<\/p>$/g, "")}</p>` : ""}
     ${summonSpiritHTML(s, edition)}
     ${bookLine(s)}
     ${actions ? `<div class="actions"><button class="btn sm" data-sp="copy" data-id="${s.id}">Copy spell</button><button class="btn sm" data-sp="fav" data-id="${s.id}">${favs.has(favKey(s)) ? "★ Remove favorite" : "☆ Add favorite"}</button>${spPrepBtn(s)}</div>` : ""}
