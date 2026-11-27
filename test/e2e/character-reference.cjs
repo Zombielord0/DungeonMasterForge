@@ -611,6 +611,25 @@ const { chromium } = require("playwright");
     });
     assert.ok(recoveredSubclassAudit.rows.every(x=>x[1]===x[4]&&x[2]&&x[3]));
     assert.equal(recoveredSubclassAudit.temp,Math.max(1,recoveredSubclassAudit.expected));assert.deepEqual([recoveredSubclassAudit.hp,recoveredSubclassAudit.used,recoveredSubclassAudit.damage,recoveredSubclassAudit.grant,recoveredSubclassAudit.ab],[1,5,"damage",true,"wis"]);
+    const battleMasterAudit=await page.evaluate(()=>{
+      const make=ed=>pcEnsure(generateCharacter({seed:"MANEUVER-AUDIT",ed,cls:"Wizard",level:2,race:"Human",bg:"Sage",subclass:"none",multi:[{cls:"Fighter",lv:10,subclass:"Battle Master"}]}));
+      const run=ed=>{
+        const c=make(ed),key=subAblKey("Combat Superiority");c.choices={"Combat Superiority":[]};c.used={};
+        const empty=actChoices(c,ACT["Combat Superiority"]).length,blocked=actRun(c,"Combat Superiority","trip"),before=c.used[key]||0;
+        c.choices["Combat Superiority"]=["trip","parry","rally","precision","ambush","riposte"];
+        const choices=actChoices(c,ACT["Combat Superiority"]).map(x=>x[0]);
+        const unselected=actRun(c,"Combat Superiority","disarm"),afterBlocked=c.used[key]||0;
+        const parry=actRun(c,"Combat Superiority","parry"),rally=actRun(c,"Combat Superiority","rally"),precision=actRun(c,"Combat Superiority","precision"),trip=actRun(c,"Combat Superiority","trip"),riposte=actRun(c,"Combat Superiority","riposte");
+        return {empty,blocked,before,choices,unselected,afterBlocked,parry:typeof parry,rally:rally.kind,precision:typeof precision,trip:trip.kind,riposte:typeof riposte,used:c.used[key]};
+      };
+      return {legacy:run("2014"),revised:run("2024")};
+    });
+    for(const result of Object.values(battleMasterAudit)){
+      assert.equal(result.empty,0);assert.match(result.blocked,/No eligible/);assert.equal(result.before,0);
+      assert.match(result.unselected,/unavailable/);assert.equal(result.afterBlocked,0);
+      assert.deepEqual([result.parry,result.rally,result.precision,result.trip,result.riposte,result.used],["string","temp","string","damage","string",5]);
+    }
+    assert.equal(battleMasterAudit.legacy.choices.includes("ambush"),false);assert.equal(battleMasterAudit.revised.choices.includes("ambush"),true);
     const subclassPassiveAudit=await page.evaluate(()=>{
       const make=(ed,cls,level,subclass)=>pcEnsure(generateCharacter({seed:"PASSIVE-SUB",ed,cls,level,subclass,race:"Human",bg:"Sage"}));
       const old=make("2014","Druid",14,"Circle of the Land");old.active={};old.used={};actRun(old,"Nature's Sanctuary");const passive=!old.active["Nature's Sanctuary"]&&!old.used.wild;
