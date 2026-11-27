@@ -349,7 +349,7 @@ spFiltersSync();
     if (dr) { const k = dr.dataset.draft; if (k === "forge") forgeOpen(); else if (k === "keep") keepPC(); else if (k === "reroll" && window.pcReroll) pcReroll(); else if (k === "discard") discardPC(); return; }
     const c = rosterCur(); if (!c) return; const t = e.target;
     const sk = t.closest("[data-rsk]");
-    if (sk) { const s = c.skills[+sk.dataset.rsk]; if(s.primalGranted||s.scholarGranted){toast("Change the class feature choice in Features instead.");return;} if (s.x) { s.x = false; s.p = false; } else if (s.p) s.x = true; else s.p = true; pcRecompute(c); pcPersist(); renderRosterMain(); return; }
+    if (sk) { const s = c.skills[+sk.dataset.rsk]; if(s.primalGranted||s.scholarGranted||s.loreGranted||s.orderGranted||s.envoyGranted||s.envoyExpert||s.peaceGranted||s.glamourGranted||s.archerGranted){toast("Change the feature choice in Features instead.");return;} if (s.x) { s.x = false; s.p = false; } else if (s.p) s.x = true; else s.p = true; pcRecompute(c); pcPersist(); renderRosterMain(); return; }
     const a = t.closest("[data-ra]");
     if (a) {
       const k = a.dataset.ra;

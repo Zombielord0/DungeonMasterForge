@@ -428,6 +428,16 @@ function syncGrantedSpells(c) {
       const choices = choiceOf(c, "Arcane Initiate").filter(name => candidates.some(([id]) => id === name)).slice(0, 2);
       add({ [subclassLevel(ed, cls)]: choices }, lv, { ...source, feature: "Arcane Initiate", known: true });
     }
+    if (cls === "Cleric" && subclass === "Arcana Domain" && legacy && lv>=17) {
+      for(const level of [6,7,8,9]){
+        const key="Arcane Mastery "+level,rule=CHOICES[key],selected=choiceOf(c,key)[0];
+        if(rule.n(c)&&rule.opts(c).some(([id])=>id===selected))add({17:[selected]},lv,{...source,feature:"Arcane Mastery"});
+      }
+    }
+    if(cls==="Fighter"&&subclass==="Arcane Archer"){
+      const rule=CHOICES["Arcane Archer Lore"],selected=choiceOf(c,"Arcane Archer Lore")[0];
+      if(rule.n(c)&&rule.opts(c).some(([id])=>id===selected))add({3:[selected]},lv,{...source,feature:"Arcane Archer Lore",known:true,innate:true});
+    }
     if (cls === "Sorcerer" && subclass === "Divine Soul") {
       const affinity = CHOICES["Divine Magic"].opts(c).find(([id]) => id === choiceOf(c, "Divine Magic")[0]);
       if (affinity) add({ [subclassLevel(ed, cls)]: [affinity[2]] }, lv, { ...source, feature: "Divine Magic", known: true });

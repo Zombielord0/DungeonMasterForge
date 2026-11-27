@@ -21,6 +21,9 @@ function applyCoreSkillChoices(c){
     if(s.orderGranted){s.p=false;s.x=false;delete s.orderGranted;}
     if(s.envoyExpert){s.x=false;delete s.envoyExpert;}
     if(s.envoyGranted){s.p=false;s.x=false;delete s.envoyGranted;}
+    if(s.peaceGranted){s.p=false;s.x=false;delete s.peaceGranted;}
+    if(s.glamourGranted){s.p=false;s.x=false;delete s.glamourGranted;}
+    if(s.archerGranted){s.p=false;s.x=false;delete s.archerGranted;}
   }
   if(characterSubclassLevel(c,"Bard","College of Lore")>=3){const options=new Set(CHOICES["Lore Bonus Proficiencies"].opts(c).map(x=>x[0]));for(const name of [...new Set(choiceOf(c,"Lore Bonus Proficiencies"))].filter(n=>options.has(n)).slice(0,3)){const s=c.skills.find(x=>x.s===name);if(s&&!s.p){s.p=true;s.loreGranted=true;}}}
   const skills=c.skills||[],choose=(name,flag)=>{const s=skills.find(x=>x.s===name);if(s&&!s.p){s.p=true;s[flag]=true;}};
@@ -35,6 +38,10 @@ function applyCoreSkillChoices(c){
       else{const selected=choiceOf(c,"Royal Envoy")[0];if(["Animal Handling","Insight","Intimidation","Performance"].includes(selected))choose(selected,"envoyGranted");}
       if(!p.x){p.x=true;p.envoyExpert=true;}
     }
+  }
+  for(const [key,flag] of [["Implement of Peace","peaceGranted"],["Otherworldly Glamour","glamourGranted"],["Arcane Archer Skill","archerGranted"]]){
+    const rule=CHOICES[key],selected=choiceOf(c,key)[0];
+    if(rule.n(c)>0&&rule.opts(c).some(([id])=>id===selected))choose(selected,flag);
   }
   if(edOf(c)!=="2024")return;
   const apply=(key,flag,attr,cls,level,eligible)=>{
@@ -51,7 +58,7 @@ function pcRecompute(c) {
   c.init = m.dex + (c.initBonus ?? ((c.feats || []).some(f => f.f === "Feat: Alert") ? (edOf(c) === "2024" ? c.prof : 5) : 0)) + SB.init + (SB.athlete ? Math.ceil(c.prof / 2) : 0) + (clsLv(c,"Bard") >= 2 && edOf(c) === "2014" ? Math.floor(c.prof / 2) : 0);
   const jack = clsLv(c,"Bard")>=2;
   applyCoreSkillChoices(c);
-  c.skills.forEach(s => s.v = m[s.ab] + (s.x ? c.prof * 2 : s.p ? c.prof : jack ? Math.floor(c.prof / 2) : 0) + athleteBonus(SB, s, c.prof) + orderCheckBonus(c,s.s));
+  c.skills.forEach(s => s.v = m[s.ab] + (s.x ? c.prof * 2 : s.p ? c.prof : jack ? Math.floor(c.prof / 2) : 0) + athleteBonus(SB, s, c.prof) + orderCheckBonus(c,s.s) + (s.ab==="cha"&&characterSubclassLevel(c,"Ranger","Fey Wanderer")>=3?Math.max(1,m.wis):0));
   const per = c.skills.find(s => s.s === "Perception"); c.passive = 10 + (per ? per.v : m.wis);
   const C = CLASS_DATA[c.cls];
   if (c.kitMoved) c.attacks = pcAttacks(c);

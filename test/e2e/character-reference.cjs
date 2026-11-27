@@ -788,6 +788,16 @@ const { chromium } = require("playwright");
     });
     assert.deepEqual([subclassPassiveAudit.passive,subclassPassiveAudit.granted,subclassPassiveAudit.removed],[true,true,true]);
     assert.deepEqual(subclassPassiveAudit.newSkill,[true,true,true]);assert.deepEqual(subclassPassiveAudit.removedEnvoy,[false,false]);
+    const choiceGrantAudit=await page.evaluate(()=>{
+      const make=(ed,cls,level,subclass)=>pcEnsure(generateCharacter({seed:"CHOICE-GRANTS",ed,cls,level,subclass,race:"Human",bg:"Sage"}));
+      const peace=make("2014","Cleric",1,"Peace Domain"),p=peace.skills.find(s=>s.s==="Insight");p.p=false;p.x=false;peace.choices={"Implement of Peace":["Insight"]};pcRecompute(peace);const peaceGranted=p.p&&p.peaceGranted;peace.subclass="Life Domain";pcSubSync(peace);pcRecompute(peace);const peaceRemoved=!p.p&&!p.peaceGranted;
+      const fey=[];
+      for(const ed of ["2014","2024"]){const c=make(ed,"Ranger",3,"Fey Wanderer"),p=c.skills.find(s=>s.s==="Persuasion");p.p=false;p.x=false;c.scores.wis=8;c.choices={"Otherworldly Glamour":["Persuasion"]};pcRecompute(c);fey.push([p.p,!!p.glamourGranted,p.v-c.mods.cha-c.prof]);c.subclass="Hunter";pcSubSync(c);pcRecompute(c);fey.push([p.p,!!p.glamourGranted]);}
+      const archer=make("2014","Fighter",3,"Arcane Archer"),skill=archer.skills.find(s=>s.s==="Nature");skill.p=false;skill.x=false;archer.choices={"Arcane Archer Lore":["Druidcraft"],"Arcane Archer Skill":["Nature"]};syncGrantedSpells(archer);pcRecompute(archer);const arch=[skill.p,!!skill.archerGranted,archer.prepared.some(p=>p.n==="Druidcraft"&&p.sources?.some(s=>s.feature==="Arcane Archer Lore"))];archer.subclass="Champion";pcSubSync(archer);syncGrantedSpells(archer);pcRecompute(archer);
+      const arcana=make("2014","Cleric",17,"Arcana Domain");arcana.choices={};const keys=[6,7,8,9].map(n=>"Arcane Mastery "+n);for(const key of keys)arcana.choices[key]=[CHOICES[key].opts(arcana)[0][0]];syncGrantedSpells(arcana);const mastery=arcana.prepared.filter(p=>p.sources?.some(s=>s.feature==="Arcane Mastery")).map(p=>p.l).sort((a,b)=>a-b);arcana.level=16;syncGrantedSpells(arcana);const masteryRemoved=!arcana.prepared.some(p=>p.sources?.some(s=>s.feature==="Arcane Mastery"));
+      return {peaceGranted,peaceRemoved,fey,arch,archRemoved:!skill.p&&!archer.prepared.some(p=>p.sources?.some(s=>s.feature==="Arcane Archer Lore")),mastery,masteryRemoved};
+    });
+    assert.deepEqual(choiceGrantAudit,{peaceGranted:true,peaceRemoved:true,fey:[[true,true,1],[false,false],[true,true,1],[false,false]],arch:[true,true,true],archRemoved:true,mastery:[6,7,8,9],masteryRemoved:true});
     const expansion = await page.evaluate(() => {
       const subclasses = hbBook("subclass").filter(x => ["tce", "xge"].includes(x.src));
       const armorer = generateCharacter({ seed: "ARMOR", ed: "2014", cls: "Artificer", subclass: "Armorer", level: 5 });

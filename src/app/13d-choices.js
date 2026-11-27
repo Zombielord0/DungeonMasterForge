@@ -100,7 +100,8 @@ const CHOICES = {
   "Eldritch Cannon": expansionChoice("Artificer", "Artillerist", "Cannon type", ["Flamethrower", "Force Ballista", "Protector"], () => 1, null),
   "Vestige Companion": expansionChoice("Warlock", "Vestige Patron", "Companion type", ["Celestial", "Fiend", "Undead"], () => 1, "2024"),
   "Vestige Spells": expansionChoice("Warlock", "Vestige Patron", "Vestige domain", ["Life", "Light", "Trickery", "War"], () => 1, "2024"),
-  "Arcane Archer Lore": expansionChoice("Fighter", "Arcane Archer", "Cantrip", ["Druidcraft", "Prestidigitation"], () => 1, "2024"),
+  "Arcane Archer Lore": expansionChoice("Fighter", "Arcane Archer", "Cantrip", ["Druidcraft", "Prestidigitation"], () => 1, null),
+  "Arcane Archer Skill": expansionChoice("Fighter", "Arcane Archer", "Skill proficiency", ["Arcana", "Nature"]),
   "Runeforging": {
     label: "Weapon rune",
     n: c => Math.max(expansionSubclassLevel(c, "Death Knight", "Oath of the Ebon Blade", "2024"),
@@ -119,7 +120,7 @@ const CHOICES = {
     level => level >= 15 ? 5 : level >= 10 ? 4 : level >= 7 ? 3 : 2),
   "Arcane Shot Options": expansionChoice("Fighter", "Arcane Archer", "Arcane Shot options", ["Banishing Arrow", "Beguiling Arrow", "Bursting Arrow", "Enfeebling Arrow", "Grasping Arrow", "Piercing Arrow", "Seeking Arrow", "Shadow Arrow"],
     level => level >= 18 ? 6 : level >= 15 ? 5 : level >= 10 ? 4 : level >= 7 ? 3 : 2),
-  "Otherworldly Glamour": expansionChoice("Ranger", "Fey Wanderer", "Skill proficiency", ["Deception", "Performance", "Persuasion"]),
+  "Otherworldly Glamour": expansionChoice("Ranger", "Fey Wanderer", "Skill proficiency", ["Deception", "Performance", "Persuasion"], () => 1, null),
   "Divine Magic": expansionChoice("Sorcerer", "Divine Soul", "Divine affinity", [["Good", "Good", "Cure Wounds"], ["Evil", "Evil", "Inflict Wounds"], ["Law", "Law", "Bless"], ["Chaos", "Chaos", "Bane"], ["Neutrality", "Neutrality", "Protection from Evil and Good"]]),
   "Genie's Vessel": expansionChoice("Warlock", "The Genie", "Genie patron", [["Dao", "Dao", "Bludgeoning"], ["Djinni", "Djinni", "Thunder"], ["Efreeti", "Efreeti", "Fire"], ["Marid", "Marid", "Cold"]]),
   "Combat Superiority": { label: "Maneuvers", n: c => { const l = characterSubclassLevel(c,"Fighter","Battle Master"); return l >= 15 ? 9 : l >= 10 ? 7 : l >= 7 ? 5 : l >= 3 ? 3 : 0; }, opts: c => MANEUVERS.filter(m => !m[3] || m[3] === edOf(c)).map(m => [m[0], m[1], m[2]]) },
@@ -287,7 +288,7 @@ for (const lineage of ["Air Genasi", "Earth Genasi", "Fire Genasi", "Water Genas
   CHOICES[lineage] = choiceList("Innate spellcasting ability", ["Intelligence", "Wisdom", "Charisma"]);
 }
 for (const level of [6, 7, 8, 9]) {
-  CHOICES["Arcane Mastery " + level] = { label: "Level " + level + " wizard spell", n: () => 1, opts: c => choiceSpellOptions(c, s => s.l === level && s.c.includes("Wizard")) };
+  CHOICES["Arcane Mastery " + level] = { label: "Level " + level + " wizard spell", n: c => expansionSubclassLevel(c,"Cleric","Arcana Domain","2014") >= 17 ? 1 : 0, opts: c => choiceSpellOptions(c, s => s.l === level && s.c.includes("Wizard") && !s.hb && !s.ref && !s.referenceOnly && !s.rulesSummary && !s.shadow) };
 }
 CHOICES["Species Spellcasting"] = choiceList("Species spellcasting ability", ["Intelligence", "Wisdom", "Charisma"]);
 CHOICES["Elven Lineage Cantrip"] = { label: "High Elf cantrip (change after a long rest)", n: () => 1,
@@ -329,6 +330,7 @@ const additionalFeatureChoices = {
   "Demon Hunter Spells": ["Demon Hunter specialization"],
   "Evoker Spells": ["Evoker specialization"],
   "Giant Power": ["Giant Power language"],
+  "Arcane Archer Lore": ["Arcane Archer Skill"],
   "Arcane Mastery": [6, 7, 8, 9].map(level => "Arcane Mastery " + level)
 };
 function featureChoiceHTML(c, k) {
