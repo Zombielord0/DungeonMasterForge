@@ -469,6 +469,27 @@ const { chromium } = require("playwright");
     assert.deepEqual(channelAudit.revised,[["channelCleric",3,"short1"],["channelPaladin",2,"short1"]]);
     assert.deepEqual(channelAudit.migrated,[1,1]);assert.deepEqual(channelAudit.spent,[2,1]);assert.deepEqual(channelAudit.rested,[1,0]);
     assert.deepEqual(channelAudit.names,[["Channel Divinity (Cleric)","channelCleric"],["Channel Divinity (Paladin)","channelPaladin"]]);
+    const artificerCraftAudit=await page.evaluate(()=>{
+      const c=pcEnsure(generateCharacter({seed:"ART-CRAFT",ed:"2024",cls:"Artificer",level:6,race:"Human",bg:"Sage",subclass:"none"}));
+      c.inv=[];c.used={};itLoad();
+      const plan=artificerPlanOptions(c).find(x=>x[1].startsWith("Bag of Holding ("))[0];
+      const wand=artificerPlanOptions(c).find(x=>x[1].startsWith("Wand of Magic Missiles ("))[0];
+      c.choices={"Replicate Magic Item":[plan,wand]};
+      const gear=artificerTinkerOptions(c).find(x=>x[1]==="Rope")[0];actRun(c,"Tinker's Magic",gear);
+      actRun(c,"Replicate Magic Item",plan);
+      const count=artificerReplicas(c).length,duplicate=artificerCreateOptions(c).some(x=>x[0]===plan);
+      const transform=artificerTransmuteOptions(c)[0][0];actRun(c,"Transmute Magic Item",transform);
+      const transformed=artificerReplicas(c)[0].ref===wand;
+      const i=artificerReplicas(c)[0],ref=itFind(i.ref);itemChargeInitialize(i,ref,1);
+      const charge=artificerChargeOptions(c).find(x=>JSON.parse(x[0])[1]==="slot1");
+      actRun(c,"Charge Magic Item",charge[0]);const charged=i.itemCharge.left,spent=c.used.slot1;
+      actRun(c,"Drain Magic Item",i.id);const created=temporarySlotCount(c,2),remaining=artificerReplicas(c).length;
+      pcRest(c,"short");const short=temporarySlotCount(c,2),ropeShort=c.inv.some(i=>i.n==="Rope");
+      pcRest(c,"long");const long=temporarySlotCount(c,2),ropeLong=c.inv.some(i=>i.n==="Rope");
+      return {count,duplicate,transformed,charged,spent,created,remaining,short,long,ropeShort,ropeLong,limits:["2014","2024"].map(ed=>[1,2,6,10,14,18].map(l=>artificerPlanLimits(ed,l)))};
+    });
+    assert.deepEqual([artificerCraftAudit.count,artificerCraftAudit.duplicate,artificerCraftAudit.transformed,artificerCraftAudit.charged,artificerCraftAudit.spent,artificerCraftAudit.created,artificerCraftAudit.remaining,artificerCraftAudit.short,artificerCraftAudit.long,artificerCraftAudit.ropeShort,artificerCraftAudit.ropeLong],[1,false,true,2,1,1,0,1,0,true,false]);
+    assert.deepEqual(artificerCraftAudit.limits.map(x=>x.map(y=>y.known)),[[0,4,6,8,10,12],[0,4,5,6,7,8]]);
     const expansion = await page.evaluate(() => {
       const subclasses = hbBook("subclass").filter(x => ["tce", "xge"].includes(x.src));
       const armorer = generateCharacter({ seed: "ARMOR", ed: "2014", cls: "Artificer", subclass: "Armorer", level: 5 });

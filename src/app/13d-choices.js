@@ -246,6 +246,8 @@ const choiceSpellOptions = (c, filter) => {
   return opt3([...new Set((SP.data[edOf(c)] || []).filter(s => !s.pend && filter(s)).map(s => s.n))].sort());
 };
 Object.assign(CHOICES, {
+ "Replicate Magic Item":{label:"Known catalog-backed plans (named plans only)",n:c=>edOf(c)==="2024"?artificerPlanLimits("2024",clsLv(c,"Artificer")).known:0,opts:artificerPlanOptions},
+ "Infuse Item":{label:"Known legacy infusions (manual effects)",n:c=>edOf(c)==="2014"?artificerPlanLimits("2014",clsLv(c,"Artificer")).known:0,opts:c=>opt3(Object.entries(ARTIFICER_INFUSIONS).filter(([min])=>clsLv(c,"Artificer")>=+min).flatMap(([,names])=>names).concat("Replicate Magic Item (DM-recorded variant)"))},
   "Spell-Storing Item Object":{label:"Qualifying weapon or spellcasting focus (confirm eligibility)",n:c=>clsLv(c,"Artificer")>=11?1:0,opts:artificerStoreItemOptions},
   "Pact Weapon":{label:"Bonded inventory weapon",n:c=>warlockPact(c,"blade")?1:0,opts:pactWeaponOptions},
   "Pact Weapon Ability":{label:"Pact weapon attack ability",n:c=>edOf(c)==="2024"&&warlockPact(c,"blade")?1:0,opts:()=>opt3(["Charisma","Normal weapon ability"])},
@@ -581,6 +583,7 @@ function pcRest(c, kind) {
   delete c.apotheosisUsedThisTurn;
   if(kind==="long"){
     if(c.createdSlots){delete c.createdSlots;back.push("Temporary spell slots expired");}
+    if(artificerExpire(c))back.push("Tinker's Magic gear expired");
     if(c.wildCompanionActive){delete c.wildCompanionActive;back.push("Wild Companion ended");}
     if((+c.divineInterventionCooldown||0)>0){c.divineInterventionCooldown=Math.max(0,Math.trunc(+c.divineInterventionCooldown)-1);if(c.divineInterventionCooldown>0){c.used.divineIntervention=1;const i=back.indexOf("Divine Intervention");if(i>=0)back.splice(i,1);}else{delete c.divineInterventionCooldown;c.used.divineIntervention=0;}}
   }

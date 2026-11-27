@@ -73,6 +73,9 @@ function pcResources(c) {
   if (has("Favored Enemy") && ed === "2024") add("hmark", "Free Hunter's Mark", CLV("Ranger") >= 17 ? 6 : CLV("Ranger") >= 13 ? 5 : CLV("Ranger") >= 9 ? 4 : CLV("Ranger") >= 5 ? 3 : 2, "long");
   if(ed==="2024"&&clsLv(c,"Cleric")>=10)add("divineIntervention","Divine Intervention",1,"long");
   if(clsLv(c,"Artificer")>=7)add("flashGenius","Flash of Genius",Math.max(1,m.int),ed==="2024"?(clsLv(c,"Artificer")>=20&&artificerAttunedCount(c)>0?"short":clsLv(c,"Artificer")>=14?"short1":"long"):"long");
+  if(ed==="2024"&&clsLv(c,"Artificer")>=1)add("tinkersMagic","Tinker's Magic",Math.max(1,m.int),"long");
+  if(ed==="2024"&&clsLv(c,"Artificer")>=2)add("replicateCreation","Replicate Magic Item (rest creation)",artificerPlanLimits("2024",clsLv(c,"Artificer")).active,"long");
+  if(ed==="2024"&&clsLv(c,"Artificer")>=6){add("replicateDrain","Drain Magic Item",1,"long");add("replicateTransmute","Transmute Magic Item",1,"long");}
   const stored=artificerStoredSpell(c);if(stored)add("artificerStored","Stored "+stored.spell.n+" · "+stored.item.n,stored.max,"never");
   if (has("Arcane Recovery")) add("arcrec", "Arcane Recovery", 1, "long");
   if (has("Stroke of Luck")) add("luck", "Stroke of Luck", 1, "short");
@@ -158,6 +161,13 @@ function pcAbilities(c) {
   if (has("Metamagic")) add("Metamagic", "When casting", ed==="2024"?"Spend Sorcery Points for selected Metamagic. Revised Twinned Spell costs 1 point for a spell whose higher-slot rules add a target; adjudicate spell eligibility and timing.":"Spend Sorcery Points for selected Metamagic, with legacy Twinned Spell costing the spell level (minimum 1).", "sorc");
   if(ed==="2024"&&clsLv(c,"Cleric")>=10)add("Divine Intervention","Magic action","Cast an eligible Cleric spell without a slot or Material components. Select the spell and resolve its rules manually.","divineIntervention");
   if(clsLv(c,"Artificer")>=7)add("Flash of Genius","Reaction",`Add ${sgn(m.int)} to your or a creature’s eligible ability check or saving throw within 30 feet. ${ed==="2024"?"Use after a failed roll.":"Use before success or failure is determined."} Apply the bonus manually.`,"flashGenius");
+  if(ed==="2024"&&clsLv(c,"Artificer")>=1)add("Tinker's Magic","Magic action","Create eligible mundane gear using Tinker's Tools; the item vanishes at your next Long Rest.","tinkersMagic");
+  if(ed==="2024"&&clsLv(c,"Artificer")>=2)add("Replicate Magic Item","After Long Rest","Create an item from a known eligible plan. At the active limit the oldest replica vanishes. Confirm tool and rest timing.","replicateCreation");
+  if(ed==="2024"&&clsLv(c,"Artificer")>=6){
+    add("Charge Magic Item","Bonus action","Spend a spell slot to restore that many charges in a nearby replicated item with a tracked charge contract.");
+    add("Drain Magic Item","Bonus action","Dismiss a nearby replicated item for an extra level 1 slot (Common) or level 2 slot (Uncommon/Rare).","replicateDrain");
+    add("Transmute Magic Item","Magic action","Transform a nearby replicated item into a different known plan.","replicateTransmute");
+  }
   if(clsLv(c,"Artificer")>=11){
     add("Store spell in item","After Long Rest","Choose a qualifying weapon or spellcasting focus in Features, then store an eligible Artificer spell. Confirm long-rest timing; replacing the stored spell ends the previous effect.");
     const stored=artificerStoredSpell(c);if(stored)add("Spell-Storing Item","Action",`${stored.item.n}: ${stored.spell.n}. The holder produces its effects using your spellcasting ability; the holder maintains any required Concentration. No spell slot used. Resolve target, spell effects and concentration manually.`,"artificerStored");
@@ -266,7 +276,8 @@ const SLOT_CREATION_COST=[0,2,3,5,6,7], REVISED_SLOT_MIN_LEVEL=[0,2,3,5,7,9];
 function temporarySlotCount(c,L){
   if(!Number.isInteger(L)||L<1||L>5)return 0;
   const level=clsLv(c,"Sorcerer"),druid=edOf(c)==="2024"&&clsLv(c,"Druid")>=5&&L===1;
-  if(level<2&&!druid)return 0;
+  const artificer=edOf(c)==="2024"&&clsLv(c,"Artificer")>=6&&L<=2;
+  if(level<2&&!druid&&!artificer)return 0;
   return Math.max(0,Math.min(999,Math.trunc(+c.createdSlots?.[L]||0)));
 }
 function canCreateSorcererSlot(c,L){
@@ -393,7 +404,107 @@ function channelDivinityAction(owner){
       return "Channel Divinity: use your oath's option.";
     }};
 }
+// Source-reviewed item-plan workflow. Unverified catalog records are not acquirable.
+const ARTIFICER_PLAN_TIERS={
+  2:["Alchemy Jug","Bag of Holding","Cap of Water Breathing","Goggles of Night","Manifold Tool","Repeating Shot","Returning Weapon","Rope of Climbing","Sending Stones","Shield +1","+1 Shield","Wand of Magic Detection","Wand of Secrets","Wand of the War Mage +1","+1 Wand of the War Mage","Weapon +1","+1 Weapon","Wraps of Unarmed Power +1","+1 Wraps of Unarmed Power"],
+  6:["Armor +1","+1 Armor","Boots of Elvenkind","Boots of the Winding Path","Cloak of Elvenkind","Cloak of the Manta Ray","Dazzling Weapon","Eyes of Charming","Eyes of Minute Seeing","Gloves of Thievery","Helm of Awareness","Lantern of Revealing","Mind Sharpener","Necklace of Adaptation","Pipes of Haunting","Repulsion Shield","Ring of Swimming","Ring of Water Walking","Sentinel Shield","Spell-Refueling Ring","Wand of Magic Missiles","Wand of Web","Weapon of Warning"],
+  10:["Armor of Resistance","Dagger of Venom","Elven Chain","Ring of Feather Falling","Ring of Jumping","Ring of Mind Shielding","Shield +2","+2 Shield","Wand of the War Mage +2","+2 Wand of the War Mage","Weapon +2","+2 Weapon","Wraps of Unarmed Power +2","+2 Wraps of Unarmed Power"],
+  14:["Armor +2","+2 Armor","Arrow-Catching Shield","Flame Tongue","Ring of Free Action","Ring of Protection","Ring of the Ram"]
+};
+const ARTIFICER_INFUSIONS={2:["Enhanced Arcane Focus","Enhanced Defense","Enhanced Weapon","Homunculus Servant","Mind Sharpener","Repeating Shot","Returning Weapon"],6:["Boots of the Winding Path","Radiant Weapon","Repulsion Shield","Resistant Armor","Spell-Refueling Ring"],10:["Helm of Awareness"],14:["Arcane Propulsion Armor"]};
+ARTIFICER_INFUSIONS[2].push("Armor of Magical Strength");
+const TINKER_GEAR=["Ball Bearings","Basket","Bedroll","Bell","Blanket","Block and Tackle","Glass Bottle","Bucket","Caltrops","Candle","Crowbar","Flask","Grappling Hook","Hunting Trap","Jug","Lamp","Manacles","Net","Oil","Paper","Parchment","Pole","Pouch","Rope","Sack","Shovel","Iron Spikes","String","Tinderbox","Torch","Vial"];
+function artificerPlanLimits(ed,lv){
+ if(lv<2)return {known:0,active:0};
+ const steps=[6,10,14,18].filter(n=>lv>=n).length;
+ return {known:4+(ed==="2024"?steps:2*steps),active:2+steps};
+}
+function artificerPlanEligible(lv,x){
+ if(lv<2||!x||x.kind!=="magic"||x.ed!=="2024"||!x.id?.startsWith("2024-")||!x.d?.trim()||x.referenceOnly||x.rulesSummary||x.pend||itemRulesIncomplete(x))return false;
+ // Generic rarity options exclude cursed items; explicit curse metadata is not
+ // available for every item. Require a DM-reviewed plan in that case instead.
+ return Object.entries(ARTIFICER_PLAN_TIERS).some(([min,names])=>lv>=+min&&names.includes(x.n));
+}
+function artificerPlanOptions(c){
+ if(edOf(c)!=="2024"||clsLv(c,"Artificer")<2)return [];
+ itLoad();return IT.data["2024"].filter(x=>artificerPlanEligible(clsLv(c,"Artificer"),x)).map(x=>[x.id,x.n+" ("+x.r+")","Catalog source: "+(x.src||"SRD")]);
+}
+function artificerKnownPlans(c){
+ const allowed=new Set(artificerPlanOptions(c).map(x=>x[0]));
+ return [...new Set(choiceOf(c,"Replicate Magic Item"))].filter(id=>allowed.has(id)).slice(0,artificerPlanLimits("2024",clsLv(c,"Artificer")).known);
+}
+function artificerReplicas(c){return (c.inv||[]).filter(i=>i.artificerOrigin?.kind==="replica"&&i.artificerOrigin.owner===c.id&&+i.qty===1&&i.ref===i.artificerOrigin.plan);}
+function artificerInventoryItem(c,x,kind){
+ return {id:uid("i"),ref:x.id,n:x.n,qty:1,w:x.w||0,att:!!x.att,attuned:false,value:x.c,note:kind==="replica"?"Artificer replica; not permanent":"Tinker's Magic; vanishes on Long Rest",artificerOrigin:{kind,owner:c.id,plan:x.id}};
+}
+function artificerRemove(c,i){c.inv=(c.inv||[]).filter(x=>x.id!==i.id);}
+function artificerTinkerOptions(c){
+ if(edOf(c)!=="2024"||clsLv(c,"Artificer")<1)return [];
+ itLoad();return IT.data["2024"].filter(x=>x.kind==="gear"&&TINKER_GEAR.includes(x.n)&&!itemRulesIncomplete(x)).map(x=>[x.id,x.n]);
+}
+function artificerCreateTinker(c,id){
+ if(!artificerTinkerOptions(c).some(x=>x[0]===id))return "No eligible gear.";
+ const x=itFind(id);c.inv=c.inv||[];c.inv.push(artificerInventoryItem(c,x,"tinker"));return "Created "+x.n+" until the next Long Rest.";
+}
+function artificerCreateOptions(c){
+ const active=new Set(artificerReplicas(c).map(i=>i.ref));
+ return artificerPlanOptions(c).filter(x=>artificerKnownPlans(c).includes(x[0])&&!active.has(x[0]));
+}
+function artificerCreateReplica(c,id){
+ if(!artificerCreateOptions(c).some(x=>x[0]===id))return "Select a known plan not already active.";
+ const x=itFind(id),cap=artificerPlanLimits("2024",clsLv(c,"Artificer")).active;
+ c.inv=c.inv||[];const active=artificerReplicas(c);
+ while(active.length>=cap)artificerRemove(c,active.shift());
+ c.inv.push(artificerInventoryItem(c,x,"replica"));return "Created "+x.n+".";
+}
+function artificerDrainOptions(c){
+ if(edOf(c)!=="2024"||clsLv(c,"Artificer")<6)return [];
+ return artificerReplicas(c).filter(i=>["Common","Uncommon","Rare"].includes(itFind(i.ref)?.r)).map(i=>[i.id,i.n]);
+}
+function artificerDrain(c,id){
+ if(!artificerDrainOptions(c).some(x=>x[0]===id))return "No eligible replica.";
+ const i=artificerReplicas(c).find(x=>x.id===id),L=itFind(i.ref).r==="Common"?1:2;
+ if(temporarySlotCount(c,L)>=999)return "Temporary slot limit reached.";
+ artificerRemove(c,i);createTemporarySlot(c,L);return "Replica dismissed; created level "+L+" slot until Long Rest.";
+}
+function artificerTransmuteOptions(c){
+ if(edOf(c)!=="2024"||clsLv(c,"Artificer")<6)return [];
+ return artificerReplicas(c).flatMap(i=>artificerCreateOptions(c).map(([id,n])=>[JSON.stringify([i.id,id]),i.n+" → "+n]));
+}
+function artificerTransmute(c,key){
+ if(!artificerTransmuteOptions(c).some(x=>x[0]===key))return "No eligible transformation.";
+ const [iid,id]=JSON.parse(key),i=artificerReplicas(c).find(x=>x.id===iid);
+ const replacement=artificerInventoryItem(c,itFind(id),"replica");
+ c.inv=c.inv.map(x=>x.id===iid?replacement:x);return "Transmuted "+i.n+" into "+replacement.n+".";
+}
+function artificerChargeOptions(c){
+ if(edOf(c)!=="2024"||clsLv(c,"Artificer")<6)return [];
+ const slots=pcResources(c).filter(r=>(/^slot[1-9]$/.test(r.key)||r.key==="pact")&&resLeft(c,r)>0);
+ return artificerReplicas(c).flatMap(i=>{
+  const x=itFind(i.ref),q=itemChargeContract(x),s=itemChargeState(i,x);
+  if(!q||!s||s.left>=q.max)return [];
+  return slots.map(r=>[JSON.stringify([i.id,r.key]),i.n+" · "+r.name]);
+ });
+}
+function artificerCharge(c,key){
+ if(!artificerChargeOptions(c).some(x=>x[0]===key))return "No eligible charged replica or slot.";
+ const [iid,slot]=JSON.parse(key),i=artificerReplicas(c).find(x=>x.id===iid),x=itFind(i.ref),q=itemChargeContract(x),s=itemChargeState(i,x),r=pcResources(c).find(x=>x.key===slot);
+ const L=slot==="pact"?+(r.name.match(/level (\d)/)||[])[1]:+slot.slice(4);
+ if(!L)return "Unknown slot level.";
+ const gain=Math.min(L,q.max-s.left);c.used=c.used||{};c.used[slot]=(+c.used[slot]||0)+1;s.left+=gain;
+ return "Restored "+gain+" charges to "+i.n+".";
+}
+function artificerExpire(c){
+ const old=(c.inv||[]).length;
+ c.inv=(c.inv||[]).filter(i=>!(i.artificerOrigin?.owner===c.id&&i.artificerOrigin.kind==="tinker"));
+ return old-c.inv.length;
+}
 const ACT = {
+ "Tinker's Magic":{kind:"instant",choices:artificerTinkerOptions,use:artificerCreateTinker},
+ "Replicate Magic Item":{kind:"instant",choices:artificerCreateOptions,use:artificerCreateReplica},
+ "Drain Magic Item":{kind:"instant",choices:artificerDrainOptions,use:artificerDrain},
+ "Transmute Magic Item":{kind:"instant",choices:artificerTransmuteOptions,use:artificerTransmute},
+ "Charge Magic Item":{kind:"instant",choices:artificerChargeOptions,use:artificerCharge},
   "Store spell in item":{kind:"instant",choices:artificerStoreOptions,use:artificerStore},
   "Spell-Storing Item":{kind:"instant",use:c=>{const x=artificerStoredSpell(c);return x?x.item.n+" produces "+x.spell.n+" at its base level (Artificer Intelligence; DC "+(8+c.prof+c.mods.int)+", spell attack "+sgn(c.prof+c.mods.int)+"). The holder maintains Concentration if required. Resolve the effects manually.":"No eligible stored spell.";}},
   "Cunning Strike":{kind:"instant",choices:cunningStrikeOptions,use:(c,ch)=>{if(!ch)return "Choose an eligible effect.";const critical=ch.endsWith(":crit"),ids=ch.replace(/:crit$/,"").split("+"),p=cunningStrikePlan(clsLv(c,"Rogue"),ids,hasPoisonersKit(c),critical);if(!p)return "Invalid Cunning Strike.";const n=p.dice?rollDice(p.dice+"d6").total:0;return "Cunning Strike: "+n+" extra damage (weapon damage type), "+p.cost+" dice forgone; save DC "+(8+c.mods.dex+c.prof)+". "+p.effects.join(" ");}},
