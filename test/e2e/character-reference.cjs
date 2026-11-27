@@ -478,6 +478,43 @@ const { chromium } = require("playwright");
     assert.ok(storedItemAudit.created.startsWith("Stored")&&storedItemAudit.cast.includes("Cure Wounds"));
     assert.equal(storedItemAudit.max,Math.max(2,2*storedItemAudit.int));assert.deepEqual([storedItemAudit.after,storedItemAudit.rested,storedItemAudit.reset,storedItemAudit.removed,storedItemAudit.below],[1,1,0,true,0]);
     assert.deepEqual(storedItemAudit.rules,[true,false,true,false]);
+    const artificerCompletionAudit=await page.evaluate(()=>{
+      const make=ed=>pcEnsure(generateCharacter({seed:"ARTIFICER-CAPSTONE",ed,cls:"Artificer",level:20,race:"Human",bg:"Sage",subclass:"none"}));
+      const c=make("2014");itLoad();c.kitMoved=true;c.inv=[];c.used={};
+      c.choices={"Infuse Item":["Enhanced Defense","Enhanced Weapon","Returning Weapon","Enhanced Arcane Focus"]};
+      const shield=eqGear("2014","Shield"),dagger=eqGear("2014","Dagger");
+      const inv=(id,x)=>({id,ref:x.id,n:x.n,qty:1,eq:true,attuned:false});
+      c.inv=[inv("shield",shield),inv("dagger",dagger)];
+      const before=pcAttacks(c).find(a=>a.iid==="dagger")?.hit;
+      const a=artificerInfusionOptions(c).find(x=>x[1]==="Enhanced Weapon · "+dagger.n);
+      artificerApplyInfusion(c,a[0]);const after=pcAttacks(c).find(x=>x.iid==="dagger")?.hit;
+      const b=artificerInfusionOptions(c).find(x=>x[1]==="Enhanced Defense · "+shield.n);
+      artificerApplyInfusion(c,b[0]);const armorBonus=artificerInfusionBonus(c,c.inv[0],"armor");
+      c.hpCur=0;c.death={s:0,f:0};const legacy=artificerLegacyDeath(c,"dagger");
+      const legacyHP=c.hpCur,legacyEnded=!c.inv[1].artificerInfusion;
+      c.choices["Infuse Item"]=[];pcRecompute(c);const removed=!c.inv[0].artificerInfusion;
+      const now=make("2024");now.inv=[];now.used={};const bag=artificerPlanOptions(now).find(x=>x[1].startsWith("Bag of Holding ("))[0];
+      now.choices={"Replicate Magic Item":[bag]};artificerCreateReplica(now,bag);
+      now.hpCur=0;now.death={s:0,f:0};const options=artificerCheatDeathOptions(now),recovery=artificerCheatDeath(now,options[0][0]),revisedHP=now.hpCur,replicas=artificerReplicas(now).length;
+      const generic=[
+        artificerGenericPlanEligible(2,{n:"Example",r:"Common",type:"Wondrous item",d:"Harmless magical effect"}),
+        artificerGenericPlanEligible(2,{n:"Potion",r:"Common",type:"Potion",d:"Harmless magical effect"}),
+        artificerGenericPlanEligible(9,{n:"Example",r:"Uncommon",type:"Wondrous item"}),
+        artificerGenericPlanEligible(10,{n:"Example",r:"Uncommon",type:"Wondrous item"}),
+        artificerGenericPlanEligible(14,{n:"Example",r:"Rare",type:"Wondrous item",d:"This item is cursed."}),
+        artificerGenericPlanEligible(14,{n:"Example",r:"Rare",type:"Ring"}),
+        artificerGenericPlanEligible(14,{n:"Example",r:"Rare",type:"Wondrous item"})
+      ];
+      now.inv=[{id:"tools",n:"Tinker's Tools",qty:1},{id:"junk",n:"Unremarkable Pebble",qty:1}];now.choices["Spell-Storing Item Object"]=["tools"];
+      const validObjects=artificerStoreItemOptions(now).map(x=>x[0]),first=artificerStore(now,"Cure Wounds"),repeat=artificerStore(now,"Cure Wounds");
+      return {before,after,armorBonus,legacy,legacyHP,legacyEnded,removed,recovery,revisedHP,max:now.hp,replicas,generic,validObjects,first,repeat};
+    });
+    assert.equal(artificerCompletionAudit.after-artificerCompletionAudit.before,2);
+    assert.equal(artificerCompletionAudit.armorBonus,2);
+    assert.deepEqual([artificerCompletionAudit.legacyHP,artificerCompletionAudit.legacyEnded,artificerCompletionAudit.removed],[1,true,true]);
+    assert.equal(artificerCompletionAudit.revisedHP,Math.min(20,artificerCompletionAudit.max));assert.equal(artificerCompletionAudit.replicas,0);
+    assert.deepEqual(artificerCompletionAudit.generic,[true,false,false,true,false,false,true]);
+    assert.deepEqual(artificerCompletionAudit.validObjects,["tools"]);assert.match(artificerCompletionAudit.first,/^Stored/);assert.match(artificerCompletionAudit.repeat,/already stored/);
     const channelAudit=await page.evaluate(()=>{
       const make=ed=>pcEnsure(generateCharacter({seed:"CHANNEL-MULTI",ed,cls:"Cleric",level:6,race:"Human",bg:"Sage",subclass:"none",multi:[{cls:"Paladin",lv:4,subclass:"none"}]}));
       const old=make("2014"),now=make("2024");
