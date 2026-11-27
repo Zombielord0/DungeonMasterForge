@@ -577,7 +577,20 @@ function subclassList(ed, cls, allowed = () => true) {
 const subclassLevel = (ed, cls) => CLASS_DATA[cls] && CLASS_DATA[cls].hb ? CLASS_DATA[cls].sub[1] : ed === "2024" ? 3 : (CLASS_DATA[cls] ? CLASS_DATA[cls].sub[1] : 3);
 /* the classes a rules set offers: the built-ins plus the campaign's homebrew classes (not ones waiting for the DM) */
 const BOOK_CLASS_VARIANTS = {};
-const classData = (ed, name) => BOOK_CLASS_VARIANTS[ed]?.[name] || CLASS_DATA[name];
+// Revised SRD 5.2.1 class tables, pp. 31–35, 61–63. Never overwrite legacy or book variants.
+const REVISED_CORE_CLASS_FIELDS = {
+  Bard: {
+    expertise: [[2, 2], [9, 2]],
+    f: {1:["Spellcasting","Bardic Inspiration"],2:["Expertise","Jack of All Trades"],5:["Font of Inspiration"],7:["Countercharm"],9:["Expertise"],10:["Magical Secrets"],18:["Superior Inspiration"],20:["Words of Creation"]},
+  },
+  Rogue: {
+    f: {1:["Expertise","Sneak Attack","Thieves' Cant","Weapon Mastery"],2:["Cunning Action"],3:["Steady Aim"],5:["Cunning Strike","Uncanny Dodge"],6:["Expertise"],7:["Evasion","Reliable Talent"],11:["Improved Cunning Strike"],14:["Devious Strikes"],15:["Slippery Mind"],18:["Elusive"],20:["Stroke of Luck"]},
+  },
+  Monk: {f:{...CLASS_DATA.Monk.f,20:["Body and Mind"]}},
+};
+const classData = (ed, name) => BOOK_CLASS_VARIANTS[ed]?.[name] ||
+  (ed==="2024" && Object.hasOwn(REVISED_CORE_CLASS_FIELDS,name)
+    ? {...CLASS_DATA[name],...REVISED_CORE_CLASS_FIELDS[name]} : CLASS_DATA[name]);
 const classList = ed => Object.keys(CLASS_DATA).filter(k => {
   const C = classData(ed, k);
   return !C.pend && (!C.hb || hbEdOk(C.hbx, ed));

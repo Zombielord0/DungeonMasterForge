@@ -5,6 +5,13 @@ const mod = s => Math.floor((s - 10) / 2);
 const sgn = n => (n >= 0 ? "+" : "") + n;
 const diceAvg = d => d / 2 + 1;
 
+// Recalculate the capstone from original scores on every build; never stack it on a saved final score.
+function coreCapstoneScores(ed, cls, lv, sc) {
+  if (+lv!==20) return;
+  const abilities=cls==="Barbarian"?["str","con"]:ed==="2024"&&cls==="Monk"?["dex","wis"]:[];
+  const cap=ed==="2024"?25:24;
+  for(const a of abilities)sc[a]=Math.max(sc[a],Math.min(cap,sc[a]+4));
+}
 function generateCharacter(o) {
   const r = makeRng("pc", o.seed);
   const ed = o.ed === "2024" ? "2024" : "2014";
@@ -67,6 +74,8 @@ function generateCharacter(o) {
   const fx = hbEffects(ed, race, sub, bg, cls, subclass, lv, [...asiLv.map(L => asiPicks[L]).filter(pk => pk && pk.feat).map(pk => pk.feat), ...bonusFeats.map(b => b.n), ...(bgFeat ? [bgFeat] : [])]);
   const fxSum = t => fx.filter(e => e.t === t).reduce((n, e) => n + e.v, 0);
   fx.filter(e => e.t === "ab").forEach(e => { sc[e.a] = e.v >= 0 ? Math.max(sc[e.a], Math.min(e.max || 20, sc[e.a] + e.v)) : Math.max(1, sc[e.a] + e.v); });
+  coreCapstoneScores(ed,cls,lv,sc);
+  for(const x of MC)coreCapstoneScores(ed,x.cls,x.lv,sc);
   const m = {}; AB.forEach(a => m[a] = mod(sc[a]));
   const prof = 2 + Math.floor((TL - 1) / 4);
   // skills

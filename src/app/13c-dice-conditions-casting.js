@@ -74,15 +74,23 @@ function rollLog(c, e) { c.rollLog = [{ t: Date.now(), ...e }, ...(c.rollLog || 
 /* signed in as a player: a tick in the roll dock shares rolls with the DM's activity feed (src/portal.js, Portal.rolled) */
 const SHARE_ROLLS_KEY = "dmforge.shareRolls";
 const rollShareHTML = () => window.Portal && Portal.cloud && !Portal.isDM() ? `<label class="check rd-share"><input type="checkbox" data-rdshare ${localStorage.getItem(SHARE_ROLLS_KEY) === "1" ? "checked" : ""}><span>Share my rolls with the DM</span></label>` : "";
+// The rolled die remains in the log. Reliable Talent applies to proficient skill checks,
+ // not attacks, saves, initiative, or nonproficient ability checks. Tool checks remain manual.
+function skillCheckD20Floor(c,kind,skill,raw) {
+  const level=clsLv(c,"Rogue"), qualifies=kind==="check"&&level>=(edOf(c)==="2024"?7:11)
+    &&(c.skills||[]).some(s=>s.s===skill&&(s.p||s.x));
+  return qualifies?Math.max(10,raw):raw;
+}
 function rollD20(c, label, bonus, kind, ab, o = {}) {
   const S = rollState(c, kind, ab, o);
   if (ROLL.mode === "adv") S.adv.push("chosen"); if (ROLL.mode === "dis") S.dis.push("chosen");
   ROLL.mode = "normal";
   const mode = S.adv.length && !S.dis.length ? "adv" : S.dis.length && !S.adv.length ? "dis" : "normal";
   if (S.fail) { rollLog(c, { label, total: "Fail", note: `automatically fails (${S.fail})`, fail: true }); toast(`${label}: automatically fails (${S.fail})`); return { fail: true }; }
-  const dice = mode === "normal" ? [d20()] : [d20(), d20()], keep = mode === "adv" ? Math.max(...dice) : mode === "dis" ? Math.min(...dice) : dice[0];
-  const total = keep + bonus + S.pen, crit = keep >= (o.crit || 20), fumble = keep === 1;
-  const why = [...S.adv.map(x => "adv: " + x), ...S.dis.map(x => "dis: " + x)].join(", ");
+  const dice = mode === "normal" ? [d20()] : [d20(), d20()], raw = mode === "adv" ? Math.max(...dice) : mode === "dis" ? Math.min(...dice) : dice[0];
+  const keep=skillCheckD20Floor(c,kind,o.skill,raw);
+  const total = keep + bonus + S.pen, crit = raw >= (o.crit || 20), fumble = raw === 1;
+  const why = [...S.adv.map(x => "adv: " + x), ...S.dis.map(x => "dis: " + x), ...(keep!==raw?["Reliable Talent: "+raw+" treated as "+keep]:[])].join(", ");
   rollLog(c, { label, d: dice, keep, bonus: bonus + S.pen, total, mode, crit: kind === "attack" && crit, fumble: kind === "attack" && fumble, nat20: keep === 20, note: why });
   toast(`${label}: ${total}${dice.length > 1 ? ` (${dice.join(" / ")}${mode === "adv" ? ", advantage" : ", disadvantage"})` : ` (d20 ${keep})`}${kind === "attack" && crit ? " — critical hit!" : kind === "attack" && fumble ? " — miss" : ""}`);
   return { total, keep, crit, fumble, mode };

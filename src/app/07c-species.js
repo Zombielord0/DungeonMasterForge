@@ -159,6 +159,9 @@ const FEAT_DESC_2024 = {
   Stonecunning: "Bonus action: tremorsense 60 ft for 10 minutes while on stone, proficiency-bonus times per long rest.",
   "Keen Senses": "Choose proficiency in Insight, Perception, or Survival.",
   "Primal Champion": "Increase Strength and Constitution by 4 each, to a maximum of 25.",
+  "Body and Mind": "Increase Dexterity and Wisdom by 4 each, to a maximum of 25.",
+  "Words of Creation": "Power Word Heal and Power Word Kill are always prepared. When you cast either spell, you may also target a second creature within 10 feet of the first target.",
+  "Reliable Talent": "On an ability check using a skill or tool proficiency, you can treat a d20 result of 9 or lower as 10. Proficient skill rolls on the sheet apply this minimum; resolve tool checks manually.",
   "Infernal Legacy": "Fire resistance; Fire Bolt cantrip, Hellish Rebuke at 3rd level, Darkness at 5th.",
   Trance: "You don't need sleep; a 4-hour trance gives you a long rest."
 };

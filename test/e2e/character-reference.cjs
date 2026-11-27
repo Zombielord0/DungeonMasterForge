@@ -225,6 +225,32 @@ const { chromium } = require("playwright");
     assert.deepEqual(originAudit.choices.map(([chosen,skills])=>[chosen,skills.includes(chosen),skills.length]),[["Insight",true,5],["Perception",true,5],["Survival",true,5]]);
     assert.equal(originAudit.legacy,true);
     assert.match(originAudit.extra,/Rages per day: 6,/);
+    const progressionAudit=await page.evaluate(()=>{
+      const make=(ed,cls,level)=>generateCharacter({seed:"CORE-PROGRESSION",ed,cls,level,race:"Human",bg:"Soldier",subclass:"none"});
+      const expert=(ed,level)=>make(ed,"Bard",level).skills.filter(s=>s.x).length;
+      const feature=(ed,cls,level,name)=>make(ed,cls,level).feats.some(f=>f.f===name);
+      const cap=(ed,cls,score)=>{const sc={str:score,con:score,dex:score,wis:score};coreCapstoneScores(ed,cls,20,sc);return sc;};
+      const b=pcEnsure(make("2024","Bard",20));syncGrantedSpells(b);
+      const words=["Power Word Heal","Power Word Kill"].map(name=>spellPreparationSources(b,name).some(x=>x.feature==="Words of Creation"));
+      pcLevelTo(b,19);
+      const wordsRemoved=["Power Word Heal","Power Word Kill"].every(name=>!spellPreparationSources(b,name).some(x=>x.feature==="Words of Creation"));
+      const rogue=(ed,level,kind,skill,raw)=>skillCheckD20Floor({ed,cls:"Rogue",level,skills:[{s:"Stealth",p:true},{s:"History",p:false}]},kind,skill,raw);
+      const c=pcEnsure(make("2024","Barbarian",19)), before={...c.scores};
+      pcLevelTo(c,20);const up={...c.scores};pcLevelTo(c,19);const down={...c.scores};pcLevelTo(c,20);const again={...c.scores};
+      return {expertise:[expert("2014",2),expert("2024",2),expert("2014",9),expert("2024",9)],
+        features:[feature("2024","Bard",6,"Countercharm"),feature("2024","Bard",7,"Countercharm"),feature("2024","Rogue",6,"Reliable Talent"),feature("2024","Rogue",7,"Reliable Talent"),feature("2014","Rogue",10,"Reliable Talent"),feature("2014","Rogue",11,"Reliable Talent"),feature("2024","Monk",20,"Body and Mind")],
+        caps:[cap("2014","Barbarian",21),cap("2024","Barbarian",21),cap("2024","Monk",21),cap("2014","Monk",21)],
+        floor:[rogue("2024",6,"check","Stealth",2),rogue("2024",7,"check","Stealth",2),rogue("2014",10,"check","Stealth",2),rogue("2014",11,"check","Stealth",2),rogue("2024",7,"check","History",2),rogue("2024",7,"save","Stealth",2),rogue("2024",7,"check","Stealth",17)],
+        words,wordsRemoved,before,up,down,again};
+    });
+    assert.deepEqual(progressionAudit.expertise,[0,2,2,4]);
+    assert.deepEqual(progressionAudit.features,[false,true,false,true,false,true,true]);
+    assert.deepEqual(progressionAudit.caps,[{str:24,con:24,dex:21,wis:21},{str:25,con:25,dex:21,wis:21},{str:21,con:21,dex:25,wis:25},{str:21,con:21,dex:21,wis:21}]);
+    assert.deepEqual(progressionAudit.floor,[2,10,2,10,2,2,17]);
+    assert.deepEqual(progressionAudit.words,[true,true]);assert.equal(progressionAudit.wordsRemoved,true);
+    assert.equal(progressionAudit.up.str,Math.min(25,progressionAudit.before.str+4));
+    assert.equal(progressionAudit.up.con,Math.min(25,progressionAudit.before.con+4));
+    assert.deepEqual(progressionAudit.down,progressionAudit.before);assert.deepEqual(progressionAudit.again,progressionAudit.up);
     const expansion = await page.evaluate(() => {
       const subclasses = hbBook("subclass").filter(x => ["tce", "xge"].includes(x.src));
       const armorer = generateCharacter({ seed: "ARMOR", ed: "2014", cls: "Artificer", subclass: "Armorer", level: 5 });
@@ -400,7 +426,7 @@ const { chromium } = require("playwright");
       castPick("freeRuneStrike");
       castGo();
       return { classes, blood, frost, frees: dk.used.freeRuneStrike, slots: dk.used.slot1 || 0,
-        eye: [eye.dice, eye.save, eye.half],
+        eye: [eye.dice, eye.save, eye.half, eye.manual],
         prepared: dh.prepared.map(x => x.n), demonHunterPool: pool.map(x => x.n),
         assigned: SP.data["2024"].filter(s => s.src === "wow").every(s => s.c.length > 0 && !s.rulesSummary) };
     });
@@ -409,7 +435,7 @@ const { chromium } = require("playwright");
     assert.equal(warcraft.blood && warcraft.frost && warcraft.assigned, true);
     assert.equal(warcraft.frees, 1);
     assert.equal(warcraft.slots, 0);
-    assert.deepEqual(warcraft.eye, ["3d6", "dex", true]);
+    assert.deepEqual(warcraft.eye, ["", "", false, true]); // recurring cone; no unsafe automatic effect
     assert.ok(warcraft.prepared.includes("Eye Beam") && warcraft.demonHunterPool.includes("Eye Beam"));
     assert.match(await page.locator("#actModal").textContent(), /2d8 Necrotic/);
     await page.getByRole("button", { name: "Roll 2d8", exact: true }).click();

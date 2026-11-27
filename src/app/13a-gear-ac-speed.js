@@ -30,7 +30,7 @@ function pcRecompute(c) {
 }
 function pcLevelTo(c, lv) {
   const n = generateCharacter({ seed: c.seed || c.id, name: c.name, race: c.race, ed: edOf(c), sub: c.sub || (c.race === "Dragonborn" && c.ancestry) || "none", ancestry: c.ancestry || undefined, cls: c.cls, bg: c.bg, level: lv, subclass: c.subclass || "none", asiPicks: c.asiPicks || undefined, bonusFeats: c.bonusFeats || undefined, bgAsiLegacy: c.bgAsiLegacy || undefined, ...pcKeep(c), method: c.method || "array", bonus: c.bonus || "flex", custom: c.customData || undefined });
-  ["level", "base", "scores", "mods", "rolls", "prof", "saves", "skills", "hp", "ac", "acSrc", "speed", "init", "passive", "attacks", "spell", "feats", "extras", "hd", "traits", "initBonus", "atkBonus", "hbSig", "res", "imm", "vul", "cimm", "sadv", "subHp", "subSpd", "hbAc", "hbSpeed", "skilled", "expertOrder", "totalLevel", "mcSkills", "hdList"].forEach(k => c[k] = n[k]);
+  ["level", "base", "scores", "mods", "rolls", "prof", "saves", "skills", "hp", "ac", "acSrc", "speed", "init", "passive", "attacks", "spell", "feats", "extras", "hd", "traits", "initBonus", "atkBonus", "hbSig", "res", "imm", "vul", "cimm", "sadv", "subHp", "subSpd", "hbAc", "hbSpeed", "skilled", "expertOrder", "speciesSkill", "totalLevel", "mcSkills", "hdList"].forEach(k => c[k] = n[k]);
   c.hpCur = n.hp;
   if (Array.isArray(c.prepared)) syncGrantedSpells(c);
   if (c.kitMoved) { c.attacks = pcAttacks(c); pcACApply(c); }

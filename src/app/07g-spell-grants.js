@@ -3,6 +3,7 @@
    the corresponding System Reference Documents. */
 const CLASS_SPELL_GRANTS = {
   Artificer: [[1, "Tinker’s Magic", "Mending"]],
+  Bard: [[20, "Words of Creation", "Power Word Heal"], [20, "Words of Creation", "Power Word Kill"]],
   Druid: [[1, "Druidic", "Speak with Animals"]],
   Ranger: [[1, "Favored Enemy", "Hunter's Mark", "hmark"]],
   Paladin: [[2, "Paladin's Smite", "Divine Smite", "freeDivineSmite"], [5, "Faithful Steed", "Find Steed", "freePaladinSteed"]],
