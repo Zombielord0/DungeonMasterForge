@@ -548,6 +548,22 @@ const { chromium } = require("playwright");
     });
     assert.deepEqual(subclassOwnerAudit.synced,subclassOwnerAudit.before);assert.equal(subclassOwnerAudit.pool,4);assert.equal(subclassOwnerAudit.selection,3);
     assert.ok(subclassOwnerAudit.desc.length>20);assert.equal(subclassOwnerAudit.stale,false);assert.equal(subclassOwnerAudit.crit,19);assert.equal(subclassOwnerAudit.premature,0);assert.equal(subclassOwnerAudit.hp,3);assert.deepEqual(subclassOwnerAudit.saves,subclassOwnerAudit.after);
+    const subclassSpellAudit=await page.evaluate(()=>{
+      const make=(ed,cls,level,subclass)=>pcEnsure(generateCharacter({seed:"SUBSPELL",ed,cls,level,subclass,race:"Human",bg:"Sage"}));
+      const f=make("2014","Warlock",5,"The Fiend"),r=make("2024","Warlock",5,"Fiend Patron");
+      const options=pcSpellPool(f,"2014").map(s=>s.n),legacyAuto=isPrep(f,"Fireball","2014"),revisedAuto=isPrep(r,"Fireball","2024");
+      const soul=make("2014","Sorcerer",5,"Divine Soul"),soulOptions=pcSpellPool(soul,"2014").map(s=>s.n);
+      const ranger=make("2014","Ranger",5,"Gloom Stalker"),rangerSpells=ranger.prepared.filter(p=>p.sources?.some(x=>x.name==="Gloom Stalker")).map(p=>p.n);
+      const gen=make("2014","Warlock",17,"The Genie");gen.choices={"Genie's Vessel":["Efreeti"]};syncGrantedSpells(gen);
+      const genieFire=legacySubclassOption(gen,"2014","Warlock",spellOf("2014","Fireball")),wish=CHOICES["Mystic Arcanum 9"].opts(gen).some(x=>x[0]==="Wish");
+      const compatibility=subclassList("2024","Cleric").map(x=>x[0]),tempest=make("2024","Cleric",3,"Tempest Domain");
+      const hasEarly=tempest.feats.some(x=>x.subOwner&&x.l<3),thunder=isPrep(tempest,"Thunderwave","2024");
+      const legacyReplaced=subclassList("2024","Sorcerer").some(x=>x[0]==="Aberrant Mind");
+      return {fire:options.includes("Fireball"),legacyAuto,revisedAuto,cleric:soulOptions.includes("Bless"),rangerSpells,genieFire,wish,compatibility,hasEarly,thunder,legacyReplaced};
+    });
+    assert.deepEqual([subclassSpellAudit.fire,subclassSpellAudit.legacyAuto,subclassSpellAudit.revisedAuto,subclassSpellAudit.cleric,subclassSpellAudit.genieFire,subclassSpellAudit.wish],[true,false,true,true,true,true]);
+    assert.deepEqual(subclassSpellAudit.rangerSpells.sort(),["Disguise Self","Rope Trick"]);
+    assert.ok(subclassSpellAudit.compatibility.includes("Tempest Domain"));assert.deepEqual([subclassSpellAudit.hasEarly,subclassSpellAudit.thunder,subclassSpellAudit.legacyReplaced],[false,true,false]);
     const expansion = await page.evaluate(() => {
       const subclasses = hbBook("subclass").filter(x => ["tce", "xge"].includes(x.src));
       const armorer = generateCharacter({ seed: "ARMOR", ed: "2014", cls: "Artificer", subclass: "Armorer", level: 5 });

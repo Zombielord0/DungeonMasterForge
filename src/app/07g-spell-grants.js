@@ -129,6 +129,70 @@ const SUBCLASS_SPELL_GRANTS = {
   },
 };
 
+// Published legacy expanded lists are options, not additional known/prepared spells.
+const LEGACY_PATRON_OPTIONS={
+ "The Archfey":[["Faerie Fire","Sleep"],["Calm Emotions","Phantasmal Force"],["Blink","Plant Growth"],["Dominate Beast","Greater Invisibility"],["Dominate Person","Seeming"]],
+ "The Fiend":[["Burning Hands","Command"],["Blindness/Deafness","Scorching Ray"],["Fireball","Stinking Cloud"],["Fire Shield","Wall of Fire"],["Flame Strike","Hallow"]],
+ "The Great Old One":[["Dissonant Whispers","Hideous Laughter"],["Detect Thoughts","Phantasmal Force"],["Clairvoyance","Sending"],["Dominate Beast","Black Tentacles"],["Dominate Person","Telekinesis"]],
+ "The Celestial":[["Cure Wounds","Guiding Bolt"],["Flaming Sphere","Lesser Restoration"],["Daylight","Revivify"],["Guardian of Faith","Wall of Fire"],["Flame Strike","Greater Restoration"]],
+ "The Hexblade":[["Shield","Wrathful Smite"],["Blur","Branding Smite"],["Blink","Elemental Weapon"],["Phantasmal Killer","Staggering Smite"],["Banishing Smite","Cone of Cold"]],
+ "The Fathomless":[["Create or Destroy Water","Thunderwave"],["Gust of Wind","Silence"],["Lightning Bolt","Sleet Storm"],["Control Water","Summon Elemental"],["Arcane Hand","Cone of Cold"]],
+ "The Undying":[["False Life","Ray of Sickness"],["Blindness/Deafness","Silence"],["Feign Death","Speak with Dead"],["Aura of Life","Death Ward"],["Contagion","Legend Lore"]],
+ "The Undead":[["Bane","False Life"],["Blindness/Deafness","Phantasmal Force"],["Phantom Steed","Speak with Dead"],["Death Ward","Greater Invisibility"],["Antilife Shell","Cloudkill"]],
+ "The Genie":[["Detect Evil and Good"],["Phantasmal Force"],["Create Food and Water"],["Phantasmal Killer"],["Creation"]]
+};
+const LEGACY_GENIE_OPTIONS={
+ Dao:["Sanctuary","Spike Growth","Meld into Stone","Stone Shape","Wall of Stone"],
+ Djinni:["Thunderwave","Gust of Wind","Wind Wall","Greater Invisibility","Seeming"],
+ Efreeti:["Burning Hands","Scorching Ray","Fireball","Fire Shield","Flame Strike"],
+ Marid:["Fog Cloud","Blur","Sleet Storm","Control Water","Cone of Cold"]
+};
+const LEGACY_EXTRA_KNOWN={
+ "Ranger|Gloom Stalker":{3:["Disguise Self"],5:["Rope Trick"],9:["Fear"],13:["Greater Invisibility"],17:["Seeming"]},
+ "Ranger|Horizon Walker":{3:["Protection from Evil and Good"],5:["Misty Step"],9:["Haste"],13:["Banishment"],17:["Teleportation Circle"]},
+ "Ranger|Monster Slayer":{3:["Protection from Evil and Good"],5:["Zone of Truth"],9:["Magic Circle"],13:["Banishment"],17:["Hold Monster"]},
+ "Ranger|Fey Wanderer":{3:["Charm Person"],5:["Misty Step"],9:["Dispel Magic"],13:["Dimension Door"],17:["Mislead"]},
+ "Ranger|Swarmkeeper":{3:["Mage Hand","Faerie Fire"],5:["Web"],9:["Gaseous Form"],13:["Arcane Eye"],17:["Insect Plague"]},
+ "Sorcerer|Aberrant Mind":{1:["Arms of Hadar","Dissonant Whispers","Mind Sliver"],3:["Calm Emotions","Detect Thoughts"],5:["Hunger of Hadar","Sending"],7:["Black Tentacles","Summon Aberration"],9:["Telepathic Bond","Telekinesis"]},
+ "Sorcerer|Clockwork Soul":{1:["Alarm","Protection from Evil and Good"],3:["Aid","Lesser Restoration"],5:["Dispel Magic","Protection from Energy"],7:["Freedom of Movement","Summon Construct"],9:["Greater Restoration","Wall of Force"]},
+ "Sorcerer|Shadow Magic":{3:["Darkness"]},
+ "Warlock|The Celestial":{1:["Light","Sacred Flame"]},
+ "Warlock|The Undying":{1:["Spare the Dying"]},
+ "Druid|Circle of Spores":{2:["Chill Touch"]},
+};
+const LEGACY_ADDITIONAL_PREPARED={
+ "Cleric|Arcana Domain":{1:["Detect Magic","Magic Missile"],3:["Magic Weapon","Nystul's Magic Aura"],5:["Dispel Magic","Magic Circle"],7:["Arcane Eye","Leomund's Secret Chest"],9:["Planar Binding","Teleportation Circle"]},
+ "Cleric|Forge Domain":{1:["Identify","Searing Smite"],3:["Heat Metal","Magic Weapon"],5:["Elemental Weapon","Protection from Energy"],7:["Fabricate","Wall of Fire"],9:["Animate Objects","Creation"]},
+ "Cleric|Grave Domain":{1:["Bane","False Life"],3:["Gentle Repose","Ray of Enfeeblement"],5:["Revivify","Vampiric Touch"],7:["Blight","Death Ward"],9:["Antilife Shell","Raise Dead"]},
+ "Cleric|Order Domain":{1:["Command","Heroism"],3:["Hold Person","Zone of Truth"],5:["Mass Healing Word","Slow"],7:["Compulsion","Locate Creature"],9:["Commune","Dominate Person"]},
+ "Cleric|Peace Domain":{1:["Heroism","Sanctuary"],3:["Aid","Warding Bond"],5:["Beacon of Hope","Sending"],7:["Aura of Purity","Otiluke's Resilient Sphere"],9:["Greater Restoration","Rary's Telepathic Bond"]},
+ "Cleric|Twilight Domain":{1:["Faerie Fire","Sleep"],3:["Moonbeam","See Invisibility"],5:["Aura of Vitality","Leomund's Tiny Hut"],7:["Aura of Life","Greater Invisibility"],9:["Circle of Power","Mislead"]},
+ "Druid|Circle of Spores":{3:["Blindness/Deafness","Gentle Repose"],5:["Animate Dead","Gaseous Form"],7:["Blight","Confusion"],9:["Cloudkill","Contagion"]},
+ "Druid|Circle of Wildfire":{2:["Burning Hands","Cure Wounds"],3:["Flaming Sphere","Scorching Ray"],5:["Plant Growth","Revivify"],7:["Aura of Life","Fire Shield"],9:["Flame Strike","Mass Cure Wounds"]},
+ "Paladin|Oath of Conquest":{3:["Armor of Agathys","Command"],5:["Hold Person","Spiritual Weapon"],9:["Bestow Curse","Fear"],13:["Dominate Beast","Stoneskin"],17:["Cloudkill","Dominate Person"]},
+ "Paladin|Oath of Redemption":{3:["Sanctuary","Sleep"],5:["Calm Emotions","Hold Person"],9:["Counterspell","Hypnotic Pattern"],13:["Otiluke's Resilient Sphere","Stoneskin"],17:["Hold Monster","Wall of Force"]},
+ "Paladin|Oath of Glory":{3:["Guiding Bolt","Heroism"],5:["Enhance Ability","Magic Weapon"],9:["Haste","Protection from Energy"],13:["Compulsion","Freedom of Movement"],17:["Commune","Flame Strike"]},
+ "Paladin|Oath of the Watchers":{3:["Alarm","Detect Magic"],5:["Moonbeam","See Invisibility"],9:["Counterspell","Nondetection"],13:["Aura of Purity","Banishment"],17:["Hold Monster","Scrying"]},
+ "Paladin|Oath of the Crown":{3:["Command","Compelled Duel"],5:["Warding Bond","Zone of Truth"],9:["Aura of Vitality","Spirit Guardians"],13:["Banishment","Guardian of Faith"],17:["Circle of Power","Geas"]},
+};
+const SUBCLASS_SPELL_ALIASES={"Nystul's Magic Aura":"Magic Aura","Leomund's Secret Chest":"Secret Chest","Otiluke's Resilient Sphere":"Resilient Sphere","Rary's Telepathic Bond":"Telepathic Bond","Leomund's Tiny Hut":"Tiny Hut","Branding Smite":"Shining Smite"};
+function subclassSpellName(ed,name){
+ if(spellOf(ed,name))return name;
+ const alias=SUBCLASS_SPELL_ALIASES[name];return alias&&spellOf(ed,alias)?alias:name;
+}
+function legacySubclassOption(c,ed,cls,sp){
+ if(edOf(c)!==ed||!sp||sp.hb||sp.pend||sp.referenceOnly||sp.rulesSummary||sp.ref||sp.shadow)return false;
+ const row=[{cls:c.cls,lv:c.level,subclass:c.subclass},...(c.multi||[])].find(x=>x.cls===cls);
+ if(!row||!row.subclass||+row.lv<subclassLevel(ed,cls))return false;
+ const entry=subclassEntry(ed,cls,row.subclass);
+ if(ed!=="2014"&&!entry?.compatibility)return false;
+ if(cls==="Sorcerer"&&row.subclass==="Divine Soul")return (sp.c||[]).includes("Cleric");
+ if(cls!=="Warlock"||!LEGACY_PATRON_OPTIONS[row.subclass])return false;
+ if(row.subclass==="The Genie"&&sp.l===9&&sp.n==="Wish")return true;
+ const names=LEGACY_PATRON_OPTIONS[row.subclass][sp.l-1]||[];
+ const genie=row.subclass==="The Genie"?LEGACY_GENIE_OPTIONS[choiceOf(c,"Genie's Vessel")[0]]?.[sp.l-1]:null;
+ return [...names,...(genie?[genie]:[])].some(n=>subclassSpellName(ed,n)===sp.n);
+}
 const ARTIFICER_SPELL_GRANTS = {
   Alchemist: {
     3: ["Healing Word", "Ray of Sickness"], 5: ["Flaming Sphere", "Acid Arrow"], 9: ["Gaseous Form", "Mass Healing Word"],
@@ -345,7 +409,14 @@ function syncGrantedSpells(c) {
     const entry = subclassEntry(ed, cls, subclass);
     const source = { kind: "subclass", name: subclass, cls, book: entry?.src };
     const artificer = ed === "2024" ? REVISED_ARTIFICER_SPELL_GRANTS : ARTIFICER_SPELL_GRANTS;
-    add(SUBCLASS_SPELL_GRANTS[ed]?.[cls + "|" + subclass], lv, source);
+    const legacy=ed==="2014"||entry?.compatibility===true,key=cls+"|"+subclass;
+    const track=SUBCLASS_SPELL_GRANTS[legacy?"2014":ed]?.[key];
+    const normalize=t=>Object.fromEntries(Object.entries(t||{}).map(([l,names])=>[Math.max(+l,subclassLevel(ed,cls)),names.map(n=>subclassSpellName(ed,n))]).reduce((rows,[l,names])=>{const x=rows.find(y=>y[0]===l);if(x)x[1].push(...names);else rows.push([l,names]);return rows;},[]));
+    add(normalize(track),lv,source);
+    if(legacy){
+      add(normalize(LEGACY_EXTRA_KNOWN[key]),lv,{...source,known:true});
+      add(normalize(LEGACY_ADDITIONAL_PREPARED[key]),lv,source);
+    }
     if (cls === "Artificer" && Object.hasOwn(artificer, subclass)) add(artificer[subclass], lv, source);
     add(entry?.alwaysPrepared, lv, source);
     add(entry?.bonusSpells, lv, { ...source, known: true });

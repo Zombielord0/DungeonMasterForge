@@ -239,7 +239,7 @@ function spellBackgroundList(c, s, ed) {
     (bg.spellListExtensions || []).some(d => d.name === s.n && d.src === (s.src || "srd") && d.level === s.l));
 }
 function spellClassListEligible(c, s, ed, k) {
-  return (s.c || []).includes(k.cls) || (s.c || []).includes(k.list || clsSpellList(k.cls)) || spellBackgroundList(c, s, ed);
+  return (s.c || []).includes(k.cls) || (s.c || []).includes(k.list || clsSpellList(k.cls)) || spellBackgroundList(c, s, ed) || legacySubclassOption(c,ed,k.cls,s);
 }
 function spellConditionalEligible(c, s, ed) {
   if (!s.backgroundLists?.length) return true;

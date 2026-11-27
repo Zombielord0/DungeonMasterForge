@@ -240,7 +240,7 @@ function spellCaster(c, sp, how, ed = edOf(c)) {
     const ab = source.ab || (source.name === "Aasimar" ? "cha" : speciesSpellAbility(c));
     return { cls: source.name, ab, dc: 8 + c.prof + c.mods[ab], atk: c.prof + c.mods[ab] };
   }
-  const caster=own.find(x => x.cls === source?.cls) || own.find(x => (sp.c || []).includes(x.cls) || (x.list && (sp.c || []).includes(x.list))) || (spellBackgroundList(c,sp,ed) ? own.find(x => pcCastClasses(c).some(k => k.cls === x.cls && (sp.l === 0 ? k.cantrips : sp.l <= k.max))) : null) || own[0] || { cls: "", ab: "int", dc: 8 + c.prof, atk: c.prof };
+  const caster=own.find(x => x.cls === source?.cls) || own.find(x => (sp.c || []).includes(x.cls) || (x.list && (sp.c || []).includes(x.list))) || own.find(x=>pcCastClasses(c).some(k=>k.cls===x.cls&&spellClassListEligible(c,sp,ed,k)&&(sp.l===0?k.cantrips:sp.l<=k.max))) || own[0] || { cls: "", ab: "int", dc: 8 + c.prof, atk: c.prof };
   return ed==="2024"&&clsLv(c,"Sorcerer")>=1&&caster.cls==="Sorcerer"&&isActive(c,"Innate Sorcery")&&(sp.c||[]).includes("Sorcerer")?{...caster,dc:caster.dc+1,innateSorcery:true}:caster;
 }
 /* The spell window: the full rules, then (on My Characters) "Cast at level" buttons and Cast. `o.view`: rules only (the

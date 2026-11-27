@@ -45,7 +45,7 @@ const byEd = (c, L) => L.filter(x => !x[3] || typeof x[3] !== "string" || x[3] =
 const opt3 = L => L.map(x => typeof x === "string" ? [x, x, ""] : [x[0], x[1], x[2] || ""]);
 // Use the owning class level, including when the subclass belongs to a multiclass.
 function expansionSubclassLevel(c, cls, subclass, ed) {
-  if (ed && edOf(c) !== ed) return 0;
+  if(ed&&edOf(c)!==ed&&!(ed==="2014"&&edOf(c)==="2024"&&subclassEntry("2024",cls,subclass)?.compatibility))return 0;
   if (c.cls === cls && c.subclass === subclass) return +c.level;
   return +(c.multi || []).find(entry => entry.cls === cls && entry.subclass === subclass)?.lv || 0;
 }
@@ -303,7 +303,7 @@ for (const [index, { choice, feature, level }] of WIZARD_SPELL_CHOICES.entries()
 for(const level of [6,7,8,9])CHOICES["Mystic Arcanum "+level]={
   label:"Mystic Arcanum (level "+level+")",
   n:c=>clsLv(c,"Warlock")>=2*level-1?1:0,
-  opts:c=>choiceSpellOptions(c,s=>s.l===level&&s.c.includes("Warlock")&&!s.referenceOnly&&!s.rulesSummary&&!s.hb&&!s.ref&&!s.shadow)
+  opts:c=>choiceSpellOptions(c,s=>s.l===level&&(s.c.includes("Warlock")||legacySubclassOption(c,edOf(c),"Warlock",s))&&!s.referenceOnly&&!s.rulesSummary&&!s.hb&&!s.ref&&!s.shadow)
 };
 function wizardSpellChoicesHTML(c) {
   const choices = WIZARD_SPELL_CHOICES.map(({ choice }) => choiceHTML(c, choice)).join("");

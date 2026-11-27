@@ -603,12 +603,26 @@ function bookSubclassEntries(ed, cls) {
    homebrew of the same name still wins. */
 const HB_IMPORT_SRCS = new Set(["5e Companion App", "Fifth Edition Character Sheet", "PDF character sheet", "MythWeaver"]);
 const hbFromImport = x => !!x && HB_IMPORT_SRCS.has(x.src);
+const LEGACY_SUBCLASS_REPLACEMENTS={
+ "Path of the Totem Warrior":"Path of the Wild Heart","Way of the Open Hand":"Warrior of the Open Hand","Way of Shadow":"Warrior of Shadow","Way of the Four Elements":"Warrior of the Elements","Way of Mercy":"Warrior of Mercy",
+ "Draconic Bloodline":"Draconic Sorcery","Wild Magic":"Wild Magic Sorcery","Aberrant Mind":"Aberrant Sorcery","Clockwork Soul":"Clockwork Sorcery","Shadow Magic":"Shadow Sorcery",
+ "The Archfey":"Archfey Patron","The Celestial":"Celestial Patron","The Fiend":"Fiend Patron","The Great Old One":"Great Old One Patron","The Undead":"Undead Patron",
+ "School of Abjuration":"Abjurer","School of Conjuration":"Conjurer","School of Divination":"Diviner","School of Enchantment":"Enchanter","School of Evocation":"Evoker","School of Illusion":"Illusionist","School of Necromancy":"Necromancer","School of Transmutation":"Transmuter","Bladesinging":"Bladesinger","Purple Dragon Knight (Banneret)":"Banneret"
+};
+function legacySubclassEntries(cls){
+ const revised=new Set([...((SUBCLASSES["2024"]||{})[cls]||[]).map(x=>x[0]),...bookSubclassEntries("2024",cls).map(x=>x.name)]);
+ const seen=new Set();
+ const valid=x=>x.features?.length&&x.features.every(f=>f.n&&f.d?.trim()&&!/^\s*(?:see|refer to)\b[^.]*\b(?:p\.|page|source|guide|handbook)/i.test(f.d));
+ const available=x=>!seen.has(x.name)&&!revised.has(x.name)&&!revised.has(LEGACY_SUBCLASS_REPLACEMENTS[x.name]);
+ const candidates=[...bookSubclassEntries("2014",cls).filter(x=>x.ed==="2014"&&["tce","xge","scag","vrgr","dmg-2014","bgg","ftd","ggr","mot"].includes(x.src)),...((SUBCLASSES["2014"]||{})[cls]||[]).map(([name,desc])=>({name,desc,ed:"2014",src:"phb-2014",cls,book:true,features:subFeatsOf("2014",name).map(([l,n,d])=>({l,n,d}))}))];
+ return candidates.filter(x=>{if(!available(x)||!valid(x))return false;seen.add(x.name);return true;}).map(x=>({...x,compatibility:true}));
+}
 function subclassEntry(ed, cls, name, includePending = true) {
   const custom = (includePending ? [...hbOf("subclass"), ...HB.pend.filter(x => x.kind === "subclass")] : hbOf("subclass")).filter(x => x.cls === cls && x.name === name && hbEdOk(x, ed));
   const book = bookSubclassEntries(ed, cls).find(x => x.name === name);
   const builtIn = (((SUBCLASSES[ed] || SUBCLASSES["2014"])[cls]) || []).some(x => x[0] === name);
   /* a book subclass only printed for the other rules set (Oathbreaker with 2024 rules) still brings its features */
-  const other = !book && !builtIn ? bookSubclassEntries(ed === "2014" ? "2024" : "2014", cls).find(x => x.name === name) : null;
+  const other = !book && !builtIn && ed==="2024" ? legacySubclassEntries(cls).find(x=>x.name===name) : null;
   const entry = custom.find(x => !(hbFromImport(x) && (book || builtIn || other))) || book || (builtIn ? undefined : other || undefined);
   if (!entry?.baseSubclass) return entry;
   const features = subFeatsOf(ed, entry.baseSubclass)
@@ -620,6 +634,7 @@ function subclassList(ed, cls, allowed = () => true) {
   const builtIn = ((SUBCLASSES[ed] || SUBCLASSES["2014"])[cls]) || [];
   const custom = hbOf("subclass").filter(x => x.cls === cls && hbEdOk(x, ed)).map(x => [x.name, x.desc || "", true]);
   const books = bookSubclassEntries(ed, cls).map(x => [x.name, x.desc || "", true, x.src]);
+  if(ed==="2024")books.push(...legacySubclassEntries(cls).map(x=>[x.name,(x.desc||"")+" (2014 subclass compatibility; confirm legacy feature interactions with the DM.)",true,x.src]));
   const seen = new Set();
   return [...builtIn, ...custom, ...books].filter(entry => {
     const [name, , homebrew, book] = entry;
