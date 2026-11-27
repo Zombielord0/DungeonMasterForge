@@ -129,12 +129,14 @@ function eqAttack(c, i, w) {
   const st = k => ((w.st.find(([x]) => x === k) || [])[1] || ""), dmgTxt = st("Damage"), props = st("Properties");
   const dm = dmgTxt.match(/^(\d+(?:d\d+)?)\s+([a-z]+)/); if (!dm) return null;
   const m = c.mods, ranged = /Ranged/.test(w.cat), monk = c.cls === "Monk" && (/Simple Melee/.test(w.cat) || w.n === "Shortsword" || (/Melee/.test(w.cat) && /Light/.test(props) && edOf(c) === "2024"));
-  const ab = /Finesse/.test(props) || monk ? (m.dex > m.str ? "dex" : "str") : ranged ? "dex" : "str";
+  const pact=isPactWeapon(c,i,w),normalAb=/Finesse/.test(props)||monk?(m.dex>m.str?"dex":"str"):ranged?"dex":"str";
+  const ab=pact&&edOf(c)==="2024"&&choiceOf(c,"Pact Weapon Ability")[0]==="Charisma"?"cha":normalAb;
   const ref = inventoryCatalogItem(i, edOf(c));
   const magic = inventoryEnhancement(i, ref, "weapon"), needsAtt = inventoryNeedsAttunement(i, ref) && !i.attuned, bonus = needsAtt ? 0 : magic;
-  const prof = eqProficient(c, w), mod = m[ab] + bonus, hit = m[ab] + (prof ? c.prof : 0) + bonus;
+  const prof = pact||eqProficient(c, w), mod = m[ab] + bonus, hit = m[ab] + (prof ? c.prof : 0) + bonus;
   const two = (dmgTxt.match(/two-handed (\d+d\d+)/) || [])[1];
-  return { name: i.n, iid: i.id, hit, type: dm[2], two, ab, prof, magic, needsAtt, mastery:activeMastery(c,w), melee: !ranged, twoH: /Two-Handed/.test(props), thrown: /Thrown/.test(props), mod, die: dm[1] };
+  const chosenType=choiceOf(c,"Pact Weapon Damage")[0],type=pact&&edOf(c)==="2024"&&["Necrotic","Psychic","Radiant"].includes(chosenType)?chosenType.toLowerCase():dm[2];
+  return { name: i.n, iid: i.id, hit, type, pact, two, ab, prof, magic, needsAtt, mastery:activeMastery(c,w), melee: !ranged, twoH: /Two-Handed/.test(props), thrown: /Thrown/.test(props), mod, die: dm[1] };
 }
 /* ---- fighting styles, armor training, protective items and spell effects ---- */
 const FIGHT_STYLES = {
@@ -386,6 +388,14 @@ function pcAttacks(c) {
   if (hasStyle(c, "Archery")) out.filter(a => a.iid && !a.melee).forEach(a => { a.hit += 2; a.tags.push("Archery +2"); });
   if (hasStyle(c, "Thrown Weapon Fighting")) out.filter(a => a.thrown).forEach(a => { a.thrownB = 2; a.tags.push("Thrown Weapon Fighting +2"); });
   if (hasChoice(c, "Hunter's Prey", "colossus")) out.filter(a => a.iid).forEach(a => a.extra.push("1d8 vs wounded, once per turn"));
+  for(const a of out.filter(a=>a.pact)){
+    a.tags.push("Pact weapon");
+    if(hasChoice(c,"Eldritch Invocations","thirst"))a.tags.push(hasChoice(c,"Eldritch Invocations","devouring")?"3 pact weapon attacks per Attack action":"2 pact weapon attacks per Attack action");
+    if(hasChoice(c,"Eldritch Invocations","lifedrinker")){
+      if(ed==="2014")a.extra.push(Math.max(1,m.cha)+" necrotic (Lifedrinker)");
+      else a.extra.push("1d6 necrotic, psychic or radiant once per turn (Lifedrinker); optional Hit Die healing");
+    }
+  }
   // Radiant Strikes is an attack rider, never a separate spell-slot cost.
   if(ed==="2024"&&clsLv(c,"Paladin")>=11)out.filter(a=>a.unarmed||(a.iid&&a.melee)).forEach(a=>a.extra.push("1d8 radiant (Radiant Strikes)"));
   // active abilities

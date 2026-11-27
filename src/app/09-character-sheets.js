@@ -109,6 +109,22 @@ const KNOWN_SPELLS = {
   Ranger: [0, 2, 3, 3, 4, 4, 5, 5, 6, 6, 7, 7, 8, 8, 9, 9, 10, 10, 11, 11]
 };
 const CANTRIP_BASE = { Bard: 2, Cleric: 3, Druid: 2, Sorcerer: 4, Warlock: 2, Wizard: 3 };
+// SRD 5.2.1 / revised Basic Rules: base prepared spell counts exclude additional grants.
+const REVISED_COMMON_PREPARED=[4,5,6,7,9,10,11,12,14,15,16,16,17,17,18,18,19,20,21,22];
+const REVISED_HALF_PREPARED=[2,3,4,5,6,6,7,7,9,9,10,10,11,11,12,12,14,14,15,15];
+const REVISED_PREPARED={
+  Bard:REVISED_COMMON_PREPARED,Cleric:REVISED_COMMON_PREPARED,Druid:REVISED_COMMON_PREPARED,
+  Paladin:REVISED_HALF_PREPARED,Ranger:REVISED_HALF_PREPARED,
+  Sorcerer:[2,4,...REVISED_COMMON_PREPARED.slice(2)],
+  Warlock:KNOWN_SPELLS.Warlock,
+  Wizard:[4,5,6,7,9,10,11,12,14,15,16,16,17,18,19,21,22,23,24,25],
+};
+function revisedSpellAllowance(cls,lv){
+  const table=Object.hasOwn(REVISED_PREPARED,cls)?REVISED_PREPARED[cls]:null;
+  if(!table||!Number.isInteger(lv)||lv<1||lv>20)return null;
+  const base=CANTRIP_BASE[cls]||0;
+  return {n:table[lv-1],cantrips:base?base+Number(lv>=4)+Number(lv>=10):0};
+}
 function spellLimits(c) {
   if (!c || !c.spell) return null;
   // every spellcasting class counts, each at its own level
@@ -130,6 +146,8 @@ function spellLimits(c) {
       cant += 2 + (lv >= 10 ? 1 : 0) + (lv >= 14 ? 1 : 0);
       return;
     }
+    const revised=edOf(c)==="2024"?revisedSpellAllowance(cls,+lv):null;
+    if(revised){n+=revised.n;cant+=revised.cantrips;return;}
     if (KNOWN_SPELLS[cls]) { n += KNOWN_SPELLS[cls][lv - 1] || 0; if (list.length === 1) word = "known"; }
     else if (cls === "Paladin") n += lv >= 2 ? Math.max(1, m.cha + Math.floor(lv / 2)) : 0;
     else if (CLASS_DATA[cls].hb && CLASS_DATA[cls].cast[0] === "half") n += Math.max(1, m[ab] + Math.floor(lv / 2)); // a homebrew half caster prepares like a 2014 Paladin

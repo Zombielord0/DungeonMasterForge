@@ -419,6 +419,25 @@ const { chromium } = require("playwright");
     assert.deepEqual(conditionalAudit.plans,[[2,1],[4,2],null,[1,6],null,null,[4,1]]);
     assert.ok(conditionalAudit.before.includes("free:quickened")&&!conditionalAudit.after.includes("free:quickened")&&conditionalAudit.reset);
     assert.equal(conditionalAudit.spent,20);assert.equal(conditionalAudit.paid,1);
+    const spellPactAudit=await page.evaluate(()=>{
+      const make=(ed,cls,level)=>pcEnsure(generateCharacter({seed:"SPELL-PACT",ed,cls,level,race:"Human",bg:"Sage",subclass:"none"}));
+      const limits=["Bard","Cleric","Druid","Paladin","Ranger","Sorcerer","Warlock","Wizard"].map(cls=>[1,2,5,10,15,20].map(l=>spellLimits(make("2024",cls,l)).n));
+      const old=make("2014","Cleric",5);old.mods.wis=3;
+      const w=make("2024","Warlock",12);w.inv=[{id:"pact-test",n:"Longsword",qty:1,eq:true},{id:"ordinary",n:"Dagger",qty:1,eq:true}];
+      w.choices={"Eldritch Invocations":["blade","thirst","devouring","lifedrinker","chain","tome"],"Pact Weapon":["pact-test"],"Pact Weapon Ability":["Charisma"],"Pact Weapon Damage":["Psychic"],"Pact Tome Cantrips":["Light"],"Pact Tome Rituals":["Detect Magic"]};
+      w.prepared=[];syncGrantedSpells(w);
+      const attacks=pcAttacks(w),pact=attacks.find(a=>a.iid==="pact-test"),other=attacks.find(a=>a.iid==="ordinary");
+      const chain=castOpts(w,spellOf("2024","Find Familiar")).map(x=>x[0]),tome=["Light","Detect Magic"].map(n=>spellPreparationSources(w,n).some(s=>s.feature==="Pact of the Tome"));
+      w.choices["Eldritch Invocations"]=[];syncGrantedSpells(w);
+      const removed=pcAttacks(w).find(a=>a.iid==="pact-test");
+      const legacy=make("2014","Warlock",3);legacy.choices={"Pact Boon":["chain"]};legacy.prepared=[];syncGrantedSpells(legacy);
+      return {limits,old:spellLimits(old).n,pact:[pact.ab,pact.type,pact.prof,pact.hit,pact.tags],cha:w.mods.cha,prof:w.prof,other:!!other.pact,chain,tome,removed:!!removed.pact,legacyChain:castOpts(legacy,spellOf("2014","Find Familiar")).map(x=>x[0])};
+    });
+    assert.deepEqual(spellPactAudit.limits,[[4,5,9,15,18,22],[4,5,9,15,18,22],[4,5,9,15,18,22],[2,3,6,9,12,15],[2,3,6,9,12,15],[2,4,9,15,18,22],[2,3,6,10,13,15],[4,5,9,15,19,25]]);
+    assert.equal(spellPactAudit.old,8);
+    assert.deepEqual(spellPactAudit.pact.slice(0,4),["cha","psychic",true,spellPactAudit.cha+spellPactAudit.prof]);assert.ok(spellPactAudit.pact[4].some(t=>t.startsWith("3 pact weapon attacks")));
+    assert.deepEqual([spellPactAudit.other,spellPactAudit.removed],[false,false]);
+    assert.deepEqual(spellPactAudit.chain,["pactChainFamiliar"]);assert.deepEqual(spellPactAudit.tome,[true,true]);assert.deepEqual(spellPactAudit.legacyChain,["ritual"]);
     const expansion = await page.evaluate(() => {
       const subclasses = hbBook("subclass").filter(x => ["tce", "xge"].includes(x.src));
       const armorer = generateCharacter({ seed: "ARMOR", ed: "2014", cls: "Artificer", subclass: "Armorer", level: 5 });

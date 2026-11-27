@@ -301,8 +301,17 @@ function syncGrantedSpells(c) {
       }
     }
     if(cls==="Warlock"){
+      if(warlockPact(c,"chain")){
+        const familiar=spellOf(ed,"Find Familiar");
+        if(familiar&&!familiar.ref&&!familiar.referenceOnly&&!familiar.rulesSummary&&!familiar.pend&&!familiar.shadow)
+          add({1:["Find Familiar"]},lv,{...classSource,feature:"Pact of the Chain"},()=>ed==="2024"?{free:"pactChainFamiliar",uses:"atWill",innate:true}:{innate:true,ritualOnly:true,known:true});
+      }
+      if(warlockPact(c,"tome")){
+        const cantrips=pactTomeSelections(c,0),rituals=ed==="2024"?pactTomeSelections(c,1):[];
+        add({1:[...cantrips,...rituals]},lv,{...classSource,feature:"Pact of the Tome"},()=>({known:ed==="2014"}));
+      }
       // At-will spells without self-target or special-use caveats. Others remain manual.
-      const atWill={mask:"Disguise Self",misty:"Silent Image",grave:"Speak with Dead",visions:"Arcane Eye",sight:"Detect Magic",beast:"Speak with Animals"};
+      const atWill={mask:"Disguise Self",misty:"Silent Image",grave:"Speak with Dead",visions:"Arcane Eye",sight:"Detect Magic",beast:"Speak with Animals",myriad:"Alter Self"};
       for(const [id,name] of Object.entries(atWill))if(hasChoice(c,"Eldritch Invocations",id)){
         const sp=spellOf(ed,name);
         if(sp&&!sp.ref&&!sp.referenceOnly&&!sp.pend&&!sp.rulesSummary&&!sp.shadow&&!sp.hb)

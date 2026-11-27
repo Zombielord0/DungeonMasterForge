@@ -132,7 +132,7 @@ const CHOICES = {
   "Circle Spells": { label: "Your land", n: c => c.subclass === "Circle of the Land" || (c.multi || []).some(x => x.subclass === "Circle of the Land") ? 1 : 0, opts: () => opt3(["Arctic", "Coast", "Desert", "Forest", "Grassland", "Mountain", "Swamp", "Underdark"]) },
   "Circle of the Land Spells": { label: "Your land (change after a long rest)", n: () => 1, opts: () => opt3(["Arid", "Polar", "Temperate", "Tropical"]) },
   "Dragon Ancestor": { label: "Dragon ancestor", n: () => 1, opts: () => DRAGONS.map(d => [d, `${d} (${DRAGON_ANCESTRY[d] ? DRAGON_ANCESTRY[d].type : ""})`, ""]) },
-  "Pact Boon": { label: "Pact boon", n: c => edOf(c) === "2014" ? 1 : 0, opts: () => opt3([["chain", "Pact of the Chain", "Find Familiar with special forms."], ["blade", "Pact of the Blade", "Conjure a pact weapon."], ["tome", "Pact of the Tome", "A Book of Shadows with three cantrips."]]) },
+  "Pact Boon": { label: "Pact boon", n: c => edOf(c) === "2014" && clsLv(c,"Warlock")>=3 ? 1 : 0, opts: () => opt3([["chain", "Pact of the Chain", "Find Familiar with special forms."], ["blade", "Pact of the Blade", "Conjure a pact weapon."], ["tome", "Pact of the Tome", "A Book of Shadows with three cantrips."]]) },
   "Feat: Crafter": { label: "Artisan's tools", n: () => 3, opts: () => opt3(ARTISAN) },
   "Feat: Musician": { label: "Instruments", n: () => 3, opts: () => opt3(INSTRUMENTS) }
 };
@@ -160,7 +160,7 @@ function knownWarlockCantrips(c){
     if(p.bookGrant&&!p.sources?.some(g=>g.cls==="Warlock"))continue;
     if(!p.bookGrant&&p.src)continue;
     const s=spellOf(ed,p.n);
-    if(s&&!s.hb&&!s.pend&&!s.ref&&!s.referenceOnly&&!s.rulesSummary&&!s.shadow&&(s.c||[]).includes("Warlock")&&(!s.ed||s.ed===ed))names.add(s.n);
+    if(s&&!s.hb&&!s.pend&&!s.ref&&!s.referenceOnly&&!s.rulesSummary&&!s.shadow&&((s.c||[]).includes("Warlock")||p.sources?.some(g=>g.cls==="Warlock"&&g.feature==="Pact of the Tome"))&&(!s.ed||s.ed===ed))names.add(s.n);
   }
   return [...names].sort();
 }
@@ -212,6 +212,32 @@ function invocationEligible(c,id,seen=new Set()){
   return true;
 }
 const hasChoice = (c,k,id)=>choiceOf(c,k).includes(id)&&(k!=="Eldritch Invocations"||invocationEligible(c,id));
+function warlockPact(c,id){
+  const lv=clsLv(c,"Warlock");
+  return edOf(c)==="2024"?lv>=1&&hasChoice(c,"Eldritch Invocations",id):lv>=3&&choiceOf(c,"Pact Boon")[0]===id;
+}
+function pactWeaponEligible(c,i,w=eqWeaponOf(i,edOf(c))){
+  if(!warlockPact(c,"blade")||!i||!(+i.qty>0)||!w)return false;
+  const ref=inventoryCatalogItem(i,edOf(c));
+  return /^(Simple|Martial) Melee Weapon/.test(w.cat)||!!(ref&&ref.kind==="magic");
+}
+function pactWeaponOptions(c){
+  return (c.inv||[]).filter(i=>pactWeaponEligible(c,i)).map(i=>[i.id,i.n,"Record the bonded weapon; resolve conjuration, distance, attunement by other creatures and bond ending manually."]);
+}
+function isPactWeapon(c,i,w){
+  return choiceOf(c,"Pact Weapon")[0]===i?.id&&pactWeaponEligible(c,i,w);
+}
+function pactTomeOptions(c,level){
+  if(!warlockPact(c,"tome"))return [];
+  const ed=edOf(c);
+  return choiceSpellOptions(c,s=>s.l===level&&(level===0||s.ri)&&!s.ref&&!s.referenceOnly&&!s.pend&&!s.rulesSummary&&!s.shadow&&!s.hb&&
+    (s.c||[]).length>0&&!(c.prepared||[]).some(p=>p.n===s.n&&p.ed===ed&&(!p.bookGrant||p.sources?.some(g=>g.feature!=="Pact of the Tome"))));
+}
+function pactTomeSelections(c,level){
+  const key=level===0?"Pact Tome Cantrips":"Pact Tome Rituals",allowed=new Set(pactTomeOptions(c,level).map(x=>x[0]));
+  return [...new Set(choiceOf(c,key))].filter(n=>allowed.has(n)).slice(0,level===0?3:2);
+}
+
 const DRAGON_FEATURE_ELEMENTS = ["Acid", "Cold", "Fire", "Lightning", "Poison"];
 const FEATURE_CHOICE_LANGUAGES = ["Common", "Dwarvish", "Elvish", "Giant", "Gnomish", "Goblin", "Halfling", "Orc", "Abyssal", "Celestial", "Draconic", "Deep Speech", "Infernal", "Primordial", "Sylvan", "Undercommon"];
 const choiceList = (label, options, n = 1) => ({ label, n: () => n, opts: () => opt3(options) });
@@ -220,6 +246,11 @@ const choiceSpellOptions = (c, filter) => {
   return opt3([...new Set((SP.data[edOf(c)] || []).filter(s => !s.pend && filter(s)).map(s => s.n))].sort());
 };
 Object.assign(CHOICES, {
+  "Pact Weapon":{label:"Bonded inventory weapon",n:c=>warlockPact(c,"blade")?1:0,opts:pactWeaponOptions},
+  "Pact Weapon Ability":{label:"Pact weapon attack ability",n:c=>edOf(c)==="2024"&&warlockPact(c,"blade")?1:0,opts:()=>opt3(["Charisma","Normal weapon ability"])},
+  "Pact Weapon Damage":{label:"Pact weapon damage type",n:c=>edOf(c)==="2024"&&warlockPact(c,"blade")?1:0,opts:()=>opt3(["Normal","Necrotic","Psychic","Radiant"])},
+  "Pact Tome Cantrips":{label:"Book of Shadows cantrips",n:c=>warlockPact(c,"tome")?3:0,opts:c=>pactTomeOptions(c,0)},
+  "Pact Tome Rituals":{label:"Book of Shadows rituals",n:c=>edOf(c)==="2024"&&warlockPact(c,"tome")?2:0,opts:c=>pactTomeOptions(c,1)},
   "Divine Order Cantrip":{label:"Extra Cleric cantrip",n:c=>revisedOrder(c,"Cleric")==="Thaumaturge"?1:0,opts:c=>choiceSpellOptions(c,s=>s.l===0&&s.c.includes("Cleric")&&!s.referenceOnly&&!s.rulesSummary)},
   "Primal Order Cantrip":{label:"Extra Druid cantrip",n:c=>revisedOrder(c,"Druid")==="Magician"?1:0,opts:c=>choiceSpellOptions(c,s=>s.l===0&&s.c.includes("Druid")&&!s.referenceOnly&&!s.rulesSummary)},
   "Giant Power": choiceList("Cantrip", ["Thaumaturgy", "Druidcraft"]),
@@ -275,6 +306,8 @@ function wizardSpellChoicesHTML(c) {
 
 for(const cls of MASTERY_CLASSES)CHOICES[masteryKey(cls)]={label:cls+" weapon mastery",n:c=>masteryLimit(edOf(c),cls,clsLv(c,cls)),opts:c=>masteryOptions(c,cls)};
 const additionalFeatureChoices = {
+  "Pact Boon":["Pact Weapon","Pact Tome Cantrips"],
+  "Eldritch Invocations":["Pact Weapon","Pact Weapon Ability","Pact Weapon Damage","Pact Tome Cantrips","Pact Tome Rituals"],
   "Weapon Mastery":MASTERY_CLASSES.map(masteryKey),
   "Mystic Arcanum":[6,7,8,9].map(l=>"Mystic Arcanum "+l),
   "Divine Order":["Divine Order Cantrip"],
