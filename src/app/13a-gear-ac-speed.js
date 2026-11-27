@@ -140,6 +140,7 @@ const SUB_MARTIAL = [["Tempest Domain", 1], ["War Domain", 1], ["College of Valo
 function eqProficient(c, w) {
   if (/^Simple/.test(w.cat) || w.cat === "Arcane Foci") return true;
   if(/Martial/.test(w.cat)&&(revisedOrder(c,"Cleric")==="Protector"||revisedOrder(c,"Druid")==="Warden"))return true;
+  if(/Martial/.test(w.cat)&&battleSmithLevel(c)>=3)return true;
   if (/Martial/.test(w.cat) && [{ cls: c.cls, lv: c.level, subclass: c.subclass }, ...(c.multi || [])].some(x => x && SUB_MARTIAL.some(([s, lv]) => s === x.subclass && (+x.lv || 0) >= lv))) return true;
   const props = ((w.st.find(([k]) => k === "Properties") || [])[1] || "");
   if (["Barbarian", "Fighter", "Paladin", "Ranger"].includes(baseClassOf(c.cls)) || (c.multi || []).some(x => MC_MARTIAL.includes(baseClassOf(x.cls)))) return true;
@@ -156,8 +157,9 @@ function eqAttack(c, i, w) {
   const dm = dmgTxt.match(/^(\d+(?:d\d+)?)\s+([a-z]+)/); if (!dm) return null;
   const m = c.mods, ranged = /Ranged/.test(w.cat), monk = c.cls === "Monk" && (/Simple Melee/.test(w.cat) || w.n === "Shortsword" || (/Melee/.test(w.cat) && /Light/.test(props) && edOf(c) === "2024"));
   const pact=isPactWeapon(c,i,w),normalAb=/Finesse/.test(props)||monk?(m.dex>m.str?"dex":"str"):ranged?"dex":"str";
-  const ab=pact&&edOf(c)==="2024"&&choiceOf(c,"Pact Weapon Ability")[0]==="Charisma"?"cha":normalAb;
   const ref = inventoryCatalogItem(i, edOf(c));
+  const battleReady=battleSmithLevel(c)>=3&&choiceOf(c,"Battle Ready Ability")[0]==="Intelligence"&&!itemRulesIncomplete(ref)&&(ref?.kind==="magic"||artificerInfusions(c).includes(i));
+  const ab=pact&&edOf(c)==="2024"&&choiceOf(c,"Pact Weapon Ability")[0]==="Charisma"?"cha":battleReady?"int":normalAb;
   const infusion=artificerInfusionBonus(c,i,"weapon"), magic = inventoryEnhancement(i, ref, "weapon")+infusion, needsAtt = inventoryNeedsAttunement(i, ref) && !i.attuned, bonus = needsAtt ? 0 : magic;
   const prof = pact||eqProficient(c, w), mod = m[ab] + bonus, hit = m[ab] + (prof ? c.prof : 0) + bonus;
   const two = (dmgTxt.match(/two-handed (\d+d\d+)/) || [])[1];
