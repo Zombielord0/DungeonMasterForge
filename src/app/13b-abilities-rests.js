@@ -207,6 +207,7 @@ function pcResources(c) {
     const level = clsLv(c, "Demon Hunter");
     add("soulFragments", "Soul fragments", Math.max(1, c.mods.wis) + (level >= 13 ? 1 : 0) + (level >= 17 ? 1 : 0), "long");
   }
+  if(ed==="2024"&&clsLv(c,"Shaman")>=3)add("totemPrimal","Primal Knowledge Totem",1,"long");
   if (has("Rage")) add("rage", "Rages", ed === "2014" && CLV("Barbarian") >= 20 ? Infinity : CLV("Barbarian") >= 17 ? 6 : CLV("Barbarian") >= 12 ? 5 : CLV("Barbarian") >= 6 ? 4 : CLV("Barbarian") >= 3 ? 3 : 2, ed === "2024" ? "short1" : "long");
   if (has("Bardic Inspiration")) add("bardic", "Bardic Inspiration", Math.max(1, m.cha), CLV("Bard") >= 5 ? "short" : "long");
   for(const r of channelPoolsForCharacter(c))R.push(r);
@@ -288,8 +289,13 @@ function pcAbilities(c) {
   if(ed==="2024"&&clsLv(c,"Druid")>=2)add("Wild Companion","Magic action","Expend a Wild Shape use or spell slot to cast Find Familiar without Material components. The Fey familiar disappears at your next Long Rest.");
   if(ed==="2024"&&clsLv(c,"Druid")>=5)add("Wild Resurgence","No action","Spend a spell slot to regain Wild Shape when none remain, or spend one Wild Shape use to regain an expended level 1 slot once per Long Rest.");
   if(ed==="2024"&&clsLv(c,"Sorcerer")>=7)add("Sorcery Incarnate","Bonus action","When no Innate Sorcery uses remain, spend 2 Sorcery Points to activate it.","sorc");
+  if(ed==="2024"&&clsLv(c,"Shaman")>=3){
+    add("Totems","Bonus action","Place one Small totem (AC 10; HP 1) within 10 ft for 1 minute, replacing a previous totem. Pulses at the end of your turns."+ (c.shamanTotem?" Active: "+c.shamanTotem.name+". "+TOTEM_EFFECTS[c.shamanTotem.name]:""));
+    add("Restore Primal Knowledge Totem","No action","Spend one Rage use to restore the limited totem use.");
+    if(c.shamanTotem)add("End Totem","When destroyed or expired","Remove the current totem.");
+  }
   if (has("Reckless Attack")) add("Reckless Attack", "On attack", "Advantage on your Strength attacks this turn; attacks against you have advantage until your next turn.");
-  const ea = has("Extra Attack (3)") ? 4 : has("Extra Attack (2)") ? 3 : has("Extra Attack") ? 2 : 0;
+  const ea = has("Extra Attack (3)")||has("Three Extra Attacks") ? 4 : has("Extra Attack (2)")||has("Two Extra Attacks") ? 3 : has("Extra Attack") ? 2 : 0;
   if (ea) add("Extra Attack", "Action", `Make ${ea} attacks when you take the Attack action.`);
   if (has("Bardic Inspiration")) add("Bardic Inspiration", "Bonus action", `Give a creature within 60 ft a d${CLV("Bard") >= 15 ? 12 : CLV("Bard") >= 10 ? 10 : CLV("Bard") >= 5 ? 8 : 6} to add to one attack, check or save.`, "bardic");
   const dualChannel=CLV("Cleric")>=2&&CLV("Paladin")>=3;
@@ -949,7 +955,32 @@ function quiveringPalmUse(c,ch){
  if(edOf(c)==="2024")return roll("Quivering Palm","10d12","damage","Force damage (CON save DC "+dc+" for half). Confirm the marked target and same plane.",true);
  const rr=rollDice("10d10");return "Quivering Palm: CON save DC "+dc+". Failure reduces the marked target to 0 HP; success takes "+rr.total+" Necrotic damage ("+rr.text+"). Apply the appropriate result manually.";
 }
+// Warcraft Shaman (Barbarian variant): the source replaces Primal Knowledge with these totems.
+const TOTEM_EFFECTS={
+ "Earthbind Totem":"Enemies within 30 ft lose 10 ft Speed until your next turn ends.",
+ "Primal Knowledge Totem":"Allies within 30 ft can use Strength for Acrobatics, Intimidation, Perception, Stealth or Survival until your next turn ends.",
+ "Tremor Totem":"Allies within 30 ft have Charmed/Frightened immunity until your next turn ends; existing instances suppressed until their next turn ends.",
+ "Wind Rush Totem":"Allies within 30 ft gain 10 ft Speed until your next turn ends."
+};
+function shamanTotemOptions(c){
+ if(edOf(c)!=="2024"||clsLv(c,"Shaman")<3)return [];
+ return Object.entries(TOTEM_EFFECTS).filter(([n])=>n!=="Primal Knowledge Totem"||monkCanPay(c,"totemPrimal",1)).map(([n,d])=>[n,n,d]);
+}
+function shamanTotemCreate(c,ch){
+ if(!shamanTotemOptions(c).some(x=>x[0]===ch))return "Choose an available totem.";
+ if(ch==="Primal Knowledge Totem"&&!monkPay(c,"totemPrimal",1))return "Restore the use first.";
+ c.shamanTotem={name:ch,hp:1,ac:10};return ch+" placed. "+TOTEM_EFFECTS[ch]+" Resolve each pulse, placement and expiry with the DM.";
+}
+function shamanTotemRestore(c){
+ if(edOf(c)!=="2024"||clsLv(c,"Shaman")<3||!(+c.used?.totemPrimal))return "No expended totem use.";
+ if(!monkPay(c,"rage",1))return "No Rage use available.";
+ c.used.totemPrimal=0;return "Primal Knowledge Totem use restored.";
+}
+
 const ACT = {
+ "Totems":{kind:"instant",choices:shamanTotemOptions,use:shamanTotemCreate},
+ "Restore Primal Knowledge Totem":{kind:"instant",use:shamanTotemRestore},
+ "End Totem":{kind:"instant",use:c=>{delete c.shamanTotem;return "Totem ended.";}},
  "Magical Tinkering":{kind:"instant",choices:legacyTinkeringOptions,use:legacyTinkeringApply},
  "End Magical Tinkering":{kind:"instant",choices:c=>(c.inv||[]).filter(i=>i.artificerTinkering?.owner===c.id).map(i=>[i.id,i.n+" · "+i.artificerTinkering.kind]),use:legacyTinkeringEnd},
  "The Right Tool for the Job":{kind:"instant",choices:legacyRightToolOptions,use:legacyRightTool},
