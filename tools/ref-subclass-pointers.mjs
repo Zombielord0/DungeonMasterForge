@@ -1,6 +1,37 @@
 // Original mechanical paraphrases, not a copy of sourcebook prose.
 // Secondary references are not primary-source certification.
 export const SUBCLASS_POINTER_RECOVERY={
+    "reference-ftd-ranger-drakewarden": {
+    "url": "https://cori-spells.github.io/wikidot/dnd5e.wikidot.com/ranger_drakewarden.html",
+    "desc": "A Ranger who summons a draconic ally that grows and gains elemental abilities as the Ranger advances.",
+    "features": [
+      [
+        3,
+        "Draconic Gift",
+        "Thaumaturgy is a Ranger cantrip for you. Gain Draconic or select another language."
+      ],
+      [
+        3,
+        "Drake Companion",
+        "Summon your bonded drake as an Action within 30 feet. Choose Acid, Cold, Fire, Lightning or Poison for its immunity and elemental rider. It acts immediately after you on your initiative; moves and reacts freely, but Dodges unless commanded using your Bonus Action, or you are incapacitated. It lasts until it reaches 0 HP, is replaced, or you die, leaving carried gear behind. Summon once per Long Rest for free, or spend a spell slot of level 1 or higher. Its scaling statistics are shown on the companion card."
+      ],
+      [
+        7,
+        "Bond of Fang and Scale",
+        "Your summoned drake becomes Medium, flies at its walking speed, and deals an additional 1d6 of its chosen element on Bite hits. You resist that element while it is present. You may mount it if Medium or smaller; it cannot fly while ridden yet."
+      ],
+      [
+        11,
+        "Drake's Breath",
+        "As an Action, you or your drake releases a 30-foot cone. Choose Acid, Cold, Fire, Lightning or Poison independently of its essence. Targets make a Dexterity save against your Ranger spell DC; damage is 8d6 on failure and half on success, increasing to 10d6 at Ranger 15. One free use per Long Rest; further uses cost a spell slot of level 3 or higher."
+      ],
+      [
+        15,
+        "Perfected Bond",
+        "While present the drake is Large, can fly while ridden, and its Bite elemental bonus rises to 2d6. When either of you takes damage within 30 feet of the other, your Reaction can grant the damaged one resistance to that instance. Uses equal proficiency bonus per Long Rest."
+      ]
+    ]
+  },
   "reference-bgg-barbarian-path-of-the-giant": {
     "url": "https://dnd5e.wikidot.com/barbarian:giant",
     "desc": "Channel elemental might into giant-sized transformations and returning thrown weapons.",
