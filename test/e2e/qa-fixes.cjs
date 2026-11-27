@@ -142,6 +142,21 @@ const ZOOK = fs.readFileSync(path.join(FIX, "companion-zook.json"), "utf8");
     } finally { if(prior) HB_BG[name]=prior; else delete HB_BG[name]; }
   });
   check("conditional background spell lists respect source, edition, caster level and manual selection", conditional.every(Boolean), JSON.stringify(conditional));
+  const bgChoices=await p.evaluate(()=>{
+    const name="Test Choice Background",prior=HB_BG[name];
+    const c={bg:name,ed:"2014",choices:{}};
+    try{
+      HB_BG[name]={book:true,src:"fixture",ed:"2014",recoveryId:"cmp:fixture",choices:[{id:"lang",label:"Language",rules:"Choose two.",selection:{effect:"language",count:2,options:["Elvish","Dwarvish","Giant"]}}]};
+      const q=backgroundSelectionRules(c)[0],checks=[];
+      checks.push(backgroundSelectionChange(c,q.key,"Elvish"),!backgroundSelectionChange(c,q.key,"Elvish"),!backgroundSelectionChange(c,q.key,"Invalid"),backgroundSelectionChange(c,q.key,"Giant"),!backgroundSelectionChange(c,q.key,"Dwarvish"));
+      const reload=JSON.parse(JSON.stringify(c));checks.push(backgroundSelectionEffects(reload).language.join(",")==="Elvish,Giant");
+      checks.push(!backgroundSelectionRules({...reload,bg:"Acolyte"}).length,!backgroundSelectionRules({...reload,ed:"2024"}).length);
+      checks.push(backgroundSelectionChange(reload,q.key,"Giant",true),backgroundSelectionEffects(reload).language.join(",")==="Elvish");
+      HB_BG[name].recoveryId="cmp:different";checks.push(!backgroundSelectionEffects(reload).language.length);
+      return checks;
+    }finally{if(prior)HB_BG[name]=prior;else delete HB_BG[name];}
+  });
+  check("background choices enforce valid counts, serialize and isolate source identities",bgChoices.every(Boolean),JSON.stringify(bgChoices));
   check("reference spells: a spell the Forge already has isn't added twice (Fireball)", refs["2014fireball"] === 1 && refs["2024fireball"] === 1, JSON.stringify([refs["2014fireball"], refs["2024fireball"]]));
   const sb = await p.evaluate(txt => { const j = JSON.parse(txt); j.spells = [...j.spells, { name: "Silvery Barbs", level: 1 }]; const D = compImport(j, "2014");
     return { prep: D.extras.prepared.map(s => s.n), hb: D.homebrew.filter(x => x.kind === "spell").map(x => x.name) }; }, ZOOK);

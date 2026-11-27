@@ -22,3 +22,6 @@ Optional `backgroundLists: [{name,src}]` on reviewed compact spell payloads perm
 
 ## Legacy background migration boundary
 Approved 2014 background payloads can be promoted or replaced in extra-options with stable identity, complete feature, proficiencies, gear, money, and declared choice records. The build rejects missing, ambiguous, wrong-level, summary-only or wrong-edition spell dependencies. Approved background list extensions can reference canonical spells by exact name/source/level without duplicating spell data. The legacy background detail displays choice contracts, gear and proficiencies; interactive choice resolution and full character persistence still require separate review. No recovered backgrounds or proprietary payloads are approved or published by this patch.
+
+## Background selections
+Optional `choice.selection` carries `effect` (language, tool, detail), `count` and finite string `options`. The sheet stores validated values in existing character choices under a source/edition/recovery-ID namespace and lists outstanding selections in readiness. Selected proficiencies are derived in the proficiency section. Inventory grants, unrestricted language/setting choices and Dimir cover-guild inheritance are not automated by this adapter. No recovered payloads are published.

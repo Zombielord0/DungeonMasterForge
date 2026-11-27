@@ -235,6 +235,41 @@ function featSpellChoiceKeys(c, name) {
 function featSpellChoicesHTML(c, name) {
   return name === "Magic Initiate" ? miHTML(c) : featSpellChoiceKeys(c, name).map(key => choiceHTML(c, key)).join("");
 }
+// Only reviewed legacy backgrounds expose these structured controls. Choice storage is
+// namespaced to source, edition, record identity and choice ID, not the displayed name.
+function backgroundSelectionRules(c) {
+  const ed=edOf(c), bg=HB_BG[c.bg];
+  if(!bg?.book||!bg.recoveryId||bg.pend||bg.ed!==ed||ed!=="2014") return [];
+  return (bg.choices||[]).filter(q=>q.selection).map(q=>({...q,...q.selection,key:JSON.stringify(["background",ed,bg.src,bg.recoveryId,q.id])}));
+}
+function backgroundSelectionValues(c,q) {
+  const raw=c.choices?.[q.key];
+  return Array.isArray(raw)?[...new Set(raw.filter(x=>q.options.includes(x)))].slice(0,q.count):[];
+}
+function backgroundSelectionChange(c,key,value,remove=false) {
+  const q=backgroundSelectionRules(c).find(x=>x.key===key);
+  if(!q||!q.options.includes(value))return false;
+  const have=backgroundSelectionValues(c,q);
+  if(!remove&&(have.includes(value)||have.length>=q.count))return false;
+  if(remove&&!have.includes(value))return false;
+  c.choices={...(c.choices||{}),[key]:remove?have.filter(x=>x!==value):[...have,value]};
+  return true;
+}
+function backgroundSelectionEffects(c) {
+  const result={language:[],tool:[],detail:[]};
+  for(const q of backgroundSelectionRules(c))result[q.effect].push(...backgroundSelectionValues(c,q));
+  return result;
+}
+function backgroundSelectionsHTML(c) {
+  const rules=backgroundSelectionRules(c);if(!rules.length)return "";
+  return '<div class="sec"><div class="sec-h"><h3>Background choices</h3></div>'+rules.map(q=>{
+    const have=backgroundSelectionValues(c,q), key=esc(q.key);
+    return '<div class="choice"><span class="lbl">'+esc(q.label)+' ('+have.length+'/'+q.count+')</span><p class="hint">'+esc(q.rules)+'</p>'+
+      have.map(v=>'<span class="tag gold">'+esc(v)+'<button type="button" class="icon-btn" data-bgchoice-remove="'+key+'" data-bgchoice-value="'+esc(v)+'" aria-label="Remove '+esc(v)+'">✕</button></span>').join("")+
+      (have.length<q.count?'<select data-bgchoice="'+key+'" aria-label="'+esc(q.label)+'"><option value="">Choose…</option>'+q.options.filter(v=>!have.includes(v)).map(v=>'<option value="'+esc(v)+'">'+esc(v)+'</option>').join("")+'</select>':'')+'</div>';
+  }).join("")+'</div>';
+}
+
 function characterReadiness(c) {
   const checks = [];
   const addChoice = (feat, key) => {
@@ -243,6 +278,8 @@ function characterReadiness(c) {
       checks.push([feat + " · " + rule.label, `[data-choice="${CSS.escape(key)}"]`]);
     }
   };
+  for(const q of backgroundSelectionRules(c)) if(backgroundSelectionValues(c,q).length<q.count)
+    checks.push(["Background · "+q.label,'[data-bgchoice="'+CSS.escape(q.key)+'"]']);
   if (needsSubclass(c)) checks.push(["Choose a subclass", "[data-subpick]"]);
   const styles = fightStyleOptions(c);
   for (let index = 0; index < fightSlots(c); index++) {

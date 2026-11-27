@@ -667,7 +667,15 @@ function profInfo(c) {
   const langs = ["Common"], picks = [];
   if (ed === "2024") picks.push("two languages of your choice (species)");
   else { (RACE_LANG[c.race] || []).forEach(l => langs.push(l)); if (RACE_LANG_PICK[c.race]) picks.push(`${RACE_LANG_PICK[c.race]} of your choice (${c.race})`); if (/High Elf/.test(raceLabel(c))) picks.push("1 of your choice (High Elf)"); }
-  if (B.lang) picks.push(`${B.lang.toLowerCase()} (background)`);
+  const bgSelections=backgroundSelectionEffects(c);
+  const bgRules=backgroundSelectionRules(c);
+  langs.push(...bgSelections.language.filter(v=>!langs.includes(v)));
+  tools.push(...bgSelections.tool.map(v=>v+" (background)"));
+  if (B.lang && !bgRules.some(q=>q.effect==="language")) picks.push(`${B.lang.toLowerCase()} (background)`);
+  for(const q of bgRules.filter(q=>q.effect==="language"||q.effect==="tool")){
+    const left=q.count-backgroundSelectionValues(c,q).length;
+    if(left>0)picks.push(left+" outstanding "+q.label.toLowerCase()+" (background)");
+  }
   if (choiceOf(c, "Feat: Skilled").length) tools.push(...choiceOf(c, "Feat: Skilled"));
   return { armor, weapons, tools, langs, picks };
 }

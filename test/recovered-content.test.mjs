@@ -27,3 +27,11 @@ test("legacy background promotion requires complete fields, preserves identity a
  assert.throws(()=>validateRecoveredBackgroundDependencies(accepted,{spells:{"2024":[payload]}}));
  assert.throws(()=>validateRecoveredBackgroundDependencies(accepted,{spells:{"2014":[payload,payload]}}));
 });
+
+test("structured background selection schema rejects invalid counts, duplicate values and unknown effects",()=>{
+ const bg={...entry,kind:"Background",name:"Fixture Guild",action:"promote",payload:{kind:"background",name:"Fixture Guild",src:"fixture",ed:"2014",id:"fixture-bg",book:true,skills:["Arcana","Insight"],desc:"Synthetic fixture.",feature:["Feature","Synthetic mechanics."],tools:"",lang:"Choose two languages.",gearItems:["Book"],gp:0,choices:[{id:"language",label:"Language",rules:"Choose two.",selection:{effect:"language",count:2,options:["Elvish","Dwarvish","Giant"]}}]}};
+ assert.equal(validateRecoveryManifest(manifest([bg]),books).length,1);
+ for(const bad of [{effect:"language",count:4,options:["Elvish"]},{effect:"language",count:1,options:["Elvish","Elvish"]},{effect:"spell",count:1,options:["Example"]}]){
+  assert.throws(()=>validateRecoveryManifest(manifest([{...bg,payload:{...bg.payload,choices:[{...bg.payload.choices[0],selection:bad}]}}]),books));
+ }
+});

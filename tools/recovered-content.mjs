@@ -32,7 +32,15 @@ export function validateRecoveryManifest(m,books) {
       (p.tools&&!okText(p.tools))||(p.lang&&!okText(p.lang))||
       !Array.isArray(p.gearItems)||!p.gearItems.length||!p.gearItems.every(okText)||
       !Number.isFinite(p.gp)||p.gp<0||!Array.isArray(p.choices)||
-      p.choices.some(c=>!c||!okText(c.id)||!okText(c.label)||!okText(c.rules))) fail("incomplete legacy background: "+e.name);
+      p.choices.some(c=>!c||!okText(c.id)||!okText(c.label)||!okText(c.rules)) ||
+      new Set(p.choices.map(c=>c.id)).size!==p.choices.length) fail("incomplete legacy background: "+e.name);
+   for(const c of p.choices) {
+    if(c.selection===undefined) continue; // noninteractive contract remains a review requirement
+    const s=c.selection;
+    if(!s||!["language","tool","detail"].includes(s.effect)||!Number.isInteger(s.count)||s.count<1||
+       !Array.isArray(s.options)||s.options.length<s.count||
+       s.options.some(o=>!okText(o)||o.length>120)||new Set(s.options).size!==s.options.length) fail("invalid background selection: "+e.name+" / "+c.id);
+   }
    if(p.spellListExtensions!==undefined&&(!Array.isArray(p.spellListExtensions)||!p.spellListExtensions.length||
       p.spellListExtensions.some(s=>!s||!okText(s.name)||!(s.src==="srd"||Object.hasOwn(books,s.src))||!Number.isInteger(s.level)||s.level<0||s.level>9)||
       new Set(p.spellListExtensions.map(s=>JSON.stringify([s.name,s.src,s.level]))).size!==p.spellListExtensions.length)) fail("invalid background spell dependencies: "+e.name);

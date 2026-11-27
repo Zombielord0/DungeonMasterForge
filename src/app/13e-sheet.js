@@ -123,6 +123,7 @@ function rosterHTML(c) {
     <div class="prep-h">${L.word === "known" ? "Spells known" : "Prepared spells"}</div>
     <div id="rcPrepared">${preparedHTML(c, true)}</div>${prepPanelHTML(c, "rc")}</div>` : hasSheetSpells(c) ? `<div class="sec" id="sec-spells"><div class="sec-h"><h3>Spells</h3><span class="sp"></span></div>${armorCastingWarningHTML(c)}${speciesSpellChoicesHTML(c)}<div id="rcPrepared">${preparedHTML(c, true)}</div></div>` : ""}
   ${profSecHTML(c)}
+  ${backgroundSelectionsHTML(c)}
   ${featsSecHTML(c)}
   ${compSectionHTML(c)}
   <div class="sec" id="sec-gear"><div class="sec-h"><h3>Inventory</h3><span class="sp"></span><a class="btn sm" href="#items" data-ra="browse" style="text-decoration:none">Browse items</a><button class="btn sm primary" type="button" data-ra="addInv">+ Add item</button></div>
@@ -188,6 +189,8 @@ spFiltersSync();
       }
       return;
     }
+    const br=e.target.closest("[data-bgchoice-remove]");
+    if(br){if(backgroundSelectionChange(c,br.dataset.bgchoiceRemove,br.dataset.bgchoiceValue,true)){pcPersist();renderRosterMain();}return;}
     const cr = e.target.closest("[data-choicerm]");
     if (cr) { const [k, ...id] = cr.dataset.choicerm.split("|"); c.choices = { ...(c.choices || {}) }; c.choices[k] = choiceOf(c, k).filter(x => x !== id.join("|")); syncGrantedSpells(c); pcRecompute(c); pcPersist(); renderRosterMain(); return; }
     const mr = e.target.closest("[data-mirm]");
@@ -236,6 +239,7 @@ spFiltersSync();
     else if (t.dataset.fstyle !== undefined) { c.fightStyles = c.fightStyles || []; c.fightStyles[+t.dataset.fstyle] = t.value; pcRecompute(c); pcPersist(); renderRosterMain(); }
     else if (t.name === "rollMode") { ROLL.mode = t.value; }
     else if (t.dataset.varenc !== undefined) { c.varEnc = t.checked; pcRecompute(c); pcPersist(); renderRosterMain(); }
+    else if (t.dataset.bgchoice) { if(t.value&&backgroundSelectionChange(c,t.dataset.bgchoice,t.value)){pcPersist();renderRosterMain();} }
     else if (t.dataset.choice) { if (t.value) { const k = t.dataset.choice; c.choices = { ...(c.choices || {}) }; c.choices[k] = [...choiceOf(c, k), t.value]; syncGrantedSpells(c); pcRecompute(c); pcPersist(); renderRosterMain(); const f = $(`[data-choice="${CSS.escape(k)}"]`, main); if (f) f.focus(); } }
     else if (t.dataset.mi) { if (t.value) { const k = "Feat: Magic Initiate"; c.choices = { ...(c.choices || {}) }; let L = choiceOf(c, k); if (t.dataset.mi === "list") L = [`list:${t.value}`]; else L = [...L, `${t.dataset.mi}:${t.value}`]; c.choices[k] = [...new Set(L)]; syncGrantedSpells(c); pcRecompute(c); pcPersist(); renderRosterMain(); } }
     else if (t.dataset.concset !== undefined) { const v = t.value.trim().slice(0, 60); if (v) { concStart(c, v); pcPersist(); renderRosterMain(); } }
