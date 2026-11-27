@@ -254,6 +254,7 @@ function castOpts(c, sp, ed = edOf(c)) {
   const sources = spellPreparationSources(c, sp.n, ed);
   const grants = freeSpellResources(c, sp, ed, R).map(r => [r.key, r.name, r.max === Infinity ? "no slot needed" : `${resLeft(c, r)} left per ${r.recharge === "short" ? "short or long" : "long"} rest`, !resLeft(c, r)]);
   const manual = c.prepared?.some(p => !p.bookGrant && p.n === sp.n && p.ed === ed);
+  if(sources.length&&sources.every(g=>g.feature==="Mystic Arcanum")&&!manual)return grants;
   const featOnly = sources.length > 0 && sources.every(g => g.kind === "feat") && !manual;
   const ritual = ["ritual", "As a ritual", "no slot, 10 min longer"];
   if (!manual && sources.length && sources.every(g => g.innate || (g.slotClass && !pcCastClasses(c).some(k => k.cls === g.slotClass)))) {

@@ -57,6 +57,8 @@ function expansionChoice(cls, subclass, label, options, limit = () => 1, ed = "2
 }
 /* key: the feature (or "Feat: X") the choice belongs to. n(c): how many to choose. opts(c): [[id, label, description]] */
 const CHOICES = {
+  Scholar:{label:"Scholar Expertise",n:c=>edOf(c)==="2024"&&clsLv(c,"Wizard")>=2?1:0,opts:c=>opt3((c.skills||[]).filter(s=>s.p&&(!s.x||s.scholarGranted)&&["Arcana","History","Investigation","Medicine","Nature","Religion"].includes(s.s)).map(s=>s.s))},
+  "Primal Knowledge":{label:"Additional Barbarian proficiency",n:c=>edOf(c)==="2024"&&clsLv(c,"Barbarian")>=3?1:0,opts:c=>opt3((c.skills||[]).filter(s=>(!s.p||s.primalGranted)&&CLASS_DATA.Barbarian.skills[0].includes(s.s)).map(s=>s.s))},
   "Divine Order":{label:"Divine Order",n:c=>edOf(c)==="2024"&&clsLv(c,"Cleric")>=1?1:0,opts:()=>opt3(["Protector","Thaumaturge"])},
   "Primal Order":{label:"Primal Order",n:c=>edOf(c)==="2024"&&clsLv(c,"Druid")>=1?1:0,opts:()=>opt3(["Magician","Warden"])},
   "Blessed Strikes":{label:"Blessed Strikes",n:c=>edOf(c)==="2024"&&clsLv(c,"Cleric")>=7?1:0,opts:()=>opt3(["Divine Strike","Potent Spellcasting"])},
@@ -170,12 +172,18 @@ for (const [index, { choice, feature, level }] of WIZARD_SPELL_CHOICES.entries()
     opts: c => choiceSpellOptions(c, s => s.l === index + 1 && s.c.includes("Wizard") && (!mastery || /^(?:1 )?action$/i.test(s.t))),
   };
 }
+for(const level of [6,7,8,9])CHOICES["Mystic Arcanum "+level]={
+  label:"Mystic Arcanum (level "+level+")",
+  n:c=>clsLv(c,"Warlock")>=2*level-1?1:0,
+  opts:c=>choiceSpellOptions(c,s=>s.l===level&&s.c.includes("Warlock")&&!s.referenceOnly&&!s.rulesSummary&&!s.hb&&!s.ref&&!s.shadow)
+};
 function wizardSpellChoicesHTML(c) {
   const choices = WIZARD_SPELL_CHOICES.map(({ choice }) => choiceHTML(c, choice)).join("");
   return choices && `<p class="hint">Choose these spells from your spellbook.</p>${choices}`;
 }
 
 const additionalFeatureChoices = {
+  "Mystic Arcanum":[6,7,8,9].map(l=>"Mystic Arcanum "+l),
   "Divine Order":["Divine Order Cantrip"],
   "Primal Order":["Primal Order Cantrip"],
   "Demon Hunter Spells": ["Demon Hunter specialization"],

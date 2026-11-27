@@ -12,10 +12,26 @@ function rosterCur() {
   let last = null; try { last = sessionStorage.getItem(RC_LAST); } catch { }
   return PCS.roster.find(c => c.id === RC.id) || (last && PCS.roster.find(c => c.id === last)) || PCS.roster[0] || currentPC || null;
 }
+function applyCoreSkillChoices(c){
+  // Remove only proficiency/expertise that this feature itself supplied.
+  for(const s of c.skills||[]){
+    if(s.scholarGranted){s.x=false;delete s.scholarGranted;}
+    if(s.primalGranted){s.p=false;s.x=false;delete s.primalGranted;}
+  }
+  if(edOf(c)!=="2024")return;
+  const apply=(key,flag,attr,cls,level,eligible)=>{
+    if(clsLv(c,cls)<level)return;
+    const selected=choiceOf(c,key)[0],s=(c.skills||[]).find(x=>x.s===selected&&eligible(x));
+    if(s){s[attr]=true;s[flag]=true;}
+  };
+  apply("Primal Knowledge","primalGranted","p","Barbarian",3,s=>!s.p&&CLASS_DATA.Barbarian.skills[0].includes(s.s));
+  apply("Scholar","scholarGranted","x","Wizard",2,s=>s.p&&!s.x&&["Arcana","History","Investigation","Medicine","Nature","Religion"].includes(s.s));
+}
 function pcRecompute(c) {
   const m = {}; AB.forEach(a => m[a] = mod(+c.scores[a] || 10)); c.mods = m; const SB = subBonusOf(c);
   c.init = m.dex + (c.initBonus ?? ((c.feats || []).some(f => f.f === "Feat: Alert") ? (edOf(c) === "2024" ? c.prof : 5) : 0)) + SB.init + (SB.athlete ? Math.ceil(c.prof / 2) : 0) + (c.cls === "Bard" && c.level >= 2 && edOf(c) === "2014" ? Math.floor(c.prof / 2) : 0);
-  const jack = c.cls === "Bard" && c.level >= 2;
+  const jack = clsLv(c,"Bard")>=2;
+  applyCoreSkillChoices(c);
   c.skills.forEach(s => s.v = m[s.ab] + (s.x ? c.prof * 2 : s.p ? c.prof : jack ? Math.floor(c.prof / 2) : 0) + athleteBonus(SB, s, c.prof) + orderCheckBonus(c,s.s));
   const per = c.skills.find(s => s.s === "Perception"); c.passive = 10 + (per ? per.v : m.wis);
   const C = CLASS_DATA[c.cls];

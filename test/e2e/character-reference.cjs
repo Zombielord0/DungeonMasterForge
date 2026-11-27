@@ -316,6 +316,22 @@ const { chromium } = require("playwright");
     assert.deepEqual(remainingCoreAudit.barbarian,[0,1]);
     assert.deepEqual(remainingCoreAudit.druid,["Recovered one Wild Shape use.",1,2,"Recovered one level 1 slot.",1]);
     assert.deepEqual(remainingCoreAudit.incarnate,[2,true]);
+    const classChoiceAudit=await page.evaluate(()=>{
+      const make=(ed,cls,level)=>pcEnsure(generateCharacter({seed:"CLASS-CHOICE-AUDIT",ed,cls,level,race:"Human",bg:"Sage",subclass:"none"}));
+      const wizard=make("2024","Wizard",2),skill=wizard.skills.find(s=>s.s==="Arcana");skill.p=true;skill.x=false;wizard.choices={Scholar:["Arcana"]};pcRecompute(wizard);
+      const scholar=skill.x&&skill.scholarGranted,kept=pcKeep(wizard).keepExpert.includes("Arcana");wizard.choices={};pcRecompute(wizard);
+      const b=make("2024","Barbarian",3),primal=b.skills.find(s=>s.s==="Survival");primal.p=false;primal.x=false;b.choices={"Primal Knowledge":["Survival"]};pcRecompute(b);
+      const granted=primal.p&&primal.primalGranted,keptPrimal=pcKeep(b).keepSkills.includes("Survival");b.choices={};pcRecompute(b);
+      const warlock=make("2024","Warlock",17);warlock.choices={"Mystic Arcanum 6":["True Seeing"],"Mystic Arcanum 9":["Foresight"]};syncGrantedSpells(warlock);
+      const arcanum=pcResources(warlock).filter(r=>/^arcanum/.test(r.key)).map(r=>[r.key,r.max,r.recharge]).sort();
+      const casts=castOpts(warlock,spellOf("2024","Foresight")).map(x=>x[0]);warlock.level=16;syncGrantedSpells(warlock);const removed=!pcResources(warlock).some(r=>r.key==="arcanum9");
+      const cleric=make("2024","Cleric",10),di=divineInterventionChoices(cleric),eligible=di.every(([name])=>{const s=spellOf("2024",name);return s&&s.l>=1&&s.l<=5&&!/reaction/i.test(s.t)&&s.c.includes("Cleric");});
+      return {scholar,kept,scholarRemoved:!skill.x,granted,keptPrimal,primalRemoved:!primal.p,arcanum,casts,removed,eligible,diCount:di.length};
+    });
+    assert.deepEqual([classChoiceAudit.scholar,classChoiceAudit.kept,classChoiceAudit.scholarRemoved,classChoiceAudit.granted,classChoiceAudit.keptPrimal,classChoiceAudit.primalRemoved],[true,false,true,true,false,true]);
+    assert.deepEqual(classChoiceAudit.arcanum,[["arcanum6",1,"long"],["arcanum9",1,"long"]]);
+    assert.deepEqual(classChoiceAudit.casts,["arcanum9"]);assert.ok(classChoiceAudit.removed);
+    assert.ok(classChoiceAudit.eligible&&classChoiceAudit.diCount>0);
     const expansion = await page.evaluate(() => {
       const subclasses = hbBook("subclass").filter(x => ["tce", "xge"].includes(x.src));
       const armorer = generateCharacter({ seed: "ARMOR", ed: "2014", cls: "Artificer", subclass: "Armorer", level: 5 });

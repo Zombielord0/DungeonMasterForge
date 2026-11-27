@@ -88,3 +88,8 @@ Source-reviewed against SRD 5.2.1 Cleric, Druid, Sorcerer, Warlock and Wizard se
 ## Remaining core class schedules and resource workflows
 
 Revised Barbarian and Monk schedules now use the SRD 5.2.1 feature names, with expanded descriptions. Added Focus recovery, free Focus actions, Superior Defense, Persistent Rage recovery, Wild Resurgence (recovering expended slots only), Sorcery Incarnate, both-edition Monk saving throw proficiency, Rogue mental save proficiency, Rage casting guard, revised Danger Sense and revised Monk draft damage. Conditional initiative/turn timing is player-adjudicated. Creating slots above normal capacity, all skill selections, spellbook restrictions and subclass automation remain incomplete. Source: Wizards of the Coast LLC, System Reference Document 5.2.1, https://www.dndbeyond.com/srd, CC BY 4.0.
+
+
+## Class choice and limited casting contracts
+
+Added source/edition-guarded Primal Knowledge and Scholar proficiency choices, derived skill grants that are removed with the choice and excluded from ordinary skill retention, and Mystic Arcanum selections at Warlock levels 11/13/15/17 for both editions. Each selected complete spell gets a separate long-rest use, not an ordinary spell slot. Added revised Divine Intervention selection and resource tracking for eligible level 1–5 Cleric spells; spell effects are manually resolved. Greater Divine Intervention Wish cooldown, full spellbook restrictions, all targeting and action economy enforcement, and supplemental class mechanical certification remain outstanding. The existing 2014 and 2024 Artificer source variants are retained; this change does not independently certify their features. Source: SRD 5.2.1, Wizards of the Coast LLC, https://www.dndbeyond.com/srd, CC BY 4.0.

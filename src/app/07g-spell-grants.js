@@ -300,6 +300,13 @@ function syncGrantedSpells(c) {
         add({1:selected},lv,{...classSource,feature},()=>({known:true}));
       }
     }
+    if(cls==="Warlock")for(const level of [6,7,8,9]){
+      const key="Mystic Arcanum "+level,choice=CHOICES[key];
+      if(lv>=2*level-1&&choice.n(c)){
+        const selected=choiceOf(c,key).filter(n=>choice.opts(c).some(([id])=>id===n)).slice(0,1);
+        add({[2*level-1]:selected},lv,{...classSource,feature:"Mystic Arcanum"},()=>({free:"arcanum"+level,uses:1,recharge:"long",known:true,innate:true}));
+      }
+    }
     if (cls === "Wizard") {
       for (const { choice, feature, level, uses, recharge } of WIZARD_SPELL_CHOICES) {
         if (lv < level || !choiceOf(c, choice).length || (feature === "Spell Mastery" && ed !== "2024")) continue;

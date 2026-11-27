@@ -47,6 +47,7 @@ function pcResources(c) {
   if(ed==="2024"&&clsLv(c,"Warlock")>=9)add("freeContactPatron","Contact Patron",1,"long");
   if (has("Font of Magic")) add("sorc", "Sorcery points", CLV("Sorcerer"), "long");
   if (has("Favored Enemy") && ed === "2024") add("hmark", "Free Hunter's Mark", CLV("Ranger") >= 17 ? 6 : CLV("Ranger") >= 13 ? 5 : CLV("Ranger") >= 9 ? 4 : CLV("Ranger") >= 5 ? 3 : 2, "long");
+  if(ed==="2024"&&clsLv(c,"Cleric")>=10)add("divineIntervention","Divine Intervention",1,"long");
   if (has("Arcane Recovery")) add("arcrec", "Arcane Recovery", 1, "long");
   if (has("Stroke of Luck")) add("luck", "Stroke of Luck", 1, "short");
   if (ed === "2024" && featTaken(c, "Ritual Caster")) add("featQuickRitual", "Quick Ritual", 1, "long");
@@ -124,6 +125,7 @@ function pcAbilities(c) {
   if(ed==="2024"&&clsLv(c,"Warlock")>=2)add("Magical Cunning","1 minute","Recover expended Pact Magic slots: "+(clsLv(c,"Warlock")>=20?"all":"up to half the maximum, rounded up")+".","magicalCunning");
   if (has("Font of Magic")) add("Font of Magic", "Bonus action", "Turn a spell slot into sorcery points, or spend 2/3/5/6/7 points for a level 1–5 slot.", "sorc");
   if (has("Metamagic")) add("Metamagic", "When casting", "Spend sorcery points to change a spell: Quickened (2), Twinned (spell level), Subtle, Careful, Distant, Empowered, Extended (1).", "sorc");
+  if(ed==="2024"&&clsLv(c,"Cleric")>=10)add("Divine Intervention","Magic action","Cast an eligible Cleric spell without a slot or Material components. Select the spell and resolve its rules manually.","divineIntervention");
   if (has("Arcane Recovery")) add("Arcane Recovery", "Short rest", `Recover spell slots with a combined level up to ${Math.ceil(CLV("Wizard") / 2)} (none above 5th).`, "arcrec");
   for (const feat of activeCharacterFeats(c)) {
     if (feat === "Telekinetic") {
@@ -205,7 +207,13 @@ function wildResurgence(c,choice){
   if(!slot||resLeft(c,slot)<1||resLeft(c,wild)!==0)return "Need an available spell slot and no remaining Wild Shape uses.";
   c.used[slot.key]=(+c.used[slot.key]||0)+1;restoreResource(c,"wild",1);return "Recovered one Wild Shape use.";
 }
+function divineInterventionChoices(c){
+  if(edOf(c)!=="2024"||clsLv(c,"Cleric")<10)return [];
+  spLoad();
+  return (SP.data["2024"]||[]).filter(s=>!s.hb&&!s.pend&&!s.ref&&!s.referenceOnly&&!s.rulesSummary&&!s.shadow&&s.c.includes("Cleric")&&s.l>=1&&s.l<=5&&!/reaction/i.test(s.t)).map(s=>[s.n,s.n]);
+}
 const ACT = {
+  "Divine Intervention":{kind:"instant",choices:divineInterventionChoices,noCost:true,use:(c,ch)=>{const u=pcResources(c).find(r=>r.key==="divineIntervention");if(!u||!resLeft(c,u)||!divineInterventionChoices(c).some(([id])=>id===ch)||isActive(c,"Rage")||c.armorUntrained)return "No eligible spell or Divine Intervention use available.";const sp=spellOf("2024",ch);c.used=c.used||{};c.used.divineIntervention=1;const end=sp.co?concStart(c,ch):"";return {msg:"Divine Intervention: cast "+ch+" without a slot or Material components. Resolve spell effects manually."+ (end?" "+end:"")};}},
   "Uncanny Metabolism":{kind:"instant",use:c=>{const n=restoreResource(c,"ki",clsLv(c,"Monk")),healed=healSelf(c,clsLv(c,"Monk")+rollDice("1d"+maDie(c)).total);return "Uncanny Metabolism: regained "+n+" Focus Points and "+healed+" HP."}},
   "Perfect Focus":{kind:"instant",use:c=>"Perfect Focus: regained "+restoreResource(c,"ki",4)+" Focus Points."},
   "Superior Defense":{kind:"toggle",cost:3,fx:()=>({res:["acid","bludgeoning","cold","fire","lightning","necrotic","piercing","poison","psychic","radiant","slashing","thunder"],notes:["Superior Defense: 1 minute or until Incapacitated; end manually."]})},
