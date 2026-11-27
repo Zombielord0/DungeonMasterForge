@@ -822,6 +822,7 @@ campMain.addEventListener("input", onEdit);
 /* a foe's initiative bonus: the hand-written table first, then its stat block in the rules data (QA-1, 2026-11-24: random
    encounters and most monsters got +0) */
 function foeInit(stat) {
+  const custom=typeof MB!=="undefined"?MB.lib.find(x=>x.name===stat):null; if(custom)return mod(+custom.scores[1]||10);
   const t = MSTAT[stat]; if (t) return +t[3] || 0;
   const d = dmData("monsterData"), m = (d["2014"] || []).find(x => x.n === stat) || (d["2024"] || []).find(x => x.n === stat);
   return !m ? 0 : m.init !== undefined && m.init !== null && m.init !== "" ? +m.init || 0 : mod(+(m.scores || [])[1] || 10);
@@ -965,7 +966,9 @@ function parseEncText(text) {
 function makeEnemies(groups) {
   const rows = [];
   groups.forEach(g => {
-    const st = MSTAT[g.stat] || [12, 10 + Math.round(g.cr * 15), "", 0, "30 ft", "", "", "brute"];
+    const custom = typeof MB !== "undefined" ? MB.lib.find(x=>x.name===g.stat) : null;
+    const cm = custom ? mbCompile(custom) : null;
+    const st = cm ? [cm.ac,cm.hp,cm.hd,cm.init,cm.speed] : MSTAT[g.stat] || [12, 10 + Math.round(g.cr * 15), "", 0, "30 ft", "", "", "brute"];
     for (let k = 1; k <= g.count; k++) rows.push({ id: uid("m"), name: g.count > 1 ? `${g.name} ${k}` : g.name, stat: g.stat, cr: g.cr, ac: st[0], hp: st[1], max: st[1], init: "", cond: "", boss: !!g.boss });
   });
   return rows;
@@ -1200,7 +1203,7 @@ function renderEncounters(c) {
   return h;
 }
 const COMBAT_FIELDS = ["hp", "init", "cond", "conds", "conc"];
-const ENCOUNTER_STATE_FIELDS = ["status", "round", "turn", "pcInit", "prompts", "casts"]; /* conds, conc, prompts, casts: the fight window (2026-11-25) */
+const ENCOUNTER_STATE_FIELDS = ["status", "round", "turn", "pcInit", "prompts", "casts", "bossKit"]; /* conds, conc, prompts, casts: the fight window (2026-11-25) */
 const combatCopy = v => v === undefined ? null : JSON.parse(JSON.stringify(v));
 function combatSnapshot(e) {
   return {
@@ -1290,6 +1293,7 @@ $("#fightBar").addEventListener("click", ev => {
     if (!cardFor(id)) { /* the fight's card isn't on screen: take the turn without changing the section */
       const c = curCamp(), e = c && findEnc(c, id); if (!e) return;
       const before = combatSnapshot(e), o = encOrder(c, e).filter(x => !x.down); if (!o.length) return;
+      if (bossGate(c,e)) { combatRecord(e,before,"Lair initiative"); Store.save(c); fightOpen(e.id); return; }
       const i = o.findIndex(x => x.key === e.turn), prevTurn = e.turn, prevRound = e.round || 0;
       if (i === -1) e.turn = o[0].key; else if (i + 1 >= o.length) { e.turn = o[0].key; e.round = (e.round || 1) + 1; } else e.turn = o[i + 1].key;
       fightOnTurn(c, e, prevTurn, prevRound);
@@ -1318,6 +1322,7 @@ async function encClick(ev) {
     const { name, level, mapId, notes, kind, pcInit, enemies } = e;
     c.encounterTemplates = [...templates, {
       id: uid("template"), name: name || "Encounter", level, mapId, notes, kind,
+      ...(e.bossKit ? {bossConfig:{...e.bossKit.config,owner:""},bossOwnerIndex:enemies.findIndex(m=>m.id===e.bossKit.config.owner)} : {}),
       pcInit: { ...pcInit },
       enemies: enemies.map(({ name, stat, cr, ac, max, init, boss }) => ({ name, stat, cr, ac, max, init, boss }))
     }];
@@ -1343,6 +1348,7 @@ async function encClick(ev) {
           init: m.init === "" || !Number.isFinite(Number(m.init)) ? "" : Number(m.init), cond: "", boss: !!m.boss };
       })
     });
+    if(template.bossConfig)fight.bossKit=bossFresh(bossConfig({...template.bossConfig,owner:fight.enemies[template.bossOwnerIndex]?.id||""}));
     c.encounters.push(fight);
     Store.save(c); renderTracker();
     document.getElementById("enc-" + fight.id)?.scrollIntoView({ block: "start" });
@@ -1385,7 +1391,7 @@ async function encClick(ev) {
     const inp = (b.closest("#fightWin") || document).querySelector(`[data-amt="${b.dataset.mid}"]`); const v = Math.abs(parseInt(inp && inp.value) || 0); if (!m || !v) return;
     m.hp = a === "dmg" ? Math.max(0, m.hp - v) : Math.min(m.max, m.hp + v);
     if (a === "dmg" && m.hp === 0) toast(`${m.name} is down`);
-    if (a === "dmg") fightOnFoeDamage(c, e, m, v); /* a foe concentrating: save reminder, or its spell ends at 0 HP */
+    if (a === "dmg") { bossPhase(e); fightOnFoeDamage(c, e, m, v); } /* a foe concentrating: save reminder, or its spell ends at 0 HP */
   } else if (a === "delMon") { e.enemies = e.enemies.filter(x => x !== m); if (e.turn === b.dataset.mid) e.turn = null; }
   else if (a === "addMon") {
     const nm = document.querySelector(`[data-addsel="${e.id}"]`).value, n = clamp(parseInt(document.querySelector(`[data-addn="${e.id}"]`).value) || 1, 1, 20);
@@ -1408,10 +1414,12 @@ async function encClick(ev) {
       if (e.groupInit && group[key(x)] !== undefined) { x.init = group[key(x)]; return; }
       x.init = group[key(x)] = 1 + Math.floor(Math.random() * 20) + foeInit(x.stat);
     });
+    if (e.bossKit) { e.bossKit.state.pending=0; e.bossKit.state.resolved=0; e.bossKit.state.lastRound=0; e.bossKit.state.last=""; }
     e.round = 1; e.status = "Active"; const o = encOrder(c, e).filter(x => !x.down); e.turn = o.length ? o[0].key : null;
     fightOnTurn(c, e, null, 0); /* the first creature's start-of-turn saves */
   } else if (a === "next") {
     const o = encOrder(c, e).filter(x => !x.down); if (!o.length) return;
+    if (bossGate(c,e)) { combatRecord(e,before,"Lair initiative"); Store.save(c); rerenderEnc(c,e); fightOpen(e.id); return; }
     let i = o.findIndex(x => x.key === e.turn); const prevTurn = e.turn, prevRound = e.round || 0;
     if (i === -1) { e.turn = o[0].key; e.round = e.round || 1; }
     else if (i + 1 >= o.length) { e.turn = o[0].key; e.round = (e.round || 1) + 1; }

@@ -83,7 +83,7 @@ function biRead(text) {
     let j; try { j = JSON.parse(t); } catch { return { error: "This JSON file couldn't be read. Check it was saved completely." }; }
     const L = Array.isArray(j) ? j : j && (j.entries || j.homebrew || j.items);
     if (!Array.isArray(L)) return { error: "The JSON file should hold a list of entries, each with a kind and a name." };
-    objs = L.filter(x => x && typeof x === "object").map(x => Object.fromEntries(Object.entries(x).map(([k, v]) => [biKey(k), Array.isArray(v) ? v.join(", ") : typeof v === "object" ? "" : v])));
+    objs = L.filter(x => x && typeof x === "object").map(x => Object.fromEntries(Object.entries(x).map(([k, v]) => [biKey(k), biKey(k)==="boss_kit"&&v&&typeof v==="object"?JSON.stringify(v):Array.isArray(v) ? v.join(", ") : typeof v === "object" ? "" : v])));
   } else {
     const rows = csvParse(t); if (rows.length < 2) return { error: "The file needs a header row and at least one entry. Start from a template." };
     const head = rows[0].map(biKey);
@@ -162,6 +162,8 @@ const BI_MAKE = {
   },
   monster(g, P) {
     const r = g.rows[0], f = loreMonster({ name: g.name, desc: biStr(r.stat_block) || biStr(r.description), sections: [], tags: [] });
+    if (r.boss_kit) { f.bossKit=bossConfig({...JSON.parse(biStr(r.boss_kit)),owner:""}); if(!f.lair.length)f.lair=f.bossKit.actions.map(a=>({n:a.name,t:a.text})); }
+    if (r.legendary_actions_per_round) f.legN=bossInt(r.legendary_actions_per_round,1,20,3);
     if (f.needsStats) P.probs.push(`${g.name}: no stat block found (it needs Armor Class, Hit Points and the six scores), so it was added with its text only`);
     return { dest: "monster", x: f };
   }

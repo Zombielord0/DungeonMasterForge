@@ -456,6 +456,7 @@ function drawImageMap(cv, d, showGrid, o) {
     g.beginPath(); g.arc(X, Y, 10, 0, Math.PI * 2); g.fillStyle = "#2a2018"; g.fill(); g.strokeStyle = "#fdfaf2"; g.lineWidth = 1.5; g.stroke();
     g.fillStyle = "#fdfaf2"; g.font = "bold 11px Cinzel, Georgia, serif"; g.textAlign = "center"; g.textBaseline = "middle"; g.fillText(String(r.num), X, Y + .5);
   });
+  bossDrawMarkers(g, o.bossMarkers);
   mapDrawTokens(g, o.tokens);
   if (fog) { g.fillStyle = player ? FOG_PLAYER : FOG_DM; g.beginPath(); for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) if (!fog[y * W + x]) g.rect(x * CS, y * CS, CS, CS); g.fill(); }
   g.restore();
@@ -492,6 +493,7 @@ function drawDungeon(cv, d, showGrid, o = {}) {
     if (st.dark) { g.strokeStyle = "#c9b48a"; g.lineWidth = 1; g.stroke(); }
     g.fillStyle = "#fdfaf2"; g.font = "bold 11px Cinzel, Georgia, serif"; g.textAlign = "center"; g.textBaseline = "middle"; g.fillText(String(r.num), X, Y + .5);
   });
+  bossDrawMarkers(g, o.bossMarkers);
   mapDrawTokens(g, o.tokens); // under the fog, so tokens in fogged squares stay hidden from players
   if (fog) {
     g.fillStyle = player ? FOG_PLAYER : FOG_DM; g.beginPath();
@@ -818,7 +820,8 @@ function drawMapDM() {
   // draw at the size it's shown, so zooming in stays sharp
   const shown = Math.max(300, ($("#mapWrap").clientWidth - 20) * MAPUI.zoom) * (window.devicePixelRatio || 1);
   const scale = Math.min(4, Math.max(1, Math.ceil((shown / (d.W * CS)) * 4) / 4));
-  drawDungeon(cv, d, $("#mapGrid").checked, { fog: HOST.on ? HOST.fog : null, found: HOST.found, scale, tokens: HOST.on ? tokenView() : [] });
+  const f=hostEnc();
+  drawDungeon(cv, d, $("#mapGrid").checked, { fog: HOST.on ? HOST.fog : null, found: HOST.found, scale, tokens: HOST.on ? tokenView() : [], bossMarkers:bossMapMarkers(d,f?.e,false) });
   mapOverlayDraw(); fogKeyButtons();
 }
 /* ---- reading the map: hover a room <-> its key entry, click to jump, zoom and drag ---- */
@@ -914,9 +917,9 @@ function hostFrameCanvas() {
     cv = atlasTvCanvas();
     if (cv) { const f = hostEnc(); if (f) tvDrawInitStrip(cv, tvInitRows(f.c, f.e, { conds: true }), f.e.round); return cv; }
   }
-  if (currentMap) { cv = document.createElement("canvas"); drawDungeon(cv, currentMap, $("#mapGrid").checked, { player: true, fog: HOST.fog, found: HOST.found, numbers: HOST.numbers, scale: 2, tokens: tokenView() }); }
   const f = hostEnc();
-  if (f) { const rows = tvInitRows(f.c, f.e, { conds: true }); if (cv) tvDrawInitStrip(cv, rows, f.e.round); else cv = tvInitBoard(rows, f.e.round); }
+  if (currentMap) { cv = document.createElement("canvas"); drawDungeon(cv, currentMap, $("#mapGrid").checked, { player: true, fog: HOST.fog, found: HOST.found, numbers: HOST.numbers, scale: 2, tokens: tokenView(), bossMarkers:bossMapMarkers(currentMap,f?.e,true) }); }
+  if (f) { const rows = tvInitRows(f.c, f.e, { conds: true }); if (cv) tvDrawInitStrip(cv, rows, f.e.round); else cv = tvInitBoard(rows, f.e.round); bossDrawClocks(cv,f.e); }
   if (!cv) { cv = document.createElement("canvas"); cv.width = 1920; cv.height = 1080; const g = cv.getContext("2d"); g.fillStyle = "#0b0a09"; g.fillRect(0, 0, 1920, 1080); } // nothing to show yet: a dark screen
   return cv;
 }

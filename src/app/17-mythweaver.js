@@ -143,6 +143,7 @@ function loreMonster(L) {
   ["blind", "tremor", "true"].forEach(k => { const m = plain.match(new RegExp(`${k}(?:sight|sense)\\s*(\\d+)`, "i")); if (m) f.senses[k] = +m[1]; });
   const lang = num(/\blanguages\s*:?\s*([^\n]+)/i); if (lang) f.lang = impCut(lang[1], 120);
   [["res", /damage resistances\s*:?\s*([^\n]+)/i], ["imm", /damage immunities\s*:?\s*([^\n]+)/i], ["vul", /damage vulnerabilities\s*:?\s*([^\n]+)/i], ["ci", /condition immunities\s*:?\s*([^\n]+)/i]].forEach(([k, re]) => { const m = plain.match(re); if (m) f[k] = impCut(m[1], 160); });
+  const budget=plain.match(/(?:can take|has)\s+(\d+|one|two|three|four|five)\s+legendary actions/i); if(budget)f.legN=+(budget[1])||({one:1,two:2,three:3,four:4,five:5}[budget[1].toLowerCase()]);
   f.needsStats = !(ac && hp && scores);
   if (!f.needsStats) {
     // "Name. What it does." lines, filed under the heading above them (Actions, Bonus Actions, Reactions, Legendary Actions; traits before any of those)
@@ -150,9 +151,10 @@ function loreMonster(L) {
     for (const raw of text.split("\n")) {
       const line = raw.trim(), head = line.replace(/^#+\s*|\*\*|__|:$/g, "").trim().toLowerCase();
       if (/^(actions?)$/.test(head)) { list = "actions"; continue; } if (/^bonus actions?$/.test(head)) { list = "bonus"; continue; }
-      if (/^reactions?$/.test(head)) { list = "reacts"; continue; } if (/^legendary actions?$/.test(head)) { list = "legend"; continue; }
+      if (/^reactions?$/.test(head)) { list = "reacts"; continue; } if (/^legendary actions?(?:\s*\([^)]*\))?$/.test(head)) { list = "legend"; const n=head.match(/(\d+)\s*(?:per|\/|actions)/); if(n)f.legN=+n[1]; continue; } if (/^lair actions?(?:\s*\([^)]*\))?$/.test(head)) { list = "lair"; continue; }
       const m = line.replace(/\*+|__/g, "").match(/^-?\s*([A-Z][^.\n]{1,58}?)\.\s+(.{3,})$/);
       if (!m || m[1].trim().split(/\s+/).length > 6 || /^(armou?r class|hit points|speed|str|dex|con|int|wis|cha|saving throws|skills|senses|languages|challenge|damage|condition)\b/i.test(m[1])) continue;
+      if(list==="legend"&&/^legendary action budget$/i.test(m[1].trim()))continue;
       f[list].push({ n: impCut(m[1].trim(), 60), t: impCut(m[2], 1000) });
     }
   }
