@@ -116,6 +116,16 @@ function inventoryDetailsButton(i, label = "Item details") {
 
 function inventoryEffectsHTML(c) {
   const entries = (c.inv || []).flatMap(i => {
+    if(+i.qty<=0)return [];
+    const tinkering=i.artificerTinkering;
+    if(edOf(c)==="2014"&&clsLv(c,"Artificer")>=1&&tinkering?.owner===c.id&&ARTIFICER_TINKER_PROPERTIES[tinkering.kind]){
+      return ['<details><summary>'+esc(i.n)+' · Magical Tinkering</summary><p>'+esc(ARTIFICER_TINKER_PROPERTIES[tinkering.kind])+'</p></details>'];
+    }
+    if(artificerInfusions(c).includes(i)){
+      const name=i.artificerInfusion.name,spec=LEGACY_INFUSION_CONTRACTS[name],att=spec?.att&&!i.attuned;
+      const effect=name==="Enhanced Defense"?"+"+spec.bonus(artificerInfusionLevel(c))+" AC while worn/wielded":name==="Enhanced Arcane Focus"?"+"+spec.bonus(artificerInfusionLevel(c))+" spell attack while held; ignores half cover on spell attacks":name==="Returning Weapon"?"+1 attack and damage; returns immediately after a ranged attack":name==="Repeating Shot"?"+1 ranged attack and damage; ignores Loading and generates ammunition when unloaded":"+ "+spec.bonus(artificerInfusionLevel(c))+" weapon attack and damage";
+      return ['<details><summary>'+esc(i.n)+' · '+esc(name)+'</summary><p>'+esc(effect)+(att?' · Requires attunement':'')+(!i.eq?' · Not equipped':'')+'</p></details>'];
+    }
     if (!i.eq || +i.qty <= 0) return [];
     const ref = inventoryCatalogItem(i, edOf(c));
     if (!ref || ref.kind === "gear" || !ref.d || !inventoryEffectActive(i, ref)) return [];
