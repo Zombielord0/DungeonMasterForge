@@ -26,6 +26,11 @@ function compendiumBookDetail(entry) {
   /* entry.sum: a short summary in our own words (data/reference-summaries.json), for references with no details */
   const summary = entry.sum ? `<p>${esc(entry.sum)}</p>` : "";
   /* entry.srd: the item's name in the free rules (data/reference-srd-items.json), whose full text the app already has */
+  if (entry.srdVariants?.length && (entry.ed || "2014") === "2014") {
+    itLoad();
+    const variants = entry.srdVariants.map(name => IT.data["2014"].find(x => x.kind === "magic" && !x.src && x.n === name));
+    if (variants.every(Boolean)) return `${bookLine(entry)}<p class="hint">Full SRD 5.1 rules for all four healing-potion variants.</p>${details}${variants.map(item => `<h4>${esc(item.n)}</h4>${itDetail(item, false)}`).join("")}`;
+  }
   const free = entry.srd ? (itLoad(), IT.data["2014"].find(x => x.kind === "magic" && !x.src && x.n === entry.srd)) : null;
   if (free) {
     const called = free.n === entry.name ? "" : ` (called ${esc(free.n)} there)`;

@@ -36,7 +36,7 @@ export function recoveryCoverage(refs,catalogs){
   else if(r.sum||exact.some(x=>x.row.referenceSummary))status="summary_only";
   else status="reference_only";
   const c=counts[r.kind]??={total:0};c.total++;c[status]=(c[status]||0)+1;statuses[status]=(statuses[status]||0)+1;
-  return {kind:r.kind,name:r.name,source:r.src,edition:ed,page:r.page??null,status,canonicalSrd:r.srdSpell||r.srd||null,sameSourcePlayableCandidates:playable.length,otherSourceNameCandidates:matches.filter(x=>x.row.src!==r.src&&!x.row.ref&&!x.row.referenceOnly&&!x.row.pend).length};
+  return {kind:r.kind,name:r.name,source:r.src,edition:ed,page:r.page??null,status,canonicalSrd:r.srdSpell||r.srd||null,canonicalSrdVariants:r.srdVariants||null,srdItemArchiveVerified:r.srdItemArchiveVerified===true,sameSourcePlayableCandidates:playable.length,otherSourceNameCandidates:matches.filter(x=>x.row.src!==r.src&&!x.row.ref&&!x.row.referenceOnly&&!x.row.pend).length};
  });
  return {schemaVersion:1,scope:"Book-reference rows and emitted JSON catalog candidates; hardcoded options and browser behavior not audited. No completeness certification.",total:rows.length,counts,statuses,rows};
 }

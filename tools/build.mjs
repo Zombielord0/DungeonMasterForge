@@ -26,6 +26,7 @@ import { joinSummaries, joinSrdItems } from "./ref-summaries.mjs";
 import { appendReferenceSpells, validateRecoveryManifest, applyRecoveredContent } from "./recovered-content.mjs";
 import { validateSrdSpellLinks, fillSrdSpellReferences, joinSrdSpellReferences, correctLegacySpellMetadata } from "./ref-srd-spells.mjs";
 import { recoveryCoverage } from "./recovery-coverage.mjs";
+import {verifyLegacyItemArchive,correctLegacyItemMetadata,verifyAndAnnotateLegacyItemLinks} from "./ref-srd-items.mjs";
 
 if (process.env.DMFORGE_BUILT === "1") process.exit(0); // npm run test:all builds once, then skips this in each check
 
@@ -70,11 +71,15 @@ const bookReferences = JSON.parse(read("data/book-references.json"));
 const sourceBooks = JSON.parse(read("data/extra-books.json")).books;
 const approvedRecovery = validateRecoveryManifest(JSON.parse(read("data/recovered-content.json")), sourceBooks);
 const srdSpellLinks = validateSrdSpellLinks(JSON.parse(read("data/reference-srd-spells.json")), bookReferences, JSON.parse(read("data/spells.json")));
+const rawItems = JSON.parse(read("data/items.json"));
+verifyLegacyItemArchive(rawItems);
+const correctedItems = correctLegacyItemMetadata(rawItems);
 const emittedCatalogs = {};
 for (const [name, key] of [["spells", "spellData"], ["monsters", "monsterData"], ["items", "itemData"],
   ["extra-spells", "spellExtra"], ["extra-monsters", "monsterExtra"], ["extra-items", "itemExtra"], ["extra-options", "optionExtra"], ["extra-books", "bookData"], ["book-references", "bookReferences"]]) {
   // stored as text, so the app turns it into objects only when a tab needs it (dmData in src/app/01-core.js)
   let data = JSON.parse(read(`data/${name}.json`));
+  if (name === "items") data = correctedItems;
   if (name === "spells") {
     data = correctLegacySpellMetadata(data);
     data["2014"].push(...spellGrants.legacySpells);
@@ -114,6 +119,7 @@ for (const [name, key] of [["spells", "spellData"], ["monsters", "monsterData"],
     /* book items the free rules also have point at their free-rules name, so the Compendium shows the full text */
     const srdItems = new Set(JSON.parse(read("data/items.json"))["2014"].mi.filter(m => !m.src).map(m => m.n));
     data = joinSrdItems(data, JSON.parse(read("data/reference-srd-items.json")), srdItems);
+    data = verifyAndAnnotateLegacyItemLinks(data, correctedItems);
     for (const ed of ["2014", "2024"]) {
       emitCatalog(`book-references-${ed}`, `bookReferences${ed}`, data.filter(row => (row.ed || "2014") === ed), name);
     }
