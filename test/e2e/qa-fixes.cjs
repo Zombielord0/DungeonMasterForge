@@ -106,6 +106,20 @@ const ZOOK = fs.readFileSync(path.join(FIX, "companion-zook.json"), "utf8");
   check("reference spells: all 97 existing summaries remain present, without page-only text or inline upcasting", told.n === 97 && !told.bare.length && !told.upcast.length && /\+1d6 damage per slot level above 1st/.test(told.cbH || ""), JSON.stringify(told));
   check("reference spells: all 17 linked aliases import their canonical same-edition spell", told.linked === 17 && !told.linkedFailures.length, JSON.stringify(told));
   check("reference spells: all 37 unresolved references stay blocked from preparation and import (not a content completion pass)", told.blocked === 37 && !told.blockedFailures.length, JSON.stringify(told));
+  const guards = await p.evaluate(() => {
+    spLoad();
+    const shells = SP.data["2014"].filter(x => x.referenceOnly && !x.srdSpell);
+    const c = { name: "Guard fixture", prepared: [], used: {} };
+    const blocked = shells.filter(x => {
+      const sp = spellOf("2014", x.n);
+      return !sp || !sp.referenceOnly || castOpts(c, sp, "2014").length;
+    }).map(x => x.n);
+    const aliasFailures = SP.data["2014"].filter(x => x.srdSpell).filter(x => {
+      const sp = spellOf("2014", x.n); return !sp || sp.referenceOnly || sp.n !== x.srdSpell;
+    }).map(x => x.n);
+    return { count: shells.length, blocked, aliasFailures, used: c.used };
+  });
+  check("reference-only saved/granted spell lookup has no cast options and aliases resolve to canonical rules", guards.count === 37 && !guards.blocked.length && !guards.aliasFailures.length && !Object.keys(guards.used).length, JSON.stringify(guards));
   check("reference spells: a spell the Forge already has isn't added twice (Fireball)", refs["2014fireball"] === 1 && refs["2024fireball"] === 1, JSON.stringify([refs["2014fireball"], refs["2024fireball"]]));
   const sb = await p.evaluate(txt => { const j = JSON.parse(txt); j.spells = [...j.spells, { name: "Silvery Barbs", level: 1 }]; const D = compImport(j, "2014");
     return { prep: D.extras.prepared.map(s => s.n), hb: D.homebrew.filter(x => x.kind === "spell").map(x => x.name) }; }, ZOOK);

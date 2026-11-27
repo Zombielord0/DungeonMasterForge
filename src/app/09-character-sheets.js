@@ -144,6 +144,7 @@ function togglePrep(c, s, ed) {
   if (c.prepared.some(p => p.n === s.n && p.ed === ed && p.src)) return true;
   const i = c.prepared.findIndex(p => p.n === s.n && p.ed === ed);
   if (i >= 0) { c.prepared.splice(i, 1); toast(`${s.n} removed from ${c.name}`); return false; }
+  if (s.referenceOnly || s.pend) { toast("Complete spell rules are required before preparation."); return false; }
   c.prepared.push({ n: s.n, l: s.l, ed });
   const L = spellLimits(c);
   if (L) {
