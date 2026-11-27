@@ -120,6 +120,71 @@ function rcCompanionsHTML(c){
   }).join("");
 }
 
+// Legacy dragon and sun monk abilities use the owning Monk level, not total level.
+const legacyMonkSub=(c,name)=>edOf(c)==="2014"?characterSubclassLevel(c,"Monk",name):0;
+const dragonMonk=c=>legacyMonkSub(c,"Way of the Ascendant Dragon");
+const sunMonk=c=>legacyMonkSub(c,"Way of the Sun Soul");
+const dragonElements=["acid","cold","fire","lightning","poison"];
+function legacyMonkPools(c){
+ const l=dragonMonk(c),R=[];
+ if(l>=3)R.push({key:"dragonPresence",name:"Draconic Presence",max:1,recharge:"long"},{key:"dragonBreath",name:"Breath of the Dragon",max:c.prof,recharge:"long"});
+ if(l>=6)R.push({key:"dragonWings",name:"Wings Unfurled",max:c.prof,recharge:"long"});
+ if(l>=11)R.push({key:"dragonAura",name:"Aspect of the Wyrm",max:1,recharge:"long"});
+ return R;
+}
+function legacyMonkActions(c){
+ const d=dragonMonk(c),s=sunMonk(c),A=[],add=(name,when,text,res,owner)=>A.push({name,when,text,res,owner});
+ const dragon="Way of the Ascendant Dragon",sun="Way of the Sun Soul";
+ if(d>=3){
+  add("Draconic Presence","On failed CHA check","Reroll failed Intimidation or Persuasion using Reaction; spend use only on success.","dragonPresence",dragon);
+  add("Breath of the Dragon","Replace attack","Dexterity save against ki DC; "+(d>=11?3:2)+" Martial Arts dice of chosen damage, half on success. Free uses, then 2 ki; at Monk 17 add 1 ki for augmented breath.","dragonBreath",dragon);
+ }
+ if(d>=6)add("Wings Unfurled","On Step of the Wind","Fly at walking speed until your turn ends; confirm Step of the Wind already used.","dragonWings",dragon);
+ if(d>=11){add("Aspect of the Wyrm","Bonus action","10-foot aura for 1 minute: resistance or fear; free once per Long Rest, otherwise 3 ki.","dragonAura",dragon);add("Frightful Presence (Wyrm)","Bonus action","While fear aura active, choose a creature in aura; Wisdom save or Frightened for 1 minute, repeating save at end of its turns.",null,dragon);}
+ if(d>=17)add("Explosive Fury (Wyrm)","On aura activation","Chosen visible creatures inside aura save vs ki DC or take 3d10 selected elemental damage.",null,dragon);
+ if(s>=3)add("Radiant Sun Bolt","Attack / Bonus action","30-foot ranged spell attack, Dexterity for hit/damage; after using it in Attack action, spend 1 ki for two further bolts as Bonus Action.",null,sun);
+ if(s>=6)add("Searing Arc Strike","Bonus action after Attack","Spend 2 ki for Burning Hands at level 1; each extra ki raises spell level by 1, cost at most half Monk level.","ki",sun);
+ if(s>=11)add("Searing Sunburst","Action","150-foot range, 20-foot sphere, Constitution save for no damage; 2d6 radiant +2d6 per ki (max 3).",null,sun);
+ if(s>=17)add("Sun Shield","Bonus action","Toggle bright 30-foot/dim 30-foot aura; while illuminated, melee hits against you allow Reaction radiant retaliation of 5 + WIS.",null,sun);
+ if(s>=17)add("Sun Shield retaliation","Reaction","When hit by a melee attack while light is active, attacker takes 5 + WIS radiant.",null,sun);
+ return A;
+}
+function monkResource(c,key){return pcResources(c).find(r=>r.key===key);}
+function monkCanPay(c,key,n){const r=monkResource(c,key);return !!r&&resLeft(c,r)>=n;}
+function monkPay(c,key,n){if(!monkCanPay(c,key,n))return false;c.used=c.used||{};c.used[key]=(+c.used[key]||0)+n;return true;}
+function dragonBreathChoices(c){
+ const l=dragonMonk(c),free=monkCanPay(c,"dragonBreath",1),base=free?0:2,out=[];
+ if(l<3)return out;
+ for(const type of dragonElements){
+  if(base===0||monkCanPay(c,"ki",base))for(const shape of ["cone","line"])out.push([type+":"+shape+":normal",type+" "+shape+" · "+(base?base+" ki":"free use")]);
+  if(l>=17&&monkCanPay(c,"ki",base+1))for(const shape of ["cone","line"])out.push([type+":"+shape+":augmented",type+" augmented "+shape+" · "+(base+1)+" ki"+(free?" + free use":"")]);
+ }return out;
+}
+function dragonBreathUse(c,ch){
+ const [type,shape,mode]=String(ch).split(":"),free=monkCanPay(c,"dragonBreath",1),aug=mode==="augmented",cost=(free?0:2)+(aug?1:0);
+ if(!dragonBreathChoices(c).some(x=>x[0]===ch))return "Unavailable breath option.";
+ if(cost&&!monkPay(c,"ki",cost))return "Insufficient ki.";
+ if(free)monkPay(c,"dragonBreath",1);
+ const range=aug?(shape==="cone"?"60-ft cone":"90-ft by 5-ft line"):(shape==="cone"?"20-ft cone":"30-ft by 5-ft line");
+ return roll("Breath of the Dragon",(aug?4:dragonMonk(c)>=11?3:2)+"d"+maDie(c),"damage",type+" damage; "+range+"; DEX save DC "+(8+c.prof+c.mods.wis)+" for half. Replace one Attack-action attack.",true);
+}
+function dragonAuraChoices(c){
+ if(dragonMonk(c)<11||!monkCanPay(c,"dragonAura",1)&&!monkCanPay(c,"ki",3))return [];
+ return [["fear","Frightful Presence"],...dragonElements.map(x=>[x,x+" resistance"])];
+}
+function dragonAuraStart(c,ch){
+ const key=monkCanPay(c,"dragonAura",1)?"dragonAura":"ki",cost=key==="ki"?3:1;
+ if(!monkPay(c,key,cost)){delete c.active["Aspect of the Wyrm"];return "Insufficient uses.";}
+ return "Aspect of the Wyrm active for 1 minute; confirm aura targets and expiry at the table.";
+}
+function dragonPresenceChoices(c){return c.dragonPresencePending?[["success","Reroll succeeded"],["failure","Reroll failed"]]:monkCanPay(c,"dragonPresence",1)?[["intimidation","Reroll Intimidation"],["persuasion","Reroll Persuasion"]]:[];}
+function dragonPresenceUse(c,ch){
+ if(ch==="success"||ch==="failure"){if(!c.dragonPresencePending)return "No pending reroll.";delete c.dragonPresencePending;if(ch==="success"){if(!monkPay(c,"dragonPresence",1))return "Use unavailable.";return "Success confirmed; use expended.";}return "Failure confirmed; use retained.";}
+ if(!monkCanPay(c,"dragonPresence",1)||c.dragonPresencePending)return "Unavailable.";
+ const skill=c.skills.find(x=>x.s.toLowerCase()===ch),value=skill?skill.v:c.mods.cha,r=rollDice("1d20"+sgn(value));
+ c.dragonPresencePending=true;return "Draconic Presence: "+r.text+". Confirm success or failure.";
+}
+
 function pcResources(c) {
   const ed = edOf(c), lv = c.level, m = c.mods, prof = c.prof, has = n => (c.feats || []).some(f => f.f === n), tr = n => (c.traits || []).includes(n); const CLV = k => classFeatureLevel(c, k), TLV = totalLv(c);
   const R = [], add = (key, name, max, recharge) => R.push({ key, name, max, recharge });
@@ -186,6 +251,7 @@ function pcResources(c) {
   if(ed==="2024"&&characterSubclassLevel(c,"Barbarian","Path of the Berserker")>=14)add("berserkerPresence","Intimidating Presence",1,"long");
   if(ed==="2024"&&characterSubclassLevel(c,"Sorcerer","Draconic Sorcery")>=14)add("draconicWings","Dragon Wings",1,"long");
   for(const r of psionicPools(c))if(!R.some(x=>x.key===r.key))add(r.key,r.name,r.max,r.recharge);
+  for(const r of legacyMonkPools(c))add(r.key,r.name,r.max,r.recharge);
   if(companionLevel(c,"drake")>=3)add("drakeSummon","Drake summon",1,"long");
   if(companionLevel(c,"steel")>=3)add("steelRepair","Steel Defender repair",3,"long");
   const subSeen=new Set();
@@ -311,6 +377,7 @@ function pcAbilities(c) {
   if (tr("Giant Ancestry")) add("Giant Ancestry", "Varies", `Your ${c.sub || "giant"} boon.`, "giant");
   if (tr("Celestial Revelation") && TLV >= 3) add("Celestial Revelation", "Bonus action", `Transform for 1 minute: once per turn add +${prof} radiant or necrotic damage, plus wings, light or fear.`, "crev");
   for(const spec of psionicActions(c))add(spec.name,spec.when,spec.text,spec.res,spec.owner);
+  for(const spec of legacyMonkActions(c))if(!A.some(a=>a.name===spec.name))add(spec.name,spec.when,spec.text,spec.res,spec.owner);
   for(const spec of subclassRecoverySpecs(c))add(spec.name,"No action",spec.text,null,spec.owner);
   return A;
 }
@@ -754,6 +821,18 @@ function quiveringPalmUse(c,ch){
  const rr=rollDice("10d10");return "Quivering Palm: CON save DC "+dc+". Failure reduces the marked target to 0 HP; success takes "+rr.total+" Necrotic damage ("+rr.text+"). Apply the appropriate result manually.";
 }
 const ACT = {
+ "Draconic Presence":{kind:"instant",noCost:true,choices:dragonPresenceChoices,use:dragonPresenceUse},
+ "Breath of the Dragon":{kind:"instant",noCost:true,choices:dragonBreathChoices,use:dragonBreathUse},
+ "Wings Unfurled":{kind:"instant",use:()=> "Fly at walking speed until end of your turn; confirm Step of the Wind and resolve movement."},
+ "Aspect of the Wyrm":{kind:"toggle",noCost:true,choices:dragonAuraChoices,start:dragonAuraStart,fx:(c,ch)=>ch==="fear"?{notes:["Frightful Presence: 10-ft aura; resolve Wisdom save and fear manually."]}:{res:[ch],notes:["Allies within 10 ft also resist "+ch+"; 1 minute."]}},
+ "Frightful Presence (Wyrm)":{kind:"instant",use:c=>c.active?.["Aspect of the Wyrm"]==="fear"?"Choose a creature within aura: WIS save DC "+(8+c.prof+c.mods.wis)+" or Frightened for 1 minute; repeat at end of target turns.":"Fear aura must be active."},
+ "Explosive Fury (Wyrm)":{kind:"instant",choices:dragonElements.map(x=>[x,x]),use:(c,ch)=>c.active?.["Aspect of the Wyrm"]?roll("Explosive Fury","3d10","damage",ch+"; DEX save DC "+(8+c.prof+c.mods.wis)+" for no damage; only on activation."):"Activate aura first."},
+ "Radiant Sun Bolt":{kind:"instant",choices:[["one","One Attack-action bolt"],["two","Two bonus-action bolts · 1 ki"]],use:(c,ch)=>{if(ch==="two"&&!monkPay(c,"ki",1))return "Insufficient ki.";const r=rollDice("1d20"+sgn(c.mods.dex+c.prof));const d=rollDice("1d"+maDie(c)+sgn(c.mods.dex));return "Radiant Sun Bolt: "+r.text+" attack; "+d.text+" radiant on hit."+(ch==="two"?" Second bolt: "+rollDice("1d20"+sgn(c.mods.dex+c.prof)).text+" attack; "+rollDice("1d"+maDie(c)+sgn(c.mods.dex)).text+" radiant on hit.":"");}},
+ "Searing Arc Strike":{kind:"instant",choices:c=>Array.from({length:Math.max(0,Math.min(Math.floor(sunMonk(c)/2),resLeft(c,monkResource(c,"ki")||{key:"ki",max:0}))-1)},(_,i)=>[String(i+2),(i+2)+" ki · level "+(i+1)]),cost:(c,ch)=>+ch,use:(c,ch)=>roll("Searing Arc Strike",(+ch+1)+"d6","damage","Fire in 15-ft cone; DEX save DC "+(8+c.prof+c.mods.wis)+" for half. Confirm Attack action.",true)},
+ "Searing Sunburst":{kind:"instant",choices:c=>Array.from({length:1+Math.min(3,resLeft(c,monkResource(c,"ki")||{key:"ki",max:0}))},(_,i)=>[String(i),i+" ki · "+(2+2*i)+"d6"]),use:(c,ch)=>{if(+ch&&!monkPay(c,"ki",+ch))return "Insufficient ki.";return roll("Searing Sunburst",(2+2*(+ch))+"d6","damage","Radiant; 20-ft sphere within 150 ft; CON save DC "+(8+c.prof+c.mods.wis)+" for no damage; opaque total cover exempt.");}},
+ "Sun Shield":{kind:"toggle",fx:()=>({notes:["Bright light 30 feet; dim light 30 additional feet."]})},
+ "Sun Shield retaliation":{kind:"instant",use:c=>c.active?.["Sun Shield"]?roll("Sun Shield",String(5+c.mods.wis),"damage","Radiant; confirm melee hit."): "Sun Shield must be active."},
+
  "Touch of Death":{kind:"instant",use:c=>{const n=Math.max(1,clsLv(c,"Monk")+c.mods.wis);giveTemp(c,n);return "Touch of Death: "+n+" temporary HP offered. Confirm you reduced a creature within 5 feet to 0 HP."}},
  "Hour of Reaping":{kind:"instant",use:c=>"Every creature within 30 feet that sees you makes a Wisdom save (DC "+(8+c.prof+c.mods.wis)+") or becomes Frightened of you until the end of your next turn."},
  "Mastery of Death":{kind:"instant",noCost:true,use:c=>{
