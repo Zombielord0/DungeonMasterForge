@@ -274,6 +274,34 @@ const { chromium } = require("playwright");
     assert.equal(revisedMartial.oldSmite,false);
     assert.deepEqual(revisedMartial.resources,[["rangerTireless",Math.max(1,revisedMartial.wis),"long"],["rangerVeil",Math.max(1,revisedMartial.wis),"long"]]);assert.deepEqual(revisedMartial.legacyResources,[]);
     assert.deepEqual(revisedMartial.concentration.map(x=>x.slice(0,2)),[[12,true],[0,true],[12,true],[12,true],[0,false]]);
+    const revisedCasters=await page.evaluate(()=>{
+      const make=(ed,cls,level)=>pcEnsure(generateCharacter({seed:"REVISED-CASTERS",ed,cls,level,race:"Human",bg:"Soldier",subclass:"none"}));
+      const feature=(ed,cls,lv,name)=>make(ed,cls,lv).feats.some(f=>f.f===name);
+      const cl=make("2024","Cleric",7);cl.choices={"Divine Order":["Protector"]};
+      const heavy=armorTraining(cl).has("heavy"),martial=eqProficient(cl,{cat:"Martial Melee Weapons",n:"Longsword",st:[]});
+      cl.choices={"Divine Order":["Thaumaturge"],"Divine Order Cantrip":["Sacred Flame"]};syncGrantedSpells(cl);
+      const bonus=orderCheckBonus(cl,"Religion"),grant=spellPreparationSources(cl,"Sacred Flame").some(x=>x.feature==="Divine Order");
+      const noHeavy=!armorTraining(cl).has("heavy");cl.choices["Divine Order"]=["Protector"];syncGrantedSpells(cl);
+      const removed=!spellPreparationSources(cl,"Sacred Flame").some(x=>x.feature==="Divine Order");
+      const dr=make("2024","Druid",7);dr.choices={"Primal Order":["Warden"]};const medium=armorTraining(dr).has("medium");
+      const sor=make("2024","Sorcerer",10);const sp=spellOf("2024","Fire Bolt"),base=spellCaster(sor,sp).dc;
+      actRun(sor,"Innate Sorcery");const active=spellCaster(sor,sp);actRun(sor,"Innate Sorcery");
+      const ended=spellCaster(sor,sp).dc;
+      sor.used.sorc=9;const restore=[sorcerousRestoration(sor),sor.used.sorc,sorcerousRestoration(sor)];
+      const w=make("2024","Warlock",11);syncGrantedSpells(w);w.used={pact:3};const pact=[magicalCunningRecovery(w),w.used.pact,magicalCunningRecovery(w)];
+      const master=make("2024","Warlock",20);master.used={pact:4};const all=[magicalCunningRecovery(master),master.used.pact];
+      const contact=spellPreparationSources(w,"Contact Other Plane").some(x=>x.feature==="Contact Patron");
+      const old=make("2014","Cleric",7);old.choices={"Divine Order":["Protector"]};
+      return {heavy,martial,bonus,wis:cl.mods.wis,grant,noHeavy,removed,medium,base,active,ended,restore,pact,all,contact,legacyOrder:revisedOrder(old,"Cleric"),
+        meta:["2014","2024"].map(ed=>[1,2,3,10,17].map(l=>CHOICES.Metamagic.n(make(ed,"Sorcerer",l)))),
+        features:[feature("2024","Cleric",5,"Sear Undead"),feature("2024","Cleric",5,"Destroy Undead"),feature("2024","Druid",2,"Wild Companion"),feature("2024","Wizard",2,"Scholar"),feature("2024","Wizard",5,"Memorize Spell"),feature("2014","Wizard",5,"Memorize Spell")]};
+    });
+    assert.ok(revisedCasters.heavy&&revisedCasters.martial&&revisedCasters.grant&&revisedCasters.noHeavy&&revisedCasters.removed&&revisedCasters.medium&&revisedCasters.contact);
+    assert.equal(revisedCasters.bonus,Math.max(1,revisedCasters.wis));assert.equal(revisedCasters.legacyOrder,"");
+    assert.equal(revisedCasters.active.dc,revisedCasters.base+1);assert.equal(revisedCasters.active.innateSorcery,true);assert.equal(revisedCasters.ended,revisedCasters.base);
+    assert.deepEqual(revisedCasters.restore,[5,4,0]);assert.deepEqual(revisedCasters.pact,[2,1,0]);assert.deepEqual(revisedCasters.all,[4,0]);
+    assert.deepEqual(revisedCasters.meta,[[0,0,2,3,4],[0,2,2,4,6]]);
+    assert.deepEqual(revisedCasters.features,[true,false,true,true,true,false]);
     const expansion = await page.evaluate(() => {
       const subclasses = hbBook("subclass").filter(x => ["tce", "xge"].includes(x.src));
       const armorer = generateCharacter({ seed: "ARMOR", ed: "2014", cls: "Artificer", subclass: "Armorer", level: 5 });

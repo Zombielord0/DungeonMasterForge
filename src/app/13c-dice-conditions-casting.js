@@ -234,7 +234,8 @@ function spellCaster(c, sp, how, ed = edOf(c)) {
     const ab = source.ab || (source.name === "Aasimar" ? "cha" : speciesSpellAbility(c));
     return { cls: source.name, ab, dc: 8 + c.prof + c.mods[ab], atk: c.prof + c.mods[ab] };
   }
-  return own.find(x => x.cls === source?.cls) || own.find(x => (sp.c || []).includes(x.cls) || (x.list && (sp.c || []).includes(x.list))) || (spellBackgroundList(c,sp,ed) ? own.find(x => pcCastClasses(c).some(k => k.cls === x.cls && (sp.l === 0 ? k.cantrips : sp.l <= k.max))) : null) || own[0] || { cls: "", ab: "int", dc: 8 + c.prof, atk: c.prof };
+  const caster=own.find(x => x.cls === source?.cls) || own.find(x => (sp.c || []).includes(x.cls) || (x.list && (sp.c || []).includes(x.list))) || (spellBackgroundList(c,sp,ed) ? own.find(x => pcCastClasses(c).some(k => k.cls === x.cls && (sp.l === 0 ? k.cantrips : sp.l <= k.max))) : null) || own[0] || { cls: "", ab: "int", dc: 8 + c.prof, atk: c.prof };
+  return ed==="2024"&&clsLv(c,"Sorcerer")>=1&&caster.cls==="Sorcerer"&&isActive(c,"Innate Sorcery")&&(sp.c||[]).includes("Sorcerer")?{...caster,dc:caster.dc+1,innateSorcery:true}:caster;
 }
 /* The spell window: the full rules, then (on My Characters) "Cast at level" buttons and Cast. `o.view`: rules only (the
    Characters tab, where slots aren't tracked). The picked choice is kept in the hidden #castSlot that castGo reads. */
@@ -277,7 +278,8 @@ function castPreview(c, sp, how, ed = edOf(c)) {
   const count = P.count + (P.countPer ? up : 0), parts = [];
   if (spellManualResolution(sp) && sp.sv) parts.push(`${sp.sv.toUpperCase()} save DC ${K.dc}`);
   if (spellManualResolution(sp) && sp.at) parts.push(`Spell attack ${sgn(K.atk)}`);
-  if (P.attack) parts.push(`Spell attack ${sgn(K.atk)}`); else if (P.save) parts.push(`${P.save.toUpperCase()} save against DC ${K.dc}`);
+  if (P.attack) parts.push(`Spell attack ${sgn(K.atk)}${K.innateSorcery?" with advantage":""}`); else if (P.save) parts.push(`${P.save.toUpperCase()} save against DC ${K.dc}`);
+  if(how==="freeContactPatron"&&sp.n==="Contact Other Plane")parts.push("Contact your patron; automatically succeed on the spell’s saving throw.");
   if (P.dice) parts.push(`${P.heal ? "heals" : "deals"} ${spellDice(c, sp, P, slot, K)}${P.type && !P.heal ? " " + P.type.toLowerCase() : ""}${count > 1 ? ` × ${count}` : ""}`);
   if (sp.l && up && (P.per || P.countPer)) parts.push(`upcast +${up} level${up === 1 ? "" : "s"}`);
   if (sp.rulesSummary) parts.push("Resolve the spell’s effects using its sourcebook");
@@ -343,6 +345,7 @@ function castGo() {
     if (grant.max !== Infinity) c.used[how] = (+c.used[how] || 0) + 1;
   }
   const notes = [`${c.name} casts ${sp.n}${sp.l ? ` at level ${slot}` : ""}${how === "ritual" ? " as a ritual" : ""}.`];
+  if(how==="freeContactPatron"&&sp.n==="Contact Other Plane")notes.push("Contact your patron; the spell’s saving throw automatically succeeds.");
   if (sp.co) { const ended = concStart(c, sp.n); if (ended) notes.push(ended); notes.push(`Concentrating on ${sp.n}.`); }
   rollLog(c, { label: `Cast ${sp.n}`, total: sp.l ? `L${slot}` : "✦", note: how === "free" ? "no slot" : how === "ritual" ? "ritual" : "" });
   pcPersist();
@@ -366,7 +369,7 @@ function castGo() {
   if (P.attack) {
     const lines = []; let tot = 0;
     for (let i = 0; i < count; i++) {
-      const a = rollD20(c, `${sp.n}${count > 1 ? ` ${i + 1}` : ""} attack`, K.atk, "attack", K.ab);
+      const a = rollD20(c, `${sp.n}${count > 1 ? ` ${i + 1}` : ""} attack`, K.atk, "attack", K.ab, K.innateSorcery?{tags:["advantage (Innate Sorcery)"]}:{});
       if (a.fail) { lines.push(`attack ${i + 1}: fails`); continue; }
       const hit = rollDice(a.crit ? dice.replace(/^(\d+)d/, (m, n) => `${2 * n}d`) : dice);
       lines.push(`${count > 1 ? `${sp.n === "Eldritch Blast" ? "beam" : /dart/i.test(sp.d) ? "dart" : "ray"} ${i + 1}: ` : ""}attack ${a.total}${a.crit ? " (critical)" : a.fumble ? " (natural 1, misses)" : ""}, damage ${hit.total}`);

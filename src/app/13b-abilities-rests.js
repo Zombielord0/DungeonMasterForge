@@ -38,6 +38,10 @@ function pcResources(c) {
   if (has("Cleansing Touch")) add("cleanse", "Cleansing Touch", Math.max(1, m.cha), "long");
   if(ed==="2024"&&clsLv(c,"Ranger")>=10)add("rangerTireless","Tireless",Math.max(1,m.wis),"long");
   if(ed==="2024"&&clsLv(c,"Ranger")>=14)add("rangerVeil","Nature’s Veil",Math.max(1,m.wis),"long");
+  if(ed==="2024"&&clsLv(c,"Sorcerer")>=1)add("innateSorcery","Innate Sorcery",2,"long");
+  if(ed==="2024"&&clsLv(c,"Sorcerer")>=5)add("sorcerousRestore","Sorcerous Restoration",1,"long");
+  if(ed==="2024"&&clsLv(c,"Warlock")>=2)add("magicalCunning","Magical Cunning",1,"long");
+  if(ed==="2024"&&clsLv(c,"Warlock")>=9)add("freeContactPatron","Contact Patron",1,"long");
   if (has("Font of Magic")) add("sorc", "Sorcery points", CLV("Sorcerer"), "long");
   if (has("Favored Enemy") && ed === "2024") add("hmark", "Free Hunter's Mark", CLV("Ranger") >= 17 ? 6 : CLV("Ranger") >= 13 ? 5 : CLV("Ranger") >= 9 ? 4 : CLV("Ranger") >= 5 ? 3 : 2, "long");
   if (has("Arcane Recovery")) add("arcrec", "Arcane Recovery", 1, "long");
@@ -104,6 +108,8 @@ function pcAbilities(c) {
   if (has("Favored Enemy") && ed === "2024") add("Hunter's Mark", "Bonus action", `Cast without a spell slot: +1d${has("Foe Slayer") ? 10 : 6} damage to the marked creature, advantage to track it.`, "hmark");
   if(ed==="2024"&&clsLv(c,"Ranger")>=10)add("Tireless","Magic action","Gain temporary HP (1d8 + Wisdom modifier, minimum 1). Short rests also reduce exhaustion by one.","rangerTireless");
   if(ed==="2024"&&clsLv(c,"Ranger")>=14)add("Nature’s Veil","Bonus action","Gain the Invisible condition through the end of your next turn. Track the condition duration manually.","rangerVeil");
+  if(ed==="2024"&&clsLv(c,"Sorcerer")>=1)add("Innate Sorcery","Bonus action","For 1 minute: +1 Sorcerer spell save DC and Advantage on Sorcerer spell attacks. End the toggle when it expires.","innateSorcery");
+  if(ed==="2024"&&clsLv(c,"Warlock")>=2)add("Magical Cunning","1 minute","Recover expended Pact Magic slots: "+(clsLv(c,"Warlock")>=20?"all":"up to half the maximum, rounded up")+".","magicalCunning");
   if (has("Font of Magic")) add("Font of Magic", "Bonus action", "Turn a spell slot into sorcery points, or spend 2/3/5/6/7 points for a level 1–5 slot.", "sorc");
   if (has("Metamagic")) add("Metamagic", "When casting", "Spend sorcery points to change a spell: Quickened (2), Twinned (spell level), Subtle, Careful, Distant, Empowered, Extended (1).", "sorc");
   if (has("Arcane Recovery")) add("Arcane Recovery", "Short rest", `Recover spell slots with a combined level up to ${Math.ceil(CLV("Wizard") / 2)} (none above 5th).`, "arcrec");
@@ -149,7 +155,26 @@ const DMG_LIST = ["acid", "cold", "fire", "lightning", "necrotic", "poison", "ps
 /* kind: "toggle" (Activate / End, effects while on), "persist" (a standing choice that stays through rests), "instant" (Use).
    choices: [[id, label]] or (c) => [...]. cost: uses spent (default 1). fx(c, choice): effects while on.
    start(c, choice) / use(c, choice): what happens when activated or used; returns the message to show. */
+// Resource recovery is bounded by actual expended uses.
+function magicalCunningRecovery(c){
+  if(edOf(c)!=="2024"||clsLv(c,"Warlock")<2)return 0;
+  const pact=pcResources(c).find(x=>x.key==="pact"),use=pcResources(c).find(x=>x.key==="magicalCunning");
+  if(!pact||!use||resLeft(c,use)<1)return 0;
+  const n=Math.min(pact.max-resLeft(c,pact),clsLv(c,"Warlock")>=20?pact.max:Math.ceil(pact.max/2));
+  if(n<=0)return 0;
+  c.used=c.used||{};c.used.pact=Math.max(0,Math.min(pact.max,+c.used.pact||0)-n);c.used.magicalCunning=1;return n;
+}
+function sorcerousRestoration(c){
+  if(edOf(c)!=="2024"||clsLv(c,"Sorcerer")<5)return 0;
+  const R=pcResources(c),p=R.find(x=>x.key==="sorc"),u=R.find(x=>x.key==="sorcerousRestore");
+  if(!p||!u||resLeft(c,u)<1)return 0;
+  const n=Math.min(p.max-resLeft(c,p),Math.floor(clsLv(c,"Sorcerer")/2));
+  if(n<=0)return 0;
+  c.used=c.used||{};c.used.sorc=Math.max(0,Math.min(p.max,+c.used.sorc||0)-n);c.used.sorcerousRestore=1;return n;
+}
 const ACT = {
+  "Innate Sorcery":{kind:"toggle",fx:()=>({notes:["Sorcerer spells: +1 save DC and Advantage on spell attacks. End after 1 minute."]})},
+  "Magical Cunning":{kind:"instant",noCost:true,use:c=>{const n=magicalCunningRecovery(c);return n?`Magical Cunning: recovered ${n} Pact Magic slot(s).`:"No eligible expended Pact Magic slots or no use remains."}},
   "Tireless":{kind:"instant",use:c=>{const n=Math.max(1,rollDice("1d8").total+c.mods.wis);const applied=giveTemp(c,n);return `Tireless: rolled ${n} temporary HP${applied?"; applied.":"; existing temporary HP is at least as high."}`;}},
   "Nature’s Veil":{kind:"instant",use:c=>{c.conds={...(c.conds||{}),invisible:true};return "Invisible until the end of your next turn; remove the condition then."; }},
   "Telekinetic Shove": { kind: "instant", use: c => `Telekinetic Shove: Strength save DC ${8 + c.prof + c.mods[featCastingAbility(c, "Telekinetic")]}. On a failure, pull or push 5 ft.` },
@@ -470,6 +495,7 @@ function shortRestDialog(c) {
     <p style="margin:0 0 8px"><b>Hit points:</b> <span id="srHp">${c.hpCur}/${c.hp}</span> · <b>Hit dice left:</b> <span id="srHd">${left}/${hd.max}</span></p>
     <div class="row" style="flex-wrap:wrap;gap:8px"><label style="flex:0 0 auto;display:inline-flex;gap:6px;align-items:center">Spend <input type="number" id="srN" min="1" max="${left}" value="${left ? 1 : 0}" style="width:64px" ${left ? "" : "disabled"}> hit dice</label><button class="btn" type="button" data-hdroll style="flex:0 0 auto" ${left ? "" : "disabled"}>Roll and heal</button></div>
     <div id="srLog" class="hint"></div>
+    ${edOf(c)==="2024"&&clsLv(c,"Sorcerer")>=5&&resLeft(c,pcResources(c).find(r=>r.key==="sorcerousRestore"))>0?`<label class="check"><input type="checkbox" id="srSorcerousRestoration"><span>Use Sorcerous Restoration (regain up to ${Math.floor(clsLv(c,"Sorcerer")/2)} Sorcery Points)</span></label>`:""}
     <div class="row" style="justify-content:flex-end;margin-top:14px"><button class="btn" type="button" data-actclose style="flex:0 0 auto">Cancel</button><button class="btn primary" type="button" data-restfinish style="flex:0 0 auto" autofocus>Finish short rest</button></div>`);
 }
 function shortRestRoll() {
@@ -483,7 +509,8 @@ function shortRestRoll() {
   $("#srN").max = left; $("#srN").value = left ? 1 : 0; $("#srN").disabled = !left; $("[data-hdroll]").disabled = !left;
 }
 function shortRestFinish() {
-  const c = ACTX.c, back = pcRest(c, "short"), fxEnded = c.fxEnded; delete c.fxEnded;
+  const c = ACTX.c, restoreSorcery=!!$("#srSorcerousRestoration")?.checked, back = pcRest(c, "short"), fxEnded = c.fxEnded; delete c.fxEnded;
+  if(restoreSorcery){const n=sorcerousRestoration(c);if(n)back.push(n+" Sorcery Points");}
   if(edOf(c)==="2024"&&clsLv(c,"Ranger")>=10&&exhOf(c)>0&&exhOf(c)<6&&!c.death?.dead){c.exh=exhOf(c)-1;back.push("one Exhaustion level removed");pcRecompute(c);}
   pcPersist();
   const healed = ACTX.log.length ? ` Hit points ${c.hpCur}/${c.hp}.` : "";

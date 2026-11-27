@@ -579,6 +579,11 @@ const subclassLevel = (ed, cls) => CLASS_DATA[cls] && CLASS_DATA[cls].hb ? CLASS
 const BOOK_CLASS_VARIANTS = {};
 // Revised SRD 5.2.1 class tables, pp. 31–35, 61–63. Never overwrite legacy or book variants.
 const REVISED_CORE_CLASS_FIELDS = {
+  Cleric:{f:{1:["Spellcasting","Divine Order"],2:["Channel Divinity"],5:["Sear Undead"],7:["Blessed Strikes"],10:["Divine Intervention"],14:["Improved Blessed Strikes"],20:["Greater Divine Intervention"]}},
+  Druid:{f:{1:["Spellcasting","Druidic","Primal Order"],2:["Wild Shape","Wild Companion"],5:["Wild Resurgence"],7:["Elemental Fury"],15:["Improved Elemental Fury"],18:["Beast Spells"],20:["Archdruid"]}},
+  Sorcerer:{f:{1:["Spellcasting","Innate Sorcery"],2:["Font of Magic","Metamagic"],5:["Sorcerous Restoration"],7:["Sorcery Incarnate"],10:["Metamagic"],17:["Metamagic"],20:["Arcane Apotheosis"]}},
+  Warlock:{f:{1:["Eldritch Invocations","Pact Magic"],2:["Magical Cunning"],9:["Contact Patron"],11:["Mystic Arcanum"],20:["Eldritch Master"]}},
+  Wizard:{f:{1:["Spellcasting","Ritual Adept","Arcane Recovery"],2:["Scholar"],5:["Memorize Spell"],18:["Spell Mastery"],20:["Signature Spells"]}},
   // SRD 5.2.1 pp. 47–48, 53–60. Keep legacy action identifiers where the runtime uses them.
   Fighter: {
     skills:[[...CLASS_DATA.Fighter.skills[0],"Persuasion"],2],

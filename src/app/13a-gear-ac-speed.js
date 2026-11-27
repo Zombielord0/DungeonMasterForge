@@ -16,7 +16,7 @@ function pcRecompute(c) {
   const m = {}; AB.forEach(a => m[a] = mod(+c.scores[a] || 10)); c.mods = m; const SB = subBonusOf(c);
   c.init = m.dex + (c.initBonus ?? ((c.feats || []).some(f => f.f === "Feat: Alert") ? (edOf(c) === "2024" ? c.prof : 5) : 0)) + SB.init + (SB.athlete ? Math.ceil(c.prof / 2) : 0) + (c.cls === "Bard" && c.level >= 2 && edOf(c) === "2014" ? Math.floor(c.prof / 2) : 0);
   const jack = c.cls === "Bard" && c.level >= 2;
-  c.skills.forEach(s => s.v = m[s.ab] + (s.x ? c.prof * 2 : s.p ? c.prof : jack ? Math.floor(c.prof / 2) : 0) + athleteBonus(SB, s, c.prof));
+  c.skills.forEach(s => s.v = m[s.ab] + (s.x ? c.prof * 2 : s.p ? c.prof : jack ? Math.floor(c.prof / 2) : 0) + athleteBonus(SB, s, c.prof) + orderCheckBonus(c,s.s));
   const per = c.skills.find(s => s.s === "Perception"); c.passive = 10 + (per ? per.v : m.wis);
   const C = CLASS_DATA[c.cls];
   if (c.kitMoved) c.attacks = pcAttacks(c);
@@ -97,6 +97,7 @@ function eqWeaponOf(i, ed) {
 const SUB_MARTIAL = [["Tempest Domain", 1], ["War Domain", 1], ["College of Valor", 3]];
 function eqProficient(c, w) {
   if (/^Simple/.test(w.cat) || w.cat === "Arcane Foci") return true;
+  if(/Martial/.test(w.cat)&&(revisedOrder(c,"Cleric")==="Protector"||revisedOrder(c,"Druid")==="Warden"))return true;
   if (/Martial/.test(w.cat) && [{ cls: c.cls, lv: c.level, subclass: c.subclass }, ...(c.multi || [])].some(x => x && SUB_MARTIAL.some(([s, lv]) => s === x.subclass && (+x.lv || 0) >= lv))) return true;
   const props = ((w.st.find(([k]) => k === "Properties") || [])[1] || "");
   if (["Barbarian", "Fighter", "Paladin", "Ranger"].includes(baseClassOf(c.cls)) || (c.multi || []).some(x => MC_MARTIAL.includes(baseClassOf(x.cls)))) return true;
@@ -144,6 +145,8 @@ function armorTraining(c) {
   if (sub === "College of Valor" && c.level >= 3) { T.add("medium"); T.add("shield"); }
   if ((c.traits || []).includes("Dwarven Armor Training")) { T.add("light"); T.add("medium"); }
   (c.multi || []).forEach(x => (MC_ARMOR[baseClassOf(x.cls)] || "").split(" ").filter(Boolean).forEach(k => T.add(k)));
+  if(revisedOrder(c,"Cleric")==="Protector")T.add("heavy");
+  if(revisedOrder(c,"Druid")==="Warden")T.add("medium");
   if (f("Lightly Armored")) T.add("light");
   if (f("Moderately Armored")) { T.add("light"); T.add("medium"); T.add("shield"); }
   if (f("Heavily Armored")) { T.add("light"); T.add("medium"); T.add("heavy"); }

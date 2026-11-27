@@ -57,6 +57,10 @@ function expansionChoice(cls, subclass, label, options, limit = () => 1, ed = "2
 }
 /* key: the feature (or "Feat: X") the choice belongs to. n(c): how many to choose. opts(c): [[id, label, description]] */
 const CHOICES = {
+  "Divine Order":{label:"Divine Order",n:c=>edOf(c)==="2024"&&clsLv(c,"Cleric")>=1?1:0,opts:()=>opt3(["Protector","Thaumaturge"])},
+  "Primal Order":{label:"Primal Order",n:c=>edOf(c)==="2024"&&clsLv(c,"Druid")>=1?1:0,opts:()=>opt3(["Magician","Warden"])},
+  "Blessed Strikes":{label:"Blessed Strikes",n:c=>edOf(c)==="2024"&&clsLv(c,"Cleric")>=7?1:0,opts:()=>opt3(["Divine Strike","Potent Spellcasting"])},
+  "Elemental Fury":{label:"Elemental Fury",n:c=>edOf(c)==="2024"&&clsLv(c,"Druid")>=7?1:0,opts:()=>opt3(["Primal Strike","Potent Spellcasting"])},
   "Armor Model": expansionChoice("Artificer", "Armorer", "Armor model", (_, c) =>
     edOf(c) === "2024" ? ["Dreadnaught", "Guardian", "Infiltrator"] : ["Guardian", "Infiltrator"], () => 1, null),
   "Eldritch Cannon": expansionChoice("Artificer", "Artillerist", "Cannon type", ["Flamethrower", "Force Ballista", "Protector"], () => 1, null),
@@ -86,7 +90,7 @@ const CHOICES = {
   "Genie's Vessel": expansionChoice("Warlock", "The Genie", "Genie patron", [["Dao", "Dao", "Bludgeoning"], ["Djinni", "Djinni", "Thunder"], ["Efreeti", "Efreeti", "Fire"], ["Marid", "Marid", "Cold"]]),
   "Combat Superiority": { label: "Maneuvers", n: c => { const l = c.subclass === "Battle Master" ? c.level : 0; return l >= 15 ? 9 : l >= 10 ? 7 : l >= 7 ? 5 : l >= 3 ? 3 : 0; }, opts: c => MANEUVERS.filter(m => !m[3] || m[3] === edOf(c)).map(m => [m[0], m[1], m[2]]) },
   "Eldritch Invocations": { label: "Invocations", n: c => { const l = clsLv(c, "Warlock"); return edOf(c) === "2024" ? [0, 1, 3, 3, 3, 5, 5, 6, 6, 7, 7, 7, 8, 8, 8, 9, 9, 9, 10, 10, 10][l] : [0, 0, 2, 2, 2, 3, 3, 4, 4, 5, 5, 5, 6, 6, 6, 7, 7, 7, 8, 8, 8][l]; }, opts: c => INVOCATIONS.filter(v => (!v[4] || v[4] === edOf(c)) && clsLv(c, "Warlock") >= v[3]).map(v => [v[0], v[1] + (v[3] > 1 ? ` (lv ${v[3]})` : ""), v[2]]) },
-  Metamagic: { label: "Metamagic options", n: c => { const l = clsLv(c, "Sorcerer"); return l >= 17 ? 4 : l >= 10 ? 3 : l >= (edOf(c) === "2024" ? 2 : 3) ? 2 : 0; }, opts: c => METAMAGIC.filter(m => !m[2] || m[2] === edOf(c)).map(m => [m[0], m[1], ""]) },
+  Metamagic: { label: "Metamagic options", n: c => { const l = clsLv(c, "Sorcerer"); return edOf(c)==="2024"?(l>=17?6:l>=10?4:l>=2?2:0):(l>=17?4:l>=10?3:l>=3?2:0); }, opts: c => METAMAGIC.filter(m => !m[2] || m[2] === edOf(c)).map(m => [m[0], m[1], ""]) },
   "Hunter's Prey": { label: "Hunter's Prey", n: () => 1, opts: c => opt3(edOf(c) === "2024" ? [["colossus", "Colossus Slayer", "+1d8 once per turn against a creature missing hit points."], ["horde", "Horde Breaker", "One extra attack against another creature within 5 ft of the first."]] : [["colossus", "Colossus Slayer", "+1d8 once per turn against a creature below its maximum."], ["giant", "Giant Killer", "Reaction attack against a Large or larger creature that attacks you."], ["horde", "Horde Breaker", "One extra attack against another creature within 5 ft of the first."]]) },
   "Defensive Tactics": { label: "Defensive Tactics", n: () => 1, opts: c => opt3(edOf(c) === "2024" ? [["escape", "Escape the Horde", "Opportunity attacks against you have disadvantage."], ["multi", "Multiattack Defense", "After a creature hits you, its other attacks this turn have disadvantage."]] : [["escape", "Escape the Horde", "Opportunity attacks against you have disadvantage."], ["multi", "Multiattack Defense", "+4 AC against a creature's later attacks this turn after it hits you."], ["steel", "Steel Will", "Advantage on saves against being frightened."]]) },
   Multiattack: { label: "Multiattack", n: c => edOf(c) === "2014" ? 1 : 0, opts: () => opt3([["volley", "Volley", "Ranged attack against every creature within 10 ft of a point."], ["whirl", "Whirlwind Attack", "Melee attack against every creature within 5 ft of you."]]) },
@@ -101,6 +105,19 @@ const CHOICES = {
   "Feat: Musician": { label: "Instruments", n: () => 3, opts: () => opt3(INSTRUMENTS) }
 };
 const choiceOf = (c, k) => ((c.choices || {})[k]) || [];
+function revisedOrder(c,cls){
+  if(edOf(c)!=="2024"||clsLv(c,cls)<1)return "";
+  const key=cls==="Cleric"?"Divine Order":cls==="Druid"?"Primal Order":"";
+  if(!key)return "";
+  const picked=choiceOf(c,key)[0];
+  return (cls==="Cleric"?["Protector","Thaumaturge"]:["Magician","Warden"]).includes(picked)?picked:"";
+}
+function orderCheckBonus(c,skill){
+  const cleric=revisedOrder(c,"Cleric")==="Thaumaturge"&&["Arcana","Religion"].includes(skill);
+  const druid=revisedOrder(c,"Druid")==="Magician"&&["Arcana","Nature"].includes(skill);
+  // Distinct class features are distinct bonuses; apply both if the multiclass qualifies.
+  return (Number(cleric)+Number(druid))*Math.max(1,c.mods.wis);
+}
 const hasChoice = (c, k, id) => choiceOf(c, k).includes(id);
 const DRAGON_FEATURE_ELEMENTS = ["Acid", "Cold", "Fire", "Lightning", "Poison"];
 const FEATURE_CHOICE_LANGUAGES = ["Common", "Dwarvish", "Elvish", "Giant", "Gnomish", "Goblin", "Halfling", "Orc", "Abyssal", "Celestial", "Draconic", "Deep Speech", "Infernal", "Primordial", "Sylvan", "Undercommon"];
@@ -110,6 +127,8 @@ const choiceSpellOptions = (c, filter) => {
   return opt3([...new Set((SP.data[edOf(c)] || []).filter(s => !s.pend && filter(s)).map(s => s.n))].sort());
 };
 Object.assign(CHOICES, {
+  "Divine Order Cantrip":{label:"Extra Cleric cantrip",n:c=>revisedOrder(c,"Cleric")==="Thaumaturge"?1:0,opts:c=>choiceSpellOptions(c,s=>s.l===0&&s.c.includes("Cleric")&&!s.referenceOnly&&!s.rulesSummary)},
+  "Primal Order Cantrip":{label:"Extra Druid cantrip",n:c=>revisedOrder(c,"Druid")==="Magician"?1:0,opts:c=>choiceSpellOptions(c,s=>s.l===0&&s.c.includes("Druid")&&!s.referenceOnly&&!s.rulesSummary)},
   "Giant Power": choiceList("Cantrip", ["Thaumaturgy", "Druidcraft"]),
   "Giant Power language": choiceList("Language", FEATURE_CHOICE_LANGUAGES),
   "Draconic Gift": choiceList("Language", FEATURE_CHOICE_LANGUAGES),
@@ -157,6 +176,8 @@ function wizardSpellChoicesHTML(c) {
 }
 
 const additionalFeatureChoices = {
+  "Divine Order":["Divine Order Cantrip"],
+  "Primal Order":["Primal Order Cantrip"],
   "Demon Hunter Spells": ["Demon Hunter specialization"],
   "Evoker Spells": ["Evoker specialization"],
   "Giant Power": ["Giant Power language"],

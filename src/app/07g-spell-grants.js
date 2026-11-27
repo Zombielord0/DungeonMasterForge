@@ -5,6 +5,7 @@ const CLASS_SPELL_GRANTS = {
   Artificer: [[1, "Tinker’s Magic", "Mending"]],
   Bard: [[20, "Words of Creation", "Power Word Heal"], [20, "Words of Creation", "Power Word Kill"]],
   Druid: [[1, "Druidic", "Speak with Animals"]],
+  Warlock:[[9,"Contact Patron","Contact Other Plane","freeContactPatron"]],
   Ranger: [[1, "Favored Enemy", "Hunter's Mark", "hmark"]],
   Paladin: [[2, "Paladin's Smite", "Divine Smite", "freeDivineSmite"], [5, "Faithful Steed", "Find Steed", "freePaladinSteed"]],
 };
@@ -290,6 +291,13 @@ function syncGrantedSpells(c) {
     if (ed === "2024" && Object.hasOwn(CLASS_SPELL_GRANTS, cls)) {
       for (const [level, feature, spell, free] of CLASS_SPELL_GRANTS[cls]) {
         add({ [level]: [spell] }, lv, { ...classSource, feature }, () => free ? { free } : {});
+      }
+    }
+    if(ed==="2024"&&["Cleric","Druid"].includes(cls)){
+      const feature=cls==="Cleric"?"Divine Order":"Primal Order",key=feature+" Cantrip",choice=CHOICES[key];
+      if(choice.n(c)>0){
+        const selected=choiceOf(c,key).filter(name=>choice.opts(c).some(([id])=>id===name)).slice(0,1);
+        add({1:selected},lv,{...classSource,feature},()=>({known:true}));
       }
     }
     if (cls === "Wizard") {
