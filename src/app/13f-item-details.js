@@ -194,7 +194,7 @@ function openInventoryDetails(c, i, trigger) {
     ${inventoryItemResourceHTML(i,ref)}
     ${ref?.d ? spFormat(String(ref.d)) : !i.note ? '<p class="hint">No rules description is available for this item.</p>' : ""}
     ${i.note ? `<h3>Inventory notes</h3>${spFormat(String(i.note))}` : ""}`, trigger);
-  const refresh=()=>{pcPersist();renderRosterMain();const next=$("[data-item-details]",$("#rosterMain")).find(b=>b.dataset.itemDetails===i.id);openInventoryDetails(c,i,next);};
+  const refresh=()=>{pcPersist();renderRosterMain();const next=$$("[data-item-details]",$("#rosterMain")).find(b=>b.dataset.itemDetails===i.id);openInventoryDetails(c,i,next);};
   const roll=s=>1+Math.floor(Math.random()*s);
   // The shared confirmation overlay is outside the modal dialog; close the dialog first.
   // Reopen on cancellation or stale state so keyboard and pointer users can continue.
@@ -203,7 +203,7 @@ function openInventoryDetails(c, i, trigger) {
     const value=$("[data-item-charge-start]",dialog).value;
     if(value.trim()!==""&&itemChargeInitialize(i,ref,Number(value)))refresh();
   });
-  $("[data-item-use]",dialog).forEach(b=>b.addEventListener("click",async()=>{
+  $$("[data-item-use]",dialog).forEach(b=>b.addEventListener("click",async()=>{
     const q=itemChargeContract(ref),a=q?.actions[+b.dataset.itemUse];if(!a)return;
     if(!await confirmItem("Record item use?",a.name+" — resolve the effect manually and spend "+a.cost+" item charges.","Record use"))return;
     const r=itemChargeUse(i,inventoryCatalogItem(i,edOf(c)),+b.dataset.itemUse,roll);

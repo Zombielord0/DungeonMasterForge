@@ -68,7 +68,8 @@ const server = http.createServer((req, res) => {
     }
     const {validateRecoveryManifest,applyRecoveredCoreSpells,applyRecoveredCoreItems,applyRecoveredCoreMonsters}=await import("../../tools/recovered-content.mjs");
     const approved=validateRecoveryManifest(JSON.parse(fs.readFileSync(path.join(DATA,"recovered-content.json"),"utf8")),JSON.parse(fs.readFileSync(path.join(DATA,"extra-books.json"),"utf8")).books);
-    const reviewed=name==="spells"?applyRecoveredCoreSpells(expected,approved):name==="items"?applyRecoveredCoreItems(expected,approved):name==="monsters"?applyRecoveredCoreMonsters(expected,approved):expected;
+    const {addSrdWandChargeContracts}=await import("../../tools/ref-srd-item-charges.mjs");
+    const reviewed=name==="spells"?applyRecoveredCoreSpells(expected,approved):name==="items"?applyRecoveredCoreItems(addSrdWandChargeContracts(expected),approved):name==="monsters"?applyRecoveredCoreMonsters(expected,approved):expected;
     const same = w.DMDATA && JSON.stringify(JSON.parse(w.DMDATA[key])) === JSON.stringify(reviewed);
     check(`${name}: public${f} matches source data with documented edition corrections and grants`, !!same);
     check(`${name}: the file name's fingerprint matches its contents`, !!f && f.includes("." + crypto.createHash("sha256").update(js).digest("hex").slice(0, 10) + "."));

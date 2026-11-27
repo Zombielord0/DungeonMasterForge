@@ -43,3 +43,8 @@ Approved `catalog: core-spells` replacements preserve the edition, source, print
 
 ## SRD wand resource activation and item-detail regression repair
 Nine canonical SRD wand types in each edition now expose explicit charge-only contracts after raw archive checks, with unchanged array slots. Revised sources: SRD 5.2.1 PDF pp. 250–251; legacy contracts use the previously reconciled SRD 5.1 catalog. Revised Fireball, Lightning Bolt and Magic Missile charge expenditure is capped at three per cast; legacy versions allow up to seven. Revised Web uses DC 13, legacy DC 15. Six-sided recharge and last-charge destruction are supported. Inventory details use multi-element selectors for action buttons and reopen after confirmation, including cancellation. Effects, casting prerequisites, dawn-event verification and targeting remain manually adjudicated, not automatic. Full browser CI is required. Private supplemental source payloads remain excluded; the recovery manifest is not approved by this change.
+
+
+### Item regression follow-up
+
+The 94eb508 CI run passed 51 of 53 suites. The item-detail handlers must use the multi-element selector (`$$`) for action lists and for locating a replacement detail button after rendering. The exact emitted-asset assertion now also applies the documented SRD wand charge transformation before comparing output, preserving the strict equality check. The private variant recovery checkpoint is not a distribution approval: 16 supplemental variants have candidate mechanics, 192 private standard item candidates and 33 separate Warcraft candidates remain subject to independent review. No private book payload is included in the preview by this patch.
