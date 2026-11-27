@@ -92,10 +92,12 @@ function pcResources(c) {
   if (tr("Giant Ancestry")) add("giant", "Giant Ancestry", prof, "long");
   if(ed==="2024"&&characterSubclassLevel(c,"Barbarian","Path of the Berserker")>=14)add("berserkerPresence","Intimidating Presence",1,"long");
   if(ed==="2024"&&characterSubclassLevel(c,"Sorcerer","Draconic Sorcery")>=14)add("draconicWings","Dragon Wings",1,"long");
+  for(const r of psionicPools(c))add(r.key,r.name,r.max,r.recharge);
   const subSeen=new Set();
   for(const f of (c.feats||[]).filter(f=>(f.sub||f.mcsub||f.bookSub)&&SUB_ABL[f.f]?.res)){
     const o=subclassFeatureOwner(c,f),S=SUB_ABL[f.f];
     if(!o.level||+f.l>o.level||f.bookSub&&!S.text&&!ACT[f.f])continue;
+    if(isPsionicOwner(o)&&PSIONIC_FEATURES.has(f.f))continue;
     const key=subAblKey(f.f);if(subSeen.has(key))continue;subSeen.add(key);
     const [n,mx,rc]=S.res,ctx={...c,level:o.level,cls:o.cls,subclass:o.name};
     add(key,n,mx(ctx),typeof rc==="function"?rc(ctx):rc);
@@ -198,6 +200,7 @@ function pcAbilities(c) {
   if (tr("Relentless Endurance")) add("Relentless Endurance", "When reduced to 0 HP", "Drop to 1 hit point instead.", "relent");
   (c.feats || []).filter(f=>(f.sub||f.mcsub||f.bookSub)&&(f.bookSub?!!(SUB_ABL[f.f]?.text||ACT[f.f]):!!(SUB_ABL[f.f]||ACT[f.f]))).forEach(f=>{
     const o=subclassFeatureOwner(c,f);if(!o.level||+f.l>o.level)return;
+    if(isPsionicOwner(o)&&PSIONIC_FEATURES.has(f.f))return;
     const S=SUB_ABL[f.f]||{when:ACT[f.f].kind==="persist"?"Your choice":ACT[f.f].kind==="toggle"?"Activated":"Use"};
     const desc=subFeatDesc(f.f,c,f);if(!desc&&!S.text)return;
     const revised=ed==="2024"&&f.subEdition!=="2014";
@@ -212,6 +215,7 @@ function pcAbilities(c) {
   if (tr("Adrenaline Rush")) add("Adrenaline Rush", "Bonus action", `Dash, and gain ${prof} temporary hit points.`, "adren");
   if (tr("Giant Ancestry")) add("Giant Ancestry", "Varies", `Your ${c.sub || "giant"} boon.`, "giant");
   if (tr("Celestial Revelation") && TLV >= 3) add("Celestial Revelation", "Bonus action", `Transform for 1 minute: once per turn add +${prof} radiant or necrotic damage, plus wings, light or fear.`, "crev");
+  for(const spec of psionicActions(c))add(spec.name,spec.when,spec.text,spec.res,spec.owner);
   for(const spec of subclassRecoverySpecs(c))add(spec.name,"No action",spec.text,null,spec.owner);
   return A;
 }
@@ -228,7 +232,105 @@ const wearingArmor = c => (c.inv || []).some(i => i.eq && (+i.qty || 0) > 0 && (
 const isActive = (c, n) => !!(c.active || {})[n];
 const maDie = c => { const lv = clsLv(c, "Monk") || c.level; return edOf(c) === "2024" ? (lv >= 17 ? 12 : lv >= 11 ? 10 : lv >= 5 ? 8 : 6) : (lv >= 17 ? 10 : lv >= 11 ? 8 : lv >= 5 ? 6 : 4); };
 const rageDmg = c => { const l = classFeatureLevel(c, "Barbarian"); return l >= 16 ? 4 : l >= 9 ? 3 : 2; };
-const psiDie = c => c.level >= 17 ? 12 : c.level >= 11 ? 10 : c.level >= 5 ? 8 : 6;
+const PSIONIC_FEATURES=new Set(["Psionic Power","Protective Field","Psionic Strike","Telekinetic Movement","Psi-Powered Leap","Telekinetic Thrust","Telekinetic Adept","Guarded Mind","Bulwark of Force","Telekinetic Master","Psi-Bolstered Knack","Psychic Whispers","Soul Blades","Homing Strikes","Psychic Teleportation","Psychic Veil","Rend Mind"]);
+const isPsionicOwner=o=>o&&(o.cls==="Fighter"&&o.name==="Psi Warrior"||o.cls==="Rogue"&&o.name==="Soulknife");
+const psiLevel=(c,cls)=>characterSubclassLevel(c,cls,cls==="Fighter"?"Psi Warrior":"Soulknife");
+const psiDie=(c,cls)=>{const l=psiLevel(c,cls);return l>=17?12:l>=11?10:l>=5?8:6;};
+const psiKey=cls=>cls==="Fighter"?"psiFighter":"psiRogue";
+function psionicPools(c){
+  const R=[],legacy=edOf(c)==="2014",add=(key,name,max,recharge)=>R.push({key,name,max,recharge});
+  for(const cls of ["Fighter","Rogue"]){
+    const l=psiLevel(c,cls);if(l<3)continue;
+    const key=psiKey(cls),owner=cls==="Fighter"?"Psi Warrior":"Soulknife";
+    add(key,owner+" dice (d"+psiDie(c,cls)+")",legacy?2*c.prof:l>=17?12:l>=13?10:l>=9?8:l>=5?6:4,legacy?"long":"short1");
+    if(legacy)add(key+"Recover",owner+" die recovery",1,"short");
+    if(cls==="Fighter"){
+      add("psiMovement","Telekinetic Movement",1,"short");
+      if(l>=7)add("psiLeap","Psi-Powered Leap",1,"short");
+      if(l>=15)add("psiBulwark","Bulwark of Force",1,"long");
+      if(l>=18)add("psiMaster","Telekinetic Master",1,"long");
+    }else{
+      add("psiWhispers","Psychic Whispers free use",1,"long");
+      if(l>=13)add("psiVeil","Psychic Veil",1,"long");
+      if(l>=17)add("psiRend","Rend Mind",1,"long");
+    }
+  }
+  // Old shared counter cannot identify which subclass spent dice. Preserve
+  // expenditure conservatively in each eligible pool; counters are DM-editable.
+  const old="sub:psionic-power";
+  if(R.length&&c.used&&Object.hasOwn(c.used,old)){
+    for(const r of R.filter(r=>["psiFighter","psiRogue"].includes(r.key)))if(!Object.hasOwn(c.used,r.key))c.used[r.key]=Math.min(r.max,Math.max(0,+c.used[old]||0));
+    delete c.used[old];
+  }
+  for(const [oldKey,newKey] of [["sub:psychic-veil","psiVeil"],["sub:rend-mind","psiRend"]]){
+    if(c.used&&R.some(r=>r.key===newKey)&&Object.hasOwn(c.used,oldKey)){if(!Object.hasOwn(c.used,newKey))c.used[newKey]=Math.min(1,Math.max(0,+c.used[oldKey]||0));delete c.used[oldKey];}
+  }
+  return R;
+}
+function psionicActions(c){
+  const a=[],f=psiLevel(c,"Fighter"),r=psiLevel(c,"Rogue"),legacy=edOf(c)==="2014";
+  const add=(name,when,text,res,cls)=>a.push({name,when,text,res,owner:cls==="Fighter"?"Psi Warrior":"Soulknife"});
+  const restore=(name,key,cls,cost=1)=>add("Restore "+name,"No action","Expend "+cost+" psionic die/dice to restore the expended use.",null,cls);
+  if(f>=3){
+    add("Protective Field","Reaction","Reduce damage to yourself or a visible creature within 30 feet by d"+psiDie(c,"Fighter")+" + INT (minimum 1).","psiFighter","Fighter");
+    add("Psionic Strike","On a qualifying hit","Once on your turn after weapon damage within 30 feet, add Force damage from a psionic die + INT.","psiFighter","Fighter");
+    add("Telekinetic Movement",legacy?"Action":"Magic action","Move a visible loose Large-or-smaller object or willing other creature within 30 feet up to 30 feet; Tiny objects may move to/from your hand.","psiMovement","Fighter");restore("Telekinetic Movement","psiMovement","Fighter");
+    if(f>=7){add("Psi-Powered Leap","Bonus action","Fly at twice your Speed until the end of this turn.","psiLeap","Fighter");restore("Psi-Powered Leap","psiLeap","Fighter");}
+    if(f>=10)add("Psi Warrior: Guarded Mind","Start of turn","Spend one die to end effects causing Charmed or Frightened on you; confirm conditions at the table.","psiFighter","Fighter");
+    if(f>=15){add("Bulwark of Force","Bonus action","Choose up to "+Math.max(1,c.mods.int)+" creatures within 30 feet including yourself; Half Cover for 1 minute or until Incapacitated.","psiBulwark","Fighter");restore("Bulwark of Force","psiBulwark","Fighter");}
+    if(f>=18){add("Telekinetic Master",legacy?"Action":"Magic action","Cast Telekinesis using INT without a slot or components. While concentrating on it, one weapon attack as a Bonus Action on your turns.","psiMaster","Fighter");restore("Telekinetic Master","psiMaster","Fighter");}
+    if(legacy)add("Psi Warrior: Recover die","Bonus action","Regain one expended Psi Warrior die once per Short or Long Rest.","psiFighterRecover","Fighter");
+  }
+  if(r>=3){
+    add("Psi-Bolstered Knack","On a failed proficient check","Roll a psionic die, then confirm if the modified check succeeds; spend only on success.","psiRogue","Rogue");
+    add("Psychic Whispers",legacy?"Action":"Magic action","Choose up to "+c.prof+" visible creatures. Telepathy for rolled hours within 1 mile; first use per Long Rest is free.","psiRogue","Rogue");
+    if(r>=9){
+      add("Homing Strikes","On a missed Psychic Blade attack","Roll a psionic die; spend only if the modified attack hits.","psiRogue","Rogue");
+      add("Psychic Teleportation","Bonus action","Spend a die; teleport to a visible unoccupied space up to 10 feet times the roll.","psiRogue","Rogue");
+    }
+    if(r>=13){add("Psychic Veil",legacy?"Action":"Magic action","Invisible for up to 1 hour; ends early on damage dealt or forcing a save.","psiVeil","Rogue");restore("Psychic Veil","psiVeil","Rogue");}
+    if(r>=17){add("Rend Mind","On Psychic Blade Sneak Attack","WIS save DC "+(8+c.prof+c.mods.dex)+" or Stunned for 1 minute; repeat at the end of each target turn.","psiRend","Rogue");restore("Rend Mind","psiRend","Rogue",3);}
+    if(legacy)add("Soulknife: Recover die","Bonus action","Regain one expended Soulknife die once per Short or Long Rest.","psiRogueRecover","Rogue");
+  }
+  return a;
+}
+function psiRestore(c,cls,target,cost=1){
+  const R=pcResources(c),pool=R.find(r=>r.key===psiKey(cls)),use=R.find(r=>r.key===target);
+  if(!pool||!use)return "Unavailable.";
+  if(resLeft(c,use)>0)return "Use is already available.";
+  if(resLeft(c,pool)<cost)return "Not enough psionic dice.";
+  c.used[pool.key]=(+c.used[pool.key]||0)+cost;c.used[target]=0;return "Use restored.";
+}
+function psiLegacyRecover(c,cls){
+  const R=pcResources(c),pool=R.find(r=>r.key===psiKey(cls)),use=R.find(r=>r.key===psiKey(cls)+"Recover");
+  if(!pool||!use||resLeft(c,use)<1)return "Recovery unavailable.";
+  if(resLeft(c,pool)>=pool.max)return "No expended dice.";
+  c.used[pool.key]=Math.max(0,(+c.used[pool.key]||0)-1);c.used[use.key]=1;return "Regained one psionic die.";
+}
+function psiConditionalChoices(c,name){
+  const pending=c.psiPending?.name===name;
+  return pending?[["success","Confirmed success — spend die"],["failure","Still failed — keep die"]]:[["roll","Roll bonus"]];
+}
+function psiConditional(c,name,ch){
+  const R=pcResources(c).find(r=>r.key==="psiRogue");
+  if(ch==="failure"){delete c.psiPending;return "No die expended.";}
+  if(!R||resLeft(c,R)<1)return "No Soulknife dice available.";
+  if(ch==="success"){
+    if(c.psiPending?.name!==name)return "No pending roll.";
+    c.used[R.key]=(+c.used[R.key]||0)+1;delete c.psiPending;return "Confirmed success; one die expended.";
+  }
+  if(c.psiPending)return "Resolve the pending "+c.psiPending.name+" roll first.";
+  const roll=rollDice("1d"+psiDie(c,"Rogue"));c.psiPending={name,roll:roll.total};
+  return name+": "+roll.text+". Add to the triggering roll, then confirm success or failure.";
+}
+function psiWhispers(c){
+  const R=pcResources(c),free=R.find(r=>r.key==="psiWhispers"),pool=R.find(r=>r.key==="psiRogue");
+  if(!free||!pool)return "Unavailable.";
+  if(resLeft(c,free)>0)c.used[free.key]=1;
+  else if(resLeft(c,pool)>0)c.used[pool.key]=(+c.used[pool.key]||0)+1;
+  else return "No Soulknife dice available.";
+  return rollMsg("Psychic Whispers","1d"+psiDie(c,"Rogue"),"Hours of telepathy with up to "+c.prof+" eligible creatures; range 1 mile.");
+}
 const healMsg = (c, label, r) => { const h = healSelf(c, r.total); return `${label}: ${r.text}. You regain ${h} hit point${h === 1 ? "" : "s"} (${c.hpCur}/${c.hp}).`; };
 const rollMsg = (label, expr, tail) => { const r = rollDice(expr); return `${label}: ${r.text}${tail ? ". " + tail : ""}`; };
 const DMG_LIST = ["acid", "cold", "fire", "lightning", "necrotic", "poison", "psychic", "radiant", "thunder", "bludgeoning", "piercing", "slashing"];
@@ -681,9 +783,25 @@ const ACT = {
       const saves={disarm:"STR",push:"STR",trip:"STR",menace:"WIS",goad:"WIS"};
       return roll(lab,expr,"damage",m[2]+(saves[ch]?" Save: "+saves[ch]+" DC "+dc+".":"")+" Confirm the triggering hit and apply the other effects manually.");
     } },
-  "Psionic Power": { kind: "instant", choices: c => c.subclass === "Soulknife" ? [["knack", "Psi-Bolstered Knack"], ["whisper", "Psychic Whispers"]] : [["field", "Protective Field"], ["strike", "Psionic Strike"], ["move", "Telekinetic Movement"]],
-    use: (c, ch) => { const d = `1d${psiDie(c)}`, i = c.mods.int; return ch === "field" ? rollMsg("Protective Field", `${d}${sgn(i)}`, "Reduce the damage by that much") : ch === "strike" ? roll("Psionic Strike", `${d}${sgn(i)}`, "damage", "Force damage to the target") : ch === "knack" ? rollMsg("Psi-Bolstered Knack", d, "Add it to the failed ability check") : ch === "whisper" ? "Psychic Whispers: telepathy with creatures you choose for hours equal to a Psionic Energy die." : "Telekinetic Movement: move a Large or smaller object or willing creature up to 30 ft."; } },
-  "Bulwark of Force": { kind: "toggle", fx: () => ({ notes: ["Bulwark of Force: you and chosen allies within 30 ft have half cover"] }) },
+  "Protective Field":{kind:"instant",use:c=>{const r=rollDice("1d"+psiDie(c,"Fighter")+sgn(c.mods.int));return "Protective Field: "+r.text+". Reduce damage by "+Math.max(1,r.total)+"; confirm reaction and target.";}},
+  "Psionic Strike":{kind:"instant",use:c=>{const r=roll("Psionic Strike","1d"+psiDie(c,"Fighter")+sgn(c.mods.int),"damage","Force damage after a qualifying hit."+(psiLevel(c,"Fighter")>=7?" Optional Telekinetic Thrust: STR save DC "+(8+c.prof+c.mods.int)+" or Prone/push 10 feet.":""));r.amount=Math.max(0,r.amount);return r;}},
+  "Telekinetic Movement":{kind:"instant",use:()=> "Confirm eligible target and destination within the movement limits."},
+  "Psi-Powered Leap":{kind:"instant",use:()=> "Fly at twice your Speed until the end of this turn; resolve movement manually."},
+  "Psi Warrior: Guarded Mind":{kind:"instant",use:()=> "End all effects giving you Charmed or Frightened; confirm and remove conditions at the table."},
+  "Bulwark of Force":{kind:"instant",use:c=> "Choose up to "+Math.max(1,c.mods.int)+" eligible creatures; Half Cover for 1 minute or until Incapacitated."},
+  "Telekinetic Master":{kind:"instant",use:()=> "Record the free Telekinesis casting and Concentration manually; one bonus-action weapon attack on your turns."},
+  "Restore Telekinetic Movement":{kind:"instant",use:c=>psiRestore(c,"Fighter","psiMovement")},
+  "Restore Psi-Powered Leap":{kind:"instant",use:c=>psiRestore(c,"Fighter","psiLeap")},
+  "Restore Bulwark of Force":{kind:"instant",use:c=>psiRestore(c,"Fighter","psiBulwark")},
+  "Restore Telekinetic Master":{kind:"instant",use:c=>psiRestore(c,"Fighter","psiMaster")},
+  "Psi Warrior: Recover die":{kind:"instant",noCost:true,use:c=>psiLegacyRecover(c,"Fighter")},
+  "Soulknife: Recover die":{kind:"instant",noCost:true,use:c=>psiLegacyRecover(c,"Rogue")},
+  "Psi-Bolstered Knack":{kind:"instant",noCost:true,choices:c=>psiConditionalChoices(c,"Psi-Bolstered Knack"),use:(c,ch)=>psiConditional(c,"Psi-Bolstered Knack",ch)},
+  "Psychic Whispers":{kind:"instant",noCost:true,use:psiWhispers},
+  "Homing Strikes":{kind:"instant",noCost:true,choices:c=>psiConditionalChoices(c,"Homing Strikes"),use:(c,ch)=>psiConditional(c,"Homing Strikes",ch)},
+  "Psychic Teleportation":{kind:"instant",use:c=>{const r=rollDice("1d"+psiDie(c,"Rogue"));return "Psychic Teleportation: "+r.text+". Teleport up to "+(10*r.total)+" feet."}},
+  "Restore Psychic Veil":{kind:"instant",use:c=>psiRestore(c,"Rogue","psiVeil")},
+  "Restore Rend Mind":{kind:"instant",use:c=>psiRestore(c,"Rogue","psiRend",3)},
   // ---------- Monk
   Ki: { kind: "instant", choices: [["flurry", "Flurry of Blows"], ["patient", "Patient Defense"], ["step", "Step of the Wind"]], use: (c, ch) => ch === "flurry" ? "Flurry of Blows: two unarmed strikes as a bonus action." : ch === "patient" ? "Patient Defense: Dodge as a bonus action." : "Step of the Wind: Dash or Disengage as a bonus action; jump distance doubled." },
   "Monk's Focus":{kind:"instant",choices:[["flurry","Flurry of Blows (1)"],["patient","Patient Defense (1)"],["step","Step of the Wind (1)"],["freeDash","Dash (free)"],["freeDisengage","Disengage (free)"]],cost:(c,ch)=>ch.startsWith("free")?0:1,use:(c,ch)=>{if(ch==="freeDash")return "Dash as a Bonus Action.";if(ch==="freeDisengage")return "Disengage as a Bonus Action.";if(ch==="flurry")return "Flurry of Blows: "+(clsLv(c,"Monk")>=10?3:2)+" Unarmed Strikes.";if(ch==="patient"){const n=clsLv(c,"Monk")>=10?rollDice("2d"+maDie(c)).total:0;if(n)giveTemp(c,n);return "Disengage and Dodge as a Bonus Action."+(n?" Rolled "+n+" temporary HP.":"");}return "Dash and Disengage; double jump distance.";}},
@@ -732,7 +850,7 @@ const ACT = {
   "Misty Wanderer": { kind: "instant", use: () => "Misty step cast without a spell slot." },
   // ---------- Rogue
   "Psychic Veil": { kind: "toggle", fx: () => ({ notes: ["Psychic Veil: invisible for 1 hour, until you damage a creature or force a save"] }) },
-  "Rend Mind": { kind: "instant", use: c => `Rend Mind: the target makes a WIS save (DC ${8 + c.prof + c.mods.dex}) or is stunned for 1 minute.` },
+  "Rend Mind": { kind: "instant", use: c => `Rend Mind: the target makes a WIS save (DC ${8 + c.prof + c.mods.dex}) or is stunned for 1 minute; repeat the save at the end of each target turn.` },
   "Spell Thief": { kind: "instant", use: c => `Spell Thief: the caster makes an INT save against DC ${8 + c.prof + c.mods.int}.` },
   "Stroke of Luck": { kind: "instant", use: () => "Stroke of Luck: the miss becomes a hit, or the check's d20 counts as a 20." },
   // ---------- Sorcerer
@@ -786,6 +904,7 @@ function pcFx(c) {
     const affinity=choiceOf(c,"Elemental Affinity")[0];
     if(characterSubclassLevel(c,"Sorcerer","Draconic Sorcery")>=6&&["acid","cold","fire","lightning","poison"].includes(affinity)){F.res.add(affinity);F.notes.push("Elemental Affinity: add Charisma modifier to one matching spell damage roll.");}
   }
+  if(psiLevel(c,"Fighter")>=10)F.res.add("psychic");
   const act = c.active || {}; if (!Object.keys(act).length) return F;
   const have = new Set(pcAbilities(c).map(a => a.name));
   for (const [name, val] of Object.entries(act)) {
