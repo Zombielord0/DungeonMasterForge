@@ -104,7 +104,7 @@ function generateCharacter(o) {
   if (expert.size > wantX) [...expert].slice(wantX).forEach(s => expert.delete(s));
   const expertOrder = [...expert];
   fx.forEach(e => { if (fxSkill(e.t)) profSk.add(e.a); if (e.t === "exp") expert.add(e.a); });
-  const jack = cls === "Bard" && lv >= 2;
+  const jack = (cls === "Bard" && lv >= 2) || MC.some(x=>x.cls==="Bard"&&x.lv>=2);
   const skillVals = ALL_SKILLS.map(s => {
     const p = profSk.has(s), x = expert.has(s);
     return { s, ab: SKILLS[s], p, x, v: m[SKILLS[s]] + (x ? prof * 2 : p ? prof : jack ? Math.floor(prof / 2) : 0) };

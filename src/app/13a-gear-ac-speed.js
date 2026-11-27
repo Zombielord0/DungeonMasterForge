@@ -29,7 +29,7 @@ function applyCoreSkillChoices(c){
 }
 function pcRecompute(c) {
   const m = {}; AB.forEach(a => m[a] = mod(+c.scores[a] || 10)); c.mods = m; const SB = subBonusOf(c);
-  c.init = m.dex + (c.initBonus ?? ((c.feats || []).some(f => f.f === "Feat: Alert") ? (edOf(c) === "2024" ? c.prof : 5) : 0)) + SB.init + (SB.athlete ? Math.ceil(c.prof / 2) : 0) + (c.cls === "Bard" && c.level >= 2 && edOf(c) === "2014" ? Math.floor(c.prof / 2) : 0);
+  c.init = m.dex + (c.initBonus ?? ((c.feats || []).some(f => f.f === "Feat: Alert") ? (edOf(c) === "2024" ? c.prof : 5) : 0)) + SB.init + (SB.athlete ? Math.ceil(c.prof / 2) : 0) + (clsLv(c,"Bard") >= 2 && edOf(c) === "2014" ? Math.floor(c.prof / 2) : 0);
   const jack = clsLv(c,"Bard")>=2;
   applyCoreSkillChoices(c);
   c.skills.forEach(s => s.v = m[s.ab] + (s.x ? c.prof * 2 : s.p ? c.prof : jack ? Math.floor(c.prof / 2) : 0) + athleteBonus(SB, s, c.prof) + orderCheckBonus(c,s.s));
@@ -41,7 +41,7 @@ function pcRecompute(c) {
     const ab = c.atkBonus || 0;
     c.attacks = (c.attacks || []).map(a => a.name === w[0] ? { ...a, hit: wm + c.prof + ab, dmg: `${w[1]}${wm ? sgn(wm) : ""}` } : a.name === "Unarmed strike" ? { ...a, hit: wm + c.prof + ab, dmg: ((String(a.dmg).match(/^\d+d\d+/) || ["1d4"])[0]) + sgn(wm) } : a);
   }
-  if (c.spell) { const b = c.spell.bonus || 0; c.spell.dc = 8 + c.prof + m[c.spell.ab] + b; c.spell.atk = c.prof + m[c.spell.ab] + b; }
+  if (c.spell) { const b = c.spell.bonus || 0; for (const s of [c.spell,...(c.spell.others || [])]) { if (!AB.includes(s.ab)) continue; s.dc = 8 + c.prof + m[s.ab] + b; s.atk = c.prof + m[s.ab] + b; } }
   pcACApply(c);
 }
 function pcLevelTo(c, lv) {
@@ -232,9 +232,12 @@ function pcAC(c) {
     if (fx.mageArmor) opts.push([13 + m.dex, "Mage Armor (13 + DEX)"]);
     if (c.subclass === "College of Dance" && c.level >= 3 && !shield) opts.push([10 + m.dex + m.cha, "Dazzling Footwork (10 + DEX + CHA)"]);
     F.acUnarm.forEach(o => opts.push(o));
-    /* first class or a multiclass (QA-3, 2026-11-24); with both, the better one counts */
-    if ([c.cls, ...(c.multi || []).map(x => x.cls)].some(k => baseClassOf(k) === "Barbarian")) opts.push([10 + m.dex + m.con, "Unarmored Defense (10 + DEX + CON)"]);
-    if (clsLv(c, "Monk") > 0 && !shield) opts.push([10 + m.dex + m.wis, "Unarmored Defense (10 + DEX + WIS)"]);
+    // 2014 multiclassing retains only the first acquired Unarmored Defense.
+    // Revised AC calculations remain alternatives, never cumulative.
+    const defenseClasses=[c.cls,...(c.multi||[]).map(x=>x.cls)].map(baseClassOf).filter(k=>k==="Barbarian"||k==="Monk");
+    const allowed=ed==="2014"?defenseClasses.slice(0,1):defenseClasses;
+    if (allowed.includes("Barbarian")) opts.push([10 + m.dex + m.con, "Unarmored Defense (10 + DEX + CON)"]);
+    if (allowed.includes("Monk") && !shield) opts.push([10 + m.dex + m.wis, "Unarmored Defense (10 + DEX + WIS)"]);
     const B = subBonusOf(c); if (B.ac) opts.push(B.ac);
     const best = opts.sort((a, b) => b[0] - a[0])[0]; ac = best[0]; parts.push(`${best[1]} ${best[0]}`);
   }

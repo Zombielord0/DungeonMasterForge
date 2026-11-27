@@ -352,6 +352,31 @@ const { chromium } = require("playwright");
     assert.deepEqual(fullClassMatrix.rest1,[1,1]);assert.deepEqual(fullClassMatrix.rest2,[0,0]);
     assert.ok(fullClassMatrix.companion.startsWith("Wild Companion:")&&fullClassMatrix.active&&fullClassMatrix.ended);
     assert.equal(fullClassMatrix.spent,1);
+    const multiclassMatrix=await page.evaluate(()=>{
+      const classes=["Artificer","Barbarian","Bard","Cleric","Druid","Fighter","Monk","Paladin","Ranger","Rogue","Sorcerer","Warlock","Wizard"];
+      let builds=0;const errors=[];
+      for(const ed of ["2014","2024"])for(const cls of classes)for(const second of classes){
+        if(cls===second)continue;
+        const c=pcEnsure(generateCharacter({seed:"MC-"+cls+"-"+second,ed,cls,level:5,race:"Human",bg:"Sage",subclass:"none",multi:[{cls:second,lv:3,subclass:"none"}]}));builds++;
+        const label=ed+" "+cls+"/"+second;
+        if(c.totalLevel!==8||c.prof!==3||!Number.isFinite(c.hp)||c.hp<=0||clsLv(c,second)!==3)errors.push(label+": level/proficiency/HP");
+        if(c.spell){
+          c.scores.int=20;c.scores.wis=16;c.scores.cha=18;pcRecompute(c);
+          for(const s of [c.spell,...(c.spell.others||[])]){
+            if(s.dc!==8+c.prof+c.mods[s.ab]+(c.spell.bonus||0)||s.atk!==c.prof+c.mods[s.ab]+(c.spell.bonus||0))errors.push(label+": stale spellcasting statistics");
+          }
+        }
+      }
+      const defenses=[];
+      for(const ed of ["2014","2024"])for(const cls of ["Barbarian","Monk"]){
+        const c=pcEnsure(generateCharacter({seed:"MC-AC",ed,cls,level:5,race:"Human",bg:"Sage",subclass:"none",multi:[{cls:cls==="Monk"?"Barbarian":"Monk",lv:3,subclass:"none"}]}));
+        c.inv=[];c.fx={};c.acBonus=0;c.hbAc=0;c.mods={...c.mods,dex:2,con:1,wis:4};defenses.push(pcAC(c).ac);
+      }
+      return {builds,errors,defenses};
+    });
+    assert.equal(multiclassMatrix.builds,312);
+    assert.deepEqual(multiclassMatrix.errors,[]);
+    assert.deepEqual(multiclassMatrix.defenses,[13,16,16,16]);
     const masteryAudit=await page.evaluate(()=>{
       const make=(ed,cls,level)=>pcEnsure(generateCharacter({seed:"MASTERY",ed,cls,level,race:"Human",bg:"Sage",subclass:"none"}));
       const f=make("2024","Fighter",9);f.choices={[masteryKey("Fighter")]:["Longsword","Dagger"]};
