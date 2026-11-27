@@ -248,6 +248,7 @@ const choiceSpellOptions = (c, filter) => {
   return opt3([...new Set((SP.data[edOf(c)] || []).filter(s => !s.pend && filter(s)).map(s => s.n))].sort());
 };
 Object.assign(CHOICES, {
+ "Battle Ready Ability":{label:"Magic weapon attack ability",n:c=>battleSmithLevel(c)>=3?1:0,opts:()=>opt3(["Intelligence","Normal weapon ability"])},
  "Lore Bonus Proficiencies":{label:"College of Lore skills",n:c=>characterSubclassLevel(c,"Bard","College of Lore")>=3?3:0,opts:c=>opt3((c.skills||[]).filter(s=>!s.p||s.loreGranted).map(s=>s.s))},
  "Magical Discoveries":{label:"Two additional prepared spells",n:c=>edOf(c)==="2024"&&characterSubclassLevel(c,"Bard","College of Lore")>=6?2:0,opts:c=>choiceSpellOptions(c,s=>s.l<=(FULL_SLOTS[clsLv(c,"Bard")]||[]).length&&["Cleric","Druid","Wizard"].some(k=>s.c.includes(k))&&!s.hb&&!s.ref&&!s.referenceOnly&&!s.rulesSummary&&!s.shadow)},
  "Elemental Affinity":{label:"Draconic damage affinity",n:c=>edOf(c)==="2024"&&characterSubclassLevel(c,"Sorcerer","Draconic Sorcery")>=6?1:0,opts:()=>opt3(["acid","cold","fire","lightning","poison"].map(x=>[x,x.charAt(0).toUpperCase()+x.slice(1)]))},
@@ -318,6 +319,7 @@ for(const cls of MASTERY_CLASSES)CHOICES[masteryKey(cls)]={label:cls+" weapon ma
 const additionalFeatureChoices = {
   "Bonus Proficiencies":["Lore Bonus Proficiencies","Order Bonus Proficiency"],
   "Spell-Storing Item":["Spell-Storing Item Object"],
+ "Battle Ready":["Battle Ready Ability"],
   "Pact Boon":["Pact Weapon","Pact Tome Cantrips"],
   "Eldritch Invocations":["Pact Weapon","Pact Weapon Ability","Pact Weapon Damage","Pact Tome Cantrips","Pact Tome Rituals","Chain Master Movement"],
   "Weapon Mastery":MASTERY_CLASSES.map(masteryKey),
@@ -591,6 +593,7 @@ function pcRest(c, kind) {
   });
   if (kind === "long") { const z = +c.hpCur === 0; c.hpCur = c.hp; c.hpTemp = ""; pcHealed(c, z); c.death = { s: 0, f: 0 }; if (c.conc) { delete c.conc; delete c.concCheck; c.fxEnded = true; } if (exhOf(c)) { c.exh = exhOf(c) - 1; back.push("Exhaustion level"); } if (c.fx && Object.values(c.fx).some(Boolean)) { c.fx = {}; c.fxEnded = true; } }
   delete c.apotheosisUsedThisTurn;
+  delete c.arcaneJoltThisTurn;
   delete c.psiPending; // an unresolved check or attack cannot carry across a rest
   companionRestUpdate(c,kind);
   if(kind==="long"){
