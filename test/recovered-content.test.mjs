@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { appendReferenceSpells, validateRecoveryManifest, applyRecoveredContent, validateRecoveredBackgroundDependencies } from "../tools/recovered-content.mjs";
+import { appendReferenceSpells, validateRecoveryManifest, applyRecoveredContent, validateRecoveredBackgroundDependencies, applyRecoveredCoreItems } from "../tools/recovered-content.mjs";
 const books={fixture:{name:"Fixture"}}, reference={kind:"Spell",name:"Example",src:"fixture",ed:"2014",page:1,details:[["Level","1"]]};
 const payload={n:"Example",src:"fixture",ed:"2014",l:1,s:"Evocation",c:["Wizard"],t:"1 action",r:"30 feet",cp:"V",m:"",du:"Instantaneous",co:0,ri:0,d:"One target takes 1 force damage.",h:"",dt:"Force",at:"",sv:""};
 const entry={kind:"Spell",name:"Example",src:"fixture",ed:"2014",stableId:"cmp:example",action:"replace",releaseGate:"PASS",productionReady:true,review:{sourceVerified:true,mechanicsVerified:true,dependenciesVerified:true,runtimeVerified:true,distributionCleared:true,evidence:"Synthetic test only"},payload};
@@ -53,4 +53,19 @@ test("denominated coins and cover guilds reject unsafe or missing contracts",()=
  assert.throws(()=>validateRecoveredBackgroundDependencies(approved,{"extra-options":[]}));
  validateRecoveredBackgroundDependencies(approved,{"extra-options":[{kind:"background",name:"Cover",src:"fixture",ed:"2014",book:true,recoveryId:"cmp:cover"}]});
  assert.throws(()=>validateRecoveredBackgroundDependencies(approved,{"extra-options":[{kind:"background",name:"Cover",src:"fixture",ed:"2014",book:true,recoveryId:"cmp:cover",coverGuilds:[]}]}));
+});
+
+test("reviewed core magic items replace exact slots, not supplemental rows",()=>{
+ const item={...entry,kind:"Item",name:"Fixture Rod",ed:"2024",catalog:"core-items",stableId:"cmp:rod",payload:{n:"Fixture Rod",src:"fixture",ed:"2024",page:12,cat:"Rod",type:"Rod",r:"Rare",rk:2,att:"Required",cons:false,base:false,d:"Synthetic item: once each dawn, emit light for one minute.",manualEffects:true}};
+ const legacy={eq:[],mi:[{n:item.name,src:item.src,page:12}]}, original={"2014":legacy,"2024":{eq:[{n:"Gear"}],mi:[{n:"Before"},{n:item.name,src:item.src,page:12,d:"See the sourcebook for complete rules."},{n:"After"}]}};
+ const approved=validateRecoveryManifest(manifest([item]),books),out=applyRecoveredCoreItems(original,approved);
+ assert.equal(out["2014"],legacy);assert.equal(out["2024"].eq,original["2024"].eq);
+ assert.equal(out["2024"].mi.length,3);assert.equal(out["2024"].mi[0],original["2024"].mi[0]);assert.equal(out["2024"].mi[2],original["2024"].mi[2]);
+ assert.equal(out["2024"].mi[1].recoveryId,item.stableId);assert.equal(out["2024"].mi[1].k,undefined);
+ assert.deepEqual(applyRecoveredContent("extra-items",[],approved,[]),[]);
+ assert.equal(applyRecoveredCoreItems(original,[]),original);
+ for(const bad of [{...item,action:"promote"},{...item,catalog:"unknown"},{...item,releaseGate:"BLOCKED"},{...item,payload:{...item.payload,d:"Charges 4. See the sourcebook for complete rules."}},{...item,payload:{...item.payload,page:undefined}}])assert.throws(()=>validateRecoveryManifest(manifest([bad]),books));
+ for(const bad of [{...item,payload:{...item.payload,page:13}},{...item,payload:{...item.payload,k:"new-key"}},{...item,payload:{...item.payload,id:"new-id"}}])assert.throws(()=>applyRecoveredCoreItems(original,[bad]));
+ assert.throws(()=>applyRecoveredCoreItems(original,[{...item,name:"Missing"}]));
+ assert.throws(()=>applyRecoveredCoreItems({...original,"2024":{...original["2024"],mi:[original["2024"].mi[1],original["2024"].mi[1]]}},approved));
 });

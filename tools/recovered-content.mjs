@@ -5,13 +5,14 @@ const names = r => [r.n,...(r.aliases || [])].filter(Boolean).map(n=>n.toLowerCa
 const key = e => JSON.stringify([e.kind,e.name,e.src,e.ed]);
 const okText = t => typeof t === "string" && !!t.trim() &&
  !/^\s*(?:loading\b|placeholder\b|reference only\b|[^\n.]{0,140}\b(?:page|p\.)\s*\d+\s*[.!]?\s*$)/i.test(t) &&
- !/\b(?:see (?:the )?(?:sourcebook|book) for (?:the )?full rules|not its rules text|rules text (?:is )?(?:unavailable|not included|not reproduced)|a short summary\.\s*see)\b/i.test(t);
+ !/\b(?:see (?:the )?(?:sourcebook|book) for (?:the )?(?:full|complete) rules|not its rules text|rules text (?:is )?(?:unavailable|not included|not reproduced)|a short summary\.\s*see)\b/i.test(t);
 const fail = m => {throw new Error("Recovered content: "+m);};
 export function validateRecoveryManifest(m,books) {
  if (!m || m.version!==1 || !Array.isArray(m.entries)) fail("invalid manifest");
  const ids=new Set(),targets=new Set();
  for(const e of m.entries) {
   if(!e || !Object.hasOwn(CATALOG,e.kind) || !EDS.includes(e.ed) || !Object.hasOwn(books,e.src) || typeof e.name!=="string" || !e.name.trim() || typeof e.stableId!=="string" || !e.stableId.trim() || !["replace","promote"].includes(e.action)) fail("invalid or unsupported record identity");
+  if(e.catalog!==undefined&&(e.catalog!=="core-items"||e.kind!=="Item"||e.action!=="replace")) fail("unsupported catalog target: "+e.name);
   if(ids.has(e.stableId)||targets.has(key(e))) fail("duplicate stable ID or target");
   ids.add(e.stableId);targets.add(key(e));
   if(e.releaseGate!=="PASS"||e.productionReady!==true||!["sourceVerified","mechanicsVerified","dependenciesVerified","runtimeVerified","distributionCleared"].every(k=>e.review?.[k]===true)||typeof e.review.evidence!=="string"||!e.review.evidence.trim()) fail("approval missing: "+e.name);
@@ -57,7 +58,7 @@ export function validateRecoveryManifest(m,books) {
       p.spellListExtensions.some(s=>!s||!okText(s.name)||!(s.src==="srd"||Object.hasOwn(books,s.src))||!Number.isInteger(s.level)||s.level<0||s.level>9)||
       new Set(p.spellListExtensions.map(s=>JSON.stringify([s.name,s.src,s.level]))).size!==p.spellListExtensions.length)) fail("invalid background spell dependencies: "+e.name);
   } else if(e.kind==="Item") {
-   if(!["k","cat","type","r"].every(k=>typeof p[k]==="string"&&p[k].trim())||!Number.isFinite(p.rk)||typeof p.att!=="string"||typeof p.cons!=="boolean"||typeof p.base!=="boolean"||!okText(p.d)) fail("incomplete item: "+e.name);
+   if(!["cat","type","r"].every(k=>typeof p[k]==="string"&&p[k].trim())||(e.catalog!=="core-items"&&!okText(p.k))||(e.catalog==="core-items"&&((p.k!==undefined&&!okText(p.k))||!Number.isInteger(p.page)||p.page<1))||!Number.isFinite(p.rk)||typeof p.att!=="string"||typeof p.cons!=="boolean"||typeof p.base!=="boolean"||!okText(p.d)) fail("incomplete item: "+e.name);
   } else {
    if(!["type","size","al","speed","hd","senses","lang"].every(k=>typeof p[k]==="string"&&p[k].trim())||![p.cr,p.ac,p.hp].every(Number.isFinite)||p.hp<0||p.ac<0||!Array.isArray(p.scores)||p.scores.length!==6||!p.scores.every(Number.isFinite)||!Array.isArray(p.actions)||(!p.actions.length&&!okText(e.review.noPrintedActionsEvidence))||!Array.isArray(p.traits)) fail("incomplete or unsupported dynamic monster: "+e.name);
    for(const s of ["traits","actions","bonus","reacts","legend"]) if(p[s]!==undefined&&(!Array.isArray(p[s])||!p[s].every(a=>Array.isArray(a)&&typeof a[0]==="string"&&a[0].trim()&&okText(a[1])))) fail("incomplete monster feature: "+e.name);
@@ -67,7 +68,7 @@ export function validateRecoveryManifest(m,books) {
 }
 export function applyRecoveredContent(catalog,original,entries,refs) {
  const data=original.slice();
- for(const e of entries.filter(x=>CATALOG[x.kind]===catalog)) {
+ for(const e of entries.filter(x=>x.catalog!=="core-items"&&CATALOG[x.kind]===catalog)) {
   const hits=data.map((x,i)=>({x,i})).filter(({x})=>(e.kind==="Background"?x.kind==="background"&&x.name===e.name:x.n===e.name)&&x.src===e.src&&(!x.ed||x.ed==="both"||x.ed===e.ed));
   if(hits.length>1) fail("ambiguous source record: "+e.name);
   const hit=hits[0],p={...e.payload,recoveryId:e.stableId};
@@ -126,4 +127,27 @@ export function validateRecoveredBackgroundDependencies(entries,catalogs) {
    if(matches.length!==1) fail("unresolved or ambiguous complete background spell dependency: "+e.name+" / "+dep.name);
   }
  }
+}
+
+// Core items derive saved inventory IDs from their edition and existing array slot (or explicit key).
+// Only exact, already-present source records may be replaced; no promotion or slot shifting.
+export function applyRecoveredCoreItems(original,entries) {
+ const approved=entries.filter(e=>e.catalog==="core-items");
+ if(!approved.length)return original;
+ const result={...original};
+ for(const ed of EDS){
+  const selected=approved.filter(e=>e.ed===ed);
+  if(!selected.length)continue;
+  const mi=original[ed].mi.slice();
+  for(const e of selected){
+   const hits=mi.map((x,i)=>({x,i})).filter(({x})=>x.n===e.name&&x.src===e.src&&(!x.ed||x.ed===ed));
+   if(hits.length!==1)fail("missing or ambiguous core item: "+e.name);
+   const {x,i}=hits[0],p=e.payload;
+   if(e.action!=="replace"||e.kind!=="Item"||p.page!==x.page||p.k!==x.k||p.id!==x.id||
+      (x.recoveryId&&x.recoveryId!==e.stableId)||mi.some((m,j)=>j!==i&&m.recoveryId===e.stableId))fail("core item identity cannot change: "+e.name);
+   mi[i]={...p,recoveryId:e.stableId};
+  }
+  result[ed]={...original[ed],mi};
+ }
+ return result;
 }

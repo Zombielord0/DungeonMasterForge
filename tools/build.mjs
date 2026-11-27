@@ -23,7 +23,7 @@ import { createHash } from "node:crypto";
 import { readFileSync, writeFileSync, readdirSync, unlinkSync, mkdirSync } from "node:fs";
 import vm from "node:vm";
 import { joinSummaries, joinSrdItems } from "./ref-summaries.mjs";
-import { appendReferenceSpells, validateRecoveryManifest, applyRecoveredContent, validateRecoveredBackgroundDependencies } from "./recovered-content.mjs";
+import { appendReferenceSpells, validateRecoveryManifest, applyRecoveredContent, validateRecoveredBackgroundDependencies, applyRecoveredCoreItems } from "./recovered-content.mjs";
 import { validateSrdSpellLinks, fillSrdSpellReferences, joinSrdSpellReferences, correctLegacySpellMetadata } from "./ref-srd-spells.mjs";
 import { recoveryCoverage } from "./recovery-coverage.mjs";
 import {verifyLegacyItemArchive,correctLegacyItemMetadata,verifyAndAnnotateLegacyItemLinks} from "./ref-srd-items.mjs";
@@ -77,7 +77,7 @@ const approvedRecovery = validateRecoveryManifest(JSON.parse(read("data/recovere
 const srdSpellLinks = validateSrdSpellLinks(JSON.parse(read("data/reference-srd-spells.json")), bookReferences, JSON.parse(read("data/spells.json")));
 const rawItems = JSON.parse(read("data/items.json"));
 verifyLegacyItemArchive(rawItems);
-const correctedItems = correctRevisedItemEquipment(correctRevisedItemFamilies(correctRevisedItemTables(correctRevisedItemVariants(correctLegacyItemMetadata(rawItems)))));
+const correctedItems = applyRecoveredCoreItems(correctRevisedItemEquipment(correctRevisedItemFamilies(correctRevisedItemTables(correctRevisedItemVariants(correctLegacyItemMetadata(rawItems))))), approvedRecovery);
 const emittedCatalogs = {};
 for (const [name, key] of [["spells", "spellData"], ["monsters", "monsterData"], ["items", "itemData"],
   ["extra-spells", "spellExtra"], ["extra-monsters", "monsterExtra"], ["extra-items", "itemExtra"], ["extra-options", "optionExtra"], ["extra-books", "bookData"], ["book-references", "bookReferences"]]) {
