@@ -332,7 +332,7 @@ function pcAbilities(c) {
   if (has("Font of Magic")) add("Font of Magic", "Bonus action", "Turn a spell slot into sorcery points, or spend 2/3/5/6/7 points for a level 1–5 slot.", "sorc");
   if (has("Metamagic")) add("Metamagic", "When casting", ed==="2024"?"Spend Sorcery Points for selected Metamagic. Revised Twinned Spell costs 1 point for a spell whose higher-slot rules add a target; adjudicate spell eligibility and timing.":"Spend Sorcery Points for selected Metamagic, with legacy Twinned Spell costing the spell level (minimum 1).", "sorc");
   if(ed==="2024"&&clsLv(c,"Cleric")>=10)add("Divine Intervention","Magic action","Cast an eligible Cleric spell without a slot or Material components. Select the spell and resolve its rules manually.","divineIntervention");
-  if(clsLv(c,"Artificer")>=7)add("Flash of Genius","Reaction",`Add ${sgn(m.int)} to your or a creature’s eligible ability check or saving throw within 30 feet. ${ed==="2024"?"Use after a failed roll.":"Use before success or failure is determined."} Apply the bonus manually.`,"flashGenius");
+  if(clsLv(c,"Artificer")>=7)add("Flash of Genius","Reaction",`Add ${sgn(ed==="2024"?Math.max(1,m.int):m.int)} to your or a creature’s eligible ability check or saving throw within 30 feet. ${ed==="2024"?"Use after a failed roll.":"Use before success or failure is determined."} Apply the bonus manually.`,"flashGenius");
   if(ed==="2024"&&clsLv(c,"Artificer")>=1)add("Tinker's Magic","Magic action","Create eligible mundane gear using Tinker's Tools; the item vanishes at your next Long Rest.","tinkersMagic");
   if(ed==="2024"&&clsLv(c,"Artificer")>=2)add("Replicate Magic Item","After Long Rest","Create an item from a known eligible plan. At the active limit the oldest replica vanishes. Confirm tool and rest timing.","replicateCreation");
   if(ed==="2024"&&clsLv(c,"Artificer")>=6){
@@ -340,6 +340,12 @@ function pcAbilities(c) {
     add("Drain Magic Item","Bonus action","Dismiss a nearby replicated item for an extra level 1 slot (Common) or level 2 slot (Uncommon/Rare).","replicateDrain");
     add("Transmute Magic Item","Magic action","Transform a nearby replicated item into a different known plan.","replicateTransmute");
   }
+  if(artificerInfusionLevel(c)>=2){
+    add("Apply Infusion","After Long Rest","Apply a known supported infusion to an eligible individual nonmagical item. Oldest ends if the active limit is exceeded.");
+    if(artificerInfusions(c).length)add("End Infusion","Your choice","End an infusion on an item; confirm permitted timing.");
+  }
+  if(artificerInfusionLevel(c)>=20)add("Soul of Artifice survival","Reaction","At 0 HP without outright death, end an active infusion to drop to 1 HP instead.");
+  if(ed==="2024"&&clsLv(c,"Artificer")>=20)add("Cheat Death","At 0 HP","Disintegrate selected Uncommon or Rare replicas to regain 20 HP each. Confirm no outright death.");
   if(clsLv(c,"Artificer")>=11){
     add("Store spell in item","After Long Rest","Choose a qualifying weapon or spellcasting focus in Features, then store an eligible Artificer spell. Confirm long-rest timing; replacing the stored spell ends the previous effect.");
     const stored=artificerStoredSpell(c);if(stored)add("Spell-Storing Item","Action",`${stored.item.n}: ${stored.spell.n}. The holder produces its effects using your spellcasting ability; the holder maintains any required Concentration. No spell slot used. Resolve target, spell effects and concentration manually.`,"artificerStored");
@@ -664,7 +670,15 @@ function artificerStoreOptions(c){
 }
 function artificerStoreItemOptions(c){
   if(clsLv(c,"Artificer")<11)return [];
-  return (c.inv||[]).filter(i=>i.id&&i.n&&+i.qty>0).map(i=>[i.id,i.n,"Select only a Simple or Martial weapon or an item you can use as a spellcasting focus. Confirm eligibility with the DM."]);
+  return (c.inv||[]).filter(i=>{
+    if(!i.id||!i.n||!(+i.qty>0))return false;
+    const w=eqWeaponOf(i,edOf(c));if(w&&/Simple|Martial/.test(w.cat||""))return true;
+    if(/^(?:Tinker['’]s Tools|Thieves['’] Tools)$/i.test(i.n))return true;
+    const ref=inventoryCatalogItem(i,edOf(c));
+    if(i.artificerInfusion?.owner===c.id&&edOf(c)==="2014"&&artificerInfusionKnown(c,i.artificerInfusion.name))return true;
+    if(i.artificerOrigin?.kind==="replica"&&i.artificerOrigin.owner===c.id&&edOf(c)==="2024"&&/wand|weapon/i.test(ref?.type||i.n))return true;
+    return /artisan/i.test(ref?.cat||ref?.type||"")||/\b(?:smith|alchemist|woodcarver|brewer|carpenter|cartographer|cobbler|glassblower|jeweler|leatherworker|mason|painter|potter|weaver|calligrapher|cook)['’]s (?:tools|supplies|utensils)\b/i.test(i.n);
+  }).map(i=>[i.id,i.n,"Confirm tool proficiency or valid focus eligibility with the DM."]);
 }
 function artificerStoredSpell(c){
   const s=c.artificerStored;
@@ -706,15 +720,89 @@ function artificerPlanLimits(ed,lv){
  const steps=[6,10,14,18].filter(n=>lv>=n).length;
  return {known:4+(ed==="2024"?steps:2*steps),active:2+steps};
 }
+// Source: Forge of the Artificer (2024), magic item plans and Soul of Artifice.
+function artificerGenericPlanEligible(lv,x){
+ if(!x||x.cursed===true||x.curse||/\bcurs(?:e|ed|es|ing)\b/i.test(x.d||""))return false;
+ const type=String(x.type||x.cat||"").toLowerCase(),rarity=String(x.r||"").toLowerCase();
+ if(rarity==="common"&&lv>=2&&!/potion|scroll/.test(type+" "+x.n.toLowerCase()))return true;
+ return /wondrous/.test(type)&&((rarity==="uncommon"&&lv>=10)||(rarity==="rare"&&lv>=14));
+}
+function artificerCheatDeathOptions(c){
+ if(edOf(c)!=="2024"||clsLv(c,"Artificer")<20||c.hpCur===""||c.hpCur==null||+c.hpCur!==0||(+c.death?.f||0)>=3)return [];
+ const items=artificerReplicas(c).filter(i=>["uncommon","rare"].includes(String(itFind(i.ref)?.r||"").toLowerCase())).slice(0,6),out=[];
+ for(let mask=1;mask<(1<<items.length);mask++){
+  const picked=items.filter((_,i)=>mask&(1<<i));
+  out.push([JSON.stringify(picked.map(i=>i.id)),picked.map(i=>i.n).join(" + ")+" → "+(20*picked.length)+" HP"]);
+ }return out;
+}
+function artificerCheatDeath(c,key){
+ const option=artificerCheatDeathOptions(c).find(x=>x[0]===key);if(!option)return "No eligible replica selection; requires 0 HP without outright death.";
+ const ids=JSON.parse(key),items=artificerReplicas(c).filter(i=>ids.includes(i.id));
+ if(items.length!==ids.length)return "One or more replicas no longer exist.";
+ items.forEach(i=>artificerRemove(c,i));c.hpCur=Math.min(c.hp,20*items.length);pcHealed(c,true);
+ return "Cheat Death: disintegrated "+items.map(i=>i.n).join(", ")+"; HP now "+c.hpCur+". Confirm you were not killed outright.";
+}
+// Legacy infused-item records remain distinct from permanent catalog magic.
+const LEGACY_INFUSION_CONTRACTS={
+ "Enhanced Defense":{kind:"armor",bonus:lv=>lv>=10?2:1},
+ "Enhanced Weapon":{kind:"weapon",bonus:lv=>lv>=10?2:1},
+ "Enhanced Arcane Focus":{kind:"focus",att:true,bonus:lv=>lv>=10?2:1},
+ "Returning Weapon":{kind:"thrown",bonus:()=>1},
+ "Repeating Shot":{kind:"ammunition",att:true,bonus:()=>1}
+};
+function artificerInfusionLevel(c){return edOf(c)==="2014"?clsLv(c,"Artificer"):0;}
+function artificerInfusionKnown(c,name){
+ const lv=artificerInfusionLevel(c);
+ return lv>=2&&Object.entries(ARTIFICER_INFUSIONS).some(([l,names])=>lv>=+l&&names.includes(name))&&choiceOf(c,"Infuse Item").slice(0,artificerPlanLimits("2014",lv).known).includes(name);
+}
+function artificerInfusionObject(c,i,name){
+ const spec=LEGACY_INFUSION_CONTRACTS[name],ref=inventoryCatalogItem(i,"2014");
+ if(!spec||!i?.id||+i.qty!==1||i.artificerOrigin||i.artificerInfusion||ref?.kind==="magic"||!ref)return false;
+ const w=eqWeaponOf(i,"2014"),props=w?.st?.find(x=>x[0]==="Properties")?.[1]||"";
+ if(spec.kind==="armor")return !!eqArmorOf(i,"2014");
+ if(spec.kind==="focus")return /\b(rod|staff|wand)\b/i.test(i.n);
+ if(!w)return false;
+ if(spec.kind==="thrown")return /Thrown/i.test(props);
+ if(spec.kind==="ammunition")return /Ammunition/i.test(props);
+ return /Simple|Martial/.test(w.cat||"");
+}
+function artificerInfusions(c){return (c.inv||[]).filter(i=>i.artificerInfusion?.owner===c.id&&artificerInfusionKnown(c,i.artificerInfusion.name));}
+function artificerInfusionOptions(c){
+ const active=new Set(artificerInfusions(c).map(i=>i.artificerInfusion.name));
+ return Object.keys(LEGACY_INFUSION_CONTRACTS).filter(n=>artificerInfusionKnown(c,n)&&!active.has(n)).flatMap(n=>(c.inv||[]).filter(i=>artificerInfusionObject(c,i,n)).map(i=>[JSON.stringify([n,i.id]),n+" · "+i.n]));
+}
+function artificerEndInfusion(c,i){if(i?.artificerInfusion?.owner!==c.id)return false;delete i.artificerInfusion;return true;}
+function artificerApplyInfusion(c,key){
+ if(!artificerInfusionOptions(c).some(x=>x[0]===key))return "Select a known infusion and eligible nonmagical individual item.";
+ const [name,id]=JSON.parse(key),i=c.inv.find(x=>x.id===id),active=artificerInfusions(c),cap=artificerPlanLimits("2014",artificerInfusionLevel(c)).active;
+ active.sort((a,b)=>(+a.artificerInfusion.created||0)-(+b.artificerInfusion.created||0));
+ while(active.length>=cap)artificerEndInfusion(c,active.shift());
+ c.artificerInfusionSeq=(+c.artificerInfusionSeq||0)+1;i.artificerInfusion={owner:c.id,name,created:c.artificerInfusionSeq};return "Infused "+i.n+" with "+name+". Confirm completion of Long Rest and any required attunement.";
+}
+function artificerInfusionBonus(c,i,kind){
+ const n=i?.artificerInfusion?.name,s=LEGACY_INFUSION_CONTRACTS[n];
+ if(!s||i.artificerInfusion.owner!==c.id||!artificerInfusionKnown(c,n)||s.att&&!i.attuned)return 0;
+ if(kind==="weapon"&&["weapon","thrown","ammunition"].includes(s.kind)||kind==="armor"&&s.kind==="armor"||kind==="focus"&&s.kind==="focus")return s.bonus(artificerInfusionLevel(c));
+ return 0;
+}
+function artificerLegacyDeathOptions(c){
+ return artificerInfusionLevel(c)>=20&&c.hpCur!==""&&c.hpCur!=null&&+c.hpCur===0&&(+c.death?.f||0)<3?artificerInfusions(c).map(i=>[i.id,i.n+" · "+i.artificerInfusion.name]):[];
+}
+function artificerLegacyDeath(c,id){
+ if(!artificerLegacyDeathOptions(c).some(x=>x[0]===id))return "Requires 0 HP without outright death and an active infusion.";
+ const i=c.inv.find(x=>x.id===id);artificerEndInfusion(c,i);c.hpCur=1;pcHealed(c,true);return "Soul of Artifice: ended infusion on "+i.n+"; restored to 1 HP. Confirm Reaction and no outright death.";
+}
+function artificerInfusionCleanup(c){for(const i of c.inv||[])if(i.artificerInfusion?.owner===c.id&&!artificerInfusionKnown(c,i.artificerInfusion.name))artificerEndInfusion(c,i);}
+
 function artificerPlanEligible(lv,x){
  if(lv<2||!x||x.kind!=="magic"||x.ed!=="2024"||!x.id?.startsWith("2024-")||!x.d?.trim()||x.referenceOnly||x.rulesSummary||x.pend||itemRulesIncomplete(x))return false;
  // Generic rarity options exclude cursed items; explicit curse metadata is not
  // available for every item. Require a DM-reviewed plan in that case instead.
- return Object.entries(ARTIFICER_PLAN_TIERS).some(([min,names])=>lv>=+min&&names.includes(x.n));
+ return Object.entries(ARTIFICER_PLAN_TIERS).some(([min,names])=>lv>=+min&&names.includes(x.n))||artificerGenericPlanEligible(lv,x);
 }
 function artificerPlanOptions(c){
  if(edOf(c)!=="2024"||clsLv(c,"Artificer")<2)return [];
- itLoad();return IT.data["2024"].filter(x=>artificerPlanEligible(clsLv(c,"Artificer"),x)).map(x=>[x.id,x.n+" ("+x.r+")","Catalog source: "+(x.src||"SRD")]);
+ itLoad();return IT.data["2024"].filter(x=>artificerPlanEligible(clsLv(c,"Artificer"),x)).map(x=>[x.id,x.n+" ("+x.r+")","Catalog source: "+(x.src||"SRD")+(artificerGenericPlanEligible(clsLv(c,"Artificer"),x)?" · Confirm generic plan rarity/type and absence of curse with DM.":"")]);
 }
 function artificerKnownPlans(c){
  const allowed=new Set(artificerPlanOptions(c).map(x=>x[0]));
@@ -823,6 +911,11 @@ function quiveringPalmUse(c,ch){
  const rr=rollDice("10d10");return "Quivering Palm: CON save DC "+dc+". Failure reduces the marked target to 0 HP; success takes "+rr.total+" Necrotic damage ("+rr.text+"). Apply the appropriate result manually.";
 }
 const ACT = {
+ "Apply Infusion":{kind:"instant",choices:artificerInfusionOptions,use:artificerApplyInfusion},
+ "End Infusion":{kind:"instant",choices:c=>artificerInfusions(c).map(i=>[i.id,i.n+" · "+i.artificerInfusion.name]),use:(c,id)=>artificerEndInfusion(c,c.inv.find(i=>i.id===id))?"Infusion ended.":"No active infusion."},
+ "Soul of Artifice survival":{kind:"instant",choices:artificerLegacyDeathOptions,use:artificerLegacyDeath},
+ "Cheat Death":{kind:"instant",choices:artificerCheatDeathOptions,use:artificerCheatDeath},
+
  "Draconic Presence":{kind:"instant",noCost:true,choices:dragonPresenceChoices,use:dragonPresenceUse},
  "Breath of the Dragon":{kind:"instant",noCost:true,choices:dragonBreathChoices,use:dragonBreathUse},
  "Wings Unfurled":{kind:"instant",use:()=> "Fly at walking speed until end of your turn; confirm Step of the Wind and resolve movement."},
@@ -862,7 +955,7 @@ const ACT = {
   "Cunning Strike":{kind:"instant",choices:cunningStrikeOptions,use:(c,ch)=>{if(!ch)return "Choose an eligible effect.";const critical=ch.endsWith(":crit"),ids=ch.replace(/:crit$/,"").split("+"),p=cunningStrikePlan(clsLv(c,"Rogue"),ids,hasPoisonersKit(c),critical);if(!p)return "Invalid Cunning Strike.";const n=p.dice?rollDice(p.dice+"d6").total:0;return "Cunning Strike: "+n+" extra damage (weapon damage type), "+p.cost+" dice forgone; save DC "+(8+c.mods.dex+c.prof)+". "+p.effects.join(" ");}},
   "Brutal Strike":{kind:"instant",choices:brutalStrikeOptions,use:(c,ch)=>{if(!isActive(c,"Reckless Attack")||!brutalStrikeOptions(c).some(([id])=>id===ch))return "Requires an eligible Reckless Attack; forgo Advantage before rolling.";const critical=ch.endsWith(":crit"),n=(clsLv(c,"Barbarian")>=17?2:1)*(critical?2:1);return rollMsg("Brutal Strike",n+"d10",ch.replace(/:crit$/,"").replaceAll("+"," and ")+"; resolve target and movement effects manually.");}},
   "Arcane Apotheosis":{kind:"none"},
-  "Flash of Genius":{kind:"instant",use:c=>"Flash of Genius: "+sgn(c.mods.int)+" to the eligible check or save. Apply manually."},
+  "Flash of Genius":{kind:"instant",use:c=>"Flash of Genius: "+sgn(edOf(c)==="2024"?Math.max(1,c.mods.int):c.mods.int)+" to the eligible check or save. Apply manually."},
   "Wild Companion":{kind:"instant",choices:wildCompanionOptions,use:castWildCompanion},
   "Divine Intervention":{kind:"instant",choices:divineInterventionChoices,noCost:true,use:(c,ch)=>{const u=pcResources(c).find(r=>r.key==="divineIntervention");if(!u||!resLeft(c,u)||(+c.divineInterventionCooldown||0)>0||!divineInterventionChoices(c).some(([id])=>id===ch)||isActive(c,"Rage")||c.armorUntrained)return "No eligible spell or Divine Intervention use available.";const sp=spellOf("2024",ch);c.used=c.used||{};c.used.divineIntervention=1;const end=sp.co?concStart(c,ch):"";if(ch==="Wish")c.divineInterventionCooldown=rollDice("2d4").total;return {msg:"Divine Intervention: cast "+ch+" without a slot or Material components. Resolve spell effects manually."+(end?" "+end:"")+(ch==="Wish"?" Cooldown: "+c.divineInterventionCooldown+" Long Rests.":"")};}},
   "Uncanny Metabolism":{kind:"instant",use:c=>{const n=restoreResource(c,"ki",clsLv(c,"Monk")),healed=healSelf(c,clsLv(c,"Monk")+rollDice("1d"+maDie(c)).total);return "Uncanny Metabolism: regained "+n+" Focus Points and "+healed+" HP."}},
