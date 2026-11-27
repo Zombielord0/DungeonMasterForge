@@ -7,6 +7,15 @@ const okText = t => typeof t === "string" && !!t.trim() &&
  !/^\s*(?:loading\b|placeholder\b|reference only\b|[^\n.]{0,140}\b(?:page|p\.)\s*\d+\s*[.!]?\s*$)/i.test(t) &&
  !/\b(?:see (?:the )?(?:sourcebook|book) for (?:the )?(?:full|complete) rules|not its rules text|rules text (?:is )?(?:unavailable|not included|not reproduced)|a short summary\.\s*see)\b/i.test(t);
 const fail = m => {throw new Error("Recovered content: "+m);};
+// Some published digital-only source records have no printed page. Preserve the
+// catalog's missing page, but require a reviewed exact source locator for replacements.
+const validItemLocator=(e,p)=>{
+ if(Number.isInteger(p.page)&&p.page>=1)return true;
+ const s=e.review?.sourceLocator;
+ return p.page===undefined&&s?.kind==="markdown"&&okText(s.file)&&/^[a-f0-9]{64}$/.test(s.sha256||"")&&
+  Array.isArray(s.lines)&&s.lines.length===2&&s.lines.every(n=>Number.isSafeInteger(n)&&n>0)&&s.lines[0]<=s.lines[1]&&
+  Array.isArray(p.rulesSourceLines)&&JSON.stringify(p.rulesSourceLines)===JSON.stringify(s.lines)&&okText(p.rulesSource);
+};
 export function validateRecoveryManifest(m,books) {
  if (!m || m.version!==1 || !Array.isArray(m.entries)) fail("invalid manifest");
  const ids=new Set(),targets=new Set();
@@ -61,7 +70,7 @@ export function validateRecoveryManifest(m,books) {
       p.spellListExtensions.some(s=>!s||!okText(s.name)||!(s.src==="srd"||Object.hasOwn(books,s.src))||!Number.isInteger(s.level)||s.level<0||s.level>9)||
       new Set(p.spellListExtensions.map(s=>JSON.stringify([s.name,s.src,s.level]))).size!==p.spellListExtensions.length)) fail("invalid background spell dependencies: "+e.name);
   } else if(e.kind==="Item") {
-   if(!["cat","type","r"].every(k=>typeof p[k]==="string"&&p[k].trim())||(e.catalog!=="core-items"&&!okText(p.k))||(e.catalog==="core-items"&&((p.k!==undefined&&!okText(p.k))||!Number.isInteger(p.page)||p.page<1))||!Number.isFinite(p.rk)||typeof p.att!=="string"||typeof p.cons!=="boolean"||typeof p.base!=="boolean"||!okText(p.d)) fail("incomplete item: "+e.name);
+   if(!["cat","type","r"].every(k=>typeof p[k]==="string"&&p[k].trim())||(e.catalog!=="core-items"&&!okText(p.k))||(e.catalog==="core-items"&&((p.k!==undefined&&!okText(p.k))||!validItemLocator(e,p)))||!Number.isFinite(p.rk)||typeof p.att!=="string"||typeof p.cons!=="boolean"||typeof p.base!=="boolean"||!okText(p.d)) fail("incomplete item: "+e.name);
   } else {
    if(!["type","size","al","speed","hd","senses","lang"].every(k=>typeof p[k]==="string"&&p[k].trim())||![p.cr,p.ac,p.hp].every(Number.isFinite)||p.hp<0||p.ac<0||!Array.isArray(p.scores)||p.scores.length!==6||!p.scores.every(Number.isFinite)||!Array.isArray(p.actions)||(!p.actions.length&&!okText(e.review.noPrintedActionsEvidence))||!Array.isArray(p.traits)) fail("incomplete or unsupported dynamic monster: "+e.name);
    for(const s of ["traits","actions","bonus","reacts","legend"]) if(p[s]!==undefined&&(!Array.isArray(p[s])||!p[s].every(a=>Array.isArray(a)&&typeof a[0]==="string"&&a[0].trim()&&okText(a[1])))) fail("incomplete monster feature: "+e.name);

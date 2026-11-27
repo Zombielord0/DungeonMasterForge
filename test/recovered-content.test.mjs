@@ -113,3 +113,16 @@ test("core monster replacement preserves source slot; all feature sections are d
  for(const k of ["traits","bonus","reacts","legend"])assert.throws(()=>validateRecoveredCatalogDependencies(dep,{monsters:{"2014":[{...m.payload,[k]:[["Fixture","See the sourcebook for complete rules."]]}]}}));
  assert.throws(()=>validateRecoveredCatalogDependencies(dep,{monsters:{"2014":[{...m.payload,scores:[1,2]}]}}));
 });
+
+test("digital-only core items require exact reviewed Markdown locator instead of fabricated page numbers",()=>{
+ const item={...entry,kind:"Item",catalog:"core-items",name:"Digital Fixture",ed:"2024",stableId:"cmp:digital-item",review:{...entry.review,sourceLocator:{kind:"markdown",file:"Fixture.md",sha256:"a".repeat(64),lines:[11,21]}},payload:{n:"Digital Fixture",src:"fixture",ed:"2024",cat:"Wondrous Item",type:"Wondrous Item",r:"Uncommon",rk:1,att:"",cons:false,base:false,d:"Synthetic complete rules for a digital item.",rulesSource:"Fixture",rulesSourceLines:[11,21]}};
+ const approved=validateRecoveryManifest(manifest([item]),books);
+ const raw={"2014":{eq:[],mi:[]},"2024":{eq:[],mi:[{n:item.name,src:item.src,d:"See the sourcebook for complete rules."}]}};
+ const out=applyRecoveredCoreItems(raw,approved);
+ assert.equal(out["2024"].mi[0].page,undefined);
+ assert.equal(out["2024"].mi[0].recoveryId,item.stableId);
+ assert.deepEqual(out["2024"].mi[0].rulesSourceLines,[11,21]);
+ assert.throws(()=>applyRecoveredCoreItems({...raw,"2024":{eq:[],mi:[{...raw["2024"].mi[0],page:10}]}},approved));
+ for(const loc of [undefined,{kind:"markdown",file:"Fixture.md",sha256:"bad",lines:[11,21]},{...item.review.sourceLocator,lines:[21,11]},{...item.review.sourceLocator,lines:[10,21]}])assert.throws(()=>validateRecoveryManifest(manifest([{...item,review:{...item.review,sourceLocator:loc}}]),books));
+ assert.throws(()=>validateRecoveryManifest(manifest([{...item,payload:{...item.payload,page:null}}]),books));
+});

@@ -190,7 +190,7 @@ function openInventoryDetails(c, i, trigger) {
     ${choices.length > 1 ? `<label class="field">${weaponChoices.length ? "Base weapon" : "Base armor"}<select data-item-base><option value="">Choose base gear</option>${choices.map(x => `<option value="${esc(x.n)}" ${base?.n === x.n ? "selected" : ""}>${esc(x.n)}</option>`).join("")}</select></label>` : ""}
     <div class="sp-stats">${stats.filter(([, value]) => value !== "" && value != null).map(([label, value]) => `<div><span>${esc(label)}</span>${esc(value)}</div>`).join("")}</div>
     ${itemRuleNotice(ref)?'<p class="hint">'+esc(itemRuleNotice(ref))+'</p>':""}
-    ${ref?.rulesSource?'<p class="hint">Rules source: '+esc(ref.rulesSource)+(ref.rulesSourcePage?' · page '+esc(String(ref.rulesSourcePage)):'')+'</p>':""}
+    ${ref?.rulesSource?'<p class="hint">Rules source: '+esc(ref.rulesSource)+(ref.rulesSourcePage?' · page '+esc(String(ref.rulesSourcePage)):Array.isArray(ref.rulesSourceLines)?' · lines '+esc(ref.rulesSourceLines.join('–')):'')+'</p>':""}
     ${inventoryItemResourceHTML(i,ref)}
     ${ref?.d ? spFormat(String(ref.d)) : !i.note ? '<p class="hint">No rules description is available for this item.</p>' : ""}
     ${i.note ? `<h3>Inventory notes</h3>${spFormat(String(i.note))}` : ""}`, trigger);
