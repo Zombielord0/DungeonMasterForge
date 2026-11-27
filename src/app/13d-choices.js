@@ -248,7 +248,7 @@ const choiceSpellOptions = (c, filter) => {
   return opt3([...new Set((SP.data[edOf(c)] || []).filter(s => !s.pend && filter(s)).map(s => s.n))].sort());
 };
 Object.assign(CHOICES, {
- "Bonus Proficiencies":{label:"College of Lore skills",n:c=>characterSubclassLevel(c,"Bard","College of Lore")>=3?3:0,opts:c=>opt3((c.skills||[]).filter(s=>!s.p||s.loreGranted).map(s=>s.s))},
+ "Lore Bonus Proficiencies":{label:"College of Lore skills",n:c=>characterSubclassLevel(c,"Bard","College of Lore")>=3?3:0,opts:c=>opt3((c.skills||[]).filter(s=>!s.p||s.loreGranted).map(s=>s.s))},
  "Magical Discoveries":{label:"Two additional prepared spells",n:c=>edOf(c)==="2024"&&characterSubclassLevel(c,"Bard","College of Lore")>=6?2:0,opts:c=>choiceSpellOptions(c,s=>s.l<=(FULL_SLOTS[clsLv(c,"Bard")]||[]).length&&["Cleric","Druid","Wizard"].some(k=>s.c.includes(k))&&!s.hb&&!s.ref&&!s.referenceOnly&&!s.rulesSummary&&!s.shadow)},
  "Elemental Affinity":{label:"Draconic damage affinity",n:c=>edOf(c)==="2024"&&characterSubclassLevel(c,"Sorcerer","Draconic Sorcery")>=6?1:0,opts:()=>opt3(["acid","cold","fire","lightning","poison"].map(x=>[x,x.charAt(0).toUpperCase()+x.slice(1)]))},
   "Chain Master Movement":{label:"Familiar movement",n:c=>edOf(c)==="2024"&&hasChoice(c,"Eldritch Invocations","investment")?1:0,opts:()=>opt3(["Fly 40 feet","Swim 40 feet"])},
@@ -271,7 +271,7 @@ Object.assign(CHOICES, {
   "Breath of the Dragon": choiceList("Breath damage (choose each use)", DRAGON_FEATURE_ELEMENTS),
   "Elemental Cleaver": choiceList("Weapon damage (choose each rage)", DRAGON_FEATURE_ELEMENTS.concat("Thunder").filter(x => x !== "Poison")),
   "Aspect of the Wyrm": choiceList("Aura (choose each use)", ["Frightful Presence", ...DRAGON_FEATURE_ELEMENTS.map(x => x + " resistance")]),
-  "Bonus Proficiencies": choiceList("Order Domain skill", ["Intimidation", "Persuasion"]),
+  "Order Bonus Proficiency":{label:"Order Domain skill",n:c=>characterSubclassLevel(c,"Cleric","Order Domain")?1:0,opts:()=>opt3(["Intimidation","Persuasion"])},
   "Arcane Initiate": { label: "Wizard cantrips", n: () => 2, opts: c => choiceSpellOptions(c, s => s.l === 0 && s.c.includes("Wizard")) },
   "Spirit Session": { label: "Session spell", n: () => 1, opts: c => choiceSpellOptions(c, s => s.l > 0 && s.l <= Math.min(c.prof, Math.ceil(clsLv(c, "Bard") / 2)) && ["Divination", "Necromancy"].includes(s.s)) },
   "Training in War and Song (Bladesinging)": choiceList("One-handed melee weapon proficiency", ["Club", "Dagger", "Handaxe", "Javelin", "Light Hammer", "Mace", "Sickle", "Spear", "Battleaxe", "Flail", "Longsword", "Morningstar", "Rapier", "Scimitar", "Shortsword", "Trident", "War Pick", "Warhammer", "Whip"]),
@@ -315,6 +315,7 @@ function wizardSpellChoicesHTML(c) {
 
 for(const cls of MASTERY_CLASSES)CHOICES[masteryKey(cls)]={label:cls+" weapon mastery",n:c=>masteryLimit(edOf(c),cls,clsLv(c,cls)),opts:c=>masteryOptions(c,cls)};
 const additionalFeatureChoices = {
+  "Bonus Proficiencies":["Lore Bonus Proficiencies","Order Bonus Proficiency"],
   "Spell-Storing Item":["Spell-Storing Item Object"],
   "Pact Boon":["Pact Weapon","Pact Tome Cantrips"],
   "Eldritch Invocations":["Pact Weapon","Pact Weapon Ability","Pact Weapon Damage","Pact Tome Cantrips","Pact Tome Rituals","Chain Master Movement"],

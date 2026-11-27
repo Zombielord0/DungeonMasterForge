@@ -578,7 +578,7 @@ const { chromium } = require("playwright");
         }
       }
       const make=(cls,lv,sub)=>pcEnsure(generateCharacter({seed:"SRD-SUB-OPS",ed:"2024",cls,level:lv,subclass:sub,race:"Human",bg:"Sage"}));
-      const bard=make("Bard",6,"College of Lore");bard.choices={"Bonus Proficiencies":CHOICES["Bonus Proficiencies"].opts(bard).slice(0,3).map(x=>x[0]),"Magical Discoveries":["Bless","Fireball"]};syncGrantedSpells(bard);pcRecompute(bard);
+      const bard=make("Bard",6,"College of Lore");bard.choices={"Lore Bonus Proficiencies":CHOICES["Lore Bonus Proficiencies"].opts(bard).slice(0,3).map(x=>x[0]),"Magical Discoveries":["Bless","Fireball"]};syncGrantedSpells(bard);pcRecompute(bard);
       const keepLeak=bard.skills.filter(s=>s.loreGranted&&pcKeep(bard).keepSkills.includes(s.s)).length;const skills=bard.skills.filter(s=>s.loreGranted).length,spells=bard.prepared.filter(p=>p.sources?.some(x=>x.feature==="Magical Discoveries")).map(p=>p.n).sort();
       const land=make("Druid",10,"Circle of the Land");land.choices={"Circle of the Land Spells":["Arid"]};syncGrantedSpells(land);const pool=pcResources(land).filter(r=>r.key==="landFreeCast").map(r=>r.max);
       const sorc=make("Sorcerer",18,"Draconic Sorcery");sorc.choices={"Elemental Affinity":["fire"]};syncGrantedSpells(sorc);

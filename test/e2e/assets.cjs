@@ -129,7 +129,7 @@ const server = http.createServer((req, res) => {
     death: subclassList("2014", "Cleric").some(([n]) => n === "Death Domain") &&
       progressionRows("2014", "subclass", "Cleric", "Death Domain")[1].some(([n]) => n.includes("Touch of Death")),
     oath: subclassList("2014", "Paladin").some(([n]) => n === "Oathbreaker") &&
-      !subclassList("2024", "Paladin").some(([n]) => n === "Oathbreaker"),
+      subclassList("2024", "Paladin").some(([n]) => n === "Oathbreaker") && subclassEntry("2024","Paladin","Oathbreaker")?.compatibility === true && subclassEntry("2024","Paladin","Oathbreaker")?.ed === "2014",
     credit: bookLine(IT.data["2014"].find(x => x.n === "Sending Stones"))
   }));
   check("2014 handbook spells and items stay in their edition", handbook.spells === 28 + legacySpells.length + 29 && handbook.items === 20 && !handbook.revised, JSON.stringify(handbook));
