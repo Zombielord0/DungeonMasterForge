@@ -588,6 +588,19 @@ const { chromium } = require("playwright");
     });
     assert.equal(srdSubclassAudit.builds,240);assert.equal(srdSubclassAudit.rows,58);assert.deepEqual(srdSubclassAudit.errors,[]);
     assert.equal(srdSubclassAudit.skills,3);assert.equal(srdSubclassAudit.keepLeak,0);assert.deepEqual(srdSubclassAudit.spells,["Bless","Fireball"]);assert.deepEqual(srdSubclassAudit.pool,[1]);assert.deepEqual([srdSubclassAudit.ward,srdSubclassAudit.dragon,srdSubclassAudit.affinity,srdSubclassAudit.limit,srdSubclassAudit.force],[true,true,true,4,false]);
+    const subclassResourceAudit=await page.evaluate(()=>{
+      const make=(ed,cls,level,subclass)=>pcEnsure(generateCharacter({seed:"SUB-RESOURCE",ed,cls,level,subclass,race:"Human",bg:"Sage"}));
+      const cases=[["Barbarian",14,"Path of the Berserker","Intimidating Presence","Restore Intimidating Presence","berserkerPresence","rage",1],["Sorcerer",14,"Draconic Sorcery","Dragon Wings","Restore Dragon Wings","draconicWings","sorc",3],["Paladin",20,"Oath of Devotion","Holy Nimbus","Restore Holy Nimbus",subAblKey("Holy Nimbus"),"slot5",1],["Warlock",14,"Fiend Patron","Hurl Through Hell","Restore Hurl Through Hell",subAblKey("Hurl Through Hell"),"pact",1]];
+      const recovery=cases.map(([cls,lv,sub,action,restore,target,pay,cost])=>{
+        const c=make("2024",cls,lv,sub);c.used={};const untouched=restoreSubclassUse(c,restore);actRun(c,action);const used=c.used[target];const result=restoreSubclassUse(c,restore);return [untouched.includes("already"),used,c.used[target],c.used[pay],cost,result.includes("recovered")];
+      });
+      const monk=make("2024","Monk",17,"Warrior of the Open Hand");monk.used={};actRun(monk,"Quivering Palm","set");const set=monk.used.ki;const q=actRun(monk,"Quivering Palm","release");const released=monk.used.ki;const noMark=!monk.quiveringPalm;
+      const druid=make("2024","Druid",14,"Circle of the Land");druid.choices={"Circle of the Land Spells":["Arid"]};druid.used={};actRun(druid,"Nature's Sanctuary");const wild=druid.used.wild;
+      const life=make("2024","Cleric",17,"Life Domain"),P={heal:true,dice:"2d8"},L=revisedLifeHealing(life,P,3,"slot3"),F=revisedLifeHealing(life,P,3,"free");return {recovery,set,released,noMark,q:q?.kind,wild,L,F,max:rollLifeHealing("2d8+3",L).total};
+    });
+    assert.ok(subclassResourceAudit.recovery.every(x=>x[0]&&x[1]===1&&x[2]===0&&x[3]===x[4]&&x[5]));
+    assert.deepEqual([subclassResourceAudit.set,subclassResourceAudit.released,subclassResourceAudit.noMark,subclassResourceAudit.q,subclassResourceAudit.wild],[4,4,true,"damage",1]);
+    assert.deepEqual(subclassResourceAudit.L,{bonus:5,maximum:true,blessed:5});assert.deepEqual(subclassResourceAudit.F,{bonus:0,maximum:true,blessed:0});assert.equal(subclassResourceAudit.max,24);
     const expansion = await page.evaluate(() => {
       const subclasses = hbBook("subclass").filter(x => ["tce", "xge"].includes(x.src));
       const armorer = generateCharacter({ seed: "ARMOR", ed: "2014", cls: "Artificer", subclass: "Armorer", level: 5 });

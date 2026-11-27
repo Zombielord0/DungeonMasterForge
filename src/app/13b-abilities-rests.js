@@ -90,6 +90,8 @@ function pcResources(c) {
   if (tr("Draconic Flight") && TLV >= 5) add("dflight", "Draconic Flight", 1, "long");
   if (tr("Adrenaline Rush")) add("adren", "Adrenaline Rush", prof, "long");
   if (tr("Giant Ancestry")) add("giant", "Giant Ancestry", prof, "long");
+  if(ed==="2024"&&characterSubclassLevel(c,"Barbarian","Path of the Berserker")>=14)add("berserkerPresence","Intimidating Presence",1,"long");
+  if(ed==="2024"&&characterSubclassLevel(c,"Sorcerer","Draconic Sorcery")>=14)add("draconicWings","Dragon Wings",1,"long");
   const subSeen=new Set();
   for(const f of (c.feats||[]).filter(f=>(f.sub||f.mcsub||f.bookSub)&&SUB_ABL[f.f]?.res)){
     const o=subclassFeatureOwner(c,f),S=SUB_ABL[f.f];
@@ -198,13 +200,17 @@ function pcAbilities(c) {
     const o=subclassFeatureOwner(c,f);if(!o.level||+f.l>o.level)return;
     const S=SUB_ABL[f.f]||{when:ACT[f.f].kind==="persist"?"Your choice":ACT[f.f].kind==="toggle"?"Activated":"Use"};
     const desc=subFeatDesc(f.f,c,f);if(!desc&&!S.text)return;
-    add(f.f,S.when,S.text?S.text({...c,level:o.level}):desc,S.res?subAblKey(f.f):S.uses==="channel"?channelKey(c,o.cls):S.uses,o.name);
+    const revised=ed==="2024"&&f.subEdition!=="2014";
+    const special=revised&&f.f==="Intimidating Presence"?"berserkerPresence":revised&&f.f==="Dragon Wings"?"draconicWings":null;
+    const when=revised&&["Intimidating Presence","Wholeness of Body","Holy Nimbus"].includes(f.f)?"Bonus action":S.when;
+    add(f.f,when,S.text?S.text({...c,level:o.level}):desc,special||(S.res?subAblKey(f.f):S.uses==="channel"?channelKey(c,o.cls):S.uses),o.name);
   });
   if (tr("Large Form") && TLV >= 5) add("Large Form", "Bonus action", "Become Large for 10 minutes: advantage on Strength checks and +10 ft speed.", "large");
   if (tr("Draconic Flight") && TLV >= 5) add("Draconic Flight", "Bonus action", "Spectral wings for 10 minutes: fly at your walking speed.", "dflight");
   if (tr("Adrenaline Rush")) add("Adrenaline Rush", "Bonus action", `Dash, and gain ${prof} temporary hit points.`, "adren");
   if (tr("Giant Ancestry")) add("Giant Ancestry", "Varies", `Your ${c.sub || "giant"} boon.`, "giant");
   if (tr("Celestial Revelation") && TLV >= 3) add("Celestial Revelation", "Bonus action", `Transform for 1 minute: once per turn add +${prof} radiant or necrotic damage, plus wings, light or fear.`, "crev");
+  for(const spec of subclassRecoverySpecs(c))add(spec.name,"No action",spec.text,null,spec.owner);
   return A;
 }
 /* ---- activated abilities: Activate / End for lasting effects, Use for one-off ones; active effects change the sheet ---- */
@@ -515,7 +521,47 @@ function artificerExpire(c){
  c.inv=(c.inv||[]).filter(i=>!(i.artificerOrigin?.owner===c.id&&i.artificerOrigin.kind==="tinker"));
  return old-c.inv.length;
 }
+// Alternate-cost recovery restores a use; it does not itself activate the feature.
+function subclassRecoverySpecs(c){
+ if(edOf(c)!=="2024")return [];
+ return [
+  {name:"Restore Intimidating Presence",owner:"Path of the Berserker",cls:"Barbarian",lv:14,target:"berserkerPresence",pay:"rage",cost:1,text:"Spend one Rage use to recover Intimidating Presence."},
+  {name:"Restore Dragon Wings",owner:"Draconic Sorcery",cls:"Sorcerer",lv:14,target:"draconicWings",pay:"sorc",cost:3,text:"Spend three Sorcery Points to recover Dragon Wings."},
+  {name:"Restore Holy Nimbus",owner:"Oath of Devotion",cls:"Paladin",lv:20,target:subAblKey("Holy Nimbus"),pay:"slot5",cost:1,text:"Spend one level 5 spell slot to recover Holy Nimbus."},
+  {name:"Restore Hurl Through Hell",owner:"Fiend Patron",cls:"Warlock",lv:14,target:subAblKey("Hurl Through Hell"),pay:"pact",cost:1,text:"Spend one Pact Magic spell slot to recover Hurl Through Hell."}
+ ].filter(s=>characterSubclassLevel(c,s.cls,s.owner)>=s.lv);
+}
+function restoreSubclassUse(c,name){
+ const spec=subclassRecoverySpecs(c).find(s=>s.name===name);
+ if(!spec)return "Feature not available.";
+ const R=pcResources(c),target=R.find(x=>x.key===spec.target),pay=R.find(x=>x.key===spec.pay);
+ if(!target||resLeft(c,target)>=target.max)return "The feature is already available.";
+ if(!pay||resLeft(c,pay)<spec.cost)return "Not enough resources to restore this feature.";
+ c.used=c.used||{};c.used[pay.key]=(+c.used[pay.key]||0)+spec.cost;
+ c.used[target.key]=Math.max(0,(+c.used[target.key]||0)-1);
+ return spec.name.replace("Restore ","")+" recovered.";
+}
+function quiveringPalmOptions(c){
+ const pending=c.quiveringPalm?.edition===edOf(c)&&clsLv(c,"Monk")>=17;
+ return [["set","Set vibrations on a confirmed Unarmed Strike hit"],...(pending?[["release","End vibrations offensively (same plane)"],["dismiss","End harmlessly"]]:[])];
+}
+function quiveringPalmUse(c,ch){
+ if(ch==="set"){c.quiveringPalm={edition:edOf(c),days:clsLv(c,"Monk")};return "Vibrations set on one target for up to "+c.quiveringPalm.days+" days. Record the target and expiry with the DM; any previous target is replaced.";}
+ if(!c.quiveringPalm||c.quiveringPalm.edition!==edOf(c))return "No vibrations are recorded.";
+ delete c.quiveringPalm;
+ if(ch==="dismiss")return "Vibrations ended harmlessly.";
+ const dc=8+c.prof+c.mods.wis;
+ if(edOf(c)==="2024")return roll("Quivering Palm","10d12","damage","Force damage (CON save DC "+dc+" for half). Confirm the marked target and same plane.",true);
+ const rr=rollDice("10d10");return "Quivering Palm: CON save DC "+dc+". Failure reduces the marked target to 0 HP; success takes "+rr.total+" Necrotic damage ("+rr.text+"). Apply the appropriate result manually.";
+}
 const ACT = {
+ "Restore Intimidating Presence":{kind:"instant",use:c=>restoreSubclassUse(c,"Restore Intimidating Presence")},
+ "Restore Dragon Wings":{kind:"instant",use:c=>restoreSubclassUse(c,"Restore Dragon Wings")},
+ "Restore Holy Nimbus":{kind:"instant",use:c=>restoreSubclassUse(c,"Restore Holy Nimbus")},
+ "Restore Hurl Through Hell":{kind:"instant",use:c=>restoreSubclassUse(c,"Restore Hurl Through Hell")},
+ "Intimidating Presence":{kind:"instant",use:c=>edOf(c)==="2024"?"Chosen creatures within a 30-foot Emanation: WIS save DC "+(8+c.prof+c.mods.str)+" or Frightened for 1 minute, repeat at end of each turn.":"One creature within 30 feet that can see or hear you: WIS save DC "+(8+c.prof+c.mods.cha)+". Frightened until the end of your next turn; extend with an action. Confirm target eligibility."},
+ "Nature's Sanctuary":{kind:"toggle",fx:c=>({notes:["15-foot Cube within 120 ft for 1 minute; you and allies inside have Half Cover. Allies also gain "+({Arid:"fire",Polar:"cold",Temperate:"lightning",Tropical:"poison"}[choiceOf(c,"Circle of the Land Spells")[0]]||"your selected land")+" resistance. Move up to 60 ft as a Bonus Action; adjudicate positions manually."]})},
+
  "Tinker's Magic":{kind:"instant",choices:artificerTinkerOptions,use:artificerCreateTinker},
  "Replicate Magic Item":{kind:"instant",choices:artificerCreateOptions,use:artificerCreateReplica},
  "Drain Magic Item":{kind:"instant",choices:artificerDrainOptions,use:artificerDrain},
@@ -568,8 +614,8 @@ const ACT = {
   "Warding Flare": { kind: "instant", use: () => "Warding Flare: impose disadvantage on that attack roll." },
   "Wrath of the Storm": { kind: "instant", use: c => roll("Wrath of the Storm", "2d8", "damage", `Lightning or thunder damage to the attacker (DEX save DC ${8 + c.prof + c.mods.wis} for half)`, true) },
   "War Priest": { kind: "instant", use: () => "War Priest: make one weapon attack as a bonus action." },
-  "Channel Divinity: Preserve Life": { kind: "instant", use: c => ({ title: "Preserve Life", msg: `Preserve Life: restore up to ${5 * clsLv(c,"Cleric")} hit points among creatures within 30 ft (none above half their maximum). Apply it to one creature here, or use the target's own sheet to split it.`, amount: 5 * clsLv(c,"Cleric"), kind: "heal" }) },
-  "Preserve Life": { kind: "instant", use: c => ({ title: "Preserve Life", msg: `Preserve Life: restore up to ${5 * clsLv(c,"Cleric")} hit points among creatures within 30 ft (none above half their maximum). Apply it to one creature here, or use the target's own sheet to split it.`, amount: 5 * clsLv(c,"Cleric"), kind: "heal" }) },
+  "Channel Divinity: Preserve Life": { kind: "instant", use: c => ({ title: "Preserve Life", msg: `Preserve Life: restore up to ${5 * clsLv(c,"Cleric")} hit points among creatures within 30 ft (none above half their maximum). Apply it to one creature here, or use the target's own sheet to split it.`, amount: 5 * clsLv(c,"Cleric"), kind: "heal", halfHpCap:true }) },
+  "Preserve Life": { kind: "instant", use: c => ({ title: "Preserve Life", msg: `Preserve Life: restore up to ${5 * clsLv(c,"Cleric")} hit points among creatures within 30 ft (none above half their maximum). Apply it to one creature here, or use the target's own sheet to split it.`, amount: 5 * clsLv(c,"Cleric"), kind: "heal", halfHpCap:true }) },
   "Channel Divinity: Radiance of the Dawn": { kind: "instant", use: c => area("Radiance of the Dawn", `2d10+${clsLv(c,"Cleric")}`, "con", 8 + c.prof + c.mods.wis, "Radiant", "Magical darkness within 30 ft is dispelled. Each hostile creature within 30 ft makes a CON save: radiant damage, half on a success.") },
   "Radiance of the Dawn": { kind: "instant", use: c => area("Radiance of the Dawn", `2d10+${clsLv(c,"Cleric")}`, "con", 8 + c.prof + c.mods.wis, "Radiant", "Magical darkness within 30 ft is dispelled. Each creature you choose within 30 ft makes a CON save: radiant damage, half on a success.") },
   "Channel Divinity: Destructive Wrath": { kind: "instant", use: () => "Destructive Wrath: deal maximum lightning or thunder damage on this roll." },
@@ -613,8 +659,8 @@ const ACT = {
   Ki: { kind: "instant", choices: [["flurry", "Flurry of Blows"], ["patient", "Patient Defense"], ["step", "Step of the Wind"]], use: (c, ch) => ch === "flurry" ? "Flurry of Blows: two unarmed strikes as a bonus action." : ch === "patient" ? "Patient Defense: Dodge as a bonus action." : "Step of the Wind: Dash or Disengage as a bonus action; jump distance doubled." },
   "Monk's Focus":{kind:"instant",choices:[["flurry","Flurry of Blows (1)"],["patient","Patient Defense (1)"],["step","Step of the Wind (1)"],["freeDash","Dash (free)"],["freeDisengage","Disengage (free)"]],cost:(c,ch)=>ch.startsWith("free")?0:1,use:(c,ch)=>{if(ch==="freeDash")return "Dash as a Bonus Action.";if(ch==="freeDisengage")return "Disengage as a Bonus Action.";if(ch==="flurry")return "Flurry of Blows: "+(clsLv(c,"Monk")>=10?3:2)+" Unarmed Strikes.";if(ch==="patient"){const n=clsLv(c,"Monk")>=10?rollDice("2d"+maDie(c)).total:0;if(n)giveTemp(c,n);return "Disengage and Dodge as a Bonus Action."+(n?" Rolled "+n+" temporary HP.":"");}return "Dash and Disengage; double jump distance.";}},
   "Stunning Strike": {kind:"instant",use:c=>edOf(c)==="2024"?`CON save DC ${8+c.prof+c.mods.wis}: on failure Stunned until your next turn starts; on success halved Speed and Advantage on next incoming attack until then.`:`CON save DC ${8+c.prof+c.mods.wis} or Stunned until the end of your next turn.`},
-  "Wholeness of Body": { kind: "instant", use: c => healMsg(c, "Wholeness of Body", rollDice(edOf(c) === "2024" ? `1d${maDie(c)}${sgn(c.mods.wis)}` : String(3 * clsLv(c,"Monk")))) },
-  "Quivering Palm": { kind: "instant", use: c => edOf(c) === "2024" ? roll("Quivering Palm", "10d12", "damage", `Force damage (CON save DC ${8 + c.prof + c.mods.wis} for half)`, true) : roll("Quivering Palm", "10d10", "damage", `Necrotic damage if the target succeeds on its CON save (DC ${8 + c.prof + c.mods.wis}); on a failure it drops to 0 hit points`) },
+  "Wholeness of Body": {kind:"instant",use:c=>{const rr=rollDice(edOf(c)==="2024"?`1d${maDie(c)}${sgn(c.mods.wis)}`:String(3*clsLv(c,"Monk")));if(rr.total<1){rr.total=1;rr.text+=" (minimum 1)";}return healMsg(c,"Wholeness of Body",rr);}},
+  "Quivering Palm": {kind:"instant",choices:quiveringPalmOptions,cost:(c,ch)=>ch==="set"?(edOf(c)==="2024"?4:3):0,use:quiveringPalmUse},
   "Shadow Arts": { kind: "instant", use: () => "Shadow Arts: cast darkness (you can see through it)." },
   "Improved Shadow Step": { kind: "instant", use: () => "Improved Shadow Step: teleport up to 60 ft and make an Unarmed Strike." },
   "Cloak of Shadows": { kind: "toggle", fx: () => ({ notes: ["Cloak of Shadows: invisible while in dim light or darkness"] }) },
@@ -645,7 +691,7 @@ const ACT = {
   "Inspiring Smite": { kind: "instant", use: c => roll("Inspiring Smite", `2d8+${clsLv(c,"Paladin")}`, "temp", "Temporary hit points to share among creatures within 30 ft") },
   "Peerless Athlete": { kind: "toggle", fx: () => ({ notes: ["Peerless Athlete: advantage on Athletics and Acrobatics checks; longer jumps"] }) },
   "Glorious Defense": { kind: "instant", use: c => `Glorious Defense: +${Math.max(1, c.mods.cha)} to the ally's AC against that attack.` },
-  "Holy Nimbus": { kind: "toggle", fx: () => ({ notes: ["Holy Nimbus: bright light; enemies starting their turn in it take radiant damage; advantage on saves against fiends and undead"] }) },
+  "Holy Nimbus": {kind:"toggle",fx:c=>({notes:[edOf(c)==="2024"?`Holy Nimbus: 10 minutes; enemies starting their turns in Aura of Protection take ${c.mods.cha+c.prof} Radiant damage; sunlight; Advantage on saves imposed by Fiends or Undead.`:"Holy Nimbus: 1 minute; enemies starting their turn within 30 feet take 10 radiant damage; advantage on saves against spells cast by fiends and undead."]})},
   "Elder Champion": { kind: "toggle", fx: () => ({ notes: ["Elder Champion: regain 10 hit points at the start of each turn; paladin spells as a bonus action; enemies nearby have disadvantage on saves against your spells"] }) },
   "Avenging Angel": { kind: "toggle", fx: () => ({ fly: 60, notes: ["Avenging Angel: frightening aura; attacks against frightened creatures have advantage"] }) },
   "Living Legend": { kind: "toggle", fx: () => ({ notes: ["Living Legend: advantage on Charisma checks; once per turn turn a miss into a hit; reroll failed saves"] }) },
@@ -663,7 +709,7 @@ const ACT = {
   // ---------- Sorcerer
   "Font of Magic":{kind:"instant",noCost:true,choices:c=>[...[1,2,3,4,5].filter(L=>canCreateSorcererSlot(c,L)).map(L=>["make"+L,"Create level "+L+" slot ("+SLOT_CREATION_COST[L]+" points)"]),...pcResources(c).filter(r=>(/^slot[1-9]$/.test(r.key)||r.key==="pact")&&resLeft(c,r)>0).map(r=>["burn"+(r.key==="pact"?"pact":r.key.slice(4)),"Convert "+r.name+" to Sorcery Points"])],use:convertFontOfMagic},
   Metamagic:{kind:"instant",choices:metamagicOptions,cost:metamagicCost,use:(c,ch,spent)=>{if(!ch)return "Select a learned Metamagic option.";if(ch.startsWith("free:"))c.apotheosisUsedThisTurn=true;return "Metamagic: "+ch.replace(/^free:/,"")+"; "+spent+" Sorcery Points spent. Resolve casting modifications manually.";}},
-  "Dragon Wings": { kind: "toggle", fx: c => ({ fly: edOf(c) === "2024" ? 60 : "speed", notes: ["Dragon Wings: you can't use them while wearing armor not made for them"] }) },
+  "Dragon Wings": {kind:"toggle",fx:c=>({fly:edOf(c)==="2024"?60:"speed",notes:[edOf(c)==="2024"?"Dragon Wings: 60-foot Fly Speed for 1 hour; end manually when duration expires.":"Dragon Wings: fly at walking speed; cannot manifest while wearing armor not made for them."]})},
   "Draconic Presence": { kind: "toggle", fx: () => ({ notes: ["Draconic Presence: 60 ft aura of awe or fear (WIS save)"] }) },
   "Revelation in Flesh": { kind: "toggle", choices: [["sight", "See the Invisible"], ["fly", "Glistening Flight"], ["swim", "Aquatic Adaptation"], ["worm", "Wormlike Movement"]], fx: (c, ch) => ch === "fly" ? { fly: "speed" } : ch === "swim" ? { swim: "2speed", notes: ["Aquatic Adaptation: breathe underwater"] } : ch === "sight" ? { notes: ["See invisible creatures within 60 ft"] } : { notes: ["Wormlike Movement: squeeze through 1-inch spaces, escape grapples with 5 ft of movement"] } },
   "Trance of Order": { kind: "toggle", fx: () => ({ notes: ["Trance of Order: attacks against you can't have advantage; your d20 rolls of 9 or lower count as 10"] }) },
@@ -774,19 +820,19 @@ function actTargets(c) {
   camps.forEach(k => (k.encounters || []).filter(e => e.status !== "Done" && e.status !== "Completed").forEach(e => (e.enemies || []).filter(m => m.hp > 0).forEach(m => foes.push({ id: `foe:${k.id}:${e.id}:${m.id}`, label: `${m.name} · ${m.hp}/${m.max} HP`, group: `${k.name} — ${e.name}` }))));
   return { pcs: pcs.sort((a, b) => b.self - a.self), foes };
 }
-function actApply(targetId, amount, kind) {
+function actApply(targetId, amount, kind, options={}) {
   const [t, a, b, d] = targetId.split(":");
   if (t === "pc") {
     const p = PCS.roster.find(x => x.id === a); if (!p) return "That character is gone.";
     const cur = +(p.hpCur ?? p.hp) || 0, max = +p.hp || 0;
-    if (kind === "heal") { p.hpCur = Math.min(max, cur + amount); const hn = pcHealed(p, cur === 0); pcPersist(); return `${p.name} regains ${p.hpCur - cur} hit points (${p.hpCur}/${max}).${hn.length ? " " + hn.join(". ") + "." : ""}`; }
+    if (kind === "heal") { p.hpCur = Math.max(cur,Math.min(options.halfHpCap?Math.floor(max/2):max,cur+Math.max(0,amount))); const hn = pcHealed(p, cur === 0&&p.hpCur>0); pcPersist(); return `${p.name} regains ${p.hpCur - cur} hit points (${p.hpCur}/${max}).${hn.length ? " " + hn.join(". ") + "." : ""}`; }
     if (kind === "temp") { const was = +p.hpTemp || 0; if (amount > was) p.hpTemp = amount; pcPersist(); return amount > was ? `${p.name} has ${amount} temporary hit points.` : `${p.name} keeps their ${was} temporary hit points (they don't stack).`; }
     let left = amount; const tmp = +p.hpTemp || 0; if (tmp) { const use = Math.min(tmp, left); p.hpTemp = tmp - use || ""; left -= use; }
     p.hpCur = Math.max(0, cur - left); const dn = pcDamaged(p, amount, cur === 0); pcPersist(); return `${p.name} takes ${amount} damage (${p.hpCur}/${max}${+p.hpTemp ? `, ${p.hpTemp} temp left` : ""}).${dn.length ? " " + dn.map(cap1).join(". ") + "." : ""}`;
   }
   const k = Store.get(a), e = k && (k.encounters || []).find(x => x.id === b), m = e && e.enemies.find(x => x.id === d);
   if (!m) return "That creature is gone.";
-  if (kind === "damage") m.hp = Math.max(0, m.hp - amount); else m.hp = Math.min(m.max, m.hp + amount);
+  if (kind === "damage") m.hp = Math.max(0, m.hp - amount); else m.hp=Math.max(m.hp,Math.min(options.halfHpCap?Math.floor(m.max/2):m.max,m.hp+Math.max(0,amount)));
   Store.save(k);
   return kind === "damage" ? `${m.name} takes ${amount} damage (${m.hp}/${m.max}).${m.hp === 0 ? ` ${m.name} is down.` : ""}` : `${m.name} regains hit points (${m.hp}/${m.max}).`;
 }
@@ -807,7 +853,7 @@ function actDialogClick(e) {
   const ap = e.target.closest("[data-actapply]");
   if (ap && ACTX.r) {
     const R = ACTX.r, k = R.kind === "either" ? (($("input[name=actKind]:checked") || {}).value || "damage") : R.kind, n = ap.dataset.actapply === "half" ? Math.floor(R.amount / 2) : R.amount;
-    const msg = actApply($("#actTarget").value, n, k); actClose(); toast(msg); return;
+    const msg = actApply($("#actTarget").value,n,k,{halfHpCap:!!R.halfHpCap}); actClose(); toast(msg); return;
   }
   const spellDiceButton = e.target.closest("[data-spell-dice]");
   if (spellDiceButton) {

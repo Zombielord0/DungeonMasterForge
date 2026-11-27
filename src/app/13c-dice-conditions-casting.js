@@ -279,6 +279,18 @@ function castSlotLevel(c, sp, how, ed = edOf(c)) {
   if (how === "pact") { const r = pcResources(c).find(x => x.key === "pact"); return r ? +(r.name.match(/level (\d)/) || [])[1] || sp.l : sp.l; }
   return spellPreparationSources(c, sp.n, ed).find(g => g.free === how)?.castLevel || sp.l;
 }
+// Only apply the revised Life Domain modifier to parsed immediate healing.
+function revisedLifeHealing(c,P,slot,how){
+ const level=edOf(c)==="2024"?characterSubclassLevel(c,"Cleric","Life Domain"):0;
+ if(!level||!P.heal||P.manual||!P.dice)return {bonus:0,maximum:false,blessed:0};
+ const paid=(/^slot[1-9]$/.test(how)||how==="pact")&&slot>=1&&slot<=9;
+ return {bonus:paid?2+slot:0,maximum:level>=17,blessed:paid&&level>=6?2+slot:0};
+}
+function rollLifeHealing(expr,life){
+ const m=String(expr).match(/^(\d+)d(\d+)([+-]\d+)?$/);
+ const rr=life.maximum&&m?{total:+m[1]*+m[2]+ +(m[3]||0),text:expr+" (maximum dice)"}:rollDice(expr);
+ return {total:Math.max(0,rr.total+life.bonus),text:rr.text+(life.bonus?" + "+life.bonus+" (Disciple of Life)":"")};
+}
 function castPreview(c, sp, how, ed = edOf(c)) {
   const P = spellTweak(c, sp, spellPlan(sp)), K = spellCaster(c, sp, how, ed), slot = castSlotLevel(c, sp, how, ed), up = Math.max(0, slot - sp.l);
   const spirit=summonSpiritDefinition(sp,ed);
@@ -295,6 +307,10 @@ function castPreview(c, sp, how, ed = edOf(c)) {
   if(how==="invocation:vigor"&&ed==="2024")parts.push("12 temporary HP (maximum roll)");
   if(how==="freeContactPatron"&&sp.n==="Contact Other Plane")parts.push("Contact your patron; automatically succeed on the spell’s saving throw.");
   if (P.dice) parts.push(`${P.heal ? "heals" : "deals"} ${spellDice(c, sp, P, slot, K)}${P.type && !P.heal ? " " + P.type.toLowerCase() : ""}${count > 1 ? ` × ${count}` : ""}`);
+  const life=revisedLifeHealing(c,P,slot,how);
+  if(life.bonus)parts.push("Disciple of Life +"+life.bonus+" HP on casting turn");
+  if(life.maximum)parts.push("Supreme Healing: maximum healing dice");
+  if(life.blessed)parts.push("Blessed Healer: regain "+life.blessed+" HP if another creature is healed");
   if (sp.l && up && (P.per || P.countPer)) parts.push(`upcast +${up} level${up === 1 ? "" : "s"}`);
   if (sp.rulesSummary) parts.push("Resolve the spell’s effects using its sourcebook");
   if (sp.manualRoll || sp.manualEffects) parts.push("Resolve all rolls and effects manually using the complete spell rules");
@@ -388,7 +404,7 @@ function castGo() {
     return;
   }
   if (!dice) { actClose(); toast(notes.join(" ")); return; }
-  if (P.heal) { const r = rollDice(dice); actResultDialog(c, { title: sp.n, msg: `${notes.join(" ")} Healing ${r.text}.${sp.manualEffects ? " " + sp.d : ""}`, amount: r.total, kind: "heal" }); return; }
+  if (P.heal) { const life=revisedLifeHealing(c,P,slot,how),r=rollLifeHealing(dice,life); actResultDialog(c,{title:sp.n,msg:`${notes.join(" ")} Healing ${r.text}. Total ${r.total} HP.${life.blessed?" If you restore HP to another creature, regain "+life.blessed+" HP yourself (apply manually).":""}`,amount:r.total,kind:"heal"});return; }
   if (P.attack) {
     const lines = []; let tot = 0;
     for (let i = 0; i < count; i++) {
