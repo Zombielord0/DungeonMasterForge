@@ -445,6 +445,7 @@ function syncGrantedSpells(c) {
     if (cls === "Wizard" && ["School of Illusion", "Illusionist"].includes(subclass)) {
       add({ [subclassLevel(ed, cls)]: ["Minor Illusion"] }, lv, { ...source, feature: "Improved Illusions" });
     }
+    if(cls==="Fighter"&&subclass==="Psi Warrior"&&lv>=18)add({18:["Telekinesis"]},lv,{...source,feature:"Telekinetic Master",ab:"int",innate:true},()=>({free:"psiMaster",uses:1}));
     if(cls==="Ranger"&&subclass==="Drakewarden")add({3:["Thaumaturgy"]},lv,{...source,feature:"Draconic Gift",ab:"wis",innate:true,known:true});
     if(cls==="Barbarian"&&subclass==="Path of the Giant"){
       const selected=choiceOf(c,"Giant Power")[0];
