@@ -48,3 +48,8 @@ Nine canonical SRD wand types in each edition now expose explicit charge-only co
 ### Item regression follow-up
 
 The 94eb508 CI run passed 51 of 53 suites. The item-detail handlers must use the multi-element selector (`$$`) for action lists and for locating a replacement detail button after rendering. The exact emitted-asset assertion now also applies the documented SRD wand charge transformation before comparing output, preserving the strict equality check. The private variant recovery checkpoint is not a distribution approval: 16 supplemental variants have candidate mechanics, 192 private standard item candidates and 33 separate Warcraft candidates remain subject to independent review. No private book payload is included in the preview by this patch.
+
+
+## All-category coverage reconciliation
+
+The generated coverage report now includes an emitted-catalog inventory by kind and edition, including equipment, character options, duplicate normalized identities and nested feature placeholders. Explicit reference/summary/pending/shadow flags are not counted as playable source candidates. A candidate count is not a release approval; hardcoded classes and options, manual effects and browser behavior remain outside this report. Private master reconciliation and supplied source evidence remain outside this public branch.
