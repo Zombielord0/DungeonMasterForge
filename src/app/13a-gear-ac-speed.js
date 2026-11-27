@@ -59,6 +59,13 @@ function pcRecompute(c) {
     const ab = c.atkBonus || 0;
     c.attacks = (c.attacks || []).map(a => a.name === w[0] ? { ...a, hit: wm + c.prof + ab, dmg: `${w[1]}${wm ? sgn(wm) : ""}` } : a.name === "Unarmed strike" ? { ...a, hit: wm + c.prof + ab, dmg: ((String(a.dmg).match(/^\d+d\d+/) || ["1d4"])[0]) + sgn(wm) } : a);
   }
+  if(!c.kitMoved){
+    c.attacks=(c.attacks||[]).filter(a=>!["Psychic Blade","Psychic Blade (bonus action)"].includes(a.name));
+    if(characterSubclassLevel(c,"Rogue","Soulknife")>=3){
+      const bm=Math.max(m.str,m.dex),ab=m.dex>m.str?"dex":"str";
+      for(const [name,die] of [["Psychic Blade","1d6"],["Psychic Blade (bonus action)","1d4"]])c.attacks.push({name,hit:bm+c.prof,die,mod:bm,dmg:die+sgn(bm),type:"psychic",prof:true,melee:true,ab,alt:"thrown 60 ft"+(edOf(c)==="2024"?"; Vex":"")});
+    }
+  }
   if (c.spell) { const b = c.spell.bonus || 0; for (const s of [c.spell,...(c.spell.others || [])]) { if (!AB.includes(s.ab)) continue; s.dc = 8 + c.prof + m[s.ab] + b; s.atk = c.prof + m[s.ab] + b; } }
   pcACApply(c);
 }
