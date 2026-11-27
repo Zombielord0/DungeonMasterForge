@@ -177,7 +177,7 @@ const pcCastNames = c => { const L = pcCastClasses(c).map(x => x.cls); return L.
 function pcSpellPool(c, ed) {
   spLoad();
   const K = pcCastClasses(c); if (!K.length) return [];
-  return SP.data[ed].filter(s => !s.pend && K.some(k => (s.c.includes(k.cls) || s.c.includes(k.list || clsSpellList(k.cls))) && (s.l === 0 ? k.cantrips : s.l <= k.max)));
+  return SP.data[ed].filter(s => !s.pend && !s.referenceOnly && K.some(k => (s.c.includes(k.cls) || s.c.includes(k.list || clsSpellList(k.cls))) && (s.l === 0 ? k.cantrips : s.l <= k.max)));
 }
 function manualPreparedSpells(c) {
   const granted = new Set((c.prepared || []).filter(p => p.src).map(p => spellKey(p.ed, p.n)));
@@ -245,11 +245,13 @@ function renderSpTargets() {
   $("#spTarget").value = SP.target || "";
 }
 function spPrepBtn(s) {
+  if (s.referenceOnly) return '<span class="hint">Reference only — rules not yet certified.</span>';
   const t = spTargetPC(); if (!t) return "";
   const on = isPrep(t, s.n, SP.ed), locked = t.prepared.some(p => p.n === s.n && p.ed === SP.ed && p.src);
   return `<button class="btn sm ${on ? "" : "primary"}" data-sp="prep" data-id="${s.id}" ${locked ? "disabled" : ""}>${locked ? "✓ Granted" : on ? `✓ Prepared for ${esc(t.name)}` : `✦ Prepare for ${esc(t.name)}`}</button>`;
 }
 function spPrepToggle(s) {
+  if (s.referenceOnly) { toast("This spell is reference only; its full rules have not been certified."); return; }
   const t = spTargetPC(); if (!t) { toast("Pick a character to prepare spells for"); return; }
   if (!isPrep(t, s.n, SP.ed) && !pcCastClasses(t).some(k => s.c.includes(k.cls) || s.c.includes(k.list || clsSpellList(k.cls)))) toast(`${s.n} isn't on the ${pcCastNames(t)} list, added anyway`);
   togglePrep(t, s, SP.ed); pcChanged(t);

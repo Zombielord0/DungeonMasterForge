@@ -23,6 +23,7 @@ import { createHash } from "node:crypto";
 import { readFileSync, writeFileSync, readdirSync, unlinkSync, mkdirSync } from "node:fs";
 import vm from "node:vm";
 import { joinSummaries, joinSrdItems } from "./ref-summaries.mjs";
+import { appendReferenceSpells, validateRecoveryManifest, applyRecoveredContent } from "./recovered-content.mjs";
 
 if (process.env.DMFORGE_BUILT === "1") process.exit(0); // npm run test:all builds once, then skips this in each check
 
@@ -63,6 +64,9 @@ function emitCatalog(name, key, data, source = name) {
 }
 mkdirSync(at("public/assets/"), { recursive: true });
 const spellGrants = JSON.parse(read("data/spell-grants.json"));
+const bookReferences = JSON.parse(read("data/book-references.json"));
+const sourceBooks = JSON.parse(read("data/extra-books.json")).books;
+const approvedRecovery = validateRecoveryManifest(JSON.parse(read("data/recovered-content.json")), sourceBooks);
 for (const [name, key] of [["spells", "spellData"], ["monsters", "monsterData"], ["items", "itemData"],
   ["extra-spells", "spellExtra"], ["extra-monsters", "monsterExtra"], ["extra-items", "itemExtra"], ["extra-options", "optionExtra"], ["extra-books", "bookData"], ["book-references", "bookReferences"]]) {
   // stored as text, so the app turns it into objects only when a tab needs it (dmData in src/app/01-core.js)
@@ -71,22 +75,12 @@ for (const [name, key] of [["spells", "spellData"], ["monsters", "monsterData"],
   /* Book reference spells (owner, 2026-11-23): spells from other books join the list with their stats and book page only
      (data/book-references.json has no rules text). A spell the Forge already has is not added again. */
   if (name === "extra-spells") {
-    const core = JSON.parse(read("data/spells.json")), books = JSON.parse(read("data/extra-books.json")).books;
-    const told = JSON.parse(read("data/reference-spell-text.json")).spells; /* the owner's short rules summaries (2026-11-23) */
-    const have = new Set([...core["2014"], ...core["2024"], ...data].flatMap(s => [s.n, ...(s.aliases || [])]).map(n => n.toLowerCase())); /* aliases too: Tenser's Floating Disk is the free rules' Floating Disk */
-    const AB = { strength: "STR", dexterity: "DEX", constitution: "CON", intelligence: "INT", wisdom: "WIS", charisma: "CHA" };
-    for (const row of JSON.parse(read("data/book-references.json"))) {
-      if (row.kind !== "Spell" || have.has(row.name.toLowerCase())) continue;
-      const f = Object.fromEntries(row.details || []), cap = t => String(t || "").replace(/\b\w/g, ch => ch.toUpperCase());
-      const book = (books[row.src] && books[row.src].name) || row.src;
-      data.push({ n: row.name, l: f.Level === "Cantrip" ? 0 : +f.Level || 0, s: f.School || "", c: [], t: f["Casting time"] || "", r: f.Range || "",
-        cp: String(f.Components || "").replace(/[^VSM]/g, ""), m: "", du: cap(f.Duration), co: /concentration/i.test(f.Duration || "") ? 1 : 0, ri: f.Ritual ? 1 : 0,
-        d: told[row.name] ? `${told[row.name].d}\n\nFrom ${book}, page ${row.page}.` : `From ${book}, page ${row.page}. The Forge lists this spell's details but not its rules text: see the book.`,
-        h: (told[row.name] && told[row.name].h) || "",
-        dt: (told[row.name] && told[row.name].dt) || cap(String(f["Damage types"] || "").split(/,\s*/)[0]), at: "", sv: AB[String(f["Saving throws"] || "").split(/,\s*/)[0].toLowerCase()] || "",
-        src: row.src, ref: true, page: row.page, ed: row.ed || "2014" }); /* a 2014 handbook's spell stays in the 2014 rules */
-      have.add(row.name.toLowerCase());
-    }
+    const core = JSON.parse(read("data/spells.json"));
+    const told = JSON.parse(read("data/reference-spell-text.json")).spells;
+    data = appendReferenceSpells(data, core, spellGrants.legacySpells, bookReferences, told, sourceBooks).data;
+  }
+  if (["extra-spells", "extra-items", "extra-monsters"].includes(name)) {
+    data = applyRecoveredContent(name, data, approvedRecovery, bookReferences);
   }
   if (name === "extra-options") {
     const ids = new Set(data.map(option => option.id));
@@ -118,7 +112,7 @@ for (const [name, key] of [["spells", "spellData"], ["monsters", "monsterData"],
     emitCatalog(name, key, data);
   }
   if (name === "extra-monsters") {
-    emitCatalog("monster-index", "monsterIndex", data.map(({ n, src }) => [n, src]), name);
+    emitCatalog("monster-index", "monsterIndex", data.map(({ n, src, ed }) => [n, src, ed || null]), name);
   }
 }
 // the credits page for the extra books (each book's notice and licence, and the Open Game License text)

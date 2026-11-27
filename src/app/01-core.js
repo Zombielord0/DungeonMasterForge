@@ -7,6 +7,7 @@
    each edition gets its own copy (the tabs add their own fields to each one). Each extra entry has src, its book's code. */
 const DM_DATA = {};
 const DM_EXTRA = { spellData: "spellExtra", monsterData: "monsterExtra", itemData: "itemExtra" };
+const dmExtraForEdition = (rows, ed) => rows.filter(row => !row.ed || row.ed === ed);
 function dmData(key) {
   if (!DM_DATA[key]) {
     const d = JSON.parse(window.DMDATA[key]); delete window.DMDATA[key];
@@ -14,9 +15,9 @@ function dmData(key) {
     if (text) {
       delete window.DMDATA[xk];
       for (const ed of ["2014", "2024"]) {
-        const L = JSON.parse(text);
+        const L = dmExtraForEdition(JSON.parse(text), ed);
         if (key === "spellData") {
-          const spells = L.filter(spell => !spell.ed || spell.ed === ed);
+          const spells = L;
           d[ed].push(...(ed === "2024" ? spells.map(dmSpell2024) : spells));
         }
         else if (key === "monsterData") d[ed].push(...L);
@@ -43,7 +44,7 @@ function dmLoadExtraMonsters() {
     if (extra) {
       for (const ed of ["2014", "2024"]) {
         const first = raw[ed].length;
-        raw[ed].push(...JSON.parse(extra));
+        raw[ed].push(...dmExtraForEdition(JSON.parse(extra), ed));
         if (BS.data) raw[ed].slice(first).forEach((m, i) => bsPrepareMonster(m, ed, first + i));
       }
       delete window.DMDATA.monsterExtra;

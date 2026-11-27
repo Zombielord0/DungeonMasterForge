@@ -97,7 +97,7 @@ const server = http.createServer((req, res) => {
       !subclassList("2024", "Paladin").some(([n]) => n === "Oathbreaker"),
     credit: bookLine(IT.data["2014"].find(x => x.n === "Sending Stones"))
   }));
-  check("2014 handbook spells and items stay in their edition", handbook.spells === 28 + legacySpells.length && handbook.items === 20 && !handbook.revised, JSON.stringify(handbook));
+  check("2014 handbook spells and items stay in their edition", handbook.spells === 28 + legacySpells.length + 29 && handbook.items === 20 && !handbook.revised, JSON.stringify(handbook));
   check("2014 DMG subclasses show in the builder and progression", handbook.death && handbook.oath);
   check("handbook summaries show printed page attribution", /p. 199.*Rules summary/.test(handbook.credit));
   check("the styling is applied (served as text/css)", await p.evaluate(() => [...document.styleSheets].some(s => /\/assets\/app\.\w+\.css$/.test(s.href || "") && s.cssRules.length > 100) && getComputedStyle(document.body).fontFamily.includes("Crimson")));
@@ -157,7 +157,7 @@ const server = http.createServer((req, res) => {
 
   await query.fill("abi dalz");
   await results.getByRole("button", { name: /Abi-Dalzim/ }).first().click();
-  check("punctuation-insensitive search opens the book reference", await p.locator("#characterReference").getByText(/Reference only/).isVisible());
+  check("punctuation-insensitive search opens the source-specific spell summary or reference", await p.locator("#characterReference").getByText(/A short summary|Reference only/).first().isVisible());
   await p.locator("#characterReference").getByRole("button", { name: "Close" }).click();
   /* reference summaries (2026-11-26): a feat with no details shows its short summary from data/reference-summaries.json */
   await query.fill("squat nimbleness");

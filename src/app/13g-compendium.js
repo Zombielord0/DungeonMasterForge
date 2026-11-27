@@ -31,6 +31,12 @@ function compendiumBookDetail(entry) {
     const called = free.n === entry.name ? "" : ` (called ${esc(free.n)} there)`;
     return `${bookLine(entry)}<p class="hint">Full rules from the free rules (SRD 5.1)${called}.</p>${details}${itDetail(free, false)}`;
   }
+  if (entry.kind === "Spell") {
+    const ed = entry.ed || "2014";
+    spLoad();
+    const spell = SP.data[ed].find(s => s.src === entry.src && s.n === entry.name && !s.pend && (!s.ref || s.referenceSummary));
+    if (spell) return `${spell.ref ? '<p class="hint">A short summary. See the sourcebook for the full rules.</p>' : ""}${spDetail(spell, { edition: ed, actions: false })}`;
+  }
   const hint = entry.sum ? "A short summary. See the sourcebook for the full rules." : "Reference only. See the sourcebook for the full rules.";
   return `${bookLine(entry)}<p class="hint">${hint}</p>${summary}${details}`;
 }
@@ -100,7 +106,8 @@ async function compendiumMatches({ query = "", ed, type = "" }) {
       add("Monster", m.n, m.src, !!m.key, button => monsterDetail(m, button));
     }
     if (!extraMonstersReady) {
-      for (const [name, src] of monsterIndex || []) {
+      for (const [name, src, monsterEdition] of monsterIndex || []) {
+        if (monsterEdition && monsterEdition !== ed) continue;
         add("Monster", name, src, false, async button => {
           if (!(await dmLoadExtraMonsters())) { toast("Monster details are unavailable. Try again when online."); return; }
           if (!button.isConnected) return; /* the Compendium list or the side menu's results */

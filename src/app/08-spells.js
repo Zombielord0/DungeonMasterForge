@@ -42,7 +42,7 @@ const REVISED_ARTIFICER_SPELLS = new Set([
 function spPrep(s, ed, i) {
   s.id = ed + "-" + i;
   const artificerSpells = ed === "2014" ? ARTIFICER_SPELLS : REVISED_ARTIFICER_SPELLS;
-  if (!s.hb && artificerSpells.has(s.n.toLowerCase().replaceAll("’", "'")) && !s.c.includes("Artificer")) {
+  if (!s.hb && !s.referenceOnly && artificerSpells.has(s.n.toLowerCase().replaceAll("’", "'")) && !s.c.includes("Artificer")) {
     s.c.push("Artificer");
   }
   s.tc = spTimeCat(s.t);
