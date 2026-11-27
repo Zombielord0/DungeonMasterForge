@@ -278,9 +278,40 @@ function projectedWardUse(c,ch){
  const a=arcaneWardAbsorb(c,+ch);
  return "Projected Ward absorbs "+a.absorbed+" damage. Confirm Reaction, visible creature within 30 ft and its remaining damage; apply that remainder manually.";
 }
+function expertDivinationOptions(c,sp,how,slot,ed=edOf(c)){
+ if(ed!==edOf(c)||portentCount(c)===0||clsLv(c,"Wizard")<6||String(sp?.s).toLowerCase()!=="divination"||!/^slot[2-9]$|^pact$/.test(how)||slot<2)return [];
+ return pcResources(c).flatMap(r=>{
+  const l=/^slot[1-9]$/.test(r.key)?+r.key.slice(4):r.key==="pact"?+(r.name.match(/level (\d)/)||[])[1]:0;
+  return l>=1&&l<=5&&l<slot&&r.key!==how&&resLeft(c,r)<r.max?[[r.key,r.name]]:[];
+ });
+}
+function expertDivinationRecover(c,sp,how,slot,key,ed=edOf(c)){
+ if(!expertDivinationOptions(c,sp,how,slot,ed).some(([id])=>id===key))return "";
+ c.used[key]=Math.max(0,(+c.used[key]||0)-1);
+ return "Expert Divination restored one "+key.replace("slot","level ")+" slot.";
+}
+function spellBreakerEligible(c,sp,how,ed=edOf(c)){
+ return ed==="2024"&&ed===edOf(c)&&arcaneWardLevel(c)>=10&&["Counterspell","Dispel Magic"].includes(sp?.n)&&/^slot[1-9]$|^pact$/.test(how);
+}
+function spellBreakerRecord(c,sp,how,ed=edOf(c)){
+ delete c.spellBreakerPending;
+ if(!spellBreakerEligible(c,sp,how,ed))return false;
+ const n=+(c.used||{})[how]||0;if(n<=0)return false;
+ c.spellBreakerPending={edition:ed,name:sp.n,key:how,used:n};return true;
+}
+function spellBreakerResolve(c,ch){
+ const p=c.spellBreakerPending;
+ if(!p||!spellBreakerEligible(c,{n:p.name},p.key,p.edition)||!["failed","stopped"].includes(ch))return "No eligible Spell Breaker casting.";
+ delete c.spellBreakerPending;
+ if(ch==="stopped")return "Spell stopped; slot remains spent.";
+ if((+c.used?.[p.key]||0)!==p.used)return "Slot counter changed; reconcile this casting manually.";
+ c.used[p.key]=Math.max(0,p.used-1);
+ return "Spell Breaker: restored the slot spent on "+p.name+".";
+}
 function wizardSubclassCleanup(c){
  if(!portentCount(c)){delete c.portent; if(c.used)delete c.used[subAblKey("Portent")];}
  if(!arcaneWardLevel(c)){delete c.arcaneWard;}
+ if(edOf(c)!=="2024"||arcaneWardLevel(c)<10)delete c.spellBreakerPending;
  else if(arcaneWardExists(c))c.arcaneWard.hp=arcaneWardHP(c);
  if(c.conc?.spell==="Mantle of Majesty"&&!majestyLevel(c)) {delete c.conc;delete c.concCheck;}
 }
@@ -385,8 +416,9 @@ function pcAbilities(c) {
   const A = [], add = (name, when, text, res, src) => A.push({ name, when, text, res, src });
   const wisDC = 8 + prof + m.wis, chaB = Math.max(1, m.cha);
   if(arcaneWardLevel(c)){
-    add("Arcane Ward status","Passive",arcaneWardExists(c)?"Ward HP "+arcaneWardHP(c)+"/"+arcaneWardMax(c)+". Damage entered through Apply Damage depletes the ward first; direct HP edits are final values.":"Cast a qualifying Abjuration spell to create the ward.",null,"Wizard");
+    add("Arcane Ward status","Passive",arcaneWardExists(c)?"Ward HP "+arcaneWardHP(c)+"/"+arcaneWardMax(c)+". Apply Damage depletes the ward before temporary HP. "+(ed==="2024"?"Enter damage after resistance or vulnerability.":"Enter damage before resistance; manually reconcile resistance on overflow.")+" Direct HP edits are final values.":"Cast a qualifying Abjuration spell to create the ward.",null,"Wizard");
     if(ed==="2024"&&arcaneWardExists(c))add("Recharge Arcane Ward","Bonus action","Expend a spell slot to recover twice its level in ward HP.",null,"Abjurer");
+    if(ed==="2024"&&arcaneWardLevel(c)>=10&&c.spellBreakerPending)add("Resolve Spell Breaker","After casting",c.spellBreakerPending.name+": confirm whether this casting stopped a spell before casting again.",null,"Abjurer");
   }
   if(portentCount(c))add("Portent record","Long Rest",portentDice(c).length?portentDice(c).map(d=>d.value+(d.spent?" (spent)":"")).join(" · "):"No foretelling dice recorded; use Portent to initialize at the table.",null,"Wizard");
   if (has("Rage")) add("Rage", "Bonus action", `+${CLV("Barbarian") >= 16 ? 4 : CLV("Barbarian") >= 9 ? 3 : 2} damage on Strength melee attacks, resistance to bludgeoning, piercing and slashing, advantage on Strength checks and saves. No spellcasting while raging.`, "rage");
@@ -1351,6 +1383,7 @@ const ACT = {
   Portent:{kind:"instant",noCost:true,choices:portentChoices,use:usePortent},
   "Recharge Arcane Ward":{kind:"instant",choices:arcaneWardRechargeOptions,use:arcaneWardRecharge},
   "Projected Ward":{kind:"instant",choices:projectedWardOptions,use:projectedWardUse},
+  "Resolve Spell Breaker":{kind:"instant",choices:[["stopped","Stopped a spell"],["failed","Failed to stop a spell (refund slot)"]],use:spellBreakerResolve},
   "Illusory Self": { kind: "instant", use: () => "Illusory Self: the attack misses." },
   // ---------- species
   "Breath Weapon": { kind: "instant", use: c => { const x = (c.extras || []).find(e => e.startsWith("Breath Weapon")) || "", d = (x.match(/(\d+d\d+)/) || [])[1] || "2d6", dc = +((x.match(/DC (\d+)/) || [])[1] || 8 + c.prof + c.mods.con), A = DRAGON_ANCESTRY[c.ancestry] || {}, sv = edOf(c) === "2024" ? "dex" : String(A.save || "DEX").toLowerCase(); return area("Breath Weapon", d, sv, dc, cap1(A.type || ""), `Each creature in the ${edOf(c) === "2024" ? "15 ft cone or 30 ft line" : A.shape || "area"} makes a ${sv.toUpperCase()} save: ${A.type || ""} damage, half on a success.`); } },

@@ -597,6 +597,8 @@ function pcRest(c, kind) {
   delete c.apotheosisUsedThisTurn;
   delete c.arcaneJoltThisTurn;
   delete c.psiPending; // an unresolved check or attack cannot carry across a rest
+  delete c.spellBreakerPending;
+  if(c.portent)c.portent.turnUsed=false;
   companionRestUpdate(c,kind);
   if(c.conc?.spell==="Mantle of Majesty"){delete c.conc;delete c.concCheck;}
   if(kind==="long"){

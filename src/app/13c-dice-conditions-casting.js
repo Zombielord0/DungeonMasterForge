@@ -351,14 +351,19 @@ function castPreview(c, sp, how, ed = edOf(c)) {
   if(feySummonOption(c,sp,ed))parts.push("No material component; optional one-minute non-concentration cast");
   else if (sp.co) parts.push(`needs concentration${c.conc ? ` (ends ${c.conc.spell})` : ""}`);
   parts.push(...feyTeleportOptions(c,sp,ed));
-  if(ed==="2024"&&characterSubclassLevel(c,"Wizard","Abjurer")>=10&&["Counterspell","Dispel Magic"].includes(sp.n))parts.push("Spell Breaker: if the spell fails to stop a spell, manually refund its expended slot. Dispel Magic can use a Bonus Action; add proficiency bonus to its ability check.");
+  if(ed==="2024"&&characterSubclassLevel(c,"Wizard","Abjurer")>=10&&["Counterspell","Dispel Magic"].includes(sp.n))parts.push("Spell Breaker: record whether this cast stopped a spell to retain or refund its slot. Dispel Magic can use a Bonus Action; add proficiency to its ability check.");
   return (sp.l ? `At ${ordinal(slot)}: ` : "") + (parts.join(" · ") || "No dice to roll.");
+}
+function expertDivinationHTML(c,sp,how,ed){
+ const opts=expertDivinationOptions(c,sp,how,castSlotLevel(c,sp,how,ed),ed);
+ return opts.length?`<label class="hint">Expert Divination: recover one lower-level expended slot <select id="expertDivinationSlot"><option value="">Do not recover</option>${opts.map(([id,label])=>`<option value="${esc(id)}">${esc(label)}</option>`).join("")}</select></label>`:"";
 }
 function castPick(how) {
   const c = ACTX.c, sp = ACTX.cast && spellOf(ACTX.cast.ed, ACTX.cast.name); if (!c || spellCastBlocked(c, sp, ACTX.cast.ed)) return;
   const f = $("#castSlot"); if (f) f.value = how;
   $$("#actModal [data-castlv]").forEach(b => b.setAttribute("aria-pressed", String(b.dataset.castlv === how)));
   const fx = $("#castFx"); if (fx) fx.textContent = castPreview(c, sp, how, ACTX.cast.ed);
+  const expert=$("#expertDivinationChoice");if(expert)expert.innerHTML=expertDivinationHTML(c,sp,how,ACTX.cast.ed);
   const go = $("#actModal [data-castgo]"); if (go) go.disabled = false;
 }
 const ARMOR_CASTING_WARNING = "You can't cast spells while wearing armor or a shield you aren't trained with.";
@@ -387,6 +392,7 @@ function castDialog(c, ed, name, o = {}) {
       ${sp.l ? `<div class="cast-lvs" role="group" aria-label="Cast at level">${opts.map(([v, l, sub, dis]) => `<button type="button" class="cast-lv" data-castlv="${esc(v)}" aria-pressed="${!!(first && first[0] === v)}" ${dis ? "disabled" : ""}><b>${esc(l)}</b><span>${esc(sub)}</span></button>`).join("")}</div>` : ""}
       ${feySummonOption(c,sp,ed)?`<label class="hint"><input type="checkbox" id="feyNoConcentration"> Fey Reinforcements: cast without concentration (duration 1 minute)</label>`:""}
       ${arcaneWardLevel(c)&&!arcaneWardExists(c)&&String(sp.s).toLowerCase()==="abjuration"&&sp.l>0?`<label class="hint"><input type="checkbox" id="createArcaneWard" checked> Create Arcane Ward if this casting qualifies</label>`:""}
+      <div id="expertDivinationChoice">${first?expertDivinationHTML(c,sp,first[0],ed):""}</div>
       <input type="hidden" id="castSlot" value="${first ? esc(first[0]) : ""}">
       <p id="castFx" class="cast-fx">${esc(first ? castPreview(c, sp, first[0], ed) : opts.some(x => !x[3]) ? "No slots left for this spell. Choose another way to cast." : "No cast available. Finish a rest to regain uses.")}</p></div>
       <div class="row" style="justify-content:flex-end;margin-top:12px"><button class="btn" type="button" data-actclose style="flex:0 0 auto">Close</button><button class="btn primary" type="button" data-castgo style="flex:0 0 auto" ${first ? "" : "disabled"}>✦ Cast</button></div>`;
@@ -414,6 +420,8 @@ function castGo() {
     if (grant.max !== Infinity) c.used[how] = (+c.used[how] || 0) + 1;
   }
   const notes = [`${c.name} casts ${sp.n}${sp.l ? ` at level ${slot}` : ""}${how === "ritual" ? " as a ritual" : ""}.`];
+  const recovered=expertDivinationRecover(c,sp,how,slot,$("#expertDivinationSlot")?.value,ed);if(recovered)notes.push(recovered);
+  if(spellBreakerRecord(c,sp,how,ed))notes.push("Spell Breaker: resolve success or failure in Abilities before casting another spell."+ (sp.n==="Dispel Magic"?" Bonus Action is permitted; ability check bonus "+sgn(c.mods.int+c.prof)+".":""));
   if(["majestyStart","majestyRepeat"].includes(how)){const msg=majestyCast(c,how);if(!msg){toast("Mantle of Majesty is unavailable");return;}notes.push(msg,"A creature Charmed by you automatically fails its save; resolve the target and action timing manually.");}
   const wardNote=arcaneWardOnCast(c,sp,how,slot,$("#createArcaneWard")?.checked!==false,ed);if(wardNote)notes.push(wardNote);
   if(how==="pactChainFamiliar"){
@@ -446,7 +454,7 @@ function castGo() {
       <button class="btn" type="button" data-actclose>Close</button>`);
     return;
   }
-  if (!dice) { if(feyTeleportOptions(c,sp,ed).length||how.startsWith("majesty")||wardNote){actDialog(`<h3 id="actTitle">${esc(sp.n)}</h3><p>${esc(notes.join(" "))}</p><button class="btn" type="button" data-actclose>Close</button>`);return;} actClose(); toast(notes.join(" ")); return; }
+  if (!dice) { if(feyTeleportOptions(c,sp,ed).length||how.startsWith("majesty")||wardNote||recovered||c.spellBreakerPending){actDialog(`<h3 id="actTitle">${esc(sp.n)}</h3><p>${esc(notes.join(" "))}</p><button class="btn" type="button" data-actclose>Close</button>`);return;} actClose(); toast(notes.join(" ")); return; }
   if (P.heal) { const life=revisedLifeHealing(c,P,slot,how),r=rollLifeHealing(dice,life); actResultDialog(c,{title:sp.n,msg:`${notes.join(" ")} Healing ${r.text}. Total ${r.total} HP.${life.blessed?" If you restore HP to another creature, regain "+life.blessed+" HP yourself (apply manually).":""}`,amount:r.total,kind:"heal"});return; }
   if (P.attack) {
     const lines = []; let tot = 0;

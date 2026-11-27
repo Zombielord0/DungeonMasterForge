@@ -844,6 +844,18 @@ const { chromium } = require("playwright");
     });
     assert.deepEqual(wizardSubclassAudit.out,[[3,true,2,2,0,true],[23,8,0,19,true,false,true,true],[3,true,2,2,0,true],[23,8,0,19,true,true,false,true]]);
     assert.deepEqual(wizardSubclassAudit.majesty,[true,true,1,true,"majestyStart"]);
+    const wizardRecoveryAudit=await page.evaluate(()=>{
+      const make=(ed,cls,level,subclass)=>pcEnsure(generateCharacter({seed:"WIZREC",ed,cls,level,subclass,race:"Human",bg:"Sage"}));
+      const result=[];
+      for(const ed of ["2014","2024"]){
+        const d=make(ed,"Wizard",13,ed==="2014"?"School of Divination":"Diviner");d.used={slot1:1,slot3:1,slot5:1,slot6:1};const sp={s:"Divination",l:3};
+        const keys=expertDivinationOptions(d,sp,"slot6",6).map(x=>x[0]);const invalid=expertDivinationRecover(d,sp,"slot6",6,"slot6");const good=expertDivinationRecover(d,sp,"slot6",6,"slot5");
+        result.push([keys,invalid,!!good,d.used.slot5,d.used.slot6,expertDivinationOptions(d,sp,"ritual",3).length]);
+      }
+      const w=make("2024","Wizard",10,"Abjurer");w.used={slot3:1};const sp={n:"Counterspell"};const record=spellBreakerRecord(w,sp,"slot3");const refund=spellBreakerResolve(w,"failed");const repeat=spellBreakerResolve(w,"failed");w.used.slot3=1;spellBreakerRecord(w,sp,"slot3");const stopped=spellBreakerResolve(w,"stopped");return {result,refund:[record,!!refund,repeat,!!stopped,w.used.slot3]};
+    });
+    assert.deepEqual(wizardRecoveryAudit.result,[[["slot1","slot3","slot5"],"",true,0,1,0],[["slot1","slot3","slot5"],"",true,0,1,0]]);
+    assert.deepEqual(wizardRecoveryAudit.refund,[true,true,"No eligible Spell Breaker casting.",true,1]);
     const expansion = await page.evaluate(() => {
       const subclasses = hbBook("subclass").filter(x => ["tce", "xge"].includes(x.src));
       const armorer = generateCharacter({ seed: "ARMOR", ed: "2014", cls: "Artificer", subclass: "Armorer", level: 5 });
