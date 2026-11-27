@@ -28,6 +28,7 @@ import { validateSrdSpellLinks, fillSrdSpellReferences, joinSrdSpellReferences, 
 import { recoveryCoverage } from "./recovery-coverage.mjs";
 import {verifyLegacyItemArchive,correctLegacyItemMetadata,verifyAndAnnotateLegacyItemLinks} from "./ref-srd-items.mjs";
 import {addSrdWandChargeContracts} from "./ref-srd-item-charges.mjs";
+import {buildRevisedGlossary} from "./ref-srd-2024-glossary.mjs";
 import {correctRevisedItemVariants} from "./ref-srd-2024-item-variants.mjs";
 import {correctRevisedItemTables} from "./ref-srd-2024-item-tables.mjs";
 import {correctRevisedItemFamilies} from "./ref-srd-2024-item-families.mjs";
@@ -128,6 +129,7 @@ for (const [name, key] of [["spells", "spellData"], ["monsters", "monsterData"],
     const srdItems = new Set(JSON.parse(read("data/items.json"))["2014"].mi.filter(m => !m.src).map(m => m.n));
     data = joinSrdItems(data, JSON.parse(read("data/reference-srd-items.json")), srdItems);
     data = verifyAndAnnotateLegacyItemLinks(data, correctedItems);
+    data = [...data,...buildRevisedGlossary(JSON.parse(read("data/srd-2024-glossary.json")))];
     for (const ed of ["2014", "2024"]) {
       emitCatalog(`book-references-${ed}`, `bookReferences${ed}`, data.filter(row => (row.ed || "2014") === ed), name);
     }

@@ -69,7 +69,8 @@ export function recoveryCoverage(refs,catalogs){
   const playable=exact.filter(x=>!incomplete(x.row));
   const flagged=exact.filter(x=>x.row.rulesSummary||x.row.referenceSummary);
   let status;
-  if(r.srdSpell)status="full_srd_spell_link";
+  if(r.srdGlossary)status="full_srd_glossary_definition";
+  else if(r.srdSpell)status="full_srd_spell_link";
   else if(r.srd)status="srd_item_link_equivalence_review";
   else if(playable.length===1&&!suspect(playable[0].row))status="same_source_payload_candidate";
   else if(playable.length)status="same_source_payload_review";

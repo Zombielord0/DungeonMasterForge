@@ -1,0 +1,1094 @@
+{
+  "version": 1,
+  "edition": "2024",
+  "source": "SRD 5.2.1",
+  "sourcePdfSha256": "8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+  "attribution": "This work includes material from the System Reference Document 5.2.1 (SRD 5.2.1) by Wizards of the Coast LLC, available at https://www.dndbeyond.com/srd. The SRD 5.2.1 is licensed under the Creative Commons Attribution 4.0 International License, available at https://creativecommons.org/licenses/by/4.0/legalcode.",
+  "entries": [
+    {
+      "id": "srd52:rule:f97192c811c1d99967d4",
+      "name": "Ability Check",
+      "page": 176,
+      "pageEnd": 176,
+      "text": "An ability check is a D20 Test that represents using\none of the six abilities—or a specific skill associated\nwith an ability—to overcome a challenge. See also\n“Playing the Game” (“D20 Tests” and “Proficiency”)."
+    },
+    {
+      "id": "srd52:rule:b66d4c51200507f44404",
+      "name": "Ability Score and Modifier",
+      "page": 176,
+      "pageEnd": 176,
+      "text": "A creature has six ability scores—Strength, Dex-\nterity, Constitution, Intelligence, Wisdom, and\nCharisma—each of which has a corresponding mod-\nifier. Add the modifier when you make a D20 Test\nwith the corresponding ability or when a rule asks\nyou to do so. See also “Playing the Game” (“The Six\nAbilities”)."
+    },
+    {
+      "id": "srd52:rule:6b3d20621e147b7b18ec",
+      "name": "Action",
+      "page": 176,
+      "pageEnd": 176,
+      "text": "On your turn, you can take one action. Choose which\naction to take from those below or from the special\nactions provided by your features. See also “Playing\nthe Game” (“Actions”). These actions are defined\nelsewhere in this glossary:\nAttack\nDash\nDisengage\nDodge\nHelp\nHide\nInfluence\nMagic\nReady\nSearch\nStudy\nUtilize"
+    },
+    {
+      "id": "srd52:rule:b33dd0953555a39a8437",
+      "name": "Advantage",
+      "page": 176,
+      "pageEnd": 176,
+      "text": "If you have Advantage on a D20 Test, roll two d20s,\nand use the higher roll. A roll can’t be affected by\nmore than one Advantage, and Advantage and Dis-\nadvantage on the same roll cancel each other. See\nalso “Playing the Game” (“D20 Tests”)."
+    },
+    {
+      "id": "srd52:rule:df509c10dc507cf436cb",
+      "name": "Adventure",
+      "page": 176,
+      "pageEnd": 176,
+      "text": "An adventure is a series of encounters. A\nstory emerges through playing them. See also\n“Encounter.”"
+    },
+    {
+      "id": "srd52:rule:9e96e48eb0260c633aed",
+      "name": "Alignment",
+      "page": 176,
+      "pageEnd": 176,
+      "text": "A creature’s alignment broadly describes its ethical\nattitudes and ideals. Alignment is a combination of\ntwo factors: one identifies morality (good, evil, or\nneutral), and the other describes attitudes toward\norder (lawful, chaotic, or neutral). These factors al-\nlow for nine possible combinations, such as Lawful\nGood and Neutral Evil. See also “Character Creation”\n(“Create Your Character”)."
+    },
+    {
+      "id": "srd52:rule:d7a0cdb5f5cbdae48ba2",
+      "name": "Ally",
+      "page": 176,
+      "pageEnd": 176,
+      "text": "A creature is your ally if it is a member of your ad-\nventuring party, your friend, on your side in combat,\nor a creature that the rules or the GM designates as\nyour ally."
+    },
+    {
+      "id": "srd52:rule:c0a6b8d097e35997e118",
+      "name": "Area of Effect",
+      "page": 177,
+      "pageEnd": 177,
+      "text": "The descriptions of many spells and other features\nspecify that they have an area of effect, which typ-\nically has one of six shapes. These shapes are de-\nfined elsewhere in this glossary:\nCone\nCube\nCylinder\nEmanation\nLine\nSphere\nAn area of effect has a point of origin, a location\nfrom which the effect’s energy erupts. The rules for\neach shape specify how to position its point of ori-\ngin. If all straight lines extending from the point of\norigin to a location in the area of effect are blocked,\nthat location isn’t included in the area of effect.\nTo block a line, an obstruction must provide Total\nCover. See also “Cover.”\nIf the creator of an area of effect places it at an\nunseen point and an obstruction—such as a wall—\nis between the creator and that point, the point\nof origin comes into being on the near side of the\nobstruction."
+    },
+    {
+      "id": "srd52:rule:39f56aecb8209eac7dc2",
+      "name": "Armor Class",
+      "page": 177,
+      "pageEnd": 177,
+      "text": "An Armor Class (AC) is the target number for an\nattack roll. AC represents how difficult it is to hit a\ntarget.\nYour base AC calculation is 10 plus your Dexterity\nmodifier. If a rule gives you another base AC calcula-\ntion, you choose which calculation to use; you can’t\nuse more than one. See also “Attack Roll.”"
+    },
+    {
+      "id": "srd52:rule:454c97e317627be3ecaf",
+      "name": "Armor Training",
+      "page": 177,
+      "pageEnd": 177,
+      "text": "Armor training allows you to use armor of a certain\ncategory without the following drawbacks. If you\nwear Light, Medium, or Heavy armor and lack train-\ning with it, you have Disadvantage on any D20 Test\nthat involves Strength or Dexterity, and you can’t\ncast spells. If you use a Shield and lack training with\nit, you don’t gain its AC bonus. See also “Disadvan-\ntage” and “Equipment” (“Armor”)."
+    },
+    {
+      "id": "srd52:rule:f87bcd5ea99bb76a3241",
+      "name": "Attack [Action]",
+      "page": 177,
+      "pageEnd": 177,
+      "text": "When you take the Attack action, you can make one\nattack roll with a weapon or an Unarmed Strike.\nEquipping and Unequipping Weapons. You can\neither equip or unequip one weapon when you make\nan attack as part of this action. You do so either\nbefore or after the attack. If you equip a weapon\nbefore an attack, you don’t need to use it for that at-\ntack. Equipping a weapon includes drawing it from\na sheath or picking it up. Unequipping a weapon in-\ncludes sheathing, stowing, or dropping it.\nMoving between Attacks. If you move on your\nturn and have a feature, such as Extra Attack, that\ngives you more than one attack as part of the Attack\naction, you can use some or all of that movement to\nmove between those attacks."
+    },
+    {
+      "id": "srd52:rule:06b3cc2e4f525b419ce2",
+      "name": "Attack Roll",
+      "page": 177,
+      "pageEnd": 177,
+      "text": "An attack roll is a D20 Test that represents making\nan attack with a weapon, an Unarmed Strike, or a\nspell. See also “Playing the Game” (“D20 Tests”)."
+    },
+    {
+      "id": "srd52:rule:f8de435027a37ec950cc",
+      "name": "Attitude",
+      "page": 177,
+      "pageEnd": 177,
+      "text": "A monster has a starting attitude toward a player\ncharacter: Friendly, Hostile, or Indifferent. See also\n“Friendly,” “Hostile,” “Indifferent,” and “Influence.”"
+    },
+    {
+      "id": "srd52:rule:c17b855da6a77d9910af",
+      "name": "Attunement",
+      "page": 177,
+      "pageEnd": 177,
+      "text": "Some magic items require a creature to form a\nbond—called Attunement—with them before the\ncreature can use an item’s magical properties. A\ncreature can have Attunement with no more than\nthree magic items at a time. See also “Equipment”\n(“Magic Items”)."
+    },
+    {
+      "id": "srd52:rule:d581acf28b25975d755c",
+      "name": "Blinded [Condition]",
+      "page": 177,
+      "pageEnd": 177,
+      "text": "While you have the Blinded condition, you experi-\nence the following effects.\nCan’t See. You can’t see and automatically fail any\nability check that requires sight.\nAttacks Affected. Attack rolls against you have\nAdvantage, and your attack rolls have Disadvantage."
+    },
+    {
+      "id": "srd52:rule:7381b4666aa8a80fb89a",
+      "name": "Blindsight",
+      "page": 177,
+      "pageEnd": 177,
+      "text": "If you have Blindsight, you can see within a specific\nrange without relying on physical sight. Within that\nrange, you can see anything that isn’t behind Total\nCover even if you have the Blinded condition or are\nin Darkness. Moreover, in that range, you can see\nsomething that has the Invisible condition."
+    },
+    {
+      "id": "srd52:rule:0f355078708e3c0c8e47",
+      "name": "Bloodied",
+      "page": 177,
+      "pageEnd": 177,
+      "text": "A creature is Bloodied while it has half its Hit Points\nor fewer remaining."
+    },
+    {
+      "id": "srd52:rule:dadef89c1cc872eb592b",
+      "name": "Bonus Action",
+      "page": 177,
+      "pageEnd": 177,
+      "text": "A Bonus Action is a special action that you can take\non the same turn that you take an action. You can’t\ntake more than one Bonus Action on a turn, and you\nhave a Bonus Action to take only if a rule explicitly\nsays so. See also “Playing the Game” (“Actions”)."
+    },
+    {
+      "id": "srd52:rule:b8d8e142ba7b5e00793f",
+      "name": "Breaking Objects",
+      "page": 177,
+      "pageEnd": 178,
+      "text": "Objects can be harmed by attacks and by some\nspells, using the rules below. If an object is exceed-\ningly fragile, the GM may allow a creature to break\nit automatically with the Attack or Utilize action.\nArmor Class. The Object Armor Class table sug-\ngests ACs for various substances.\nObject Armor Class\nAC\nSubstance\nAC\nSubstance\n11\nCloth, paper, rope\n19\nIron, steel\n13\nCrystal, glass, ice\n21\nMithral\n15\nWood\n23\nAdamantine\n17\nStone\nHit Points. An object is destroyed when it has 0\nHit Points. The Object Hit Points table suggests Hit\nPoints for fragile and resilient objects that are Large\nor smaller. To track Hit Points for a Huge or Gargan-\ntuan object, divide it into Large or smaller sections,\nand track each section’s Hit Points separately. The\nGM determines whether destroying part of an ob-\nject causes the whole thing to collapse.\nObject Hit Points\nSize\nFragile\nResilient\nTiny (bottle, lock)\n2 (1d4)\n5 (2d4)\nSmall (chest, lute)\n3 (1d6)\n10 (3d6)\nMedium (barrel, chandelier)\n4 (1d8)\n18 (4d8)\nLarge (cart, dining table)\n5 (1d10)\n27 (5d10)\nDamage Types and Objects. Objects have Immu-\nnity to Poison and Psychic damage. The GM might\ndecide that some damage types are more or less ef-\nfective against an object. For example, Bludgeoning\ndamage works well for smashing things but not for\ncutting. Paper or cloth objects might have Vulnera-\nbility to Fire damage.\nDamage Threshold. Big objects, such as castle\nwalls, often have extra resilience represented by a\ndamage threshold. See also “Damage Threshold.”\nNo Ability Scores. An object lacks ability scores\nunless a rule assigns scores to the object. Without\nability scores, an object can’t make ability checks,\nand it fails all saving throws."
+    },
+    {
+      "id": "srd52:rule:242daa6f2d6d07b4743a",
+      "name": "Bright Light",
+      "page": 178,
+      "pageEnd": 178,
+      "text": "Bright Light is normal illumination. See also “Play-\ning the Game” (“Exploration”)."
+    },
+    {
+      "id": "srd52:rule:76d4ef32896b7aed5a48",
+      "name": "Burning [Hazard]",
+      "page": 178,
+      "pageEnd": 178,
+      "text": "A burning creature or object takes 1d4 Fire damage\nat the start of each of its turns. As an action, you\ncan extinguish fire on yourself by giving yourself\nthe Prone condition and rolling on the ground.\nThe fire also goes out if it is doused, submerged, or\nsuffocated."
+    },
+    {
+      "id": "srd52:rule:27d9dc7414eff8907b7f",
+      "name": "Burrow Speed",
+      "page": 178,
+      "pageEnd": 178,
+      "text": "A creature that has a Burrow Speed can use that\nspeed to move through sand, earth, mud, or ice. The\ncreature can’t burrow through solid rock unless the\ncreature has a trait that allows it to do so. See also\n“Speed.”"
+    },
+    {
+      "id": "srd52:rule:ae0523aae13cab7e1957",
+      "name": "Campaign",
+      "page": 178,
+      "pageEnd": 178,
+      "text": "A campaign is a series of adventures. See also\n“Adventure.”"
+    },
+    {
+      "id": "srd52:rule:c93ef11fee51f1a12d7c",
+      "name": "Cantrip",
+      "page": 178,
+      "pageEnd": 178,
+      "text": "A cantrip is a level 0 spell, which is cast without a\nspell slot. See also “Spells.”"
+    },
+    {
+      "id": "srd52:rule:2d53ca746e7d8f66c873",
+      "name": "Carrying Capacity",
+      "page": 178,
+      "pageEnd": 178,
+      "text": "Your size and Strength score determine the maxi-\nmum weight in pounds that you can carry, as shown\nin the Carrying Capacity table. The table also shows\nthe maximum weight you can drag, lift, or push.\nWhile dragging, lifting, or pushing weight in ex-\ncess of the maximum weight you can carry, your\nSpeed can be no more than 5 feet.\nCarrying Capacity\nCreature Size\nCarry\nDrag/Lift/Push\nTiny\nStr. × 7.5 lb.\nStr. × 15 lb.\nSmall/Medium\nStr. × 15 lb.\nStr. × 30 lb.\nLarge\nStr. × 30 lb.\nStr. × 60 lb.\nHuge\nStr. × 60 lb.\nStr. × 120 lb.\nGargantuan\nStr. × 120 lb.\nStr. × 240 lb."
+    },
+    {
+      "id": "srd52:rule:99023b48f0014f9e2a50",
+      "name": "Challenge Rating",
+      "page": 178,
+      "pageEnd": 178,
+      "text": "Challenge Rating (CR) summarizes the threat a\nmonster poses to a group of four player characters.\nCompare a monster’s CR to the characters’ level. If\nthe CR is higher, the monster is likely a danger. If the\nCR is lower, the monster likely poses little threat.\nBut circumstances and the number of player charac-\nters can significantly alter how threatening a mon-\nster is in actual play. “Gameplay Toolbox” (“Combat\nEncounters”) provides guidance to the GM on using\nCR while planning potential combat encounters. See\nalso “Stat Block.”"
+    },
+    {
+      "id": "srd52:rule:130766726e7e1749216a",
+      "name": "Character Sheet",
+      "page": 178,
+      "pageEnd": 178,
+      "text": "A character sheet is a paper or digital record that\nyou use to track your character’s information. See\nalso “Character Creation.”"
+    },
+    {
+      "id": "srd52:rule:9f07887a53da5301c385",
+      "name": "Charmed [Condition]",
+      "page": 178,
+      "pageEnd": 178,
+      "text": "While you have the Charmed condition, you experi-\nence the following effects.\nCan’t Harm the Charmer. You can’t attack the\ncharmer or target the charmer with damaging abili-\nties or magical effects.\nSocial Advantage. The charmer has Advantage on\nany ability check to interact with you socially."
+    },
+    {
+      "id": "srd52:rule:6d73bfda8129775de1cf",
+      "name": "Climbing",
+      "page": 178,
+      "pageEnd": 179,
+      "text": "While you’re climbing, each foot of movement costs\n1 extra foot (2 extra feet in Difficult Terrain). You\nignore this extra cost if you have a Climb Speed and\nuse it to climb.\nAt the GM’s option, climbing a slippery surface or\none with few handholds might require a successful\nDC 15 Strength (Athletics) check."
+    },
+    {
+      "id": "srd52:rule:615e0ef947be1c71619a",
+      "name": "Climb Speed",
+      "page": 179,
+      "pageEnd": 179,
+      "text": "A Climb Speed can be used in place of Speed to tra-\nverse a vertical surface without expending the extra\nmovement normally associated with climbing. See\nalso “Climbing” and “Speed.”"
+    },
+    {
+      "id": "srd52:rule:f725d1fe5ae8ca424f85",
+      "name": "Concentration",
+      "page": 179,
+      "pageEnd": 179,
+      "text": "Some spells and other effects require Concentration\nto remain active, as specified in their descriptions.\nIf the effect’s creator loses Concentration, the effect\nends. If the effect has a maximum duration, the ef-\nfect’s description specifies how long the creator can\nconcentrate on it: up to 1 minute, 1 hour, or some\nother duration. The creator can end Concentration\nat any time (no action required). The following fac-\ntors break Concentration.\nAnother Concentration Effect. You lose Concen-\ntration on an effect the moment you start casting\na spell that requires Concentration or activate an-\nother effect that requires Concentration.\nDamage. If you take damage, you must succeed\non a Constitution saving throw to maintain Concen-\ntration. The DC equals 10 or half the damage taken\n(round down), whichever number is higher, up to a\nmaximum DC of 30.\nIncapacitated or Dead. Your Concentration ends\nif you have the Incapacitated condition or you die."
+    },
+    {
+      "id": "srd52:rule:9f741fa4069ab46b0749",
+      "name": "Condition",
+      "page": 179,
+      "pageEnd": 179,
+      "text": "A condition is a temporary game state. The defini-\ntion of a condition says how it affects its recipient,\nand various rules define how to end a condition.\nThis glossary defines these conditions:\nBlinded\nCharmed\nDeafened\nExhaustion\nFrightened\nGrappled\nIncapacitated\nInvisible\nParalyzed\nPetrified\nPoisoned\nProne\nRestrained\nStunned\nUnconscious\nA condition doesn’t stack with itself; a recipient\neither has a condition or doesn’t. The Exhaustion\ncondition is an exception to that rule."
+    },
+    {
+      "id": "srd52:rule:e3801b2cdd528fc618b8",
+      "name": "Cone [Area of Effect]",
+      "page": 179,
+      "pageEnd": 179,
+      "text": "A Cone is an area of effect that extends in straight\nlines from a point of origin in a direction its creator\nchooses. A Cone’s width at any point along its length\nis equal to that point’s distance from the point of\norigin. For example, a Cone is 15 feet wide at a point\nalong its length that is 15 feet from the point of\norigin. The effect that creates a Cone specifies its\nmaximum length.\nA Cone’s point of origin isn’t included in the area\nof effect unless its creator decides otherwise."
+    },
+    {
+      "id": "srd52:rule:2a0ea8477f45b4a49be1",
+      "name": "Cover",
+      "page": 179,
+      "pageEnd": 179,
+      "text": "Cover provides a degree of protection to a target\nbehind it. There are three degrees of cover, each of\nwhich provides a different benefit to a target: Half\nCover (+2 bonus to AC and Dexterity saving throws),\nThree-Quarters Cover (+5 bonus to AC and Dexter-\nity saving throws), and Total Cover (can’t be tar-\ngeted directly). If behind more than one degree of\ncover, a target benefits only from the most protec-\ntive degree. See also “Playing the Game” (“Combat”)."
+    },
+    {
+      "id": "srd52:rule:b1b9c507b7104e087e15",
+      "name": "Crawling",
+      "page": 179,
+      "pageEnd": 179,
+      "text": "While you’re crawling, each foot of movement costs\n1 extra foot (2 extra feet in Difficult Terrain). See\nalso “Speed.”"
+    },
+    {
+      "id": "srd52:rule:b84008ba33065abb3561",
+      "name": "Creature",
+      "page": 179,
+      "pageEnd": 179,
+      "text": "Any being in the game, including a player’s charac-\nter, is a creature. See also “Creature Type.”"
+    },
+    {
+      "id": "srd52:rule:54bd4a5208178341f3ab",
+      "name": "Creature Type",
+      "page": 179,
+      "pageEnd": 179,
+      "text": "Every creature, including every player character,\nhas a tag in the rules that identifies the type of crea-\nture it is. Most player characters are of the Human-\noid type. These are the game’s creature types:\nAberration\nBeast\nCelestial\nConstruct\nDragon\nElemental\nFey\nFiend\nGiant\nHumanoid\nMonstrosity\nOoze\nPlant\nUndead\nThe types don’t have rules themselves, but some\nrules in the game affect creatures of certain types\nin different ways."
+    },
+    {
+      "id": "srd52:rule:aea5b859ce898029c639",
+      "name": "Critical Hit",
+      "page": 179,
+      "pageEnd": 179,
+      "text": "If you roll a 20 on the d20 for an attack roll, you\nscore a Critical Hit, and the attack hits regardless of\nany modifiers or the target’s AC. A Critical Hit lets\nyou roll extra dice for the attack’s damage against\nthe target. Roll all of the attack’s damage dice twice\nand add them together. Then add any relevant mod-\nifiers. See also “Playing the Game” (“Damage and\nHealing”)."
+    },
+    {
+      "id": "srd52:rule:7ea59a04b5da7acbe0f2",
+      "name": "Cube [Area of Effect]",
+      "page": 179,
+      "pageEnd": 179,
+      "text": "A Cube is an area of effect that extends in straight\nlines from a point of origin located anywhere on a\nface of the Cube. The effect that creates a Cube spec-\nifies its size, which is the length of each side.\nA Cube’s point of origin isn’t included in the area\nof effect unless its creator decides otherwise."
+    },
+    {
+      "id": "srd52:rule:628817fad4e74096443b",
+      "name": "Curses",
+      "page": 179,
+      "pageEnd": 179,
+      "text": "Some game effects curse a creature or an object.\nThe effect that confers a curse defines what the\ncurse does. Curses can be removed by the Remove\nCurse and Greater Restoration spells or other magic\nthat explicitly ends curses."
+    },
+    {
+      "id": "srd52:rule:1028501ed3f3f893f96c",
+      "name": "Cylinder [Area of Effect]",
+      "page": 180,
+      "pageEnd": 180,
+      "text": "A Cylinder is an area of effect that extends in\nstraight lines from a point of origin located at the\ncenter of the circular top or bottom of the Cylinder.\nThe effect that creates a Cylinder specifies the ra-\ndius of the Cylinder’s base and the Cylinder’s height.\nA Cylinder’s point of origin is included in the area\nof effect."
+    },
+    {
+      "id": "srd52:rule:6614748dcb3b9164373b",
+      "name": "D20 Test",
+      "page": 180,
+      "pageEnd": 180,
+      "text": "D20 Tests encompass the three main d20 rolls of\nthe game: ability checks, attack rolls, and saving\nthrows. If something in the game affects D20 Tests,\nit affects all three of these rolls. The GM determines\nwhether a D20 Test is warranted in a given circum-\nstance. See also “Playing the Game” (“D20 Tests”)."
+    },
+    {
+      "id": "srd52:rule:40f5858103331e92e7c9",
+      "name": "Damage",
+      "page": 180,
+      "pageEnd": 180,
+      "text": "Damage represents harm that causes a creature or\nan object to lose Hit Points."
+    },
+    {
+      "id": "srd52:rule:ab5f374a96b06cbb02bb",
+      "name": "Damage Roll",
+      "page": 180,
+      "pageEnd": 180,
+      "text": "A damage roll is a die roll, adjusted by any applica-\nble modifiers, that deals damage to a target. See also\n“Playing the Game” (“Damage and Healing”)."
+    },
+    {
+      "id": "srd52:rule:022e5b5c9d7251b8d499",
+      "name": "Damage Threshold",
+      "page": 180,
+      "pageEnd": 180,
+      "text": "A creature or an object that has a damage thresh-\nold has Immunity to all damage unless it takes an\namount of damage from a single attack or effect\nequal to or greater than its damage threshold, in\nwhich case it takes that entire instance of dam-\nage. Any damage that fails to meet or exceed the\ndamage threshold is superficial and doesn’t reduce\nHit Points. For example, if an object has a damage\nthreshold of 10, the object takes no damage if 9\ndamage is dealt to it, since that damage fails to\nexceed the threshold. If the same object is dealt 11\ndamage, it takes all of that damage."
+    },
+    {
+      "id": "srd52:rule:17a675dc125b8e241ea4",
+      "name": "Damage Types",
+      "page": 180,
+      "pageEnd": 180,
+      "text": "Attacks and other harmful effects deal different\ntypes of damage. Damage types have no rules of\ntheir own, but other rules, such as Resistance, rely\non the types. The Damage Types table offers exam-\nples to help a GM assign a type to a new effect.\nDamage Types\nType\nExamples\nAcid\nCorrosive liquids, digestive enzymes\nBludgeoning\nBlunt objects, constriction, falling\nCold\nFreezing water, icy blasts\nFire\nFlames, unbearable heat\nForce\nPure magical energy\nLightning\nElectricity\nType\nExamples\nNecrotic\nLife-draining energy\nPiercing\nFangs, puncturing objects\nPoison\nToxic gas, venom\nPsychic\nMind-rending energy\nRadiant\nHoly energy, searing radiation\nSlashing\nClaws, cutting objects\nThunder\nConcussive sound"
+    },
+    {
+      "id": "srd52:rule:0249189154659d699805",
+      "name": "Darkness",
+      "page": 180,
+      "pageEnd": 180,
+      "text": "An area of Darkness is Heavily Obscured. See\nalso “Heavily Obscured” and “Playing the Game”\n(“Exploration”)."
+    },
+    {
+      "id": "srd52:rule:95178853b465f098917d",
+      "name": "Darkvision",
+      "page": 180,
+      "pageEnd": 180,
+      "text": "If you have Darkvision, you can see in Dim Light\nwithin a specified range as if it were Bright Light\nand in Darkness within that range as if it were\nDim Light. You discern colors in that Darkness\nonly as shades of gray. See also “Playing the Game”\n(“Exploration”)."
+    },
+    {
+      "id": "srd52:rule:2db4860896e1bf221889",
+      "name": "Dash [Action]",
+      "page": 180,
+      "pageEnd": 180,
+      "text": "When you take the Dash action, you gain extra\nmovement for the current turn. The increase equals\nyour Speed after applying any modifiers. With a\nSpeed of 30 feet, for example, you can move up to\n60 feet on your turn if you Dash. If your Speed of 30\nfeet is reduced to 15 feet, you can move up to 30 feet\nthis turn if you Dash.\nIf you have a special speed, such as a Fly Speed or\nSwim Speed, you can use that speed instead of your\nSpeed when you take this action. You choose which\nspeed to use each time you take it. See also “Speed.”"
+    },
+    {
+      "id": "srd52:rule:e0e080dd3fc20614a39f",
+      "name": "Dead",
+      "page": 180,
+      "pageEnd": 180,
+      "text": "A dead creature has no Hit Points and can’t regain\nthem unless it is first revived by magic such as the\nRaise Dead or Revivify spell. When such a spell is\ncast, the spirit knows who is casting it and can re-\nfuse. The spirit of a dead creature has left the body\nand departed for the Outer Planes, and reviving the\ncreature requires calling the spirit back.\nIf the creature returns to life, the revival effect\ndetermines the creature’s current Hit Points. Un-\nless otherwise stated, the creature returns to life\nwith any conditions, magical contagions, or curses\nthat were affecting it at death if the durations of\nthose effects are still ongoing. If the creature died\nwith any Exhaustion levels, it returns with 1 fewer\nlevel. If the creature had Attunement to one or more\nmagic items, it is no longer attuned to them."
+    },
+    {
+      "id": "srd52:rule:4cfcea98265dd2018812",
+      "name": "Deafened [Condition]",
+      "page": 181,
+      "pageEnd": 181,
+      "text": "While you have the Deafened condition, you experi-\nence the following effect.\nCan’t Hear. You can’t hear and automatically fail\nany ability check that requires hearing."
+    },
+    {
+      "id": "srd52:rule:8aed2f74cf8970a08343",
+      "name": "Death Saving Throw",
+      "page": 181,
+      "pageEnd": 181,
+      "text": "A player character must make a Death Saving\nThrow (also called a Death Save) if they start their\nturn with 0 Hit Points. See also “Playing the Game”\n(“Damage and Healing”)."
+    },
+    {
+      "id": "srd52:rule:a846ad027d0efc8b24fa",
+      "name": "Dehydration [Hazard]",
+      "page": 181,
+      "pageEnd": 181,
+      "text": "A creature requires an amount of water per day\nbased on its size, as shown in the Water Needs per\nDay table. A creature that drinks less than half the\nrequired water for a day gains 1 Exhaustion level\nat the day’s end. Exhaustion caused by dehydra-\ntion can’t be removed until the creature drinks the\nfull amount of water required for a day. See also\n“Exhaustion.”\nWater Needs per Day\nSize\nWater\nTiny\n1/4 gallon\nSmall\n1 gallon\nMedium\n1 gallon\nSize\nWater\nLarge\n4 gallons\nHuge\n16 gallons\nGargantuan\n64 gallons"
+    },
+    {
+      "id": "srd52:rule:ee3dc18d06e413dfbf58",
+      "name": "Difficult Terrain",
+      "page": 181,
+      "pageEnd": 181,
+      "text": "If a space is Difficult Terrain, every foot of move-\nment in that space costs 1 extra foot. For example,\nmoving 5 feet through Difficult Terrain costs 10 feet\nof movement. Difficult Terrain isn’t cumulative; ei-\nther a space is Difficult Terrain or it isn’t.\nA space is Difficult Terrain if the space contains\nany of the following or something similar:\n•\tA creature that isn’t Tiny or your ally\n•\tFurniture that is sized for creatures of your size or\nlarger\n•\tHeavy snow, ice, rubble, or undergrowth\n•\tLiquid that’s between shin- and waist-deep\n•\tA narrow opening sized for a creature one size\nsmaller than you\n•\tA slope of 20 degrees or more"
+    },
+    {
+      "id": "srd52:rule:965cbb85e0a080128c8e",
+      "name": "Difficulty Class",
+      "page": 181,
+      "pageEnd": 181,
+      "text": "A Difficulty Class (DC) is the target number for an\nability check or a saving throw. See also “Playing the\nGame” (“D20 Tests”)."
+    },
+    {
+      "id": "srd52:rule:e724c6f896b939f8279a",
+      "name": "Dim Light",
+      "page": 181,
+      "pageEnd": 181,
+      "text": "An area with Dim Light is Lightly Obscured. See\nalso “Lightly Obscured” and “Playing the Game”\n(“Exploration”)."
+    },
+    {
+      "id": "srd52:rule:14b6c9b3ad2bf6b425fb",
+      "name": "Disadvantage",
+      "page": 181,
+      "pageEnd": 181,
+      "text": "If you have Disadvantage on a D20 Test, roll two\nd20s and use the lower roll. A roll can’t be affected\nby more than one Disadvantage, and Advantage and\nDisadvantage on the same roll cancel each other. See\nalso “Playing the Game” (“D20 Tests”)."
+    },
+    {
+      "id": "srd52:rule:9986c2a490b28686d5be",
+      "name": "Disengage [Action]",
+      "page": 181,
+      "pageEnd": 181,
+      "text": "If you take the Disengage action, your movement\ndoesn’t provoke Opportunity Attacks for the rest of\nthe current turn."
+    },
+    {
+      "id": "srd52:rule:6067f6085699519fc2ef",
+      "name": "Dodge [Action]",
+      "page": 181,
+      "pageEnd": 181,
+      "text": "If you take the Dodge action, you gain the following\nbenefits: until the start of your next turn, any attack\nroll made against you has Disadvantage if you can\nsee the attacker, and you make Dexterity saving\nthrows with Advantage.\nYou lose these benefits if you have the Incapaci-\ntated condition or if your Speed is 0."
+    },
+    {
+      "id": "srd52:rule:e94ba148c5a9f00663eb",
+      "name": "Emanation [Area of Effect]",
+      "page": 181,
+      "pageEnd": 181,
+      "text": "An Emanation is an area of effect that extends in\nstraight lines from a creature or an object in all di-\nrections. The effect that creates an Emanation spec-\nifies the distance it extends.\nAn Emanation moves with the creature or object\nthat is its origin unless it is an instantaneous or a\nstationary effect.\nAn Emanation’s origin (creature or object) isn’t\nincluded in the area of effect unless its creator de-\ncides otherwise."
+    },
+    {
+      "id": "srd52:rule:6188d7f199634ea9acf3",
+      "name": "Encounter",
+      "page": 181,
+      "pageEnd": 181,
+      "text": "An encounter is a scene in an adventure that is part\nof at least one of the game’s three pillars: social in-\nteraction, exploration, or combat. See also “Playing\nthe Game” (“Social Interaction,” “Exploration,” and\n“Combat”)."
+    },
+    {
+      "id": "srd52:rule:e58737d7d096a43ebd59",
+      "name": "Enemy",
+      "page": 181,
+      "pageEnd": 181,
+      "text": "A creature is your enemy if it fights against you in\ncombat, actively works to harm you, or is desig-\nnated as your enemy by the rules or GM."
+    },
+    {
+      "id": "srd52:rule:add47de538e684f6997c",
+      "name": "Exhaustion [Condition]",
+      "page": 181,
+      "pageEnd": 181,
+      "text": "While you have the Exhaustion condition, you\nexperience the following effects.\nExhaustion Levels. This condition is cumulative.\nEach time you receive it, you gain 1 Exhaustion\nlevel. You die if your Exhaustion level is 6.\nD20 Tests Affected. When you make a D20 Test,\nthe roll is reduced by 2 times your Exhaustion level.\nSpeed Reduced. Your Speed is reduced by a num-\nber of feet equal to 5 times your Exhaustion level.\nRemoving Exhaustion Levels. Finishing a Long\nRest removes 1 of your Exhaustion levels. When\nyour Exhaustion level reaches 0, the condition ends."
+    },
+    {
+      "id": "srd52:rule:f36e450adee36338b118",
+      "name": "Experience Points",
+      "page": 182,
+      "pageEnd": 182,
+      "text": "As they overcome challenges and complete ad-\nventures, characters earn Experience Points (XP),\nwhich are awarded by the Game Master. When a\ncharacter’s XP total crosses certain thresholds,\nthe character’s level increases. See also “Level\nAdvancement.”"
+    },
+    {
+      "id": "srd52:rule:82a8c22c8a913edfec7a",
+      "name": "Expertise",
+      "page": 182,
+      "pageEnd": 182,
+      "text": "Expertise is a feature that enhances your use of a\nskill proficiency. When you make an ability check\nwith a skill proficiency in which you have Expertise,\nyour Proficiency Bonus is doubled for that check un-\nless the bonus is doubled by another feature.\nIf you gain Expertise, you gain it in one skill in\nwhich you have proficiency. You can’t have Exper-\ntise in the same skill proficiency more than once.\nSee also “Playing the Game” (“Proficiency”)."
+    },
+    {
+      "id": "srd52:rule:d89686b24608886f68c7",
+      "name": "Falling [Hazard]",
+      "page": 182,
+      "pageEnd": 182,
+      "text": "A creature that falls takes 1d6 Bludgeoning dam-\nage at the end of the fall for every 10 feet it fell, to\na maximum of 20d6. When the creature lands, it\nhas the Prone condition unless it avoids taking any\ndamage from the fall.\nA creature that falls into water or another liquid\ncan use its Reaction to make a DC 15 Strength (Ath-\nletics) or Dexterity (Acrobatics) check to hit the\nsurface head or feet first. On a successful check, any\ndamage resulting from the fall is halved."
+    },
+    {
+      "id": "srd52:rule:ed363dac2a1b08889481",
+      "name": "Flying",
+      "page": 182,
+      "pageEnd": 182,
+      "text": "A variety of effects allow a creature to fly. While fly-\ning, you fall if you have the Incapacitated or Prone\ncondition or your Fly Speed is reduced to 0. You can\nstay aloft in those circumstances if you can hover.\nSee also “Falling” and “Fly Speed.”"
+    },
+    {
+      "id": "srd52:rule:313f124c0b71a94f1db1",
+      "name": "Fly Speed",
+      "page": 182,
+      "pageEnd": 182,
+      "text": "A Fly Speed can be used to travel through the air.\nWhile you have a Fly Speed, you can stay aloft until\nyou land, fall, or die. See also “Flying” and “Speed.”"
+    },
+    {
+      "id": "srd52:rule:9c863495e2abe7388461",
+      "name": "Friendly [Attitude]",
+      "page": 182,
+      "pageEnd": 182,
+      "text": "A Friendly creature views you favorably. You\nhave Advantage on an ability check to influence a\nFriendly creature. See also “Influence.”"
+    },
+    {
+      "id": "srd52:rule:d22dff49fb7b0e6f4b03",
+      "name": "Frightened [Condition]",
+      "page": 182,
+      "pageEnd": 182,
+      "text": "While you have the Frightened condition, you expe-\nrience the following effects.\nAbility Checks and Attacks Affected. You have\nDisadvantage on ability checks and attack rolls\nwhile the source of fear is within line of sight.\nCan’t Approach. You can’t willingly move closer to\nthe source of fear."
+    },
+    {
+      "id": "srd52:rule:383ae0bd11b6e6882cfb",
+      "name": "Grappled [Condition]",
+      "page": 182,
+      "pageEnd": 182,
+      "text": "While you have the Grappled condition, you experi-\nence the following effects.\nSpeed 0. Your Speed is 0 and can’t increase.\nAttacks Affected. You have Disadvantage on at-\ntack rolls against any target other than the grappler.\nMovable. The grappler can drag or carry you\nwhen it moves, but every foot of movement costs it 1\nextra foot unless you are Tiny or two or more sizes\nsmaller than it."
+    },
+    {
+      "id": "srd52:rule:dc7062296c57682351e7",
+      "name": "Grappling",
+      "page": 182,
+      "pageEnd": 182,
+      "text": "A creature can grapple another creature. Charac-\nters typically grapple by using an Unarmed Strike.\nMany monsters have special attacks that allow\nthem to quickly grapple prey. However a grapple is\ninitiated, it follows these rules. See also “Unarmed\nStrike” and “Grappled.”\nGrappled Condition. Successfully grappling a\ncreature gives it the Grappled condition.\nOne Grapple per Hand. A creature must have a\nhand free to grapple another creature. Some stat\nblocks and game effects allow a creature to grapple\nusing a tentacle, a maw, or another body part. What-\never part a grappler uses, it can grapple only one\ncreature at a time with that part, and the grappler\ncan’t use that part to target another creature unless\nit ends the grapple.\nEnding a Grapple. A Grappled creature can use\nits action to make a Strength (Athletics) or Dexter-\nity (Acrobatics) check against the grapple’s escape\nDC, ending the condition on itself on a success. The\ncondition also ends if the grappler has the Inca-\npacitated condition or if the distance between the\nGrappled target and the grappler exceeds the grap-\nple’s range. In addition, the grappler can release the\ntarget at any time (no action required)."
+    },
+    {
+      "id": "srd52:rule:b2728d95cc8ccf6443ed",
+      "name": "Hazard",
+      "page": 182,
+      "pageEnd": 182,
+      "text": "A hazard is an environmental danger. See also\n“Burning,” “Dehydration,” “Falling,” “Malnutrition,”\nand “Suffocation.”"
+    },
+    {
+      "id": "srd52:rule:d170a44ec034b2da9235",
+      "name": "Healing",
+      "page": 182,
+      "pageEnd": 182,
+      "text": "Healing is how you regain Hit Points. See also “Play-\ning the Game” (“Damage and Healing”)."
+    },
+    {
+      "id": "srd52:rule:13a964891ffe2f5d6fc2",
+      "name": "Heavily Obscured",
+      "page": 182,
+      "pageEnd": 182,
+      "text": "You have the Blinded condition while trying to see\nsomething in a Heavily Obscured space. See also\n“Blinded,” “Darkness,” and “Playing the Game”\n(“Exploration”)."
+    },
+    {
+      "id": "srd52:rule:b62acca3e81d7a2bba2d",
+      "name": "Help [Action]",
+      "page": 182,
+      "pageEnd": 183,
+      "text": "When you take the Help action, you do one of the\nfollowing.\nAssist an Ability Check. Choose one of your\nskill or tool proficiencies and one ally who is near\nenough for you to assist verbally or physically when\nthey make an ability check. That ally has Advantage\non the next ability check they make with the chosen\nskill or tool. This benefit expires if the ally doesn’t\nuse it before the start of your next turn. The GM has\nfinal say on whether your assistance is possible.\nAssist an Attack Roll. You momentarily distract\nan enemy within 5 feet of you, giving Advantage to\nthe next attack roll by one of your allies against that\nenemy. This benefit expires at the start of your next\nturn."
+    },
+    {
+      "id": "srd52:rule:8ff3d4127ba07464aa38",
+      "name": "Heroic Inspiration",
+      "page": 183,
+      "pageEnd": 183,
+      "text": "If you (a player character) have Heroic Inspiration,\nyou can expend it to reroll any die immediately af-\nter rolling it, and you must use the new roll.\nIf you gain Heroic Inspiration but already have it,\nit’s lost unless you give it to a player character who\nlacks it."
+    },
+    {
+      "id": "srd52:rule:3ec06a6bcf92a3398a5e",
+      "name": "Hide [Action]",
+      "page": 183,
+      "pageEnd": 183,
+      "text": "With the Hide action, you try to hide yourself. To do\nso, you must succeed on a DC 15 Dexterity (Stealth)\ncheck while you’re Heavily Obscured or behind\nThree-Quarters Cover or Total Cover, and you must\nbe out of any enemy’s line of sight; if you can see a\ncreature, you can discern whether it can see you.\nOn a successful check, you have the Invisible con-\ndition while hidden. Make note of your check’s total,\nwhich is the DC for a creature to find you with a\nWisdom (Perception) check.\nYou stop being hidden immediately after any of\nthe following occurs: you make a sound louder than\na whisper, an enemy finds you, you make an attack\nroll, or you cast a spell with a Verbal component."
+    },
+    {
+      "id": "srd52:rule:165c6edab21deb4276e9",
+      "name": "High Jump",
+      "page": 183,
+      "pageEnd": 183,
+      "text": "When you make a High Jump, you leap into the\nair a number of feet equal to 3 plus your Strength\nmodifier (minimum of 0 feet) if you move at least\n10 feet on foot immediately before the jump. When\nyou make a standing High Jump, you can jump only\nhalf that distance. Either way, each foot of the jump\ncosts a foot of movement.\nYou can extend your arms half your height above\nyourself during the jump. Thus, you can reach a dis-\ntance equal to the height of the jump plus 1½ times\nyour height."
+    },
+    {
+      "id": "srd52:rule:d50b01b1c4aafff17117",
+      "name": "Hit Point Dice",
+      "page": 183,
+      "pageEnd": 183,
+      "text": "Hit Point Dice, or Hit Dice for short, help determine\na player character’s Hit Point maximum, as ex-\nplained in “Character Creation.” Most monsters also\nhave Hit Dice. A creature can spend Hit Dice during\na Short Rest to regain Hit Points. See also “Short\nRest.”"
+    },
+    {
+      "id": "srd52:rule:1fd80ec6a6490b831730",
+      "name": "Hit Points",
+      "page": 183,
+      "pageEnd": 183,
+      "text": "Hit Points (HP) are a measure of how difficult it is\nto kill or destroy a creature or an object. Damage\nreduces Hit Points, and healing restores them.\nYou can’t have more Hit Points than your Hit Point\nmaximum, and you can’t have less than 0. See also\n“Breaking Objects” and “Playing the Game” (“Dam-\nage and Healing”)."
+    },
+    {
+      "id": "srd52:rule:51fdb57e49adabdb15fa",
+      "name": "Hostile [Attitude]",
+      "page": 183,
+      "pageEnd": 183,
+      "text": "A Hostile creature views you unfavorably. You have\nDisadvantage on an ability check to influence a Hos-\ntile creature. See also “Influence.”"
+    },
+    {
+      "id": "srd52:rule:144dbf67dc34ab58ce1c",
+      "name": "Hover",
+      "page": 183,
+      "pageEnd": 183,
+      "text": "Some creatures can hover, as noted in their stat\nblocks, and some spells and other effects grant the\nability to hover. Hovering while flying prevents\nyou from falling in certain circumstances. See also\n“Flying.”"
+    },
+    {
+      "id": "srd52:rule:b8993625e69f1276b299",
+      "name": "Illusions",
+      "page": 183,
+      "pageEnd": 183,
+      "text": "Spells and other effects sometimes create magical il-\nlusions. Such an effect defines what the illusion does\nand which senses or mental faculties it deceives.\nIf an illusion manifests in space, the illusion is\ninsubstantial and weightless, yet it seems to be\naffected by the environment as if the illusion were\nreal unless the effect that created it specifies oth-\nerwise. For example, a visual illusion of a creature\ncasts shadows and reflections, and wind appears\nto affect the illusory creature. Similarly, an audible\nillusion echoes in an echoey space."
+    },
+    {
+      "id": "srd52:rule:aad02a5b5ef472ead583",
+      "name": "Immunity",
+      "page": 183,
+      "pageEnd": 183,
+      "text": "If you have Immunity to a damage type or a condi-\ntion, it doesn’t affect you in any way."
+    },
+    {
+      "id": "srd52:rule:84ed206fa87f0d82a199",
+      "name": "Improvised Weapons",
+      "page": 183,
+      "pageEnd": 183,
+      "text": "An improvised weapon is an object wielded as a\nmakeshift weapon, such as broken glass, a table leg,\nor a frying pan. A Simple or Martial weapon also\ncounts as an improvised weapon if it’s wielded in\na way contrary to its design; if you use a Ranged\nweapon to make a melee attack or throw a Me-\nlee weapon that lacks the Thrown property, the\nweapon counts as an improvised weapon. An impro-\nvised weapon follows the rules below.\nProficiency. Don’t add your Proficiency Bonus to\nattack rolls with an improvised weapon.\nDamage. On a hit, the weapon deals 1d4 damage\nof a type the GM thinks is appropriate for the object.\nRange. If you throw the weapon, it has a normal\nrange of 20 feet and a long range of 60 feet.\nWeapon Equivalents. If an improvised weapon\nresembles a Simple or Martial weapon, the GM may\nsay it functions as that weapon and uses that weap-\non’s rules. For example, the GM could treat a table\nleg as a Club."
+    },
+    {
+      "id": "srd52:rule:59bfac4cc524225ae10c",
+      "name": "Incapacitated [Condition]",
+      "page": 184,
+      "pageEnd": 184,
+      "text": "While you have the Incapacitated condition, you ex-\nperience the following effects.\nInactive. You can’t take any action, Bonus Action,\nor Reaction.\nNo Concentration. Your Concentration is broken.\nSpeechless. You can’t speak.\nSurprised. If you’re Incapacitated when you roll\nInitiative, you have Disadvantage on the roll."
+    },
+    {
+      "id": "srd52:rule:de4c2190d29b83427909",
+      "name": "Indifferent [Attitude]",
+      "page": 184,
+      "pageEnd": 184,
+      "text": "An Indifferent creature has no desire to help or hin-\nder you. Indifferent is the default attitude of a mon-\nster. See also “Influence.”"
+    },
+    {
+      "id": "srd52:rule:599989fb0fb5112ba48e",
+      "name": "Influence [Action]",
+      "page": 184,
+      "pageEnd": 184,
+      "text": "With the Influence action, you urge a monster to\ndo something. Describe or roleplay how you’re\ncommunicating with the monster. Are you trying to\ndeceive, intimidate, amuse, or gently persuade? The\nGM then determines whether the monster feels will-\ning, unwilling, or hesitant due to your interaction;\nthis determination establishes whether an ability\ncheck is necessary, as explained below.\nWilling. If your urging aligns with the monster’s\ndesires, no ability check is necessary; the monster\nfulfills your request in a way it prefers.\nUnwilling. If your urging is repugnant to the mon-\nster or counter to its alignment, no ability check is\nnecessary; it doesn’t comply.\nHesitant. If you urge the monster to do something\nthat it is hesitant to do, you must make an ability\ncheck, which is affected by the monster’s attitude:\nIndifferent, Friendly, or Hostile, each of which is\ndefined in this glossary. The Influence Checks ta-\nble suggests which ability check to make based on\nhow you’re interacting with the monster. The GM\nchooses the check, which has a default DC equal to\n15 or the monster’s Intelligence score, whichever\nis higher. On a successful check, the monster does\nas urged. On a failed check, you must wait 24 hours\n(or a duration set by the GM) before urging it in the\nsame way again.\nInfluence Checks\nAbility Check\nInteraction\nCharisma (Deception)\nDeceiving a monster\nthat understands you\nCharisma (Intimidation)\nIntimidating a monster\nCharisma (Performance)\nAmusing a monster\nCharisma (Persuasion)\nPersuading a monster\nthat understands you\nWisdom (Animal Handling)\nGently coaxing a Beast\nor Monstrosity"
+    },
+    {
+      "id": "srd52:rule:425bda8ed03daea552e7",
+      "name": "Initiative",
+      "page": 184,
+      "pageEnd": 184,
+      "text": "Initiative determines the order of turns during com-\nbat. The combat rules in “Playing the Game” explain\nhow to roll Initiative.\nSometimes a GM might have combatants use\ntheir Initiative scores instead of rolling Initiative.\nYour Initiative score equals 10 plus your Dexterity\nmodifier. If you have Advantage on Initiative rolls,\nincrease your Initiative score by 5. If you have Dis-\nadvantage on those rolls, decrease that score by 5.\nSee also “Playing the Game” (“Combat”)."
+    },
+    {
+      "id": "srd52:rule:f9d185db585d3488da7f",
+      "name": "Invisible [Condition]",
+      "page": 184,
+      "pageEnd": 184,
+      "text": "While you have the Invisible condition, you experi-\nence the following effects.\nSurprise. If you’re Invisible when you roll Initia-\ntive, you have Advantage on the roll.\nConcealed. You aren’t affected by any effect that\nrequires its target to be seen unless the effect’s cre-\nator can somehow see you. Any equipment you are\nwearing or carrying is also concealed.\nAttacks Affected. Attack rolls against you have\nDisadvantage, and your attack rolls have Advan-\ntage. If a creature can somehow see you, you don’t\ngain this benefit against that creature."
+    },
+    {
+      "id": "srd52:rule:4c0030fcc5e4f5418557",
+      "name": "Jumping",
+      "page": 184,
+      "pageEnd": 184,
+      "text": "When you jump, you make either a Long Jump (hor-\nizontal) or a High Jump (vertical). See also “Long\nJump” and “High Jump.”"
+    },
+    {
+      "id": "srd52:rule:5688ac82eab5a241186d",
+      "name": "Knocking Out a Creature",
+      "page": 184,
+      "pageEnd": 184,
+      "text": "When you would reduce a creature to 0 Hit Points\nwith a melee attack, you can instead reduce the\ncreature to 1 Hit Point. The creature then has the\nUnconscious condition and starts a Short Rest.\nThe creature remains Unconscious until it regains\nany Hit Points or until someone uses an action to\nadminister first aid to it, which requires a success-\nful DC 10 Wisdom (Medicine) check."
+    },
+    {
+      "id": "srd52:rule:11a70e2abd056876259c",
+      "name": "Lightly Obscured",
+      "page": 184,
+      "pageEnd": 184,
+      "text": "You have Disadvantage on Wisdom (Perception)\nchecks to see something in a Lightly Obscured\nspace. See also “Dim Light” and “Playing the Game”\n(“Exploration”)."
+    },
+    {
+      "id": "srd52:rule:099be50e322b2528a111",
+      "name": "Line [Area of Effect]",
+      "page": 184,
+      "pageEnd": 184,
+      "text": "A Line is an area of effect that extends from a point\nof origin in a straight path along its length and cov-\ners an area defined by its width. The effect that cre-\nates a Line specifies its length and width.\nA Line’s point of origin isn’t included in the area of\neffect unless its creator decides otherwise."
+    },
+    {
+      "id": "srd52:rule:e7f23a3d84bd3b0afe44",
+      "name": "Long Jump",
+      "page": 184,
+      "pageEnd": 185,
+      "text": "When you make a Long Jump, you leap horizontally\na number of feet up to your Strength score if you\nmove at least 10 feet immediately before the jump.\nWhen you make a standing Long Jump, you can leap\nonly half that distance. Either way, each foot you\njump costs a foot of movement.\nIf you land in Difficult Terrain, you must succeed\non a DC 10 Dexterity (Acrobatics) check or have the\nProne condition.\nThis Long Jump rule assumes that the height of\nthe jump doesn’t matter, such as a jump across a\nstream or chasm. At your GM’s option, you must suc-\nceed on a DC 10 Strength (Athletics) check to clear a\nlow obstacle (no taller than a quarter of the jump’s\ndistance), such as a hedge or low wall. Otherwise,\nyou hit the obstacle."
+    },
+    {
+      "id": "srd52:rule:388afa49eb2bda22d123",
+      "name": "Long Rest",
+      "page": 185,
+      "pageEnd": 185,
+      "text": "A Long Rest is a period of extended downtime—at\nleast 8 hours—available to any creature. During a\nLong Rest, you sleep for at least 6 hours and per-\nform no more than 2 hours of light activity, such as\nreading, talking, eating, or standing watch.\nDuring sleep, you have the Unconscious condition.\nAfter you finish a Long Rest, you must wait at least\n16 hours before starting another one.\nBenefits of the Rest. To start a Long Rest, you\nmust have at least 1 Hit Point. When you finish the\nrest, you gain the following benefits:\nRegain All HP. You regain all lost Hit Points and all\nspent Hit Point Dice. If your Hit Point maximum\nwas reduced, it returns to normal.\nAbility Scores Restored. If any of your ability\nscores were reduced, they return to normal.\nExhaustion Reduced. If you have the Exhaustion\ncondition, its level decreases by 1.\nSpecial Feature. Some features are recharged by a\nLong Rest. If you have such a feature, it recharges\nin the way specified in its description.\nInterrupting the Rest. A Long Rest is stopped by\nthe following interruptions:\n•\t Rolling Initiative\n•\t Casting a spell other than a cantrip\n•\t Taking any damage\n•\t 1 hour of walking or other physical exertion\nIf you rested at least 1 hour before the interruption,\nyou gain the benefits of a Short Rest. See also “Short\nRest.”\nYou can resume a Long Rest immediately after an\ninterruption. If you do so, the rest requires 1 addi-\ntional hour per interruption to finish."
+    },
+    {
+      "id": "srd52:rule:a3a07dae3ffc65ba70c8",
+      "name": "Magic [Action]",
+      "page": 185,
+      "pageEnd": 185,
+      "text": "When you take the Magic action, you cast a spell\nthat has a casting time of an action or use a feature\nor magic item that requires a Magic action to be\nactivated.\nIf you cast a spell that has a casting time of 1 min-\nute or longer, you must take the Magic action on\neach turn of that casting, and you must maintain\nConcentration while you do so. If your Concentra-\ntion is broken, the spell fails, but you don’t expend a\nspell slot. See also “Concentration.”"
+    },
+    {
+      "id": "srd52:rule:8d3cb23dfa55b6cffc2d",
+      "name": "Magical Effect",
+      "page": 185,
+      "pageEnd": 185,
+      "text": "An effect is magical if it is created by a spell, a magic\nitem, or a phenomenon that a rule labels as magical."
+    },
+    {
+      "id": "srd52:rule:228f21587b5ca1b649e9",
+      "name": "Malnutrition [Hazard]",
+      "page": 185,
+      "pageEnd": 185,
+      "text": "A creature needs an amount of food per day based\non its size, as shown in the Food Needs per Day ta-\nble. A creature that eats but consumes less than half\nthe required food for a day must succeed on a DC\n10 Constitution saving throw or gain 1 Exhaustion\nlevel at the day’s end. A creature that eats nothing\nfor 5 days automatically gains 1 Exhaustion level at\nthe end of the fifth day as well as an additional level\nat the end of each subsequent day without food.\nExhaustion caused by malnutrition can’t be re-\nmoved until the creature eats the full amount of\nfood required for a day. See also “Exhaustion.”\nFood Needs per Day\nSize\nFood\nSize\nFood\nTiny\n1/4 pound\nLarge\n4 pounds\nSmall\n1 pound\nHuge\n16 pounds\nMedium\n1 pound\nGargantuan\n64 pounds"
+    },
+    {
+      "id": "srd52:rule:0e0bd5a9cbe037fe43a3",
+      "name": "Monster",
+      "page": 185,
+      "pageEnd": 185,
+      "text": "A monster is a creature controlled by the GM, even\nif the creature is benevolent. See also “Creature” and\n“NPC.”"
+    },
+    {
+      "id": "srd52:rule:c6c5d9e98f4afe832035",
+      "name": "Nonplayer Character",
+      "page": 185,
+      "pageEnd": 185,
+      "text": "A nonplayer character (NPC) is a monster that has\na personal name and a distinct personality. See also\n“Monster.”"
+    },
+    {
+      "id": "srd52:rule:d52367e5040021ecc634",
+      "name": "Object",
+      "page": 185,
+      "pageEnd": 185,
+      "text": "An object is a nonliving, distinct thing. Composite\nthings, like buildings, comprise more than one ob-\nject. See also “Breaking Objects.”"
+    },
+    {
+      "id": "srd52:rule:2c645ea7cbacac7fb320",
+      "name": "Occupied Space",
+      "page": 185,
+      "pageEnd": 185,
+      "text": "A space is occupied if a creature is in it or if it is\ncompletely filled by objects."
+    },
+    {
+      "id": "srd52:rule:3674250aaee5c19540d8",
+      "name": "Opportunity Attacks",
+      "page": 185,
+      "pageEnd": 185,
+      "text": "You can make an Opportunity Attack when a crea-\nture that you can see leaves your reach using its\naction, its Bonus Action, its Reaction, or one of its\nspeeds. To make the Opportunity Attack, take a Re-\naction to make one melee attack with a weapon or\nan Unarmed Strike against the provoking creature.\nThe attack occurs right before the creature leaves\nyour reach. See also “Playing the Game” (“Combat”)."
+    },
+    {
+      "id": "srd52:rule:0ce9ad8bae4080608521",
+      "name": "Paralyzed [Condition]",
+      "page": 186,
+      "pageEnd": 186,
+      "text": "While you have the Paralyzed condition, you experi-\nence the following effects.\nIncapacitated. You have the Incapacitated\ncondition.\nSpeed 0. Your Speed is 0 and can’t increase.\nSaving Throws Affected. You automatically fail\nStrength and Dexterity saving throws.\nAttacks Affected. Attack rolls against you have\nAdvantage.\nAutomatic Critical Hits. Any attack roll that hits\nyou is a Critical Hit if the attacker is within 5 feet of\nyou."
+    },
+    {
+      "id": "srd52:rule:17830c8d229ef3725e45",
+      "name": "Passive Perception",
+      "page": 186,
+      "pageEnd": 186,
+      "text": "Passive Perception is a score that reflects a crea-\nture’s general awareness of its surroundings. The\nGM uses this score when determining whether a\ncreature notices something without consciously\nmaking a Wisdom (Perception) check.\nA creature’s Passive Perception equals 10 plus the\ncreature’s Wisdom (Perception) check bonus. If the\ncreature has Advantage on such checks, increase\nthe score by 5. If the creature has Disadvantage on\nthem, decrease the score by 5. For example, a level\n1 character with a Wisdom of 15 and proficiency in\nPerception has a Passive Perception of 14 (10 + 2 +\n2). If that character has Advantage on Wisdom (Per-\nception) checks, the score becomes 19."
+    },
+    {
+      "id": "srd52:rule:9206afd841b79a837eae",
+      "name": "Per Day",
+      "page": 186,
+      "pageEnd": 186,
+      "text": "If a rule says you can use something a certain num-\nber of times per day, that means you must finish a\nLong Rest to use it again after you run out of uses."
+    },
+    {
+      "id": "srd52:rule:bc6e0bb578db6e086947",
+      "name": "Petrified [Condition]",
+      "page": 186,
+      "pageEnd": 186,
+      "text": "While you have the Petrified condition, you experi-\nence the following effects.\nTurned to Inanimate Substance. You are trans-\nformed, along with any nonmagical objects you are\nwearing and carrying, into a solid inanimate sub-\nstance (usually stone). Your weight increases by a\nfactor of ten, and you cease aging.\nIncapacitated. You have the Incapacitated\ncondition.\nSpeed 0. Your Speed is 0 and can’t increase.\nAttacks Affected. Attack rolls against you have\nAdvantage.\nSaving Throws Affected. You automatically fail\nStrength and Dexterity saving throws.\nResist Damage. You have Resistance to all\ndamage.\nPoison Immunity. You have Immunity to the Poi-\nsoned condition."
+    },
+    {
+      "id": "srd52:rule:af9cb0e56298a7e0ac2d",
+      "name": "Player Character",
+      "page": 186,
+      "pageEnd": 186,
+      "text": "A player character is a character controlled by a\nplayer. See also “Character Creation.”"
+    },
+    {
+      "id": "srd52:rule:74c3344afd9cf5ae09af",
+      "name": "Poisoned [Condition]",
+      "page": 186,
+      "pageEnd": 186,
+      "text": "While you have the Poisoned condition, you experi-\nence the following effect.\nAbility Checks and Attacks Affected. You have\nDisadvantage on attack rolls and ability checks."
+    },
+    {
+      "id": "srd52:rule:eabb364cd66d7136e350",
+      "name": "Possession",
+      "page": 186,
+      "pageEnd": 186,
+      "text": "Some effects cause a creature to be possessed by\nanother creature or entity. A possessing effect de-\nfines how the possession operates. Possession can\nbe prevented by the Protection from Evil and Good\nspell and ended by the Dispel Evil and Good spell."
+    },
+    {
+      "id": "srd52:rule:a2dcc5f71af442013a85",
+      "name": "Proficiency",
+      "page": 186,
+      "pageEnd": 186,
+      "text": "If you have proficiency with something, you can add\nyour Proficiency Bonus to any D20 Test you make\nusing that thing. A creature might have proficiency\nin a skill or saving throw or with a weapon or tool.\nSee also “Playing the Game” (“Proficiency”)."
+    },
+    {
+      "id": "srd52:rule:3c8bc3a19f0aa73f791c",
+      "name": "Prone [Condition]",
+      "page": 186,
+      "pageEnd": 186,
+      "text": "While you have the Prone condition, you experience\nthe following effects.\nRestricted Movement. Your only movement op-\ntions are to crawl or to spend an amount of move-\nment equal to half your Speed (round down) to\nright yourself and thereby end the condition. If your\nSpeed is 0, you can’t right yourself.\nAttacks Affected. You have Disadvantage on at-\ntack rolls. An attack roll against you has Advantage\nif the attacker is within 5 feet of you. Otherwise,\nthat attack roll has Disadvantage."
+    },
+    {
+      "id": "srd52:rule:da112305d37062261b47",
+      "name": "Reach",
+      "page": 186,
+      "pageEnd": 186,
+      "text": "A creature has a reach of 5 feet unless a rule says\notherwise."
+    },
+    {
+      "id": "srd52:rule:5233194f062f70909461",
+      "name": "Reaction",
+      "page": 186,
+      "pageEnd": 186,
+      "text": "A Reaction is a special action taken in response to\na trigger defined in the Reaction’s description. You\ncan take a Reaction on another creature’s turn, and\nif you take it on your turn, you can do so even if you\nalso take an action, a Bonus Action, or both. Once\nyou take a Reaction, you can’t take another one\nuntil the start of your next turn. The Opportunity\nAttack is a Reaction available to all creatures. See\nalso “Opportunity Attacks” and “Playing the Game”\n(“Actions”)."
+    },
+    {
+      "id": "srd52:rule:a9f2250c1faf6e20f65c",
+      "name": "Ready [Action]",
+      "page": 186,
+      "pageEnd": 187,
+      "text": "You take the Ready action to wait for a particular\ncircumstance before you act. To do so, you take this\naction on your turn, which lets you act by taking a\nReaction before the start of your next turn.\nFirst, you decide what perceivable circumstance\nwill trigger your Reaction. Then, you choose the\naction you will take in response to that trigger, or\nyou choose to move up to your Speed in response\nto it. Examples include “If the cultist steps on the\ntrapdoor, I’ll pull the lever that opens it,” and “If the\nzombie steps next to me, I move away.”\nWhen the trigger occurs, you can either take your\nReaction right after the trigger finishes or ignore\nthe trigger.\nWhen you Ready a spell, you cast it as normal (ex-\npending any resources used to cast it) but hold its\nenergy, which you release with your Reaction when\nthe trigger occurs. To be readied, a spell must have\na casting time of an action, and holding on to the\nspell’s magic requires Concentration, which you can\nmaintain up to the start of your next turn. If your\nConcentration is broken, the spell dissipates with-\nout taking effect."
+    },
+    {
+      "id": "srd52:rule:0d055b3f722743b63d58",
+      "name": "Resistance",
+      "page": 187,
+      "pageEnd": 187,
+      "text": "If you have Resistance to a damage type, damage\nof that type is halved against you (round down).\nResistance is applied only once to an instance of\ndamage. See also “Playing the Game” (“Damage and\nHealing”)."
+    },
+    {
+      "id": "srd52:rule:de9b8e567f6b153413ee",
+      "name": "Restrained [Condition]",
+      "page": 187,
+      "pageEnd": 187,
+      "text": "While you have the Restrained condition, you expe-\nrience the following effects.\nSpeed 0. Your Speed is 0 and can’t increase.\nAttacks Affected. Attack rolls against you have\nAdvantage, and your attack rolls have Disadvantage.\nSaving Throws Affected. You have Disadvantage\non Dexterity saving throws."
+    },
+    {
+      "id": "srd52:rule:6b302b203bca6aa0ef8d",
+      "name": "Ritual",
+      "page": 187,
+      "pageEnd": 187,
+      "text": "If you have a spell prepared that has the Ritual tag,\nyou can cast that spell as a Ritual. The Ritual ver-\nsion of a spell takes 10 minutes longer to cast than\nnormal. It also doesn’t expend a spell slot, which\nmeans the ritual version of a spell can’t be cast at a\nhigher level. See also “Spells.”"
+    },
+    {
+      "id": "srd52:rule:9c3b240546644cb2a117",
+      "name": "Round Down",
+      "page": 187,
+      "pageEnd": 187,
+      "text": "Whenever you divide or multiply a number in the\ngame, round down if you end up with a fraction,\neven if the fraction is one-half or greater. Some\nrules make an exception and tell you to round up."
+    },
+    {
+      "id": "srd52:rule:1ed4fef66b9e877f7b45",
+      "name": "Save",
+      "page": 187,
+      "pageEnd": 187,
+      "text": "Save is another name for a saving throw. See also\n“Saving Throw.”"
+    },
+    {
+      "id": "srd52:rule:5a1b20a7a61cfa9442c8",
+      "name": "Saving Throw",
+      "page": 187,
+      "pageEnd": 187,
+      "text": "A saving throw—also called a save—represents an\nattempt to avoid or resist a threat. You normally\nmake a saving throw only when a rule requires you\nto do so, but you can decide to fail the save without\nrolling. The result of a save is detailed in the effect\nthat allowed it. If a target is forced to make a save\nand lacks the ability score used by it, the target au-\ntomatically fails. See also “Playing the Game” (“D20\nTests”)."
+    },
+    {
+      "id": "srd52:rule:a3391e4453a68fd9408a",
+      "name": "Search [Action]",
+      "page": 187,
+      "pageEnd": 187,
+      "text": "When you take the Search action, you make a Wis-\ndom check to discern something that isn’t obvious.\nThe Search table suggests which skills are applica-\nble when you take this action, depending on what\nyou’re trying to detect.\nSearch\nSkill\nThing to Detect\nInsight\nCreature’s state of mind\nMedicine\nCreature’s ailment or cause of death\nPerception\nConcealed creature or object\nSurvival\nTracks or food"
+    },
+    {
+      "id": "srd52:rule:186e408b0a8689309449",
+      "name": "Shape-Shifting",
+      "page": 187,
+      "pageEnd": 187,
+      "text": "If an effect, such as Wild Shape or the Polymorph\nspell, lets you shape-shift, its description specifies\nwhat happens to you. Unless that description says\notherwise, any ongoing effects on you—conditions,\nspells, curses, and the like—carry over from one\nform to the other. You revert to your true form if\nyou die."
+    },
+    {
+      "id": "srd52:rule:58ecdce9d777daec0c33",
+      "name": "Short Rest",
+      "page": 187,
+      "pageEnd": 187,
+      "text": "A Short Rest is a 1-hour period of downtime, during\nwhich a creature does nothing more strenuous than\nreading, talking, eating, or standing watch. To start\na Short Rest, you must have at least 1 Hit Point.\nBenefits of the Rest. When you finish the rest, you\ngain the following benefits:\nSpend Hit Point Dice. You can spend one or more\nof your Hit Point Dice to regain Hit Points. For\neach Hit Point Die you spend in this way, roll the\ndie and add your Constitution modifier to it. You\nregain Hit Points equal to the total (minimum of 1\nHit Point). You can decide to spend an additional\nHit Point Die after each roll.\nSpecial Feature. Some features are recharged by a\nShort Rest. If you have such a feature, it recharges\nin the way specified in its description.\nInterrupting the Rest. A Short Rest is stopped by\nthe following interruptions:\n•\t Rolling Initiative\n•\t Casting a spell other than a cantrip\n•\t Taking any damage\nAn interrupted Short Rest confers no benefits."
+    },
+    {
+      "id": "srd52:rule:862bc6b4143ab6ac2c4a",
+      "name": "Simultaneous Effects",
+      "page": 187,
+      "pageEnd": 187,
+      "text": "If two or more things happen at the same time on a\nturn, the person at the game table—player or GM—\nwhose turn it is decides the order in which those\nthings happen. For example, if two effects occur at\nthe start of a player character’s turn, the player de-\ncides which of the effects happens first."
+    },
+    {
+      "id": "srd52:rule:4b5de686bacf0bacf53c",
+      "name": "Size",
+      "page": 188,
+      "pageEnd": 188,
+      "text": "A creature or an object belongs to a size category:\nTiny, Small, Medium, Large, Huge, or Gargantuan.\nA creature’s size determines how much space the\ncreature occupies in combat. An object’s size affects\nits Hit Points. See also “Breaking Objects” and “Play-\ning the Game” (“Combat”)."
+    },
+    {
+      "id": "srd52:rule:449e407f60d124043a9d",
+      "name": "Skill",
+      "page": 188,
+      "pageEnd": 188,
+      "text": "A skill is an area of specialization associated with\nan ability check. If you have proficiency in a skill,\nyou can add your Proficiency Bonus when you make\nan ability check associated with that skill. See also\n“Playing the Game” (“Proficiency”)."
+    },
+    {
+      "id": "srd52:rule:a59ccef029c51599cfe0",
+      "name": "Speed",
+      "page": 188,
+      "pageEnd": 188,
+      "text": "A creature has a Speed, which is the distance in feet\nthe creature can cover when it moves on its turn.\nSee also “Climbing,” “Crawling,” “Flying,” “Jumping,”\n“Swimming” and “Playing the Game” (“Combat”).\nSpecial Speeds. Some creatures have special\nspeeds, such as a Burrow Speed, Climb Speed, Fly\nSpeed, or Swim Speed, each of which is defined\nin this glossary. If you have more than one speed,\nchoose which one to use when you move; you can\nswitch between the speeds during your move.\nWhenever you switch, subtract the distance already\nmoved from the new speed. The result determines\nhow much farther you can move. If the result is 0 or\nless, you can’t use the new speed during the current\nmove. For example, if you have a Speed of 30 and a\nFly Speed of 40, you could fly 10 feet, walk 10 feet,\nand leap into the air to fly 20 feet more.\nChanges to Your Speeds. If an effect increases or\ndecreases your Speed for a time, any special speed\nyou have increases or decreases by an equal amount\nfor the same duration. For example, if your Speed\nis reduced to 0 and you have a Climb Speed, your\nClimb Speed is also reduced to 0. Similarly, if your\nSpeed is halved and you have a Fly Speed, your Fly\nSpeed is also halved."
+    },
+    {
+      "id": "srd52:rule:0a3e68d42acb74cca7eb",
+      "name": "Spell",
+      "page": 188,
+      "pageEnd": 188,
+      "text": "A spell is a magical effect that has the characteris-\ntics described in “Spells.”"
+    },
+    {
+      "id": "srd52:rule:86ec70039b821265cbf9",
+      "name": "Spell Attack",
+      "page": 188,
+      "pageEnd": 188,
+      "text": "A spell attack is an attack roll made as part of a spell\nor another magical effect. See also “Spells” (“Casting\nSpells”)."
+    },
+    {
+      "id": "srd52:rule:ffb1ecf59ac381f0de15",
+      "name": "Spellcasting Focus",
+      "page": 188,
+      "pageEnd": 188,
+      "text": "A Spellcasting Focus is an object that certain crea-\ntures can use in place of a spell’s Material compo-\nnents if those materials aren’t consumed by the\nspell and don’t have a cost specified. Some classes\nallow its members to use certain types of Spellcast-\ning Focuses. See also “Spells” (“Casting Spells”)."
+    },
+    {
+      "id": "srd52:rule:178362d89b7284b4ecc5",
+      "name": "Sphere [Area of Effect]",
+      "page": 188,
+      "pageEnd": 188,
+      "text": "A Sphere is an area of effect that extends in straight\nlines from a point of origin outward in all direc-\ntions. The effect that creates a Sphere specifies the\ndistance it extends as the radius of the Sphere.\nA Sphere’s point of origin is included in the\nSphere’s area of effect."
+    },
+    {
+      "id": "srd52:rule:9e58e4c4c63abd995396",
+      "name": "Stable",
+      "page": 188,
+      "pageEnd": 188,
+      "text": "A creature is Stable if it has 0 Hit Points but isn’t\nrequired to make Death Saving Throws. See also\n“Playing the Game” (“Damage and Healing”)."
+    },
+    {
+      "id": "srd52:rule:86b5996ada9348c0f928",
+      "name": "Stat Block",
+      "page": 188,
+      "pageEnd": 189,
+      "text": "A stat block contains the game statistics of a mon-\nster. Each stat block includes the following informa-\ntion presented after the monster’s name.\nSize. A monster is Tiny, Small, Medium, Large,\nHuge, or Gargantuan. See also “Size.”\nCreature Type. This entry notes the family of be-\nings a monster belongs to, along with any descrip-\ntive tags. See also “Creature Type.”\nAlignment. An alignment is suggested for the\nmonster, with the GM determining its actual align-\nment. See also “Alignment.”\nAC, Initiative, and HP. These entries give the\nmonster’s Armor Class, Initiative, and Hit Points,\nwhich are detailed in “Playing the Game.” In paren-\ntheses after the Hit Points, the monster’s Hit Point\nDice are provided, along with the contribution of its\nConstitution, if any, to its Hit Points. Following the\nInitiative modifier is an Initiative score. Some crea-\ntures that are created by magic lack Hit Dice and\nInitiative information.\nSpeed. Here the monster’s Speed is provided,\nalong with any special speeds. See also “Burrow\nSpeed,” “Climb Speed,” “Fly Speed,” and “Swim\nSpeed.”\nAbility Scores. A table provides the monster’s\nability scores, modifiers, and saving throw modifi-\ners, all of which are detailed in “Playing the Game.”\nSkills. This entry lists the monster’s skill pro-\nficiencies, if any. See also “Playing the Game”\n(“Proficiency”).\nResistances and Vulnerabilities. These entries\nlist the monster’s Resistances and Vulnerabilities, if\nany. See also “Resistance” and “Vulnerability.”\nImmunities. This section lists the monster’s\ndamage and condition Immunities, if any. See also\n“Immunity.”\nGear. If the monster has any equipment that can\nbe given away or retrieved, it’s listed in this entry.\nSenses. This entry lists the monster’s special\nsenses, such as Darkvision, and its Passive Percep-\ntion. See also “Passive Perception.”\nLanguages. This entry lists any languages the\nmonster knows.\nCR. Challenge Rating summarizes the threat a\nmonster poses and is detailed in “Monsters.” The\nExperience Points characters receive for defeating\na monster and its Proficiency Bonus follow. Some\ncreatures that are created by magic have no CR. See\nalso “Challenge Rating” and “Experience Points.”\nTraits. The monster’s traits, if any, are features\nthat are active at all times or in certain situations.\nActions. The monster can take these actions in\naddition to those detailed in this glossary. See also\n“Playing the Game” (“Actions”).\nBonus Actions. If the monster has Bonus Action\noptions, they are listed in this section.\nReactions. If the monster can take special Reac-\ntions, those are listed in this section.\nAttack Notation. The entry for a monster’s attack\nstarts by identifying whether the attack is a melee\nor a ranged attack and then provides the attack\nroll’s bonus, its reach or range, and what happens\non a hit. An attack is against one target unless its\nentry says otherwise.\nSaving Throw Effect Notation. If an effect forces\na saving throw, the effect’s entry starts by identify-\ning the kind of saving throw required and then pro-\nvides the save’s DC, a description of which creatures\nmust make the save, and what happens on a failed\nor a successful save.\nDamage Notation. A stat block usually provides\nboth a static number and a die expression for each\ninstance of damage. For example, an attack might\ndeal 4 (1d4 + 2) damage on a hit. The GM deter-\nmines whether you use the static number or the die\nexpression in parentheses; you don’t use both."
+    },
+    {
+      "id": "srd52:rule:68988baa1b5ad3591fcd",
+      "name": "Study [Action]",
+      "page": 189,
+      "pageEnd": 189,
+      "text": "When you take the Study action, you make an Intel-\nligence check to study your memory, a book, a clue,\nor another source of knowledge and call to mind an\nimportant piece of information about it.\nThe Areas of Knowledge table suggests which\nskills are applicable to various areas of knowledge.\nAreas of Knowledge\nSkill\nAreas\nArcana\nSpells, magic items, eldritch symbols,\nmagical traditions, planes of existence,\nand certain creatures (Aberrations,\nConstructs, Elementals, Fey, and\nMonstrosities)\nHistory\nHistoric events and people, ancient\ncivilizations, wars, and certain creatures\n(Giants and Humanoids)\nInvestigation\nTraps, ciphers, riddles, and gadgetry\nNature\nTerrain, flora, weather, and certain\ncreatures (Beasts, Dragons, Oozes, and\nPlants)\nReligion\nDeities, religious hierarchies and rites,\nholy symbols, cults, and certain crea-\ntures (Celestials, Fiends, and Undead)"
+    },
+    {
+      "id": "srd52:rule:1526575148de67c824f1",
+      "name": "Stunned [Condition]",
+      "page": 189,
+      "pageEnd": 189,
+      "text": "While you have the Stunned condition, you experi-\nence the following effects.\nIncapacitated. You have the Incapacitated\ncondition.\nSaving Throws Affected. You automatically fail\nStrength and Dexterity saving throws.\nAttacks Affected. Attack rolls against you have\nAdvantage."
+    },
+    {
+      "id": "srd52:rule:c913d453517b887b1a07",
+      "name": "Suffocation [Hazard]",
+      "page": 189,
+      "pageEnd": 189,
+      "text": "A creature can hold its breath for a number of\nminutes equal to 1 plus its Constitution modifier\n(minimum of 30 seconds) before suffocation begins.\nWhen a creature runs out of breath or is choking,\nit gains 1 Exhaustion level at the end of each of\nits turns. When a creature can breathe again, it\nremoves all levels of Exhaustion it gained from\nsuffocating."
+    },
+    {
+      "id": "srd52:rule:3244930686dc983f6b23",
+      "name": "Surprise",
+      "page": 189,
+      "pageEnd": 189,
+      "text": "If a creature is caught unawares by the start of\ncombat, that creature is surprised, which causes it\nto have Disadvantage on its Initiative roll. See also\n“Playing the Game” (“Combat”)."
+    },
+    {
+      "id": "srd52:rule:d9194b0223f96d5506d9",
+      "name": "Swimming",
+      "page": 189,
+      "pageEnd": 189,
+      "text": "While you’re swimming, each foot of movement\ncosts 1 extra foot (2 extra feet in Difficult Terrain).\nYou ignore this extra cost if you have a Swim Speed\nand use it to swim. At the GM’s option, moving any\ndistance in rough water might require a successful\nDC 15 Strength (Athletics) check."
+    },
+    {
+      "id": "srd52:rule:93648c2e6dfd25b8e1bd",
+      "name": "Swim Speed",
+      "page": 189,
+      "pageEnd": 189,
+      "text": "A Swim Speed can be used to swim without expend-\ning the extra movement normally associated with\nswimming. See also “Swimming” and “Speed.”"
+    },
+    {
+      "id": "srd52:rule:8889730c98f48b489a3f",
+      "name": "Target",
+      "page": 190,
+      "pageEnd": 190,
+      "text": "A target is the creature or object targeted by an\nattack roll, forced to make a saving throw by an\neffect, or selected to receive the effects of a spell or\nanother phenomenon."
+    },
+    {
+      "id": "srd52:rule:eb80eeca6594757baf11",
+      "name": "Telepathy",
+      "page": 190,
+      "pageEnd": 190,
+      "text": "Telepathy is a magical ability that allows a creature\nto communicate mentally with another creature\nwithin a specified range. Unless a rule states other-\nwise, the contacted creature doesn’t need to share a\nlanguage with the telepath to understand this com-\nmunication, but the contacted creature must be able\nto understand at least one language or be telepathic\nitself to understand.\nA telepath doesn’t need to see a contacted crea-\nture, and the telepath can start or end the telepathic\ncontact at any time (no action required). Telepathic\ncontact can’t be initiated and is immediately broken\nif either the telepath or the other creature has the\nIncapacitated condition. Telepathic contact is also\nbroken if the contacted creature is no longer within\nthe telepathy’s range or if the telepath contacts a\ndifferent creature within range.\nA creature without telepathy can receive tele-\npathic messages but can’t initiate a telepathic con-\nversation. Once a telepathic conversation starts,\nthe non-telepath can communicate mentally to the\ntelepath until the telepathic connection ends."
+    },
+    {
+      "id": "srd52:rule:962f6c97e0077eef459a",
+      "name": "Teleportation",
+      "page": 190,
+      "pageEnd": 190,
+      "text": "Teleportation is a special kind of magical transpor-\ntation. If you teleport, you disappear and reappear\nelsewhere instantly, without moving through the\nintervening space. This transportation doesn’t ex-\npend movement unless a rule tells you otherwise,\nand teleportation never provokes Opportunity\nAttacks.\nWhen you teleport, all the equipment you’re\nwearing and carrying teleports with you. If you’re\ntouching another creature when you teleport, that\ncreature doesn’t teleport with you unless the tele-\nportation effect says otherwise.\nIf the destination space of your teleportation is\noccupied by another creature or blocked by a solid\nobstacle, you instead appear in the nearest unoccu-\npied space of your choice.\nThe description of a teleportation effect tells you\nif you must see the teleportation’s destination."
+    },
+    {
+      "id": "srd52:rule:1d38b9601cd8c55e8f5d",
+      "name": "Temporary Hit Points",
+      "page": 190,
+      "pageEnd": 190,
+      "text": "Temporary Hit Points are granted by certain effects\nand act as a buffer against losing real Hit Points. See\nalso “Playing the Game” (“Damage and Healing”)."
+    },
+    {
+      "id": "srd52:rule:0b0662fbf6618a8786d8",
+      "name": "Tremorsense",
+      "page": 190,
+      "pageEnd": 190,
+      "text": "A creature with Tremorsense can pinpoint the loca-\ntion of creatures and moving objects within a spe-\ncific range, provided that the creature with Trem-\norsense and anything it is detecting are both in\ncontact with the same surface (such as the ground,\na wall, or a ceiling) or the same liquid.\nTremorsense can’t detect creatures or objects in\nthe air, and it doesn’t count as a form of sight."
+    },
+    {
+      "id": "srd52:rule:3873c962e14841ab9dbe",
+      "name": "Truesight",
+      "page": 190,
+      "pageEnd": 190,
+      "text": "If you have Truesight, your vision is enhanced\nwithin a specified range. Within that range, your\nvision pierces through the following:\nDarkness. You can see in normal and magical\nDarkness.\nInvisibility. You see creatures and objects that have\nthe Invisible condition.\nVisual Illusions. Visual illusions appear transpar-\nent to you, and you automatically succeed on sav-\ning throws against them.\nTransformations. You discern the true form of any\ncreature or object you see that has been trans-\nformed by magic.\nEthereal Plane. You see into the Ethereal Plane."
+    },
+    {
+      "id": "srd52:rule:e6fa99745c3dab56b612",
+      "name": "Unarmed Strike",
+      "page": 190,
+      "pageEnd": 190,
+      "text": "Instead of using a weapon to make a melee attack,\nyou can use a punch, kick, headbutt, or similar\nforceful blow. In game terms, this is an Unarmed\nStrike—a melee attack that involves you using your\nbody to damage, grapple, or shove a target within 5\nfeet of you.\nWhenever you use your Unarmed Strike, choose\none of the following options for its effect.\nDamage. You make an attack roll against the\ntarget. Your bonus to the roll equals your Strength\nmodifier plus your Proficiency Bonus. On a hit, the\ntarget takes Bludgeoning damage equal to 1 plus\nyour Strength modifier.\nGrapple. The target must succeed on a Strength\nor Dexterity saving throw (it chooses which), or it\nhas the Grappled condition. The DC for the saving\nthrow and any escape attempts equals 8 plus your\nStrength modifier and Proficiency Bonus. This grap-\nple is possible only if the target is no more than one\nsize larger than you and if you have a hand free to\ngrab it. See also “Grappling.”\nShove. The target must succeed on a Strength or\nDexterity saving throw (it chooses which), or you ei-\nther push it 5 feet away or cause it to have the Prone\ncondition. The DC for the saving throw equals 8 plus\nyour Strength modifier and Proficiency Bonus. This\nshove is possible only if the target is no more than\none size larger than you."
+    },
+    {
+      "id": "srd52:rule:9aaf9bc49d520436cd4a",
+      "name": "Unconscious [Condition]",
+      "page": 191,
+      "pageEnd": 191,
+      "text": "While you have the Unconscious condition, you ex-\nperience the following effects.\nInert. You have the Incapacitated and Prone\nconditions, and you drop whatever you’re holding.\nWhen this condition ends, you remain Prone.\nSpeed 0. Your Speed is 0 and can’t increase.\nAttacks Affected. Attack rolls against you have\nAdvantage.\nSaving Throws Affected. You automatically fail\nStrength and Dexterity saving throws.\nAutomatic Critical Hits. Any attack roll that hits\nyou is a Critical Hit if the attacker is within 5 feet of\nyou.\nUnaware. You’re unaware of your surroundings."
+    },
+    {
+      "id": "srd52:rule:2df47c4f0c272d10f20a",
+      "name": "Unoccupied Space",
+      "page": 191,
+      "pageEnd": 191,
+      "text": "A space is unoccupied if no creatures are in it and it\nisn’t completely filled by objects."
+    },
+    {
+      "id": "srd52:rule:a2ceab16cb98d2ae1998",
+      "name": "Utilize [Action]",
+      "page": 191,
+      "pageEnd": 191,
+      "text": "You normally interact with an object while doing\nsomething else, such as when you draw a sword as\npart of the Attack action. When an object requires\nan action for its use, you take the Utilize action."
+    },
+    {
+      "id": "srd52:rule:f0efbab324a694f9ed16",
+      "name": "Vulnerability",
+      "page": 191,
+      "pageEnd": 191,
+      "text": "If you have Vulnerability to a damage type, damage\nof that type is doubled against you. Vulnerability is\napplied only once to an instance of damage. See also\n“Playing the Game” (“Damage and Healing”)."
+    },
+    {
+      "id": "srd52:rule:9b58146f39e40de624eb",
+      "name": "Weapon",
+      "page": 191,
+      "pageEnd": 191,
+      "text": "A weapon is an object that is in the Simple or\nMartial weapon category. See also “Equipment”\n(“Weapons”)."
+    },
+    {
+      "id": "srd52:rule:f3d91993014886ac5cf0",
+      "name": "Weapon Attack",
+      "page": 191,
+      "pageEnd": 191,
+      "text": "A weapon attack is an attack roll made with a\nweapon. See also “Weapon.”"
+    }
+  ]
+}

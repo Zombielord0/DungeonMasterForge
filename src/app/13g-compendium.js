@@ -21,6 +21,12 @@ function compendiumCatalog(meta, key) {
   return compendiumCatalogs.get(key);
 }
 function compendiumBookDetail(entry) {
+  if (entry.srdGlossary) {
+    const page=entry.page===entry.pageEnd?String(entry.page):entry.page+"–"+entry.pageEnd;
+    return `<p class="hint">SRD 5.2.1 · 2024 rules · p. ${esc(page)} · Full glossary definition; cross-references retained.</p>
+      <div class="srd-glossary-text" style="white-space:pre-wrap;overflow-wrap:anywhere;line-height:1.55">${esc(entry.srdGlossary.text)}</div>
+      <p class="hint">From the <a href="https://www.dndbeyond.com/srd" target="_blank" rel="noopener noreferrer">System Reference Document 5.2.1</a> by Wizards of the Coast LLC, licensed under <a href="https://creativecommons.org/licenses/by/4.0/" target="_blank" rel="noopener noreferrer">CC BY 4.0</a>. Source line and table reading order retained; this is a rules reference, not automatic enforcement.</p>`;
+  }
   const details = entry.details.map(([label, value]) =>
     `<p><b>${esc(label)}</b> · ${esc(value)}</p>`).join("");
   /* entry.sum: a short summary in our own words (data/reference-summaries.json), for references with no details */
@@ -149,7 +155,7 @@ async function compendiumMatches({ query = "", ed, type = "" }) {
     for (const entry of references || []) {
       if ((entry.ed || "2014") !== ed || !wants(entry.kind) || (entry.kind === "Monster" && !canBrowseMonsters)) continue;
       add(entry.kind, entry.name, entry.src, false,
-        button => reference(entry.name, compendiumBookDetail(entry), button), "Book reference");
+        button => reference(entry.name, compendiumBookDetail(entry), button), entry.srdGlossary ? "Rules glossary" : "Book reference");
     }
   }
   matches.sort((a, b) => b.rank - a.rank || a.name.localeCompare(b.name));

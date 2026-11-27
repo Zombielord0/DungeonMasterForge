@@ -182,6 +182,22 @@ const server = http.createServer((req, res) => {
   check("an all-types spell search uses the small monster index", !!hits[monsterIndex] && !hits[extraMonsters]);
   check("a revised-edition search does not fetch 2014 references", !hits[legacyReferences]);
   await p.locator("#characterReference").getByRole("button", { name: "Close" }).click();
+  await p.locator("#compendiumType").selectOption("Other rules");
+  await query.fill("exhaustion");
+  await results.getByRole("button", { name: /Exhaustion.*Rules glossary/ }).first().click();
+  const glossaryDialog=p.locator("#characterReference");
+  check("revised glossary definition displays actual conditions and source attribution",
+    /SRD 5\.2\.1/.test(await glossaryDialog.innerText()) &&
+    /2 times your Exhaustion level/.test((await glossaryDialog.innerText()).replace(/\s+/g," ")) &&
+    /5 feet times your Exhaustion level/.test((await glossaryDialog.innerText()).replace(/\s+/g," ")));
+  await glossaryDialog.getByRole("button", {name:"Close"}).click();
+  const glossaryAudit=await p.evaluate(async()=>({
+    revised:(await compendiumMatches({ed:"2024",type:"Other rules"})).rows.filter(x=>x.group==="Rules glossary").length,
+    legacy:(await compendiumMatches({ed:"2014",type:"Other rules"})).rows.filter(x=>x.group==="Rules glossary").length
+  }));
+  check("all 155 glossary definitions browse only in revised rules",glossaryAudit.revised===155&&glossaryAudit.legacy===0);
+  await p.locator("#compendiumType").selectOption("");
+  await query.fill("Fireball");
   await p.locator("#compendiumEdition").selectOption("2014");
   await results.getByRole("button", { name: /Fireball.*2014/ }).first().waitFor();
   check("compendium respects the edition filter", !/2024/.test(await results.innerText()) && !!hits[legacyReferences]);
