@@ -179,9 +179,13 @@ const pcCastNames = c => { const L = pcCastClasses(c).map(x => x.cls); return L.
 // Guild-style expanded spell lists add choices, not automatic preparation or extra slots.
 // Require the selected, edition-valid source background, not a homebrew name collision.
 function spellBackgroundList(c, s, ed) {
-  if (!c || edOf(c) !== ed || (s.ed && s.ed !== ed) || !Array.isArray(s.backgroundLists)) return false;
+  if (!c || edOf(c) !== ed || (s.ed && s.ed !== ed)) return false;
   const bg = HB_BG[c.bg];
-  return !!(bg?.book && !bg.pend && hbEdOk(bg, ed) && s.backgroundLists.some(b => b.name === c.bg && b.src === bg.src));
+  if (!bg?.book || bg.pend || !hbEdOk(bg, ed)) return false;
+  if ((s.backgroundLists || []).some(b => b.name === c.bg && b.src === bg.src)) return true;
+  // An approved background can extend existing canonical spells without duplicating their data.
+  return !!(bg.recoveryId && !s.ref && !s.referenceOnly && !s.pend && !s.rulesSummary && !s.shadow &&
+    (bg.spellListExtensions || []).some(d => d.name === s.n && d.src === (s.src || "srd") && d.level === s.l));
 }
 function spellClassListEligible(c, s, ed, k) {
   return (s.c || []).includes(k.cls) || (s.c || []).includes(k.list || clsSpellList(k.cls)) || spellBackgroundList(c, s, ed);

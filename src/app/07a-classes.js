@@ -71,6 +71,10 @@ function bgInfo(ed, name) {
   const B = BG_DATA[ed === "2014" ? "2014" : "2024"][name]; if (B) return B;
   const H = HB_BG[name];
   if (H) {
+    if (H.book && H.recoveryId && H.ed === "2014") {
+      if (ed !== H.ed) return null;
+      return {sk:H.skills, tools:H.tools, lang:H.lang, gear:H.gearItems.slice(), gp:H.gp, feature:H.feature, choices:H.choices, spellListExtensions:H.spellListExtensions||[], hb:true};
+    }
     const revisedBook = ed === "2024" && H.book && H.ed === "2024";
     return { sk: BACKGROUNDS[name] || [], tools: revisedBook ? H.tools || "" : "", lang: "",
       gear: H.gear ? String(H.gear).split(/,\s*/).filter(Boolean) : [], gp: revisedBook ? +H.gp || 0 : 0,
@@ -91,6 +95,8 @@ function bgLines(ed, name) {
   if (B.tools) L.push(["Tools", B.tools]);
   if (B.lang) L.push(["Languages", B.lang]);
   if (ed === "2014" && B.feature) L.push([`Feature: ${B.feature[0]}`, B.feature[1]]);
+  for (const choice of B.choices || []) L.push([choice.label,choice.rules]);
+  if (B.spellListExtensions?.length) L.push(["Expanded spell list",B.spellListExtensions.map(s=>s.name+" (level "+s.level+")").join(", ")+"; available to qualifying spellcasting classes, not automatically prepared."]);
   if ((B.gear || []).length || B.gp) L.push(["Equipment", `${(B.gear || []).join(", ")}${B.gp ? `${(B.gear || []).length ? ", " : ""}${B.gp} gp` : ""}${ed === "2024" && !B.hb ? " (or 50 gp instead)" : ""}`]);
   return L;
 }

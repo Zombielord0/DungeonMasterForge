@@ -23,7 +23,7 @@ import { createHash } from "node:crypto";
 import { readFileSync, writeFileSync, readdirSync, unlinkSync, mkdirSync } from "node:fs";
 import vm from "node:vm";
 import { joinSummaries, joinSrdItems } from "./ref-summaries.mjs";
-import { appendReferenceSpells, validateRecoveryManifest, applyRecoveredContent } from "./recovered-content.mjs";
+import { appendReferenceSpells, validateRecoveryManifest, applyRecoveredContent, validateRecoveredBackgroundDependencies } from "./recovered-content.mjs";
 import { validateSrdSpellLinks, fillSrdSpellReferences, joinSrdSpellReferences, correctLegacySpellMetadata } from "./ref-srd-spells.mjs";
 import { recoveryCoverage } from "./recovery-coverage.mjs";
 import {verifyLegacyItemArchive,correctLegacyItemMetadata,verifyAndAnnotateLegacyItemLinks} from "./ref-srd-items.mjs";
@@ -92,10 +92,11 @@ for (const [name, key] of [["spells", "spellData"], ["monsters", "monsterData"],
     data = appendReferenceSpells(data, core, spellGrants.legacySpells, bookReferences, told, sourceBooks).data;
     data = fillSrdSpellReferences(data, srdSpellLinks);
   }
-  if (["extra-spells", "extra-items", "extra-monsters"].includes(name)) {
+  if (["extra-spells", "extra-items", "extra-monsters", "extra-options"].includes(name)) {
     data = applyRecoveredContent(name, data, approvedRecovery, bookReferences);
   }
   if (name === "extra-options") {
+    validateRecoveredBackgroundDependencies(approvedRecovery, emittedCatalogs);
     const ids = new Set(data.map(option => option.id));
     for (const id of Object.keys(spellGrants.options)) {
       if (!ids.has(id)) throw new Error(`Unknown spell-grant option: ${id}`);
