@@ -531,6 +531,23 @@ const { chromium } = require("playwright");
     assert.equal(invocationLifecycleAudit.max,1);assert.match(invocationLifecycleAudit.moves,/Breathe underwater/);
     assert.deepEqual([invocationLifecycleAudit.valid,invocationLifecycleAudit.removed,invocationLifecycleAudit.noFamiliar],[true,true,true]);
     assert.ok(!invocationLifecycleAudit.oldKeys.includes("invocation:depths")&&!invocationLifecycleAudit.oldKeys.includes("invocation:shadows"));
+    const subclassOwnerAudit=await page.evaluate(()=>{
+      const make=(ed,cls,level,subclass,multi=[])=>pcEnsure(generateCharacter({seed:"SUBOWNER",ed,cls,level,subclass,race:"Human",bg:"Sage",multi}));
+      const c=make("2024","Wizard",10,"Evoker",[{cls:"Fighter",lv:3,subclass:"Battle Master"}]);
+      const before=c.feats.filter(f=>f.mcsub==="Battle Master").map(f=>f.f),pool=pcResources(c).find(r=>r.key===subAblKey("Combat Superiority"));
+      const selection=CHOICES["Combat Superiority"].n(c),desc=featDesc("Combat Superiority",c,c.feats.find(f=>f.mcsub==="Battle Master"&&f.f==="Combat Superiority"));
+      pcSubSync(c);const synced=c.feats.filter(f=>f.mcsub==="Battle Master").map(f=>f.f);
+      c.multi[0].subclass="Champion";pcSubSync(c);
+      const stale=c.feats.some(f=>f.mcsub==="Battle Master"),crit=subBonusOf(c).crit;
+      const p=make("2024","Cleric",1,"Life Domain");
+      const premature=p.feats.filter(f=>f.subOwner).length;
+      const m=make("2024","Fighter",5,"Champion",[{cls:"Sorcerer",lv:3,subclass:"Draconic Sorcery"}]);
+      const hp=m.subHp;const i=make("2024","Wizard",2,"none",[{cls:"Ranger",lv:7,subclass:"Gloom Stalker"}]);
+      const saves=[...i.saves];pcSubNumbers(i);pcSubNumbers(i);
+      return {before,synced,pool:pool?.max,selection,desc,stale,crit,premature,hp,saves,after:i.saves};
+    });
+    assert.deepEqual(subclassOwnerAudit.synced,subclassOwnerAudit.before);assert.equal(subclassOwnerAudit.pool,4);assert.equal(subclassOwnerAudit.selection,3);
+    assert.ok(subclassOwnerAudit.desc.length>20);assert.equal(subclassOwnerAudit.stale,false);assert.equal(subclassOwnerAudit.crit,19);assert.equal(subclassOwnerAudit.premature,0);assert.equal(subclassOwnerAudit.hp,3);assert.deepEqual(subclassOwnerAudit.saves,subclassOwnerAudit.after);
     const expansion = await page.evaluate(() => {
       const subclasses = hbBook("subclass").filter(x => ["tce", "xge"].includes(x.src));
       const armorer = generateCharacter({ seed: "ARMOR", ed: "2014", cls: "Artificer", subclass: "Armorer", level: 5 });

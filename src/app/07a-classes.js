@@ -429,17 +429,55 @@ const SUB_FEATS = {
 const subFeatsOf = (ed, name) => SUB_FEATS[`${ed}|${name}`] || [];
 // a built-in subclass's features up to this level, as feature-list entries
 const subFeatList = (ed, name, lv) => subFeatsOf(ed, name).filter(x => x[0] <= lv).map(x => ({ l: x[0], f: x[1], sub: true }));
-function subFeatDesc(f, c) { if (!c) return ""; for (const sc2 of [c.subclass, ...(c.multi || []).map(m => m.subclass)].filter(Boolean)) { const x = subFeatsOf(edOf(c), sc2).find(y => y[1] === f); if (x) return x[2]; } return ""; }
-// keep a saved character's subclass features in step with its subclass and level
+// A single owner-aware progression contract for creation, rebuilds and the reference view.
+function subclassFeatureRows(ed,cls,name,includePending=false){
+  if(!name||name==="none")return [];
+  const entry=subclassEntry(ed,cls,name,includePending);
+  const builtin=((SUBCLASSES[ed]||{})[cls]||[]).some(x=>x[0]===name);
+  if(!entry&&!builtin)return [];
+  const minimum=subclassLevel(ed,cls);
+  const rows=entry?(entry.features||[]).map(f=>({...f,originalLevel:+f.l})) : subFeatsOf(ed,name).map(([l,n,d])=>({l,n,d,originalLevel:l}));
+  return rows.filter(f=>f.n&&Number.isInteger(+f.l)&&+f.l>=1&&+f.l<=20)
+    .map(f=>({...f,l:Math.max(minimum,+f.l),book:!!entry?.book,source:entry?.src||"",sourceEdition:entry?.ed||ed}))
+    .sort((x,y)=>x.l-y.l);
+}
+function subclassCharacterFeatures(ed,cls,name,level,secondary=false){
+  if(!name||level<subclassLevel(ed,cls))return [];
+  return subclassFeatureRows(ed,cls,name,true).filter(f=>f.l<=level).map(f=>({
+    l:f.l,f:f.n,sub:true,...(f.book?{bookSub:true}:{}),...(secondary?{mc:cls,mcsub:name}:{}),
+    subOwner:cls,subName:name,subSource:f.source,subEdition:f.sourceEdition
+  }));
+}
+function characterSubclassLevel(c,cls,name){
+  const row=[{cls:c.cls,lv:c.level,subclass:c.subclass},...(c.multi||[])].find(x=>x.cls===cls&&x.subclass===name);
+  return row&&+row.lv>=subclassLevel(edOf(c),cls)?+row.lv:0;
+}
+function subclassFeatureOwner(c,f){
+  const cls=f.subOwner||f.mc||c.cls,name=f.subName||f.mcsub||c.subclass;
+  return {cls,name,level:characterSubclassLevel(c,cls,name)};
+}
+function subFeatDesc(f,c,feature){
+  if(!c)return "";
+  const owners=feature?[subclassFeatureOwner(c,feature)]:[{cls:c.cls,name:c.subclass,level:c.level},...(c.multi||[]).map(x=>({cls:x.cls,name:x.subclass,level:x.lv}))];
+  for(const o of owners){
+    if(!o.name||o.level<subclassLevel(edOf(c),o.cls))continue;
+    const x=subclassFeatureRows(edOf(c),o.cls,o.name,true).find(y=>y.n===f&&y.l<=o.level&&(!feature||+feature.l===y.l));
+    if(x)return (x.d||"")+fxNote(x.fx);
+  }return "";
+}
 function pcSubSync(c) {
-  const ed = edOf(c);
-  const entry = c.subclass && subclassEntry(ed, c.cls, c.subclass);
-  const keep = (c.feats || []).filter(f => !f.sub && !f.bookSub);
-  const add = entry?.book ? entry.features.filter(f => +f.l <= c.level)
-    .map(f => ({ l: +f.l, f: f.n, bookSub: true })) : c.subclass && !entry ? subFeatList(ed, c.subclass, c.level) : [];
-  const before = JSON.stringify(c.feats || []);
-  c.feats = [...keep, ...add].sort((a, b) => a.l - b.l);
-  return JSON.stringify(c.feats) !== before;
+  const ed=edOf(c),before=JSON.stringify(c.feats||[]);
+  const owners=[{cls:c.cls,lv:c.level,subclass:c.subclass},...(c.multi||[])];
+  const keep=(c.feats||[]).filter(f=>!f.sub&&!f.bookSub&&!f.mcsub&&!f.subOwner&&!String(f.f).startsWith("Subclass: "));
+  for(const [i,x] of owners.entries()){
+    if(+x.lv<subclassLevel(ed,x.cls))continue;
+    keep.push({l:subclassLevel(ed,x.cls),f:x.subclass?"Subclass: "+x.subclass:(i?"Subclass: not chosen yet ("+x.cls+")":"Subclass: not chosen yet"),...(i?{mc:x.cls}:{})});
+    keep.push(...subclassCharacterFeatures(ed,x.cls,x.subclass,+x.lv,i>0));
+  }
+  // Do not duplicate existing untagged custom features from old saves.
+  const seen=new Set(keep.filter(f=>f.subOwner).map(f=>JSON.stringify([f.subOwner,+f.l,f.f])));
+  c.feats=keep.filter(f=>f.subOwner||f.mc||f.race||f.bgInfo||f.bgFeat||f.bgFeature||f.bonus||!seen.has(JSON.stringify([c.cls,+f.l,f.f]))).sort((x,y)=>x.l-y.l);
+  return JSON.stringify(c.feats)!==before;
 }
 /* Subclass features you use in play. when: how it is used. res: a limited-use pool [label, max(c), recharge]. */
 const SUB_ABL = {
@@ -522,7 +560,15 @@ function subBonuses(ed, sub, lv, m, prof) {
   if (sub === "Gloom Stalker" && ed === "2024") { if (lv >= 3) B.init = m.wis; if (lv >= 7) B.saves.push("wis"); }
   return B;
 }
-const subBonusOf = c => subBonuses(edOf(c), c.subclass, c.level, c.mods, c.prof);
+function subBonusOf(c){
+ const total=subBonuses(edOf(c),null,0,c.mods,c.prof);
+ for(const x of [{cls:c.cls,lv:c.level,subclass:c.subclass},...(c.multi||[])]){
+   if(!x.subclass||+x.lv<subclassLevel(edOf(c),x.cls))continue;
+   const b=subBonuses(edOf(c),x.subclass,+x.lv,c.mods,c.prof);
+   total.hp+=b.hp;total.speed+=b.speed;total.init+=b.init;total.crit=Math.min(total.crit,b.crit);total.athlete||=b.athlete;total.saves.push(...b.saves);
+   if(b.ac&&(!total.ac||b.ac[0]>total.ac[0]))total.ac=b.ac;
+ }return total;
+}
 // Iron Mind: Wisdom saves, or Intelligence / Charisma if already proficient
 function subAddSaves(saves, B) { B.saves.forEach(a => { const pick = [a, "int", "cha"].find(x => !saves.includes(x)); if (pick) saves.push(pick); }); return saves; }
 const athleteBonus = (B, s, prof) => B.athlete && !s.p && ["str", "dex", "con"].includes(s.ab) ? Math.ceil(prof / 2) : 0; // 2014 Remarkable Athlete rounds up
@@ -531,7 +577,15 @@ function pcSubNumbers(c) {
   const B = subBonusOf(c), before = JSON.stringify([c.hp, c.hpCur, c.speed, c.saves, c.ac, c.acSrc]);
   const dHp = B.hp - (+c.subHp || 0); if (dHp && c.hp !== "") { c.hp = (+c.hp || 0) + dHp; if (c.hpCur !== "" && c.hpCur !== undefined) c.hpCur = Math.max(0, (+c.hpCur || 0) + dHp); } c.subHp = B.hp;
   c.subSpd = B.speed;
-  subAddSaves(c.saves, B);
+  if(Array.isArray(c.subSaveGrants)){
+    c.saves=c.saves.filter(a=>!c.subSaveGrants.includes(a));const base=new Set(c.saves);
+    subAddSaves(c.saves,B);c.subSaveGrants=c.saves.filter(a=>!base.has(a));
+  }else{
+    // Older sheets lack provenance. Preserve their existing proficiency and do
+    // not repeatedly add alternative Iron Mind saves on every render.
+    const beforeSaves=new Set(c.saves);for(const a of B.saves)if(!c.saves.includes(a))c.saves.push(a);
+    c.subSaveGrants=c.saves.filter(a=>!beforeSaves.has(a));
+  }
   if (c.cls === "Sorcerer" && !c.kitMoved) {
     if (B.ac && c.acSrc !== B.ac[1]) [c.ac, c.acSrc] = B.ac;
     else if (!B.ac && /^Draconic Resilience/.test(c.acSrc || "")) [c.ac, c.acSrc] = CLASS_DATA.Sorcerer.ac(c.mods);

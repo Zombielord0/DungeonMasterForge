@@ -161,11 +161,10 @@ function generateCharacter(o) {
   const feats = [];
   Object.entries(C.f).forEach(([l, list]) => { if (+l <= lv) list.forEach(f => feats.push({ l: +l, f })); });
   if (lv >= subLv) feats.push({ l: subLv, f: subclass ? `Subclass: ${subclass}` : "Subclass: not chosen yet" });
-  const hbSub = subclass && subclassEntry(ed, cls, subclass);
-  if (hbSub) (hbSub.features || []).filter(f => f.n && +f.l <= lv).forEach(f => feats.push({ l: +f.l, f: f.n, ...(hbSub.book ? { bookSub: true } : {}) }));
-  else if (subclass) feats.push(...subFeatList(ed, subclass, lv));
-  const SB = subBonuses(ed, subclass, lv, m, prof);
-  hp += SB.hp; subAddSaves(saves, SB); if (SB.ac) [ac, acSrc] = SB.ac;
+  feats.push(...subclassCharacterFeatures(ed,cls,subclass,lv));
+  const SB = subBonusOf({ed,cls,level:lv,subclass,multi:MC,mods:m,prof});
+  const baseSaves=new Set(saves);
+  hp += SB.hp; subAddSaves(saves, SB); const subSaveGrants=saves.filter(a=>!baseSaves.has(a)); if (SB.ac) [ac, acSrc] = SB.ac;
   ac += hbAc; acSrc += hbAcTxt;
   skillVals.forEach(s => s.v += athleteBonus(SB, s, prof));
   if (HB_BG[bg] && HB_DESC[`${bg} background`]) feats.push({ l: 1, f: `${bg} background` });
@@ -181,9 +180,7 @@ function generateCharacter(o) {
     const label = x.subclass ? `Subclass: ${x.subclass}` : `Subclass: not chosen yet (${x.cls})`;
     feats.push({ l: sl2, f: label, mc: x.cls });
     if (!x.subclass) return;
-    const entry = subclassEntry(ed, x.cls, x.subclass);
-    const features = entry ? (entry.features || []).filter(f => f.n && +f.l <= x.lv).map(f => ({ l: +f.l, f: f.n })) : subFeatList(ed, x.subclass, x.lv);
-    features.forEach(sf => feats.push({ l: sf.l, f: sf.f, mc: x.cls, mcsub: x.subclass }));
+    feats.push(...subclassCharacterFeatures(ed,x.cls,x.subclass,x.lv,true));
   });
   bonusFeats.forEach(b => feats.push({ l: +b.l || 1, f: `Feat: ${b.n}${b.a ? ` (+1 ${AB_NAME[b.a]})` : ""}`, bonus: true }));
   if (asiAuto.length) feats.push({ l: asiAuto[0], f: `Ability Score Improvement ×${asiAuto.length} (applied)` });
@@ -209,7 +206,7 @@ function generateCharacter(o) {
     prof, saves, skills: skillVals, hp, ac, acSrc, speed: R.speed + fxSum("speed") + SB.speed + (C.f && Object.entries(C.f).some(([l, L]) => +l <= lv && L.includes("Unarmored Movement")) ? unarmoredMove(lv) : 0) + (cls === "Barbarian" && lv >= 5 ? 10 : 0) + (ed==="2024" && (cls==="Ranger" && lv>=6 || MC.some(x=>x.cls==="Ranger"&&x.lv>=6)) ? 10 : 0) + (hasFeat("Mobile") || hasFeat("Speedy") ? 10 : 0) + (hasFeat("Boon of Speed") ? 30 : 0),
     init: m.dex + initBonus + SB.init + (SB.athlete ? Math.ceil(prof / 2) : 0) + (jack && ed === "2014" ? Math.floor(prof / 2) : 0) /* 2014 Jack of All Trades counts on initiative, a Dexterity check */, initBonus, atkBonus, hbAc, hbSpeed: fxSum("speed"), hbSig: fx.length ? JSON.stringify(fx) : "",
     ...Object.fromEntries(["res", "imm", "vul", "cimm"].map(t => [t, [...new Set([...fx.filter(e => e.t === t).map(e => e.a), ...(t === "res" ? traitRes(R.traits, anc, ed) : [])])].sort()])),
-    sadv: [...new Set([...traitSadv(R.traits), ...fx.filter(e => e.t === "sadv").map(e => e.a)])], passive: 10 + skillVals.find(s => s.s === "Perception").v, subHp: SB.hp, subSpd: SB.speed,
+    sadv: [...new Set([...traitSadv(R.traits), ...fx.filter(e => e.t === "sadv").map(e => e.a)])], passive: 10 + skillVals.find(s => s.s === "Perception").v, subHp: SB.hp, subSpd: SB.speed, subSaveGrants,
     attacks, spell, feats, extras, traits: R.traits.filter(t => !RL.hidden.has(t)), kit: [...C.kit, ...((BGI && BGI.gear && !bgGold50 && !BGI.deferStartingEquipment) ? BGI.gear : [])], startGold: BGI?.deferStartingEquipment ? 0 : bgGold50 ? 50 : (BGI && BGI.gp) || 0, ...(BGI?.deferStartingEquipment?{backgroundEquipmentOrigin:BGI.equipmentOrigin}:{}), bgGold50: bgGold50 || undefined, bgV: 2, skilled, expertOrder, multi: MC.length ? MC : undefined, totalLevel: TL, mcSkills, hdList: [C.hd, ...MC.map(x => classData(ed, x.cls).hd)], bgAsiLegacy: o.bgAsiLegacy || undefined, hd: C.hd,
     trait: r.pick(PC_TRAITS), ideal: r.pick(IDEALS), bond: r.pick(BONDS), flaw: r.pick(FLAWS), hook: hk.hook, hookDetail: hk.hookDetail
   };

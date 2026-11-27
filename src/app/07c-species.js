@@ -402,7 +402,7 @@ function chosenSubclassFeature(f, c, feature) {
   const cls = feature?.mc || c?.cls;
   const subclass = feature?.mcsub || c?.subclass;
   if (!subclass || (feature && !feature.bookSub && !feature.mcsub && !feature.sub)) return null;
-  return subclassEntry(edOf(c), cls, subclass)?.features?.find(x => x.n === f && (!feature || +x.l === +feature.l));
+  return subclassFeatureRows(edOf(c),cls,subclass,true).find(x=>x.n===f&&(!feature||+x.l===+feature.l));
 }
 function featDesc(f, c, feature) {
   const ed = edOf(c);
@@ -422,7 +422,7 @@ function featDesc(f, c, feature) {
   const A = c && c.ancestry && DRAGON_ANCESTRY[c.ancestry];
   if (f === "Draconic Ancestry") return A ? `${c.ancestry} dragon: your breath weapon and resistance are ${A.type}.` : "Your dragon color sets your breath weapon and resistance.";
   if (f === "Breath Weapon") return edOf(c) === "2024" ? (A ? `Replace one attack: exhale ${A.type} in a 15 ft cone or 30 ft line (DEX save) — damage and DC under Attacks.` : "Replace one attack with a cone or line of energy; damage and DC under Attacks.") : A ? `Exhale ${A.type} in a ${A.shape} (${A.save} save) — damage and DC under Attacks.` : "Exhale destructive energy; damage and DC under Attacks.";
-  const sd = subFeatDesc(f, c); if (sd) return sd;
+  const sd = subFeatDesc(f, c, feature); if (sd) return sd;
   const td = hbTraitDesc(f, c); if (td) return td;
   const lineage = c && PC_RACES[edOf(c)]?.[c.race]?.subs?.[c.sub || c.ancestry];
   if (lineage?.src && lineage.traits.includes(f)) return lineage.d;
@@ -434,7 +434,7 @@ function featDesc(f, c, feature) {
 /* The Features & Traits list, shared by both sheets (the Characters tab and My Characters): each feature with where it
    comes from (subclass, multiclass, species, level), then the species traits. My Characters passes edit (features can
    be opened to make choices) and leaves out "Feat: …" entries, which it lists in its own Feats section. */
-const featTagOf = (c, f) => { const l = +f.l || 1; /* a number, never markup: sheets can come from another player */ return (f.sub || f.bookSub) ? `${esc(c.subclass)}, lv ${l}` : f.mcsub ? `${esc(f.mcsub)}, ${esc(f.mc)} lv ${l}` : f.mc ? `${esc(f.mc)} lv ${l}` : (f.race ? esc(raceLabel(c)) + ", " : "") + "lv " + l; };
+const featTagOf = (c, f) => { const l = +f.l || 1; /* a number, never markup: sheets can come from another player */ return f.mcsub ? `${esc(f.mcsub)}, ${esc(f.mc)} lv ${l}` : (f.sub || f.bookSub) ? `${esc(c.subclass)}, lv ${l}` : f.mc ? `${esc(f.mc)} lv ${l}` : (f.race ? esc(raceLabel(c)) + ", " : "") + "lv " + l; };
 function featuresListHTML(c, edit) {
   const feats = (c.feats || []).filter(f => !edit || !String(f.f).startsWith("Feat: "));
   return `<ul class="plain">${feats.map(f => featLi(f.f, featTagOf(c, f), c, edit || undefined, f)).join("")}${(c.traits || []).map(t => featLi(t, esc(raceLabel(c)), c, edit)).join("")}</ul>`;

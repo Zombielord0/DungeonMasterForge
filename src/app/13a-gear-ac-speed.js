@@ -46,7 +46,7 @@ function pcRecompute(c) {
 }
 function pcLevelTo(c, lv) {
   const n = generateCharacter({ seed: c.seed || c.id, name: c.name, race: c.race, ed: edOf(c), sub: c.sub || (c.race === "Dragonborn" && c.ancestry) || "none", ancestry: c.ancestry || undefined, cls: c.cls, bg: c.bg, level: lv, subclass: c.subclass || "none", asiPicks: c.asiPicks || undefined, bonusFeats: c.bonusFeats || undefined, bgAsiLegacy: c.bgAsiLegacy || undefined, ...pcKeep(c), method: c.method || "array", bonus: c.bonus || "flex", custom: c.customData || undefined });
-  ["level", "base", "scores", "mods", "rolls", "prof", "saves", "skills", "hp", "ac", "acSrc", "speed", "init", "passive", "attacks", "spell", "feats", "extras", "hd", "traits", "initBonus", "atkBonus", "hbSig", "res", "imm", "vul", "cimm", "sadv", "subHp", "subSpd", "hbAc", "hbSpeed", "skilled", "expertOrder", "speciesSkill", "totalLevel", "mcSkills", "hdList"].forEach(k => c[k] = n[k]);
+  ["level", "base", "scores", "mods", "rolls", "prof", "saves", "skills", "hp", "ac", "acSrc", "speed", "init", "passive", "attacks", "spell", "feats", "extras", "hd", "traits", "initBonus", "atkBonus", "hbSig", "res", "imm", "vul", "cimm", "sadv", "subHp", "subSpd", "subSaveGrants", "hbAc", "hbSpeed", "skilled", "expertOrder", "speciesSkill", "totalLevel", "mcSkills", "hdList"].forEach(k => c[k] = n[k]);
   c.hpCur = n.hp;
   if (Array.isArray(c.prepared)) syncGrantedSpells(c);
   if (c.kitMoved) { c.attacks = pcAttacks(c); pcACApply(c); }
@@ -230,7 +230,7 @@ function pcAC(c) {
   else {
     const opts = [[10 + m.dex, "No armor (10 + DEX)"]];
     if (fx.mageArmor) opts.push([13 + m.dex, "Mage Armor (13 + DEX)"]);
-    if (c.subclass === "College of Dance" && c.level >= 3 && !shield) opts.push([10 + m.dex + m.cha, "Dazzling Footwork (10 + DEX + CHA)"]);
+    if (characterSubclassLevel(c,"Bard","College of Dance")>=3 && !shield) opts.push([10 + m.dex + m.cha, "Dazzling Footwork (10 + DEX + CHA)"]);
     F.acUnarm.forEach(o => opts.push(o));
     // 2014 multiclassing retains only the first acquired Unarmored Defense.
     // Revised AC calculations remain alternatives, never cumulative.
@@ -320,8 +320,8 @@ function pcSpeed(c, A) {
   const depths=hasChoice(c,"Eldritch Invocations","depths");
   if (F.swim != null || roving || depths) other.push(`Swim ${Math.max(roving||depths?sp:0,F.swim!=null?mv(F.swim):0)} ft`);
   if(depths)other.push("Breathe underwater (Gift of the Depths)");
-  if (c.subclass === "Thief" && ed === "2024" && lv >= 3) other.push(`Climb ${sp} ft`);
-  if (c.subclass === "Circle of the Sea" && lv >= 6) other.push(`Swim ${sp} ft`);
+  if (ed === "2024" && characterSubclassLevel(c,"Rogue","Thief")>=3) other.push(`Climb ${sp} ft`);
+  if (characterSubclassLevel(c,"Druid","Circle of the Sea")>=6) other.push(`Swim ${sp} ft`);
   if (has("Unarmored Movement") && clsLv(c, "Monk") >= 9 && !A.bodyKind && !A.shieldOn) other.push("Run up walls and across liquids on your turn");
   return { speed: sp, src: parts.join(" + "), other };
 }
