@@ -17,7 +17,9 @@ function applyCoreSkillChoices(c){
   for(const s of c.skills||[]){
     if(s.scholarGranted){s.x=false;delete s.scholarGranted;}
     if(s.primalGranted){s.p=false;s.x=false;delete s.primalGranted;}
+    if(s.loreGranted){s.p=false;s.x=false;delete s.loreGranted;}
   }
+  if(characterSubclassLevel(c,"Bard","College of Lore")>=3){const options=new Set(CHOICES["Bonus Proficiencies"].opts(c).map(x=>x[0]));for(const name of [...new Set(choiceOf(c,"Bonus Proficiencies"))].filter(n=>options.has(n)).slice(0,3)){const s=c.skills.find(x=>x.s===name);if(s&&!s.p){s.p=true;s.loreGranted=true;}}}
   if(edOf(c)!=="2024")return;
   const apply=(key,flag,attr,cls,level,eligible)=>{
     if(clsLv(c,cls)<level)return;

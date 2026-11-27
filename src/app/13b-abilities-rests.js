@@ -40,7 +40,7 @@ function pcResources(c) {
     for (const source of spell.sources || []) {
       if (source.free && source.uses) {
         const uses = source.uses === "proficiency" ? prof : source.uses === "atWill" ? Infinity : source.uses;
-        add(source.free, `${source.feature || source.name} · ${spell.n}`, uses, source.recharge || "long");
+        if(!R.some(r=>r.key===source.free))add(source.free, source.sharedResource||`${source.feature || source.name} · ${spell.n}`, uses, source.recharge || "long");
       }
     }
   }
@@ -324,7 +324,8 @@ function artificerAttunedCount(c){
   return (c.inv||[]).filter(i=>i.attuned&&(+i.qty||0)>0&&inventoryNeedsAttunement(i,inventoryCatalogItem(i,edOf(c)))).length;
 }
 function artificerAttunementLimit(c){
-  const lv=clsLv(c,"Artificer");return lv>=18?6:lv>=14?5:lv>=10?4:3;
+  const lv=clsLv(c,"Artificer"),art=lv>=18?6:lv>=14?5:lv>=10?4:3;
+  return Math.max(art,edOf(c)==="2024"&&characterSubclassLevel(c,"Rogue","Thief")>=13?4:3);
 }
 // These workflows assume the player has confirmed the qualifying attack and timing.
 function cunningStrikePlan(level,ids,poisonKit,critical=false){
@@ -671,7 +672,7 @@ const ACT = {
   "Bastion of Law": { kind: "instant", choices: [["1", "1 point"], ["2", "2 points"], ["3", "3 points"], ["4", "4 points"], ["5", "5 points"]], cost: (c, ch) => +ch || 1, use: (c, ch, spent) => `Bastion of Law: the creature gets ${spent}d8 ward dice.` },
   "Psionic Sorcery": { kind: "none" },
   // ---------- Warlock
-  "Fiendish Resilience": { kind: "persist", choices: DMG_LIST.concat([]).map(d => [d, d.charAt(0).toUpperCase() + d.slice(1)]), fx: (c, ch) => ({ res: [ch] }) },
+  "Fiendish Resilience": { kind: "persist", choices: c=>DMG_LIST.filter(d=>edOf(c)!=="2024"||d!=="force").map(d=>[d,d.charAt(0).toUpperCase()+d.slice(1)]), fx: (c,ch)=>({res:DMG_LIST.includes(ch)&&(edOf(c)!=="2024"||ch!=="force")?[ch]:[]}) },
   "Dark One's Blessing": { kind: "instant", use: c => { const n = Math.max(1, c.mods.cha + clsLv(c,"Warlock")); giveTemp(c, n); return `Dark One's Blessing: ${n} temporary hit points.`; } },
   "Dark One's Own Luck": { kind: "instant", use: () => rollMsg("Dark One's Own Luck", "1d10", "Add it to the check or save") },
   "Healing Light": { kind: "instant", use: () => roll("Healing Light", "1d6", "heal", "Hit points restored (use it again to spend more dice)") },
@@ -704,6 +705,12 @@ const actChoices = (c, S) => typeof S.choices === "function" ? S.choices(c) : S.
 // everything active right now, merged into one set of effects
 function pcFx(c) {
   const F = { ac: [], acMin: null, acUnarm: [], speed: [], mult: 1, fly: null, climb: null, swim: null, res: new Set(), atk: [], attacks: [], notes: [], on: [], form: null };
+  if(edOf(c)==="2024"){
+    const land=choiceOf(c,"Circle of the Land Spells")[0],ward={Arid:"fire",Polar:"cold",Temperate:"lightning",Tropical:"poison"}[land];
+    if(characterSubclassLevel(c,"Druid","Circle of the Land")>=10&&ward){F.res.add(ward);F.notes.push("Nature's Ward: immune to Poisoned.");}
+    const affinity=choiceOf(c,"Elemental Affinity")[0];
+    if(characterSubclassLevel(c,"Sorcerer","Draconic Sorcery")>=6&&["acid","cold","fire","lightning","poison"].includes(affinity)){F.res.add(affinity);F.notes.push("Elemental Affinity: add Charisma modifier to one matching spell damage roll.");}
+  }
   const act = c.active || {}; if (!Object.keys(act).length) return F;
   const have = new Set(pcAbilities(c).map(a => a.name));
   for (const [name, val] of Object.entries(act)) {

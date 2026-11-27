@@ -248,6 +248,9 @@ const choiceSpellOptions = (c, filter) => {
   return opt3([...new Set((SP.data[edOf(c)] || []).filter(s => !s.pend && filter(s)).map(s => s.n))].sort());
 };
 Object.assign(CHOICES, {
+ "Bonus Proficiencies":{label:"College of Lore skills",n:c=>characterSubclassLevel(c,"Bard","College of Lore")>=3?3:0,opts:c=>opt3((c.skills||[]).filter(s=>!s.p||s.loreGranted).map(s=>s.s))},
+ "Magical Discoveries":{label:"Two additional prepared spells",n:c=>edOf(c)==="2024"&&characterSubclassLevel(c,"Bard","College of Lore")>=6?2:0,opts:c=>choiceSpellOptions(c,s=>s.l<=(FULL_SLOTS[clsLv(c,"Bard")]||[]).length&&["Cleric","Druid","Wizard"].some(k=>s.c.includes(k))&&!s.hb&&!s.ref&&!s.referenceOnly&&!s.rulesSummary&&!s.shadow)},
+ "Elemental Affinity":{label:"Draconic damage affinity",n:c=>edOf(c)==="2024"&&characterSubclassLevel(c,"Sorcerer","Draconic Sorcery")>=6?1:0,opts:()=>opt3(["acid","cold","fire","lightning","poison"].map(x=>[x,x.charAt(0).toUpperCase()+x.slice(1)]))},
   "Chain Master Movement":{label:"Familiar movement",n:c=>edOf(c)==="2024"&&hasChoice(c,"Eldritch Invocations","investment")?1:0,opts:()=>opt3(["Fly 40 feet","Swim 40 feet"])},
  "Replicate Magic Item":{label:"Known catalog-backed plans (named plans only)",n:c=>edOf(c)==="2024"?artificerPlanLimits("2024",clsLv(c,"Artificer")).known:0,opts:artificerPlanOptions},
  "Infuse Item":{label:"Known legacy infusions (manual effects)",n:c=>edOf(c)==="2014"?artificerPlanLimits("2014",clsLv(c,"Artificer")).known:0,opts:c=>opt3(Object.entries(ARTIFICER_INFUSIONS).filter(([min])=>clsLv(c,"Artificer")>=+min).flatMap(([,names])=>names).concat("Replicate Magic Item (DM-recorded variant)"))},

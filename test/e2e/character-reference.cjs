@@ -564,6 +564,30 @@ const { chromium } = require("playwright");
     assert.deepEqual([subclassSpellAudit.fire,subclassSpellAudit.legacyAuto,subclassSpellAudit.revisedAuto,subclassSpellAudit.cleric,subclassSpellAudit.genieFire,subclassSpellAudit.wish],[true,false,true,true,true,true]);
     assert.deepEqual(subclassSpellAudit.rangerSpells.sort(),["Disguise Self","Rope Trick"]);
     assert.ok(subclassSpellAudit.compatibility.includes("Tempest Domain"));assert.deepEqual([subclassSpellAudit.hasEarly,subclassSpellAudit.thunder,subclassSpellAudit.legacyReplaced],[false,true,false]);
+    const srdSubclassAudit=await page.evaluate(()=>{
+      const names=["Path of the Berserker","College of Lore","Life Domain","Circle of the Land","Champion","Warrior of the Open Hand","Oath of Devotion","Hunter","Thief","Draconic Sorcery","Fiend Patron","Evoker"];
+      const owners=["Barbarian","Bard","Cleric","Druid","Fighter","Monk","Paladin","Ranger","Rogue","Sorcerer","Warlock","Wizard"];
+      let builds=0,rows=0;const errors=[];
+      for(let k=0;k<names.length;k++){
+        const feats=subclassFeatureRows("2024",owners[k],names[k]);rows+=feats.length;
+        if(!feats.every(f=>f.source==="srd52"&&f.sourceId&&f.page&&f.d.length>20))errors.push(names[k]+": source");
+        for(let lv=1;lv<=20;lv++){
+          const c=pcEnsure(generateCharacter({seed:"SRD-SUB",ed:"2024",cls:owners[k],level:lv,subclass:names[k],race:"Human",bg:"Sage"}));builds++;
+          const expected=feats.filter(f=>lv>=3&&f.l<=lv).map(f=>f.n).sort(),actual=c.feats.filter(f=>f.subOwner===owners[k]).map(f=>f.f).sort();
+          if(JSON.stringify(expected)!==JSON.stringify(actual))errors.push(names[k]+" "+lv+": progression");
+        }
+      }
+      const make=(cls,lv,sub)=>pcEnsure(generateCharacter({seed:"SRD-SUB-OPS",ed:"2024",cls,level:lv,subclass:sub,race:"Human",bg:"Sage"}));
+      const bard=make("Bard",6,"College of Lore");bard.choices={"Bonus Proficiencies":CHOICES["Bonus Proficiencies"].opts(bard).slice(0,3).map(x=>x[0]),"Magical Discoveries":["Bless","Fireball"]};syncGrantedSpells(bard);pcRecompute(bard);
+      const skills=bard.skills.filter(s=>s.loreGranted).length,spells=bard.prepared.filter(p=>p.sources?.some(x=>x.feature==="Magical Discoveries")).map(p=>p.n).sort();
+      const land=make("Druid",10,"Circle of the Land");land.choices={"Circle of the Land Spells":["Arid"]};syncGrantedSpells(land);const pool=pcResources(land).filter(r=>r.key==="landFreeCast").map(r=>r.max);
+      const sorc=make("Sorcerer",18,"Draconic Sorcery");sorc.choices={"Elemental Affinity":["fire"]};syncGrantedSpells(sorc);
+      const dragon=pcResources(sorc).some(r=>r.key==="dragonCompanion"&&r.max===1),affinity=pcFx(sorc).res.has("fire");
+      const thief=make("Rogue",13,"Thief"),fiend=make("Warlock",10,"Fiend Patron");
+      return {builds,rows,errors,skills,spells,pool,ward:pcFx(land).res.has("fire"),dragon,affinity,limit:artificerAttunementLimit(thief),force:ACT["Fiendish Resilience"].choices(fiend).some(x=>x[0]==="force")};
+    });
+    assert.equal(srdSubclassAudit.builds,240);assert.equal(srdSubclassAudit.rows,58);assert.deepEqual(srdSubclassAudit.errors,[]);
+    assert.equal(srdSubclassAudit.skills,3);assert.deepEqual(srdSubclassAudit.spells,["Bless","Fireball"]);assert.deepEqual(srdSubclassAudit.pool,[1]);assert.deepEqual([srdSubclassAudit.ward,srdSubclassAudit.dragon,srdSubclassAudit.affinity,srdSubclassAudit.limit,srdSubclassAudit.force],[true,true,true,4,false]);
     const expansion = await page.evaluate(() => {
       const subclasses = hbBook("subclass").filter(x => ["tce", "xge"].includes(x.src));
       const armorer = generateCharacter({ seed: "ARMOR", ed: "2014", cls: "Artificer", subclass: "Armorer", level: 5 });

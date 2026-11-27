@@ -445,10 +445,21 @@ function syncGrantedSpells(c) {
     if (cls === "Wizard" && ["School of Illusion", "Illusionist"].includes(subclass)) {
       add({ [subclassLevel(ed, cls)]: ["Minor Illusion"] }, lv, { ...source, feature: "Improved Illusions" });
     }
+    if(ed==="2024"&&cls==="Bard"&&subclass==="College of Lore"&&lv>=6){
+      const eligible=new Set(CHOICES["Magical Discoveries"].opts(c).map(x=>x[0]));
+      const chosen=[...new Set(choiceOf(c,"Magical Discoveries"))].filter(n=>eligible.has(n)).slice(0,2);
+      add({6:chosen},lv,{...source,feature:"Magical Discoveries"});
+    }
+    if(ed==="2024"&&cls==="Sorcerer"&&subclass==="Draconic Sorcery"&&lv>=18){
+      add({18:["Summon Dragon"]},lv,{...source,feature:"Dragon Companion"},()=>({free:"dragonCompanion",uses:1}));
+    }
     if (cls === "Druid" && subclass === "Circle of the Land") {
       const tracks = ed === "2024" ? LAND_SPELL_GRANTS : LEGACY_LAND_SPELL_GRANTS;
       const land = choiceOf(c, ed === "2024" ? "Circle of the Land Spells" : "Circle Spells")[0];
-      if (land && Object.hasOwn(tracks, land)) add(tracks[land], lv, { ...source, feature: land });
+      if(land&&Object.hasOwn(tracks,land)){
+        add(tracks[land],lv,{...source,feature:land});
+        if(ed==="2024"&&lv>=6)add(tracks[land],lv,{...source,feature:"Natural Recovery"},spell=>spell.l>0?{free:"landFreeCast",uses:1,sharedResource:"Natural Recovery · free circle spell"}:{});
+      }
     }
   }
 
