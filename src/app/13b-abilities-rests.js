@@ -209,6 +209,81 @@ function dragonPresenceUse(c,ch){
  c.dragonPresencePending=true;return "Draconic Presence: "+r.text+". Confirm success or failure.";
 }
 
+// Portent stores actual foretelling rolls, not just a generic use counter.
+function portentCount(c){
+ const l=characterSubclassLevel(c,"Wizard",edOf(c)==="2024"?"Diviner":"School of Divination");
+ return l>=14?3:l>0?2:0;
+}
+function portentDice(c){
+ const n=portentCount(c),p=c.portent;
+ return n&&p?.edition===edOf(c)&&Array.isArray(p.dice)?p.dice.slice(0,n):[];
+}
+function rollPortents(c,rest=false){
+ const n=portentCount(c);if(!n)return "Portent is unavailable.";
+ if(!rest&&c.portent?.edition===edOf(c)&&Array.isArray(c.portent.dice))return "Foretelling dice have already been recorded; finish a Long Rest.";
+ const spent=rest?0:Math.min(n,Math.max(0,Math.trunc(+(c.used||{})[subAblKey("Portent")]||0)));
+ c.portent={edition:edOf(c),dice:Array.from({length:n},(_,i)=>({value:rollDice("1d20").total,spent:i<spent})),turnUsed:false};
+ return "Portent: "+c.portent.dice.map(d=>d.value+(d.spent?" (spent)":"")).join(", ")+".";
+}
+function portentChoices(c){
+ if(!portentCount(c))return [];
+ if(!portentDice(c).length)return [["init","Record foretelling dice (confirm no previous rolls)"]];
+ if(c.portent.turnUsed)return [["next","Confirm a new creature turn"]];
+ return portentDice(c).flatMap((d,i)=>!d.spent&&Number.isInteger(d.value)&&d.value>=1&&d.value<=20?[[String(i),"Die "+(i+1)+": "+d.value]]:[]);
+}
+function usePortent(c,ch){
+ if(!portentChoices(c).some(([id])=>id===ch))return "Portent option unavailable.";
+ if(ch==="init")return rollPortents(c);
+ if(ch==="next"){c.portent.turnUsed=false;return "Portent turn limit reset; confirm a different creature turn.";}
+ const d=c.portent.dice[+ch];d.spent=true;c.portent.turnUsed=true;
+ return "Portent: replace the chosen visible creature's attack, ability check or saving throw d20 with "+d.value+". Choose before the roll; apply modifiers and target manually.";
+}
+// Ward HP is separate from character HP and temporary HP.
+function arcaneWardLevel(c){return characterSubclassLevel(c,"Wizard",edOf(c)==="2024"?"Abjurer":"School of Abjuration");}
+function arcaneWardMax(c){const l=arcaneWardLevel(c);return l?Math.max(0,2*l+(+c.mods?.int||0)):0;}
+function arcaneWardHP(c){return arcaneWardLevel(c)&&c.arcaneWard?.edition===edOf(c)?Math.max(0,Math.min(arcaneWardMax(c),Math.trunc(+c.arcaneWard.hp||0))):0;}
+function arcaneWardExists(c){return !!(arcaneWardLevel(c)&&c.arcaneWard?.edition===edOf(c));}
+function arcaneWardCastEligible(c,sp,how,slot,ed=edOf(c)){
+ return ed===edOf(c)&&arcaneWardLevel(c)>0&&+sp?.l>0&&String(sp.s).toLowerCase()==="abjuration"&&+slot>=1&&(ed==="2014"||/^slot[1-9]$|^pact$/.test(how));
+}
+function arcaneWardOnCast(c,sp,how,slot,create=true,ed=edOf(c)){
+ if(!arcaneWardCastEligible(c,sp,how,slot,ed))return "";
+ const before=arcaneWardHP(c);
+ if(!arcaneWardExists(c)){if(!create)return "";c.arcaneWard={edition:ed,hp:arcaneWardMax(c)};return "Arcane Ward created: "+arcaneWardHP(c)+" HP.";}
+ c.arcaneWard.hp=Math.min(arcaneWardMax(c),before+2*slot);
+ return "Arcane Ward: "+arcaneWardHP(c)+"/"+arcaneWardMax(c)+" HP ("+(arcaneWardHP(c)-before)+" restored).";
+}
+function arcaneWardAbsorb(c,damage){
+ const n=Math.max(0,Math.trunc(+damage||0)),absorbed=Math.min(n,arcaneWardHP(c));
+ if(absorbed)c.arcaneWard.hp=arcaneWardHP(c)-absorbed;
+ return {absorbed,left:n-absorbed};
+}
+function arcaneWardRechargeOptions(c){
+ if(edOf(c)!=="2024"||!arcaneWardExists(c)||arcaneWardHP(c)>=arcaneWardMax(c))return [];
+ return pcResources(c).filter(r=>(/^slot[1-9]$/.test(r.key)||r.key==="pact")&&resLeft(c,r)>0).map(r=>[r.key,r.name]);
+}
+function arcaneWardRecharge(c,key){
+ if(!arcaneWardRechargeOptions(c).some(([id])=>id===key))return "No eligible ward recovery.";
+ const r=pcResources(c).find(r=>r.key===key),l=key==="pact"?+(r.name.match(/level (\d)/)||[])[1]:+key.slice(4);
+ if(!l)return "Invalid spell slot.";
+ c.used=c.used||{};c.used[key]=(+c.used[key]||0)+1;
+ c.arcaneWard.hp=Math.min(arcaneWardMax(c),arcaneWardHP(c)+2*l);
+ return "Arcane Ward: "+arcaneWardHP(c)+"/"+arcaneWardMax(c)+" HP.";
+}
+function projectedWardOptions(c){
+ return arcaneWardLevel(c)>=6?Array.from({length:arcaneWardHP(c)},(_,i)=>[String(i+1),"Absorb "+(i+1)+" damage"]):[];
+}
+function projectedWardUse(c,ch){
+ if(!projectedWardOptions(c).some(([id])=>id===ch))return "Projected Ward unavailable.";
+ const a=arcaneWardAbsorb(c,+ch);
+ return "Projected Ward absorbs "+a.absorbed+" damage. Confirm Reaction, visible creature within 30 ft and its remaining damage; apply that remainder manually.";
+}
+function wizardSubclassCleanup(c){
+ if(!portentCount(c)){delete c.portent; if(c.used)delete c.used[subAblKey("Portent")];}
+ if(!arcaneWardLevel(c)){delete c.arcaneWard;}
+ else if(arcaneWardExists(c))c.arcaneWard.hp=arcaneWardHP(c);
+ if(c.conc?.spell==="Mantle of Majesty"&&!majestyLevel(c)) {delete c.conc;delete c.concCheck;}
+}
 function pcResources(c) {
   const ed = edOf(c), lv = c.level, m = c.mods, prof = c.prof, has = n => (c.feats || []).some(f => f.f === n), tr = n => (c.traits || []).includes(n); const CLV = k => classFeatureLevel(c, k), TLV = totalLv(c);
   const R = [], add = (key, name, max, recharge) => R.push({ key, name, max, recharge });
@@ -309,6 +384,11 @@ function pcAbilities(c) {
   const ed = edOf(c), lv = c.level, m = c.mods, prof = c.prof, has = n => (c.feats || []).some(f => f.f === n), tr = n => (c.traits || []).includes(n); const CLV = k => classFeatureLevel(c, k), TLV = totalLv(c);
   const A = [], add = (name, when, text, res, src) => A.push({ name, when, text, res, src });
   const wisDC = 8 + prof + m.wis, chaB = Math.max(1, m.cha);
+  if(arcaneWardLevel(c)){
+    add("Arcane Ward status","Passive",arcaneWardExists(c)?"Ward HP "+arcaneWardHP(c)+"/"+arcaneWardMax(c)+". Damage entered through Apply Damage depletes the ward first; direct HP edits are final values.":"Cast a qualifying Abjuration spell to create the ward.",null,"Wizard");
+    if(ed==="2024"&&arcaneWardExists(c))add("Recharge Arcane Ward","Bonus action","Expend a spell slot to recover twice its level in ward HP.",null,"Abjurer");
+  }
+  if(portentCount(c))add("Portent record","Long Rest",portentDice(c).length?portentDice(c).map(d=>d.value+(d.spent?" (spent)":"")).join(" · "):"No foretelling dice recorded; use Portent to initialize at the table.",null,"Wizard");
   if (has("Rage")) add("Rage", "Bonus action", `+${CLV("Barbarian") >= 16 ? 4 : CLV("Barbarian") >= 9 ? 3 : 2} damage on Strength melee attacks, resistance to bludgeoning, piercing and slashing, advantage on Strength checks and saves. No spellcasting while raging.`, "rage");
   if(ed==="2024"&&clsLv(c,"Barbarian")>=15)add("Persistent Rage recovery","On initiative","Regain all expended Rage uses, once per Long Rest.","persistentRage");
   if(ed==="2024"&&clsLv(c,"Druid")>=2)add("Wild Companion","Magic action","Expend a Wild Shape use or spell slot to cast Find Familiar without Material components. The Fey familiar disappears at your next Long Rest.");
@@ -1107,7 +1187,7 @@ const ACT = {
   "Peerless Skill": { kind: "instant", use: c => rollMsg("Peerless Skill", `1d${clsLv(c,"Bard") >= 15 ? 12 : clsLv(c,"Bard") >= 10 ? 10 : clsLv(c,"Bard") >= 5 ? 8 : 6}`, "Add it to your roll") },
   "Beguiling Magic": {kind:"instant",choices:[["charm","Charmed"],["fear","Frightened"]],use:(c,ch)=>`Confirm you just cast an Enchantment or Illusion spell with a slot. One visible creature within 60 ft makes a WIS save (DC ${8+c.prof+c.mods.cha}); on failure it is ${ch==="fear"?"Frightened":"Charmed"} for 1 minute. Repeat the save at the end of each of its turns. Apply manually.`},
   "Mantle of Inspiration": { kind: "instant", use: c => { const r = rollDice(`1d${clsLv(c,"Bard") >= 15 ? 12 : clsLv(c,"Bard") >= 10 ? 10 : clsLv(c,"Bard") >= 5 ? 8 : 6}`); return { title: "Mantle of Inspiration", msg: `Mantle of Inspiration: ${r.text}. Allies within 60 ft gain ${2 * r.total} temporary hit points and can move without provoking opportunity attacks.`, amount: 2 * r.total, kind: "temp" }; } },
-  "Mantle of Majesty": { kind: "toggle", fx: () => ({ notes: ["Mantle of Majesty: cast command as a bonus action each turn (concentration, 1 minute)"] }) },
+  "Mantle of Majesty": {kind:"instant",noCost:true,dialog:c=>castDialog(c,edOf(c),"Command",{prefer:majestyActive(c)?"majestyRepeat":"majestyStart",featureOnly:"majesty"})},
   "Unbreakable Majesty": { kind: "toggle", fx: () => ({ notes: ["Unbreakable Majesty: a creature that attacks you must make a CHA save or pick a new target"] }) },
   // ---------- Cleric
   "Channel Divinity": channelDivinityAction(c=>clsLv(c,"Cleric")>=2?"Cleric":"Paladin"),
@@ -1268,7 +1348,9 @@ const ACT = {
   "Warping Implosion": { kind: "instant", use: c => area("Warping Implosion", "3d10", "str", 8 + c.prof + c.mods.cha, "Force", "You teleport up to 120 ft. Each creature within 30 ft of the space you left makes a STR save: force damage and pulled next to that space, half and not pulled on a success.") },
   // ---------- Wizard
   "Arcane Recovery": { kind: "instant", dialog: (c, a) => recoveryDialog(c, "Arcane Recovery", a.res) },
-  Portent: { kind: "instant", use: () => "Portent die used: replace the roll with it." },
+  Portent:{kind:"instant",noCost:true,choices:portentChoices,use:usePortent},
+  "Recharge Arcane Ward":{kind:"instant",choices:arcaneWardRechargeOptions,use:arcaneWardRecharge},
+  "Projected Ward":{kind:"instant",choices:projectedWardOptions,use:projectedWardUse},
   "Illusory Self": { kind: "instant", use: () => "Illusory Self: the attack misses." },
   // ---------- species
   "Breath Weapon": { kind: "instant", use: c => { const x = (c.extras || []).find(e => e.startsWith("Breath Weapon")) || "", d = (x.match(/(\d+d\d+)/) || [])[1] || "2d6", dc = +((x.match(/DC (\d+)/) || [])[1] || 8 + c.prof + c.mods.con), A = DRAGON_ANCESTRY[c.ancestry] || {}, sv = edOf(c) === "2024" ? "dex" : String(A.save || "DEX").toLowerCase(); return area("Breath Weapon", d, sv, dc, cap1(A.type || ""), `Each creature in the ${edOf(c) === "2024" ? "15 ft cone or 30 ft line" : A.shape || "area"} makes a ${sv.toUpperCase()} save: ${A.type || ""} damage, half on a success.`); } },
@@ -1320,7 +1402,7 @@ function actControls(c, a, R) {
   if (S.kind === "persist") return `<span class="act">${sel(on || "")}</span>`;
   if (S.kind === "toggle") return on ? `<span class="act">${ch.length ? `<span class="tag">${esc((ch.find(x => x[0] === on) || [, ""])[1])}</span>` : ""}<button type="button" class="btn sm primary" data-act="${k}">■ End</button></span>`
     : `<span class="act">${sel()}<button type="button" class="btn sm" data-act="${k}"${a.res && R[a.res] && resLeft(c, R[a.res]) < 1 && !S.noCost ? " disabled" : ""}>▶ Activate</button></span>`;
-  if (S.kind === "instant" && (S.use || a.res)) return `<span class="act">${sel()}<button type="button" class="btn sm" data-act="${k}"${a.res && R[a.res] && resLeft(c, R[a.res]) < 1 && !S.noCost && !ch.some(([id])=>typeof S.cost==="function"&&S.cost(c,id)===0) ? " disabled" : ""}>Use</button></span>`;
+  if (S.kind === "instant" && (S.use || S.dialog || a.res)) return `<span class="act">${sel()}<button type="button" class="btn sm" data-act="${k}"${a.res && R[a.res] && resLeft(c, R[a.res]) < 1 && !S.noCost && !ch.some(([id])=>typeof S.cost==="function"&&S.cost(c,id)===0) ? " disabled" : ""}>Use</button></span>`;
   return "";
 }
 function rcActiveHTML(c) {
@@ -1368,8 +1450,8 @@ function actApply(targetId, amount, kind, options={}) {
     const cur = +(p.hpCur ?? p.hp) || 0, max = +p.hp || 0;
     if (kind === "heal") { p.hpCur = Math.max(cur,Math.min(options.halfHpCap?Math.floor(max/2):max,cur+Math.max(0,amount))); const hn = pcHealed(p, cur === 0&&p.hpCur>0); pcPersist(); return `${p.name} regains ${p.hpCur - cur} hit points (${p.hpCur}/${max}).${hn.length ? " " + hn.join(". ") + "." : ""}`; }
     if (kind === "temp") { const was = +p.hpTemp || 0; if (amount > was) p.hpTemp = amount; pcPersist(); return amount > was ? `${p.name} has ${amount} temporary hit points.` : `${p.name} keeps their ${was} temporary hit points (they don't stack).`; }
-    let left = amount; const tmp = +p.hpTemp || 0; if (tmp) { const use = Math.min(tmp, left); p.hpTemp = tmp - use || ""; left -= use; }
-    p.hpCur = Math.max(0, cur - left); const dn = pcDamaged(p, amount, cur === 0); pcPersist(); return `${p.name} takes ${amount} damage (${p.hpCur}/${max}${+p.hpTemp ? `, ${p.hpTemp} temp left` : ""}).${dn.length ? " " + dn.map(cap1).join(". ") + "." : ""}`;
+    const ward=arcaneWardAbsorb(p,amount); let left = ward.left; const tmp = +p.hpTemp || 0; if (tmp) { const use = Math.min(tmp, left); p.hpTemp = tmp - use || ""; left -= use; }
+    p.hpCur = Math.max(0, cur - left); const dn = pcDamaged(p, ward.left, cur === 0); pcPersist(); return `${p.name} takes ${ward.left} damage${ward.absorbed?` (${ward.absorbed} absorbed by Arcane Ward)`:""} (${p.hpCur}/${max}${+p.hpTemp ? `, ${p.hpTemp} temp left` : ""}).${dn.length ? " " + dn.map(cap1).join(". ") + "." : ""}`;
   }
   const k = Store.get(a), e = k && (k.encounters || []).find(x => x.id === b), m = e && e.enemies.find(x => x.id === d);
   if (!m) return "That creature is gone.";

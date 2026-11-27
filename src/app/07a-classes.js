@@ -550,7 +550,7 @@ const SUB_ABL = {
   "Entropic Ward": { when: "Reaction", res: ["Entropic Ward", () => 1, "short"] }, "Clairvoyant Combatant": { when: "With Awakened Mind", res: ["Clairvoyant Combatant", () => 1, "short"] }, "Create Thrall": { when: "Action" },
   "Healing Light": { when: "Bonus action", res: ["Healing Light dice (d6)", c => 1 + c.level, "long"] }, "Radiant Soul": { when: "On spell damage" }, "Searing Vengeance": { when: "On a death save", res: ["Searing Vengeance", () => 1, "long"] },
   // Wizard
-  "Arcane Ward": { when: "Passive" }, "Projected Ward": { when: "Reaction" }, Portent: { when: "On any roll you see", res: ["Portent dice", c => c.level >= 14 ? 3 : 2, "long"] },
+  "Arcane Ward": { when: "Passive" }, "Projected Ward": { when: "Reaction" }, Portent: { when: "Before a visible creature’s roll" },
   "Sculpt Spells": { when: "When casting" }, "Potent Cantrip": { when: "On a cantrip" }, "Empowered Evocation": { when: "On spell damage" }, Overchannel: { when: "When casting" },
   "Illusory Self": { when: "Reaction", res: ["Illusory Self", () => 1, "short"] }, "Illusory Reality": { when: "Bonus action" }, "Hypnotic Gaze": { when: "Action" }, "Instinctive Charm": { when: "Reaction" },
   "Benign Transposition": { when: "Action", res: ["Benign Transposition", () => 1, "long"] }, "Grim Harvest": { when: "On a kill" }, "Shapechanger": { when: "Action", res: ["Shapechanger", () => 1, "short"] }, "Spell Breaker": { when: "Bonus action" }

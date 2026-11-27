@@ -232,6 +232,7 @@ function spellDice(c, sp, P, slot, caster = spellCaster(c, sp)) {
   return `${count}d${face}${flat ? sgn(flat) : ""}`;
 }
 function spellCaster(c, sp, how, ed = edOf(c)) {
+  if(sp.n==="Command"&&["majestyStart","majestyRepeat"].includes(how)&&majestyLevel(c)>=6)return {cls:"Bard",ab:"cha",dc:8+c.prof+c.mods.cha,atk:c.prof+c.mods.cha};
   const own = [...(c.spell ? [{ cls: c.spell.cls || c.cls, list: c.spell.list, ab: c.spell.ab, dc: c.spell.dc, atk: c.spell.atk }, ...(c.spell.others || [])] : [])];
   const sources = spellPreparationSources(c, sp.n, ed);
   const source = sources.find(g => how && g.free === how) || sources.find(g => own.some(x => x.cls === g.cls))
@@ -252,6 +253,24 @@ function freeSpellResources(c, sp, ed, resources) {
   if (sp.ri && c.prepared?.some(p => p.ed === ed && p.n === sp.n)) keys.push("featQuickRitual");
   return resources.filter(r => keys.includes(r.key));
 }
+function majestyLevel(c){return characterSubclassLevel(c,"Bard","College of Glamour");}
+function majestyActive(c){return majestyLevel(c)>=6&&c.conc?.spell==="Mantle of Majesty"&&c.conc?.feature==="majesty";}
+function majestyCastOptions(c,sp,ed=edOf(c)){
+ if(ed!==edOf(c)||sp?.n!=="Command"||majestyLevel(c)<6)return [];
+ if(majestyActive(c))return [["majestyRepeat","Mantle of Majesty","Bonus Action · no slot; confirm another turn"]];
+ const r=pcResources(c).find(r=>r.key===subAblKey("Mantle of Majesty"));
+ return r?[["majestyStart","Activate Mantle of Majesty","Bonus Action · 1 minute Concentration",!resLeft(c,r)]]:[];
+}
+function majestyCast(c,how){
+ const sp={n:"Command"};
+ if(!majestyCastOptions(c,sp).some(x=>x[0]===how&&!x[3]))return null;
+ if(how==="majestyStart"){
+  c.used=c.used||{};const key=subAblKey("Mantle of Majesty");c.used[key]=(+c.used[key]||0)+1;
+  const ended=concStart(c,"Mantle of Majesty");c.conc.feature="majesty";
+  return [ended,"Mantle of Majesty active for 1 minute; end concentration at expiry or when broken."].filter(Boolean).join(" ");
+ }
+ return "Mantle of Majesty: bonus-action Command, no slot; confirm this turn's Bonus Action.";
+}
 function castOpts(c, sp, ed = edOf(c)) {
   if (spellCastBlocked(c, sp, ed)) return [];
   const R = pcResources(c), opts = [];
@@ -269,7 +288,7 @@ function castOpts(c, sp, ed = edOf(c)) {
   }
   R.filter(r => /^slot\d$/.test(r.key) && +r.key.slice(4) >= sp.l).forEach(r => { const L = +r.key.slice(4), left = resLeft(c, r); opts.push([r.key, ordinal(L), `${left} left`, !left]); });
   const pact = R.find(r => r.key === "pact"); if (pact) { const L = +(pact.name.match(/level (\d)/) || [])[1]; if (L >= sp.l) opts.push(["pact", `Pact slot (${ordinal(L)})`, `${resLeft(c, pact)} left`, !resLeft(c, pact)]); }
-  opts.push(...grants);
+  opts.push(...grants,...majestyCastOptions(c,sp,ed));
   if (sp.ri && (!featOnly || ed === "2024" || sources.some(g => g.ritualOnly))) opts.push(ritual);
   if (!featOnly) opts.push(["free", "Without a slot", "a feature or item"]);
   return opts;
@@ -307,6 +326,8 @@ function castPreview(c, sp, how, ed = edOf(c)) {
   const spirit=summonSpiritDefinition(sp,ed);
   if(spirit&&!spellManualResolution(sp))return `At ${ordinal(slot)}: summon ${spirit.name}; resolve its stat block and attacks after casting${feySummonOption(c,sp,ed)?" · no material component; optional one-minute non-concentration cast":sp.co?" · needs concentration":""}.`;
   const count = P.count + (P.countPer ? up : 0), parts = [];
+  if(["majestyStart","majestyRepeat"].includes(how))parts.push("Command as a Bonus Action; a creature Charmed by you automatically fails its save. Confirm timing and target.");
+  if(arcaneWardCastEligible(c,sp,how,slot,ed))parts.push(arcaneWardExists(c)?"Restore up to "+2*slot+" Ward HP":"Optionally create an Arcane Ward ("+arcaneWardMax(c)+" HP)");
   if (spellManualResolution(sp) && sp.sv) parts.push(`${sp.sv.toUpperCase()} save DC ${K.dc}`);
   if (spellManualResolution(sp) && sp.at) parts.push(`Spell attack ${sgn(K.atk)}`);
   if (P.attack) parts.push(`Spell attack ${sgn(K.atk)}${K.innateSorcery?" with advantage":""}`); else if (P.save) parts.push(`${P.save.toUpperCase()} save against DC ${K.dc}`);
@@ -360,11 +381,12 @@ function castDialog(c, ed, name, o = {}) {
   else if (o.view || c.armorUntrained) cast = `<p class="hint" style="margin:10px 0 0">${esc(c.armorUntrained ? ARMOR_CASTING_WARNING : "Save the character to cast this and track spell slots.")}</p><div class="row" style="justify-content:flex-end;margin-top:12px"><button class="btn" type="button" data-actclose style="flex:0 0 auto">Close</button></div>`;
   else {
     /* start on a real slot (or the cantrip); with none left, nothing is picked, so a free casting is always a choice */
-    const opts = castOpts(c, sp, ed);
-    const first = opts.find(x => !x[3] && (sp.l === 0 || /^slot\d$|^pact$/.test(x[0])));
+    const opts = castOpts(c, sp, ed).filter(x=>o.featureOnly==="majesty"?x[0].startsWith("majesty"):true);
+    const first = opts.find(x => !x[3] && x[0]===o.prefer)||opts.find(x => !x[3] && (sp.l === 0 || /^slot\d$|^pact$/.test(x[0])));
     cast = `<div class="cast-box"><div class="cast-h">${sp.l ? "Cast at level" : "Cast"}</div>
       ${sp.l ? `<div class="cast-lvs" role="group" aria-label="Cast at level">${opts.map(([v, l, sub, dis]) => `<button type="button" class="cast-lv" data-castlv="${esc(v)}" aria-pressed="${!!(first && first[0] === v)}" ${dis ? "disabled" : ""}><b>${esc(l)}</b><span>${esc(sub)}</span></button>`).join("")}</div>` : ""}
       ${feySummonOption(c,sp,ed)?`<label class="hint"><input type="checkbox" id="feyNoConcentration"> Fey Reinforcements: cast without concentration (duration 1 minute)</label>`:""}
+      ${arcaneWardLevel(c)&&!arcaneWardExists(c)&&String(sp.s).toLowerCase()==="abjuration"&&sp.l>0?`<label class="hint"><input type="checkbox" id="createArcaneWard" checked> Create Arcane Ward if this casting qualifies</label>`:""}
       <input type="hidden" id="castSlot" value="${first ? esc(first[0]) : ""}">
       <p id="castFx" class="cast-fx">${esc(first ? castPreview(c, sp, first[0], ed) : opts.some(x => !x[3]) ? "No slots left for this spell. Choose another way to cast." : "No cast available. Finish a rest to regain uses.")}</p></div>
       <div class="row" style="justify-content:flex-end;margin-top:12px"><button class="btn" type="button" data-actclose style="flex:0 0 auto">Close</button><button class="btn primary" type="button" data-castgo style="flex:0 0 auto" ${first ? "" : "disabled"}>✦ Cast</button></div>`;
@@ -392,6 +414,8 @@ function castGo() {
     if (grant.max !== Infinity) c.used[how] = (+c.used[how] || 0) + 1;
   }
   const notes = [`${c.name} casts ${sp.n}${sp.l ? ` at level ${slot}` : ""}${how === "ritual" ? " as a ritual" : ""}.`];
+  if(["majestyStart","majestyRepeat"].includes(how)){const msg=majestyCast(c,how);if(!msg){toast("Mantle of Majesty is unavailable");return;}notes.push(msg,"A creature Charmed by you automatically fails its save; resolve the target and action timing manually.");}
+  const wardNote=arcaneWardOnCast(c,sp,how,slot,$("#createArcaneWard")?.checked!==false,ed);if(wardNote)notes.push(wardNote);
   if(how==="pactChainFamiliar"){
     notes.push("Pact of the Chain: Magic action; choose a permitted familiar form and manage the familiar manually.");
     if(hasChoice(c,"Eldritch Invocations","investment"))notes.push("Investment of the Chain Master: "+(choiceOf(c,"Chain Master Movement")[0]||"choose Fly or Swim 40 feet")+"; familiar save DC "+K.dc+"; apply attacks, damage choices and resistance manually.");
@@ -422,7 +446,7 @@ function castGo() {
       <button class="btn" type="button" data-actclose>Close</button>`);
     return;
   }
-  if (!dice) { if(feyTeleportOptions(c,sp,ed).length){actDialog(`<h3 id="actTitle">${esc(sp.n)}</h3><p>${esc(notes.join(" "))}</p><button class="btn" type="button" data-actclose>Close</button>`);return;} actClose(); toast(notes.join(" ")); return; }
+  if (!dice) { if(feyTeleportOptions(c,sp,ed).length||how.startsWith("majesty")||wardNote){actDialog(`<h3 id="actTitle">${esc(sp.n)}</h3><p>${esc(notes.join(" "))}</p><button class="btn" type="button" data-actclose>Close</button>`);return;} actClose(); toast(notes.join(" ")); return; }
   if (P.heal) { const life=revisedLifeHealing(c,P,slot,how),r=rollLifeHealing(dice,life); actResultDialog(c,{title:sp.n,msg:`${notes.join(" ")} Healing ${r.text}. Total ${r.total} HP.${life.blessed?" If you restore HP to another creature, regain "+life.blessed+" HP yourself (apply manually).":""}`,amount:r.total,kind:"heal"});return; }
   if (P.attack) {
     const lines = []; let tot = 0;

@@ -54,6 +54,7 @@ function applyCoreSkillChoices(c){
 }
 function pcRecompute(c) {
   artificerInfusionCleanup(c);
+  wizardSubclassCleanup(c);
   const m = {}; AB.forEach(a => m[a] = mod(+c.scores[a] || 10)); c.mods = m; const SB = subBonusOf(c);
   c.init = m.dex + (c.initBonus ?? ((c.feats || []).some(f => f.f === "Feat: Alert") ? (edOf(c) === "2024" ? c.prof : 5) : 0)) + SB.init + (SB.athlete ? Math.ceil(c.prof / 2) : 0) + (clsLv(c,"Bard") >= 2 && edOf(c) === "2014" ? Math.floor(c.prof / 2) : 0);
   const jack = clsLv(c,"Bard")>=2;

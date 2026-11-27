@@ -598,7 +598,10 @@ function pcRest(c, kind) {
   delete c.arcaneJoltThisTurn;
   delete c.psiPending; // an unresolved check or attack cannot carry across a rest
   companionRestUpdate(c,kind);
+  if(c.conc?.spell==="Mantle of Majesty"){delete c.conc;delete c.concCheck;}
   if(kind==="long"){
+    delete c.arcaneWard;
+    if(portentCount(c)){back.push(rollPortents(c,true));}else delete c.portent;
     if(c.createdSlots){delete c.createdSlots;back.push("Temporary spell slots expired");}
     if(artificerExpire(c))back.push("Tinker's Magic gear expired");
     if(c.wildCompanionActive){delete c.wildCompanionActive;back.push("Wild Companion ended");}

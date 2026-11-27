@@ -825,6 +825,25 @@ const { chromium } = require("playwright");
       return {grants,beg:c.used[beg],bardic:c.used.bardic,already,invalid,legal,majesty:c.used[majesty],slot4:c.used.slot4,abj,removed:!w.prepared.some(p=>p.sources?.some(s=>s.feature==="Spell Breaker"))};
     });
     assert.deepEqual(glamourAudit.grants,["Charm Person","Command","Mirror Image"]);assert.deepEqual([glamourAudit.beg,glamourAudit.bardic,glamourAudit.majesty,glamourAudit.slot4],[0,1,0,1]);assert.match(glamourAudit.already,/already available/);assert.match(glamourAudit.invalid,/Not enough/);assert.deepEqual(glamourAudit.legal,["slot3","slot4"]);assert.deepEqual(glamourAudit.abj,["Counterspell","Dispel Magic"]);assert.equal(glamourAudit.removed,true);
+    const wizardSubclassAudit=await page.evaluate(()=>{
+      const make=(ed,cls,level,subclass)=>pcEnsure(generateCharacter({seed:"WIZSUB",ed,cls,level,subclass,race:"Human",bg:"Sage"}));
+      const out=[];
+      for(const ed of ["2014","2024"]){
+        const c=make(ed,"Wizard",14,ed==="2014"?"School of Divination":"Diviner");
+        pcRest(c,"long");const dice=portentDice(c).map(d=>d.value);const first=usePortent(c,"0");const blocked=usePortent(c,"1");
+        usePortent(c,"next");usePortent(c,"1");const spent=portentDice(c).filter(d=>d.spent).length;
+        pcRest(c,"short");const kept=portentDice(c).filter(d=>d.spent).length;pcRest(c,"long");out.push([dice.length,dice.every(d=>d>=1&&d<=20),spent,kept,portentDice(c).filter(d=>d.spent).length,blocked.includes("unavailable")]);
+        const w=make(ed,"Wizard",10,ed==="2014"?"School of Abjuration":"Abjurer");w.scores.int=16;pcRecompute(w);
+        const sp={l:1,s:"Abjuration"};arcaneWardOnCast(w,sp,"slot1",1);const max=arcaneWardHP(w);const hit=arcaneWardAbsorb(w,8);
+        arcaneWardOnCast(w,sp,"slot2",2);const hp=arcaneWardHP(w);const proj=projectedWardUse(w,"2");
+        const options=arcaneWardRechargeOptions(w);const free=arcaneWardOnCast(w,sp,"ritual",1);pcRest(w,"long");
+        out.push([max,hit.absorbed,hit.left,hp,!!proj,options.length>0,!!free,!arcaneWardExists(w)]);
+      }
+      const g=make("2024","Bard",6,"College of Glamour");const key=subAblKey("Mantle of Majesty");g.used={};g.conc={spell:"Bless"};const start=majestyCast(g,"majestyStart");const repeat=majestyCast(g,"majestyRepeat");const spent=g.used[key];delete g.conc;const unavailable=majestyCast(g,"majestyStart")===null;pcRest(g,"long");
+      return {out,majesty:[!!start,!!repeat,spent,unavailable,majestyCastOptions(g,{n:"Command"})[0]?.[0]]};
+    });
+    assert.deepEqual(wizardSubclassAudit.out,[[3,true,2,2,0,true],[23,8,0,19,true,false,true,true],[3,true,2,2,0,true],[23,8,0,19,true,true,false,true]]);
+    assert.deepEqual(wizardSubclassAudit.majesty,[true,true,1,true,"majestyStart"]);
     const expansion = await page.evaluate(() => {
       const subclasses = hbBook("subclass").filter(x => ["tce", "xge"].includes(x.src));
       const armorer = generateCharacter({ seed: "ARMOR", ed: "2014", cls: "Artificer", subclass: "Armorer", level: 5 });
