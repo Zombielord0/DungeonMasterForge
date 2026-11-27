@@ -175,7 +175,7 @@ function dragonAuraChoices(c){
 function dragonAuraStart(c,ch){
  const key=monkCanPay(c,"dragonAura",1)?"dragonAura":"ki",cost=key==="ki"?3:1;
  if(!monkPay(c,key,cost)){delete c.active["Aspect of the Wyrm"];return "Insufficient uses.";}
- return "Aspect of the Wyrm active for 1 minute; confirm aura targets and expiry at the table.";
+ c.dragonFuryPending=dragonMonk(c)>=17; return "Aspect of the Wyrm active for 1 minute; confirm aura targets and expiry at the table."+(c.dragonFuryPending?" Resolve Explosive Fury now.":"");
 }
 function dragonPresenceChoices(c){return c.dragonPresencePending?[["success","Reroll succeeded"],["failure","Reroll failed"]]:monkCanPay(c,"dragonPresence",1)?[["intimidation","Reroll Intimidation"],["persuasion","Reroll Persuasion"]]:[];}
 function dragonPresenceUse(c,ch){
@@ -828,7 +828,7 @@ const ACT = {
  "Wings Unfurled":{kind:"instant",use:()=> "Fly at walking speed until end of your turn; confirm Step of the Wind and resolve movement."},
  "Aspect of the Wyrm":{kind:"toggle",noCost:true,choices:dragonAuraChoices,start:dragonAuraStart,fx:(c,ch)=>ch==="fear"?{notes:["Frightful Presence: 10-ft aura; resolve Wisdom save and fear manually."]}:{res:[ch],notes:["Allies within 10 ft also resist "+ch+"; 1 minute."]}},
  "Frightful Presence (Wyrm)":{kind:"instant",use:c=>c.active?.["Aspect of the Wyrm"]==="fear"?"Choose a creature within aura: WIS save DC "+(8+c.prof+c.mods.wis)+" or Frightened for 1 minute; repeat at end of target turns.":"Fear aura must be active."},
- "Explosive Fury (Wyrm)":{kind:"instant",choices:dragonElements.map(x=>[x,x]),use:(c,ch)=>c.active?.["Aspect of the Wyrm"]?roll("Explosive Fury","3d10","damage",ch+"; DEX save DC "+(8+c.prof+c.mods.wis)+" for no damage; only on activation."):"Activate aura first."},
+ "Explosive Fury (Wyrm)":{kind:"instant",choices:c=>c.dragonFuryPending&&c.active?.["Aspect of the Wyrm"]?dragonElements.map(x=>[x,x]):[],use:(c,ch)=>{if(!c.dragonFuryPending||!c.active?.["Aspect of the Wyrm"]||!dragonElements.includes(ch))return "Available only once on aura activation.";delete c.dragonFuryPending;return roll("Explosive Fury","3d10","damage",ch+"; DEX save DC "+(8+c.prof+c.mods.wis)+" for no damage; only on activation.");}},
  "Radiant Sun Bolt":{kind:"instant",choices:[["one","One Attack-action bolt"],["two","Two bonus-action bolts · 1 ki"]],use:(c,ch)=>{if(ch==="two"&&!monkPay(c,"ki",1))return "Insufficient ki.";const r=rollDice("1d20"+sgn(c.mods.dex+c.prof));const d=rollDice("1d"+maDie(c)+sgn(c.mods.dex));return "Radiant Sun Bolt: "+r.text+" attack; "+d.text+" radiant on hit."+(ch==="two"?" Second bolt: "+rollDice("1d20"+sgn(c.mods.dex+c.prof)).text+" attack; "+rollDice("1d"+maDie(c)+sgn(c.mods.dex)).text+" radiant on hit.":"");}},
  "Searing Arc Strike":{kind:"instant",choices:c=>Array.from({length:Math.max(0,Math.min(Math.floor(sunMonk(c)/2),resLeft(c,monkResource(c,"ki")||{key:"ki",max:0}))-1)},(_,i)=>[String(i+2),(i+2)+" ki · level "+(i+1)]),cost:(c,ch)=>+ch,use:(c,ch)=>roll("Searing Arc Strike",(+ch+1)+"d6","damage","Fire in 15-ft cone; DEX save DC "+(8+c.prof+c.mods.wis)+" for half. Confirm Attack action.",true)},
  "Searing Sunburst":{kind:"instant",choices:c=>Array.from({length:1+Math.min(3,resLeft(c,monkResource(c,"ki")||{key:"ki",max:0}))},(_,i)=>[String(i),i+" ki · "+(2+2*i)+"d6"]),use:(c,ch)=>{if(+ch&&!monkPay(c,"ki",+ch))return "Insufficient ki.";return roll("Searing Sunburst",(2+2*(+ch))+"d6","damage","Radiant; 20-ft sphere within 150 ft; CON save DC "+(8+c.prof+c.mods.wis)+" for no damage; opaque total cover exempt.");}},
