@@ -10355,7 +10355,7 @@
       {
         "l": 3,
         "n": "Tools of the Trade",
-        "d": "See the sourcebook for complete rules."
+        "d": "Gain proficiency with Alchemist's Supplies and Herbalism Kit; for each already known choose a different Artisan's Tools proficiency instead. Potion crafting time under DMG crafting rules is halved."
       },
       {
         "l": 5,
@@ -10373,7 +10373,13 @@
         "d": "Gain advanced chemical defenses and more powerful magical effects."
       }
     ],
-    "page": 12
+    "page": 12,
+    "featureSourceReview": {
+      "status": "drive_pdf_mechanics_reviewed",
+      "reference": "Eberron Forge of the Artificer Wizard-of-the-CoastDnDB-PrintOCR (1).pdf",
+      "primaryVerified": false,
+      "runtimeVerified": false
+    }
   },
   {
     "id": "reference-efota-armorer",
@@ -10418,7 +10424,7 @@
       {
         "l": 3,
         "n": "Tools of the Trade",
-        "d": "See the sourcebook for complete rules."
+        "d": "Gain Heavy armor training and Smith's Tools proficiency, or choose another Artisan's Tools proficiency if already proficient. Time to craft magical or nonmagical armor is halved."
       },
       {
         "l": 5,
@@ -10436,7 +10442,13 @@
         "d": "Unlock a stronger combat benefit for your armor model."
       }
     ],
-    "page": 14
+    "page": 14,
+    "featureSourceReview": {
+      "status": "drive_pdf_mechanics_reviewed",
+      "reference": "Eberron Forge of the Artificer Wizard-of-the-CoastDnDB-PrintOCR (1).pdf",
+      "primaryVerified": false,
+      "runtimeVerified": false
+    }
   },
   {
     "id": "reference-efota-artillerist",
@@ -10461,7 +10473,7 @@
       {
         "l": 3,
         "n": "Tools of the Trade",
-        "d": "See the sourcebook for complete rules."
+        "d": "Gain proficiency with Martial Ranged weapons and Woodcarver's Tools, or another chosen Artisan's Tools if already proficient. Crafting time for a magic Wand is halved."
       },
       {
         "l": 5,
@@ -10479,7 +10491,13 @@
         "d": "Use stronger battlefield defenses and operate two cannons."
       }
     ],
-    "page": 16
+    "page": 16,
+    "featureSourceReview": {
+      "status": "drive_pdf_mechanics_reviewed",
+      "reference": "Eberron Forge of the Artificer Wizard-of-the-CoastDnDB-PrintOCR (1).pdf",
+      "primaryVerified": false,
+      "runtimeVerified": false
+    }
   },
   {
     "id": "reference-efota-battle-smith",
@@ -10509,7 +10527,7 @@
       {
         "l": 3,
         "n": "Tools of the Trade",
-        "d": "See the sourcebook for complete rules."
+        "d": "Gain Smith's Tools proficiency, or another Artisan's Tools of your choice if already proficient. Time to craft magical or nonmagical weapons is halved."
       },
       {
         "l": 5,
@@ -10527,7 +10545,13 @@
         "d": "Improve your defender and strengthen Arcane Jolt."
       }
     ],
-    "page": 18
+    "page": 18,
+    "featureSourceReview": {
+      "status": "drive_pdf_mechanics_reviewed",
+      "reference": "Eberron Forge of the Artificer Wizard-of-the-CoastDnDB-PrintOCR (1).pdf",
+      "primaryVerified": false,
+      "runtimeVerified": false
+    }
   },
   {
     "id": "reference-efota-cartographer",
