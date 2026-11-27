@@ -359,7 +359,9 @@ function pcAbilities(c) {
   if (c.race === "Dragonborn") { const x = (c.extras || []).find(e => e.startsWith("Breath Weapon")); if (x) add("Breath Weapon", ed === "2024" ? "Replaces an attack" : "Action", x.replace(/^Breath Weapon \([^)]*\):\s*/, "").replace(/, (\d+ uses per long rest|once per short or long rest)$/, ""), "breath"); }
   if (tr("Healing Hands")) add("Healing Hands", "Action", `Touch a creature and heal ${prof}d4 hit points.`, "hhands");
   if (tr("Relentless Endurance")) add("Relentless Endurance", "When reduced to 0 HP", "Drop to 1 hit point instead.", "relent");
+  const monkActions=legacyMonkActions(c),monkActionNames=new Set(monkActions.map(a=>a.name));
   (c.feats || []).filter(f=>(f.sub||f.mcsub||f.bookSub)&&(f.bookSub?!!(SUB_ABL[f.f]?.text||ACT[f.f]):!!(SUB_ABL[f.f]||ACT[f.f]))).forEach(f=>{
+    if(monkActionNames.has(f.f))return;
     const o=subclassFeatureOwner(c,f);if(!o.level||+f.l>o.level)return;
     if(isPsionicOwner(o)&&PSIONIC_FEATURES.has(f.f))return;
     const S=SUB_ABL[f.f]||{when:ACT[f.f].kind==="persist"?"Your choice":ACT[f.f].kind==="toggle"?"Activated":"Use"};
@@ -377,7 +379,7 @@ function pcAbilities(c) {
   if (tr("Giant Ancestry")) add("Giant Ancestry", "Varies", `Your ${c.sub || "giant"} boon.`, "giant");
   if (tr("Celestial Revelation") && TLV >= 3) add("Celestial Revelation", "Bonus action", `Transform for 1 minute: once per turn add +${prof} radiant or necrotic damage, plus wings, light or fear.`, "crev");
   for(const spec of psionicActions(c))add(spec.name,spec.when,spec.text,spec.res,spec.owner);
-  for(const spec of legacyMonkActions(c))if(!A.some(a=>a.name===spec.name))add(spec.name,spec.when,spec.text,spec.res,spec.owner);
+  for(const spec of monkActions)add(spec.name,spec.when,spec.text,spec.res,spec.owner);
   for(const spec of subclassRecoverySpecs(c))add(spec.name,"No action",spec.text,null,spec.owner);
   return A;
 }
@@ -1100,7 +1102,7 @@ function actControls(c, a, R) {
   const sel = cur => ch.length ? `<select class="act-sel" data-actsel="${k}" aria-label="${k} option"${S.kind === "persist" ? ` data-actpersist="${k}"` : ""}>${S.kind === "persist" ? `<option value="">Choose…</option>` : ""}${ch.map(([id, l]) => `<option value="${esc(id)}" ${cur === id ? "selected" : ""}>${esc(l)}</option>`).join("")}</select>` : "";
   if (S.kind === "persist") return `<span class="act">${sel(on || "")}</span>`;
   if (S.kind === "toggle") return on ? `<span class="act">${ch.length ? `<span class="tag">${esc((ch.find(x => x[0] === on) || [, ""])[1])}</span>` : ""}<button type="button" class="btn sm primary" data-act="${k}">■ End</button></span>`
-    : `<span class="act">${sel()}<button type="button" class="btn sm" data-act="${k}"${a.res && R[a.res] && resLeft(c, R[a.res]) < 1 ? " disabled" : ""}>▶ Activate</button></span>`;
+    : `<span class="act">${sel()}<button type="button" class="btn sm" data-act="${k}"${a.res && R[a.res] && resLeft(c, R[a.res]) < 1 && !S.noCost ? " disabled" : ""}>▶ Activate</button></span>`;
   if (S.kind === "instant" && (S.use || a.res)) return `<span class="act">${sel()}<button type="button" class="btn sm" data-act="${k}"${a.res && R[a.res] && resLeft(c, R[a.res]) < 1 && !S.noCost && !ch.some(([id])=>typeof S.cost==="function"&&S.cost(c,id)===0) ? " disabled" : ""}>Use</button></span>`;
   return "";
 }
