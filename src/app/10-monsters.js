@@ -555,7 +555,7 @@ function bsSbHTML(m, ed) {
     ${line("Challenge", `${crLabel(m.cr)} (${(xpOf(m.cr) || 0).toLocaleString()} XP)`)}${line("Proficiency Bonus", sgn(bsPB(m.cr)))}
     <div class="sb-rule"></div>
     ${(m.traits || []).map(([n, t]) => `<p><b><i>${esc(n)}.</i></b> ${bsFmt(t)}</p>`).join("")}
-    ${sec("Actions", m.actions)}${sec("Bonus Actions", m.bonus)}${sec("Reactions", m.reacts)}${sec("Legendary Actions", m.legend, legIntro)}
+    ${sec("Actions", m.actions)}${sec("Bonus Actions", m.bonus)}${sec("Reactions", m.reacts)}${sec("Legendary Actions", m.legend, legIntro)}${sec("Lair Actions", (m.lair || []).map((a,i)=>Array.isArray(a)?a:["Lair action "+(i+1),a]), "<p>Use the encounter’s initiative setting (2014 default: 20, losing ties).</p>")}
   </div>`;
 }
 function bsText(m, ed) {
@@ -565,7 +565,7 @@ function bsText(m, ed) {
     .forEach(([k, v]) => { if (v) L.push(`${k} ${v}`); });
   L.push(`Challenge ${crLabel(m.cr)} (${(xpOf(m.cr) || 0).toLocaleString()} XP)`, "");
   const block = (h, arr) => { if (arr && arr.length) { if (h) L.push(h.toUpperCase()); arr.forEach(([n, t]) => L.push(`${n}. ${t.replace(/[*_]/g, "")}`)); L.push(""); } };
-  block("", m.traits); block("Actions", m.actions); block("Bonus Actions", m.bonus); block("Reactions", m.reacts); block("Legendary Actions", m.legend);
+  block("", m.traits); block("Actions", m.actions); block("Bonus Actions", m.bonus); block("Reactions", m.reacts); block("Legendary Actions", m.legend); block("Lair Actions", (m.lair || []).map((a,i)=>Array.isArray(a)?a:["Lair action "+(i+1),a]));
   if (m.src) {
     const book = dmBook(m.src);
     L.push(`Source: ${book.name}${m.page ? `, p. ${m.page}` : ""} · ${book.lic === "reference" ? "Rules summary" : book.lic === "cc-by-40" ? "CC BY 4.0" : "Open content"}`);
@@ -752,13 +752,13 @@ function mbPickAdd(cur, pick) {
   if (pick.includes(",") && cur.toLowerCase().includes(pick.toLowerCase())) return cur;
   return cur ? cur + (pick.includes(",") || cur.includes(";") ? "; " : ", ") + pick : pick;
 }
-const MB_LISTS = { traits: "Trait", actions: "Action", bonus: "Bonus action", reacts: "Reaction", legend: "Legendary action" };
+const MB_LISTS = { traits: "Trait", actions: "Action", bonus: "Bonus action", reacts: "Reaction", legend: "Legendary action", lair: "Lair action" };
 const MB = { f: null, lib: [] };
 function mbBlank() {
   return { id: uid("mm"), name: "", size: "medium", type: "monstrosity", sub: "", al: "unaligned", cr: 1, role: "brute", desc: "", ac: 13, acd: "natural armor", hdN: 5, hdD: 8, hp: "",
     speed: { walk: 30, fly: "", swim: "", climb: "", burrow: "", hover: false }, scores: [14, 12, 14, 6, 10, 8], saves: [], skills: {},
     senses: { dark: 60, blind: "", tremor: "", true: "" }, lang: "—", res: "", imm: "", vul: "", ci: "",
-    traits: [], actions: [], bonus: [], reacts: [], legend: [], legN: 3 };
+    traits: [], actions: [], bonus: [], reacts: [], legend: [], lair: [], legN: 3 };
 }
 function mbLoadLib() { try { MB.lib = JSON.parse(localStorage.getItem(MB_KEY) || "[]"); } catch { MB.lib = []; } }
 function mbSaveLib() { try { localStorage.setItem(MB_KEY, JSON.stringify(MB.lib)); Cloud.touch("mymonsters"); return true; } catch { toast("Couldn't save: this browser's storage is full"); return false; } }
@@ -773,13 +773,13 @@ function mbCompile(f, id) {
   const perc = f.skills.Perception ? mods[4] + pb * f.skills.Perception : mods[4];
   const sen = [["blind", "blindsight"], ["dark", "darkvision"], ["tremor", "tremorsense"], ["true", "truesight"]].filter(([k]) => mbNum(f.senses[k])).map(([k, w]) => `${w} ${f.senses[k]} ft.`);
   sen.push(`passive Perception ${10 + perc}`);
-  const L = k => f[k].filter(x => x.n.trim() || x.t.trim()).map(x => [x.n.trim() || MB_LISTS[k], x.t.trim()]);
+  const L = k => (f[k] || []).filter(x => x.n.trim() || x.t.trim()).map(x => [x.n.trim() || MB_LISTS[k], x.t.trim()]);
   return {
     id: id || "custom-x", key: f.id, n: f.name.trim() || "Unnamed monster", cr, type: f.type, sub: f.sub.trim(), size: f.size, al: f.al.trim(),
     ac: +f.ac > 0 ? Math.round(+f.ac) : 10, acd: f.acd.trim(), hp: mbNum(f.hp) > 0 ? Math.round(mbNum(f.hp)) : avg, /* 0 or less: the average (QA-5, 2026-11-24) */ hd: n ? `${n}d${die}${conT ? (conT > 0 ? "+" : "") + conT : ""}` : "", speed: sp.join(", "),
     scores: f.scores.map(x => clamp(Math.round(+x || 10), 1, 30)), saves: f.saves.slice().sort().map(i => `${MB_ABS[i]} ${sgn(mods[i] + pb)}`), skills,
     vul: f.vul.trim(), res: f.res.trim(), imm: f.imm.trim(), ci: f.ci.trim(), senses: sen.join(", "), lang: f.lang.trim() || "—", init: mods[1],
-    traits: L("traits"), actions: L("actions"), bonus: L("bonus"), reacts: L("reacts"), legend: L("legend"), legN: +f.legN || 3, role: f.role, desc: f.desc.trim(), env: [],
+    traits: L("traits"), actions: L("actions"), bonus: L("bonus"), reacts: L("reacts"), legend: L("legend"), lair: L("lair"), legN: +f.legN || 3, role: f.role, desc: f.desc.trim(), env: [],
   };
 }
 // Turn an SRD stat block back into builder fields, for "Edit a copy".
@@ -795,7 +795,7 @@ function mbFromMonster(m) {
   (m.skills || []).forEach(s => { const r = /^(.+) ([+-]\d+)$/.exec(s); if (!r || MB_SKILLS[r[1]] === undefined) return; const base = mod(m.scores[MB_SKILLS[r[1]]]); f.skills[r[1]] = +r[2] >= base + 2 * pb ? 2 : 1; });
   f.senses = { dark: "", blind: "", tremor: "", true: "" };
   [["dark", "darkvision"], ["blind", "blindsight"], ["tremor", "tremorsense"], ["true", "truesight"]].forEach(([k, w]) => { const r = new RegExp(w + " (\\d+)").exec(m.senses || ""); if (r) f.senses[k] = +r[1]; });
-  Object.keys(MB_LISTS).forEach(k => f[k] = (m[k] || []).map(([n, t]) => ({ n, t })));
+  Object.keys(MB_LISTS).forEach(k => f[k] = (m[k] || []).map((a,i) => Array.isArray(a)?({n:a[0],t:a[1]}):({n:"Lair action "+(i+1),t:String(a)})));
   return f;
 }
 function mbGet(path) { return path.split(".").reduce((o, k) => o && o[k], MB.f); }
@@ -811,7 +811,7 @@ function mbFillForm() {
   mbPreview();
 }
 function mbRenderList(k) {
-  const box = $(`[data-mblist="${k}"]`); if (!box) return;
+  const box = $(`[data-mblist="${k}"]`); if (!box) return; MB.f[k] = MB.f[k] || [];
   box.innerHTML = MB.f[k].length ? MB.f[k].map((x, i) => `<div class="mb-li">
       <input type="text" data-mbli="${k}|${i}|n" value="${esc(x.n)}" placeholder="${MB_LISTS[k]} name" aria-label="${MB_LISTS[k]} name">
       <div class="mb-tools"><button class="icon-btn" type="button" data-mbmove="${k}|${i}|-1" title="Move up" ${i ? "" : "disabled"}>↑</button><button class="icon-btn" type="button" data-mbmove="${k}|${i}|1" title="Move down" ${i < MB.f[k].length - 1 ? "" : "disabled"}>↓</button><button class="icon-btn" type="button" data-mbdel="${k}|${i}" title="Remove">✕</button></div>
@@ -838,7 +838,7 @@ function mbRenderLib() {
       <button class="icon-btn" type="button" data-mbrm="${esc(f.id)}" title="Delete ${esc(f.name || "this monster")}">✕</button></div>`).join("")
     : `<p class="muted" style="font-size:15px">Nothing saved yet. Build one and press “Save to My monsters”.</p>`;
 }
-function mbOpen(f) { MB.f = JSON.parse(JSON.stringify(f)); mbFillForm(); mbRenderLib(); }
+function mbOpen(f) { MB.f = JSON.parse(JSON.stringify(f)); MB.f.lair = MB.f.lair || []; mbFillForm(); mbRenderLib(); }
 function mbStore() {
   if (!MB.f.name.trim()) { toast("Give your monster a name first"); $("#mbName").focus(); return false; }
   const i = MB.lib.findIndex(x => x.id === MB.f.id), copy = JSON.parse(JSON.stringify(MB.f));

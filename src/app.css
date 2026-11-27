@@ -1705,3 +1705,5 @@ html.fight-open{overflow:hidden}
 /* the sheet's Other AC bonus (2026-11-26) */
 .ac-other{display:flex;align-items:center;gap:8px;margin:10px 0 0;text-transform:none;letter-spacing:0;font-family:inherit;font-size:14px}
 .ac-other input{width:70px}
+
+.boss-panel{border-bottom:1px solid var(--line,#777);padding-bottom:12px;margin-bottom:12px}.boss-panel details{margin:6px 0;padding:6px;border:1px solid var(--line,#777);border-radius:6px}.boss-panel summary{cursor:pointer}.boss-row{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:6px;margin:6px 0}.boss-row>div{display:flex;gap:4px;flex-wrap:wrap}.boss-panel input[type=number]{width:5rem}.boss-editor{width:min(720px,94vw);max-height:90vh;overflow:auto;padding:16px;background:var(--card,#262321);color:var(--text,#eee);border:1px solid #88775b;border-radius:8px}.boss-editor textarea{width:100%;font-family:monospace;min-height:220px}.boss-editor label{display:block;margin:6px 0}.boss-editor::backdrop{background:#0009}

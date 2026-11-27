@@ -92,6 +92,7 @@ function fightOnTurn(c, e, prevTurn, prevRound) {
     if (cd.ends === "saveStart") ask(cur, cd, "start");
   }
   if ((e.round || 0) > (prevRound || 0)) for (const w of fightAll(c, e)) for (const cd of [...fightCondList(e, w)]) if (cd.untilRound && e.round >= cd.untilRound) { fightRemoveCond(c, e, w, cd.id); notes.push(`${w.name}'s ${fightCondLabel(cd.k)} ran out`); }
+  bossOnTurn(c,e,prevTurn,prevRound);
   if (notes.length) toast(notes.join(". ") + ".");
 }
 /* damage to a foe that's concentrating */
@@ -105,6 +106,7 @@ function fightReset(c, e) {
   for (const id of Object.keys(e.casts || {})) fightEndCast(c, e, id, "the fight was reset"); /* heroes stop concentrating too */
   for (const w of fightAll(c, e)) if (w.t === "pc") for (const cd of [...fightCondList(e, w)]) fightRemoveCond(c, e, w, cd.id);
   e.enemies.forEach(m => { m.conds = []; m.conc = null; }); e.prompts = []; e.casts = {};
+  if(e.bossKit)e.bossKit=bossFresh(e.bossKit.config);
 }
 
 /* ---- what's filled in for you: the caster's DC and spells, and the spell's save, condition, timing and concentration ---- */
@@ -214,7 +216,7 @@ function fightRender() {
     <div class="fight-cols">
       <div class="card fight-order"><h3>Turn order</h3>${all.map(w => fightRowHTML(c, e, w, turnKey)).join("") || `<p class="muted">No one in this fight yet.</p>`}</div>
       <div class="card fight-now">${fightNowHTML(c, e, fightWho(c, e, FIGHT.sel))}</div>
-      <div class="card fight-right"><h3>Concentration</h3>${conc.length ? conc.map(x => { const by = fightWho(c, e, x.by); return `<p>◎ <b>${esc(by ? by.name : "?")}</b>: ${esc(x.spell)}</p>`; }).join("") : `<p class="muted">No one is concentrating.</p>`}
+      <div class="card fight-right">${bossPanel(c,e)}<h3>Concentration</h3>${conc.length ? conc.map(x => { const by = fightWho(c, e, x.by); return `<p>◎ <b>${esc(by ? by.name : "?")}</b>: ${esc(x.spell)}</p>`; }).join("") : `<p class="muted">No one is concentrating.</p>`}
         <h3>Log</h3>${combatHistory(e).length ? `<ol class="plain fight-log">${combatHistory(e).slice(0, 12).map(r => `<li>${esc(r.label)}${r.undone ? ' <span class="muted">· undone</span>' : ""}</li>`).join("")}</ol>` : `<p class="muted">Nothing yet.</p>`}</div>
     </div>`;
   /* what was typed in Add a condition survives a redraw (damage, a sync), for the same creature */
