@@ -202,6 +202,24 @@ const ZOOK = fs.readFileSync(path.join(FIX, "companion-zook.json"), "utf8");
       itemRuleNotice(manual).includes("manual resolution"),itemRuleNotice(blocked).includes("Reference only")];
   });
   check("item provenance, manual effects and incomplete-reference guards survive catalog loading",itemSafety.every(Boolean),JSON.stringify(itemSafety));
+  const itemGate=await p.evaluate(()=>{
+    itLoad();
+    const blocked=IT.data["2024"].find(x=>x.n==="+1 Rod of the Pact Keeper"&&x.src==="dmg-2024"),
+      allowed=IT.data["2024"].find(x=>x.n==="Quarterstaff of the Acrobat"&&x.src==="dmg-2024");
+    const target=document.querySelector("#itTarget"),prior=target?.value;
+    const c=PCS.roster.find(r=>r.id===prior);
+    const before=c?JSON.stringify([c.coins,c.inv]):null;
+    const checks=[!itemAcquirable(blocked),!itemAcquirable({id:blocked.id,kind:"magic",gp:1}),
+      itemAcquirable(allowed),!itemAcquirable({id:"2024-m999999",kind:"magic"}),
+      itBuy({...blocked,gp:1})===false,itGive(blocked)===false,itLoot(blocked)===false,
+      !c||JSON.stringify([c.coins,c.inv])===before,
+      impMagic("2024","+3 Rod of the Pact Keeper")?.n==="+3 Rod of the Pact Keeper",
+      impMagic("2024","Scroll of Protection (Fiends)")?.n==="Scroll of Protection (Fiends)",
+      impMagic("2024","Spell Scroll (Level 6)")?.n==="Spell Scroll (Level 6)",
+      impMagic("2024","Scroll of Protection (Not A Type)")===null];
+    return checks;
+  });
+  check("incomplete item acquisitions fail closed and imports retain exact variant identities",itemGate.every(Boolean),JSON.stringify(itemGate));
   check("reference spells: a spell the Forge already has isn't added twice (Fireball)", refs["2014fireball"] === 1 && refs["2024fireball"] === 1, JSON.stringify([refs["2014fireball"], refs["2024fireball"]]));
   const sb = await p.evaluate(txt => { const j = JSON.parse(txt); j.spells = [...j.spells, { name: "Silvery Barbs", level: 1 }]; const D = compImport(j, "2014");
     return { prep: D.extras.prepared.map(s => s.n), hb: D.homebrew.filter(x => x.kind === "spell").map(x => x.name) }; }, ZOOK);

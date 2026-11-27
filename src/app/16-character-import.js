@@ -160,9 +160,13 @@ function impGear(ed, raw) {
 }
 /* a magic item by its exact name (any case; letters only), the free rules first, then the extra books (owner, 2026-11-27) */
 function impMagic(ed, name) {
-  itLoad(); const k = impLetters(name); if (k.length < 4) return null;
-  const L = (IT.data[ed === "2014" ? "2014" : "2024"] || []).filter(x => x.kind === "magic");
-  return L.find(x => !x.src && impLetters(x.n) === k) || L.find(x => x.src && impLetters(x.n) === k) || null;
+  // Preserve numbers and parenthetical variant identity. Never normalize +1 into +3,
+  // or a specific scroll/element into the generic item. Prefer complete exact matches.
+  itLoad();
+  const key=s=>String(s||"").normalize("NFKC").toLowerCase().replace(/[^a-z0-9+]/g,"");
+  const k=key(name);if(k.length<4)return null;
+  const L=(IT.data[ed==="2014"?"2014":"2024"]||[]).filter(x=>x.kind==="magic"&&key(x.n)===k);
+  return L.find(x=>!x.src&&!itemRulesIncomplete(x))||L.find(x=>!itemRulesIncomplete(x))||L.find(x=>!x.src)||L[0]||null;
 }
 /* feats named in a sheet's features text, one per line ("Alert", "• Alert: …", "Feat: War Caster (PHB)"). Exact names only,
    from the built-in, book and campaign feats (owner, 2026-11-27). Some feat names are also class or species features
@@ -671,13 +675,14 @@ function pdfImport(F, ed) {
   const inv = [];
   const addGear = (line, eq) => {
     let t = line.replace(/^[-•*]\s*/, "").trim(); if (!t) return;
-    let note = ""; const pm = t.match(/^(.*?)\s*\((.*)\)\s*$/); if (pm && pm[1]) { t = pm[1]; note = pm[2]; }
-    const { g, n, qty } = impGear(ed, t);
+    const full=t.match(/^(\d+)\s+(.+)$/), fullMagic=impMagic(ed,full?full[2]:t);
+    let note = ""; const pm = t.match(/^(.*?)\s*\((.*)\)\s*$/); if (!fullMagic&&pm&&pm[1]) { t = pm[1]; note = pm[2]; }
+    const {g,n,qty}=fullMagic?{g:null,n:fullMagic.n,qty:full?+full[1]:1}:impGear(ed,t);
     const ex = inv.find(i => i.n.toLowerCase() === n.toLowerCase()); if (ex) { if (eq === null) ex.qty += qty; return; }
-    const mg = !g && impMagic(ed, n); /* "Bag of Holding", "Wand of Magic Missiles": the item list's own entry, with its rules */
+    const mg = fullMagic || (!g && impMagic(ed,n));
     if (mg) {
       inv.push({ id: uid("i"), ref: mg.id, itemRules: inventoryRulesSnapshot(mg), n: mg.n, qty, w: mg.w || 0, att: !!mg.att, attuned: false, value: mg.c, note: impCut(note, 300) || `${rarName(mg)} ${String(mg.cat || "").toLowerCase()}`.trim(), eq: false });
-      D.report.matched.push(`Magic item: ${mg.n}`); return;
+      if(itemRulesIncomplete(mg))D.report.differ.push(`${mg.n} (retained as reference only; complete rules unavailable)`);else D.report.matched.push(`Magic item: ${mg.n}`); return;
     }
     inv.push({ id: uid("i"), ref: g ? g.id : undefined, n: impCut(n, 80), qty, w: impW(g), att: false, attuned: false, value: g ? g.c : undefined, note: impCut(note, 300), eq: eq === null ? eqIsWeapon(g) || eqIsArmor(g) : eq });
   };
