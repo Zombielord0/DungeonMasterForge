@@ -53,3 +53,8 @@ The 94eb508 CI run passed 51 of 53 suites. The item-detail handlers must use the
 ## All-category coverage reconciliation
 
 The generated coverage report now includes an emitted-catalog inventory by kind and edition, including equipment, character options, duplicate normalized identities and nested feature placeholders. Explicit reference/summary/pending/shadow flags are not counted as playable source candidates. A candidate count is not a release approval; hardcoded classes and options, manual effects and browser behavior remain outside this report. Private master reconciliation and supplied source evidence remain outside this public branch.
+
+
+## Revised SRD character origin mechanics review
+
+Source: System Reference Document 5.2.1, Wizards of the Coast LLC, https://www.dndbeyond.com/srd, CC BY 4.0 (https://creativecommons.org/licenses/by/4.0/). Reviewed pages 28–30, 83–84 and 87. The four SRD background ability, feat, skill and gold contracts are asserted in browser regression. Revised Elf Keen Senses has an explicit restricted choice in the custom builder; selected skill is carried into generation without granting all three. Existing legacy Elf proficiency is unchanged. Revised level-20 rage display is finite; revised Monk resource naming uses Focus. Origin feat rules for Alert, Magic Initiate, Savage Attacker and Skilled include missing timing, choices and repetition requirements. These descriptions do not certify every runtime effect. The Bonestorm manual-resolution assertion now tests the explicit no-automatic-damage contract rather than an obsolete warning. This is a targeted SRD batch, not a full all-category release certification.

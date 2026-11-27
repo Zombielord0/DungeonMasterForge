@@ -30,7 +30,7 @@ const PC_RACES = {
     Aasimar: { asi: {}, speed: 30, traits: ["Celestial Resistance", "Darkvision 60 ft", "Healing Hands", "Light Bearer", "Celestial Revelation"] },
     Dragonborn: { asi: {}, speed: 30, term: "Draconic ancestry", traits: ["Draconic Ancestry", "Breath Weapon", "Damage Resistance", "Darkvision 60 ft", "Draconic Flight"], subs: DRAGON_SUBS() },
     Dwarf: { asi: {}, speed: 30, hpLv: 1, traits: ["Darkvision 120 ft", "Dwarven Resilience", "Dwarven Toughness", "Stonecunning"] },
-    Elf: { asi: {}, speed: 30, skills: ["Perception"], term: "Elven lineage", traits: ["Darkvision 60 ft", "Fey Ancestry", "Keen Senses", "Trance"], subs: {
+    Elf: { asi: {}, speed: 30, skillChoices: ["Perception", "Insight", "Survival"], term: "Elven lineage", traits: ["Darkvision 60 ft", "Fey Ancestry", "Keen Senses", "Trance"], subs: {
       "Drow": { label: "Drow", replace: { "Darkvision 60 ft": "Darkvision 120 ft" }, traits: ["Drow Lineage"], d: "Darkvision 120 ft; Dancing Lights, then Faerie Fire and Darkness." },
       "High Elf": { traits: ["High Elf Lineage"], d: "Prestidigitation, then Detect Magic and Misty Step." },
       "Wood Elf": { speed: 35, traits: ["Wood Elf Lineage"], d: "Speed 35 ft; Druidcraft, then Longstrider and Pass without Trace." } } },
@@ -126,7 +126,7 @@ const raceList = ed => { const R = PC_RACES[ed] || PC_RACES["2014"]; return Obje
 function raceInfo(ed, race, sub) {
   const B = (PC_RACES[ed] || PC_RACES["2014"])[race] || RACE_DATA[race] || { asi: {}, speed: 30, traits: [] };
   const S = (B.subs && sub && B.subs[sub]) || null;
-  const R = { asi: { ...B.asi }, plus1: B.plus1 || 0, plus1Any: false, speed: B.speed, skills: [...(B.skills || [])], extraSkills: B.extraSkills || 0, hpLv: B.hpLv || 0, traits: [...(B.traits || [])] };
+  const R = { asi: { ...B.asi }, plus1: B.plus1 || 0, plus1Any: false, speed: B.speed, skills: [...(B.skills || [])], extraSkills: B.extraSkills || 0, skillChoices: [...(B.skillChoices || [])], hpLv: B.hpLv || 0, traits: [...(B.traits || [])] };
   if (S) {
     if (S.asiOverride) R.asi = { ...S.asiOverride };
     Object.entries(S.asi || {}).forEach(([a, v]) => R.asi[a] = (R.asi[a] || 0) + v);
@@ -143,6 +143,12 @@ function raceInfo(ed, race, sub) {
   }
   return R;
 }
+// SRD 5.2.1 p.84: Keen Senses is one of Insight, Perception or Survival.
+function speciesSkillChoice(R, locked, requested, existing = []) {
+  const choices = (R.skillChoices || []).filter(s => !locked.has(s));
+  if (choices.includes(requested)) return requested;
+  return choices.find(s => existing.includes(s)) || choices[0] || "";
+}
 function subLabel(ed, race, sub) {
   const B = (PC_RACES[ed] || PC_RACES["2014"])[race], S = B && B.subs && sub && B.subs[sub];
   if (!S) return race;
@@ -151,7 +157,8 @@ function subLabel(ed, race, sub) {
 const raceLabel = c => subLabel(edOf(c), c.race, c.sub || (c.race === "Dragonborn" ? c.ancestry : null));
 const FEAT_DESC_2024 = {
   Stonecunning: "Bonus action: tremorsense 60 ft for 10 minutes while on stone, proficiency-bonus times per long rest.",
-  "Keen Senses": "Proficiency in Insight, Perception or Survival (Perception chosen; change it on the sheet).",
+  "Keen Senses": "Choose proficiency in Insight, Perception, or Survival.",
+  "Primal Champion": "Increase Strength and Constitution by 4 each, to a maximum of 25.",
   "Infernal Legacy": "Fire resistance; Fire Bolt cantrip, Hellish Rebuke at 3rd level, Darkness at 5th.",
   Trance: "You don't need sleep; a 4-hour trance gives you a long rest."
 };

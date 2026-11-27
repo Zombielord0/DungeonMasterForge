@@ -202,6 +202,29 @@ const { chromium } = require("playwright");
     assert.match(await dialog.textContent(), /<strong>Shared rules<\/strong>/);
     assert.equal(await dialog.locator("strong").count(), 0);
     await dialog.getByRole("button", { name: "Close" }).click();
+    const originAudit = await page.evaluate(() => {
+      const backgrounds = ["Acolyte", "Criminal", "Sage", "Soldier"].map(name => {
+        const b=bgInfo("2024", name);
+        return [name,b.ab,b.feat,b.fnote||"",b.sk,b.gp,b.gear];
+      });
+      const common={seed:"KEEN",ed:"2024",race:"Elf",sub:"High Elf",cls:"Fighter",bg:"Criminal",level:1,subclass:"none"};
+      const choices=["Insight","Perception","Survival"].map(speciesSkill=>{
+        const c=generateCharacter({...common,custom:{skills:["Athletics","History"],speciesSkill}});
+        return [c.speciesSkill,c.skills.filter(x=>x.p).map(x=>x.s).sort()];
+      });
+      const legacy=generateCharacter({...common,ed:"2014",bg:"Soldier",custom:{skills:["Athletics","History"],speciesSkill:"Insight"}});
+      const barbarian=generateCharacter({seed:"RAGES",ed:"2024",race:"Human",cls:"Barbarian",bg:"Soldier",level:20,subclass:"none"});
+      return {backgrounds,choices,legacy:legacy.skills.find(x=>x.s==="Perception").p,extra:barbarian.extras.find(x=>x.startsWith("Rages per day:"))};
+    });
+    assert.deepEqual(originAudit.backgrounds.map(b=>b.slice(0,6)),[
+      ["Acolyte",["int","wis","cha"],"Magic Initiate","Cleric",["Insight","Religion"],8],
+      ["Criminal",["dex","con","int"],"Alert","",["Sleight of Hand","Stealth"],16],
+      ["Sage",["con","int","wis"],"Magic Initiate","Wizard",["Arcana","History"],8],
+      ["Soldier",["str","dex","con"],"Savage Attacker","",["Athletics","Intimidation"],14]
+    ]);
+    assert.deepEqual(originAudit.choices.map(([chosen,skills])=>[chosen,skills.includes(chosen),skills.length]),[["Insight",true,5],["Perception",true,5],["Survival",true,5]]);
+    assert.equal(originAudit.legacy,true);
+    assert.match(originAudit.extra,/Rages per day: 6,/);
     const expansion = await page.evaluate(() => {
       const subclasses = hbBook("subclass").filter(x => ["tce", "xge"].includes(x.src));
       const armorer = generateCharacter({ seed: "ARMOR", ed: "2014", cls: "Artificer", subclass: "Armorer", level: 5 });
@@ -334,7 +357,8 @@ const { chromium } = require("playwright");
     assert.equal(catalog.alias, "Acid Arrow");
     assert.deepEqual(catalog.variants, [[ "dmg-2024", 2, "Required" ], [ "dmg-2024", 2, "Required" ], [ "dmg-2024", 4, "Required" ]]);
     assert.ok(catalog.enspelledWeapons > 1);
-    assert.match(catalog.manualCast, /Use the spell description for additional effects/);
+    assert.match(catalog.manualCast, /Resolve all rolls and effects manually using the complete spell rules/);
+    assert.doesNotMatch(catalog.manualCast, /(?:deals|heals)\s+\d+d\d+/i);
     assert.equal(catalog.fromBook, "dmg-2024");
     assert.equal(catalog.backgroundSkills, 2);
     assert.equal(catalog.azerothDwarf, true);

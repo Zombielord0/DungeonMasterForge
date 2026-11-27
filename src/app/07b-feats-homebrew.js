@@ -48,14 +48,14 @@ const FEATS = {
     ["Weapon Master", "str dex", "", "Proficiency with four weapons of your choice."]
   ],
   "2024": [
-    ["Alert", "", "", "Add your proficiency bonus to initiative, and swap initiative with a willing ally.", "o"],
+    ["Alert", "", "", "Add your proficiency bonus when rolling initiative. Immediately afterward, you may exchange your initiative with one willing ally in the same combat, provided neither of you is incapacitated.", "o"],
     ["Crafter", "", "", "Three artisan's tools, a 20% discount on nonmagical gear, and fast crafting.", "o"],
     ["Healer", "", "", "Use a healer's kit to let a creature spend a Hit Die; reroll 1s on healing dice.", "o"],
     ["Lucky", "", "", "Luck points equal to your proficiency bonus: gain advantage, or impose disadvantage on an attack on you.", "o"],
-    ["Magic Initiate", "", "", "Two cantrips and a level 1 spell from the cleric, druid or wizard list.", "o"],
+    ["Magic Initiate", "", "", "Choose the Cleric, Druid, or Wizard spell list, two cantrips from that list, and Intelligence, Wisdom, or Charisma as your casting ability. Choose one level 1 spell from the same list; it is always prepared. Cast it once without a slot per long rest or with an appropriate spell slot. On gaining a level, you may replace one chosen spell with a different spell of the same level from that list. Repeatable only by choosing a different list each time.", "o"],
     ["Musician", "", "", "Three instruments; after a rest, give allies Heroic Inspiration with a song.", "o"],
-    ["Savage Attacker", "", "", "Once per turn, roll a weapon's damage dice twice and use either roll.", "o"],
-    ["Skilled", "", "", "Proficiency in any combination of three skills or tools.", "o"],
+    ["Savage Attacker", "", "", "Once on each turn when you hit with a weapon, you may roll that weapon’s damage dice twice and choose which of the two rolls to use against the target.", "o"],
+    ["Skilled", "", "", "Choose any combination of three skill or tool proficiencies. You gain those proficiencies. This feat is repeatable.", "o"],
     ["Tavern Brawler", "", "", "Stronger unarmed strikes, reroll 1s on their damage, and push foes 5 ft.", "o"],
     ["Tough", "", "", "+2 hit points per level (added to your HP).", "o"],
     ["Actor", "cha", "cha13", "Advantage on Deception and Performance while disguised; mimic voices.", "g"],

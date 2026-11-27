@@ -71,6 +71,8 @@ function generateCharacter(o) {
   const prof = 2 + Math.floor((TL - 1) / 4);
   // skills
   const profSk = new Set([...bgSkills(ed, bg), ...(R.skills || [])]);
+  const selectedSpeciesSkill = speciesSkillChoice(R, profSk, o.custom?.speciesSkill || o.speciesSkill, o.keepSkills || []);
+  if (selectedSpeciesSkill) profSk.add(selectedSpeciesSkill);
   const pickSkills = (list, n) => {
     const opts = r.shuffle(list.filter(s => !profSk.has(s))).sort((a, b) => m[SKILLS[b]] - m[SKILLS[a]]);
     // mostly take skills that fit the best abilities, with a little randomness
@@ -176,9 +178,9 @@ function generateCharacter(o) {
   feats.sort((a, b) => a.l - b.l);
   const extras = [];
   if (cls === "Rogue") extras.push(`Sneak Attack ${Math.ceil(lv / 2)}d6`);
-  if (cls === "Barbarian") extras.push(`Rages per day: ${lv >= 20 ? "unlimited" : lv >= 17 ? 6 : lv >= 12 ? 5 : lv >= 6 ? 4 : lv >= 3 ? 3 : 2}, rage damage +${lv >= 16 ? 4 : lv >= 9 ? 3 : 2}`);
+  if (cls === "Barbarian") extras.push(`Rages per day: ${ed === "2014" && lv >= 20 ? "unlimited" : lv >= 17 ? 6 : lv >= 12 ? 5 : lv >= 6 ? 4 : lv >= 3 ? 3 : 2}, rage damage +${lv >= 16 ? 4 : lv >= 9 ? 3 : 2}`);
   if (cls === "Bard") extras.push(`Bardic Inspiration d${lv >= 15 ? 12 : lv >= 10 ? 10 : lv >= 5 ? 8 : 6}, ${Math.max(1, m.cha)}× per ${lv >= 5 ? "short" : "long"} rest`);
-  if (cls === "Monk" && lv >= 2) extras.push(`Ki points: ${lv}`);
+  if (cls === "Monk" && lv >= 2) extras.push(`${ed === "2024" ? "Focus" : "Ki"} points: ${lv}`);
   if (cls === "Paladin") extras.push(`Lay on Hands pool: ${lv * 5} HP`);
   if (cls === "Sorcerer" && lv >= 2) extras.push(`Sorcery points: ${lv}`);
   if (anc) {
@@ -190,7 +192,7 @@ function generateCharacter(o) {
   const pcName = o.name || fullName(r, gender);
   const hk = hookBuild(r.pick(PC_HOOKS), hookCtx(r, pcName.split(" ")[0]));
   return {
-    seed: o.seed, method: o.method, bonus: o.bonus, name: pcName, gender, race, ed, sub, ancestry: anc, subclass, custom: !!o.custom, customData: o.custom || null, cls, bg, level: lv, align: (o.custom && o.custom.align) || r.pick(ALIGN), base, scores: sc, mods: m, rolls,
+    seed: o.seed, method: o.method, bonus: o.bonus, name: pcName, gender, race, ed, sub, ancestry: anc, subclass, speciesSkill: selectedSpeciesSkill || undefined, custom: !!o.custom, customData: o.custom || null, cls, bg, level: lv, align: (o.custom && o.custom.align) || r.pick(ALIGN), base, scores: sc, mods: m, rolls,
     prof, saves, skills: skillVals, hp, ac, acSrc, speed: R.speed + fxSum("speed") + SB.speed + (C.f && Object.entries(C.f).some(([l, L]) => +l <= lv && L.includes("Unarmored Movement")) ? unarmoredMove(lv) : 0) + (cls === "Barbarian" && lv >= 5 ? 10 : 0) + (hasFeat("Mobile") || hasFeat("Speedy") ? 10 : 0) + (hasFeat("Boon of Speed") ? 30 : 0),
     init: m.dex + initBonus + SB.init + (SB.athlete ? Math.ceil(prof / 2) : 0) + (jack && ed === "2014" ? Math.floor(prof / 2) : 0) /* 2014 Jack of All Trades counts on initiative, a Dexterity check */, initBonus, atkBonus, hbAc, hbSpeed: fxSum("speed"), hbSig: fx.length ? JSON.stringify(fx) : "",
     ...Object.fromEntries(["res", "imm", "vul", "cimm"].map(t => [t, [...new Set([...fx.filter(e => e.t === t).map(e => e.a), ...(t === "res" ? traitRes(R.traits, anc, ed) : [])])].sort()])),

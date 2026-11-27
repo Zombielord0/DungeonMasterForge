@@ -14,7 +14,15 @@ function cbStart() { CB.on = true; CB.step = 0; CB.ed = currentSourceRules()?.ed
 }
 const cbR = () => raceInfo(CB.ed, CB.race, CB.sub);
 function cbAllowed() { const C = classData(CB.ed, CB.cls), R = cbR(); return new Set(R && R.extraSkills ? ALL_SKILLS : C.skills[0]); }
-function cbLocked() { const R = cbR(); return new Set([...bgSkills(CB.ed, CB.bg), ...((R && R.skills) || [])]); }
+function cbSpeciesSkill() {
+  const R = cbR(), locked = new Set([...bgSkills(CB.ed, CB.bg), ...(R.skills || [])]);
+  return speciesSkillChoice(R, locked, CB.speciesSkill);
+}
+function cbLocked() {
+  const R = cbR(), locked = new Set([...bgSkills(CB.ed, CB.bg), ...(R.skills || [])]);
+  const skill = cbSpeciesSkill(); if (skill) locked.add(skill);
+  return locked;
+}
 function cbNeed() { const C = classData(CB.ed, CB.cls), R = cbR(); return C.skills[1] + ((R && R.extraSkills) || 0); }
 function cbBase() {
   const b = {};
@@ -123,7 +131,9 @@ function cbBody() {
   }
   if (CB.step === 4) {
     const lk = cbLocked(), al = [...cbAllowed()].filter(s => !lk.has(s)).sort(), need = cbNeed();
-    return `<p class="hint" style="margin-top:0">Already proficient from your background${R && R.skills ? " and race" : ""}: ${[...lk].join(", ")}.</p>
+    const speciesOptions = (R.skillChoices || []).filter(s => !bgSkills(CB.ed, CB.bg).includes(s));
+    return `${speciesOptions.length ? `<label class="field">Keen Senses proficiency<select data-cbspecies-skill>${speciesOptions.map(s => `<option value="${esc(s)}" ${cbSpeciesSkill() === s ? "selected" : ""}>${esc(s)}</option>`).join("")}</select></label>` : ""}
+    <p class="hint" style="margin-top:0">Already proficient from your background${R && R.skills ? " and race" : ""}: ${[...lk].join(", ")}.</p>
     <p style="margin:0 0 8px">Pick <span class="cb-count ${CB.skills.size > need ? "over" : ""}">${CB.skills.size} / ${need}</span> more${R && R.extraSkills ? ` (${esc(CB.race)} may choose from any skill)` : ` from the ${esc(CB.cls)} list`}:</p>
     <div class="cb-skills">${al.map(s => `<label class="check" style="margin-bottom:4px"><input type="checkbox" data-cbsk="${esc(s)}" ${CB.skills.has(s) ? "checked" : ""}><span><b>${esc(s)}</b> <small>${AB_NAME[SKILLS[s]]}</small></span></label>`).join("")}</div>`;
   }
@@ -156,7 +166,7 @@ function cbCharacterOptions() {
   return {
     name: CB.name.trim().slice(0, 60), race: CB.race, ed: CB.ed, sub: CB.sub || "none", cls: CB.cls, bg: CB.bg,
     gender: CB.gender, method: "custom", bonus: CB.ed === "2024" ? "flex" : CB.bonus,
-    custom: { base: cbBase(), skills: [...CB.skills], align: CB.align,
+    custom: { base: cbBase(), skills: [...CB.skills], speciesSkill: cbSpeciesSkill() || undefined, align: CB.align,
       plus2: CB.bonus === "flex" || CB.ed === "2024" ? CB.plus2 : null,
       plus1: CB.bonus === "flex" || CB.ed === "2024" ? CB.plus1 : null,
       tri: CB.ed === "2024" && CB.bgSpread === "111", bgGold50: CB.ed === "2024" && !!CB.bgGold50 }
@@ -237,6 +247,7 @@ function cbCreate() {
     else if (t.name === "cbGender") { CB.gender = t.value; renderCB(); }
     else if (t.dataset.cbplus) { CB[t.dataset.cbplus] = t.value; if (CB.plus1 === CB.plus2) CB.plus1 = AB.find(a => a !== CB.plus2); if (CB.ed === "2024") cbFix24(); renderCB(); }
     else if (t.dataset.cbassign) { const a = t.dataset.cbassign; if (t.value === "") delete CB.assignIdx[a]; else CB.assignIdx[a] = +t.value; renderCB(); }
+    else if (t.hasAttribute("data-cbspecies-skill")) { CB.speciesSkill = t.value; CB.skills.delete(t.value); renderCB(); }
     else if (t.dataset.cbsk) { const s = t.dataset.cbsk; if (t.checked) { if (CB.skills.size >= cbNeed()) { t.checked = false; toast(`That's all ${cbNeed()} — untick one first`); return; } CB.skills.add(s); } else CB.skills.delete(s); renderCB(); }
     else if (t.dataset.cbman !== undefined) { CB.manual[t.dataset.cbman] = t.value; renderCB(); }
     else if (t.dataset.cblevel !== undefined) { CB.level = clamp(parseInt(t.value) || 1, 1, 20); t.value = CB.level; renderCB(); }
