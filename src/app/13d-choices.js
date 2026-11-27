@@ -545,7 +545,7 @@ function miHTML(c) {
 function actRun(c, name, choice) {
   const a = pcAbilities(c).find(x => x.name === name), S = a && actSpec(a); if (!S) return "";
   c.active = c.active || {}; c.used = c.used || {};
-  if (S.kind === "toggle" && c.active[name]) { delete c.active[name]; if (name === "Wild Shape") delete c.formHp; return `${name} ended.`; }
+  if (S.kind === "toggle" && c.active[name]) { delete c.active[name]; if (name === "Wild Shape") delete c.formHp; if (name === "Aspect of the Wyrm") delete c.dragonFuryPending; return `${name} ended.`; }
   if (S.dialog) { S.dialog(c, a); return null; }
   const options=actChoices(c,S);
   if(S.choices&&!options.length)return "No eligible options available.";
@@ -577,6 +577,7 @@ function rcSlotsHTML(c) {
 }
 function pcRest(c, kind) {
   c.used = c.used || {};
+  delete c.dragonPresencePending; delete c.dragonFuryPending;
   const back = [];
   pcResources(c).forEach(r => {
     if(r.recharge==="never")return; // Stored item uses do not refill automatically.
