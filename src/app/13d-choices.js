@@ -56,6 +56,34 @@ function expansionChoice(cls, subclass, label, options, limit = () => 1, ed = "2
   };
 }
 /* key: the feature (or "Feat: X") the choice belongs to. n(c): how many to choose. opts(c): [[id, label, description]] */
+// SRD 5.2.1 weapon mastery selections are separate for each owning class.
+const MASTERY_CLASSES=["Barbarian","Fighter","Paladin","Ranger","Rogue"];
+function masteryLimit(ed,cls,level){
+  if(ed!=="2024"||level<1||!MASTERY_CLASSES.includes(cls))return 0;
+  if(cls==="Fighter")return level>=16?6:level>=10?5:level>=4?4:3;
+  if(cls==="Barbarian")return level>=10?4:level>=4?3:2;
+  return 2;
+}
+const masteryKey=cls=>"Weapon Mastery: "+cls;
+function masteryOptions(c,cls){
+  if(!masteryLimit(edOf(c),cls,clsLv(c,cls)))return [];
+  itLoad();
+  return (IT.data["2024"]||[]).filter(w=>w.kind==="gear"&&/^(Simple|Martial) (Melee|Ranged) Weapon/.test(w.cat)&&w.st?.some(([k,v])=>k==="Mastery"&&v)&&
+    (cls!=="Barbarian"||/Melee/.test(w.cat))&&eqProficient(c,w))
+    .map(w=>[w.n,w.n+" · "+w.st.find(([k])=>k==="Mastery")[1],w.d||""]);
+}
+function activeMastery(c,w){
+  if(edOf(c)!=="2024"||!w||!eqProficient(c,w))return "";
+  const property=w.st?.find(([k])=>k==="Mastery")?.[1];
+  if(!property)return "";
+  for(const cls of MASTERY_CLASSES){
+    const limit=masteryLimit(edOf(c),cls,clsLv(c,cls));
+    if(!limit||cls==="Barbarian"&&!/Melee/.test(w.cat))continue;
+    const valid=[...new Set(choiceOf(c,masteryKey(cls)))].filter(n=>masteryOptions(c,cls).some(([id])=>id===n)).slice(0,limit);
+    if(valid.includes(w.n))return property;
+  }
+  return "";
+}
 const CHOICES = {
   Scholar:{label:"Scholar Expertise",n:c=>edOf(c)==="2024"&&clsLv(c,"Wizard")>=2?1:0,opts:c=>opt3((c.skills||[]).filter(s=>s.p&&(!s.x||s.scholarGranted)&&["Arcana","History","Investigation","Medicine","Nature","Religion"].includes(s.s)).map(s=>s.s))},
   "Primal Knowledge":{label:"Additional Barbarian proficiency",n:c=>edOf(c)==="2024"&&clsLv(c,"Barbarian")>=3?1:0,opts:c=>opt3((c.skills||[]).filter(s=>(!s.p||s.primalGranted)&&CLASS_DATA.Barbarian.skills[0].includes(s.s)).map(s=>s.s))},
@@ -91,7 +119,7 @@ const CHOICES = {
   "Divine Magic": expansionChoice("Sorcerer", "Divine Soul", "Divine affinity", [["Good", "Good", "Cure Wounds"], ["Evil", "Evil", "Inflict Wounds"], ["Law", "Law", "Bless"], ["Chaos", "Chaos", "Bane"], ["Neutrality", "Neutrality", "Protection from Evil and Good"]]),
   "Genie's Vessel": expansionChoice("Warlock", "The Genie", "Genie patron", [["Dao", "Dao", "Bludgeoning"], ["Djinni", "Djinni", "Thunder"], ["Efreeti", "Efreeti", "Fire"], ["Marid", "Marid", "Cold"]]),
   "Combat Superiority": { label: "Maneuvers", n: c => { const l = c.subclass === "Battle Master" ? c.level : 0; return l >= 15 ? 9 : l >= 10 ? 7 : l >= 7 ? 5 : l >= 3 ? 3 : 0; }, opts: c => MANEUVERS.filter(m => !m[3] || m[3] === edOf(c)).map(m => [m[0], m[1], m[2]]) },
-  "Eldritch Invocations": { label: "Invocations", n: c => { const l = clsLv(c, "Warlock"); return edOf(c) === "2024" ? [0, 1, 3, 3, 3, 5, 5, 6, 6, 7, 7, 7, 8, 8, 8, 9, 9, 9, 10, 10, 10][l] : [0, 0, 2, 2, 2, 3, 3, 4, 4, 5, 5, 5, 6, 6, 6, 7, 7, 7, 8, 8, 8][l]; }, opts: c => INVOCATIONS.filter(v => (!v[4] || v[4] === edOf(c)) && clsLv(c, "Warlock") >= v[3]).map(v => [v[0], v[1] + (v[3] > 1 ? ` (lv ${v[3]})` : ""), v[2]]) },
+  "Eldritch Invocations": { label: "Invocations", n: c => { const l = clsLv(c, "Warlock"); return edOf(c) === "2024" ? [0, 1, 3, 3, 3, 5, 5, 6, 6, 7, 7, 7, 8, 8, 8, 9, 9, 9, 10, 10, 10][l] : [0, 0, 2, 2, 2, 3, 3, 4, 4, 5, 5, 5, 6, 6, 6, 7, 7, 7, 8, 8, 8][l]; }, opts: c => INVOCATIONS.filter(v=>invocationEligible(c,v[0])).map(v=>[v[0],v[1]+(invocationMinLevel(edOf(c),v)>1?" (lv "+invocationMinLevel(edOf(c),v)+")":""),v[2]]) },
   Metamagic: { label: "Metamagic options", n: c => { const l = clsLv(c, "Sorcerer"); return edOf(c)==="2024"?(l>=17?6:l>=10?4:l>=2?2:0):(l>=17?4:l>=10?3:l>=3?2:0); }, opts: c => METAMAGIC.filter(m => !m[2] || m[2] === edOf(c)).map(m => [m[0], m[1], ""]) },
   "Hunter's Prey": { label: "Hunter's Prey", n: () => 1, opts: c => opt3(edOf(c) === "2024" ? [["colossus", "Colossus Slayer", "+1d8 once per turn against a creature missing hit points."], ["horde", "Horde Breaker", "One extra attack against another creature within 5 ft of the first."]] : [["colossus", "Colossus Slayer", "+1d8 once per turn against a creature below its maximum."], ["giant", "Giant Killer", "Reaction attack against a Large or larger creature that attacks you."], ["horde", "Horde Breaker", "One extra attack against another creature within 5 ft of the first."]]) },
   "Defensive Tactics": { label: "Defensive Tactics", n: () => 1, opts: c => opt3(edOf(c) === "2024" ? [["escape", "Escape the Horde", "Opportunity attacks against you have disadvantage."], ["multi", "Multiattack Defense", "After a creature hits you, its other attacks this turn have disadvantage."]] : [["escape", "Escape the Horde", "Opportunity attacks against you have disadvantage."], ["multi", "Multiattack Defense", "+4 AC against a creature's later attacks this turn after it hits you."], ["steel", "Steel Will", "Advantage on saves against being frightened."]]) },
@@ -120,7 +148,25 @@ function orderCheckBonus(c,skill){
   // Distinct class features are distinct bonuses; apply both if the multiclass qualifies.
   return (Number(cleric)+Number(druid))*Math.max(1,c.mods.wis);
 }
-const hasChoice = (c, k, id) => choiceOf(c, k).includes(id);
+const INVOCATION_REVISED_LEVEL={agonizing:2,devil:2,spear:2,vigor:2,mask:2,misty:2,repel:2,leap:2,ascend:5,twominds:5,myriad:5,lifedrinker:9,visions:9,grave:7};
+function invocationMinLevel(ed,row){return ed==="2024"?(INVOCATION_REVISED_LEVEL[row[0]]??row[3]):Math.max(2,row[3]);}
+function invocationEligible(c,id,seen=new Set()){
+  const ed=edOf(c),row=INVOCATIONS.find(v=>v[0]===id),level=clsLv(c,"Warlock");
+  if(!row||!level||(row[4]&&row[4]!==ed)||level<invocationMinLevel(ed,row)||seen.has(id))return false;
+  // These legacy invocations are not revised SRD entries.
+  if(ed==="2024"&&["sight","rune"].includes(id))return false;
+  const selected=choiceOf(c,"Eldritch Invocations");
+  if(ed==="2024"){
+    const need={thirst:"blade",lifedrinker:"blade",devouring:"thirst",gift:"tome"}[id];
+    if(need&&(!selected.includes(need)||!invocationEligible(c,need,new Set([...seen,id]))))return false;
+  }else{
+    const boon=choiceOf(c,"Pact Boon")[0];
+    if(["thirst","lifedrinker"].includes(id)&&boon!=="blade")return false;
+    if(id==="chains"&&boon!=="chain")return false;
+  }
+  return true;
+}
+const hasChoice = (c,k,id)=>choiceOf(c,k).includes(id)&&(k!=="Eldritch Invocations"||invocationEligible(c,id));
 const DRAGON_FEATURE_ELEMENTS = ["Acid", "Cold", "Fire", "Lightning", "Poison"];
 const FEATURE_CHOICE_LANGUAGES = ["Common", "Dwarvish", "Elvish", "Giant", "Gnomish", "Goblin", "Halfling", "Orc", "Abyssal", "Celestial", "Draconic", "Deep Speech", "Infernal", "Primordial", "Sylvan", "Undercommon"];
 const choiceList = (label, options, n = 1) => ({ label, n: () => n, opts: () => opt3(options) });
@@ -182,7 +228,9 @@ function wizardSpellChoicesHTML(c) {
   return choices && `<p class="hint">Choose these spells from your spellbook.</p>${choices}`;
 }
 
+for(const cls of MASTERY_CLASSES)CHOICES[masteryKey(cls)]={label:cls+" weapon mastery",n:c=>masteryLimit(edOf(c),cls,clsLv(c,cls)),opts:c=>masteryOptions(c,cls)};
 const additionalFeatureChoices = {
+  "Weapon Mastery":MASTERY_CLASSES.map(masteryKey),
   "Mystic Arcanum":[6,7,8,9].map(l=>"Mystic Arcanum "+l),
   "Divine Order":["Divine Order Cantrip"],
   "Primal Order":["Primal Order Cantrip"],
@@ -198,8 +246,10 @@ function featureChoiceHTML(c, k) {
 function choiceHTML(c, k) {
   const S = CHOICES[k]; if (!S) return "";
   const n = S.n(c); if (!n) return "";
-  const O = S.opts(c), have = choiceOf(c, k).filter(id => O.some(o => o[0] === id)), left = n - have.length, kk = esc(k);
+  const O = S.opts(c), have = [...new Set(choiceOf(c, k))].filter(id => O.some(o => o[0] === id)), left = n - have.length, kk = esc(k);
+  const invalid=choiceOf(c,k).filter(id=>!O.some(o=>o[0]===id));
   return `<div class="choice"><span class="lbl" style="margin:0">${esc(S.label)} <span class="muted">${have.length}/${n}</span></span>
+    ${invalid.map(id=>`<span class="tag">Unavailable: ${esc(id)} <button type="button" class="icon-btn" data-choicerm="${kk}|${esc(id)}" aria-label="Remove unavailable ${esc(id)}">✕</button></span>`).join("")}
     ${have.map(id => { const o = O.find(x => x[0] === id); return `<span class="tag gold" title="${esc(o[2])}">${esc(o[1])}<button type="button" class="icon-btn" data-choicerm="${kk}|${esc(id)}" aria-label="Remove ${esc(o[1])}">✕</button></span>`; }).join("")}
     ${left > 0 ? `<select data-choice="${kk}" aria-label="Choose ${esc(S.label)}"><option value="">${have.length ? "Add another…" : "Choose…"}</option>${O.filter(o => !have.includes(o[0])).map(o => `<option value="${esc(o[0])}">${esc(o[1])}</option>`).join("")}</select>` : ""}
     ${have.length ? `<ul class="plain choice-notes">${have.map(id => { const o = O.find(x => x[0] === id); return o[2] ? `<li><b>${esc(o[1])}:</b> ${esc(o[2])}</li>` : ""; }).join("")}</ul>` : ""}</div>`;

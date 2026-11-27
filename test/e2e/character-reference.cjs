@@ -352,6 +352,19 @@ const { chromium } = require("playwright");
     assert.deepEqual(fullClassMatrix.rest1,[1,1]);assert.deepEqual(fullClassMatrix.rest2,[0,0]);
     assert.ok(fullClassMatrix.companion.startsWith("Wild Companion:")&&fullClassMatrix.active&&fullClassMatrix.ended);
     assert.equal(fullClassMatrix.spent,1);
+    const masteryAudit=await page.evaluate(()=>{
+      const make=(ed,cls,level)=>pcEnsure(generateCharacter({seed:"MASTERY",ed,cls,level,race:"Human",bg:"Sage",subclass:"none"}));
+      const f=make("2024","Fighter",9);f.choices={[masteryKey("Fighter")]:["Longsword","Dagger"]};
+      const b=make("2024","Barbarian",10),r=make("2024","Rogue",1),old=make("2014","Fighter",20);
+      itLoad();const w=IT.data["2024"].find(x=>x.n==="Longsword"&&x.kind==="gear");
+      const warlock=make("2024","Warlock",12);warlock.choices={"Eldritch Invocations":["blade","thirst","devouring"]};
+      const before=hasChoice(warlock,"Eldritch Invocations","devouring");warlock.choices["Eldritch Invocations"]=["thirst","devouring"];const after=hasChoice(warlock,"Eldritch Invocations","devouring");
+      const lv1=make("2024","Warlock",1);
+      return {counts:[1,4,10,16,20].map(l=>masteryLimit("2024","Fighter",l)),barb:[1,4,10,20].map(l=>masteryLimit("2024","Barbarian",l)),legacy:masteryOptions(old,"Fighter").length,mastery:activeMastery(f,w),unselected:activeMastery(b,w),bow:masteryOptions(b,"Barbarian").some(([n])=>n==="Shortbow"),rogueSword:masteryOptions(r,"Rogue").some(([n])=>n==="Longsword"),before,after,devil:invocationEligible(lv1,"devil"),armor:invocationEligible(lv1,"armor")};
+    });
+    assert.deepEqual(masteryAudit.counts,[3,4,5,6,6]);assert.deepEqual(masteryAudit.barb,[2,3,4,4]);
+    assert.equal(masteryAudit.legacy,0);assert.equal(masteryAudit.mastery,"Sap");assert.equal(masteryAudit.unselected,"");
+    assert.deepEqual([masteryAudit.bow,masteryAudit.rogueSword,masteryAudit.before,masteryAudit.after,masteryAudit.devil,masteryAudit.armor],[false,false,true,false,false,true]);
     const expansion = await page.evaluate(() => {
       const subclasses = hbBook("subclass").filter(x => ["tce", "xge"].includes(x.src));
       const armorer = generateCharacter({ seed: "ARMOR", ed: "2014", cls: "Artificer", subclass: "Armorer", level: 5 });

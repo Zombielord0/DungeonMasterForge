@@ -118,6 +118,8 @@ function eqProficient(c, w) {
   const props = ((w.st.find(([k]) => k === "Properties") || [])[1] || "");
   if (["Barbarian", "Fighter", "Paladin", "Ranger"].includes(baseClassOf(c.cls)) || (c.multi || []).some(x => MC_MARTIAL.includes(baseClassOf(x.cls)))) return true;
   if (w.n === "Shortsword" && (c.multi || []).some(x => x.cls === "Monk")) return true;
+  if (edOf(c)==="2024"&&c.cls==="Rogue")return /Martial/.test(w.cat)&&/Finesse|Light/.test(props);
+  if (edOf(c)==="2024"&&c.cls==="Bard")return false;
   if (["Rogue", "Bard"].includes(c.cls)) return /Finesse|Light/.test(props) || /^(Longsword|Crossbow, hand|Hand Crossbow)$/.test(w.n);
   if (c.cls === "Druid") return w.n === "Scimitar";
   if (c.cls === "Monk") return w.n === "Shortsword" || (/Melee/.test(w.cat) && /Light/.test(props));
@@ -132,7 +134,7 @@ function eqAttack(c, i, w) {
   const magic = inventoryEnhancement(i, ref, "weapon"), needsAtt = inventoryNeedsAttunement(i, ref) && !i.attuned, bonus = needsAtt ? 0 : magic;
   const prof = eqProficient(c, w), mod = m[ab] + bonus, hit = m[ab] + (prof ? c.prof : 0) + bonus;
   const two = (dmgTxt.match(/two-handed (\d+d\d+)/) || [])[1];
-  return { name: i.n, iid: i.id, hit, type: dm[2], two, ab, prof, magic, needsAtt, melee: !ranged, twoH: /Two-Handed/.test(props), thrown: /Thrown/.test(props), mod, die: dm[1] };
+  return { name: i.n, iid: i.id, hit, type: dm[2], two, ab, prof, magic, needsAtt, mastery:activeMastery(c,w), melee: !ranged, twoH: /Two-Handed/.test(props), thrown: /Thrown/.test(props), mod, die: dm[1] };
 }
 /* ---- fighting styles, armor training, protective items and spell effects ---- */
 const FIGHT_STYLES = {
@@ -376,6 +378,7 @@ function pcAttacks(c) {
   }
   F.attacks.forEach(a => out.push({ prof: true, ...a }));
   out.forEach(a => { a.tags = []; a.extra = []; a.dmgB = 0; if (+c.atkBonus && (a.iid || a.unarmed)) { a.hit += +c.atkBonus; a.tags.push(`homebrew ${sgn(+c.atkBonus)}`); } });
+  out.forEach(a=>{if(a.mastery)a.tags.push("Mastery: "+a.mastery+(clsLv(c,"Fighter")>=9?" (Tactical Master: Push, Sap or Slow may replace)":""));});
   if (SB.crit < 20) out.forEach(a => { if (a.iid || a.unarmed) a.crit = SB.crit; });
   // fighting styles
   const melee = out.filter(a => a.iid && a.melee);

@@ -198,7 +198,7 @@ const FEAT_DESC_2024 = {
   "Keen Senses": "Choose proficiency in Insight, Perception, or Survival.",
   "Primal Champion": "Increase Strength and Constitution by 4 each, to a maximum of 25.",
   "Body and Mind": "Increase Dexterity and Wisdom by 4 each, to a maximum of 25.",
-  "Weapon Mastery": "Choose proficient weapon types whose mastery properties you can use, and change your choices after a Long Rest. Fighters start with three types (four at level 4, five at level 10, six at level 16); Paladins and Rangers choose two. The DM resolves the chosen properties.",
+  "Weapon Mastery": "Choose eligible proficient weapon types per class. Fighter: 3 initially, 4 at level 4, 5 at level 10, 6 at level 16. Barbarian: melee weapons only, 2 initially, 3 at level 4, 4 at level 10. Paladin, Ranger and Rogue: 2. Change choices after a Long Rest as allowed by the class. The attack displays the selected mastery; adjudicate its target-specific effects manually.",
   "Action Surge": "On your turn, take one extra action other than the Magic action. Regain the use on a Short or Long Rest; at Fighter level 17 you have two uses per rest, but can use it only once per turn.",
   "Tactical Mind": "After failing an ability check, roll 1d10 and add it to the check instead of healing with Second Wind. Spend a use of Second Wind only if the new total succeeds.",
   "Tactical Shift": "When you activate Second Wind with a Bonus Action, you can move up to half your Speed without provoking Opportunity Attacks.",

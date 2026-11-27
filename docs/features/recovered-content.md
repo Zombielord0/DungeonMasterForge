@@ -98,3 +98,8 @@ Added source/edition-guarded Primal Knowledge and Scholar proficiency choices, d
 ## Class matrix and remaining Cleric/Druid resources
 
 Added a browser validation matrix for all 12 core classes plus Artificer, every level 1–20, both editions (520 builds). It checks class/edition identity, feature acquisition, proficiency, ability scores and HP. It is a structural progression regression, not a source-by-source proof of every feature. Added Wild Companion resource selection and long-rest expiry (familiar placement manual), and Greater Divine Intervention Wish eligibility and 2d4-long-rest cooldown. Actual spell effects remain manual. The 520-build regression is added, not reported as passed before CI concludes.
+
+
+## Weapon mastery and invocation prerequisite batch
+
+Added per-owning-class mastery selections, using the revised equipment catalog's existing mastery properties. Class level, edition, proficiency and Barbarian melee restrictions are checked; selected mastery is shown on inventory attack rows, and Tactical Master alternatives are identified for level 9+ Fighters. Target effects and rest timing remain manual. Corrected existing revised Warlock invocation level minima and pact dependency chains; legacy-only entries do not appear in the revised selection. Ineligible saved choices remain removable, and invalid choice submissions are rejected. Cantrip-specific repeatable invocation choices and full invocation catalog/mechanical implementation remain outstanding. Source: SRD 5.2.1 and D&D Beyond 2024 Basic Rules, https://www.dndbeyond.com/sources/dnd/br-2024/character-classes. CC BY 4.0 SRD attribution retained.
