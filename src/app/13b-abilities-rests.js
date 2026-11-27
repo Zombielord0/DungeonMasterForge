@@ -380,7 +380,7 @@ function pcAbilities(c) {
   }
   if(artificerInfusionLevel(c)>=20)add("Soul of Artifice survival","Reaction","At 0 HP without outright death, end an active infusion to drop to 1 HP instead.");
   if(ed==="2024"&&clsLv(c,"Artificer")>=20)add("Cheat Death","At 0 HP","Disintegrate selected Uncommon or Rare replicas to regain 20 HP each. Confirm no outright death.");
-  if(battleSmithLevel(c)>=9)add("Arcane Jolt","On qualifying hit","Once per turn: "+(battleSmithLevel(c)>=15?"4d6":"2d6")+" extra Force damage or healing within 30 feet of target.","arcaneJolt","Battle Smith");
+  if(battleSmithLevel(c)>=9){add("Arcane Jolt","On qualifying hit","Once per turn: "+(battleSmithLevel(c)>=15?"4d6":"2d6")+" extra Force damage or healing within 30 feet of target.","arcaneJolt","Battle Smith");if(c.arcaneJoltThisTurn)add("Arcane Jolt — next turn","New creature turn","Reset the once-per-turn restriction only after the current creature turn ends.");}
   if(clsLv(c,"Artificer")>=11){
     add("Store spell in item","After Long Rest","Choose a qualifying weapon or spellcasting focus in Features, then store an eligible Artificer spell. Confirm long-rest timing; replacing the stored spell ends the previous effect.","artificerStoreSetup");
     const stored=artificerStoredSpell(c);if(stored)add("Spell-Storing Item","Action",`${stored.item.n}: ${stored.spell.n}. The holder produces its effects using your spellcasting ability; the holder maintains any required Concentration. No spell slot used. Resolve target, spell effects and concentration manually.`,"artificerStored");
@@ -402,7 +402,7 @@ function pcAbilities(c) {
   if (tr("Relentless Endurance")) add("Relentless Endurance", "When reduced to 0 HP", "Drop to 1 hit point instead.", "relent");
   const monkActions=legacyMonkActions(c),monkActionNames=new Set(monkActions.map(a=>a.name));
   (c.feats || []).filter(f=>(f.sub||f.mcsub||f.bookSub)&&(f.bookSub?!!(SUB_ABL[f.f]?.text||ACT[f.f]):!!(SUB_ABL[f.f]||ACT[f.f]))).forEach(f=>{
-    if(monkActionNames.has(f.f))return;
+    if(monkActionNames.has(f.f)||f.f==="Arcane Jolt"&&battleSmithLevel(c)>=9)return;
     const o=subclassFeatureOwner(c,f);if(!o.level||+f.l>o.level)return;
     if(isPsionicOwner(o)&&PSIONIC_FEATURES.has(f.f))return;
     const S=SUB_ABL[f.f]||{when:ACT[f.f].kind==="persist"?"Your choice":ACT[f.f].kind==="toggle"?"Activated":"Use"};
@@ -1008,6 +1008,7 @@ function arcaneJoltUse(c,ch){
 }
 const ACT = {
  "Arcane Jolt":{kind:"instant",noCost:true,choices:arcaneJoltChoices,use:arcaneJoltUse},
+ "Arcane Jolt — next turn":{kind:"instant",use:c=>{delete c.arcaneJoltThisTurn;return "Arcane Jolt turn limit reset; confirm a different creature turn.";}},
  "Totems":{kind:"instant",choices:shamanTotemOptions,use:shamanTotemCreate},
  "Restore Primal Knowledge Totem":{kind:"instant",use:shamanTotemRestore},
  "End Totem":{kind:"instant",use:c=>{delete c.shamanTotem;return "Totem ended.";}},
