@@ -48,6 +48,7 @@ function pcResources(c) {
   if (has("Font of Magic")) add("sorc", "Sorcery points", CLV("Sorcerer"), "long");
   if (has("Favored Enemy") && ed === "2024") add("hmark", "Free Hunter's Mark", CLV("Ranger") >= 17 ? 6 : CLV("Ranger") >= 13 ? 5 : CLV("Ranger") >= 9 ? 4 : CLV("Ranger") >= 5 ? 3 : 2, "long");
   if(ed==="2024"&&clsLv(c,"Cleric")>=10)add("divineIntervention","Divine Intervention",1,"long");
+  if(clsLv(c,"Artificer")>=7)add("flashGenius","Flash of Genius",Math.max(1,m.int),ed==="2024"?(clsLv(c,"Artificer")>=20&&artificerAttunedCount(c)>0?"short":clsLv(c,"Artificer")>=14?"short1":"long"):"long");
   if (has("Arcane Recovery")) add("arcrec", "Arcane Recovery", 1, "long");
   if (has("Stroke of Luck")) add("luck", "Stroke of Luck", 1, "short");
   if (ed === "2024" && featTaken(c, "Ritual Caster")) add("featQuickRitual", "Quick Ritual", 1, "long");
@@ -127,6 +128,7 @@ function pcAbilities(c) {
   if (has("Font of Magic")) add("Font of Magic", "Bonus action", "Turn a spell slot into sorcery points, or spend 2/3/5/6/7 points for a level 1–5 slot.", "sorc");
   if (has("Metamagic")) add("Metamagic", "When casting", "Spend sorcery points to change a spell: Quickened (2), Twinned (spell level), Subtle, Careful, Distant, Empowered, Extended (1).", "sorc");
   if(ed==="2024"&&clsLv(c,"Cleric")>=10)add("Divine Intervention","Magic action","Cast an eligible Cleric spell without a slot or Material components. Select the spell and resolve its rules manually.","divineIntervention");
+  if(clsLv(c,"Artificer")>=7)add("Flash of Genius","Reaction",`Add ${sgn(m.int)} to your or a creature’s eligible ability check or saving throw within 30 feet. ${ed==="2024"?"Use after a failed roll.":"Use before success or failure is determined."} Apply the bonus manually.`,"flashGenius");
   if (has("Arcane Recovery")) add("Arcane Recovery", "Short rest", `Recover spell slots with a combined level up to ${Math.ceil(CLV("Wizard") / 2)} (none above 5th).`, "arcrec");
   for (const feat of activeCharacterFeats(c)) {
     if (feat === "Telekinetic") {
@@ -262,7 +264,14 @@ function convertFontOfMagic(c,ch){
   c.used[key]=(+c.used[key]||0)+1;c.used.sorc=Math.max(0,(+c.used.sorc||0)-gain);
   return "Converted a level "+L+" slot to "+gain+" Sorcery Points.";
 }
+function artificerAttunedCount(c){
+  return (c.inv||[]).filter(i=>i.attuned&&(+i.qty||0)>0&&inventoryNeedsAttunement(i,inventoryCatalogItem(i,edOf(c)))).length;
+}
+function artificerAttunementLimit(c){
+  const lv=clsLv(c,"Artificer");return lv>=18?6:lv>=14?5:lv>=10?4:3;
+}
 const ACT = {
+  "Flash of Genius":{kind:"instant",use:c=>"Flash of Genius: "+sgn(c.mods.int)+" to the eligible check or save. Apply manually."},
   "Wild Companion":{kind:"instant",choices:wildCompanionOptions,use:castWildCompanion},
   "Divine Intervention":{kind:"instant",choices:divineInterventionChoices,noCost:true,use:(c,ch)=>{const u=pcResources(c).find(r=>r.key==="divineIntervention");if(!u||!resLeft(c,u)||(+c.divineInterventionCooldown||0)>0||!divineInterventionChoices(c).some(([id])=>id===ch)||isActive(c,"Rage")||c.armorUntrained)return "No eligible spell or Divine Intervention use available.";const sp=spellOf("2024",ch);c.used=c.used||{};c.used.divineIntervention=1;const end=sp.co?concStart(c,ch):"";if(ch==="Wish")c.divineInterventionCooldown=rollDice("2d4").total;return {msg:"Divine Intervention: cast "+ch+" without a slot or Material components. Resolve spell effects manually."+(end?" "+end:"")+(ch==="Wish"?" Cooldown: "+c.divineInterventionCooldown+" Long Rests.":"")};}},
   "Uncanny Metabolism":{kind:"instant",use:c=>{const n=restoreResource(c,"ki",clsLv(c,"Monk")),healed=healSelf(c,clsLv(c,"Monk")+rollDice("1d"+maDie(c)).total);return "Uncanny Metabolism: regained "+n+" Focus Points and "+healed+" HP."}},

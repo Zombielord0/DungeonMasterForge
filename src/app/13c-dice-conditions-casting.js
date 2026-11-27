@@ -56,8 +56,10 @@ function rollState(c, kind, ab, o = {}) {
     if (ed === "2014" && n >= 3) S.dis.push("exhaustion");
     if (ab === "str" && isActive(c, "Rage")) S.adv.push("Rage");
     if (o.conc && featTaken(c, "War Caster")) S.adv.push("War Caster");
+    if(o.conc&&ab==="con"&&hasChoice(c,"Eldritch Invocations","mind"))S.adv.push("Eldritch Mind");
   }
   if(ed==="2024"&&kind==="save"&&ab==="dex"&&clsLv(c,"Barbarian")>=2&&!COND_INCAP.some(on))S.adv.push("Danger Sense");
+  if(kind==="save"&&ed==="2014"&&clsLv(c,"Artificer")>=20)S.pen+=artificerAttunedCount(c);
   if (ed === "2024" && n) S.pen = -2 * n;
   return S;
 }
@@ -215,7 +217,8 @@ function spellPlan(sp) {
 // the dice for a cast at this slot level (cantrips grow with character level)
 function spellTweak(c, sp, P) {
   if (P.manual) return P;
-  if (sp.n === "Eldritch Blast") { const L = totalLv(c); P.count = 1 + (L >= 5) + (L >= 11) + (L >= 17); P.cantripTiers = false; if (hasChoice(c, "Eldritch Invocations", "agonizing")) P.flat += c.mods.cha; }
+  if (sp.n === "Eldritch Blast") { const L = totalLv(c); P.count = 1 + (L >= 5) + (L >= 11) + (L >= 17); P.cantripTiers = false; }
+  if(sp.l===0&&P.dice&&!P.heal&&invocationAffects(c,"agonizing",sp.n))P.flat+=c.mods.cha;
   return P;
 }
 function spellDice(c, sp, P, slot, caster = spellCaster(c, sp)) {
@@ -286,6 +289,8 @@ function castPreview(c, sp, how, ed = edOf(c)) {
   if (sp.l && up && (P.per || P.countPer)) parts.push(`upcast +${up} level${up === 1 ? "" : "s"}`);
   if (sp.rulesSummary) parts.push("Resolve the spell’s effects using its sourcebook");
   if (sp.manualRoll || sp.manualEffects) parts.push("Resolve all rolls and effects manually using the complete spell rules");
+  if(sp.l===0&&invocationAffects(c,"spear",sp.n))parts.push(ed==="2024"?"Eldritch Spear: +"+30*clsLv(c,"Warlock")+" ft range":"Eldritch Spear: 300 ft range");
+  if(sp.l===0&&invocationAffects(c,"repel",sp.n))parts.push(ed==="2024"?"Repelling Blast: push Large or smaller target up to 10 ft on hit":"Repelling Blast: push target up to 10 ft on hit");
   if (sp.co) parts.push(`needs concentration${c.conc ? ` (ends ${c.conc.spell})` : ""}`);
   return (sp.l ? `At ${ordinal(slot)}: ` : "") + (parts.join(" · ") || "No dice to roll.");
 }

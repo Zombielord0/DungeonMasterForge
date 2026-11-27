@@ -378,6 +378,23 @@ const { chromium } = require("playwright");
     assert.equal(slotAudit.created,slotAudit.original+1);assert.equal(slotAudit.points,2);
     assert.match(slotAudit.rejected,/Insufficient/);assert.equal(slotAudit.afterShort,slotAudit.created);assert.equal(slotAudit.afterLong,slotAudit.original);
     assert.equal(slotAudit.pointsLeft,2);
+    const invocationAudit=await page.evaluate(()=>{
+      const make=(ed,cls,level)=>pcEnsure(generateCharacter({seed:"INVOCATION-FINAL",ed,cls,level,race:"Human",bg:"Sage",subclass:"none"}));
+      const w=make("2024","Warlock",9);w.prepared.push({n:"Eldritch Blast",l:0,ed:"2024"},{n:"Chill Touch",l:0,ed:"2024"});
+      w.choices={"Eldritch Invocations":["agonizing:Eldritch Blast","agonizing:Chill Touch","mask","mind","grave"]};
+      const eligible=invocationOptions(w).map(x=>x[0]),affects=invocationAffects(w,"agonizing","Eldritch Blast");
+      const p=spellTweak(w,spellOf("2024","Eldritch Blast"),{dice:"1d10",flat:0});syncGrantedSpells(w);
+      const free=castOpts(w,spellOf("2024","Disguise Self")).map(x=>x[0]);
+      const mind=hasChoice(w,"Eldritch Invocations","mind");w.prepared=w.prepared.filter(p=>p.n!=="Eldritch Blast");
+      const removed=!invocationAffects(w,"agonizing","Eldritch Blast");
+      const art=make("2024","Artificer",14),legacy=make("2014","Artificer",14);
+      const r=pcResources(art).find(r=>r.key==="flashGenius"),old=pcResources(legacy).find(r=>r.key==="flashGenius");
+      return {eligible,affects,flat:p.flat,cha:w.mods.cha,free,mind,removed,flash:[r.max,r.recharge,old.recharge],int:art.mods.int,limits:[9,10,14,18].map(l=>artificerAttunementLimit(make("2024","Artificer",l)))};
+    });
+    assert.ok(invocationAudit.eligible.includes("agonizing:Eldritch Blast")&&invocationAudit.eligible.includes("agonizing:Chill Touch")&&!invocationAudit.eligible.includes("agonizing"));
+    assert.ok(invocationAudit.affects&&invocationAudit.removed&&invocationAudit.mind);
+    assert.equal(invocationAudit.flat,invocationAudit.cha);assert.deepEqual(invocationAudit.free,["invocation:mask"]);
+    assert.deepEqual(invocationAudit.flash,[Math.max(1,invocationAudit.int),"short1","long"]);assert.deepEqual(invocationAudit.limits,[3,4,5,6]);
     const expansion = await page.evaluate(() => {
       const subclasses = hbBook("subclass").filter(x => ["tce", "xge"].includes(x.src));
       const armorer = generateCharacter({ seed: "ARMOR", ed: "2014", cls: "Artificer", subclass: "Armorer", level: 5 });

@@ -300,6 +300,15 @@ function syncGrantedSpells(c) {
         add({1:selected},lv,{...classSource,feature},()=>({known:true}));
       }
     }
+    if(cls==="Warlock"){
+      // At-will spells without self-target or special-use caveats. Others remain manual.
+      const atWill={mask:"Disguise Self",misty:"Silent Image",grave:"Speak with Dead",visions:"Arcane Eye",sight:"Detect Magic",beast:"Speak with Animals"};
+      for(const [id,name] of Object.entries(atWill))if(hasChoice(c,"Eldritch Invocations",id)){
+        const sp=spellOf(ed,name);
+        if(sp&&!sp.ref&&!sp.referenceOnly&&!sp.pend&&!sp.rulesSummary&&!sp.shadow&&!sp.hb)
+          add({1:[name]},lv,{...classSource,feature:INVOCATIONS.find(v=>v[0]===id)[1]},()=>({free:"invocation:"+id,uses:"atWill",innate:true}));
+      }
+    }
     if(cls==="Warlock")for(const level of [6,7,8,9]){
       const key="Mystic Arcanum "+level,choice=CHOICES[key];
       if(lv>=2*level-1&&choice.n(c)){

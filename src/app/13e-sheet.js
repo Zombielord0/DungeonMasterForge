@@ -37,9 +37,7 @@ function clearUnsupportedAttunement(item, edition) {
   return true;
 }
 function inventoryAttunementCount(c) {
-  const count = c.inv.filter(i => i.attuned && inventoryNeedsAttunement(i, inventoryCatalogItem(i, edOf(c)))).length;
-  const level = clsLv(c, "Artificer");
-  const limit = level >= 18 ? 6 : level >= 14 ? 5 : level >= 10 ? 4 : 3;
+  const count=artificerAttunedCount(c),limit=artificerAttunementLimit(c);
   return `<b id="rcAttunementCount" class="${count > limit ? "over" : ""}">${count} / ${limit}</b>`;
 }
 function quickSheetActions(c) {
@@ -281,6 +279,7 @@ spFiltersSync();
     if (t.dataset.rcoin) { c.coins[t.dataset.rcoin] = Math.max(0, +t.value || 0); pcACApply(c); const sl = $("#rcSpeedLine"); if (sl) sl.innerHTML = rcSpeedLine(c); const sp = $('[data-rf="speed"]', main); if (sp && !c.speedManual) sp.value = c.speed; pcPersist(); return; }
     if (t.dataset.rinv) {
       const i = c.inv.find(x => x.id === t.dataset.iid); if (!i) return; const f = t.dataset.rinv;
+      if(f==="attuned"&&t.checked&&!i.attuned&&artificerAttunedCount(c)>=artificerAttunementLimit(c)){t.checked=false;toast("Attunement limit reached.");return;}
       i[f] = f === "attuned" || f === "eq" ? t.checked : f === "qty" ? Math.max(0, +t.value || 0) : t.value;
       c.attacks = pcAttacks(c); pcACApply(c); pcPersist();
       if (f === "attuned" || f === "eq") renderRosterMain();

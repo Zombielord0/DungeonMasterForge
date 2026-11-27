@@ -15,6 +15,8 @@ const MANEUVERS = [
   ["trip", "Trip Attack", "Add the die to damage; a Large or smaller target makes a STR save or falls prone."]
 ];
 const INVOCATIONS = [
+  ["mind","Eldritch Mind","Advantage on Constitution saves to maintain Concentration.",1,"2024"],
+  ["smite","Eldritch Smite","On a pact weapon hit, once per turn expend a Pact Magic slot for 1d8 plus 1d8 per slot level Force damage. May knock a Huge or smaller target Prone.",5,"2024"],
   ["agonizing", "Agonizing Blast", "Add your Charisma modifier to the damage of each Eldritch Blast beam (applied when you cast it).", 1], ["armor", "Armor of Shadows", "Cast Mage Armor on yourself at will (use the Mage Armor toggle).", 1],
   ["beast", "Beast Speech", "Cast Speak with Animals at will.", 1, "2014"], ["beguile", "Beguiling Influence", "Proficiency in Deception and Persuasion.", 1, "2014"],
   ["devil", "Devil's Sight", "See normally in darkness, magical or not, to 120 ft.", 1], ["sight", "Eldritch Sight", "Cast Detect Magic at will.", 1],
@@ -119,7 +121,7 @@ const CHOICES = {
   "Divine Magic": expansionChoice("Sorcerer", "Divine Soul", "Divine affinity", [["Good", "Good", "Cure Wounds"], ["Evil", "Evil", "Inflict Wounds"], ["Law", "Law", "Bless"], ["Chaos", "Chaos", "Bane"], ["Neutrality", "Neutrality", "Protection from Evil and Good"]]),
   "Genie's Vessel": expansionChoice("Warlock", "The Genie", "Genie patron", [["Dao", "Dao", "Bludgeoning"], ["Djinni", "Djinni", "Thunder"], ["Efreeti", "Efreeti", "Fire"], ["Marid", "Marid", "Cold"]]),
   "Combat Superiority": { label: "Maneuvers", n: c => { const l = c.subclass === "Battle Master" ? c.level : 0; return l >= 15 ? 9 : l >= 10 ? 7 : l >= 7 ? 5 : l >= 3 ? 3 : 0; }, opts: c => MANEUVERS.filter(m => !m[3] || m[3] === edOf(c)).map(m => [m[0], m[1], m[2]]) },
-  "Eldritch Invocations": { label: "Invocations", n: c => { const l = clsLv(c, "Warlock"); return edOf(c) === "2024" ? [0, 1, 3, 3, 3, 5, 5, 6, 6, 7, 7, 7, 8, 8, 8, 9, 9, 9, 10, 10, 10][l] : [0, 0, 2, 2, 2, 3, 3, 4, 4, 5, 5, 5, 6, 6, 6, 7, 7, 7, 8, 8, 8][l]; }, opts: c => INVOCATIONS.filter(v=>invocationEligible(c,v[0])).map(v=>[v[0],v[1]+(invocationMinLevel(edOf(c),v)>1?" (lv "+invocationMinLevel(edOf(c),v)+")":""),v[2]]) },
+  "Eldritch Invocations": { label: "Invocations", n: c => { const l = clsLv(c, "Warlock"); return edOf(c) === "2024" ? [0, 1, 3, 3, 3, 5, 5, 6, 6, 7, 7, 7, 8, 8, 8, 9, 9, 9, 10, 10, 10][l] : [0, 0, 2, 2, 2, 3, 3, 4, 4, 5, 5, 5, 6, 6, 6, 7, 7, 7, 8, 8, 8][l]; }, opts: c => invocationOptions(c) },
   Metamagic: { label: "Metamagic options", n: c => { const l = clsLv(c, "Sorcerer"); return edOf(c)==="2024"?(l>=17?6:l>=10?4:l>=2?2:0):(l>=17?4:l>=10?3:l>=3?2:0); }, opts: c => METAMAGIC.filter(m => !m[2] || m[2] === edOf(c)).map(m => [m[0], m[1], ""]) },
   "Hunter's Prey": { label: "Hunter's Prey", n: () => 1, opts: c => opt3(edOf(c) === "2024" ? [["colossus", "Colossus Slayer", "+1d8 once per turn against a creature missing hit points."], ["horde", "Horde Breaker", "One extra attack against another creature within 5 ft of the first."]] : [["colossus", "Colossus Slayer", "+1d8 once per turn against a creature below its maximum."], ["giant", "Giant Killer", "Reaction attack against a Large or larger creature that attacks you."], ["horde", "Horde Breaker", "One extra attack against another creature within 5 ft of the first."]]) },
   "Defensive Tactics": { label: "Defensive Tactics", n: () => 1, opts: c => opt3(edOf(c) === "2024" ? [["escape", "Escape the Horde", "Opportunity attacks against you have disadvantage."], ["multi", "Multiattack Defense", "After a creature hits you, its other attacks this turn have disadvantage."]] : [["escape", "Escape the Horde", "Opportunity attacks against you have disadvantage."], ["multi", "Multiattack Defense", "+4 AC against a creature's later attacks this turn after it hits you."], ["steel", "Steel Will", "Advantage on saves against being frightened."]]) },
@@ -148,16 +150,59 @@ function orderCheckBonus(c,skill){
   // Distinct class features are distinct bonuses; apply both if the multiclass qualifies.
   return (Number(cleric)+Number(druid))*Math.max(1,c.mods.wis);
 }
+const SPELL_INVOCATIONS=new Set(["agonizing","spear","repel"]);
+function knownWarlockCantrips(c){
+  if(!clsLv(c,"Warlock"))return [];
+  const ed=edOf(c),names=new Set();
+  for(const p of c.prepared||[]){
+    if(p.ed!==ed||p.l!==0)continue;
+    // Automatic grants count only when the owning feature supplies a Warlock spell.
+    if(p.bookGrant&&!p.sources?.some(g=>g.cls==="Warlock"))continue;
+    if(!p.bookGrant&&p.src)continue;
+    const s=spellOf(ed,p.n);
+    if(s&&!s.hb&&!s.pend&&!s.ref&&!s.referenceOnly&&!s.rulesSummary&&!s.shadow&&(s.c||[]).includes("Warlock")&&(!s.ed||s.ed===ed))names.add(s.n);
+  }
+  return [...names].sort();
+}
+function invocationCantripEligible(c,id,name){
+  if(!knownWarlockCantrips(c).includes(name))return false;
+  const s=spellOf(edOf(c),name);
+  // True Strike and weapon-attack cantrips need manual damage adjudication.
+  const damage=!!s.dt||/\b\d+d\d+\b[^.]*\bdamage\b/i.test(s.d||"")||s.n==="True Strike";
+  if(!damage)return false;
+  if(id==="repel")return !!s.at||/\b(?:spell|weapon) attack\b/i.test(s.d||"");
+  if(id==="spear")return +(String(s.r||"").match(/^(\d+)\s*(?:feet|foot|ft)/i)||[])[1]>=10;
+  return true;
+}
+function invocationOptions(c){
+  const ed=edOf(c),out=[];
+  for(const v of INVOCATIONS){
+    const [id,label,description]=v;
+    if(ed==="2024"&&SPELL_INVOCATIONS.has(id)){
+      for(const name of knownWarlockCantrips(c)){
+        const key=id+":"+name;
+        if(invocationEligible(c,key))out.push([key,label+" · "+name,id==="agonizing"?"Add Charisma modifier to this cantrip's damage rolls.":id==="spear"?"Increase range by 30 feet per Warlock level.":"On a hit, optionally push a Large or smaller target 10 feet away."]);
+      }
+    }else if(invocationEligible(c,id))out.push([id,label+(invocationMinLevel(ed,v)>1?" (lv "+invocationMinLevel(ed,v)+")":""),description]);
+  }
+  return out;
+}
+function invocationAffects(c,id,name){
+  return edOf(c)==="2024"?hasChoice(c,"Eldritch Invocations",id+":"+name):name==="Eldritch Blast"&&hasChoice(c,"Eldritch Invocations",id);
+}
 const INVOCATION_REVISED_LEVEL={agonizing:2,devil:2,spear:2,vigor:2,mask:2,misty:2,repel:2,leap:2,ascend:5,twominds:5,myriad:5,lifedrinker:9,visions:9,grave:7};
 function invocationMinLevel(ed,row){return ed==="2024"?(INVOCATION_REVISED_LEVEL[row[0]]??row[3]):Math.max(2,row[3]);}
 function invocationEligible(c,id,seen=new Set()){
-  const ed=edOf(c),row=INVOCATIONS.find(v=>v[0]===id),level=clsLv(c,"Warlock");
+  const ed=edOf(c),[base,...target]=String(id).split(":"),row=INVOCATIONS.find(v=>v[0]===base),level=clsLv(c,"Warlock");
+  if(ed==="2024"&&SPELL_INVOCATIONS.has(base)){if(!target.length||!invocationCantripEligible(c,base,target.join(":")))return false;}
+  else if(target.length)return false;
+  if(ed==="2014"&&SPELL_INVOCATIONS.has(base)&&!knownWarlockCantrips(c).includes("Eldritch Blast"))return false;
   if(!row||!level||(row[4]&&row[4]!==ed)||level<invocationMinLevel(ed,row)||seen.has(id))return false;
   // These legacy invocations are not revised SRD entries.
   if(ed==="2024"&&["sight","rune"].includes(id))return false;
   const selected=choiceOf(c,"Eldritch Invocations");
   if(ed==="2024"){
-    const need={thirst:"blade",lifedrinker:"blade",devouring:"thirst",gift:"tome"}[id];
+    const need={thirst:"blade",lifedrinker:"blade",devouring:"thirst",gift:"tome",smite:"blade"}[base];
     if(need&&(!selected.includes(need)||!invocationEligible(c,need,new Set([...seen,id]))))return false;
   }else{
     const boon=choiceOf(c,"Pact Boon")[0];
