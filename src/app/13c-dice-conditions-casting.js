@@ -168,7 +168,7 @@ function spellOf(ed, name) {
 // Pending user homebrew is distinct from an incomplete published reference. Keep it usable
 // only for its owning character, and do not expose it through public preparation pickers.
 function spellCastBlocked(c, sp, ed) {
-  if (!sp || sp.referenceOnly) return true;
+  if (!sp || sp.referenceOnly || !spellConditionalEligible(c,sp,ed)) return true;
   if (!sp.pend) return false;
   if (!sp.hb || !String(sp.d || "").trim()) return true;
   return !(c?.hbPending || []).some(e => e.kind === "spell" && !e.rejected &&
@@ -221,7 +221,7 @@ function spellCaster(c, sp, how, ed = edOf(c)) {
     const ab = source.ab || (source.name === "Aasimar" ? "cha" : speciesSpellAbility(c));
     return { cls: source.name, ab, dc: 8 + c.prof + c.mods[ab], atk: c.prof + c.mods[ab] };
   }
-  return own.find(x => x.cls === source?.cls) || own.find(x => (sp.c || []).includes(x.cls) || (x.list && (sp.c || []).includes(x.list))) || own[0] || { cls: "", ab: "int", dc: 8 + c.prof, atk: c.prof };
+  return own.find(x => x.cls === source?.cls) || own.find(x => (sp.c || []).includes(x.cls) || (x.list && (sp.c || []).includes(x.list))) || (spellBackgroundList(c,sp,ed) ? own.find(x => pcCastClasses(c).some(k => k.cls === x.cls && (sp.l === 0 ? k.cantrips : sp.l <= k.max))) : null) || own[0] || { cls: "", ab: "int", dc: 8 + c.prof, atk: c.prof };
 }
 /* The spell window: the full rules, then (on My Characters) "Cast at level" buttons and Cast. `o.view`: rules only (the
    Characters tab, where slots aren't tracked). The picked choice is kept in the hidden #castSlot that castGo reads. */

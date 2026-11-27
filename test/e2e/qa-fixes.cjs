@@ -120,6 +120,28 @@ const ZOOK = fs.readFileSync(path.join(FIX, "companion-zook.json"), "utf8");
     return { count: shells.length, blocked, aliasFailures, used: c.used };
   });
   check("reference-only saved/granted spell lookup has no cast options and aliases resolve to canonical rules", guards.count === 37 && !guards.blocked.length && !guards.aliasFailures.length && !Object.keys(guards.used).length, JSON.stringify(guards));
+  const conditional = await p.evaluate(() => {
+    const name = "Test Guild Background", prior = HB_BG[name];
+    const sp = {n:"Fixture Thoughts",ed:"2014",l:0,c:[],backgroundLists:[{name,src:"fixture"}]};
+    const base = {ed:"2014",cls:"Wizard",level:1,spell:{},bg:name,prepared:[]};
+    try {
+      HB_BG[name] = {name,src:"fixture",book:true,ed:"2014"};
+      const checks = [spellConditionalEligible(base,sp,"2014"),
+        !spellConditionalEligible({...base,bg:"Acolyte"},sp,"2014"),
+        !spellConditionalEligible({...base,spell:null},sp,"2014"),
+        !spellConditionalEligible({...base,ed:"2024"},sp,"2024"),
+        spellConditionalEligible({...base,bg:"Acolyte"},{...sp,c:["Wizard"]},"2014"),
+        !spellCastBlocked(base,sp,"2014"),
+        spellCastBlocked({...base,bg:"Acolyte"},sp,"2014"),
+        !base.prepared.length];
+      HB_BG[name] = {name,src:"other",book:true,ed:"2014"};
+      checks.push(!spellConditionalEligible(base,sp,"2014"));
+      HB_BG[name] = {name,src:"fixture",ed:"2014"};
+      checks.push(!spellConditionalEligible(base,sp,"2014"));
+      return checks;
+    } finally { if(prior) HB_BG[name]=prior; else delete HB_BG[name]; }
+  });
+  check("conditional background spell lists respect source, edition, caster level and manual selection", conditional.every(Boolean), JSON.stringify(conditional));
   check("reference spells: a spell the Forge already has isn't added twice (Fireball)", refs["2014fireball"] === 1 && refs["2024fireball"] === 1, JSON.stringify([refs["2014fireball"], refs["2024fireball"]]));
   const sb = await p.evaluate(txt => { const j = JSON.parse(txt); j.spells = [...j.spells, { name: "Silvery Barbs", level: 1 }]; const D = compImport(j, "2014");
     return { prep: D.extras.prepared.map(s => s.n), hb: D.homebrew.filter(x => x.kind === "spell").map(x => x.name) }; }, ZOOK);

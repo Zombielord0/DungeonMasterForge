@@ -145,6 +145,7 @@ function togglePrep(c, s, ed) {
   const i = c.prepared.findIndex(p => p.n === s.n && p.ed === ed);
   if (i >= 0) { c.prepared.splice(i, 1); toast(`${s.n} removed from ${c.name}`); return false; }
   if (s.referenceOnly || s.pend) { toast("Complete spell rules are required before preparation."); return false; }
+  if (!spellConditionalEligible(c,s,ed)) { toast("This spell is not available through this character’s class or background."); return false; }
   c.prepared.push({ n: s.n, l: s.l, ed });
   const L = spellLimits(c);
   if (L) {
@@ -175,10 +176,24 @@ function pcCastClasses(c) {
   });
 }
 const pcCastNames = c => { const L = pcCastClasses(c).map(x => x.cls); return L.length ? L.join(" and ") : c.cls; };
+// Guild-style expanded spell lists add choices, not automatic preparation or extra slots.
+// Require the selected, edition-valid source background, not a homebrew name collision.
+function spellBackgroundList(c, s, ed) {
+  if (!c || edOf(c) !== ed || (s.ed && s.ed !== ed) || !Array.isArray(s.backgroundLists)) return false;
+  const bg = HB_BG[c.bg];
+  return !!(bg?.book && !bg.pend && hbEdOk(bg, ed) && s.backgroundLists.some(b => b.name === c.bg && b.src === bg.src));
+}
+function spellClassListEligible(c, s, ed, k) {
+  return (s.c || []).includes(k.cls) || (s.c || []).includes(k.list || clsSpellList(k.cls)) || spellBackgroundList(c, s, ed);
+}
+function spellConditionalEligible(c, s, ed) {
+  if (!s.backgroundLists?.length) return true;
+  return edOf(c) === ed && pcCastClasses(c).some(k => spellClassListEligible(c,s,ed,k) && (s.l === 0 ? k.cantrips : s.l <= k.max));
+}
 function pcSpellPool(c, ed) {
   spLoad();
   const K = pcCastClasses(c); if (!K.length) return [];
-  return SP.data[ed].filter(s => !s.pend && !s.referenceOnly && K.some(k => (s.c.includes(k.cls) || s.c.includes(k.list || clsSpellList(k.cls))) && (s.l === 0 ? k.cantrips : s.l <= k.max)));
+  return SP.data[ed].filter(s => !s.pend && !s.referenceOnly && !s.shadow && K.some(k => spellClassListEligible(c,s,ed,k) && (s.l === 0 ? k.cantrips : s.l <= k.max)));
 }
 function manualPreparedSpells(c) {
   const granted = new Set((c.prepared || []).filter(p => p.src).map(p => spellKey(p.ed, p.n)));
@@ -255,7 +270,7 @@ function spPrepBtn(s) {
 function spPrepToggle(s) {
   if (s.referenceOnly) { toast("This spell is reference only; its full rules have not been certified."); return; }
   const t = spTargetPC(); if (!t) { toast("Pick a character to prepare spells for"); return; }
-  if (!isPrep(t, s.n, SP.ed) && !pcCastClasses(t).some(k => s.c.includes(k.cls) || s.c.includes(k.list || clsSpellList(k.cls)))) toast(`${s.n} isn't on the ${pcCastNames(t)} list, added anyway`);
+  if (!isPrep(t, s.n, SP.ed) && !pcCastClasses(t).some(k => spellClassListEligible(t,s,SP.ed,k))) toast(`${s.n} isn't on the ${pcCastNames(t)} list, added anyway`);
   togglePrep(t, s, SP.ed); pcChanged(t);
 }
 $("#spTargetRow").addEventListener("change", e => { if (e.target.id === "spTarget") { SP.target = e.target.value; renderSpells(); } });

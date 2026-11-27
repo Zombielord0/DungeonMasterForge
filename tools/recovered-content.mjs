@@ -18,7 +18,11 @@ export function validateRecoveryManifest(m,books) {
   const p=e.payload;
   if(!p||p.n!==e.name||p.src!==e.src||p.ed!==e.ed||p.ref||p.referenceOnly||p.pend||p.hb||p.shadow) fail("identity or release state mismatch");
   if(e.kind==="Spell") {
-   if(!Number.isInteger(p.l)||p.l<0||p.l>9||!Array.isArray(p.c)||!p.c.length||!p.c.every(x=>typeof x==="string"&&x.trim())||!["s","t","r","du"].every(k=>typeof p[k]==="string"&&p[k].trim())||!["cp","m","h","dt","at","sv"].every(k=>typeof p[k]==="string")||![0,1].includes(p.co)||![0,1].includes(p.ri)||!okText(p.d)||(p.h&&!okText(p.h))) fail("incomplete spell: "+e.name);
+   const conditional = p.backgroundLists;
+   if (conditional !== undefined && (!Array.isArray(conditional) || !conditional.length ||
+     conditional.some(b => !b || typeof b.name !== "string" || !b.name.trim() || !Object.hasOwn(books,b.src)) ||
+     new Set(conditional.map(b=>JSON.stringify([b.name,b.src]))).size !== conditional.length)) fail("invalid background spell eligibility: "+e.name);
+   if(!Number.isInteger(p.l)||p.l<0||p.l>9||!Array.isArray(p.c)||(!p.c.length&&!conditional?.length)||!p.c.every(x=>typeof x==="string"&&x.trim())||!["s","t","r","du"].every(k=>typeof p[k]==="string"&&p[k].trim())||!["cp","m","h","dt","at","sv"].every(k=>typeof p[k]==="string")||![0,1].includes(p.co)||![0,1].includes(p.ri)||!okText(p.d)||(p.h&&!okText(p.h))) fail("incomplete spell: "+e.name);
   } else if(e.kind==="Item") {
    if(!["k","cat","type","r"].every(k=>typeof p[k]==="string"&&p[k].trim())||!Number.isFinite(p.rk)||typeof p.att!=="string"||typeof p.cons!=="boolean"||typeof p.base!=="boolean"||!okText(p.d)) fail("incomplete item: "+e.name);
   } else {
