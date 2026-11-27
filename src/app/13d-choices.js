@@ -259,8 +259,8 @@ for (const [index, { choice, feature, level }] of WIZARD_SPELL_CHOICES.entries()
   const mastery = feature === "Spell Mastery";
   CHOICES[choice] = {
     label: choice,
-    n: c => clsLv(c, "Wizard") >= level && (!mastery || edOf(c) === "2024") ? (mastery ? 1 : 2) : 0,
-    opts: c => choiceSpellOptions(c, s => s.l === index + 1 && s.c.includes("Wizard") && (!mastery || /^(?:1 )?action$/i.test(s.t))),
+    n: c => clsLv(c, "Wizard") >= level && (!mastery || edOf(c) === "2024" || wizardBookActive(c)) ? (mastery ? 1 : 2) : 0,
+    opts: c => choiceSpellOptions(c, s => s.l === index + 1 && s.c.includes("Wizard") && (!wizardBookActive(c)||wizardBookContains(c,s.n)) && (!mastery || edOf(c)==="2014" || /^(?:1 )?action$/i.test(s.t))),
   };
 }
 for(const level of [6,7,8,9])CHOICES["Mystic Arcanum "+level]={
@@ -270,7 +270,7 @@ for(const level of [6,7,8,9])CHOICES["Mystic Arcanum "+level]={
 };
 function wizardSpellChoicesHTML(c) {
   const choices = WIZARD_SPELL_CHOICES.map(({ choice }) => choiceHTML(c, choice)).join("");
-  return choices && `<p class="hint">Choose these spells from your spellbook.</p>${choices}`;
+  return wizardBookHTML(c)+(choices ? `<p class="hint">Choose these spells from your spellbook.</p>${choices}`:"");
 }
 
 for(const cls of MASTERY_CLASSES)CHOICES[masteryKey(cls)]={label:cls+" weapon mastery",n:c=>masteryLimit(edOf(c),cls,clsLv(c,cls)),opts:c=>masteryOptions(c,cls)};

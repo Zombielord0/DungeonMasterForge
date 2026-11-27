@@ -190,6 +190,8 @@ spFiltersSync();
     if(e.target.closest("[data-bgkit]")){if(backgroundEquipmentClaim(c)){pcRecompute(c);pcPersist();renderRosterMain();toast("Background starting equipment added.");}return;}
     const br=e.target.closest("[data-bgchoice-remove]");
     if(br){if(backgroundSelectionChange(c,br.dataset.bgchoiceRemove,br.dataset.bgchoiceValue,true)){pcPersist();renderRosterMain();}return;}
+    if(e.target.closest("[data-wizard-book-start]")){if(wizardBookStart(c)){syncGrantedSpells(c);pcPersist();renderRosterMain();}return;}
+    const wr=e.target.closest("[data-wizard-book-remove]");if(wr){if(wizardBookRemove(c,wr.dataset.wizardBookRemove)){syncGrantedSpells(c);pcPersist();renderRosterMain();}else toast("Remove this spell from prepared and class-feature choices first.");return;}
     const cr = e.target.closest("[data-choicerm]");
     if (cr) { const [k, ...id] = cr.dataset.choicerm.split("|"); c.choices = { ...(c.choices || {}) }; c.choices[k] = choiceOf(c, k).filter(x => x !== id.join("|")); syncGrantedSpells(c); pcRecompute(c); pcPersist(); renderRosterMain(); return; }
     const mr = e.target.closest("[data-mirm]");
@@ -234,7 +236,8 @@ spFiltersSync();
   });
   main.addEventListener("change", e => {
     const t = e.target, c = rosterCur(); if (!c) return;
-    if (t.dataset.left) resSet(c, t.dataset.left, parseInt(t.value) || 0);
+    if(t.hasAttribute("data-wizard-book-add")){if(t.value&&wizardBookAdd(c,t.value)){syncGrantedSpells(c);pcPersist();renderRosterMain();}}
+    else if (t.dataset.left) resSet(c, t.dataset.left, parseInt(t.value) || 0);
     else if (t.dataset.fstyle !== undefined) { c.fightStyles = c.fightStyles || []; c.fightStyles[+t.dataset.fstyle] = t.value; pcRecompute(c); pcPersist(); renderRosterMain(); }
     else if (t.name === "rollMode") { ROLL.mode = t.value; }
     else if (t.dataset.varenc !== undefined) { c.varEnc = t.checked; pcRecompute(c); pcPersist(); renderRosterMain(); }

@@ -395,6 +395,19 @@ const { chromium } = require("playwright");
     assert.ok(invocationAudit.affects&&invocationAudit.removed&&invocationAudit.mind);
     assert.equal(invocationAudit.flat,invocationAudit.cha);assert.deepEqual(invocationAudit.free,["invocation:mask"]);
     assert.deepEqual(invocationAudit.flash,[Math.max(1,invocationAudit.int),"short1","long"]);assert.deepEqual(invocationAudit.limits,[3,4,5,6]);
+    const wizardBookAudit=await page.evaluate(()=>{
+      const c=pcEnsure(generateCharacter({seed:"WIZ-BOOK",ed:"2024",cls:"Wizard",level:20,race:"Human",bg:"Sage",subclass:"none"}));
+      c.prepared.push({n:"Magic Missile",l:1,ed:"2024"});
+      const start=wizardBookStart(c),seeded=wizardBookContains(c,"Magic Missile"),rejected=wizardBookAdd(c,"Cure Wounds");
+      const ritual=spellOf("2024","Detect Magic"),added=wizardBookAdd(c,"Detect Magic"),options=castOpts(c,ritual).map(x=>x[0]);
+      const notRecorded=castOpts(c,spellOf("2024","Fireball")).length===0;
+      const blockedRemoval=!wizardBookRemove(c,"Magic Missile");
+      const candidates=CHOICES["Signature Spells"].opts(c).map(x=>x[0]);wizardBookAdd(c,"Fireball");
+      const enabled=CHOICES["Signature Spells"].opts(c).some(x=>x[0]==="Fireball");
+      return {start,seeded,rejected,added,options,notRecorded,blockedRemoval,candidates,enabled};
+    });
+    assert.deepEqual([wizardBookAudit.start,wizardBookAudit.seeded,wizardBookAudit.rejected,wizardBookAudit.added,wizardBookAudit.notRecorded,wizardBookAudit.blockedRemoval,wizardBookAudit.enabled],[true,true,false,true,true,true,true]);
+    assert.deepEqual(wizardBookAudit.options,["ritual"]);assert.ok(!wizardBookAudit.candidates.includes("Fireball"));
     const expansion = await page.evaluate(() => {
       const subclasses = hbBook("subclass").filter(x => ["tce", "xge"].includes(x.src));
       const armorer = generateCharacter({ seed: "ARMOR", ed: "2014", cls: "Artificer", subclass: "Armorer", level: 5 });

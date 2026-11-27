@@ -318,9 +318,9 @@ function syncGrantedSpells(c) {
     }
     if (cls === "Wizard") {
       for (const { choice, feature, level, uses, recharge } of WIZARD_SPELL_CHOICES) {
-        if (lv < level || !choiceOf(c, choice).length || (feature === "Spell Mastery" && ed !== "2024")) continue;
+        if (lv < level || !choiceOf(c, choice).length || (feature === "Spell Mastery" && ed !== "2024"&&!wizardBookActive(c))) continue;
         const candidates = CHOICES[choice].opts(c);
-        const names = choiceOf(c, choice).filter(name => candidates.some(([id]) => id === name)).slice(0, CHOICES[choice].n(c));
+        const names = choiceOf(c, choice).filter(name => candidates.some(([id]) => id === name)).filter(name=>!(feature==="Spell Mastery"&&ed==="2014")||(c.prepared||[]).some(p=>p.ed===ed&&p.n===name&&!p.src)).slice(0, CHOICES[choice].n(c));
         add({ [level]: names }, lv, { ...classSource, feature }, spell => ({
           free: "wizardSpell:" + encodeURIComponent(feature + "|" + spell.n), uses, recharge,
         }));

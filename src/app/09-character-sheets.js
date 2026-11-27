@@ -139,6 +139,38 @@ function spellLimits(c) {
   return { n, word, cantrips: cant };
 }
 const isPrep = (c, name, ed) => !!(c && c.prepared && c.prepared.some(p => p.n === name && p.ed === ed));
+// A tracked spellbook is separate from prepared spells. Existing sheets opt in
+// explicitly, so migrating a saved character never silently removes their spells.
+function wizardBookActive(c){return clsLv(c,"Wizard")>0&&c.wizardBook?.edition===edOf(c)&&Array.isArray(c.wizardBook.spells);}
+function wizardBookEligible(c,s,ed=edOf(c)){
+  const level=clsLv(c,"Wizard");
+  return !!(level&&s&&ed===edOf(c)&&(!s.ed||s.ed===ed)&&s.l>0&&s.l<=(FULL_SLOTS[level]||[]).length&&(s.c||[]).includes("Wizard")&&!s.ref&&!s.referenceOnly&&!s.pend&&!s.rulesSummary&&!s.shadow);
+}
+function wizardBookContains(c,name){return wizardBookActive(c)&&c.wizardBook.spells.includes(name);}
+function wizardBookOtherClass(c,s,ed){return pcCastClasses(c).some(k=>k.cls!=="Wizard"&&s.l<=k.max&&spellClassListEligible(c,s,ed,k));}
+function wizardBookStart(c){
+  if(!clsLv(c,"Wizard")||wizardBookActive(c))return false;
+  const ed=edOf(c),names=[...(c.prepared||[]).filter(p=>p.ed===ed&&!p.src&&p.l>0).map(p=>p.n),...WIZARD_SPELL_CHOICES.flatMap(x=>choiceOf(c,x.choice))];
+  c.wizardBook={edition:ed,spells:[...new Set(names)].filter(n=>wizardBookEligible(c,spellOf(ed,n),ed))};
+  return true;
+}
+function wizardBookAdd(c,name){
+  if(!wizardBookActive(c)||wizardBookContains(c,name)||!wizardBookEligible(c,spellOf(edOf(c),name)))return false;
+  c.wizardBook.spells.push(name);return true;
+}
+function wizardBookRemove(c,name){
+  if(!wizardBookContains(c,name))return false;
+  if((c.prepared||[]).some(p=>p.ed===edOf(c)&&p.n===name&&!p.src)||WIZARD_SPELL_CHOICES.some(x=>choiceOf(c,x.choice).includes(name)))return false;
+  c.wizardBook.spells=c.wizardBook.spells.filter(n=>n!==name);return true;
+}
+function wizardBookHTML(c){
+  const level=clsLv(c,"Wizard");if(!level)return "";
+  if(!wizardBookActive(c))return '<div class="choice"><b>Wizard spellbook</b><p class="hint">Enable a separate spellbook, seeded from eligible prepared spells and mastery/signature choices. Copies and additional spells can be added after recording their cost and time.</p><button type="button" class="btn sm" data-wizard-book-start>Track spellbook</button></div>';
+  spLoad();
+  const ed=edOf(c),spells=c.wizardBook.spells,minimum=6+2*(level-1);
+  const opts=[...new Set((SP.data[ed]||[]).filter(s=>wizardBookEligible(c,s,ed)&&!spells.includes(s.n)).map(s=>s.n))].sort();
+  return '<div class="choice"><b>Wizard spellbook</b><p class="hint">'+spells.length+' recorded · '+minimum+' spells from normal Wizard level advancement before additional copied spells. Record copying expenses and special subclass additions manually.</p><label class="field">Record a spell<select data-wizard-book-add aria-label="Add spell to spellbook"><option value="">Choose…</option>'+opts.map(n=>'<option value="'+esc(n)+'">'+esc(n)+'</option>').join("")+'</select></label><div class="prep-row">'+spells.slice().sort((a,b)=>((spellOf(ed,a)?.l||0)-(spellOf(ed,b)?.l||0))||a.localeCompare(b)).map(n=>'<span class="prep-chip"><button type="button" class="prep-b" data-spell="'+esc(ed+"|"+n)+'">'+esc(n)+'</button><button type="button" class="prep-x" data-wizard-book-remove="'+esc(n)+'" aria-label="Remove '+esc(n)+' from spellbook">✕</button></span>').join("")+'</div></div>';
+}
 function togglePrep(c, s, ed) {
   pcEnsure(c);
   if (c.prepared.some(p => p.n === s.n && p.ed === ed && p.src)) return true;
@@ -146,6 +178,7 @@ function togglePrep(c, s, ed) {
   if (i >= 0) { c.prepared.splice(i, 1); toast(`${s.n} removed from ${c.name}`); return false; }
   if (s.referenceOnly || s.pend) { toast("Complete spell rules are required before preparation."); return false; }
   if (!spellConditionalEligible(c,s,ed)) { toast("This spell is not available through this character’s class or background."); return false; }
+  if(wizardBookActive(c)&&s.l>0&&(s.c||[]).includes("Wizard")&&!wizardBookOtherClass(c,s,ed)&&!wizardBookContains(c,s.n)){toast("Record this spell in your Wizard spellbook first.");return false;}
   c.prepared.push({ n: s.n, l: s.l, ed });
   const L = spellLimits(c);
   if (L) {
