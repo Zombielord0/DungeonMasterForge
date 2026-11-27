@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { appendReferenceSpells, validateRecoveryManifest, applyRecoveredContent, validateRecoveredBackgroundDependencies, applyRecoveredCoreItems, applyRecoveredCoreSpells, validateRecoveredCatalogDependencies } from "../tools/recovered-content.mjs";
+import { appendReferenceSpells, validateRecoveryManifest, applyRecoveredContent, validateRecoveredBackgroundDependencies, applyRecoveredCoreItems, applyRecoveredCoreSpells, applyRecoveredCoreMonsters, validateRecoveredCatalogDependencies } from "../tools/recovered-content.mjs";
 const books={fixture:{name:"Fixture"}}, reference={kind:"Spell",name:"Example",src:"fixture",ed:"2014",page:1,details:[["Level","1"]]};
 const payload={n:"Example",src:"fixture",ed:"2014",l:1,s:"Evocation",c:["Wizard"],t:"1 action",r:"30 feet",cp:"V",m:"",du:"Instantaneous",co:0,ri:0,d:"One target takes 1 force damage.",h:"",dt:"Force",at:"",sv:""};
 const entry={kind:"Spell",name:"Example",src:"fixture",ed:"2014",stableId:"cmp:example",action:"replace",releaseGate:"PASS",productionReady:true,review:{sourceVerified:true,mechanicsVerified:true,dependenciesVerified:true,runtimeVerified:true,distributionCleared:true,evidence:"Synthetic test only"},payload};
@@ -95,8 +95,21 @@ test("exact declared dependencies fail closed for wrong edition, source, level, 
  assert.throws(()=>validateRecoveryManifest(manifest([{...item,dependencies:[dep,dep]}]),books));
  const md={kind:"Monster",name:"Fixture Beast",src:"srd",ed:"2014"},id={kind:"Item",name:"Fixture Potion",src:"fixture",ed:"2014"};
  const accepted=validateRecoveryManifest(manifest([{...entry,dependencies:[md,id]}]),books);
- const beast={n:md.name,hp:10,ac:12,actions:[["Bite","Deals 1 damage."]]},potion={n:id.name,src:"fixture",d:"Synthetic effect."};
+ const beast={n:md.name,hp:10,ac:12,cr:0,type:"beast",size:"tiny",al:"unaligned",speed:"20 ft.",hd:"2d4",senses:"Passive Perception 10",lang:"None",scores:[10,10,10,2,10,2],traits:[],actions:[["Bite","Deals 1 damage."]]},potion={n:id.name,src:"fixture",d:"Synthetic effect."};
  validateRecoveredCatalogDependencies(accepted,{monsters:{"2014":[beast]},items:{"2014":{mi:[potion]}}});
  assert.throws(()=>validateRecoveredCatalogDependencies(accepted,{monsters:{"2014":[{...beast,actions:[["Bite","Loading"]]}]},items:{"2014":{mi:[potion]}}}));
  assert.throws(()=>validateRecoveredCatalogDependencies(accepted,{monsters:{"2014":[beast]},items:{"2014":{mi:[{...potion,referenceOnly:true}]}}}));
+});
+
+test("core monster replacement preserves source slot; all feature sections are dependency-gated",()=>{
+ const m={...entry,kind:"Monster",catalog:"core-monsters",name:"Fixture Beast",payload:{n:"Fixture Beast",src:"fixture",ed:"2014",page:7,type:"beast",size:"tiny",al:"unaligned",speed:"20 ft.",hd:"2d4",senses:"Passive Perception 10",lang:"None",hp:5,ac:12,cr:0,scores:[10,10,10,2,10,2],traits:[],actions:[["Bite","Deals 1 damage."]]}};
+ const approved=validateRecoveryManifest(manifest([m]),books),raw={"2014":[{n:"Before"},{...m.payload,actions:[["Bite","See the sourcebook for complete rules."]]},{n:"After"}],"2024":[m.payload]};
+ const out=applyRecoveredCoreMonsters(raw,approved);assert.equal(out["2024"],raw["2024"]);assert.equal(out["2014"].length,3);assert.equal(out["2014"][0],raw["2014"][0]);assert.equal(out["2014"][2],raw["2014"][2]);assert.equal(out["2014"][1].recoveryId,m.stableId);
+ assert.deepEqual(applyRecoveredContent("extra-monsters",[],approved,[]),[]);
+ assert.throws(()=>applyRecoveredCoreMonsters(raw,[{...m,payload:{...m.payload,page:8}}]));
+ const dep=validateRecoveryManifest(manifest([{...entry,dependencies:[{kind:"Monster",name:m.name,src:m.src,ed:m.ed}]}]),books);
+ validateRecoveredCatalogDependencies(dep,{monsters:out});
+ assert.throws(()=>validateRecoveredCatalogDependencies(dep,{monsters:raw}));
+ for(const k of ["traits","bonus","reacts","legend"])assert.throws(()=>validateRecoveredCatalogDependencies(dep,{monsters:{"2014":[{...m.payload,[k]:[["Fixture","See the sourcebook for complete rules."]]}]}}));
+ assert.throws(()=>validateRecoveredCatalogDependencies(dep,{monsters:{"2014":[{...m.payload,scores:[1,2]}]}}));
 });

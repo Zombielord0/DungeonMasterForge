@@ -23,7 +23,7 @@ import { createHash } from "node:crypto";
 import { readFileSync, writeFileSync, readdirSync, unlinkSync, mkdirSync } from "node:fs";
 import vm from "node:vm";
 import { joinSummaries, joinSrdItems } from "./ref-summaries.mjs";
-import { appendReferenceSpells, validateRecoveryManifest, applyRecoveredContent, validateRecoveredBackgroundDependencies, applyRecoveredCoreItems, applyRecoveredCoreSpells, validateRecoveredCatalogDependencies } from "./recovered-content.mjs";
+import { appendReferenceSpells, validateRecoveryManifest, applyRecoveredContent, validateRecoveredBackgroundDependencies, applyRecoveredCoreItems, applyRecoveredCoreSpells, applyRecoveredCoreMonsters, validateRecoveredCatalogDependencies } from "./recovered-content.mjs";
 import { validateSrdSpellLinks, fillSrdSpellReferences, joinSrdSpellReferences, correctLegacySpellMetadata } from "./ref-srd-spells.mjs";
 import { recoveryCoverage } from "./recovery-coverage.mjs";
 import {verifyLegacyItemArchive,correctLegacyItemMetadata,verifyAndAnnotateLegacyItemLinks} from "./ref-srd-items.mjs";
@@ -84,6 +84,7 @@ for (const [name, key] of [["spells", "spellData"], ["monsters", "monsterData"],
   // stored as text, so the app turns it into objects only when a tab needs it (dmData in src/app/01-core.js)
   let data = JSON.parse(read(`data/${name}.json`));
   if (name === "items") data = correctedItems;
+  if (name === "monsters") data=applyRecoveredCoreMonsters(data,approvedRecovery);
   if (name === "spells") {
     data = correctLegacySpellMetadata(data);
     data["2014"].push(...spellGrants.legacySpells);

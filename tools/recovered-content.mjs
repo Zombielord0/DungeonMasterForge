@@ -12,7 +12,7 @@ export function validateRecoveryManifest(m,books) {
  const ids=new Set(),targets=new Set();
  for(const e of m.entries) {
   if(!e || !Object.hasOwn(CATALOG,e.kind) || !EDS.includes(e.ed) || !Object.hasOwn(books,e.src) || typeof e.name!=="string" || !e.name.trim() || typeof e.stableId!=="string" || !e.stableId.trim() || !["replace","promote"].includes(e.action)) fail("invalid or unsupported record identity");
-  if(e.catalog!==undefined&&(e.action!=="replace"||!((e.catalog==="core-items"&&e.kind==="Item")||(e.catalog==="core-spells"&&e.kind==="Spell")))) fail("unsupported catalog target: "+e.name);
+  if(e.catalog!==undefined&&(e.action!=="replace"||!((e.catalog==="core-items"&&e.kind==="Item")||(e.catalog==="core-spells"&&e.kind==="Spell")||(e.catalog==="core-monsters"&&e.kind==="Monster")))) fail("unsupported catalog target: "+e.name);
   if(ids.has(e.stableId)||targets.has(key(e))) fail("duplicate stable ID or target");
   ids.add(e.stableId);targets.add(key(e));
   if(e.releaseGate!=="PASS"||e.productionReady!==true||!["sourceVerified","mechanicsVerified","dependenciesVerified","runtimeVerified","distributionCleared"].every(k=>e.review?.[k]===true)||typeof e.review.evidence!=="string"||!e.review.evidence.trim()) fail("approval missing: "+e.name);
@@ -178,6 +178,30 @@ export function applyRecoveredCoreSpells(original,entries){
  }
  return result;
 }
+// Existing core monsters keep their exact edition/source/slot and printed-page identity.
+export function applyRecoveredCoreMonsters(original,entries){
+ const approved=entries.filter(e=>e.catalog==="core-monsters");
+ if(!approved.length)return original;
+ const result={...original};
+ for(const ed of EDS){
+  const selected=approved.filter(e=>e.ed===ed);if(!selected.length)continue;
+  const rows=original[ed].slice();
+  for(const e of selected){
+   const hits=rows.map((x,i)=>({x,i})).filter(({x})=>x.n===e.name&&x.src===e.src&&(!x.ed||x.ed===ed));
+   if(hits.length!==1)fail("missing or ambiguous core monster: "+e.name);
+   const {x,i}=hits[0],p=e.payload;
+   if(e.action!=="replace"||e.kind!=="Monster"||p.page!==x.page||p.k!==x.k||p.id!==x.id||(x.recoveryId&&x.recoveryId!==e.stableId)||rows.some((m,j)=>j!==i&&m.recoveryId===e.stableId))fail("core monster identity cannot change: "+e.name);
+   rows[i]={...p,recoveryId:e.stableId};
+  }
+  result[ed]=rows;
+ }
+ return result;
+}
+function completeMonsterDependency(x){
+ return [x.ac,x.hp,x.cr].every(Number.isFinite)&&x.ac>=0&&x.hp>=0&&Array.isArray(x.scores)&&x.scores.length===6&&x.scores.every(Number.isFinite)&&
+  ["type","size","al","speed","hd","senses","lang"].every(k=>okText(x[k]))&&Array.isArray(x.actions)&&Array.isArray(x.traits)&&
+  ["traits","actions","bonus","reacts","legend"].every(k=>x[k]===undefined||(Array.isArray(x[k])&&x[k].every(a=>Array.isArray(a)&&okText(a[0])&&okText(a[1]))));
+}
 // Exact structural dependency checks on the final emitted catalogs. This is not
 // semantic certification: explicit reviewer approval and source evidence still apply.
 export function validateRecoveredCatalogDependencies(entries,catalogs){
@@ -191,7 +215,7 @@ export function validateRecoveredCatalogDependencies(entries,catalogs){
  for(const e of entries){
   for(const d of e.dependencies||[]){
    const hits=table(d.kind,d.ed).filter(x=>x.n===d.name&&(x.src||"srd")===d.src&&(!x.ed||x.ed===d.ed)&&complete(x)&&
-    (d.kind==="Monster"?(Number.isFinite(x.hp)&&Number.isFinite(x.ac)&&Array.isArray(x.actions)&&x.actions.every(a=>Array.isArray(a)&&okText(a[1]))):okText(x.d))&&
+    (d.kind==="Monster"?completeMonsterDependency(x):okText(x.d))&&
     (d.kind!=="Spell"||x.l===d.level));
    if(hits.length!==1)fail("unresolved or ambiguous complete "+d.kind.toLowerCase()+" dependency: "+e.name+" / "+d.name);
   }
