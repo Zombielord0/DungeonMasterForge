@@ -118,3 +118,8 @@ Revised Agonizing Blast, Eldritch Spear and Repelling Blast choices are keyed by
 ## Wizard spellbook tracking
 
 Added opt-in spellbook tracking for saved Wizard characters in either edition. Existing eligible prepared spells and feature selections seed the book. The book is persisted separately; preparation of unrecorded Wizard-only leveled spells and unprepared ordinary casts are rejected, while recorded unprepared rituals can be cast as rituals. Spell Mastery and Signature Spells use book membership; legacy Spell Mastery requires preparation and is enabled for tracked books. Multiclass spells available through another class are not blocked. Copying costs/time, exact level-up learning choices, lost spellbook replacement, and multiclass spell ownership remain DM-adjudicated. Existing characters without book tracking retain compatibility. Source: SRD 5.2.1 and the 2014 SRD.
+
+
+## Conditional combat and Metamagic controls
+
+Added Cunning Strike effect selection, level and Poisoner's Kit requirements, one/two-effect limits, remaining Sneak Attack dice calculation and critical-hit handling; Brutal Strike conditional hit workflow with scaled dice, effect choices and Reckless Attack guard. Target saves and attack eligibility must still be confirmed by the player/DM. Corrected Metamagic selection and revised Twinned Spell resource cost, with legacy spell-level options, and added Arcane Apotheosis's one free option per manually advanced turn. Barbarian Indomitable Might now floors applicable Strength totals. Source: SRD 5.2.1, https://www.dndbeyond.com/sources/dnd/br-2024/character-classes, Wizards of the Coast LLC. Remaining action economy, spell targeting and conditional damage application are not automatically adjudicated.

@@ -92,8 +92,10 @@ function rollD20(c, label, bonus, kind, ab, o = {}) {
   if (S.fail) { rollLog(c, { label, total: "Fail", note: `automatically fails (${S.fail})`, fail: true }); toast(`${label}: automatically fails (${S.fail})`); return { fail: true }; }
   const dice = mode === "normal" ? [d20()] : [d20(), d20()], raw = mode === "adv" ? Math.max(...dice) : mode === "dis" ? Math.min(...dice) : dice[0];
   const keep=skillCheckD20Floor(c,kind,o.skill,raw);
-  const total = keep + bonus + S.pen, crit = raw >= (o.crit || 20), fumble = raw === 1;
-  const why = [...S.adv.map(x => "adv: " + x), ...S.dis.map(x => "dis: " + x), ...(keep!==raw?["Reliable Talent: "+raw+" treated as "+keep]:[])].join(", ");
+  const ordinary=keep+bonus+S.pen;
+  const indomitable=clsLv(c,"Barbarian")>=18&&ab==="str"&&(kind==="check"||edOf(c)==="2024"&&kind==="save");
+  const total=indomitable?Math.max(ordinary,+c.scores.str||0):ordinary, crit = raw >= (o.crit || 20), fumble = raw === 1;
+  const why = [...S.adv.map(x => "adv: " + x), ...S.dis.map(x => "dis: " + x), ...(keep!==raw?["Reliable Talent: "+raw+" treated as "+keep]:[]),...(total!==ordinary?["Indomitable Might: total raised to Strength score"]:[])].join(", ");
   rollLog(c, { label, d: dice, keep, bonus: bonus + S.pen, total, mode, crit: kind === "attack" && crit, fumble: kind === "attack" && fumble, nat20: keep === 20, note: why });
   toast(`${label}: ${total}${dice.length > 1 ? ` (${dice.join(" / ")}${mode === "adv" ? ", advantage" : ", disadvantage"})` : ` (d20 ${keep})`}${kind === "attack" && crit ? " — critical hit!" : kind === "attack" && fumble ? " — miss" : ""}`);
   return { total, keep, crit, fumble, mode };

@@ -503,6 +503,7 @@ function actRun(c, name, choice) {
   if (S.kind === "toggle" && c.active[name]) { delete c.active[name]; if (name === "Wild Shape") delete c.formHp; return `${name} ended.`; }
   if (S.dialog) { S.dialog(c, a); return null; }
   const options=actChoices(c,S);
+  if(S.choices&&!options.length)return "No eligible options available.";
   if(choice&&!options.some(x=>x[0]===choice))return "That option is unavailable.";
   const ch=options.length?(choice||options[0][0]):null;
   const r = a.res ? pcResources(c).find(x => x.key === a.res) : null;
@@ -541,6 +542,7 @@ function pcRest(c, kind) {
     if (nu !== u) { c.used[r.key] = nu; back.push(r.name); }
   });
   if (kind === "long") { const z = +c.hpCur === 0; c.hpCur = c.hp; c.hpTemp = ""; pcHealed(c, z); c.death = { s: 0, f: 0 }; if (c.conc) { delete c.conc; delete c.concCheck; c.fxEnded = true; } if (exhOf(c)) { c.exh = exhOf(c) - 1; back.push("Exhaustion level"); } if (c.fx && Object.values(c.fx).some(Boolean)) { c.fx = {}; c.fxEnded = true; } }
+  delete c.apotheosisUsedThisTurn;
   if(kind==="long"){
     if(c.createdSlots){delete c.createdSlots;back.push("Temporary spell slots expired");}
     if(c.wildCompanionActive){delete c.wildCompanionActive;back.push("Wild Companion ended");}

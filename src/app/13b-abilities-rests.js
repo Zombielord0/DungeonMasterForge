@@ -108,7 +108,10 @@ function pcAbilities(c) {
   if(has("Stunning Strike"))add("Stunning Strike","On hit",ed==="2024"?`Once per turn: CON save DC ${wisDC}; stunned until your next turn starts on failure, halved Speed and Advantage on next incoming attack until then on success.`:`Spend 1 point: CON save DC ${wisDC} or stunned until the end of your next turn.`,"ki");
   if (has("Deflect Missiles")||has("Deflect Attacks")) add(ed === "2024" ? "Deflect Attacks" : "Deflect Missiles", "Reaction", `Reduce the damage of an attack that hits you by 1d10 + ${m.dex + CLV("Monk")}.`);
   if (has("Slow Fall")) add("Slow Fall", "Reaction", `Reduce falling damage by ${5 * CLV("Monk")}.`);
-  if (has("Sneak Attack")) add("Sneak Attack", "On hit, once per turn", `+${Math.ceil(CLV("Rogue") / 2)}d6 damage with a finesse or ranged weapon when you have advantage, or an ally is within 5 ft of the target.`);
+  if (has("Sneak Attack")) add("Sneak Attack", "On hit, once per turn", `+${Math.ceil(CLV("Rogue") / 2)}d6 damage with a finesse or ranged weapon, with Advantage or an eligible non-Incapacitated ally within 5 feet of the target and no Disadvantage.`);
+  if(ed==="2024"&&clsLv(c,"Rogue")>=5)add("Cunning Strike","On a confirmed Sneak Attack hit","Choose effects and pay their Sneak Attack dice costs before rolling the remaining damage. Target saves, positioning, timing and damage type are adjudicated manually.");
+  if(ed==="2024"&&clsLv(c,"Barbarian")>=9)add("Brutal Strike","On a confirmed eligible hit","Before the attack, forgo Advantage on a Strength-based Reckless Attack with no Disadvantage. On a hit, choose effects and roll extra damage. Use once on your turn.");
+  if(ed==="2024"&&clsLv(c,"Sorcerer")>=20)add("Arcane Apotheosis","On your turn","While Innate Sorcery is active, one selected Metamagic option each turn can be used without Sorcery Points. Use Begin your turn to reset this allowance.");
   if (has("Cunning Action")) add("Cunning Action", "Bonus action", "Dash, Disengage or Hide.");
   if (has("Uncanny Dodge")) add("Uncanny Dodge", "Reaction", "Halve the damage of an attack that hits you from an attacker you can see.");
   if (has("Evasion")) add("Evasion", "Defense", "On a DEX save for half damage, take none on a success and half on a failure.");
@@ -126,7 +129,7 @@ function pcAbilities(c) {
   if(ed==="2024"&&clsLv(c,"Sorcerer")>=1)add("Innate Sorcery","Bonus action","For 1 minute: +1 Sorcerer spell save DC and Advantage on Sorcerer spell attacks. End the toggle when it expires.","innateSorcery");
   if(ed==="2024"&&clsLv(c,"Warlock")>=2)add("Magical Cunning","1 minute","Recover expended Pact Magic slots: "+(clsLv(c,"Warlock")>=20?"all":"up to half the maximum, rounded up")+".","magicalCunning");
   if (has("Font of Magic")) add("Font of Magic", "Bonus action", "Turn a spell slot into sorcery points, or spend 2/3/5/6/7 points for a level 1–5 slot.", "sorc");
-  if (has("Metamagic")) add("Metamagic", "When casting", "Spend sorcery points to change a spell: Quickened (2), Twinned (spell level), Subtle, Careful, Distant, Empowered, Extended (1).", "sorc");
+  if (has("Metamagic")) add("Metamagic", "When casting", ed==="2024"?"Spend Sorcery Points for selected Metamagic. Revised Twinned Spell costs 1 point for a spell whose higher-slot rules add a target; adjudicate spell eligibility and timing.":"Spend Sorcery Points for selected Metamagic, with legacy Twinned Spell costing the spell level (minimum 1).", "sorc");
   if(ed==="2024"&&clsLv(c,"Cleric")>=10)add("Divine Intervention","Magic action","Cast an eligible Cleric spell without a slot or Material components. Select the spell and resolve its rules manually.","divineIntervention");
   if(clsLv(c,"Artificer")>=7)add("Flash of Genius","Reaction",`Add ${sgn(m.int)} to your or a creature’s eligible ability check or saving throw within 30 feet. ${ed==="2024"?"Use after a failed roll.":"Use before success or failure is determined."} Apply the bonus manually.`,"flashGenius");
   if (has("Arcane Recovery")) add("Arcane Recovery", "Short rest", `Recover spell slots with a combined level up to ${Math.ceil(CLV("Wizard") / 2)} (none above 5th).`, "arcrec");
@@ -270,7 +273,58 @@ function artificerAttunedCount(c){
 function artificerAttunementLimit(c){
   const lv=clsLv(c,"Artificer");return lv>=18?6:lv>=14?5:lv>=10?4:3;
 }
+// These workflows assume the player has confirmed the qualifying attack and timing.
+function cunningStrikePlan(level,ids,poisonKit,critical=false){
+  if(level<5||!Array.isArray(ids)||!ids.length||ids.length>(level>=11?2:1)||new Set(ids).size!==ids.length)return null;
+  const effects={
+    poison:[1,"CON save; Poisoned for 1 minute; repeat at end of target’s turns."],
+    trip:[1,"Large or smaller target: DEX save or Prone."],
+    withdraw:[1,"Move up to half your Speed without Opportunity Attacks."],
+    daze:[2,"CON save; on its next turn target may only move, take an action, or take a Bonus Action."],
+    knockout:[6,"CON save; Unconscious for 1 minute or until damaged; repeat at end of target’s turns."],
+    obscure:[3,"DEX save; Blinded until end of target’s next turn."]
+  };
+  if(ids.some(id=>!Object.hasOwn(effects,id)||(id==="poison"&&!poisonKit)||(["daze","knockout","obscure"].includes(id)&&level<14)))return null;
+  const dice=Math.ceil(level/2)-ids.reduce((sum,id)=>sum+effects[id][0],0);
+  if(dice<0)return null;
+  return {dice:dice*(critical?2:1),cost:Math.ceil(level/2)-dice,effects:ids.map(id=>effects[id][1])};
+}
+function hasPoisonersKit(c){return (c.inv||[]).some(i=>+i.qty>0&&/^poisoner['’]s kit$/i.test(i.n||""));}
+function cunningStrikeOptions(c){
+  if(edOf(c)!=="2024")return [];
+  const l=clsLv(c,"Rogue"),ids=["poison","trip","withdraw","daze","knockout","obscure"],out=[];
+  const sets=ids.map(x=>[x]);if(l>=11)ids.forEach((x,i)=>ids.slice(i+1).forEach(y=>sets.push([x,y])));
+  for(const set of sets)for(const crit of [false,true]){
+    const p=cunningStrikePlan(l,set,hasPoisonersKit(c),crit);
+    if(p)out.push([set.join("+")+(crit?":crit":""),set.map(x=>x==="knockout"?"Knock Out":cap1(x)).join(" + ")+" ("+p.dice+"d6 remaining"+(crit?", critical":"")+")"]);
+  }
+  return out;
+}
+function brutalStrikeOptions(c){
+  if(edOf(c)!=="2024"||clsLv(c,"Barbarian")<9)return [];
+  const l=clsLv(c,"Barbarian"),ids=["Forceful Blow","Hamstring Blow",...(l>=13?["Staggering Blow","Sundering Blow"]:[])],out=ids.map(x=>[x]);
+  if(l>=17)ids.forEach((x,i)=>ids.slice(i+1).forEach(y=>out.push([x,y])));
+  return out.flatMap(a=>[false,true].map(crit=>[a.join("+")+(crit?":crit":""),a.join(" + ")+(crit?" (critical hit)":"")]));
+}
+function metamagicOptions(c){
+  const ed=edOf(c),mine=choiceOf(c,"Metamagic");
+  const rows=[["quickened","Quickened Spell",2],["subtle","Subtle Spell",1],["careful","Careful Spell",1],["distant","Distant Spell",1],["empowered","Empowered Spell",1],["extended","Extended Spell",1],["heightened","Heightened Spell",ed==="2024"?2:3],...(ed==="2024"?[["seeking","Seeking Spell",1],["transmuted","Transmuted Spell",1],["twinned","Twinned Spell (eligible higher-slot target)",1]]:Array.from({length:9},(_,i)=>["twinned:"+(i+1),"Twinned Spell, level "+(i+1),i+1]))];
+  if(ed==="2014")rows.push(["twinned:0","Twinned Spell, cantrip",1]);
+  const available=rows.filter(([id])=>mine.includes(id.split(":")[0]));
+  return available.flatMap(([id,label,cost])=>[[id,label+" ("+cost+" points)"],...(ed==="2024"&&clsLv(c,"Sorcerer")>=20&&isActive(c,"Innate Sorcery")&&!c.apotheosisUsedThisTurn?[["free:"+id,label+" (Arcane Apotheosis: free)"]]:[])]);
+}
+function metamagicCost(c,id){
+  if(typeof id!=="string")return Infinity;
+  if(id.startsWith("free:"))return edOf(c)==="2024"&&clsLv(c,"Sorcerer")>=20&&isActive(c,"Innate Sorcery")&&!c.apotheosisUsedThisTurn?0:Infinity;
+  if(id==="quickened")return 2;
+  if(id==="heightened")return edOf(c)==="2024"?2:3;
+  if(id.startsWith("twinned:"))return Math.max(1,+id.split(":")[1]);
+  return 1;
+}
 const ACT = {
+  "Cunning Strike":{kind:"instant",choices:cunningStrikeOptions,use:(c,ch)=>{if(!ch)return "Choose an eligible effect.";const critical=ch.endsWith(":crit"),ids=ch.replace(/:crit$/,"").split("+"),p=cunningStrikePlan(clsLv(c,"Rogue"),ids,hasPoisonersKit(c),critical);if(!p)return "Invalid Cunning Strike.";const n=p.dice?rollDice(p.dice+"d6").total:0;return "Cunning Strike: "+n+" extra damage (weapon damage type), "+p.cost+" dice forgone; save DC "+(8+c.mods.dex+c.prof)+". "+p.effects.join(" ");}},
+  "Brutal Strike":{kind:"instant",choices:brutalStrikeOptions,use:(c,ch)=>{if(!isActive(c,"Reckless Attack")||!brutalStrikeOptions(c).some(([id])=>id===ch))return "Requires an eligible Reckless Attack; forgo Advantage before rolling.";const critical=ch.endsWith(":crit"),n=(clsLv(c,"Barbarian")>=17?2:1)*(critical?2:1);return rollMsg("Brutal Strike",n+"d10",ch.replace(/:crit$/,"").replaceAll("+"," and ")+"; resolve target and movement effects manually.");}},
+  "Arcane Apotheosis":{kind:"none"},
   "Flash of Genius":{kind:"instant",use:c=>"Flash of Genius: "+sgn(c.mods.int)+" to the eligible check or save. Apply manually."},
   "Wild Companion":{kind:"instant",choices:wildCompanionOptions,use:castWildCompanion},
   "Divine Intervention":{kind:"instant",choices:divineInterventionChoices,noCost:true,use:(c,ch)=>{const u=pcResources(c).find(r=>r.key==="divineIntervention");if(!u||!resLeft(c,u)||(+c.divineInterventionCooldown||0)>0||!divineInterventionChoices(c).some(([id])=>id===ch)||isActive(c,"Rage")||c.armorUntrained)return "No eligible spell or Divine Intervention use available.";const sp=spellOf("2024",ch);c.used=c.used||{};c.used.divineIntervention=1;const end=sp.co?concStart(c,ch):"";if(ch==="Wish")c.divineInterventionCooldown=rollDice("2d4").total;return {msg:"Divine Intervention: cast "+ch+" without a slot or Material components. Resolve spell effects manually."+(end?" "+end:"")+(ch==="Wish"?" Cooldown: "+c.divineInterventionCooldown+" Long Rests.":"")};}},
@@ -406,8 +460,7 @@ const ACT = {
   "Stroke of Luck": { kind: "instant", use: () => "Stroke of Luck: the miss becomes a hit, or the check's d20 counts as a 20." },
   // ---------- Sorcerer
   "Font of Magic":{kind:"instant",noCost:true,choices:c=>[...[1,2,3,4,5].filter(L=>canCreateSorcererSlot(c,L)).map(L=>["make"+L,"Create level "+L+" slot ("+SLOT_CREATION_COST[L]+" points)"]),...pcResources(c).filter(r=>(/^slot[1-9]$/.test(r.key)||r.key==="pact")&&resLeft(c,r)>0).map(r=>["burn"+(r.key==="pact"?"pact":r.key.slice(4)),"Convert "+r.name+" to Sorcery Points"])],use:convertFontOfMagic},
-  Metamagic: { kind: "instant", choices: c => { const mine = choiceOf(c, "Metamagic"); const all = [["quick", "Quickened Spell (2)"], ["twin1", "Twinned Spell, level 1 (1)"], ["twin2", "Twinned Spell, level 2 (2)"], ["twin3", "Twinned Spell, level 3 (3)"], ["subtle", "Subtle Spell (1)"], ["careful", "Careful Spell (1)"], ["distant", "Distant Spell (1)"], ["empower", "Empowered Spell (1)"], ["extend", "Extended Spell (1)"], ["height", `Heightened Spell (${edOf(c) === "2024" ? 2 : 3})`], ...(edOf(c) === "2024" ? [["seek", "Seeking Spell (1)"], ["trans", "Transmuted Spell (1)"]] : [])]; const map = { quickened: ["quick"], twinned: ["twin1", "twin2", "twin3"], subtle: ["subtle"], careful: ["careful"], distant: ["distant"], empowered: ["empower"], extended: ["extend"], heightened: ["height"], seeking: ["seek"], transmuted: ["trans"] }; const keep = mine.flatMap(id => map[id] || []); return keep.length ? all.filter(o => keep.includes(o[0])) : all; },
-    cost: (c, ch) => ({ quick: 2, twin2: 2, twin3: 3, height: edOf(c) === "2024" ? 2 : 3 })[ch] || 1, use: (c, ch, spent) => `Metamagic: ${spent} sorcery point${spent === 1 ? "" : "s"} spent.` },
+  Metamagic:{kind:"instant",choices:metamagicOptions,cost:metamagicCost,use:(c,ch,spent)=>{if(!ch)return "Select a learned Metamagic option.";if(ch.startsWith("free:"))c.apotheosisUsedThisTurn=true;return "Metamagic: "+ch.replace(/^free:/,"")+"; "+spent+" Sorcery Points spent. Resolve casting modifications manually.";}},
   "Dragon Wings": { kind: "toggle", fx: c => ({ fly: edOf(c) === "2024" ? 60 : "speed", notes: ["Dragon Wings: you can't use them while wearing armor not made for them"] }) },
   "Draconic Presence": { kind: "toggle", fx: () => ({ notes: ["Draconic Presence: 60 ft aura of awe or fear (WIS save)"] }) },
   "Revelation in Flesh": { kind: "toggle", choices: [["sight", "See the Invisible"], ["fly", "Glistening Flight"], ["swim", "Aquatic Adaptation"], ["worm", "Wormlike Movement"]], fx: (c, ch) => ch === "fly" ? { fly: "speed" } : ch === "swim" ? { swim: "2speed", notes: ["Aquatic Adaptation: breathe underwater"] } : ch === "sight" ? { notes: ["See invisible creatures within 60 ft"] } : { notes: ["Wormlike Movement: squeeze through 1-inch spaces, escape grapples with 5 ft of movement"] } },

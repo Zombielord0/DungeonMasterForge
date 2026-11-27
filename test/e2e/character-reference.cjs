@@ -408,6 +408,17 @@ const { chromium } = require("playwright");
     });
     assert.deepEqual([wizardBookAudit.start,wizardBookAudit.seeded,wizardBookAudit.rejected,wizardBookAudit.added,wizardBookAudit.notRecorded,wizardBookAudit.blockedRemoval,wizardBookAudit.enabled],[true,true,false,true,true,true,true]);
     assert.deepEqual(wizardBookAudit.options,["ritual"]);assert.ok(!wizardBookAudit.candidates.includes("Fireball"));
+    const conditionalAudit=await page.evaluate(()=>{
+      const plan=(l,ids,kit=true,crit=false)=>cunningStrikePlan(l,ids,kit,crit);
+      const c=pcEnsure(generateCharacter({seed:"APOTHEOSIS",ed:"2024",cls:"Sorcerer",level:20,race:"Human",bg:"Sage",subclass:"none"}));
+      c.choices={Metamagic:["twinned","quickened"]};c.used={sorc:20};c.active={"Innate Sorcery":true};
+      const before=metamagicOptions(c).map(x=>x[0]),paid=metamagicCost(c,"twinned");actRun(c,"Metamagic","free:quickened");
+      const after=metamagicOptions(c).map(x=>x[0]),spent=c.used.sorc;delete c.apotheosisUsedThisTurn;
+      return {plans:[plan(5,["trip"]),plan(11,["trip","withdraw"]),plan(14,["knockout","daze"]),plan(14,["knockout"]),plan(5,["poison"],false),plan(5,["daze"]),plan(5,["trip"],true,true)].map(p=>p?[p.dice,p.cost]:null),before,after,spent,paid,reset:metamagicOptions(c).some(x=>x[0]==="free:quickened")};
+    });
+    assert.deepEqual(conditionalAudit.plans,[[2,1],[4,2],null,[1,6],null,null,[4,1]]);
+    assert.ok(conditionalAudit.before.includes("free:quickened")&&!conditionalAudit.after.includes("free:quickened")&&conditionalAudit.reset);
+    assert.equal(conditionalAudit.spent,20);assert.equal(conditionalAudit.paid,1);
     const expansion = await page.evaluate(() => {
       const subclasses = hbBook("subclass").filter(x => ["tce", "xge"].includes(x.src));
       const armorer = generateCharacter({ seed: "ARMOR", ed: "2014", cls: "Artificer", subclass: "Armorer", level: 5 });
