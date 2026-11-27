@@ -24,7 +24,7 @@ import { readFileSync, writeFileSync, readdirSync, unlinkSync, mkdirSync } from 
 import vm from "node:vm";
 import { joinSummaries, joinSrdItems } from "./ref-summaries.mjs";
 import { appendReferenceSpells, validateRecoveryManifest, applyRecoveredContent } from "./recovered-content.mjs";
-import { validateSrdSpellLinks, fillSrdSpellReferences, joinSrdSpellReferences } from "./ref-srd-spells.mjs";
+import { validateSrdSpellLinks, fillSrdSpellReferences, joinSrdSpellReferences, correctLegacySpellMetadata } from "./ref-srd-spells.mjs";
 import { recoveryCoverage } from "./recovery-coverage.mjs";
 
 if (process.env.DMFORGE_BUILT === "1") process.exit(0); // npm run test:all builds once, then skips this in each check
@@ -75,7 +75,10 @@ for (const [name, key] of [["spells", "spellData"], ["monsters", "monsterData"],
   ["extra-spells", "spellExtra"], ["extra-monsters", "monsterExtra"], ["extra-items", "itemExtra"], ["extra-options", "optionExtra"], ["extra-books", "bookData"], ["book-references", "bookReferences"]]) {
   // stored as text, so the app turns it into objects only when a tab needs it (dmData in src/app/01-core.js)
   let data = JSON.parse(read(`data/${name}.json`));
-  if (name === "spells") data["2014"].push(...spellGrants.legacySpells);
+  if (name === "spells") {
+    data = correctLegacySpellMetadata(data);
+    data["2014"].push(...spellGrants.legacySpells);
+  }
   /* Book reference spells (owner, 2026-11-23): spells from other books join the list with their stats and book page only
      (data/book-references.json has no rules text). A spell the Forge already has is not added again. */
   if (name === "extra-spells") {

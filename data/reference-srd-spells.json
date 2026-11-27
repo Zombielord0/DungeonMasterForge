@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "provenance": "SRD 5.1 (2014 rules), existing CC BY 4.0 catalog payloads cross-checked against archived working-master SRD text fingerprints. Sourcebook metadata checked. Not a certification of each PHB printing.",
+  "provenance": "Canonical SRD 5.1 archive; 319 descriptions, higher-level sections and material text fingerprints match the original dependency archive. Metadata corrections are independently source verified. PHB printing equivalence is not asserted.",
   "entries": [
     {
       "name": "Bigby's Hand",
@@ -2804,23 +2804,354 @@
       "archiveSourceKey": "SRD 5.1|2014|Spell|Zone of Truth",
       "descriptionHash": "47d3428b",
       "higherLevelHash": "811c9dc5"
+    },
+    {
+      "name": "Antilife Shell",
+      "src": "phb-2014",
+      "ed": "2014",
+      "target": "Antilife Shell",
+      "mode": "existing",
+      "archiveSourceKey": "SRD 5.1|2014|Spell|Antilife Shell",
+      "descriptionHash": "8438fad2",
+      "higherLevelHash": "811c9dc5"
+    },
+    {
+      "name": "Antimagic Field",
+      "src": "phb-2014",
+      "ed": "2014",
+      "target": "Antimagic Field",
+      "mode": "existing",
+      "archiveSourceKey": "SRD 5.1|2014|Spell|Antimagic Field",
+      "descriptionHash": "2084fb00",
+      "higherLevelHash": "811c9dc5"
+    },
+    {
+      "name": "Burning Hands",
+      "src": "phb-2014",
+      "ed": "2014",
+      "target": "Burning Hands",
+      "mode": "existing",
+      "archiveSourceKey": "SRD 5.1|2014|Spell|Burning Hands",
+      "descriptionHash": "75f16ead",
+      "higherLevelHash": "0fd0fe25"
+    },
+    {
+      "name": "Clairvoyance",
+      "src": "phb-2014",
+      "ed": "2014",
+      "target": "Clairvoyance",
+      "mode": "existing",
+      "archiveSourceKey": "SRD 5.1|2014|Spell|Clairvoyance",
+      "descriptionHash": "e8d9847a",
+      "higherLevelHash": "811c9dc5"
+    },
+    {
+      "name": "Color Spray",
+      "src": "phb-2014",
+      "ed": "2014",
+      "target": "Color Spray",
+      "mode": "existing",
+      "archiveSourceKey": "SRD 5.1|2014|Spell|Color Spray",
+      "descriptionHash": "d41c2a33",
+      "higherLevelHash": "858c623a"
+    },
+    {
+      "name": "Cone of Cold",
+      "src": "phb-2014",
+      "ed": "2014",
+      "target": "Cone of Cold",
+      "mode": "existing",
+      "archiveSourceKey": "SRD 5.1|2014|Spell|Cone of Cold",
+      "descriptionHash": "a24e68ae",
+      "higherLevelHash": "53e3bb64"
+    },
+    {
+      "name": "Conjure Elemental",
+      "src": "phb-2014",
+      "ed": "2014",
+      "target": "Conjure Elemental",
+      "mode": "existing",
+      "archiveSourceKey": "SRD 5.1|2014|Spell|Conjure Elemental",
+      "descriptionHash": "2d6bd001",
+      "higherLevelHash": "42e72beb"
+    },
+    {
+      "name": "Control Weather",
+      "src": "phb-2014",
+      "ed": "2014",
+      "target": "Control Weather",
+      "mode": "existing",
+      "archiveSourceKey": "SRD 5.1|2014|Spell|Control Weather",
+      "descriptionHash": "8a9e8274",
+      "higherLevelHash": "811c9dc5"
+    },
+    {
+      "name": "Detect Evil and Good",
+      "src": "phb-2014",
+      "ed": "2014",
+      "target": "Detect Evil and Good",
+      "mode": "existing",
+      "archiveSourceKey": "SRD 5.1|2014|Spell|Detect Evil and Good",
+      "descriptionHash": "86d27629",
+      "higherLevelHash": "811c9dc5"
+    },
+    {
+      "name": "Dimension Door",
+      "src": "phb-2014",
+      "ed": "2014",
+      "target": "Dimension Door",
+      "mode": "existing",
+      "archiveSourceKey": "SRD 5.1|2014|Spell|Dimension Door",
+      "descriptionHash": "08e29d3e",
+      "higherLevelHash": "811c9dc5"
+    },
+    {
+      "name": "Dream",
+      "src": "phb-2014",
+      "ed": "2014",
+      "target": "Dream",
+      "mode": "existing",
+      "archiveSourceKey": "SRD 5.1|2014|Spell|Dream",
+      "descriptionHash": "44f29c7f",
+      "higherLevelHash": "811c9dc5"
+    },
+    {
+      "name": "Fear",
+      "src": "phb-2014",
+      "ed": "2014",
+      "target": "Fear",
+      "mode": "existing",
+      "archiveSourceKey": "SRD 5.1|2014|Spell|Fear",
+      "descriptionHash": "bb695e6f",
+      "higherLevelHash": "811c9dc5"
+    },
+    {
+      "name": "Find the Path",
+      "src": "phb-2014",
+      "ed": "2014",
+      "target": "Find the Path",
+      "mode": "existing",
+      "archiveSourceKey": "SRD 5.1|2014|Spell|Find the Path",
+      "descriptionHash": "39dd1c75",
+      "higherLevelHash": "811c9dc5"
+    },
+    {
+      "name": "Forbiddance",
+      "src": "phb-2014",
+      "ed": "2014",
+      "target": "Forbiddance",
+      "mode": "existing",
+      "archiveSourceKey": "SRD 5.1|2014|Spell|Forbiddance",
+      "descriptionHash": "559a8a48",
+      "higherLevelHash": "811c9dc5"
+    },
+    {
+      "name": "Gate",
+      "src": "phb-2014",
+      "ed": "2014",
+      "target": "Gate",
+      "mode": "existing",
+      "archiveSourceKey": "SRD 5.1|2014|Spell|Gate",
+      "descriptionHash": "2cd79c5a",
+      "higherLevelHash": "811c9dc5"
+    },
+    {
+      "name": "Globe of Invulnerability",
+      "src": "phb-2014",
+      "ed": "2014",
+      "target": "Globe of Invulnerability",
+      "mode": "existing",
+      "archiveSourceKey": "SRD 5.1|2014|Spell|Globe of Invulnerability",
+      "descriptionHash": "18df9568",
+      "higherLevelHash": "8e7681fa"
+    },
+    {
+      "name": "Gust of Wind",
+      "src": "phb-2014",
+      "ed": "2014",
+      "target": "Gust of Wind",
+      "mode": "existing",
+      "archiveSourceKey": "SRD 5.1|2014|Spell|Gust of Wind",
+      "descriptionHash": "bdafb90f",
+      "higherLevelHash": "811c9dc5"
+    },
+    {
+      "name": "Levitate",
+      "src": "phb-2014",
+      "ed": "2014",
+      "target": "Levitate",
+      "mode": "existing",
+      "archiveSourceKey": "SRD 5.1|2014|Spell|Levitate",
+      "descriptionHash": "b996a1cd",
+      "higherLevelHash": "811c9dc5"
+    },
+    {
+      "name": "Lightning Bolt",
+      "src": "phb-2014",
+      "ed": "2014",
+      "target": "Lightning Bolt",
+      "mode": "existing",
+      "archiveSourceKey": "SRD 5.1|2014|Spell|Lightning Bolt",
+      "descriptionHash": "32e849b8",
+      "higherLevelHash": "eb33c1b8"
+    },
+    {
+      "name": "Magic Missile",
+      "src": "phb-2014",
+      "ed": "2014",
+      "target": "Magic Missile",
+      "mode": "existing",
+      "archiveSourceKey": "SRD 5.1|2014|Spell|Magic Missile",
+      "descriptionHash": "394db3fa",
+      "higherLevelHash": "16685f42"
+    },
+    {
+      "name": "Mass Cure Wounds",
+      "src": "phb-2014",
+      "ed": "2014",
+      "target": "Mass Cure Wounds",
+      "mode": "existing",
+      "archiveSourceKey": "SRD 5.1|2014|Spell|Mass Cure Wounds",
+      "descriptionHash": "d6fd974e",
+      "higherLevelHash": "28a12643"
+    },
+    {
+      "name": "Mass Heal",
+      "src": "phb-2014",
+      "ed": "2014",
+      "target": "Mass Heal",
+      "mode": "existing",
+      "archiveSourceKey": "SRD 5.1|2014|Spell|Mass Heal",
+      "descriptionHash": "a1ef7428",
+      "higherLevelHash": "811c9dc5"
+    },
+    {
+      "name": "Meteor Swarm",
+      "src": "phb-2014",
+      "ed": "2014",
+      "target": "Meteor Swarm",
+      "mode": "existing",
+      "archiveSourceKey": "SRD 5.1|2014|Spell|Meteor Swarm",
+      "descriptionHash": "96e506b7",
+      "higherLevelHash": "811c9dc5"
+    },
+    {
+      "name": "Plant Growth",
+      "src": "phb-2014",
+      "ed": "2014",
+      "target": "Plant Growth",
+      "mode": "existing",
+      "archiveSourceKey": "SRD 5.1|2014|Spell|Plant Growth",
+      "descriptionHash": "b7c39d9d",
+      "higherLevelHash": "811c9dc5"
+    },
+    {
+      "name": "Prismatic Spray",
+      "src": "phb-2014",
+      "ed": "2014",
+      "target": "Prismatic Spray",
+      "mode": "existing",
+      "archiveSourceKey": "SRD 5.1|2014|Spell|Prismatic Spray",
+      "descriptionHash": "acaa15a7",
+      "higherLevelHash": "811c9dc5"
+    },
+    {
+      "name": "Project Image",
+      "src": "phb-2014",
+      "ed": "2014",
+      "target": "Project Image",
+      "mode": "existing",
+      "archiveSourceKey": "SRD 5.1|2014|Spell|Project Image",
+      "descriptionHash": "6d7193bb",
+      "higherLevelHash": "811c9dc5"
+    },
+    {
+      "name": "Revivify",
+      "src": "phb-2014",
+      "ed": "2014",
+      "target": "Revivify",
+      "mode": "existing",
+      "archiveSourceKey": "SRD 5.1|2014|Spell|Revivify",
+      "descriptionHash": "c7b78e2c",
+      "higherLevelHash": "811c9dc5"
+    },
+    {
+      "name": "Scorching Ray",
+      "src": "phb-2014",
+      "ed": "2014",
+      "target": "Scorching Ray",
+      "mode": "existing",
+      "archiveSourceKey": "SRD 5.1|2014|Spell|Scorching Ray",
+      "descriptionHash": "1db89736",
+      "higherLevelHash": "a6a2f0bd"
+    },
+    {
+      "name": "Speak with Plants",
+      "src": "phb-2014",
+      "ed": "2014",
+      "target": "Speak with Plants",
+      "mode": "existing",
+      "archiveSourceKey": "SRD 5.1|2014|Spell|Speak with Plants",
+      "descriptionHash": "e1a49425",
+      "higherLevelHash": "811c9dc5"
+    },
+    {
+      "name": "Spirit Guardians",
+      "src": "phb-2014",
+      "ed": "2014",
+      "target": "Spirit Guardians",
+      "mode": "existing",
+      "archiveSourceKey": "SRD 5.1|2014|Spell|Spirit Guardians",
+      "descriptionHash": "f04dd7e7",
+      "higherLevelHash": "0695e0f6"
+    },
+    {
+      "name": "Sunbeam",
+      "src": "phb-2014",
+      "ed": "2014",
+      "target": "Sunbeam",
+      "mode": "existing",
+      "archiveSourceKey": "SRD 5.1|2014|Spell|Sunbeam",
+      "descriptionHash": "9579b6eb",
+      "higherLevelHash": "811c9dc5"
+    },
+    {
+      "name": "Thunderwave",
+      "src": "phb-2014",
+      "ed": "2014",
+      "target": "Thunderwave",
+      "mode": "existing",
+      "archiveSourceKey": "SRD 5.1|2014|Spell|Thunderwave",
+      "descriptionHash": "947ac222",
+      "higherLevelHash": "50c36887"
+    },
+    {
+      "name": "Web",
+      "src": "phb-2014",
+      "ed": "2014",
+      "target": "Web",
+      "mode": "existing",
+      "archiveSourceKey": "SRD 5.1|2014|Spell|Web",
+      "descriptionHash": "eae669a8",
+      "higherLevelHash": "811c9dc5"
     }
   ],
   "archiveReview": {
     "workingCheckpoint": "DnD_Compendium_v19_2_Artificer_Phase_Working.zip",
+    "originalArchive": "DnD_Compendium_v19_2_Dependency_Phase_Consolidated.zip / SRD_2014_Source/5e-SRD-Spells.json",
     "archiveSpellRows": 319,
-    "textFingerprintMatches": 311,
-    "textFingerprintDifferences": [
-      "Conjure Elemental",
-      "Detect Evil and Good",
-      "Dimension Door",
-      "Gate",
-      "Levitate",
-      "Magic Missile",
-      "Scorching Ray",
-      "Web"
+    "archiveTextFingerprint": "5cafee1f",
+    "textFingerprintMatches": 319,
+    "priorPilotParaphrases": 8,
+    "schoolCorrections": [
+      "Mass Cure Wounds",
+      "Mass Heal",
+      "Revivify"
     ],
-    "sameNameMetadataExclusions": 25,
-    "notes": "Non-cryptographic whitespace-normalized text fingerprints; full original sourcebook equivalence not asserted."
+    "castingTimeCorrections": [
+      "Plant Growth"
+    ],
+    "source": "https://media.wizards.com/2016/downloads/DND/SRD-OGL_V5.1.pdf",
+    "notes": "Non-cryptographic whitespace-normalized text fingerprint; archived dataset is not blanket certification of every printing."
   }
 }
