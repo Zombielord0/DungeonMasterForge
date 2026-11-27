@@ -19,7 +19,7 @@ function inventoryRulesSnapshot(x) {
 }
 
 function inventoryNeedsAttunement(i, ref) {
-  return Boolean(i.att || ref?.att);
+  return Boolean(i.att || ref?.att || LEGACY_INFUSION_CONTRACTS[i.artificerInfusion?.name]?.att);
 }
 
 function inventoryAttunementControl(i, ed) {
