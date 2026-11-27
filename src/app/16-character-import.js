@@ -207,21 +207,41 @@ function impDist(a, b, max) {
 function impSpellSaid(D, raw, m) {
   if (impNorm(impStrip(raw)) !== impNorm(m.s.n)) D.report.differ.push(`Spell: the file says “${impCut(raw, 60)}”, so the Forge used ${m.s.n}. Change it on the sheet if that's wrong`);
 }
+/* Source aliases resolve to their canonical spell before fuzzy matching. A known incomplete
+   reference must not silently import an opposite-edition spell or another similar name. */
+function impSpellAvailable(s) { return !s.pend && !s.shadow && !s.referenceOnly; }
+function impSpellNamed(s, k) { return impLetters(s.n) === k || (s.aliases || []).some(n => impLetters(n) === k); }
+function impSpellBlocked(ed, name) {
+  spLoad(); const k = impLetters(name), rows = SP.data[ed] || [];
+  return !!k && rows.some(s => s.referenceOnly && !s.srdSpell && !s.shadow && impLetters(s.n) === k) &&
+    !rows.some(s => impSpellAvailable(s) && impSpellNamed(s, k));
+}
 function spellMatch(ed, name) {
+  if (impSpellBlocked(ed, name)) return null;
   const m = spellMatch1(ed, name); if (m) return m;
   const rest = String(name || "").replace(/^\s*[A-Z][a-z]+(?:[’']s|s)\s+/, "");
   if (rest !== String(name || "") && impLetters(rest).length >= 6) { const m2 = spellMatch1(ed, rest); if (m2) return { ...m2, fuzzy: true }; }
   return null;
 }
 function spellMatch1(ed, name) {
-  spLoad(); const k = impLetters(name); if (!k) return null;
+  spLoad(); const k = impLetters(name); if (!k || impSpellBlocked(ed, name)) return null;
   const eds = [ed, ed === "2014" ? "2024" : "2014"], fuzzy = s => s.n.toLowerCase() !== String(name).trim().toLowerCase();
-  for (const e of eds) { const s = (SP.data[e] || []).find(x => !x.pend && !x.shadow && impLetters(x.n) === k); if (s) return { s, ed: e, fuzzy: fuzzy(s) }; }
+  for (const e of eds) {
+    const rows = SP.data[e] || [];
+    const exact = rows.find(s => impSpellAvailable(s) && impLetters(s.n) === k);
+    if (exact) return { s: exact, ed: e, fuzzy: fuzzy(exact) };
+    // Explicit, validated source alias; do not select the reference shell.
+    const linked = rows.find(s => s.srdSpell && !s.shadow && impLetters(s.n) === k);
+    const canonical = linked && rows.find(s => impSpellAvailable(s) && !s.src && !s.ref && !s.hb && s.n === linked.srdSpell);
+    if (canonical) return { s: canonical, ed: e, fuzzy: true };
+    const alias = rows.find(s => impSpellAvailable(s) && (s.aliases || []).some(n => impLetters(n) === k));
+    if (alias) return { s: alias, ed: e, fuzzy: true };
+  }
   if (k.length < 6) return null;
-  for (const e of eds) { const L = (SP.data[e] || []).filter(x => !x.pend && !x.shadow && impLetters(x.n).startsWith(k)).sort((a, b) => a.n.length - b.n.length); if (L.length) return { s: L[0], ed: e, fuzzy: true }; }
+  for (const e of eds) { const L = (SP.data[e] || []).filter(x => impSpellAvailable(x) && impLetters(x.n).startsWith(k)).sort((a, b) => a.n.length - b.n.length); if (L.length) return { s: L[0], ed: e, fuzzy: true }; }
   for (const e of eds) {
     let best = null;
-    for (const x of SP.data[e] || []) { if (x.pend || x.shadow) continue; const d = impDist(k, impLetters(x.n), 2); if (d <= 2 && (!best || d < best.d || d === best.d && x.n.length < best.s.n.length)) best = { s: x, d }; }
+    for (const x of SP.data[e] || []) { if (!impSpellAvailable(x)) continue; const d = impDist(k, impLetters(x.n), 2); if (d <= 2 && (!best || d < best.d || d === best.d && x.n.length < best.s.n.length)) best = { s: x, d }; }
     if (best) return { s: best.s, ed: e, fuzzy: true };
   }
   return null;
@@ -328,6 +348,7 @@ function compImport(j, ed) {
     const m = spellMatch(ed, sp.name);
     if (m) { if (!prepared.some(x => x.n === m.s.n)) prepared.push({ n: m.s.n, l: m.s.l, ed: m.ed }); impSpellSaid(D, sp.name, m); return; }
     const nm = impCut(sp.name, 60); if (!nm) return;
+    if (impSpellBlocked(ed, nm) && !String(sp.description || "").trim()) { D.report.dropped.push(`${nm} (reference only; complete rules required before preparation)`); return; }
     const have = impHave("spell", nm) || D.homebrew.find(x => x.kind === "spell" && impSame(x.name, nm));
     if (!have) {
       const comp = String(sp.components || ""), mat = comp.match(/M\s*\(([^)]*)\)/);
@@ -641,6 +662,7 @@ function pdfImport(F, ed) {
     const raw = get(k), l = pdfSpellLevel(k, pos), m = spellMatch(ed, raw);
     if (m) { if (!prepared.some(x => x.n === m.s.n)) prepared.push({ n: m.s.n, l: m.s.l, ed: m.ed }); if (m.fuzzy) D.report.matched.push(`${raw} → ${m.s.n}`); return; }
     const nm = impCut(raw.replace(/\s*\([^)]*\)\s*/g, " ").trim(), 60); if (!nm) return;
+    if (impSpellBlocked(ed, nm)) { D.report.dropped.push(`${nm} (reference only; complete rules required before preparation)`); return; }
     const have = impHave("spell", nm) || D.homebrew.find(x => x.kind === "spell" && impSame(x.name, nm));
     if (!have) { D.homebrew.push({ id: uid("hb"), kind: "spell", src: PDF_SRC, ed, name: nm, desc: "", l, s: "Evocation", c: [main.cls], t: "", r: "", cp: "", m: "", du: "", co: false, ri: false, h: "" }); D.report.made.push(`${nm} (${l ? `level ${l} spell` : "cantrip"}, name only)`); }
     if (!prepared.some(x => x.n === (have ? have.name : nm))) prepared.push({ n: have ? have.name : nm, l: have ? +have.l || l : l, ed });

@@ -34,9 +34,21 @@ const server = http.createServer((req, res) => {
     const f = files.find(x => x.startsWith(`/assets/${name}.`)), js = f && fs.existsSync(path.join(ROOT, f)) ? fs.readFileSync(path.join(ROOT, f), "utf8") : "";
     const w = {}; try { new Function("window", js)(w); } catch { }
     const expected = JSON.parse(fs.readFileSync(path.join(DATA, name + ".json"), "utf8"));
-    if (name === "spells") expected["2014"].push(...legacySpells);
+    // Independently assert the documented, legacy-only metadata corrections in the emitted catalog.
+    if (name === "spells") {
+      const corrections = {"Mass Cure Wounds": {s:"Evocation"}, "Mass Heal": {s:"Evocation"}, "Revivify": {s:"Necromancy"}, "Plant Growth": {t:"1 action or 8 hours"}};
+      expected["2014"] = expected["2014"].map(s => !s.src && Object.hasOwn(corrections, s.n) ? {...s, ...corrections[s.n]} : s);
+      expected["2014"].push(...legacySpells);
+    }
+    if (name === "items") {
+      const corrections = {"Staff of Swarming Insects": {r:"Rare",rk:2}, "Staff of the Python": {r:"Uncommon",rk:1}};
+      expected["2014"].mi = expected["2014"].mi.map(s => {
+        if (s.src || !Object.hasOwn(corrections, s.n)) return s;
+        const c = corrections[s.n]; return {...s,...c,type:s.type.replace(/^Staff, very rare\b/i,"Staff, "+c.r.toLowerCase())};
+      });
+    }
     const same = w.DMDATA && JSON.stringify(JSON.parse(w.DMDATA[key])) === JSON.stringify(expected);
-    check(`${name}: public${f} matches data/${name}.json`, !!same);
+    check(`${name}: public${f} matches source data with documented legacy corrections and grants`, !!same);
     check(`${name}: the file name's fingerprint matches its contents`, !!f && f.includes("." + crypto.createHash("sha256").update(js).digest("hex").slice(0, 10) + "."));
     check(`${name}: the service worker keeps it for offline use`, !!f && sw.includes(`"${f}"`));
   }
