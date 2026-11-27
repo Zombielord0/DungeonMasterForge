@@ -341,6 +341,12 @@ function pcAbilities(c) {
     add("Drain Magic Item","Bonus action","Dismiss a nearby replicated item for an extra level 1 slot (Common) or level 2 slot (Uncommon/Rare).","replicateDrain");
     add("Transmute Magic Item","Magic action","Transform a nearby replicated item into a different known plan.","replicateTransmute");
   }
+  if(artificerInfusionLevel(c)>=1){
+    add("Magical Tinkering","Action","Choose a Tiny nonmagical object and one persistent property; oldest ends at Intelligence-modifier limit (minimum one). Confirm size, touch and tool.");
+    if((c.inv||[]).some(i=>i.artificerTinkering?.owner===c.id))add("End Magical Tinkering","Action","Touch object and end its property.");
+  }
+  if(artificerInfusionLevel(c)>=3)add("The Right Tool for the Job","1 hour","Create one set of nonmagical Artisan's Tools; the previous created set vanishes. Confirm uninterrupted hour and tools.");
+  if(artificerInfusionLevel(c)>=6)add("Tool Expertise","Ability check","Double proficiency bonus on any check that uses a tool proficiency. Confirm proficiency and selected ability.");
   if(artificerInfusionLevel(c)>=2){
     add("Apply Infusion","After Long Rest","Apply a known supported infusion to an eligible individual nonmagical item. Oldest ends if the active limit is exceeded.");
     if(artificerInfusions(c).length)add("End Infusion","Your choice","End an infusion on an item; confirm permitted timing.");
@@ -797,6 +803,36 @@ function artificerLegacyDeath(c,id){
 function artificerInfusionCleanup(c){for(const i of c.inv||[])if(i.artificerInfusion?.owner===c.id&&(!artificerInfusionKnown(c,i.artificerInfusion.name)||+i.qty!==1))artificerEndInfusion(c,i);}
 function artificerFocusAttackBonus(c){return Math.max(0,...(c.inv||[]).filter(i=>i.eq&&+i.qty===1).map(i=>artificerInfusionBonus(c,i,"focus")));}
 
+const ARTIFICER_TINKER_PROPERTIES={
+ light:"Bright light 5 ft, dim light 5 additional ft.",
+ message:"When tapped, plays recorded speech (max 6 seconds) audible within 10 ft. Record message in item notes.",
+ sensory:"Continuous chosen odor or nonverbal sound perceptible within 10 ft. Record choice in item notes.",
+ image:"Static picture, lines/shapes and/or up to 25 words on one surface. Record design in item notes."
+};
+function legacyTinkeringOptions(c){
+ if(artificerInfusionLevel(c)<1)return [];
+ return (c.inv||[]).filter(i=>i.id&&+i.qty===1&&!i.artificerInfusion&&!i.artificerOrigin&&inventoryCatalogItem(i,"2014")?.kind==="gear")
+   .flatMap(i=>Object.entries(ARTIFICER_TINKER_PROPERTIES).map(([k,d])=>[JSON.stringify([i.id,k]),i.n+" · "+k+" (confirm Tiny)",d]));
+}
+function legacyTinkeringEnd(c,id){const i=(c.inv||[]).find(i=>i.id===id&&i.artificerTinkering?.owner===c.id);if(!i)return "No active property.";delete i.artificerTinkering;return "Magical Tinkering ended on "+i.n+".";}
+function legacyTinkeringApply(c,ch){
+ if(!legacyTinkeringOptions(c).some(x=>x[0]===ch))return "Choose an eligible Tiny nonmagical object.";
+ const [id,kind]=JSON.parse(ch),i=c.inv.find(x=>x.id===id),cap=Math.max(1,c.mods.int),active=c.inv.filter(x=>x!==i&&x.artificerTinkering?.owner===c.id).sort((a,b)=>a.artificerTinkering.seq-b.artificerTinkering.seq);
+ while(active.length>=cap)legacyTinkeringEnd(c,active.shift().id);
+ c.artificerTinkeringSeq=(+c.artificerTinkeringSeq||0)+1;i.artificerTinkering={owner:c.id,kind,seq:c.artificerTinkeringSeq};
+ return "Magical Tinkering on "+i.n+": "+ARTIFICER_TINKER_PROPERTIES[kind]+" Confirm object size, tools and action.";
+}
+function legacyRightToolOptions(c){
+ if(artificerInfusionLevel(c)<3)return [];itLoad();
+ return IT.data["2014"].filter(x=>x.kind==="gear"&&/artisan/i.test(x.cat||"")).map(x=>[x.id,x.n]);
+}
+function legacyRightTool(c,id){
+ if(!legacyRightToolOptions(c).some(x=>x[0]===id))return "Choose an eligible Artisan's Tools set.";
+ const x=itFind(id);for(const i of [...(c.inv||[])])if(i.artificerOrigin?.owner===c.id&&i.artificerOrigin.kind==="rightTool")artificerRemove(c,i);
+ c.inv=c.inv||[];const i=artificerInventoryItem(c,x,"rightTool");i.note="Nonmagical Right Tool for the Job; vanishes when replaced.";c.inv.push(i);
+ return "Created "+x.n+"; previous set vanished. Confirm an uninterrupted hour and required tools.";
+}
+
 function artificerPlanEligible(lv,x){
  if(lv<2||!x||x.kind!=="magic"||x.ed!=="2024"||!x.id?.startsWith("2024-")||!x.d?.trim()||x.referenceOnly||x.rulesSummary||x.pend||itemRulesIncomplete(x))return false;
  // Generic plans are filtered by catalog rarity/category and obvious curse metadata/text.
@@ -914,6 +950,10 @@ function quiveringPalmUse(c,ch){
  const rr=rollDice("10d10");return "Quivering Palm: CON save DC "+dc+". Failure reduces the marked target to 0 HP; success takes "+rr.total+" Necrotic damage ("+rr.text+"). Apply the appropriate result manually.";
 }
 const ACT = {
+ "Magical Tinkering":{kind:"instant",choices:legacyTinkeringOptions,use:legacyTinkeringApply},
+ "End Magical Tinkering":{kind:"instant",choices:c=>(c.inv||[]).filter(i=>i.artificerTinkering?.owner===c.id).map(i=>[i.id,i.n+" · "+i.artificerTinkering.kind]),use:legacyTinkeringEnd},
+ "The Right Tool for the Job":{kind:"instant",choices:legacyRightToolOptions,use:legacyRightTool},
+
  "Apply Infusion":{kind:"instant",choices:artificerInfusionOptions,use:artificerApplyInfusion},
  "End Infusion":{kind:"instant",choices:c=>artificerInfusions(c).map(i=>[i.id,i.n+" · "+i.artificerInfusion.name]),use:(c,id)=>artificerEndInfusion(c,c.inv.find(i=>i.id===id))?"Infusion ended.":"No active infusion."},
  "Soul of Artifice survival":{kind:"instant",choices:artificerLegacyDeathOptions,use:artificerLegacyDeath},
