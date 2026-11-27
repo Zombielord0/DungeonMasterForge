@@ -27,6 +27,7 @@ import { appendReferenceSpells, validateRecoveryManifest, applyRecoveredContent,
 import { validateSrdSpellLinks, fillSrdSpellReferences, joinSrdSpellReferences, correctLegacySpellMetadata } from "./ref-srd-spells.mjs";
 import { recoveryCoverage } from "./recovery-coverage.mjs";
 import {verifyLegacyItemArchive,correctLegacyItemMetadata,verifyAndAnnotateLegacyItemLinks} from "./ref-srd-items.mjs";
+import {correctRevisedItemVariants} from "./ref-srd-2024-item-variants.mjs";
 
 if (process.env.DMFORGE_BUILT === "1") process.exit(0); // npm run test:all builds once, then skips this in each check
 
@@ -73,7 +74,7 @@ const approvedRecovery = validateRecoveryManifest(JSON.parse(read("data/recovere
 const srdSpellLinks = validateSrdSpellLinks(JSON.parse(read("data/reference-srd-spells.json")), bookReferences, JSON.parse(read("data/spells.json")));
 const rawItems = JSON.parse(read("data/items.json"));
 verifyLegacyItemArchive(rawItems);
-const correctedItems = correctLegacyItemMetadata(rawItems);
+const correctedItems = correctRevisedItemVariants(correctLegacyItemMetadata(rawItems));
 const emittedCatalogs = {};
 for (const [name, key] of [["spells", "spellData"], ["monsters", "monsterData"], ["items", "itemData"],
   ["extra-spells", "spellExtra"], ["extra-monsters", "monsterExtra"], ["extra-items", "itemExtra"], ["extra-options", "optionExtra"], ["extra-books", "bookData"], ["book-references", "bookReferences"]]) {
@@ -150,7 +151,7 @@ writeFileSync(at("public/compendium-coverage.json"), JSON.stringify(recoveryCove
 <h1>Credits and licences</h1>
 <p><a href="/">← Back to the Forge</a></p>
 <h2>Official rules</h2>
-<p>This work includes material from the System Reference Document 5.1 (“SRD 5.1”) and System Reference Document 5.2 (“SRD 5.2”) by Wizards of the Coast LLC, available at <a href="https://dnd.wizards.com/resources/systems-reference-document">dnd.wizards.com/resources/systems-reference-document</a>, licensed under the <a href="https://creativecommons.org/licenses/by/4.0/legalcode">Creative Commons Attribution 4.0 International License</a>.</p>
+<p>This work includes material from the System Reference Document 5.1 (“SRD 5.1”) and System Reference Document 5.2.1 (“SRD 5.2.1”) by Wizards of the Coast LLC, available at <a href="https://dnd.wizards.com/resources/systems-reference-document">dnd.wizards.com/resources/systems-reference-document</a>, licensed under the <a href="https://creativecommons.org/licenses/by/4.0/legalcode">Creative Commons Attribution 4.0 International License</a>.</p>
 <h2>Extra books</h2>
 <p>The extra monsters, spells and magic items (marked with their book's name in the lists) come from these books, through the open-source <a href="https://github.com/open5e/open5e-api">Open5e</a> project. They were converted into the Forge's format; the rules text is unchanged. None of these publishers endorse the Forge.</p>
 <ul>${L.map(b => `<li><b>${h(b.name)}</b> by ${h(b.authors || b.by)} (${h(b.by)}${b.year ? ", " + h(b.year) : ""}). ${b.lic === "cc-by-40" ? `Licensed under the <a href="https://creativecommons.org/licenses/by/4.0/legalcode">Creative Commons Attribution 4.0 International License</a>.` : "Open Game Content under the Open Game License 1.0a (below)."}${link(b)}</li>`).join("\n")}</ul>

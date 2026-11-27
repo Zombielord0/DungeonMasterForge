@@ -46,7 +46,9 @@ function eqGear(ed, name) {
   const L = IT.data[ed === "2014" ? "2014" : "2024"].filter(x => x.kind === "gear"), k = eqKey(name), ks = eqKey(k.split(" ").map(eqSing).join(" "));
   const alias = { "shield wooden": "shield", "bolt": "bolt crossbow", "knive small":"knife small", "knife small":"knife small" };
   const ks2 = eqKey(k.split(" ").map(eqSing2).join(" "));
-  return L.find(x => eqKey(x.n) === k) || L.find(x => eqKey(x.n) === ks) || L.find(x => eqKey(x.n) === ks2) || L.find(x => eqKey(x.n.split(/\s+/).map(eqSing).join(" ")) === ks)
+  // Equivalent gear only. Never silently choose an arbitrary focus or equate a unique trinket.
+  const equivalent = {"pen":["Ink pen"],"costume":["Costume","Clothes, costume"],"clothes common dark":["Common Clothes","Clothes, common"],"hooded iron lantern wrought":["Lantern, hooded"]};
+  return L.find(x => eqKey(x.n) === k) || (equivalent[k]||[]).map(n=>L.find(x=>eqKey(x.n)===eqKey(n))).find(Boolean) || L.find(x => eqKey(x.n) === ks) || L.find(x => eqKey(x.n) === ks2) || L.find(x => eqKey(x.n.split(/\s+/).map(eqSing).join(" ")) === ks)
     || (alias[ks] ? L.find(x => [alias[ks], eqSing(alias[ks])].includes(eqKey(x.n.split(/\s+/).map(eqSing).join(" ")))) : null) || null;
 }
 const eqIsWeapon = x => !!(x && x.kind === "gear" && (x.st || []).some(([k]) => k === "Damage"));

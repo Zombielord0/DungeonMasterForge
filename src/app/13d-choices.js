@@ -302,7 +302,7 @@ function backgroundEquipmentPlan(c) {
 function backgroundEquipmentClaim(c) {
   const plan=backgroundEquipmentPlan(c);
   if(!plan?.ready||!c.kitMoved||!Array.isArray(c.inv))return false;
-  const ed=edOf(c), additions=plan.gear.flatMap(line=>eqParseKit(line,ed)).map(({n,qty,g})=>({id:uid("i"),ref:g?g.id:undefined,n,qty,w:g?(g.w||0)/(g.packQty||1):0,...(g?.packQty?{ammunitionUnits:true}:{}),att:false,attuned:false,value:g?g.c:undefined,note:"Background starting equipment",eq:false}));
+  const ed=edOf(c), additions=plan.gear.flatMap(line=>eqParseKit(line,ed)).map(({n,qty,g})=>({id:uid("i"),ref:g?g.id:undefined,n,qty,w:g?(g.w||0)/(g.packQty||1):0,...(g?.packQty?{ammunitionUnits:true}:{}),att:false,attuned:false,value:g?g.c+(g.packQty?" per "+g.packQty:""):undefined,note:g?"Background starting equipment":"Background starting equipment; source-specific item, confirm weight and value with the DM",eq:false}));
   // Prepare the complete batch before changing the character. No generic placeholder items.
   c.inv.push(...additions);
   c.coins={...(c.coins||{}),...Object.fromEntries(Object.entries(plan.coins).map(([k,v])=>[k,(+c.coins?.[k]||0)+v]))};
