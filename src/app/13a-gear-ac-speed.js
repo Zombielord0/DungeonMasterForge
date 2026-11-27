@@ -339,7 +339,7 @@ function rcACLine(c) {
     ? `<p class="hint" style="margin:10px 0 0">Armor class is set by hand to <b>${esc(c.ac)}</b>. Your equipment gives <b>${c.acAuto}</b> (${esc(c.acAutoSrc)}). <button class="btn sm" type="button" data-acauto="1">Use equipment AC</button></p>`
     : `<p class="hint" style="margin:10px 0 0">Armor class <b>${c.acAuto}</b>: ${esc(c.acAutoSrc)}.</p>`);
 }
-const ATK_F = { strMelee: a => a.melee && a.ab === "str", weapon: a => !!a.iid, melee: a => !!a.melee, ranged: a => !a.melee, unarmed: a => !!a.unarmed, all: () => true };
+const ATK_F = { strMelee: a => a.melee && a.ab === "str", strWeapon: a=>a.ab==="str"&&(a.iid||a.unarmed), weapon: a => !!a.iid, melee: a => !!a.melee, ranged: a => !a.melee, unarmed: a => !!a.unarmed, all: () => true };
 function pcAttacks(c) {
   const ed = edOf(c), out = [], SB = subBonusOf(c), m = c.mods, F = pcFx(c);
   if (F.form) {

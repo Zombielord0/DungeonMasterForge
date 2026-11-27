@@ -156,6 +156,23 @@ function subLabel(ed, race, sub) {
 }
 const raceLabel = c => subLabel(edOf(c), c.race, c.sub || (c.race === "Dragonborn" ? c.ancestry : null));
 const FEAT_DESC_2024 = {
+  "Primal Knowledge":"Gain one skill proficiency from the Barbarian class list. While raging, you may use Strength for Acrobatics, Intimidation, Perception, Stealth, and Survival checks (resolve substituted ability checks manually).",
+  "Instinctive Pounce":"As part of the Bonus Action to enter Rage, move up to half your Speed.",
+  "Brutal Strike":"When using Reckless Attack, you can give up its Advantage on one Strength-based attack on your turn, provided the roll does not have Disadvantage. On a hit, deal 1d10 extra damage of the attack’s type and choose Forceful Blow (push 15 feet and optionally move up to half Speed toward the target without provoking Opportunity Attacks) or Hamstring Blow (reduce its Speed by 15 feet until your next turn starts).",
+  "Improved Brutal Strike":"At level 13 add Staggering Blow (Disadvantage on the next saving throw and no Opportunity Attacks until your next turn starts) or Sundering Blow (the next attack by another creature against the target before your next turn starts gains +5). At level 17 the extra damage becomes 2d10 and you may choose two different effects.",
+  "Persistent Rage":"Once per Long Rest when you roll Initiative, regain all expended Rage uses. Rage lasts its full 10 minutes without extending it, ending early if you fall Unconscious or don Heavy armor.",
+  "Monk's Focus":"Focus Points equal your Monk level; regain all after a Short or Long Rest. Flurry of Blows costs 1 point for two Unarmed Strikes as a Bonus Action. Patient Defense gives Disengage as a Bonus Action, or spend 1 point for Disengage and Dodge. Step of the Wind gives Dash as a Bonus Action, or spend 1 point for Dash and Disengage and doubled jump distance for the turn.",
+  "Uncanny Metabolism":"When rolling Initiative, you may regain all spent Focus Points and heal HP equal to your Monk level plus one Martial Arts die. Once per Long Rest.",
+  "Deflect Attacks":"Reaction when an attack hits you and deals Bludgeoning, Piercing, or Slashing damage: reduce total damage by 1d10 + Dexterity modifier + Monk level. If reduced to zero, spend 1 Focus Point to redirect. One visible creature within 5 feet (melee) or 60 feet (ranged, not behind Total Cover) makes a Dexterity save against your Focus DC or takes damage equal to two Martial Arts dice + Dexterity modifier of the original damage type.",
+  "Stunning Strike":"Once per turn when hitting with a Monk weapon or Unarmed Strike, spend 1 Focus Point. Target makes a Constitution save against your Focus DC. Failure: Stunned until your next turn starts. Success: its Speed is halved until then and the next attack against it before then has Advantage.",
+  "Empowered Strikes":"Choose Force damage or the normal damage type when an Unarmed Strike deals damage.",
+  "Acrobatic Movement":"Without armor or a Shield, move along vertical surfaces and across liquids on your turn without falling during the movement.",
+  "Heightened Focus":"Flurry of Blows makes three strikes. Spending a point on Patient Defense also grants temporary HP equal to two Martial Arts dice. Spending a point on Step of the Wind lets you move a willing Large or smaller creature within 5 feet with you until your turn ends, without it provoking Opportunity Attacks.",
+  "Self-Restoration":"At the end of each of your turns, end one Charmed, Frightened, or Poisoned condition on yourself. Forgoing food and drink does not cause Exhaustion.",
+  "Deflect Energy":"Deflect Attacks can reduce damage of any type.",
+  "Disciplined Survivor":"Proficiency in all saving throws; after failing a save, spend 1 Focus Point to reroll it and use the new roll.",
+  "Perfect Focus":"When rolling Initiative with fewer than four Focus Points, regain spent points until you have four.",
+  "Superior Defense":"At the start of your turn spend 3 Focus Points for Resistance to all damage except Force, for 1 minute or until Incapacitated.",
   "Divine Order":"Choose Protector (Martial weapon proficiency and Heavy armor training) or Thaumaturge (one extra Cleric cantrip and a bonus to Intelligence checks using Arcana or Religion equal to your Wisdom modifier, minimum +1).",
   "Primal Order":"Choose Warden (Martial weapon proficiency and Medium armor training) or Magician (one extra Druid cantrip and a bonus to Intelligence checks using Arcana or Nature equal to your Wisdom modifier, minimum +1).",
   "Sear Undead":"When you use Turn Undead, roll a number of d8s equal to your Wisdom modifier (minimum one). Undead that fail the save take the total as Radiant damage without ending the turning effect.",

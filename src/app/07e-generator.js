@@ -114,7 +114,11 @@ function generateCharacter(o) {
   const featsTaken = [...asiLv.map(L => asiPicks[L]).filter(pk => pk && pk.feat), ...bonusFeats.map(b => ({ feat: b.n, ...(b.a ? { [b.a]: 1 } : {}) })), ...(bgFeat ? [{ feat: bgFeat }] : [])];
   const hasFeat = n => featsTaken.some(pk => pk.feat === n);
   let hp = Math.max(1, C.hd + conBonus) + (lv - 1) * Math.max(1, diceAvg(C.hd) + conBonus) + MC.reduce((t, x) => t + x.lv * Math.max(1, diceAvg(classData(ed, x.cls).hd) + conBonus), 0) + (R.hpLv || 0) * TL + (hasFeat("Tough") ? 2 * TL : 0) + (hasFeat("Boon of Fortitude") ? 40 : 0) + fxSum("hp") + fxSum("hpLv") * TL;
-  const saves = [...C.saves]; featsTaken.filter(pk => pk.feat === "Resilient").forEach(pk => { const a = AB.find(x => pk[x]); if (a && !saves.includes(a)) saves.push(a); });
+  const saves = [...C.saves];
+  const classLevel=k=>Math.max(cls===k?lv:0,...MC.filter(x=>x.cls===k).map(x=>x.lv));
+  if(classLevel("Monk")>=14)AB.forEach(a=>{if(!saves.includes(a))saves.push(a);});
+  if(classLevel("Rogue")>=15)(ed==="2024"?["wis","cha"]:["wis"]).forEach(a=>{if(!saves.includes(a))saves.push(a);});
+  featsTaken.filter(pk => pk.feat === "Resilient").forEach(pk => { const a = AB.find(x => pk[x]); if (a && !saves.includes(a)) saves.push(a); });
   fx.forEach(e => { if (e.t === "save" && !saves.includes(e.a)) saves.push(e.a); });
   // homebrew AC bonuses are kept apart (hbAc) so the equipment-based AC on My Characters can add them too
   let [ac, acSrc] = C.ac(m);
@@ -122,7 +126,7 @@ function generateCharacter(o) {
   const atkBonus = fxSum("atk"), initBonus = (hasFeat("Alert") ? (ed === "2024" ? prof : 5) : 0) + fxSum("init");
   const w = C.wpn, wm = cls === "Monk" ? Math.max(m.str, m.dex) : m[w[2]];
   const attacks = [{ name: w[0], hit: wm + prof + atkBonus, dmg: `${w[1]}${wm ? sgn(wm) : ""}` }];
-  if (cls === "Monk") { const md = lv >= 17 ? "1d10" : lv >= 11 ? "1d8" : lv >= 5 ? "1d6" : "1d4"; attacks.push({ name: "Unarmed strike", hit: wm + prof + atkBonus, dmg: md + sgn(wm) }); }
+  if (cls === "Monk") { const md = ed==="2024"?(lv>=17?"1d12":lv>=11?"1d10":lv>=5?"1d8":"1d6"):(lv >= 17 ? "1d10" : lv >= 11 ? "1d8" : lv >= 5 ? "1d6" : "1d4"); attacks.push({ name: "Unarmed strike", hit: wm + prof + atkBonus, dmg: md + sgn(wm) }); }
   // spells
   let spell = null;
   const CAST = castOf(cls, subclass);

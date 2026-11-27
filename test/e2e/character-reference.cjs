@@ -302,6 +302,20 @@ const { chromium } = require("playwright");
     assert.deepEqual(revisedCasters.restore,[5,4,0]);assert.deepEqual(revisedCasters.pact,[2,1,0]);assert.deepEqual(revisedCasters.all,[4,0]);
     assert.deepEqual(revisedCasters.meta,[[0,0,2,3,4],[0,2,2,4,6]]);
     assert.deepEqual(revisedCasters.features,[true,false,true,true,true,false]);
+    const remainingCoreAudit=await page.evaluate(()=>{
+      const make=(ed,cls,level)=>pcEnsure(generateCharacter({seed:"REMAINING-CORE",ed,cls,level,race:"Human",bg:"Sage",subclass:"none"}));
+      const m=make("2024","Monk",15);m.used={ki:14};const before=pcResources(m).find(r=>r.key==="ki").max;actRun(m,"Perfect Focus");const after=resLeft(m,pcResources(m).find(r=>r.key==="ki"));
+      m.used.ki=15;actRun(m,"Monk's Focus","freeDash");const free=m.used.ki;
+      const legacy=make("2014","Monk",14),b=make("2024","Barbarian",15);b.used={rage:4};actRun(b,"Persistent Rage recovery");
+      const d=make("2024","Druid",5);d.used={wild:2,slot1:1};const a=wildResurgence(d,"slot1"),wild=d.used.wild,slots=d.used.slot1;const second=wildResurgence(d,"create"),daily=d.used.wildResurgence;
+      const sor=make("2024","Sorcerer",7);sor.used={innateSorcery:2,sorc:0};actRun(sor,"Sorcery Incarnate");
+      return {before,after,free,monkSaves:m.saves.length,legacySaves:legacy.saves.length,rogueSaves:make("2024","Rogue",15).saves,barbarian:[b.used.rage,b.used.persistentRage],druid:[a,wild,slots,second,daily],incarnate:[sor.used.sorc,isActive(sor,"Innate Sorcery")]};
+    });
+    assert.deepEqual([remainingCoreAudit.before,remainingCoreAudit.after,remainingCoreAudit.free,remainingCoreAudit.monkSaves,remainingCoreAudit.legacySaves],[15,4,15,6,6]);
+    assert.ok(remainingCoreAudit.rogueSaves.includes("wis")&&remainingCoreAudit.rogueSaves.includes("cha"));
+    assert.deepEqual(remainingCoreAudit.barbarian,[0,1]);
+    assert.deepEqual(remainingCoreAudit.druid,["Recovered one Wild Shape use.",1,2,"Recovered one level 1 slot.",1]);
+    assert.deepEqual(remainingCoreAudit.incarnate,[2,true]);
     const expansion = await page.evaluate(() => {
       const subclasses = hbBook("subclass").filter(x => ["tce", "xge"].includes(x.src));
       const armorer = generateCharacter({ seed: "ARMOR", ed: "2014", cls: "Artificer", subclass: "Armorer", level: 5 });

@@ -603,7 +603,8 @@ const REVISED_CORE_CLASS_FIELDS = {
   Rogue: {
     f: {1:["Expertise","Sneak Attack","Thieves' Cant","Weapon Mastery"],2:["Cunning Action"],3:["Steady Aim"],5:["Cunning Strike","Uncanny Dodge"],6:["Expertise"],7:["Evasion","Reliable Talent"],11:["Improved Cunning Strike"],14:["Devious Strikes"],15:["Slippery Mind"],18:["Elusive"],20:["Stroke of Luck"]},
   },
-  Monk: {f:{...CLASS_DATA.Monk.f,20:["Body and Mind"]}},
+  Barbarian:{f:{1:["Rage","Unarmored Defense","Weapon Mastery"],2:["Danger Sense","Reckless Attack"],3:["Primal Knowledge"],5:["Extra Attack","Fast Movement"],7:["Feral Instinct","Instinctive Pounce"],9:["Brutal Strike"],11:["Relentless Rage"],13:["Improved Brutal Strike"],15:["Persistent Rage"],17:["Improved Brutal Strike"],18:["Indomitable Might"],20:["Primal Champion"]}},
+  Monk:{f:{1:["Martial Arts","Unarmored Defense"],2:["Monk's Focus","Unarmored Movement","Uncanny Metabolism"],3:["Deflect Attacks"],4:["Slow Fall"],5:["Extra Attack","Stunning Strike"],6:["Empowered Strikes"],7:["Evasion"],9:["Acrobatic Movement"],10:["Heightened Focus","Self-Restoration"],13:["Deflect Energy"],14:["Disciplined Survivor"],15:["Perfect Focus"],18:["Superior Defense"],20:["Body and Mind"]}},
 };
 const classData = (ed, name) => BOOK_CLASS_VARIANTS[ed]?.[name] ||
   (ed==="2024" && Object.hasOwn(REVISED_CORE_CLASS_FIELDS,name)

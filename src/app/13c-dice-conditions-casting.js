@@ -57,6 +57,7 @@ function rollState(c, kind, ab, o = {}) {
     if (ab === "str" && isActive(c, "Rage")) S.adv.push("Rage");
     if (o.conc && featTaken(c, "War Caster")) S.adv.push("War Caster");
   }
+  if(ed==="2024"&&kind==="save"&&ab==="dex"&&clsLv(c,"Barbarian")>=2&&!COND_INCAP.some(on))S.adv.push("Danger Sense");
   if (ed === "2024" && n) S.pen = -2 * n;
   return S;
 }
@@ -179,7 +180,7 @@ function spellOf(ed, name) {
 // Pending user homebrew is distinct from an incomplete published reference. Keep it usable
 // only for its owning character, and do not expose it through public preparation pickers.
 function spellCastBlocked(c, sp, ed) {
-  if (!sp || sp.referenceOnly || !spellConditionalEligible(c,sp,ed)) return true;
+  if (!sp || sp.referenceOnly || !spellConditionalEligible(c,sp,ed)||isActive(c,"Rage")) return true;
   if (!sp.pend) return false;
   if (!sp.hb || !String(sp.d || "").trim()) return true;
   return !(c?.hbPending || []).some(e => e.kind === "spell" && !e.rejected &&

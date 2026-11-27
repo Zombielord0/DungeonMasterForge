@@ -32,7 +32,10 @@ function pcResources(c) {
   if (has("Second Wind")) add("wind", "Second Wind", ed === "2024" ? (CLV("Fighter") >= 10 ? 4 : CLV("Fighter") >= 4 ? 3 : 2) : 1, ed === "2024" ? "short1" : "short");
   if (has("Action Surge")) add("surge", "Action Surge", CLV("Fighter") >= 17 ? 2 : 1, "short");
   if (has("Indomitable")) add("indom", "Indomitable", CLV("Fighter") >= 17 ? 3 : CLV("Fighter") >= 13 ? 2 : 1, "long");
-  if (has("Ki")) add("ki", ed === "2024" ? "Focus points" : "Ki points", CLV("Monk"), "short");
+  if (has("Ki")||has("Monk's Focus")) add("ki", ed === "2024" ? "Focus points" : "Ki points", CLV("Monk"), "short");
+  if(ed==="2024"&&clsLv(c,"Monk")>=2)add("uncannyMetabolism","Uncanny Metabolism",1,"long");
+  if(ed==="2024"&&clsLv(c,"Barbarian")>=15)add("persistentRage","Persistent Rage recovery",1,"long");
+  if(ed==="2024"&&clsLv(c,"Druid")>=5)add("wildResurgence","Wild Resurgence (create slot)",1,"long");
   if (has("Lay on Hands")) add("loh", "Lay on Hands pool", 5 * CLV("Paladin"), "long");
   if (has("Divine Sense") && ed === "2014") add("dsense", "Divine Sense", 1 + Math.max(0, m.cha), "long");
   if (has("Cleansing Touch")) add("cleanse", "Cleansing Touch", Math.max(1, m.cha), "long");
@@ -78,6 +81,9 @@ function pcAbilities(c) {
   const A = [], add = (name, when, text, res, src) => A.push({ name, when, text, res, src });
   const wisDC = 8 + prof + m.wis, chaB = Math.max(1, m.cha);
   if (has("Rage")) add("Rage", "Bonus action", `+${CLV("Barbarian") >= 16 ? 4 : CLV("Barbarian") >= 9 ? 3 : 2} damage on Strength melee attacks, resistance to bludgeoning, piercing and slashing, advantage on Strength checks and saves. No spellcasting while raging.`, "rage");
+  if(ed==="2024"&&clsLv(c,"Barbarian")>=15)add("Persistent Rage recovery","On initiative","Regain all expended Rage uses, once per Long Rest.","persistentRage");
+  if(ed==="2024"&&clsLv(c,"Druid")>=5)add("Wild Resurgence","No action","Spend a spell slot to regain Wild Shape when none remain, or spend one Wild Shape use to regain an expended level 1 slot once per Long Rest.");
+  if(ed==="2024"&&clsLv(c,"Sorcerer")>=7)add("Sorcery Incarnate","Bonus action","When no Innate Sorcery uses remain, spend 2 Sorcery Points to activate it.","sorc");
   if (has("Reckless Attack")) add("Reckless Attack", "On attack", "Advantage on your Strength attacks this turn; attacks against you have advantage until your next turn.");
   const ea = has("Extra Attack (3)") ? 4 : has("Extra Attack (2)") ? 3 : has("Extra Attack") ? 2 : 0;
   if (ea) add("Extra Attack", "Action", `Make ${ea} attacks when you take the Attack action.`);
@@ -89,9 +95,15 @@ function pcAbilities(c) {
   if (has("Action Surge")) add("Action Surge", "Free", ed==="2024"?"Take one additional action on your turn, except the Magic action.":"Take one additional action on your turn.", "surge");
   if (has("Indomitable")) add("Indomitable", "On a failed save", `Reroll a saving throw you failed${ed === "2024" ? `, adding +${CLV("Fighter")}` : ""}.`, "indom");
   if (has("Martial Arts")) { const wm = Math.max(m.str, m.dex), d = ed === "2024" ? (CLV("Monk") >= 17 ? 12 : CLV("Monk") >= 11 ? 10 : CLV("Monk") >= 5 ? 8 : 6) : (CLV("Monk") >= 17 ? 10 : CLV("Monk") >= 11 ? 8 : CLV("Monk") >= 5 ? 6 : 4); add("Martial Arts", "Bonus action", `After the Attack action, make an unarmed strike: ${sgn(wm + prof)} to hit, 1d${d}${wm ? sgn(wm) : ""} bludgeoning.`); }
-  if (has("Ki")) add(ed === "2024" ? "Monk's Focus" : "Ki", "Bonus action", "1 point each: Flurry of Blows (two unarmed strikes), Patient Defense (Dodge), Step of the Wind (Dash or Disengage, double jump).", "ki");
-  if (has("Stunning Strike")) add("Stunning Strike", "On hit", `Spend 1 point: the target makes a CON save (DC ${wisDC}) or is stunned until the end of your next turn.`, "ki");
-  if (has("Deflect Missiles")) add(ed === "2024" ? "Deflect Attacks" : "Deflect Missiles", "Reaction", `Reduce the damage of an attack that hits you by 1d10 + ${m.dex + CLV("Monk")}.`);
+  if(ed==="2014"&&has("Ki"))add("Ki","Bonus action","1 point each: Flurry of Blows, Patient Defense, Step of the Wind.","ki");
+  if(ed==="2024"&&clsLv(c,"Monk")>=2){
+    add("Monk's Focus","Bonus action","Flurry of Blows, Patient Defense or Step of the Wind; free Dash/Disengage options available.","ki");
+    add("Uncanny Metabolism","On initiative","Regain all spent Focus Points and heal Monk level + one Martial Arts die.","uncannyMetabolism");
+  }
+  if(ed==="2024"&&clsLv(c,"Monk")>=15)add("Perfect Focus","On initiative","If below 4 Focus Points, regain points up to four.");
+  if(ed==="2024"&&clsLv(c,"Monk")>=18)add("Superior Defense","Start of turn","Spend 3 Focus Points: Resistance to all damage except Force for 1 minute or until Incapacitated.","ki");
+  if(has("Stunning Strike"))add("Stunning Strike","On hit",ed==="2024"?`Once per turn: CON save DC ${wisDC}; stunned until your next turn starts on failure, halved Speed and Advantage on next incoming attack until then on success.`:`Spend 1 point: CON save DC ${wisDC} or stunned until the end of your next turn.`,"ki");
+  if (has("Deflect Missiles")||has("Deflect Attacks")) add(ed === "2024" ? "Deflect Attacks" : "Deflect Missiles", "Reaction", `Reduce the damage of an attack that hits you by 1d10 + ${m.dex + CLV("Monk")}.`);
   if (has("Slow Fall")) add("Slow Fall", "Reaction", `Reduce falling damage by ${5 * CLV("Monk")}.`);
   if (has("Sneak Attack")) add("Sneak Attack", "On hit, once per turn", `+${Math.ceil(CLV("Rogue") / 2)}d6 damage with a finesse or ranged weapon when you have advantage, or an ally is within 5 ft of the target.`);
   if (has("Cunning Action")) add("Cunning Action", "Bonus action", "Dash, Disengage or Hide.");
@@ -172,14 +184,41 @@ function sorcerousRestoration(c){
   if(n<=0)return 0;
   c.used=c.used||{};c.used.sorc=Math.max(0,Math.min(p.max,+c.used.sorc||0)-n);c.used.sorcerousRestore=1;return n;
 }
+function restoreResource(c,key,minimum){
+  const r=pcResources(c).find(x=>x.key===key);
+  if(!r||!Number.isFinite(r.max))return 0;
+  const n=Math.max(0,Math.min(r.max,minimum)-resLeft(c,r));
+  if(n){c.used=c.used||{};c.used[key]=Math.max(0,Math.min(r.max,+c.used[key]||0)-n);}
+  return n;
+}
+function wildResurgence(c,choice){
+  if(edOf(c)!=="2024"||clsLv(c,"Druid")<5)return "Wild Resurgence unavailable.";
+  const R=pcResources(c),wild=R.find(x=>x.key==="wild"),daily=R.find(x=>x.key==="wildResurgence");
+  if(!wild||!daily)return "Wild Resurgence unavailable.";
+  c.used=c.used||{};
+  if(choice==="create"){
+    const first=R.find(x=>x.key==="slot1");
+    if(!first||resLeft(c,wild)<1||resLeft(c,daily)<1||resLeft(c,first)>=first.max)return "Need one Wild Shape use, an expended level 1 slot, and the daily conversion.";
+    c.used.wild=(+c.used.wild||0)+1;c.used.wildResurgence=1;restoreResource(c,"slot1",resLeft(c,first)+1);return "Recovered one level 1 slot.";
+  }
+  const slot=R.find(x=>x.key===choice&&/^slot[1-9]$/.test(x.key));
+  if(!slot||resLeft(c,slot)<1||resLeft(c,wild)!==0)return "Need an available spell slot and no remaining Wild Shape uses.";
+  c.used[slot.key]=(+c.used[slot.key]||0)+1;restoreResource(c,"wild",1);return "Recovered one Wild Shape use.";
+}
 const ACT = {
+  "Uncanny Metabolism":{kind:"instant",use:c=>{const n=restoreResource(c,"ki",clsLv(c,"Monk")),healed=healSelf(c,clsLv(c,"Monk")+rollDice("1d"+maDie(c)).total);return "Uncanny Metabolism: regained "+n+" Focus Points and "+healed+" HP."}},
+  "Perfect Focus":{kind:"instant",use:c=>"Perfect Focus: regained "+restoreResource(c,"ki",4)+" Focus Points."},
+  "Superior Defense":{kind:"toggle",cost:3,fx:()=>({res:["acid","bludgeoning","cold","fire","lightning","necrotic","piercing","poison","psychic","radiant","slashing","thunder"],notes:["Superior Defense: 1 minute or until Incapacitated; end manually."]})},
+  "Persistent Rage recovery":{kind:"instant",noCost:true,use:c=>{const R=pcResources(c),r=R.find(x=>x.key==="rage"),u=R.find(x=>x.key==="persistentRage");if(!r||!u||!resLeft(c,u))return "No recovery use remains.";const n=restoreResource(c,"rage",r.max);c.used.persistentRage=1;return "Recovered "+n+" Rage uses."}},
+  "Wild Resurgence":{kind:"instant",choices:c=>[...pcResources(c).filter(r=>/^slot[1-9]$/.test(r.key)&&resLeft(c,r)>0).map(r=>[r.key,"Spend "+r.name+" to regain Wild Shape"]),["create","Spend Wild Shape to recover a level 1 slot"]],use:wildResurgence},
+  "Sorcery Incarnate":{kind:"instant",noCost:true,use:c=>{const R=pcResources(c),i=R.find(x=>x.key==="innateSorcery"),s=R.find(x=>x.key==="sorc");if(!i||!s||resLeft(c,i)>0||resLeft(c,s)<2||isActive(c,"Innate Sorcery"))return "Requires no remaining Innate Sorcery uses, an inactive effect and 2 Sorcery Points.";c.used.sorc=(+c.used.sorc||0)+2;c.active={...(c.active||{}),"Innate Sorcery":true};return "Innate Sorcery activated for 1 minute."}},
   "Innate Sorcery":{kind:"toggle",fx:()=>({notes:["Sorcerer spells: +1 save DC and Advantage on spell attacks. End after 1 minute."]})},
   "Magical Cunning":{kind:"instant",noCost:true,use:c=>{const n=magicalCunningRecovery(c);return n?`Magical Cunning: recovered ${n} Pact Magic slot(s).`:"No eligible expended Pact Magic slots or no use remains."}},
   "Tireless":{kind:"instant",use:c=>{const n=Math.max(1,rollDice("1d8").total+c.mods.wis);const applied=giveTemp(c,n);return `Tireless: rolled ${n} temporary HP${applied?"; applied.":"; existing temporary HP is at least as high."}`;}},
   "Nature’s Veil":{kind:"instant",use:c=>{c.conds={...(c.conds||{}),invisible:true};return "Invisible until the end of your next turn; remove the condition then."; }},
   "Telekinetic Shove": { kind: "instant", use: c => `Telekinetic Shove: Strength save DC ${8 + c.prof + c.mods[featCastingAbility(c, "Telekinetic")]}. On a failure, pull or push 5 ft.` },
   // ---------- Barbarian
-  Rage: { kind: "toggle", fx: c => ({ atk: [{ f: "strMelee", dmg: rageDmg(c), label: `Rage +${rageDmg(c)}` }], res: ["bludgeoning", "piercing", "slashing"], notes: ["Advantage on Strength checks and Strength saving throws", "You can't cast spells or concentrate while raging"] }),
+  Rage: { kind: "toggle", fx: c => ({ atk: [{ f: edOf(c)==="2024"?"strWeapon":"strMelee", dmg: rageDmg(c), label: `Rage +${rageDmg(c)}` }], res: ["bludgeoning", "piercing", "slashing"], notes: ["Advantage on Strength checks and Strength saving throws", "You can't cast spells or concentrate while raging"] }),
     start: c => { const tree = c.subclass === "Path of the World Tree" && c.level >= 3 && giveTemp(c, c.level); if (c.conc) { toast(`Rage ends your concentration on ${c.conc.spell}.`); delete c.conc; } return `${c.name} rages: +${rageDmg(c)} damage on Strength melee attacks, resistance to bludgeoning, piercing and slashing.${tree ? ` Vitality of the Tree: ${c.level} temporary hit points.` : ""}`; } },
   "Reckless Attack": { kind: "toggle", fx: () => ({ atk: [{ f: "strMelee", adv: "advantage (Reckless)" }], notes: ["Attacks against you have advantage until your next turn"] }), start: () => "Reckless Attack: advantage on your Strength attacks this turn; attacks against you have advantage until your next turn." },
   Frenzy: { kind: "toggle", needs: "Rage", fx: c => edOf(c) === "2024" ? { notes: [`Frenzy: the first Reckless Strength hit each turn deals +${rageDmg(c)}d6`] } : { notes: ["Frenzy: one melee weapon attack as a bonus action each turn; one level of exhaustion when the rage ends"] } },
@@ -248,8 +287,8 @@ const ACT = {
   "Bulwark of Force": { kind: "toggle", fx: () => ({ notes: ["Bulwark of Force: you and chosen allies within 30 ft have half cover"] }) },
   // ---------- Monk
   Ki: { kind: "instant", choices: [["flurry", "Flurry of Blows"], ["patient", "Patient Defense"], ["step", "Step of the Wind"]], use: (c, ch) => ch === "flurry" ? "Flurry of Blows: two unarmed strikes as a bonus action." : ch === "patient" ? "Patient Defense: Dodge as a bonus action." : "Step of the Wind: Dash or Disengage as a bonus action; jump distance doubled." },
-  "Monk's Focus": { kind: "instant", choices: [["flurry", "Flurry of Blows"], ["patient", "Patient Defense"], ["step", "Step of the Wind"]], use: (c, ch) => ch === "flurry" ? `Flurry of Blows: ${c.level >= 10 ? "three" : "two"} unarmed strikes as a bonus action.` : ch === "patient" ? "Patient Defense: Disengage and Dodge as a bonus action." : "Step of the Wind: Dash and Disengage as a bonus action; jump distance doubled." },
-  "Stunning Strike": { kind: "instant", use: c => `Stunning Strike: the target makes a CON save (DC ${8 + c.prof + c.mods.wis}) or is stunned until the end of your next turn.` },
+  "Monk's Focus":{kind:"instant",choices:[["flurry","Flurry of Blows (1)"],["patient","Patient Defense (1)"],["step","Step of the Wind (1)"],["freeDash","Dash (free)"],["freeDisengage","Disengage (free)"]],cost:(c,ch)=>ch.startsWith("free")?0:1,use:(c,ch)=>{if(ch==="freeDash")return "Dash as a Bonus Action.";if(ch==="freeDisengage")return "Disengage as a Bonus Action.";if(ch==="flurry")return "Flurry of Blows: "+(clsLv(c,"Monk")>=10?3:2)+" Unarmed Strikes.";if(ch==="patient"){const n=clsLv(c,"Monk")>=10?rollDice("2d"+maDie(c)).total:0;if(n)giveTemp(c,n);return "Disengage and Dodge as a Bonus Action."+(n?" Rolled "+n+" temporary HP.":"");}return "Dash and Disengage; double jump distance.";}},
+  "Stunning Strike": {kind:"instant",use:c=>edOf(c)==="2024"?`CON save DC ${8+c.prof+c.mods.wis}: on failure Stunned until your next turn starts; on success halved Speed and Advantage on next incoming attack until then.`:`CON save DC ${8+c.prof+c.mods.wis} or Stunned until the end of your next turn.`},
   "Wholeness of Body": { kind: "instant", use: c => healMsg(c, "Wholeness of Body", rollDice(edOf(c) === "2024" ? `1d${maDie(c)}${sgn(c.mods.wis)}` : String(3 * c.level))) },
   "Quivering Palm": { kind: "instant", use: c => edOf(c) === "2024" ? roll("Quivering Palm", "10d12", "damage", `Force damage (CON save DC ${8 + c.prof + c.mods.wis} for half)`, true) : roll("Quivering Palm", "10d10", "damage", `Necrotic damage if the target succeeds on its CON save (DC ${8 + c.prof + c.mods.wis}); on a failure it drops to 0 hit points`) },
   "Shadow Arts": { kind: "instant", use: () => "Shadow Arts: cast darkness (you can see through it)." },
@@ -370,7 +409,7 @@ function actControls(c, a, R) {
   if (S.kind === "persist") return `<span class="act">${sel(on || "")}</span>`;
   if (S.kind === "toggle") return on ? `<span class="act">${ch.length ? `<span class="tag">${esc((ch.find(x => x[0] === on) || [, ""])[1])}</span>` : ""}<button type="button" class="btn sm primary" data-act="${k}">■ End</button></span>`
     : `<span class="act">${sel()}<button type="button" class="btn sm" data-act="${k}"${a.res && R[a.res] && resLeft(c, R[a.res]) < 1 ? " disabled" : ""}>▶ Activate</button></span>`;
-  if (S.kind === "instant" && (S.use || a.res)) return `<span class="act">${sel()}<button type="button" class="btn sm" data-act="${k}"${a.res && R[a.res] && resLeft(c, R[a.res]) < 1 && !S.noCost ? " disabled" : ""}>Use</button></span>`;
+  if (S.kind === "instant" && (S.use || a.res)) return `<span class="act">${sel()}<button type="button" class="btn sm" data-act="${k}"${a.res && R[a.res] && resLeft(c, R[a.res]) < 1 && !S.noCost && !ch.some(([id])=>typeof S.cost==="function"&&S.cost(c,id)===0) ? " disabled" : ""}>Use</button></span>`;
   return "";
 }
 function rcActiveHTML(c) {

@@ -399,7 +399,9 @@ function actRun(c, name, choice) {
   c.active = c.active || {}; c.used = c.used || {};
   if (S.kind === "toggle" && c.active[name]) { delete c.active[name]; if (name === "Wild Shape") delete c.formHp; return `${name} ended.`; }
   if (S.dialog) { S.dialog(c, a); return null; }
-  const ch = actChoices(c, S).length ? (choice || actChoices(c, S)[0][0]) : null;
+  const options=actChoices(c,S);
+  if(choice&&!options.some(x=>x[0]===choice))return "That option is unavailable.";
+  const ch=options.length?(choice||options[0][0]):null;
   const r = a.res ? pcResources(c).find(x => x.key === a.res) : null;
   let spent = 0;
   if (r && !S.noCost) {
@@ -430,7 +432,7 @@ function pcRest(c, kind) {
   pcResources(c).forEach(r => {
     const u = Math.min(r.max, +c.used[r.key] || 0); if (!u) return;
     let nu = u;
-    if (kind === "long") nu = r.key === "hd" ? (edOf(c) === "2024" ? 0 : Math.max(0, u - Math.max(1, Math.floor(c.level / 2)))) : 0;
+    if (kind === "long") nu = r.key === "hd" ? (edOf(c) === "2024" ? 0 : Math.max(0, u - Math.max(1, Math.floor(totalLv(c) / 2)))) : 0;
     else if (r.recharge === "short") nu = 0;
     else if (r.recharge === "short1") nu = u - 1;
     if (nu !== u) { c.used[r.key] = nu; back.push(r.name); }
