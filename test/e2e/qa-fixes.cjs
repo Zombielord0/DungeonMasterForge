@@ -233,6 +233,13 @@ const ZOOK = fs.readFileSync(path.join(FIX, "companion-zook.json"), "utf8");
       itemConsume(p,pot)&&p.qty===1,itemConsume(p,pot)&&p.qty===0,!itemConsume(p,pot)];
   });
   check("explicit item charges, zero-cost spells, dawn recharge, persistence and consumption",chargeChecks.every(Boolean),JSON.stringify(chargeChecks));
+  const manualSpellChecks=await p.evaluate(()=>{
+    const s={n:"Eldritch Blast",d:"Make a ranged spell attack; deal 2d10 force damage.",h:"",dt:"Force",at:"ranged",sv:"DEX",l:0,manualRoll:true,manualEffects:true};
+    const p=spellTweak({mods:{cha:5}},s,spellPlan(s));
+    const e=spellPlan({...s,manualRoll:false,manualEffects:true});
+    return [spellManualResolution(s),p.manual===true,p.dice===""&&p.attack===""&&p.count===1&&p.flat===0,e.manual===true&&e.dice==="",!spellManualResolution({...s,manualRoll:false,manualEffects:false})];
+  });
+  check("manual recovered spell rules bypass inferred dice and automatic summon resolution",manualSpellChecks.every(Boolean),JSON.stringify(manualSpellChecks));
   check("reference spells: a spell the Forge already has isn't added twice (Fireball)", refs["2014fireball"] === 1 && refs["2024fireball"] === 1, JSON.stringify([refs["2014fireball"], refs["2024fireball"]]));
   const sb = await p.evaluate(txt => { const j = JSON.parse(txt); j.spells = [...j.spells, { name: "Silvery Barbs", level: 1 }]; const D = compImport(j, "2014");
     return { prep: D.extras.prepared.map(s => s.n), hb: D.homebrew.filter(x => x.kind === "spell").map(x => x.name) }; }, ZOOK);

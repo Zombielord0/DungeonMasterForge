@@ -175,9 +175,10 @@ function spellCastBlocked(c, sp, ed) {
     (!e.ed || e.ed === "both" || e.ed === ed) && e.name === sp.n && e.desc === sp.d);
 }
 // what a spell does, read from its text: damage or healing dice, upcasting, cantrip growth, attack or save, area, number of rays or darts
+function spellManualResolution(sp) { return !!(sp.rulesSummary || sp.manualRoll || sp.manualEffects); }
 function spellPlan(sp) {
   const d = String(sp.d || ""), h = String(sp.h || "") + " " + d, P = { heal: false, dice: "", flat: 0, type: sp.dt || "", per: "", count: 1, countPer: 0, save: "", half: false, attack: sp.at || "", area: false, mod: false };
-  if (sp.rulesSummary || sp.manualRoll) return P;
+  if (spellManualResolution(sp)) return {...P,attack:"",manual:true};
   const heal = d.match(/regains?\s+(?:a number of\s+)?hit points equal to\s+(\d+d\d+)(\s*(?:\+|plus)\s*your spellcasting ability modifier)?/i);
   if (heal) { P.heal = true; P.dice = heal[1]; P.mod = !!heal[2]; }
   else {
@@ -201,6 +202,7 @@ function spellPlan(sp) {
 }
 // the dice for a cast at this slot level (cantrips grow with character level)
 function spellTweak(c, sp, P) {
+  if (P.manual) return P;
   if (sp.n === "Eldritch Blast") { const L = totalLv(c); P.count = 1 + (L >= 5) + (L >= 11) + (L >= 17); P.cantripTiers = false; if (hasChoice(c, "Eldritch Invocations", "agonizing")) P.flat += c.mods.cha; }
   return P;
 }
@@ -260,13 +262,13 @@ function castSlotLevel(c, sp, how, ed = edOf(c)) {
 function castPreview(c, sp, how, ed = edOf(c)) {
   const P = spellTweak(c, sp, spellPlan(sp)), K = spellCaster(c, sp, how, ed), slot = castSlotLevel(c, sp, how, ed), up = Math.max(0, slot - sp.l);
   const count = P.count + (P.countPer ? up : 0), parts = [];
-  if (sp.manualRoll && sp.sv) parts.push(`${sp.sv.toUpperCase()} save DC ${K.dc}`);
-  if (sp.manualRoll && sp.at) parts.push(`Spell attack ${sgn(K.atk)}`);
+  if (spellManualResolution(sp) && sp.sv) parts.push(`${sp.sv.toUpperCase()} save DC ${K.dc}`);
+  if (spellManualResolution(sp) && sp.at) parts.push(`Spell attack ${sgn(K.atk)}`);
   if (P.attack) parts.push(`Spell attack ${sgn(K.atk)}`); else if (P.save) parts.push(`${P.save.toUpperCase()} save against DC ${K.dc}`);
   if (P.dice) parts.push(`${P.heal ? "heals" : "deals"} ${spellDice(c, sp, P, slot, K)}${P.type && !P.heal ? " " + P.type.toLowerCase() : ""}${count > 1 ? ` × ${count}` : ""}`);
   if (sp.l && up && (P.per || P.countPer)) parts.push(`upcast +${up} level${up === 1 ? "" : "s"}`);
   if (sp.rulesSummary) parts.push("Resolve the spell’s effects using its sourcebook");
-  if (sp.manualEffects) parts.push("Use the spell description for additional effects");
+  if (sp.manualRoll || sp.manualEffects) parts.push("Resolve all rolls and effects manually using the complete spell rules");
   if (sp.co) parts.push(`needs concentration${c.conc ? ` (ends ${c.conc.spell})` : ""}`);
   return (sp.l ? `At ${ordinal(slot)}: ` : "") + (parts.join(" · ") || "No dice to roll.");
 }
@@ -331,15 +333,15 @@ function castGo() {
   rollLog(c, { label: `Cast ${sp.n}`, total: sp.l ? `L${slot}` : "✦", note: how === "free" ? "no slot" : how === "ritual" ? "ritual" : "" });
   pcPersist();
   const dice = spellDice(c, sp, P, slot, K), count = P.count + (P.countPer ? Math.max(0, slot - sp.l) : 0), type = P.type ? ` ${P.type.toLowerCase()}` : "";
-  const summoned = summonSpiritHTML(sp, ed, slot, K);
+  const summoned = spellManualResolution(sp) ? "" : summonSpiritHTML(sp, ed, slot, K);
   if (summoned) {
     actDialog(`<h3 id="actTitle">${esc(sp.n)}</h3><p>${esc(notes.join(" "))}</p>${summoned}<button class="btn" type="button" data-actclose>Close</button>`);
     return;
   }
-  if (sp.rulesSummary || sp.manualRoll) {
-    const manualDice = sp.manualRoll ? [...new Set((sp.d + " " + sp.h).match(/\b[1-9]\d?d(?:4|6|8|10|12|20|100)\b/gi) || [])] : [];
+  if (spellManualResolution(sp)) {
+    const manualDice = (sp.manualRoll || sp.manualEffects) ? [...new Set((sp.d + " " + sp.h).match(/\b[1-9]\d?d(?:4|6|8|10|12|20|100)\b/gi) || [])] : [];
     actDialog(`<h3 id="actTitle">${esc(sp.n)}</h3><p>${esc(notes.join(" "))}</p>
-      ${sp.rulesSummary ? '<p class="hint">Resolve the remaining effects using the sourcebook.</p>' : ""}
+      ${sp.rulesSummary ? '<p class="hint">Resolve the remaining effects using the sourcebook.</p>' : '<p class="hint">The cast resource is recorded. Resolve attacks, saves, damage, healing, summon statistics and additional effects manually; optional dice buttons do not apply effects.</p>'}
       ${spDetail(sp, { edition: ed, actions: false })}
       ${manualDice.length ? `<div class="row" style="flex-wrap:wrap">${manualDice.map(expr => `<button class="btn sm" type="button" data-spell-dice="${esc(expr)}">Roll ${esc(expr)}</button>`).join("")}</div><p role="status" data-spell-roll></p>` : ""}
       <button class="btn" type="button" data-actclose>Close</button>`);

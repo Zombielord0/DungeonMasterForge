@@ -5,7 +5,9 @@ function inventoryCatalogItem(i, ed) {
     return { ...snapshot, st: Array.isArray(snapshot.st) ? snapshot.st.filter(row => Array.isArray(row) && row.length >= 2) : [] };
   }
   const ref = i.ref && itFind(i.ref);
-  if (ref) return ref;
+  // Keep the saved source identity; do not substitute another edition's charged contract.
+  if (ref && (!/^20(14|24)-/.test(i.ref) || i.ref.startsWith(ed+"-"))) return ref;
+  if(ref && /^20(14|24)-/.test(i.ref)) return {...ref,referenceOnly:true};
   const name = String(i.n || "").trim().toLowerCase();
   itLoad();
   return IT.data[ed].find(x => x.n.toLowerCase() === name) || null;
