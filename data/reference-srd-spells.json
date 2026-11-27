@@ -1,0 +1,159 @@
+{
+  "version": 1,
+  "provenance": "SRD 5.1 (2014 rules); existing CC BY 4.0 catalog payloads cross-checked against archived working-master SRD records. Not an assertion of complete PHB printing equivalence.",
+  "entries": [
+    {
+      "name": "Bigby's Hand",
+      "src": "phb-2014",
+      "ed": "2014",
+      "target": "Arcane Hand",
+      "stableId": "cmp:163dba9135bbf04b7b138b2e",
+      "descriptionHash": "b64ded51",
+      "higherLevelHash": "6bfc58e3"
+    },
+    {
+      "name": "Drawmij's Instant Summons",
+      "src": "phb-2014",
+      "ed": "2014",
+      "target": "Instant Summons",
+      "stableId": "cmp:bc607821881b85b1162280a8",
+      "descriptionHash": "430f9342",
+      "higherLevelHash": "811c9dc5"
+    },
+    {
+      "name": "Evard's Black Tentacles",
+      "src": "phb-2014",
+      "ed": "2014",
+      "target": "Black Tentacles",
+      "stableId": "cmp:cb1703bcad9dab7937ea2aa8",
+      "descriptionHash": "cc7b833c",
+      "higherLevelHash": "811c9dc5"
+    },
+    {
+      "name": "Leomund's Secret Chest",
+      "src": "phb-2014",
+      "ed": "2014",
+      "target": "Secret Chest",
+      "stableId": "cmp:0ad01034a462588c475b83a4",
+      "descriptionHash": "6c3e0c58",
+      "higherLevelHash": "811c9dc5"
+    },
+    {
+      "name": "Leomund's Tiny Hut",
+      "src": "phb-2014",
+      "ed": "2014",
+      "target": "Tiny Hut",
+      "stableId": "cmp:464bfb98382dcd25d080ebf8",
+      "descriptionHash": "37ad5de4",
+      "higherLevelHash": "811c9dc5"
+    },
+    {
+      "name": "Melf's Acid Arrow",
+      "src": "phb-2014",
+      "ed": "2014",
+      "target": "Acid Arrow",
+      "stableId": "cmp:397df1f4e4535f4929cda002",
+      "descriptionHash": "794c1c3a",
+      "higherLevelHash": "10fcfb4f"
+    },
+    {
+      "name": "Mordenkainen's Faithful Hound",
+      "src": "phb-2014",
+      "ed": "2014",
+      "target": "Faithful Hound",
+      "stableId": "cmp:2126b3d4ab833c08fea0eafb",
+      "descriptionHash": "601c4b44",
+      "higherLevelHash": "811c9dc5"
+    },
+    {
+      "name": "Mordenkainen's Magnificent Mansion",
+      "src": "phb-2014",
+      "ed": "2014",
+      "target": "Magnificent Mansion",
+      "stableId": "cmp:9039fdb97648ec280a492236",
+      "descriptionHash": "7a0b33d2",
+      "higherLevelHash": "811c9dc5"
+    },
+    {
+      "name": "Mordenkainen's Private Sanctum",
+      "src": "phb-2014",
+      "ed": "2014",
+      "target": "Private Sanctum",
+      "stableId": "cmp:4e16d2f915602cbd97edcd62",
+      "descriptionHash": "0b101511",
+      "higherLevelHash": "3ec9df20"
+    },
+    {
+      "name": "Mordenkainen's Sword",
+      "src": "phb-2014",
+      "ed": "2014",
+      "target": "Arcane Sword",
+      "stableId": "cmp:f61710f0f7943adfb38fa549",
+      "descriptionHash": "771c4605",
+      "higherLevelHash": "811c9dc5"
+    },
+    {
+      "name": "Nystul's Magic Aura",
+      "src": "phb-2014",
+      "ed": "2014",
+      "target": "Arcanist's Magic Aura",
+      "stableId": "cmp:02ef476b075e6a6555dbb306",
+      "descriptionHash": "86188c55",
+      "higherLevelHash": "811c9dc5"
+    },
+    {
+      "name": "Otiluke's Freezing Sphere",
+      "src": "phb-2014",
+      "ed": "2014",
+      "target": "Freezing Sphere",
+      "stableId": "cmp:4ba02c77a21043192daebfa5",
+      "descriptionHash": "bdc5db03",
+      "higherLevelHash": "62d8c7e2"
+    },
+    {
+      "name": "Otiluke's Resilient Sphere",
+      "src": "phb-2014",
+      "ed": "2014",
+      "target": "Resilient Sphere",
+      "stableId": "cmp:8351975e85a069217263bd19",
+      "descriptionHash": "cc70923f",
+      "higherLevelHash": "811c9dc5"
+    },
+    {
+      "name": "Otto's Irresistible Dance",
+      "src": "phb-2014",
+      "ed": "2014",
+      "target": "Irresistible Dance",
+      "stableId": "cmp:661088aa2e72d6b6d76a46e3",
+      "descriptionHash": "7939fbce",
+      "higherLevelHash": "811c9dc5"
+    },
+    {
+      "name": "Rary's Telepathic Bond",
+      "src": "phb-2014",
+      "ed": "2014",
+      "target": "Telepathic Bond",
+      "stableId": "cmp:36d490a3d9937eba359bfbe0",
+      "descriptionHash": "595b2500",
+      "higherLevelHash": "811c9dc5"
+    },
+    {
+      "name": "Tasha's Hideous Laughter",
+      "src": "phb-2014",
+      "ed": "2014",
+      "target": "Hideous Laughter",
+      "stableId": "cmp:1bc6ddd28457b18296b22cf8",
+      "descriptionHash": "922b655b",
+      "higherLevelHash": "811c9dc5"
+    },
+    {
+      "name": "Tenser's Floating Disk",
+      "src": "phb-2014",
+      "ed": "2014",
+      "target": "Floating Disk",
+      "stableId": "cmp:b8835449b725cc58881eafba",
+      "descriptionHash": "6ef2229f",
+      "higherLevelHash": "811c9dc5"
+    }
+  ]
+}

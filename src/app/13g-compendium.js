@@ -34,8 +34,12 @@ function compendiumBookDetail(entry) {
   if (entry.kind === "Spell") {
     const ed = entry.ed || "2014";
     spLoad();
-    const spell = SP.data[ed].find(s => s.src === entry.src && s.n === entry.name && !s.pend && (!s.ref || s.referenceSummary));
-    if (spell) return `${spell.ref ? '<p class="hint">A short summary. See the sourcebook for the full rules.</p>' : ""}${spDetail(spell, { edition: ed, actions: false })}`;
+    if (entry.srdSpell && ed === "2014") {
+      const canonical = SP.data[ed].find(s => s.n === entry.srdSpell && !s.src && !s.hb && !s.ref && !s.pend);
+      if (canonical) return `${bookLine(entry)}<p class="hint">Full rules from SRD 5.1 (called ${esc(canonical.n)} there).</p>${spDetail(canonical, { edition: ed, actions: false })}`;
+    }
+    const spell = SP.data[ed].find(s => s.src === entry.src && s.n === entry.name && !s.pend && (!s.ref || s.referenceSummary || s.srdSpell));
+    if (spell) return `${spell.ref && !spell.srdSpell ? '<p class="hint">A short summary. See the sourcebook for the full rules.</p>' : ""}${spDetail(spell, { edition: ed, actions: false })}`;
   }
   const hint = entry.sum ? "A short summary. See the sourcebook for the full rules." : "Reference only. See the sourcebook for the full rules.";
   return `${bookLine(entry)}<p class="hint">${hint}</p>${summary}${details}`;

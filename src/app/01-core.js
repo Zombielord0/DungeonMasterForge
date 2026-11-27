@@ -72,7 +72,7 @@ function dmBook(code) {
 }
 /* the small tag on a list row, and the "Source" line in its details */
 const bookTag = x => { const b = dmBook(x && x.src); return b ? `<span class="tag book hide-sm" title="${esc(b.name)}">${esc(b.short)}</span>` : ""; };
-const bookLine = x => { const b = dmBook(x && x.src); return b ? `<p class="hint book-line">Source: <i>${b.ed === "2024" && b.url && /^https:\/\//.test(b.url) ? `<a href="${esc(b.url)}" target="_blank" rel="noopener">${esc(b.name)}</a>` : esc(b.name)}</i> (${esc(b.by)})${x.page ? `, p. ${esc(x.page)}` : ""}${b.lic === "reference" ? " · Rules summary" : ", open content"}. <a href="/credits.html" target="_blank" rel="noopener">Credits and licences</a></p>` : ""; };
+const bookLine = x => { const b = dmBook(x && x.src); return b ? `<p class="hint book-line">Source: <i>${b.ed === "2024" && b.url && /^https:\/\//.test(b.url) ? `<a href="${esc(b.url)}" target="_blank" rel="noopener">${esc(b.name)}</a>` : esc(b.name)}</i> (${esc(b.by)})${x.page ? `, p. ${esc(x.page)}` : ""}${x.srdSpell ? " · Full SRD 5.1 rules" : b.lic === "reference" ? " · Rules summary" : ", open content"}. <a href="/credits.html" target="_blank" rel="noopener">Credits and licences</a></p>` : ""; };
 /* The Book filter's choices for a list: Any, the SRD, then each extra book in it. Its values: "", "srd" or a book code. */
 function bookOptions(list) {
   const codes = [...new Set(list.map(x => x.src).filter(Boolean))].sort((a, b) => dmBook(a).name.localeCompare(dmBook(b).name));

@@ -245,6 +245,7 @@ function renderSpTargets() {
   $("#spTarget").value = SP.target || "";
 }
 function spPrepBtn(s) {
+  if (s.srdSpell) return `<span class="hint">Prepare the canonical spell ${esc(s.srdSpell)} to avoid a duplicate.</span>`;
   if (s.referenceOnly) return '<span class="hint">Reference only — rules not yet certified.</span>';
   const t = spTargetPC(); if (!t) return "";
   const on = isPrep(t, s.n, SP.ed), locked = t.prepared.some(p => p.n === s.n && p.ed === SP.ed && p.src);

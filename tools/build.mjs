@@ -24,6 +24,7 @@ import { readFileSync, writeFileSync, readdirSync, unlinkSync, mkdirSync } from 
 import vm from "node:vm";
 import { joinSummaries, joinSrdItems } from "./ref-summaries.mjs";
 import { appendReferenceSpells, validateRecoveryManifest, applyRecoveredContent } from "./recovered-content.mjs";
+import { validateSrdSpellLinks, fillSrdSpellReferences, joinSrdSpellReferences } from "./ref-srd-spells.mjs";
 
 if (process.env.DMFORGE_BUILT === "1") process.exit(0); // npm run test:all builds once, then skips this in each check
 
@@ -67,6 +68,7 @@ const spellGrants = JSON.parse(read("data/spell-grants.json"));
 const bookReferences = JSON.parse(read("data/book-references.json"));
 const sourceBooks = JSON.parse(read("data/extra-books.json")).books;
 const approvedRecovery = validateRecoveryManifest(JSON.parse(read("data/recovered-content.json")), sourceBooks);
+const srdSpellLinks = validateSrdSpellLinks(JSON.parse(read("data/reference-srd-spells.json")), bookReferences, JSON.parse(read("data/spells.json")));
 for (const [name, key] of [["spells", "spellData"], ["monsters", "monsterData"], ["items", "itemData"],
   ["extra-spells", "spellExtra"], ["extra-monsters", "monsterExtra"], ["extra-items", "itemExtra"], ["extra-options", "optionExtra"], ["extra-books", "bookData"], ["book-references", "bookReferences"]]) {
   // stored as text, so the app turns it into objects only when a tab needs it (dmData in src/app/01-core.js)
@@ -78,6 +80,7 @@ for (const [name, key] of [["spells", "spellData"], ["monsters", "monsterData"],
     const core = JSON.parse(read("data/spells.json"));
     const told = JSON.parse(read("data/reference-spell-text.json")).spells;
     data = appendReferenceSpells(data, core, spellGrants.legacySpells, bookReferences, told, sourceBooks).data;
+    data = fillSrdSpellReferences(data, srdSpellLinks);
   }
   if (["extra-spells", "extra-items", "extra-monsters"].includes(name)) {
     data = applyRecoveredContent(name, data, approvedRecovery, bookReferences);
@@ -102,6 +105,7 @@ for (const [name, key] of [["spells", "spellData"], ["monsters", "monsterData"],
     /* Short summaries in our own words for references with nothing else to show (owner, 2026-11-26).
        Keyed by kind, then "Name|book" or plain "Name". A key that matches no reference stops the build, so typos can't hide. */
     data = joinSummaries(data, JSON.parse(read("data/reference-summaries.json")));
+    data = joinSrdSpellReferences(data, srdSpellLinks);
     /* book items the free rules also have point at their free-rules name, so the Compendium shows the full text */
     const srdItems = new Set(JSON.parse(read("data/items.json"))["2014"].mi.filter(m => !m.src).map(m => m.n));
     data = joinSrdItems(data, JSON.parse(read("data/reference-srd-items.json")), srdItems);
