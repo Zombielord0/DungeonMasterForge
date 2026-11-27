@@ -196,7 +196,7 @@ const ZOOK = fs.readFileSync(path.join(FIX, "companion-zook.json"), "utf8");
     itLoad();const get=n=>IT.data["2024"].find(x=>x.n===n&&x.src==="dmg-2024"),manual=get("Quarterstaff of the Acrobat"),shield=get("Shield of the Cavalier"),blocked=get("+1 Rod of the Pact Keeper");
     const i={n:"+3 synthetic",qty:1,eq:true,attuned:true};
     return [manual.manualEffects===true,manual.rulesSourcePage===237,inventoryEnhancement(i,manual,"weapon")===2,
-      inventoryEnhancement(i,shield,"armor")===0,itemRulesIncomplete(blocked),
+      inventoryEnhancement(i,shield,"armor")===2,itemRulesIncomplete(blocked),
       !inventoryEffectActive(i,blocked),inventoryEnhancement(i,blocked,"weapon")===0,
       inventoryEnhancement(i,{kind:"custom",d:"+2 bonus to attack and damage rolls"},"weapon")===2,
       itemRuleNotice(manual).includes("manual resolution"),itemRuleNotice(blocked).includes("Reference only")];
