@@ -955,13 +955,20 @@ function subclassRecoverySpecs(c){
   {name:"Restore Intimidating Presence",owner:"Path of the Berserker",cls:"Barbarian",lv:14,target:"berserkerPresence",pay:"rage",cost:1,text:"Spend one Rage use to recover Intimidating Presence."},
   {name:"Restore Dragon Wings",owner:"Draconic Sorcery",cls:"Sorcerer",lv:14,target:"draconicWings",pay:"sorc",cost:3,text:"Spend three Sorcery Points to recover Dragon Wings."},
   {name:"Restore Holy Nimbus",owner:"Oath of Devotion",cls:"Paladin",lv:20,target:subAblKey("Holy Nimbus"),pay:"slot5",cost:1,text:"Spend one level 5 spell slot to recover Holy Nimbus."},
-  {name:"Restore Hurl Through Hell",owner:"Fiend Patron",cls:"Warlock",lv:14,target:subAblKey("Hurl Through Hell"),pay:"pact",cost:1,text:"Spend one Pact Magic spell slot to recover Hurl Through Hell."}
+  {name:"Restore Hurl Through Hell",owner:"Fiend Patron",cls:"Warlock",lv:14,target:subAblKey("Hurl Through Hell"),pay:"pact",cost:1,text:"Spend one Pact Magic spell slot to recover Hurl Through Hell."},
+  {name:"Restore Beguiling Magic",owner:"College of Glamour",cls:"Bard",lv:3,target:subAblKey("Beguiling Magic"),pay:"bardic",cost:1,text:"Spend one Bardic Inspiration use to recover Beguiling Magic."},
+  {name:"Restore Mantle of Majesty",owner:"College of Glamour",cls:"Bard",lv:6,target:subAblKey("Mantle of Majesty"),pay:"slot3+",cost:1,text:"Spend one available level 3 or higher spell slot to recover Mantle of Majesty."}
  ].filter(s=>characterSubclassLevel(c,s.cls,s.owner)>=s.lv);
 }
-function restoreSubclassUse(c,name){
+function subclassRecoverySlots(c,name){
+ const spec=subclassRecoverySpecs(c).find(s=>s.name===name&&s.pay==="slot3+");
+ if(!spec)return [];
+ return pcResources(c).filter(r=>resLeft(c,r)>0&&(/^slot[3-9]$/.test(r.key)||r.key==="pact"&&+(r.name.match(/level (\d)/)||[])[1]>=3)).map(r=>[r.key,r.name]);
+}
+function restoreSubclassUse(c,name,choice){
  const spec=subclassRecoverySpecs(c).find(s=>s.name===name);
  if(!spec)return "Feature not available.";
- const R=pcResources(c),target=R.find(x=>x.key===spec.target),pay=R.find(x=>x.key===spec.pay);
+ const R=pcResources(c),target=R.find(x=>x.key===spec.target),pay=R.find(x=>x.key===(spec.pay==="slot3+"?subclassRecoverySlots(c,name).find(([id])=>id===choice)?.[0]:spec.pay));
  if(!target||resLeft(c,target)>=target.max)return "The feature is already available.";
  if(!pay||resLeft(c,pay)<spec.cost)return "Not enough resources to restore this feature.";
  c.used=c.used||{};c.used[pay.key]=(+c.used[pay.key]||0)+spec.cost;
@@ -1051,6 +1058,8 @@ const ACT = {
  "Restore Dragon Wings":{kind:"instant",use:c=>restoreSubclassUse(c,"Restore Dragon Wings")},
  "Restore Holy Nimbus":{kind:"instant",use:c=>restoreSubclassUse(c,"Restore Holy Nimbus")},
  "Restore Hurl Through Hell":{kind:"instant",use:c=>restoreSubclassUse(c,"Restore Hurl Through Hell")},
+ "Restore Beguiling Magic":{kind:"instant",use:c=>restoreSubclassUse(c,"Restore Beguiling Magic")},
+ "Restore Mantle of Majesty":{kind:"instant",choices:c=>subclassRecoverySlots(c,"Restore Mantle of Majesty"),use:(c,ch)=>restoreSubclassUse(c,"Restore Mantle of Majesty",ch)},
  "Intimidating Presence":{kind:"instant",use:c=>edOf(c)==="2024"?"Chosen creatures within a 30-foot Emanation: WIS save DC "+(8+c.prof+c.mods.str)+" or Frightened for 1 minute, repeat at end of each turn.":"One creature within 30 feet that can see or hear you: WIS save DC "+(8+c.prof+c.mods.cha)+". Frightened until the end of your next turn; extend with an action. Confirm target eligibility."},
  "Nature's Sanctuary":{kind:"toggle",fx:c=>({notes:["15-foot Cube within 120 ft for 1 minute; you and allies inside have Half Cover. Allies also gain "+({Arid:"fire",Polar:"cold",Temperate:"lightning",Tropical:"poison"}[choiceOf(c,"Circle of the Land Spells")[0]]||"your selected land")+" resistance. Move up to 60 ft as a Bonus Action; adjudicate positions manually."]})},
 
@@ -1096,6 +1105,7 @@ const ACT = {
   "Bardic Inspiration": { kind: "instant", use: c => `Bardic Inspiration: give a creature within 60 ft a d${clsLv(c,"Bard") >= 15 ? 12 : clsLv(c,"Bard") >= 10 ? 10 : clsLv(c,"Bard") >= 5 ? 8 : 6}.` },
   "Cutting Words": { kind: "instant", use: c => rollMsg("Cutting Words", `1d${clsLv(c,"Bard") >= 15 ? 12 : clsLv(c,"Bard") >= 10 ? 10 : clsLv(c,"Bard") >= 5 ? 8 : 6}`, "Subtract it from the creature's roll") },
   "Peerless Skill": { kind: "instant", use: c => rollMsg("Peerless Skill", `1d${clsLv(c,"Bard") >= 15 ? 12 : clsLv(c,"Bard") >= 10 ? 10 : clsLv(c,"Bard") >= 5 ? 8 : 6}`, "Add it to your roll") },
+  "Beguiling Magic": {kind:"instant",choices:[["charm","Charmed"],["fear","Frightened"]],use:(c,ch)=>`Confirm you just cast an Enchantment or Illusion spell with a slot. One visible creature within 60 ft makes a WIS save (DC ${8+c.prof+c.mods.cha}); on failure it is ${ch==="fear"?"Frightened":"Charmed"} for 1 minute. Repeat the save at the end of each of its turns. Apply manually.`},
   "Mantle of Inspiration": { kind: "instant", use: c => { const r = rollDice(`1d${clsLv(c,"Bard") >= 15 ? 12 : clsLv(c,"Bard") >= 10 ? 10 : clsLv(c,"Bard") >= 5 ? 8 : 6}`); return { title: "Mantle of Inspiration", msg: `Mantle of Inspiration: ${r.text}. Allies within 60 ft gain ${2 * r.total} temporary hit points and can move without provoking opportunity attacks.`, amount: 2 * r.total, kind: "temp" }; } },
   "Mantle of Majesty": { kind: "toggle", fx: () => ({ notes: ["Mantle of Majesty: cast command as a bonus action each turn (concentration, 1 minute)"] }) },
   "Unbreakable Majesty": { kind: "toggle", fx: () => ({ notes: ["Unbreakable Majesty: a creature that attacks you must make a CHA save or pick a new target"] }) },

@@ -468,6 +468,13 @@ function syncGrantedSpells(c) {
       const selected=choiceOf(c,"Giant Power")[0];
       if(["Thaumaturgy","Druidcraft"].includes(selected))add({3:[selected]},lv,{...source,feature:"Giant Power",ab:"wis",innate:true,known:true});
     }
+    if(ed==="2024"&&!legacy&&cls==="Bard"&&subclass==="College of Glamour"){
+      add({3:["Charm Person","Mirror Image"]},lv,{...source,feature:"Beguiling Magic"});
+      add({6:["Command"]},lv,{...source,feature:"Mantle of Majesty"});
+    }
+    if(ed==="2024"&&!legacy&&cls==="Wizard"&&subclass==="Abjurer"&&lv>=10){
+      add({10:["Counterspell","Dispel Magic"]},lv,{...source,feature:"Spell Breaker"});
+    }
     if(ed==="2024"&&cls==="Bard"&&subclass==="College of Lore"&&lv>=6){
       const eligible=new Set(CHOICES["Magical Discoveries"].opts(c).map(x=>x[0]));
       const chosen=[...new Set(choiceOf(c,"Magical Discoveries"))].filter(n=>eligible.has(n)).slice(0,2);

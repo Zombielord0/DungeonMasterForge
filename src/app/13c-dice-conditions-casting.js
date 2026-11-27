@@ -330,6 +330,7 @@ function castPreview(c, sp, how, ed = edOf(c)) {
   if(feySummonOption(c,sp,ed))parts.push("No material component; optional one-minute non-concentration cast");
   else if (sp.co) parts.push(`needs concentration${c.conc ? ` (ends ${c.conc.spell})` : ""}`);
   parts.push(...feyTeleportOptions(c,sp,ed));
+  if(ed==="2024"&&characterSubclassLevel(c,"Wizard","Abjurer")>=10&&["Counterspell","Dispel Magic"].includes(sp.n))parts.push("Spell Breaker: if the spell fails to stop a spell, manually refund its expended slot. Dispel Magic can use a Bonus Action; add proficiency bonus to its ability check.");
   return (sp.l ? `At ${ordinal(slot)}: ` : "") + (parts.join(" · ") || "No dice to roll.");
 }
 function castPick(how) {

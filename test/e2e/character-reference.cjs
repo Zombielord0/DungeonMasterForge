@@ -813,6 +813,18 @@ const { chromium } = require("playwright");
       const celestial=make("2024","Warlock",6,"Celestial Patron");celestial.scores.cha=16;pcRecompute(celestial);celestial.used={};const hk=subAblKey("Healing Light");const opts=actChoices(celestial,ACT["Healing Light"]).map(x=>x[0]);const result=actRun(celestial,"Healing Light","3");const blocked=actRun(celestial,"Healing Light","4");return {out,arch:[r.length,r[0]?.max,feyTeleportOptions(a,{n:"Misty Step"}).length],heal:[opts,celestial.used[hk],result?.amount>=3&&result?.amount<=18,typeof blocked==="string"]};
     });
     assert.deepEqual(feyCastAudit.out,[[1,1,1,true,true],true,4,true,[1,1,1,true,true],true,4,true]);assert.deepEqual(feyCastAudit.arch,[1,4,1]);assert.deepEqual(feyCastAudit.heal,[["1","2","3"],3,true,true]);
+    const glamourAudit=await page.evaluate(()=>{
+      const make=(ed,cls,level,subclass)=>pcEnsure(generateCharacter({seed:"GLAMOUR",ed,cls,level,subclass,race:"Human",bg:"Sage"}));
+      const c=make("2024","Bard",8,"College of Glamour");syncGrantedSpells(c);
+      const grants=c.prepared.filter(p=>p.sources?.some(s=>["Beguiling Magic","Mantle of Majesty"].includes(s.feature))).map(p=>p.n).sort();
+      const beg=subAblKey("Beguiling Magic"),majesty=subAblKey("Mantle of Majesty");c.used={ [beg]:1,[majesty]:1 };
+      const recover=actRun(c,"Restore Beguiling Magic"),already=actRun(c,"Restore Beguiling Magic");
+      const invalid=restoreSubclassUse(c,"Restore Mantle of Majesty","slot2");const legal=subclassRecoverySlots(c,"Restore Mantle of Majesty").map(x=>x[0]);
+      const restored=actRun(c,"Restore Mantle of Majesty","slot4");
+      const w=make("2024","Wizard",10,"Abjurer");syncGrantedSpells(w);const abj=w.prepared.filter(p=>p.sources?.some(s=>s.feature==="Spell Breaker")).map(p=>p.n).sort();w.level=9;syncGrantedSpells(w);
+      return {grants,beg:c.used[beg],bardic:c.used.bardic,already,invalid,legal,majesty:c.used[majesty],slot4:c.used.slot4,abj,removed:!w.prepared.some(p=>p.sources?.some(s=>s.feature==="Spell Breaker"))};
+    });
+    assert.deepEqual(glamourAudit.grants,["Charm Person","Command","Mirror Image"]);assert.deepEqual([glamourAudit.beg,glamourAudit.bardic,glamourAudit.majesty,glamourAudit.slot4],[0,1,0,1]);assert.match(glamourAudit.already,/already available/);assert.match(glamourAudit.invalid,/Not enough/);assert.deepEqual(glamourAudit.legal,["slot3","slot4"]);assert.deepEqual(glamourAudit.abj,["Counterspell","Dispel Magic"]);assert.equal(glamourAudit.removed,true);
     const expansion = await page.evaluate(() => {
       const subclasses = hbBook("subclass").filter(x => ["tce", "xge"].includes(x.src));
       const armorer = generateCharacter({ seed: "ARMOR", ed: "2014", cls: "Artificer", subclass: "Armorer", level: 5 });
