@@ -743,6 +743,23 @@ const { chromium } = require("playwright");
     assert.deepEqual(companionAudit.stat,companionAudit.expected);assert.equal(companionAudit.before,null);assert.equal(companionAudit.blocked,false);assert.match(companionAudit.replace,/Long Rest/);assert.equal(companionAudit.pending,true);assert.equal(companionAudit.revived,48);assert.equal(companionAudit.spent,0);assert.equal(companionAudit.sea,60);
     assert.deepEqual(companionAudit.drake,[80,"Large",companionAudit.drakeAC]);assert.match(companionAudit.noFree,/already used/);assert.equal(companionAudit.paid,1);
     assert.deepEqual(companionAudit.steel,[companionAudit.steelHP,17]);assert.equal(companionAudit.repair,3);assert.deepEqual([companionAudit.fire,companionAudit.wild,companionAudit.expired,companionAudit.blades,companionAudit.editionGuard,companionAudit.grant],[35,1,true,2,true,true]);
+    const extendedCompanionAudit=await page.evaluate(()=>{
+      const make=(ed,cls,level,subclass)=>pcEnsure(generateCharacter({seed:"EXT-COMPANION",ed,cls,level,subclass,race:"Human",bg:"Sage"}));
+      const r=make("2014","Ranger",11,"Beast Master");r.used={};const beasts=legacyBeastOptions(),b=beasts.find(m=>m.n==="Wolf")||beasts.find(m=>m.n==="Panther")||beasts.find(m=>beastForm(m.id)?.attacks.length);
+      if(!b)throw Error("No eligible legacy beast fixture");
+      const base=beastForm(b.id),summoned=companionSummon(r,"beast14",b.id,"bond"),s=companionState(r,"beast14"),a=s.attackOptions[0],original=base.attacks[0];
+      const live=companionSummon(r,"beast14",b.id,"bond");companionSetHP(r,"beast14",0);const blockedRevive=companionRevive(r,"beast14","slot1"),replaced=companionSummon(r,"beast14",b.id,"bond");
+      const now=make("2024","Artificer",15,"Battle Smith");now.used={};companionSummon(now,"steel24","steel","free");const steel=companionState(now,"steel24");
+      companionSetHP(now,"steel24",0);const slot=companionSlots(now)[0].key;companionRevive(now,"steel24",slot);const pending=companionState(now,"steel24").pending;companionFinishRevive(now,"steel24");
+      const jolt=actRun(now,"Arcane Jolt","damage"),spent=now.used.arcaneJolt,blockedJolt=actRun(now,"Arcane Jolt","heal");
+      actRun(now,"Arcane Jolt — next turn");const heal=actRun(now,"Arcane Jolt","heal");pcRest(now,"long");
+      return {eligible:beasts.every(x=>x.cr<=.25&&/^(tiny|small|medium)$/i.test(x.size)),summoned,hp:s.hp,expectedHP:Math.max(b.hp,44),ac:s.ac,expectedAC:b.ac+r.prof,hit:a.hit,expectedHit:original.hit+r.prof,attacks:s.attacks,live,blockedRevive,replaced,steel:[steel.hp,steel.ac,steel.hit,steel.damage],expectedSteel:[80,12+now.mods.int,now.prof+now.mods.int,"1d8"+sgn(2+now.mods.int)],pending,revived:companionState(now,"steel24").current,wrongEdition:companionStats(now,"steel","steel")===null,jolt:jolt?.amount,spent,blockedJolt,heal:heal?.amount||0,joltReset:now.used.arcaneJolt||0,turnReset:!now.arcaneJoltThisTurn};
+    });
+    assert.ok(extendedCompanionAudit.eligible);
+    assert.deepEqual([extendedCompanionAudit.hp,extendedCompanionAudit.ac,extendedCompanionAudit.hit,extendedCompanionAudit.attacks],[extendedCompanionAudit.expectedHP,extendedCompanionAudit.expectedAC,extendedCompanionAudit.expectedHit,2]);
+    assert.match(extendedCompanionAudit.live,/living companion/);assert.match(extendedCompanionAudit.blockedRevive,/No eligible/);assert.match(extendedCompanionAudit.replaced,/created/);
+    assert.deepEqual(extendedCompanionAudit.steel,extendedCompanionAudit.expectedSteel);assert.deepEqual([extendedCompanionAudit.pending,extendedCompanionAudit.revived,extendedCompanionAudit.wrongEdition],[true,80,true]);
+    assert.ok(extendedCompanionAudit.jolt>=4&&extendedCompanionAudit.jolt<=24);assert.equal(extendedCompanionAudit.spent,1);assert.match(extendedCompanionAudit.blockedJolt,/eligible|unavailable/i);assert.ok(extendedCompanionAudit.heal>=4&&extendedCompanionAudit.heal<=24);assert.deepEqual([extendedCompanionAudit.joltReset,extendedCompanionAudit.turnReset],[0,true]);
     const monkSubclassAudit=await page.evaluate(()=>{
       const make=(subclass)=>pcEnsure(generateCharacter({seed:"MONK-SUBCLASS",ed:"2014",cls:"Monk",level:17,subclass,race:"Human",bg:"Sage"}));
       const d=make("Way of the Ascendant Dragon"); d.used={};d.active={};
