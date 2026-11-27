@@ -332,6 +332,26 @@ const { chromium } = require("playwright");
     assert.deepEqual(classChoiceAudit.arcanum,[["arcanum6",1,"long"],["arcanum9",1,"long"]]);
     assert.deepEqual(classChoiceAudit.casts,["arcanum9"]);assert.ok(classChoiceAudit.removed);
     assert.ok(classChoiceAudit.eligible&&classChoiceAudit.diCount>0);
+    const fullClassMatrix=await page.evaluate(()=>{
+      const core=["Barbarian","Bard","Cleric","Druid","Fighter","Monk","Paladin","Ranger","Rogue","Sorcerer","Warlock","Wizard"],errors=[];
+      let builds=0;for(const ed of ["2014","2024"])for(const cls of [...core,"Artificer"])for(let level=1;level<=20;level++){
+        const c=generateCharacter({seed:"MATRIX-"+cls,ed,cls,level,race:"Human",bg:"Sage",subclass:"none"});builds++;
+        const key=ed+" "+cls+" "+level;
+        if(c.cls!==cls||c.ed!==ed||c.level!==level||c.prof!==2+Math.floor((level-1)/4)||!Number.isFinite(c.hp)||c.hp<1||!Array.isArray(c.feats)||c.feats.some(f=>f.l>level))errors.push(key+": invalid character contract");
+        if(!AB.every(a=>Number.isFinite(c.scores[a])&&Number.isFinite(c.mods[a])))errors.push(key+": invalid ability scores");
+        const expected=classData(ed,cls);
+        for(const [l,names] of Object.entries(expected.f||{}))if(+l<=level)for(const name of names)if(!c.feats.some(f=>f.f===name))errors.push(key+": missing "+name);
+      }
+      const make=(cls,level)=>pcEnsure(generateCharacter({seed:"CORE-EXTRAS",ed:"2024",cls,level,race:"Human",bg:"Sage",subclass:"none"}));
+      const cleric=make("Cleric",20);cleric.used={divineIntervention:1};cleric.divineInterventionCooldown=2;pcRest(cleric,"long");const rest1=[cleric.divineInterventionCooldown,cleric.used.divineIntervention];pcRest(cleric,"long");const rest2=[cleric.divineInterventionCooldown||0,cleric.used.divineIntervention];
+      const d=make("Druid",2);d.used={wild:0};const companion=castWildCompanion(d,"wild"),spent=d.used.wild,active=d.wildCompanionActive;pcRest(d,"long");
+      return {builds,errors,rest1,rest2,companion,spent,active,ended:!d.wildCompanionActive};
+    });
+    assert.equal(fullClassMatrix.builds,520);
+    assert.deepEqual(fullClassMatrix.errors,[]);
+    assert.deepEqual(fullClassMatrix.rest1,[1,1]);assert.deepEqual(fullClassMatrix.rest2,[0,0]);
+    assert.ok(fullClassMatrix.companion.startsWith("Wild Companion:")&&fullClassMatrix.active&&fullClassMatrix.ended);
+    assert.equal(fullClassMatrix.spent,1);
     const expansion = await page.evaluate(() => {
       const subclasses = hbBook("subclass").filter(x => ["tce", "xge"].includes(x.src));
       const armorer = generateCharacter({ seed: "ARMOR", ed: "2014", cls: "Artificer", subclass: "Armorer", level: 5 });

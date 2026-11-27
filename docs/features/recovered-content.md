@@ -93,3 +93,8 @@ Revised Barbarian and Monk schedules now use the SRD 5.2.1 feature names, with e
 ## Class choice and limited casting contracts
 
 Added source/edition-guarded Primal Knowledge and Scholar proficiency choices, derived skill grants that are removed with the choice and excluded from ordinary skill retention, and Mystic Arcanum selections at Warlock levels 11/13/15/17 for both editions. Each selected complete spell gets a separate long-rest use, not an ordinary spell slot. Added revised Divine Intervention selection and resource tracking for eligible level 1–5 Cleric spells; spell effects are manually resolved. Greater Divine Intervention Wish cooldown, full spellbook restrictions, all targeting and action economy enforcement, and supplemental class mechanical certification remain outstanding. The existing 2014 and 2024 Artificer source variants are retained; this change does not independently certify their features. Source: SRD 5.2.1, Wizards of the Coast LLC, https://www.dndbeyond.com/srd, CC BY 4.0.
+
+
+## Class matrix and remaining Cleric/Druid resources
+
+Added a browser validation matrix for all 12 core classes plus Artificer, every level 1–20, both editions (520 builds). It checks class/edition identity, feature acquisition, proficiency, ability scores and HP. It is a structural progression regression, not a source-by-source proof of every feature. Added Wild Companion resource selection and long-rest expiry (familiar placement manual), and Greater Divine Intervention Wish eligibility and 2d4-long-rest cooldown. Actual spell effects remain manual. The 520-build regression is added, not reported as passed before CI concludes.

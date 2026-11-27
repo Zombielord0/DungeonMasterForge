@@ -83,6 +83,7 @@ function pcAbilities(c) {
   const wisDC = 8 + prof + m.wis, chaB = Math.max(1, m.cha);
   if (has("Rage")) add("Rage", "Bonus action", `+${CLV("Barbarian") >= 16 ? 4 : CLV("Barbarian") >= 9 ? 3 : 2} damage on Strength melee attacks, resistance to bludgeoning, piercing and slashing, advantage on Strength checks and saves. No spellcasting while raging.`, "rage");
   if(ed==="2024"&&clsLv(c,"Barbarian")>=15)add("Persistent Rage recovery","On initiative","Regain all expended Rage uses, once per Long Rest.","persistentRage");
+  if(ed==="2024"&&clsLv(c,"Druid")>=2)add("Wild Companion","Magic action","Expend a Wild Shape use or spell slot to cast Find Familiar without Material components. The Fey familiar disappears at your next Long Rest.");
   if(ed==="2024"&&clsLv(c,"Druid")>=5)add("Wild Resurgence","No action","Spend a spell slot to regain Wild Shape when none remain, or spend one Wild Shape use to regain an expended level 1 slot once per Long Rest.");
   if(ed==="2024"&&clsLv(c,"Sorcerer")>=7)add("Sorcery Incarnate","Bonus action","When no Innate Sorcery uses remain, spend 2 Sorcery Points to activate it.","sorc");
   if (has("Reckless Attack")) add("Reckless Attack", "On attack", "Advantage on your Strength attacks this turn; attacks against you have advantage until your next turn.");
@@ -210,10 +211,24 @@ function wildResurgence(c,choice){
 function divineInterventionChoices(c){
   if(edOf(c)!=="2024"||clsLv(c,"Cleric")<10)return [];
   spLoad();
-  return (SP.data["2024"]||[]).filter(s=>!s.hb&&!s.pend&&!s.ref&&!s.referenceOnly&&!s.rulesSummary&&!s.shadow&&s.c.includes("Cleric")&&s.l>=1&&s.l<=5&&!/reaction/i.test(s.t)).map(s=>[s.n,s.n]);
+  const eligible=s=>s&&!s.hb&&!s.pend&&!s.ref&&!s.referenceOnly&&!s.rulesSummary&&!s.shadow;
+  const names=[...new Set((SP.data["2024"]||[]).filter(s=>eligible(s)&&s.c.includes("Cleric")&&s.l>=1&&s.l<=5&&!/reaction/i.test(s.t)).map(s=>s.n))].filter(n=>{const s=spellOf("2024",n);return eligible(s)&&s.c.includes("Cleric")&&s.l>=1&&s.l<=5&&!/reaction/i.test(s.t);});
+  const out=names.map(n=>[n,n]);if(clsLv(c,"Cleric")>=20&&eligible(spellOf("2024","Wish")))out.push(["Wish","Wish (2d4 Long Rest cooldown)"]);return out;
+}
+function wildCompanionOptions(c){
+  if(edOf(c)!=="2024"||clsLv(c,"Druid")<2)return [];
+  return pcResources(c).filter(r=>(r.key==="wild"||r.key==="pact"||/^slot[1-9]$/.test(r.key))&&resLeft(c,r)>0).map(r=>[r.key,"Spend "+r.name]);
+}
+function castWildCompanion(c,key){
+  if(!wildCompanionOptions(c).some(([id])=>id===key)||isActive(c,"Rage")||c.armorUntrained)return "No eligible casting resource.";
+  const sp=spellOf("2024","Find Familiar");
+  if(!sp||sp.ref||sp.referenceOnly||sp.pend||sp.rulesSummary)return "Complete Find Familiar rules required.";
+  c.used=c.used||{};c.used[key]=(+c.used[key]||0)+1;c.wildCompanionActive=true;
+  return "Wild Companion: Find Familiar cast. The familiar is Fey and disappears at your next Long Rest; resolve its statistics and presence manually.";
 }
 const ACT = {
-  "Divine Intervention":{kind:"instant",choices:divineInterventionChoices,noCost:true,use:(c,ch)=>{const u=pcResources(c).find(r=>r.key==="divineIntervention");if(!u||!resLeft(c,u)||!divineInterventionChoices(c).some(([id])=>id===ch)||isActive(c,"Rage")||c.armorUntrained)return "No eligible spell or Divine Intervention use available.";const sp=spellOf("2024",ch);c.used=c.used||{};c.used.divineIntervention=1;const end=sp.co?concStart(c,ch):"";return {msg:"Divine Intervention: cast "+ch+" without a slot or Material components. Resolve spell effects manually."+ (end?" "+end:"")};}},
+  "Wild Companion":{kind:"instant",choices:wildCompanionOptions,use:castWildCompanion},
+  "Divine Intervention":{kind:"instant",choices:divineInterventionChoices,noCost:true,use:(c,ch)=>{const u=pcResources(c).find(r=>r.key==="divineIntervention");if(!u||!resLeft(c,u)||(+c.divineInterventionCooldown||0)>0||!divineInterventionChoices(c).some(([id])=>id===ch)||isActive(c,"Rage")||c.armorUntrained)return "No eligible spell or Divine Intervention use available.";const sp=spellOf("2024",ch);c.used=c.used||{};c.used.divineIntervention=1;const end=sp.co?concStart(c,ch):"";if(ch==="Wish")c.divineInterventionCooldown=rollDice("2d4").total;return {msg:"Divine Intervention: cast "+ch+" without a slot or Material components. Resolve spell effects manually."+(end?" "+end:"")+(ch==="Wish"?" Cooldown: "+c.divineInterventionCooldown+" Long Rests.":"")};}},
   "Uncanny Metabolism":{kind:"instant",use:c=>{const n=restoreResource(c,"ki",clsLv(c,"Monk")),healed=healSelf(c,clsLv(c,"Monk")+rollDice("1d"+maDie(c)).total);return "Uncanny Metabolism: regained "+n+" Focus Points and "+healed+" HP."}},
   "Perfect Focus":{kind:"instant",use:c=>"Perfect Focus: regained "+restoreResource(c,"ki",4)+" Focus Points."},
   "Superior Defense":{kind:"toggle",cost:3,fx:()=>({res:["acid","bludgeoning","cold","fire","lightning","necrotic","piercing","poison","psychic","radiant","slashing","thunder"],notes:["Superior Defense: 1 minute or until Incapacitated; end manually."]})},

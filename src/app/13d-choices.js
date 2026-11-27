@@ -446,6 +446,10 @@ function pcRest(c, kind) {
     if (nu !== u) { c.used[r.key] = nu; back.push(r.name); }
   });
   if (kind === "long") { const z = +c.hpCur === 0; c.hpCur = c.hp; c.hpTemp = ""; pcHealed(c, z); c.death = { s: 0, f: 0 }; if (c.conc) { delete c.conc; delete c.concCheck; c.fxEnded = true; } if (exhOf(c)) { c.exh = exhOf(c) - 1; back.push("Exhaustion level"); } if (c.fx && Object.values(c.fx).some(Boolean)) { c.fx = {}; c.fxEnded = true; } }
+  if(kind==="long"){
+    if(c.wildCompanionActive){delete c.wildCompanionActive;back.push("Wild Companion ended");}
+    if((+c.divineInterventionCooldown||0)>0){c.divineInterventionCooldown=Math.max(0,Math.trunc(+c.divineInterventionCooldown)-1);if(c.divineInterventionCooldown>0){c.used.divineIntervention=1;const i=back.indexOf("Divine Intervention");if(i>=0)back.splice(i,1);}else{delete c.divineInterventionCooldown;c.used.divineIntervention=0;}}
+  }
   Object.keys(c.active || {}).forEach(n => { if (!ACT[n] || ACT[n].kind !== "persist") { delete c.active[n]; c.fxEnded = true; } });
   delete c.formHp;
   pcACApply(c);
