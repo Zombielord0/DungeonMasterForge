@@ -246,6 +246,7 @@ const choiceSpellOptions = (c, filter) => {
   return opt3([...new Set((SP.data[edOf(c)] || []).filter(s => !s.pend && filter(s)).map(s => s.n))].sort());
 };
 Object.assign(CHOICES, {
+  "Spell-Storing Item Object":{label:"Qualifying weapon or spellcasting focus (confirm eligibility)",n:c=>clsLv(c,"Artificer")>=11?1:0,opts:artificerStoreItemOptions},
   "Pact Weapon":{label:"Bonded inventory weapon",n:c=>warlockPact(c,"blade")?1:0,opts:pactWeaponOptions},
   "Pact Weapon Ability":{label:"Pact weapon attack ability",n:c=>edOf(c)==="2024"&&warlockPact(c,"blade")?1:0,opts:()=>opt3(["Charisma","Normal weapon ability"])},
   "Pact Weapon Damage":{label:"Pact weapon damage type",n:c=>edOf(c)==="2024"&&warlockPact(c,"blade")?1:0,opts:()=>opt3(["Normal","Necrotic","Psychic","Radiant"])},
@@ -306,6 +307,7 @@ function wizardSpellChoicesHTML(c) {
 
 for(const cls of MASTERY_CLASSES)CHOICES[masteryKey(cls)]={label:cls+" weapon mastery",n:c=>masteryLimit(edOf(c),cls,clsLv(c,cls)),opts:c=>masteryOptions(c,cls)};
 const additionalFeatureChoices = {
+  "Spell-Storing Item":["Spell-Storing Item Object"],
   "Pact Boon":["Pact Weapon","Pact Tome Cantrips"],
   "Eldritch Invocations":["Pact Weapon","Pact Weapon Ability","Pact Weapon Damage","Pact Tome Cantrips","Pact Tome Rituals"],
   "Weapon Mastery":MASTERY_CLASSES.map(masteryKey),
@@ -567,6 +569,7 @@ function pcRest(c, kind) {
   c.used = c.used || {};
   const back = [];
   pcResources(c).forEach(r => {
+    if(r.recharge==="never")return; // Stored item uses do not refill automatically.
     const u = Math.min(r.max, +c.used[r.key] || 0); if (!u) return;
     let nu = u;
     if (kind === "long") nu = r.key === "hd" ? (edOf(c) === "2024" ? 0 : Math.max(0, u - Math.max(1, Math.floor(totalLv(c) / 2)))) : 0;

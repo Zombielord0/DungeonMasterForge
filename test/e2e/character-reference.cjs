@@ -438,6 +438,21 @@ const { chromium } = require("playwright");
     assert.deepEqual(spellPactAudit.pact.slice(0,4),["cha","psychic",true,spellPactAudit.cha+spellPactAudit.prof]);assert.ok(spellPactAudit.pact[4].some(t=>t.startsWith("3 pact weapon attacks")));
     assert.deepEqual([spellPactAudit.other,spellPactAudit.removed],[false,false]);
     assert.deepEqual(spellPactAudit.chain,["pactChainFamiliar"]);assert.deepEqual(spellPactAudit.tome,[true,true]);assert.deepEqual(spellPactAudit.legacyChain,["ritual"]);
+    const storedItemAudit=await page.evaluate(()=>{
+      const make=(ed,level)=>pcEnsure(generateCharacter({seed:"ARTIFICER-STORED",ed,cls:"Artificer",level,race:"Human",bg:"Sage",subclass:"none"}));
+      const c=make("2024",11);c.inv=[{id:"stored-tool",n:"Tinker's Tools",qty:1}];c.choices={"Spell-Storing Item Object":["stored-tool"]};
+      const candidates=artificerStoreOptions(c).map(x=>x[0]),created=artificerStore(c,"Cure Wounds"),max=pcResources(c).find(r=>r.key==="artificerStored").max;
+      const cast=actRun(c,"Spell-Storing Item");const after=c.used.artificerStored;
+      pcRest(c,"short");pcRest(c,"long");const rested=c.used.artificerStored;
+      artificerStore(c,"Cure Wounds");const reset=c.used.artificerStored;c.inv=[];const removed=!pcResources(c).some(r=>r.key==="artificerStored");
+      const old=make("2014",11),oldOptions=artificerStoreOptions(old).map(x=>x[0]);
+      return {candidates,created,max,int:c.mods.int,cast,after,rested,reset,removed,oldOptions,below:artificerStoreOptions(make("2024",10)).length,
+        rules:[artificerStoreSpellEligible("2014",11,{l:2,c:["Artificer"],t:"1 action",m:"which the spell consumes"}),artificerStoreSpellEligible("2024",11,{l:3,c:["Artificer"],t:"Action",m:"which the spell consumes"}),artificerStoreSpellEligible("2024",11,{l:3,c:["Artificer"],t:"Action"}),artificerStoreSpellEligible("2014",11,{l:3,c:["Artificer"],t:"Action"})]};
+    });
+    assert.ok(storedItemAudit.candidates.includes("Cure Wounds")&&storedItemAudit.oldOptions.includes("Cure Wounds"));
+    assert.ok(storedItemAudit.created.startsWith("Stored")&&storedItemAudit.cast.includes("Cure Wounds"));
+    assert.equal(storedItemAudit.max,Math.max(2,2*storedItemAudit.int));assert.deepEqual([storedItemAudit.after,storedItemAudit.rested,storedItemAudit.reset,storedItemAudit.removed,storedItemAudit.below],[1,1,0,true,0]);
+    assert.deepEqual(storedItemAudit.rules,[true,false,true,false]);
     const expansion = await page.evaluate(() => {
       const subclasses = hbBook("subclass").filter(x => ["tce", "xge"].includes(x.src));
       const armorer = generateCharacter({ seed: "ARMOR", ed: "2014", cls: "Artificer", subclass: "Armorer", level: 5 });

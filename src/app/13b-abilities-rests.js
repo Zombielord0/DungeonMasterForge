@@ -49,6 +49,7 @@ function pcResources(c) {
   if (has("Favored Enemy") && ed === "2024") add("hmark", "Free Hunter's Mark", CLV("Ranger") >= 17 ? 6 : CLV("Ranger") >= 13 ? 5 : CLV("Ranger") >= 9 ? 4 : CLV("Ranger") >= 5 ? 3 : 2, "long");
   if(ed==="2024"&&clsLv(c,"Cleric")>=10)add("divineIntervention","Divine Intervention",1,"long");
   if(clsLv(c,"Artificer")>=7)add("flashGenius","Flash of Genius",Math.max(1,m.int),ed==="2024"?(clsLv(c,"Artificer")>=20&&artificerAttunedCount(c)>0?"short":clsLv(c,"Artificer")>=14?"short1":"long"):"long");
+  const stored=artificerStoredSpell(c);if(stored)add("artificerStored","Stored "+stored.spell.n+" · "+stored.item.n,stored.max,"never");
   if (has("Arcane Recovery")) add("arcrec", "Arcane Recovery", 1, "long");
   if (has("Stroke of Luck")) add("luck", "Stroke of Luck", 1, "short");
   if (ed === "2024" && featTaken(c, "Ritual Caster")) add("featQuickRitual", "Quick Ritual", 1, "long");
@@ -132,6 +133,10 @@ function pcAbilities(c) {
   if (has("Metamagic")) add("Metamagic", "When casting", ed==="2024"?"Spend Sorcery Points for selected Metamagic. Revised Twinned Spell costs 1 point for a spell whose higher-slot rules add a target; adjudicate spell eligibility and timing.":"Spend Sorcery Points for selected Metamagic, with legacy Twinned Spell costing the spell level (minimum 1).", "sorc");
   if(ed==="2024"&&clsLv(c,"Cleric")>=10)add("Divine Intervention","Magic action","Cast an eligible Cleric spell without a slot or Material components. Select the spell and resolve its rules manually.","divineIntervention");
   if(clsLv(c,"Artificer")>=7)add("Flash of Genius","Reaction",`Add ${sgn(m.int)} to your or a creature’s eligible ability check or saving throw within 30 feet. ${ed==="2024"?"Use after a failed roll.":"Use before success or failure is determined."} Apply the bonus manually.`,"flashGenius");
+  if(clsLv(c,"Artificer")>=11){
+    add("Store spell in item","After Long Rest","Choose a qualifying weapon or spellcasting focus in Features, then store an eligible Artificer spell. Confirm long-rest timing; replacing the stored spell ends the previous effect.");
+    const stored=artificerStoredSpell(c);if(stored)add("Spell-Storing Item","Action",`${stored.item.n}: ${stored.spell.n}. The holder produces its effects using your spellcasting ability; the holder maintains any required Concentration. No spell slot used. Resolve target, spell effects and concentration manually.`,"artificerStored");
+  }
   if (has("Arcane Recovery")) add("Arcane Recovery", "Short rest", `Recover spell slots with a combined level up to ${Math.ceil(CLV("Wizard") / 2)} (none above 5th).`, "arcrec");
   for (const feat of activeCharacterFeats(c)) {
     if (feat === "Telekinetic") {
@@ -321,7 +326,40 @@ function metamagicCost(c,id){
   if(id.startsWith("twinned:"))return Math.max(1,+id.split(":")[1]);
   return 1;
 }
+// Spell-Storing Item stores a spell, not ordinary prepared casting or spell slots.
+function artificerStoreSpellEligible(ed,level,s){
+  if(level<11||!s||s.hb||s.ref||s.referenceOnly||s.rulesSummary||s.shadow||s.pend||(s.ed&&s.ed!==ed))return false;
+  if(!Number.isInteger(s.l)||s.l<1||s.l>(ed==="2024"?3:2)||!(s.c||[]).includes("Artificer")||!/^(?:1\s+)?action$/i.test(String(s.t||"").trim()))return false;
+  if(ed==="2024"&&(s.consumed||s.materialConsumed||/\bconsum(?:e[sd]?|ing|ption)\b/i.test(String(s.m||""))))return false;
+  return true;
+}
+function artificerStoreOptions(c){
+  if(clsLv(c,"Artificer")<11)return [];
+  const ed=edOf(c);spLoad();
+  return [...new Set((SP.data[ed]||[]).filter(s=>artificerStoreSpellEligible(ed,clsLv(c,"Artificer"),s)).map(s=>s.n))]
+    .filter(n=>artificerStoreSpellEligible(ed,clsLv(c,"Artificer"),spellOf(ed,n))).sort().map(n=>[n,n]);
+}
+function artificerStoreItemOptions(c){
+  if(clsLv(c,"Artificer")<11)return [];
+  return (c.inv||[]).filter(i=>i.id&&i.n&&+i.qty>0).map(i=>[i.id,i.n,"Select only a Simple or Martial weapon or an item you can use as a spellcasting focus. Confirm eligibility with the DM."]);
+}
+function artificerStoredSpell(c){
+  const s=c.artificerStored;
+  if(!s||s.ed!==edOf(c)||clsLv(c,"Artificer")<11||!Number.isInteger(s.max)||s.max<2||s.max>100)return null;
+  const item=(c.inv||[]).find(i=>i.id===s.iid&&+i.qty>0),spell=spellOf(s.ed,s.name);
+  return item&&artificerStoreSpellEligible(s.ed,clsLv(c,"Artificer"),spell)?{item,spell,max:s.max}:null;
+}
+function artificerStore(c,name){
+  if(!artificerStoreOptions(c).some(([n])=>n===name))return "Choose an eligible Artificer spell.";
+  const iid=choiceOf(c,"Spell-Storing Item Object")[0];
+  if(!artificerStoreItemOptions(c).some(([id])=>id===iid))return "Select a qualifying inventory object in Features first.";
+  const max=Math.max(2,2*Math.trunc(+c.mods.int||0));
+  c.artificerStored={ed:edOf(c),name,iid,max};c.used=c.used||{};c.used.artificerStored=0;
+  return "Stored "+name+" in the selected object with "+max+" uses. Previous storage ends. Confirm the object and Long Rest eligibility.";
+}
 const ACT = {
+  "Store spell in item":{kind:"instant",choices:artificerStoreOptions,use:artificerStore},
+  "Spell-Storing Item":{kind:"instant",use:c=>{const x=artificerStoredSpell(c);return x?x.item.n+" produces "+x.spell.n+" at its base level (Artificer Intelligence; DC "+(8+c.prof+c.mods.int)+", spell attack "+sgn(c.prof+c.mods.int)+"). The holder maintains Concentration if required. Resolve the effects manually.":"No eligible stored spell.";}},
   "Cunning Strike":{kind:"instant",choices:cunningStrikeOptions,use:(c,ch)=>{if(!ch)return "Choose an eligible effect.";const critical=ch.endsWith(":crit"),ids=ch.replace(/:crit$/,"").split("+"),p=cunningStrikePlan(clsLv(c,"Rogue"),ids,hasPoisonersKit(c),critical);if(!p)return "Invalid Cunning Strike.";const n=p.dice?rollDice(p.dice+"d6").total:0;return "Cunning Strike: "+n+" extra damage (weapon damage type), "+p.cost+" dice forgone; save DC "+(8+c.mods.dex+c.prof)+". "+p.effects.join(" ");}},
   "Brutal Strike":{kind:"instant",choices:brutalStrikeOptions,use:(c,ch)=>{if(!isActive(c,"Reckless Attack")||!brutalStrikeOptions(c).some(([id])=>id===ch))return "Requires an eligible Reckless Attack; forgo Advantage before rolling.";const critical=ch.endsWith(":crit"),n=(clsLv(c,"Barbarian")>=17?2:1)*(critical?2:1);return rollMsg("Brutal Strike",n+"d10",ch.replace(/:crit$/,"").replaceAll("+"," and ")+"; resolve target and movement effects manually.");}},
   "Arcane Apotheosis":{kind:"none"},
