@@ -187,6 +187,11 @@ const ZOOK = fs.readFileSync(path.join(FIX, "companion-zook.json"), "utf8");
     g("Quaal's Feather Token, Whip").d.includes("1d6 + 5 Force"),
     g("Sending Stones").d.includes("next dawn"),g("Sentinel Shield").d.includes("Initiative")];});
   check("recovered revised item families appear in built catalog",familyCheck.every(Boolean),JSON.stringify(familyCheck));
+  const equipmentCheck=await p.evaluate(()=>{itLoad();const g=n=>IT.data["2024"].find(x=>x.n===n&&x.src==="dmg-2024");return [
+   g("Quarterstaff of the Acrobat").d.includes("Short or Long Rest"),g("Quarterstaff of the Acrobat").d.includes("30/120 feet"),
+   g("Shield of the Cavalier").d.includes("stationary 5-foot Emanation"),g("Shield of the Cavalier").d.includes("Concentration up to 1 minute"),
+   g("Thunderous Greatclub").d.includes("50 Bludgeoning"),g("Thunderous Greatclub").d.includes("DC 20 Constitution")];});
+  check("revised weapon and shield rules are complete in the built catalog",equipmentCheck.every(Boolean),JSON.stringify(equipmentCheck));
   check("reference spells: a spell the Forge already has isn't added twice (Fireball)", refs["2014fireball"] === 1 && refs["2024fireball"] === 1, JSON.stringify([refs["2014fireball"], refs["2024fireball"]]));
   const sb = await p.evaluate(txt => { const j = JSON.parse(txt); j.spells = [...j.spells, { name: "Silvery Barbs", level: 1 }]; const D = compImport(j, "2014");
     return { prep: D.extras.prepared.map(s => s.n), hb: D.homebrew.filter(x => x.kind === "spell").map(x => x.name) }; }, ZOOK);
