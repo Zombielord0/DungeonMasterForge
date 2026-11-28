@@ -982,10 +982,13 @@ const LEGACY_INFUSION_CONTRACTS={
  "Arcane Propulsion Armor":{kind:"suit",att:true,text:"While worn, walking speed increases by 5 feet. Each empty-handed gauntlet is a proficient melee weapon dealing 1d8 Force with thrown range 20/60 feet. It returns and reattaches after throwing. The suit cannot be removed against the wearer’s will and its replacements for missing limbs work like the original limbs."}
 };
 function artificerInfusionLevel(c){return edOf(c)==="2014"?clsLv(c,"Artificer"):0;}
+// The 2014 DMG reference links Quiver of Ehlonna to its SRD equivalent.
+const legacyReplicaPlanName=ref=>ref.n==="Efficient Quiver"?"Quiver of Ehlonna":ref.n;
 function legacyReplicaEligible(lv,ref){
  if(lv<2||ref?.ed!=="2014"||ref.kind!=="magic"||!ref.d?.trim()||itemRulesIncomplete(ref))return false;
+ const name=legacyReplicaPlanName(ref).toLowerCase();
  return ref.r==="Common"&&!/\b(?:potion|scroll)\b/i.test(ref.type||ref.cat)
-  ||Object.entries(LEGACY_REPLICA_TIERS).some(([min,names])=>lv>=+min&&names.some(name=>name.toLowerCase()===ref.n.toLowerCase()));
+  ||Object.entries(LEGACY_REPLICA_TIERS).some(([min,names])=>lv>=+min&&names.some(entry=>entry.toLowerCase()===name));
 }
 function legacyReplicaRef(choice){return typeof choice==="string"&&choice.startsWith("replica:2014-")?itFind(choice.slice(8)):null;}
 function artificerLegacyInfusionOptions(c){
@@ -994,7 +997,10 @@ function artificerLegacyInfusionOptions(c){
  itLoad();
  const known=Object.entries(ARTIFICER_INFUSIONS).filter(([min])=>lv>=+min).flatMap(([,names])=>names.map(name=>[name,name]));
  if(choiceOf(c,"Infuse Item").includes("Replicate Magic Item (DM-recorded variant)"))known.push(["Replicate Magic Item (DM-recorded variant)","Replicate Magic Item (DM-recorded variant)"]);
- const replicas=IT.data["2014"].filter(ref=>legacyReplicaEligible(lv,ref)).map(ref=>["replica:"+ref.id,"Replicate Magic Item · "+ref.n,ref.rulesSource||ref.src||"2014 catalog"]);
+ const replicas=IT.data["2014"].filter(ref=>legacyReplicaEligible(lv,ref)).map(ref=>{
+   const name=legacyReplicaPlanName(ref),label=name===ref.n?name:name+" ("+ref.n+")";
+   return ["replica:"+ref.id,"Replicate Magic Item · "+label,ref.rulesSource||ref.src||"2014 catalog"];
+ });
  return known.concat(replicas);
 }
 function artificerInfusionKnown(c,name){
@@ -1041,7 +1047,7 @@ function artificerInfusionEquipped(c,name){
  return artificerInfusions(c).find(i=>i.artificerInfusion.name===name&&i.eq&&+i.qty===1&&(!LEGACY_INFUSION_CONTRACTS[name].att||i.attuned));
 }
 function artificerInfusionOptions(c){
- const identity=n=>legacyReplicaRef(n)?.n.toLowerCase()||n;
+ const identity=n=>{const ref=legacyReplicaRef(n);return ref?legacyReplicaPlanName(ref).toLowerCase():n;};
  const active=new Set(artificerInfusions(c).map(i=>identity(i.artificerInfusion.name)));
  return [...new Set(choiceOf(c,"Infuse Item"))].filter(n=>artificerInfusionKnown(c,n)&&!active.has(identity(n))).flatMap(n=>(c.inv||[]).filter(i=>artificerInfusionObject(c,i,n)).flatMap(i=>{
    const label=(legacyReplicaRef(n)?.n||n)+" · "+i.n;
