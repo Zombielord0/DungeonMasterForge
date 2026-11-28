@@ -5318,34 +5318,41 @@
     "book": true,
     "src": "ftd",
     "page": 15,
-    "desc": "Bond with a drake that grows as you level. It can empower attacks, gain a breath weapon, and eventually serve as a flying mount. See Fizban’s Treasury of Dragons, p. 15.",
+    "desc": "A Ranger who summons a draconic ally that grows and gains elemental abilities as the Ranger advances.",
     "features": [
       {
         "l": 3,
         "n": "Draconic Gift",
-        "d": "See Fizban’s Treasury of Dragons, p. 15."
+        "d": "Learn the Thaumaturgy cantrip as a Ranger spell. You can speak, read, and write Draconic or one other language of your choice."
       },
       {
         "l": 3,
         "n": "Drake Companion",
-        "d": "See Fizban’s Treasury of Dragons, p. 15."
+        "d": "Summon your bonded drake as an Action within 30 feet. Choose Acid, Cold, Fire, Lightning or Poison for its immunity and elemental rider. It acts immediately after you on your initiative; moves and reacts freely, but Dodges unless commanded using your Bonus Action, or you are incapacitated. It lasts until it reaches 0 HP, is replaced, or you die, leaving carried gear behind. Summon once per Long Rest for free, or spend a spell slot of level 1 or higher. Its scaling statistics are shown on the companion card."
       },
       {
         "l": 7,
         "n": "Bond of Fang and Scale",
-        "d": "See Fizban’s Treasury of Dragons, p. 15."
+        "d": "Your summoned drake becomes Medium, flies at its walking speed, and deals an additional 1d6 of its chosen element on Bite hits. You resist that element while it is present. You may mount it if Medium or smaller; it cannot fly while ridden yet."
       },
       {
         "l": 11,
         "n": "Drake's Breath",
-        "d": "See Fizban’s Treasury of Dragons, p. 15."
+        "d": "As an Action, you or your drake releases a 30-foot cone. Choose Acid, Cold, Fire, Lightning or Poison independently of its essence. Targets make a Dexterity save against your Ranger spell DC; damage is 8d6 on failure and half on success, increasing to 10d6 at Ranger 15. One free use per Long Rest; further uses cost a spell slot of level 3 or higher."
       },
       {
         "l": 15,
         "n": "Perfected Bond",
-        "d": "See Fizban’s Treasury of Dragons, p. 15."
+        "d": "While present the drake is Large, can fly while ridden, and its Bite elemental bonus rises to 2d6. When either of you takes damage within 30 feet of the other, your Reaction can grant the damaged one resistance to that instance. Uses equal proficiency bonus per Long Rest."
       }
-    ]
+    ],
+    "featureSourceReview": {
+      "status": "source_mechanics_runtime_partial",
+      "reference": "Fizban’s Treasury of Dragons, Drakewarden, pp. 15–16",
+      "primaryVerified": false,
+      "runtimeVerified": false,
+      "note": "Summon and expiry, compatible 2024 sheets, passive essence resistance, Breath and Reflexive Resistance reviewed. Confirm position and reaction timing at the table."
+    }
   },
   {
     "id": "reference-ggr-cleric-order-domain",
@@ -5566,34 +5573,41 @@
     "book": true,
     "src": "scag",
     "page": 121,
-    "desc": "Use spiked armor as a weapon while raging and gain benefits from reckless attacks and close combat. See Sword Coast Adventurer’s Guide, p. 121.",
+    "desc": "A close-quarters warrior who uses spiked armor as a weapon while raging.",
     "features": [
       {
         "l": 3,
         "n": "Battlerager Armor",
-        "d": "See Sword Coast Adventurer’s Guide, p. 121."
+        "d": "While wearing spiked armor during Rage, use a Bonus Action for one melee weapon attack with its spikes, reach 5 feet. Use Strength for attack and damage; base damage is 1d4 Piercing. A successful grapple using the Attack action additionally deals 3 Piercing damage."
       },
       {
         "l": 3,
         "n": "Restriction—Dwarves Only",
-        "d": "See Sword Coast Adventurer’s Guide, p. 121."
+        "d": "The Forgotten Realms restricts this path to dwarves. The DM may waive this requirement for their setting."
       },
       {
         "l": 6,
         "n": "Reckless Abandon",
-        "d": "See Sword Coast Adventurer’s Guide, p. 121."
+        "d": "Using Reckless Attack during Rage grants temporary HP equal to Constitution modifier, minimum 1. Any of these temporary HP still remaining disappear when that Rage ends."
       },
       {
         "l": 10,
         "n": "Battlerager Charge",
-        "d": "See Sword Coast Adventurer’s Guide, p. 121."
+        "d": "During Rage you may Dash as a Bonus Action."
       },
       {
         "l": 14,
         "n": "Spiked Retribution",
-        "d": "See Sword Coast Adventurer’s Guide, p. 121."
+        "d": "A creature within 5 feet that lands a melee attack on you suffers 3 Piercing damage if you are raging, wearing spiked armor and not Incapacitated."
       }
-    ]
+    ],
+    "featureSourceReview": {
+      "status": "source_mechanics_reviewed",
+      "reference": "Sword Coast Adventurer’s Guide, Path of the Battlerager, p. 121",
+      "primaryVerified": false,
+      "runtimeVerified": false,
+      "note": "Compared the five features with the supplied Sword Coast Adventurer’s Guide transcription. Full execution and distribution review are open."
+    }
   },
   {
     "id": "reference-scag-cleric-arcana-domain",
@@ -5648,39 +5662,46 @@
     "book": true,
     "src": "scag",
     "page": 128,
-    "desc": "Share the benefits of Fighter abilities with allies, rallying them and enabling them to react. See Sword Coast Adventurer’s Guide, p. 128.",
+    "desc": "A martial leader who shares the benefits of Second Wind, Action Surge and Indomitable with nearby allies.",
     "features": [
       {
         "l": 3,
         "n": "Rallying Cry",
-        "d": "See Sword Coast Adventurer’s Guide, p. 128."
+        "d": "On using Second Wind, choose up to three allies within 60 feet who can see or hear you. Each heals HP equal to your Fighter level."
       },
       {
         "l": 3,
         "n": "Restriction: Knighthood",
-        "d": "See Sword Coast Adventurer’s Guide, p. 128."
+        "d": "In the Forgotten Realms this archetype represents Cormyrean knighthood. Use Banneret as its generic title in other settings."
       },
       {
         "l": 7,
         "n": "Royal Envoy",
-        "d": "See Sword Coast Adventurer’s Guide, p. 128."
+        "d": "Gain Persuasion proficiency; if already proficient, instead select Animal Handling, Insight, Intimidation or Performance. Regardless of that selection, double your proficiency bonus for Persuasion checks."
       },
       {
         "l": 10,
         "n": "Inspiring Surge",
-        "d": "See Sword Coast Adventurer’s Guide, p. 128."
+        "d": "When using Action Surge, choose one ally within 60 feet who can see or hear you. That ally can use its Reaction for one weapon attack (melee or ranged)."
       },
       {
         "l": 15,
         "n": "Bulwark",
-        "d": "See Sword Coast Adventurer’s Guide, p. 128."
+        "d": "When you use Indomitable on an Intelligence, Wisdom or Charisma save while not Incapacitated, select one ally within 60 feet who failed a save against the same effect and can see or hear you. That ally may reroll, using the new result."
       },
       {
         "l": 18,
         "n": "Inspiring Surge",
-        "d": "See Sword Coast Adventurer’s Guide, p. 128."
+        "d": "Your level-10 Inspiring Surge can now affect two eligible allies instead of one."
       }
-    ]
+    ],
+    "featureSourceReview": {
+      "status": "source_mechanics_reviewed",
+      "reference": "Sword Coast Adventurer’s Guide, Purple Dragon Knight, p. 128",
+      "primaryVerified": false,
+      "runtimeVerified": false,
+      "note": "Compared the six features with the supplied Sword Coast Adventurer’s Guide transcription. Ally targeting and reaction workflow remain open."
+    }
   },
   {
     "id": "reference-scag-monk-way-of-the-long-death",
@@ -5691,29 +5712,36 @@
     "book": true,
     "src": "scag",
     "page": 130,
-    "desc": "Draw vitality from nearby deaths, frighten foes, and spend ki to resist falling unconscious. See Sword Coast Adventurer’s Guide, p. 130.",
+    "desc": "A monk who converts nearby deaths into vitality, inspires fear and uses ki to avoid death or deliver necrotic power.",
     "features": [
       {
         "l": 3,
         "n": "Touch of Death",
-        "d": "See Sword Coast Adventurer’s Guide, p. 130."
+        "d": "When you personally reduce a creature within 5 feet to 0 HP, gain temporary HP equal to your Monk level plus Wisdom modifier (at least 1)."
       },
       {
         "l": 6,
         "n": "Hour of Reaping",
-        "d": "See Sword Coast Adventurer’s Guide, p. 130."
+        "d": "Use an Action: every creature within 30 feet able to see you makes a Wisdom save against your ki DC or becomes Frightened of you until your next turn ends."
       },
       {
         "l": 11,
         "n": "Mastery of Death",
-        "d": "See Sword Coast Adventurer’s Guide, p. 130."
+        "d": "When you would be reduced to 0 HP, spend 1 ki point without taking an action to remain at 1 HP instead."
       },
       {
         "l": 17,
         "n": "Touch of the Long Death",
-        "d": "See Sword Coast Adventurer’s Guide, p. 130."
+        "d": "Use an Action to touch a creature within 5 feet and pay 1–10 ki points. It makes a Constitution save against your ki DC, taking 2d10 Necrotic damage per point paid on failure or half on success."
       }
-    ]
+    ],
+    "featureSourceReview": {
+      "status": "source_mechanics_reviewed",
+      "reference": "Sword Coast Adventurer’s Guide, Way of the Long Death, p. 130",
+      "primaryVerified": false,
+      "runtimeVerified": false,
+      "note": "Compared the four features with the supplied Sword Coast Adventurer’s Guide transcription. Independent runtime review remains open."
+    }
   },
   {
     "id": "reference-scag-monk-way-of-the-sun-soul",
@@ -6459,11 +6487,11 @@
     ],
     "page": 18,
     "featureSourceReview": {
-      "status": "drive_pdf_mechanics_reviewed",
-      "reference": "Tashas_Cauldron_of_Everything (1).pdf",
+      "status": "source_mechanics_runtime_partial",
+      "reference": "Tasha’s Cauldron of Everything, Battle Smith, pp. 18–20",
       "primaryVerified": false,
       "runtimeVerified": false,
-      "note": "Core Battle Smith features compared against corresponding supplied PDFs; full runtime and distribution-rights review pending."
+      "note": "Legacy Steel Defender creation, mortality, revival, and Repair reviewed. Turn and target confirmation remain manual."
     }
   },
   {
@@ -7299,7 +7327,14 @@
         "d": "Sacrifice your active spirit to survive being reduced to 0 HP once per long rest."
       }
     ],
-    "page": 39
+    "page": 39,
+    "featureSourceReview": {
+      "status": "source_mechanics_runtime_partial",
+      "reference": "Tasha’s Cauldron of Everything, Circle of Wildfire, pp. 39–40",
+      "primaryVerified": false,
+      "runtimeVerified": false,
+      "note": "Spirit expiry, Fiery Teleportation, Enhanced Bond, Cauterizing Flames, and Blazing Revival reviewed. The table confirms flame placement and spell effects."
+    }
   },
   {
     "id": "reference-xge-fighter-arcane-archer",
@@ -9810,10 +9845,11 @@
     ],
     "page": 9,
     "featureSourceReview": {
-      "status": "drive_transcription_mechanics_reviewed",
-      "reference": "Arcana Unleashed.md",
+      "status": "source_mechanics_runtime_partial",
+      "reference": "Arcana Unleashed, Arcane Archer, p. 9",
       "primaryVerified": false,
-      "runtimeVerified": false
+      "runtimeVerified": false,
+      "note": "Published revised skill and cantrip grants, Arcane Shot, Magical Ammunition, and initiative recovery implemented. Table confirmation is used for timing, geometry, and riders."
     }
   },
   {
@@ -10696,11 +10732,11 @@
     ],
     "page": 18,
     "featureSourceReview": {
-      "status": "drive_pdf_mechanics_reviewed",
-      "reference": "Eberron Forge of the Artificer Wizard-of-the-CoastDnDB-PrintOCR (1).pdf",
+      "status": "source_mechanics_runtime_partial",
+      "reference": "Eberron: Forge of the Artificer, Battle Smith, supplied PDF pp. 25–26",
       "primaryVerified": false,
       "runtimeVerified": false,
-      "note": "Core Battle Smith features compared against corresponding supplied PDFs; full runtime and distribution-rights review pending."
+      "note": "Revised Steel Defender creation, owner-death expiry, revival, and Repair reviewed. Turn and target confirmation remain manual."
     }
   },
   {

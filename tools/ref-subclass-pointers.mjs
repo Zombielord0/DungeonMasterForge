@@ -1,37 +1,6 @@
 // Original mechanical paraphrases, not a copy of sourcebook prose.
 // Secondary references are not primary-source certification.
 export const SUBCLASS_POINTER_RECOVERY={
-    "reference-ftd-ranger-drakewarden": {
-    "url": "https://cori-spells.github.io/wikidot/dnd5e.wikidot.com/ranger_drakewarden.html",
-    "desc": "A Ranger who summons a draconic ally that grows and gains elemental abilities as the Ranger advances.",
-    "features": [
-      [
-        3,
-        "Draconic Gift",
-        "Thaumaturgy is a Ranger cantrip for you. Gain Draconic or select another language."
-      ],
-      [
-        3,
-        "Drake Companion",
-        "Summon your bonded drake as an Action within 30 feet. Choose Acid, Cold, Fire, Lightning or Poison for its immunity and elemental rider. It acts immediately after you on your initiative; moves and reacts freely, but Dodges unless commanded using your Bonus Action, or you are incapacitated. It lasts until it reaches 0 HP, is replaced, or you die, leaving carried gear behind. Summon once per Long Rest for free, or spend a spell slot of level 1 or higher. Its scaling statistics are shown on the companion card."
-      ],
-      [
-        7,
-        "Bond of Fang and Scale",
-        "Your summoned drake becomes Medium, flies at its walking speed, and deals an additional 1d6 of its chosen element on Bite hits. You resist that element while it is present. You may mount it if Medium or smaller; it cannot fly while ridden yet."
-      ],
-      [
-        11,
-        "Drake's Breath",
-        "As an Action, you or your drake releases a 30-foot cone. Choose Acid, Cold, Fire, Lightning or Poison independently of its essence. Targets make a Dexterity save against your Ranger spell DC; damage is 8d6 on failure and half on success, increasing to 10d6 at Ranger 15. One free use per Long Rest; further uses cost a spell slot of level 3 or higher."
-      ],
-      [
-        15,
-        "Perfected Bond",
-        "While present the drake is Large, can fly while ridden, and its Bite elemental bonus rises to 2d6. When either of you takes damage within 30 feet of the other, your Reaction can grant the damaged one resistance to that instance. Uses equal proficiency bonus per Long Rest."
-      ]
-    ]
-  },
   "reference-bgg-barbarian-path-of-the-giant": {
     "url": "https://dnd5e.wikidot.com/barbarian:giant",
     "desc": "Channel elemental might into giant-sized transformations and returning thrown weapons.",
@@ -60,99 +29,6 @@ export const SUBCLASS_POINTER_RECOVERY={
         14,
         "Demiurgic Colossus",
         "When raging, extend reach by 10 feet instead of 5, optionally grow to Large or Huge, and allow Mighty Impel against Large or smaller creatures. Elemental Cleaver adds 2d6 instead of 1d6."
-      ]
-    ]
-  },
-  "reference-scag-barbarian-path-of-the-battlerager": {
-    "url": "https://dnd5e.wikidot.com/barbarian:battlerager",
-    "desc": "A close-quarters warrior who uses spiked armor as a weapon while raging.",
-    "features": [
-      [
-        3,
-        "Battlerager Armor",
-        "While wearing spiked armor during Rage, use a Bonus Action for one melee weapon attack with its spikes, reach 5 feet. Use Strength for attack and damage; base damage is 1d4 Piercing. A successful grapple using the Attack action additionally deals 3 Piercing damage."
-      ],
-      [
-        3,
-        "Restriction—Dwarves Only",
-        "The Forgotten Realms restricts this path to dwarves. The DM may waive this requirement for their setting."
-      ],
-      [
-        6,
-        "Reckless Abandon",
-        "Using Reckless Attack during Rage grants temporary HP equal to Constitution modifier, minimum 1. Any of these temporary HP still remaining disappear when that Rage ends."
-      ],
-      [
-        10,
-        "Battlerager Charge",
-        "During Rage you may Dash as a Bonus Action."
-      ],
-      [
-        14,
-        "Spiked Retribution",
-        "A creature within 5 feet that lands a melee attack on you suffers 3 Piercing damage if you are raging, wearing spiked armor and not Incapacitated."
-      ]
-    ]
-  },
-  "reference-scag-fighter-purple-dragon-knight-banneret": {
-    "url": "https://dndroll.wikidot.com/fighter:banneret",
-    "desc": "A martial leader who shares the benefits of Second Wind, Action Surge and Indomitable with nearby allies.",
-    "features": [
-      [
-        3,
-        "Rallying Cry",
-        "On using Second Wind, choose up to three allies within 60 feet who can see or hear you. Each heals HP equal to your Fighter level."
-      ],
-      [
-        3,
-        "Restriction: Knighthood",
-        "In the Forgotten Realms this archetype represents Cormyrean knighthood. Use Banneret as its generic title in other settings."
-      ],
-      [
-        7,
-        "Royal Envoy",
-        "Gain Persuasion proficiency; if already proficient, instead select Animal Handling, Insight, Intimidation or Performance. Regardless of that selection, double your proficiency bonus for Persuasion checks."
-      ],
-      [
-        10,
-        "Inspiring Surge",
-        "When using Action Surge, choose one ally within 60 feet who can see or hear you. That ally can use its Reaction for one weapon attack (melee or ranged)."
-      ],
-      [
-        15,
-        "Bulwark",
-        "When you use Indomitable on an Intelligence, Wisdom or Charisma save while not Incapacitated, select one ally within 60 feet who failed a save against the same effect and can see or hear you. That ally may reroll, using the new result."
-      ],
-      [
-        18,
-        "Inspiring Surge",
-        "Your level-10 Inspiring Surge can now affect two eligible allies instead of one."
-      ]
-    ]
-  },
-  "reference-scag-monk-way-of-the-long-death": {
-    "url": "https://dnd5e.wikidot.com/monk:long-death",
-    "desc": "A monk who converts nearby deaths into vitality, inspires fear and uses ki to avoid death or deliver necrotic power.",
-    "features": [
-      [
-        3,
-        "Touch of Death",
-        "When you personally reduce a creature within 5 feet to 0 HP, gain temporary HP equal to your Monk level plus Wisdom modifier (at least 1)."
-      ],
-      [
-        6,
-        "Hour of Reaping",
-        "Use an Action: every creature within 30 feet able to see you makes a Wisdom save against your ki DC or becomes Frightened of you until your next turn ends."
-      ],
-      [
-        11,
-        "Mastery of Death",
-        "When you would be reduced to 0 HP, spend 1 ki point without taking an action to remain at 1 HP instead."
-      ],
-      [
-        17,
-        "Touch of the Long Death",
-        "Use an Action to touch a creature within 5 feet and pay 1–10 ki points. It makes a Constitution save against your ki DC, taking 2d10 Necrotic damage per point paid on failure or half on success."
       ]
     ]
   }

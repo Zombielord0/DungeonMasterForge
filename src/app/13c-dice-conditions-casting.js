@@ -125,7 +125,7 @@ function pcDamaged(c, dmg, wasZero) {
   c.death = c.death || { s: 0, f: 0 };
   if (wasZero && !c.death.dead) { c.death.f = Math.min(3, c.death.f + 1); c.death.stable = false; notes.push(`${c.name} takes a death save failure (${c.death.f}/3)`); if (c.death.f >= 3) { c.death.dead = true; notes.push(`${c.name} dies`); } }
   else if (!wasZero && +c.hpCur === 0) { c.conds = { ...(c.conds || {}), unconscious: true }; c.condAuto = true; c.death = { s: 0, f: 0 }; notes.push(`${c.name} drops to 0 hit points and falls unconscious`); if (c.conc) { notes.push(`concentration on ${c.conc.spell} ends`); delete c.conc; } }
-  if(c.death.dead)artificerRecordDeath(c);
+  if(c.death.dead){artificerRecordDeath(c);companionOnOwnerDeath(c);}
   if (c.conc && +c.hpCur > 0) {
     if(edOf(c)==="2024"&&classFeatureLevel(c,"Ranger")>=13&&String(c.conc.spell).replaceAll("’","\x27").toLowerCase()==="hunter\x27s mark")notes.push("Relentless Hunter: damage cannot break Concentration on Hunter’s Mark");
     else {const dc=Math.min(edOf(c)==="2024"?30:99,Math.max(10,Math.floor(dmg/2)));c.concCheck=dc;notes.push(`concentration save needed (CON, DC ${dc})`);}
@@ -144,7 +144,7 @@ function deathSave(c) {
   else if (r.total >= 10) c.death.s = Math.min(3, c.death.s + 1);
   else c.death.f = Math.min(3, c.death.f + 1);
   if (c.death.s >= 3) { c.death.stable = true; toast(`${c.name} is stable.`); }
-  if (c.death.f >= 3) { c.death.dead = true; artificerRecordDeath(c); toast(`${c.name} has died.`); }
+  if (c.death.f >= 3) { c.death.dead = true; artificerRecordDeath(c); companionOnOwnerDeath(c); toast(`${c.name} has died.`); }
 }
 function concSave(c) {
   const dc = c.concCheck || 10, bonus = c.mods.con + (c.saves.includes("con") ? c.prof : 0) + itemSaveBonus(c);

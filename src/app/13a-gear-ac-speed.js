@@ -39,9 +39,14 @@ function applyCoreSkillChoices(c){
       if(!p.x){p.x=true;p.envoyExpert=true;}
     }
   }
-  for(const [key,flag] of [["Implement of Peace","peaceGranted"],["Otherworldly Glamour","glamourGranted"],["Arcane Archer Skill","archerGranted"]]){
+  for(const [key,flag] of [["Implement of Peace","peaceGranted"],["Otherworldly Glamour","glamourGranted"]]){
     const rule=CHOICES[key],selected=choiceOf(c,key)[0];
     if(rule.n(c)>0&&rule.opts(c).some(([id])=>id===selected))choose(selected,flag);
+  }
+  if(arcaneArcherLevel(c)>=3){
+    const rule=CHOICES["Arcane Archer Skill"],opts=rule.opts(c),max=rule.n(c);
+    if(revisedArcaneArcher(c))for(const skill of ["Arcana","Nature"])choose(skill,"archerGranted");
+    for(const skill of [...new Set(choiceOf(c,"Arcane Archer Skill"))].filter(name=>opts.some(([id])=>id===name)).slice(0,max))choose(skill,"archerGranted");
   }
   if(edOf(c)!=="2024")return;
   const apply=(key,flag,attr,cls,level,eligible)=>{
@@ -54,6 +59,7 @@ function applyCoreSkillChoices(c){
 }
 function pcRecompute(c) {
   artificerInfusionCleanup(c);
+  companionCleanup(c);
   wizardSubclassCleanup(c);
   const m = {}; AB.forEach(a => m[a] = mod(+c.scores[a] || 10)); c.mods = m; const SB = subBonusOf(c);
   c.init = m.dex + (c.initBonus ?? ((c.feats || []).some(f => f.f === "Feat: Alert") ? (edOf(c) === "2024" ? c.prof : 5) : 0)) + SB.init + (SB.athlete ? Math.ceil(c.prof / 2) : 0) + (clsLv(c,"Bard") >= 2 && edOf(c) === "2014" ? Math.floor(c.prof / 2) : 0);

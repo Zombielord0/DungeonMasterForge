@@ -100,8 +100,11 @@ const CHOICES = {
   "Eldritch Cannon": expansionChoice("Artificer", "Artillerist", "Cannon type", ["Flamethrower", "Force Ballista", "Protector"], () => 1, null),
   "Vestige Companion": expansionChoice("Warlock", "Vestige Patron", "Companion type", ["Celestial", "Fiend", "Undead"], () => 1, "2024"),
   "Vestige Spells": expansionChoice("Warlock", "Vestige Patron", "Vestige domain", ["Life", "Light", "Trickery", "War"], () => 1, "2024"),
-  "Arcane Archer Lore": expansionChoice("Fighter", "Arcane Archer", "Cantrip", ["Druidcraft", "Prestidigitation"], () => 1, null),
-  "Arcane Archer Skill": expansionChoice("Fighter", "Arcane Archer", "Skill proficiency", ["Arcana", "Nature"]),
+  "Arcane Archer Lore": {label:"Cantrip",n:c=>arcaneArcherLevel(c)>=3?1:0,opts:()=>opt3(["Druidcraft","Prestidigitation"])},
+  "Arcane Archer Skill": {label:"Skill proficiency",n:c=>arcaneArcherLevel(c)<3?0:revisedArcaneArcher(c)?
+    (c.skills||[]).filter(s=>["Arcana","Nature"].includes(s.s)&&s.p&&!s.archerGranted).length:1,
+    opts:c=>opt3(revisedArcaneArcher(c)?classData(edOf(c),"Fighter").skills[0].filter(name=>!["Arcana","Nature"].includes(name)&&
+      !(c.skills||[]).some(s=>s.s===name&&s.p&&!s.archerGranted)):["Arcana","Nature"])},
   "Runeforging": {
     label: "Weapon rune",
     n: c => Math.max(expansionSubclassLevel(c, "Death Knight", "Oath of the Ebon Blade", "2024"),
@@ -118,8 +121,8 @@ const CHOICES = {
   "Implement of Peace": expansionChoice("Cleric", "Peace Domain", "Skill proficiency", ["Insight", "Performance", "Persuasion"]),
   "Rune Carver": expansionChoice("Fighter", "Rune Knight", "Runes", level => ["Cloud", "Fire", "Frost", "Stone", ...(level >= 7 ? ["Hill", "Storm"] : [])],
     level => level >= 15 ? 5 : level >= 10 ? 4 : level >= 7 ? 3 : 2),
-  "Arcane Shot Options": expansionChoice("Fighter", "Arcane Archer", "Arcane Shot options", ["Banishing Arrow", "Beguiling Arrow", "Bursting Arrow", "Enfeebling Arrow", "Grasping Arrow", "Piercing Arrow", "Seeking Arrow", "Shadow Arrow"],
-    level => level >= 18 ? 6 : level >= 15 ? 5 : level >= 10 ? 4 : level >= 7 ? 3 : 2),
+  "Arcane Shot Options": {label:"Arcane Shot options",n:c=>{const level=arcaneArcherLevel(c);return level>=18?6:level>=15?5:level>=10?4:level>=7?3:level>=3?2:0;},
+    opts:c=>opt3(Object.keys(REVISED_ARCANE_SHOTS).map(id=>[id,revisedArcaneArcher(c)?id.replace(/ Arrow$/," Shot"):id]))},
   "Otherworldly Glamour": expansionChoice("Ranger", "Fey Wanderer", "Skill proficiency", ["Deception", "Performance", "Persuasion"], () => 1, null),
   "Divine Magic": expansionChoice("Sorcerer", "Divine Soul", "Divine affinity", [["Good", "Good", "Cure Wounds"], ["Evil", "Evil", "Inflict Wounds"], ["Law", "Law", "Bless"], ["Chaos", "Chaos", "Bane"], ["Neutrality", "Neutrality", "Protection from Evil and Good"]]),
   "Genie's Vessel": expansionChoice("Warlock", "The Genie", "Genie patron", [["Dao", "Dao", "Bludgeoning"], ["Djinni", "Djinni", "Thunder"], ["Efreeti", "Efreeti", "Fire"], ["Marid", "Marid", "Cold"]]),
@@ -581,6 +584,7 @@ function rcSlotsHTML(c) {
 }
 function pcRest(c, kind) {
   c.used = c.used || {};
+  if(c.death?.dead)companionOnOwnerDeath(c);
   delete c.dragonPresencePending; delete c.dragonFuryPending;
   delete c.shamanTotem; // its one-minute duration cannot survive either rest
   const back = [];
@@ -598,6 +602,7 @@ function pcRest(c, kind) {
   delete c.apotheosisUsedThisTurn;
   if(c.artificerStored)delete c.artificerStored.usedThisTurn;
   delete c.arcaneJoltThisTurn;
+  delete c.arcaneShotUsedThisTurn;
   delete c.psiPending; // an unresolved check or attack cannot carry across a rest
   delete c.spellBreakerPending;
   if(c.portent)c.portent.turnUsed=false;

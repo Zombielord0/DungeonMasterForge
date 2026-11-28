@@ -206,7 +206,10 @@ spFiltersSync();
       if (k === "check") rollD20(c, `${AB_FULL[v]} check`, c.mods[v], "check", v);
       else if (k === "save") rollD20(c, `${AB_FULL[v]} save`, c.mods[v] + (c.saves.includes(v) ? c.prof : 0) + xb, "save", v);
       else if (k === "skill") { const s = c.skills[+v]; rollD20(c, s.s, s.v, "check", s.ab, { skill: s.s }); }
-      else if (k === "init") rollD20(c, "Initiative", c.init, "init", "dex");
+      else if (k === "init") {
+        rollD20(c,"Initiative",c.init,"init","dex");
+        if(arcaneArcherInitiative(c)){pcPersist();renderRosterMain();toast("Ever-Ready Shot restored one Arcane Shot use.");}
+      }
       else if (k === "atk") { const a = c.attacks[+v]; const r = rollD20(c, `${a.name} attack`, a.hit, "attack", a.ab, { tags: a.tags, crit: a.crit }); ROLL.lastCrit = r && r.crit ? a.name : ""; }
       else if (k === "dmg") { const a = c.attacks[+v]; rollDamage(c, `${a.name} damage`, a, ROLL.lastCrit === a.name); ROLL.lastCrit = ""; }
       return;
@@ -228,12 +231,12 @@ spFiltersSync();
       const key=comp.dataset.companionKey,op=comp.dataset.companionOp;if(!Object.hasOwn(SUB_COMPANIONS,key))return;
       let msg="";
       if(op==="summon")msg=companionSummon(c,key,$('[data-companion-form="'+key+'"]',main)?.value,$('[data-companion-pay="'+key+'"]',main)?.value);
-      else if(op==="revive")msg=companionRevive(c,key,$('[data-companion-revive="'+key+'"]',main)?.value);
+      else if(op==="revive")msg=companionRevive(c,key,$('[data-companion-revive="'+key+'"]',main)?.value,$('[data-companion-recent="'+key+'"]',main)?.checked);
       else if(op==="finish")msg=companionFinishRevive(c,key);
       else if(op==="dismiss"&&["drake","wildfire"].includes(key)&&c.subCompanions){delete c.subCompanions[key];msg="Summon ended.";}
       else msg=companionRoll(c,key,op);
-      pcPersist();renderRosterMain();
-      if(msg&&typeof msg==="object"){if(msg.amount)actResultDialog(c,msg);else toast(msg.msg);}else if(msg)toast(msg);return;
+      pcRecompute(c);pcPersist();renderRosterMain();
+      if(msg&&typeof msg==="object"){if(msg.aoe)actAoeDialog(c,msg);else if(msg.amount)actResultDialog(c,msg);else toast(msg.msg);}else if(msg)toast(msg);return;
     }
     const ab = e.target.closest("[data-act]");
     if (ab) { const msg = actRun(c, ab.dataset.act, (($(`[data-actsel="${CSS.escape(ab.dataset.act)}"]`, main) || {}).value) || null); pcRecompute(c); pcPersist(); renderRosterMain(); if (msg && typeof msg === "object") { if (msg.aoe) actAoeDialog(c, msg); else if (msg.amount) actResultDialog(c, msg); else toast(msg.msg); } else if (msg) toast(msg); return; }
@@ -250,7 +253,17 @@ spFiltersSync();
   });
   main.addEventListener("change", e => {
     const t = e.target, c = rosterCur(); if (!c) return;
-    if(t.dataset.companionHp){companionSetHP(c,t.dataset.companionHp,t.value);pcPersist();renderRosterMain();return;}
+    if(t.dataset.companionHp){companionSetHP(c,t.dataset.companionHp,t.value);pcRecompute(c);pcPersist();renderRosterMain();return;}
+    if(t.hasAttribute("data-companion-variant")){
+      const variant=t.value,previous=c.beastCompanionVariant||"natural";
+      if(!["natural","primal"].includes(variant)||variant===previous)return;
+      const apply=()=>{c.beastCompanionVariant=variant;pcRecompute(c);pcPersist();renderRosterMain();};
+      if(c.subCompanions?.[previous==="primal"?"primal14":"beast14"]){
+        t.value=previous;
+        confirmBox("Switch companion rules?","This releases the companion recorded under your current rules.","Switch rules").then(confirmed=>{if(confirmed)apply();});
+      }else apply();
+      return;
+    }
     if(t.hasAttribute("data-wizard-book-add")){if(t.value&&wizardBookAdd(c,t.value)){syncGrantedSpells(c);pcPersist();renderRosterMain();}}
     else if (t.dataset.left) resSet(c, t.dataset.left, parseInt(t.value) || 0);
     else if (t.dataset.fstyle !== undefined) { c.fightStyles = c.fightStyles || []; c.fightStyles[+t.dataset.fstyle] = t.value; pcRecompute(c); pcPersist(); renderRosterMain(); }

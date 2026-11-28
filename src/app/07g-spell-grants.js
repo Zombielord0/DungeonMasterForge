@@ -436,7 +436,7 @@ function syncGrantedSpells(c) {
     }
     if(cls==="Fighter"&&subclass==="Arcane Archer"){
       const rule=CHOICES["Arcane Archer Lore"],selected=choiceOf(c,"Arcane Archer Lore")[0];
-      if(rule.n(c)&&rule.opts(c).some(([id])=>id===selected))add({3:[selected]},lv,{...source,feature:"Arcane Archer Lore",known:true,innate:true});
+      if(rule.n(c)&&rule.opts(c).some(([id])=>id===selected))add({3:[selected]},lv,{...source,feature:"Arcane Archer Lore",known:true,innate:true,...(revisedArcaneArcher(c)?{ab:"int"}:{})});
     }
     if (cls === "Sorcerer" && subclass === "Divine Soul") {
       const affinity = CHOICES["Divine Magic"].opts(c).find(([id]) => id === choiceOf(c, "Divine Magic")[0]);
