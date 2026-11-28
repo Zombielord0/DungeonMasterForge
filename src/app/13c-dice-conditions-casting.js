@@ -59,7 +59,7 @@ function rollState(c, kind, ab, o = {}) {
     if (o.conc && featTaken(c, "War Caster")) S.adv.push("War Caster");
     if(o.conc&&ab==="con"&&hasChoice(c,"Eldritch Invocations","mind"))S.adv.push("Eldritch Mind");
   }
-  if(ed==="2024"&&kind==="save"&&ab==="dex"&&clsLv(c,"Barbarian")>=2&&!COND_INCAP.some(on))S.adv.push("Danger Sense");
+  if(ed==="2024"&&kind==="save"&&ab==="dex"&&classFeatureLevel(c,"Barbarian")>=2&&!COND_INCAP.some(on))S.adv.push("Danger Sense");
   if(kind==="save"&&ed==="2014"&&clsLv(c,"Artificer")>=20)S.pen+=artificerAttunedCount(c);
   if (ed === "2024" && n) S.pen = -2 * n;
   return S;
@@ -94,7 +94,7 @@ function rollD20(c, label, bonus, kind, ab, o = {}) {
   const dice = mode === "normal" ? [d20()] : [d20(), d20()], raw = mode === "adv" ? Math.max(...dice) : mode === "dis" ? Math.min(...dice) : dice[0];
   const keep=skillCheckD20Floor(c,kind,o.skill,raw);
   const ordinary=keep+bonus+S.pen;
-  const indomitable=clsLv(c,"Barbarian")>=18&&ab==="str"&&(kind==="check"||edOf(c)==="2024"&&kind==="save");
+  const indomitable=classFeatureLevel(c,"Barbarian")>=18&&ab==="str"&&(kind==="check"||edOf(c)==="2024"&&kind==="save");
   const total=indomitable?Math.max(ordinary,+c.scores.str||0):ordinary, crit = raw >= (o.crit || 20), fumble = raw === 1;
   const why = [...S.adv.map(x => "adv: " + x), ...S.dis.map(x => "dis: " + x), ...(keep!==raw?["Reliable Talent: "+raw+" treated as "+keep]:[]),...(total!==ordinary?["Indomitable Might: total raised to Strength score"]:[])].join(", ");
   rollLog(c, { label, d: dice, keep, bonus: bonus + S.pen, total, mode, crit: kind === "attack" && crit, fumble: kind === "attack" && fumble, nat20: keep === 20, note: why });
@@ -127,7 +127,7 @@ function pcDamaged(c, dmg, wasZero) {
   else if (!wasZero && +c.hpCur === 0) { c.conds = { ...(c.conds || {}), unconscious: true }; c.condAuto = true; c.death = { s: 0, f: 0 }; notes.push(`${c.name} drops to 0 hit points and falls unconscious`); if (c.conc) { notes.push(`concentration on ${c.conc.spell} ends`); delete c.conc; } }
   if(c.death.dead)artificerRecordDeath(c);
   if (c.conc && +c.hpCur > 0) {
-    if(edOf(c)==="2024"&&clsLv(c,"Ranger")>=13&&String(c.conc.spell).replaceAll("’","\x27").toLowerCase()==="hunter\x27s mark")notes.push("Relentless Hunter: damage cannot break Concentration on Hunter’s Mark");
+    if(edOf(c)==="2024"&&classFeatureLevel(c,"Ranger")>=13&&String(c.conc.spell).replaceAll("’","\x27").toLowerCase()==="hunter\x27s mark")notes.push("Relentless Hunter: damage cannot break Concentration on Hunter’s Mark");
     else {const dc=Math.min(edOf(c)==="2024"?30:99,Math.max(10,Math.floor(dmg/2)));c.concCheck=dc;notes.push(`concentration save needed (CON, DC ${dc})`);}
   }
   return notes;
@@ -244,7 +244,7 @@ function spellCaster(c, sp, how, ed = edOf(c)) {
     return { cls: source.name, ab, dc: 8 + c.prof + c.mods[ab], atk: c.prof + c.mods[ab] };
   }
   const caster=own.find(x => x.cls === source?.cls) || own.find(x => (sp.c || []).includes(x.cls) || (x.list && (sp.c || []).includes(x.list))) || own.find(x=>pcCastClasses(c).some(k=>k.cls===x.cls&&spellClassListEligible(c,sp,ed,k)&&(sp.l===0?k.cantrips:sp.l<=k.max))) || own[0] || { cls: "", ab: "int", dc: 8 + c.prof, atk: c.prof };
-  return ed==="2024"&&clsLv(c,"Sorcerer")>=1&&caster.cls==="Sorcerer"&&isActive(c,"Innate Sorcery")&&(sp.c||[]).includes("Sorcerer")?{...caster,dc:caster.dc+1,innateSorcery:true}:caster;
+  return ed==="2024"&&baseClassOf(caster.cls)==="Sorcerer"&&isActive(c,"Innate Sorcery")&&(sp.c||[]).some(cls=>cls==="Sorcerer"||cls===caster.cls)?{...caster,dc:caster.dc+1,innateSorcery:true}:caster;
 }
 /* The spell window: the full rules, then (on My Characters) "Cast at level" buttons and Cast. `o.view`: rules only (the
    Characters tab, where slots aren't tracked). The picked choice is kept in the hidden #castSlot that castGo reads. */
@@ -280,7 +280,7 @@ function castOpts(c, sp, ed = edOf(c)) {
   const sources = spellPreparationSources(c, sp.n, ed);
   const grants = freeSpellResources(c, sp, ed, R).map(r => [r.key, r.name, r.max === Infinity ? "no slot needed" : `${resLeft(c, r)} left per ${r.recharge === "short" ? "short or long" : "long"} rest`, !resLeft(c, r)]);
   const manual = c.prepared?.some(p => !p.bookGrant && p.n === sp.n && p.ed === ed);
-  if(wizardBookActive(c)&&(sp.c||[]).includes("Wizard")&&!wizardBookOtherClass(c,sp,ed)&&!manual&&!sources.length){return wizardBookContains(c,sp.n)&&sp.ri?[["ritual","As a spellbook ritual","no slot, 10 min longer"]]:[];}
+  if(wizardBookActive(c)&&isWizardBookSpell(c,sp)&&!wizardBookOtherClass(c,sp,ed)&&!manual&&!sources.length){return wizardBookContains(c,sp.n)&&sp.ri?[["ritual","As a spellbook ritual","no slot, 10 min longer"]]:[];}
   if(sources.length&&sources.every(g=>g.feature==="Mystic Arcanum")&&!manual)return grants;
   const featOnly = sources.length > 0 && sources.every(g => g.kind === "feat") && !manual;
   const ritual = ["ritual", "As a ritual", "no slot, 10 min longer"];

@@ -136,7 +136,7 @@ function spellLimits(c) {
     const book = classData(edOf(c), cls).hbx;
     if (book?.preparedAt) {
       n += Number(book.preparedAt[lv - 1]) || 0;
-      cant += Number(book.cantripsAt?.[lv - 1]) || 0;
+      cant += book.cantripsAt ? Number(book.cantripsAt[lv - 1]) || 0 : revisedSpellAllowance(baseClassOf(cls),+lv)?.cantrips || 0;
       return;
     }
     const ab = CLASS_DATA[cls].cast[1];
@@ -159,15 +159,16 @@ function spellLimits(c) {
 const isPrep = (c, name, ed) => !!(c && c.prepared && c.prepared.some(p => p.n === name && p.ed === ed));
 // A tracked spellbook is separate from prepared spells. Existing sheets opt in
 // explicitly, so migrating a saved character never silently removes their spells.
-function wizardBookActive(c){return clsLv(c,"Wizard")>0&&c.wizardBook?.edition===edOf(c)&&Array.isArray(c.wizardBook.spells);}
+function isWizardBookSpell(c,s){return (s.c||[]).includes("Wizard")||clsLv(c,"Mage")>0&&(s.c||[]).includes("Mage");}
+function wizardBookActive(c){return classFeatureLevel(c,"Wizard")>0&&c.wizardBook?.edition===edOf(c)&&Array.isArray(c.wizardBook.spells);}
 function wizardBookEligible(c,s,ed=edOf(c)){
-  const level=clsLv(c,"Wizard");
-  return !!(level&&s&&ed===edOf(c)&&(!s.ed||s.ed===ed)&&s.l>0&&s.l<=(FULL_SLOTS[level]||[]).length&&(s.c||[]).includes("Wizard")&&!s.ref&&!s.referenceOnly&&!s.pend&&!s.rulesSummary&&!s.shadow);
+  const level=classFeatureLevel(c,"Wizard");
+  return !!(level&&s&&ed===edOf(c)&&(!s.ed||s.ed===ed)&&s.l>0&&s.l<=(FULL_SLOTS[level]||[]).length&&isWizardBookSpell(c,s)&&!s.ref&&!s.referenceOnly&&!s.pend&&!s.rulesSummary&&!s.shadow);
 }
 function wizardBookContains(c,name){return wizardBookActive(c)&&c.wizardBook.spells.includes(name);}
-function wizardBookOtherClass(c,s,ed){return pcCastClasses(c).some(k=>k.cls!=="Wizard"&&s.l<=k.max&&spellClassListEligible(c,s,ed,k));}
+function wizardBookOtherClass(c,s,ed){return pcCastClasses(c).some(k=>baseClassOf(k.cls)!=="Wizard"&&s.l<=k.max&&spellClassListEligible(c,s,ed,k));}
 function wizardBookStart(c){
-  if(!clsLv(c,"Wizard")||wizardBookActive(c))return false;
+  if(!classFeatureLevel(c,"Wizard")||wizardBookActive(c))return false;
   const ed=edOf(c),names=[...(c.prepared||[]).filter(p=>p.ed===ed&&!p.src&&p.l>0).map(p=>p.n),...WIZARD_SPELL_CHOICES.flatMap(x=>choiceOf(c,x.choice))];
   c.wizardBook={edition:ed,spells:[...new Set(names)].filter(n=>wizardBookEligible(c,spellOf(ed,n),ed))};
   return true;
@@ -182,7 +183,7 @@ function wizardBookRemove(c,name){
   c.wizardBook.spells=c.wizardBook.spells.filter(n=>n!==name);return true;
 }
 function wizardBookHTML(c){
-  const level=clsLv(c,"Wizard");if(!level)return "";
+  const level=classFeatureLevel(c,"Wizard");if(!level)return "";
   if(!wizardBookActive(c))return '<div class="choice"><b>Wizard spellbook</b><p class="hint">Enable a separate spellbook, seeded from eligible prepared spells and mastery/signature choices. Copies and additional spells can be added after recording their cost and time.</p><button type="button" class="btn sm" data-wizard-book-start>Track spellbook</button></div>';
   spLoad();
   const ed=edOf(c),spells=c.wizardBook.spells,minimum=6+2*(level-1);
@@ -196,7 +197,7 @@ function togglePrep(c, s, ed) {
   if (i >= 0) { c.prepared.splice(i, 1); toast(`${s.n} removed from ${c.name}`); return false; }
   if (s.referenceOnly || s.pend) { toast("Complete spell rules are required before preparation."); return false; }
   if (!spellConditionalEligible(c,s,ed)) { toast("This spell is not available through this character’s class or background."); return false; }
-  if(wizardBookActive(c)&&s.l>0&&(s.c||[]).includes("Wizard")&&!wizardBookOtherClass(c,s,ed)&&!wizardBookContains(c,s.n)){toast("Record this spell in your Wizard spellbook first.");return false;}
+  if(wizardBookActive(c)&&s.l>0&&isWizardBookSpell(c,s)&&!wizardBookOtherClass(c,s,ed)&&!wizardBookContains(c,s.n)){toast("Record this spell in your Wizard spellbook first.");return false;}
   c.prepared.push({ n: s.n, l: s.l, ed });
   const L = spellLimits(c);
   if (L) {

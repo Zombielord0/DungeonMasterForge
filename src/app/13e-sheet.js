@@ -45,7 +45,7 @@ function quickSheetActions(c) {
   const attack = c.attacks[attackIndex];
   return `
     <button type="button" class="btn sm" data-quick-roll="init">Initiative</button>
-    ${edOf(c)==="2024"&&clsLv(c,"Sorcerer")>=20?`<button type="button" class="btn sm" data-core-turn>Begin your turn</button>`:""}
+    ${edOf(c)==="2024"&&classFeatureLevel(c,"Sorcerer")>=20?`<button type="button" class="btn sm" data-core-turn>Begin your turn</button>`:""}
     ${attack ? `<button type="button" class="btn sm" data-quick-roll="atk:${attackIndex}">Roll ${esc(attack.name)}</button>` : ""}
     <button type="button" class="btn sm" data-jump="attacks">Attacks</button>
     ${hasSheetSpells(c) ? '<button type="button" class="btn sm" data-jump="spells">Spells</button>' : ""}
@@ -191,7 +191,7 @@ spFiltersSync();
     if(e.target.closest("[data-bgkit]")){if(backgroundEquipmentClaim(c)){pcRecompute(c);pcPersist();renderRosterMain();toast("Background starting equipment added.");}return;}
     const br=e.target.closest("[data-bgchoice-remove]");
     if(br){if(backgroundSelectionChange(c,br.dataset.bgchoiceRemove,br.dataset.bgchoiceValue,true)){pcPersist();renderRosterMain();}return;}
-    if(e.target.closest("[data-core-turn]")){if(edOf(c)==="2024"&&clsLv(c,"Sorcerer")>=20){delete c.apotheosisUsedThisTurn;pcPersist();renderRosterMain();toast("New turn: Arcane Apotheosis allowance reset.");}return;}
+    if(e.target.closest("[data-core-turn]")){if(edOf(c)==="2024"&&classFeatureLevel(c,"Sorcerer")>=20){delete c.apotheosisUsedThisTurn;pcPersist();renderRosterMain();toast("New turn: Arcane Apotheosis allowance reset.");}return;}
     if(e.target.closest("[data-wizard-book-start]")){if(wizardBookStart(c)){syncGrantedSpells(c);pcPersist();renderRosterMain();}return;}
     const wr=e.target.closest("[data-wizard-book-remove]");if(wr){if(wizardBookRemove(c,wr.dataset.wizardBookRemove)){syncGrantedSpells(c);pcPersist();renderRosterMain();}else toast("Remove this spell from prepared and class-feature choices first.");return;}
     const cr = e.target.closest("[data-choicerm]");

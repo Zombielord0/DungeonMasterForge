@@ -357,8 +357,8 @@ function syncGrantedSpells(c) {
         add({ [level]: [spell] }, lv, { ...classSource, feature }, () => free ? { free } : {});
       }
     }
-    if(ed==="2024"&&["Cleric","Druid"].includes(cls)){
-      const feature=cls==="Cleric"?"Divine Order":"Primal Order",key=feature+" Cantrip",choice=CHOICES[key];
+    if(ed==="2024"&&["Cleric","Druid"].includes(baseClassOf(cls))){
+      const feature=baseClassOf(cls)==="Cleric"?"Divine Order":"Primal Order",key=feature+" Cantrip",choice=CHOICES[key];
       if(choice.n(c)>0){
         const selected=choiceOf(c,key).filter(name=>choice.opts(c).some(([id])=>id===name)).slice(0,1);
         add({1:selected},lv,{...classSource,feature},()=>({known:true}));
@@ -393,7 +393,7 @@ function syncGrantedSpells(c) {
         add({[2*level-1]:selected},lv,{...classSource,feature:"Mystic Arcanum"},()=>({free:"arcanum"+level,uses:1,recharge:"long",known:true,innate:true}));
       }
     }
-    if (cls === "Wizard") {
+    if (baseClassOf(cls) === "Wizard") {
       for (const { choice, feature, level, uses, recharge } of WIZARD_SPELL_CHOICES) {
         if (lv < level || !choiceOf(c, choice).length || (feature === "Spell Mastery" && ed !== "2024"&&!wizardBookActive(c))) continue;
         const candidates = CHOICES[choice].opts(c);

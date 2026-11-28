@@ -10,10 +10,10 @@ function channelDivinityPools(ed,cleric,paladin){
   return [{key:"channelCleric",name:"Cleric Channel Divinity",max:C,recharge:"short1"},{key:"channelPaladin",name:"Paladin Channel Divinity",max:P,recharge:"short1"}];
 }
 function channelKey(c,cls){
-  return edOf(c)==="2024"&&clsLv(c,"Cleric")>=2&&clsLv(c,"Paladin")>=3?(cls==="Paladin"?"channelPaladin":"channelCleric"):"channel";
+  return edOf(c)==="2024"&&classFeatureLevel(c,"Cleric")>=2&&classFeatureLevel(c,"Paladin")>=3?(baseClassOf(cls)==="Paladin"?"channelPaladin":"channelCleric"):"channel";
 }
 function channelPoolsForCharacter(c){
-  const R=channelDivinityPools(edOf(c),clsLv(c,"Cleric"),clsLv(c,"Paladin"));
+  const R=channelDivinityPools(edOf(c),classFeatureLevel(c,"Cleric"),classFeatureLevel(c,"Paladin"));
   // Migrate the ambiguous historical counter conservatively. Never grant free
   // uses by guessing which class spent them; a DM can correct the counters.
   if(R.length===2&&c.used&&Object.hasOwn(c.used,"channel")){
@@ -21,7 +21,7 @@ function channelPoolsForCharacter(c){
     for(const r of R)if(!Object.hasOwn(c.used,r.key))c.used[r.key]=Math.min(spent,r.max);
     delete c.used.channel;
   }else if(R.length===1&&c.used&&R[0].key==="channel"&&(Object.hasOwn(c.used,"channelCleric")||Object.hasOwn(c.used,"channelPaladin"))){
-    const spent=edOf(c)==="2024"?clsLv(c,"Cleric")>=2?c.used.channelCleric:c.used.channelPaladin:Math.max(+c.used.channelCleric||0,+c.used.channelPaladin||0);
+    const spent=edOf(c)==="2024"?classFeatureLevel(c,"Cleric")>=2?c.used.channelCleric:c.used.channelPaladin:Math.max(+c.used.channelCleric||0,+c.used.channelPaladin||0);
     if(!Object.hasOwn(c.used,"channel"))c.used.channel=Math.max(0,Math.min(R[0].max,+spent||0));
     delete c.used.channelCleric;delete c.used.channelPaladin;
   }
@@ -392,20 +392,20 @@ function pcResources(c) {
   if (has("Indomitable")) add("indom", "Indomitable", CLV("Fighter") >= 17 ? 3 : CLV("Fighter") >= 13 ? 2 : 1, "long");
   if (has("Ki")||has("Monk's Focus")) add("ki", ed === "2024" ? "Focus points" : "Ki points", CLV("Monk"), "short");
   if(ed==="2024"&&clsLv(c,"Monk")>=2)add("uncannyMetabolism","Uncanny Metabolism",1,"long");
-  if(ed==="2024"&&clsLv(c,"Barbarian")>=15)add("persistentRage","Persistent Rage recovery",1,"long");
+  if(ed==="2024"&&classFeatureLevel(c,"Barbarian")>=15)add("persistentRage","Persistent Rage recovery",1,"long");
   if(ed==="2024"&&clsLv(c,"Druid")>=5)add("wildResurgence","Wild Resurgence (create slot)",1,"long");
   if (has("Lay on Hands")) add("loh", "Lay on Hands pool", 5 * CLV("Paladin"), "long");
   if (has("Divine Sense") && ed === "2014") add("dsense", "Divine Sense", 1 + Math.max(0, m.cha), "long");
   if (has("Cleansing Touch")) add("cleanse", "Cleansing Touch", Math.max(1, m.cha), "long");
-  if(ed==="2024"&&clsLv(c,"Ranger")>=10)add("rangerTireless","Tireless",Math.max(1,m.wis),"long");
-  if(ed==="2024"&&clsLv(c,"Ranger")>=14)add("rangerVeil","Nature’s Veil",Math.max(1,m.wis),"long");
-  if(ed==="2024"&&clsLv(c,"Sorcerer")>=1)add("innateSorcery","Innate Sorcery",2,"long");
-  if(ed==="2024"&&clsLv(c,"Sorcerer")>=5)add("sorcerousRestore","Sorcerous Restoration",1,"long");
+  if(ed==="2024"&&classFeatureLevel(c,"Ranger")>=10)add("rangerTireless","Tireless",Math.max(1,m.wis),"long");
+  if(ed==="2024"&&classFeatureLevel(c,"Ranger")>=14)add("rangerVeil","Nature’s Veil",Math.max(1,m.wis),"long");
+  if(ed==="2024"&&classFeatureLevel(c,"Sorcerer")>=1)add("innateSorcery","Innate Sorcery",2,"long");
+  if(ed==="2024"&&classFeatureLevel(c,"Sorcerer")>=5)add("sorcerousRestore","Sorcerous Restoration",1,"long");
   if(ed==="2024"&&clsLv(c,"Warlock")>=2)add("magicalCunning","Magical Cunning",1,"long");
   if(ed==="2024"&&clsLv(c,"Warlock")>=9)add("freeContactPatron","Contact Patron",1,"long");
   if (has("Font of Magic")) add("sorc", "Sorcery points", CLV("Sorcerer"), "long");
   if (has("Favored Enemy") && ed === "2024") add("hmark", "Free Hunter's Mark", CLV("Ranger") >= 17 ? 6 : CLV("Ranger") >= 13 ? 5 : CLV("Ranger") >= 9 ? 4 : CLV("Ranger") >= 5 ? 3 : 2, "long");
-  if(ed==="2024"&&clsLv(c,"Cleric")>=10)add("divineIntervention","Divine Intervention",1,"long");
+  if(ed==="2024"&&classFeatureLevel(c,"Cleric")>=10)add("divineIntervention","Divine Intervention",1,"long");
   if(clsLv(c,"Artificer")>=7)add("flashGenius","Flash of Genius",Math.max(1,m.int),ed==="2024"?(clsLv(c,"Artificer")>=20&&artificerAttunedCount(c)>0?"short":clsLv(c,"Artificer")>=14?"short1":"long"):"long");
   if(ed==="2024"&&clsLv(c,"Artificer")>=1)add("tinkersMagic","Tinker's Magic",Math.max(1,m.int),"long");
   if(ed==="2024"&&clsLv(c,"Artificer")>=2)add("replicateCreation","Replicate Magic Item (rest creation)",artificerPlanLimits("2024",clsLv(c,"Artificer")).active,"long");
@@ -469,10 +469,10 @@ function pcAbilities(c) {
   }
   if(portentCount(c))add("Portent record","Long Rest",portentDice(c).length?portentDice(c).map(d=>d.value+(d.spent?" (spent)":"")).join(" · "):"No foretelling dice recorded; use Portent to initialize at the table.",null,"Wizard");
   if (has("Rage")) add("Rage", "Bonus action", `+${CLV("Barbarian") >= 16 ? 4 : CLV("Barbarian") >= 9 ? 3 : 2} damage on Strength melee attacks, resistance to bludgeoning, piercing and slashing, advantage on Strength checks and saves. No spellcasting while raging.`, "rage");
-  if(ed==="2024"&&clsLv(c,"Barbarian")>=15)add("Persistent Rage recovery","On initiative","Regain all expended Rage uses, once per Long Rest.","persistentRage");
+  if(ed==="2024"&&classFeatureLevel(c,"Barbarian")>=15)add("Persistent Rage recovery","On initiative","Regain all expended Rage uses, once per Long Rest.","persistentRage");
   if(ed==="2024"&&clsLv(c,"Druid")>=2)add("Wild Companion","Magic action","Expend a Wild Shape use or spell slot to cast Find Familiar without Material components. The Fey familiar disappears at your next Long Rest.");
   if(ed==="2024"&&clsLv(c,"Druid")>=5)add("Wild Resurgence","No action","Spend a spell slot to regain Wild Shape when none remain, or spend one Wild Shape use to regain an expended level 1 slot once per Long Rest.");
-  if(ed==="2024"&&clsLv(c,"Sorcerer")>=7)add("Sorcery Incarnate","Bonus action","When no Innate Sorcery uses remain, spend 2 Sorcery Points to activate it.","sorc");
+  if(ed==="2024"&&classFeatureLevel(c,"Sorcerer")>=7)add("Sorcery Incarnate","Bonus action","When no Innate Sorcery uses remain, spend 2 Sorcery Points to activate it.","sorc");
   if(ed==="2024"&&clsLv(c,"Shaman")>=3){
     add("Totems","Bonus action","Place one Small totem (AC 10; HP 1) within 10 ft for 1 minute, replacing a previous totem. Pulses at the end of your turns."+ (c.shamanTotem?" Active: "+c.shamanTotem.name+". "+TOTEM_EFFECTS[c.shamanTotem.name]:""));
     add("Restore Primal Knowledge Totem","No action","Spend one Rage use to restore the limited totem use.");
@@ -502,8 +502,8 @@ function pcAbilities(c) {
   if (has("Slow Fall")) add("Slow Fall", "Reaction", `Reduce falling damage by ${5 * CLV("Monk")}.`);
   if (has("Sneak Attack")) add("Sneak Attack", "On hit, once per turn", `+${Math.ceil(CLV("Rogue") / 2)}d6 damage with a finesse or ranged weapon, with Advantage or an eligible non-Incapacitated ally within 5 feet of the target and no Disadvantage.`);
   if(ed==="2024"&&clsLv(c,"Rogue")>=5)add("Cunning Strike","On a confirmed Sneak Attack hit","Choose effects and pay their Sneak Attack dice costs before rolling the remaining damage. Target saves, positioning, timing and damage type are adjudicated manually.");
-  if(ed==="2024"&&clsLv(c,"Barbarian")>=9)add("Brutal Strike","On a confirmed eligible hit","Before the attack, forgo Advantage on a Strength-based Reckless Attack with no Disadvantage. On a hit, choose effects and roll extra damage. Use once on your turn.");
-  if(ed==="2024"&&clsLv(c,"Sorcerer")>=20)add("Arcane Apotheosis","On your turn","While Innate Sorcery is active, one selected Metamagic option each turn can be used without Sorcery Points. Use Begin your turn to reset this allowance.");
+  if(ed==="2024"&&classFeatureLevel(c,"Barbarian")>=9)add("Brutal Strike","On a confirmed eligible hit","Before the attack, forgo Advantage on a Strength-based Reckless Attack with no Disadvantage. On a hit, choose effects and roll extra damage. Use once on your turn.");
+  if(ed==="2024"&&classFeatureLevel(c,"Sorcerer")>=20)add("Arcane Apotheosis","On your turn","While Innate Sorcery is active, one selected Metamagic option each turn can be used without Sorcery Points. Use Begin your turn to reset this allowance.");
   if (has("Cunning Action")) add("Cunning Action", "Bonus action", "Dash, Disengage or Hide.");
   if (has("Uncanny Dodge")) add("Uncanny Dodge", "Reaction", "Halve the damage of an attack that hits you from an attacker you can see.");
   if (has("Evasion")) add("Evasion", "Defense", "On a DEX save for half damage, take none on a success and half on a failure.");
@@ -520,13 +520,13 @@ function pcAbilities(c) {
   if(ed==="2014"&&has("Improved Divine Smite"))add("Improved Divine Smite","On hit","+1d8 radiant damage on every melee weapon hit.");
   if (ed==="2014"&&has("Cleansing Touch")) add("Cleansing Touch", "Action", "End one spell on yourself or a willing creature you touch.", "cleanse");
   if (has("Favored Enemy") && ed === "2024") add("Hunter's Mark", "Bonus action", `Cast without a spell slot: +1d${has("Foe Slayer") ? 10 : 6} damage to the marked creature, advantage to track it.`, "hmark");
-  if(ed==="2024"&&clsLv(c,"Ranger")>=10)add("Tireless","Magic action","Gain temporary HP (1d8 + Wisdom modifier, minimum 1). Short rests also reduce exhaustion by one.","rangerTireless");
-  if(ed==="2024"&&clsLv(c,"Ranger")>=14)add("Nature’s Veil","Bonus action","Gain the Invisible condition through the end of your next turn. Track the condition duration manually.","rangerVeil");
-  if(ed==="2024"&&clsLv(c,"Sorcerer")>=1)add("Innate Sorcery","Bonus action","For 1 minute: +1 Sorcerer spell save DC and Advantage on Sorcerer spell attacks. End the toggle when it expires.","innateSorcery");
+  if(ed==="2024"&&classFeatureLevel(c,"Ranger")>=10)add("Tireless","Magic action","Gain temporary HP (1d8 + Wisdom modifier, minimum 1). Short rests also reduce exhaustion by one.","rangerTireless");
+  if(ed==="2024"&&classFeatureLevel(c,"Ranger")>=14)add("Nature’s Veil","Bonus action","Gain the Invisible condition through the end of your next turn. Track the condition duration manually.","rangerVeil");
+  if(ed==="2024"&&classFeatureLevel(c,"Sorcerer")>=1)add("Innate Sorcery","Bonus action","For 1 minute: +1 Sorcerer spell save DC and Advantage on Sorcerer spell attacks. End the toggle when it expires.","innateSorcery");
   if(ed==="2024"&&clsLv(c,"Warlock")>=2)add("Magical Cunning","1 minute","Recover expended Pact Magic slots: "+(clsLv(c,"Warlock")>=20?"all":"up to half the maximum, rounded up")+".","magicalCunning");
   if (has("Font of Magic")) add("Font of Magic", "Bonus action", "Turn a spell slot into sorcery points, or spend 2/3/5/6/7 points for a level 1–5 slot.", "sorc");
   if (has("Metamagic")) add("Metamagic", "When casting", ed==="2024"?"Spend Sorcery Points for selected Metamagic. Revised Twinned Spell costs 1 point for a spell whose higher-slot rules add a target; adjudicate spell eligibility and timing.":"Spend Sorcery Points for selected Metamagic, with legacy Twinned Spell costing the spell level (minimum 1).", "sorc");
-  if(ed==="2024"&&clsLv(c,"Cleric")>=10)add("Divine Intervention","Magic action","Cast an eligible Cleric spell without a slot or Material components. Select the spell and resolve its rules manually.","divineIntervention");
+  if(ed==="2024"&&classFeatureLevel(c,"Cleric")>=10)add("Divine Intervention","Magic action","Cast an eligible Cleric spell without a slot or Material components. Select the spell and resolve its rules manually.","divineIntervention");
   if(clsLv(c,"Artificer")>=7)add("Flash of Genius","Reaction",`Add ${sgn(ed==="2024"?Math.max(1,m.int):m.int)} to your or a creature’s eligible ability check or saving throw within 30 feet. ${ed==="2024"?"Use after a failed roll.":"Use before success or failure is determined."} Apply the bonus manually.`,"flashGenius");
   if(ed==="2024"&&clsLv(c,"Artificer")>=1)add("Tinker's Magic","Magic action","Create eligible mundane gear using Tinker's Tools; the item vanishes at your next Long Rest.","tinkersMagic");
   if(ed==="2024"&&clsLv(c,"Artificer")>=2)add("Replicate Magic Item","After Long Rest","Create an item from a known eligible plan. At the active limit the oldest replica vanishes. Confirm tool and rest timing.","replicateCreation");
@@ -727,10 +727,10 @@ function magicalCunningRecovery(c){
   c.used=c.used||{};c.used.pact=Math.max(0,Math.min(pact.max,+c.used.pact||0)-n);c.used.magicalCunning=1;return n;
 }
 function sorcerousRestoration(c){
-  if(edOf(c)!=="2024"||clsLv(c,"Sorcerer")<5)return 0;
+  if(edOf(c)!=="2024"||classFeatureLevel(c,"Sorcerer")<5)return 0;
   const R=pcResources(c),p=R.find(x=>x.key==="sorc"),u=R.find(x=>x.key==="sorcerousRestore");
   if(!p||!u||resLeft(c,u)<1)return 0;
-  const n=Math.min(p.max-resLeft(c,p),Math.floor(clsLv(c,"Sorcerer")/2));
+  const n=Math.min(p.max-resLeft(c,p),Math.floor(classFeatureLevel(c,"Sorcerer")/2));
   if(n<=0)return 0;
   c.used=c.used||{};c.used.sorc=Math.max(0,Math.min(p.max,+c.used.sorc||0)-n);c.used.sorcerousRestore=1;return n;
 }
@@ -756,11 +756,11 @@ function wildResurgence(c,choice){
   c.used[slot.key]=(+c.used[slot.key]||0)+1;restoreResource(c,"wild",1);return "Recovered one Wild Shape use.";
 }
 function divineInterventionChoices(c){
-  if(edOf(c)!=="2024"||clsLv(c,"Cleric")<10)return [];
+  if(edOf(c)!=="2024"||classFeatureLevel(c,"Cleric")<10)return [];
   spLoad();
   const eligible=s=>s&&!s.hb&&!s.pend&&!s.ref&&!s.referenceOnly&&!s.rulesSummary&&!s.shadow;
   const names=[...new Set((SP.data["2024"]||[]).filter(s=>eligible(s)&&s.c.includes("Cleric")&&s.l>=1&&s.l<=5&&!/reaction/i.test(s.t)).map(s=>s.n))].filter(n=>{const s=spellOf("2024",n);return eligible(s)&&s.c.includes("Cleric")&&s.l>=1&&s.l<=5&&!/reaction/i.test(s.t);});
-  const out=names.map(n=>[n,n]);if(clsLv(c,"Cleric")>=20&&eligible(spellOf("2024","Wish")))out.push(["Wish","Wish (2d4 Long Rest cooldown)"]);return out;
+  const out=names.map(n=>[n,n]);if(classFeatureLevel(c,"Cleric")>=20&&eligible(spellOf("2024","Wish")))out.push(["Wish","Wish (2d4 Long Rest cooldown)"]);return out;
 }
 function wildCompanionOptions(c){
   if(edOf(c)!=="2024"||clsLv(c,"Druid")<2)return [];
@@ -777,20 +777,20 @@ function castWildCompanion(c,key){
 const SLOT_CREATION_COST=[0,2,3,5,6,7], REVISED_SLOT_MIN_LEVEL=[0,2,3,5,7,9];
 function temporarySlotCount(c,L){
   if(!Number.isInteger(L)||L<1||L>5)return 0;
-  const level=clsLv(c,"Sorcerer"),druid=edOf(c)==="2024"&&clsLv(c,"Druid")>=5&&L===1;
+  const level=classFeatureLevel(c,"Sorcerer"),druid=edOf(c)==="2024"&&clsLv(c,"Druid")>=5&&L===1;
   const artificer=edOf(c)==="2024"&&clsLv(c,"Artificer")>=6&&L<=2;
   if(level<2&&!druid&&!artificer)return 0;
   return Math.max(0,Math.min(999,Math.trunc(+c.createdSlots?.[L]||0)));
 }
 function canCreateSorcererSlot(c,L){
-  const lv=clsLv(c,"Sorcerer");
+  const lv=classFeatureLevel(c,"Sorcerer");
   return Number.isInteger(L)&&L>=1&&L<=5&&lv>=2&&(edOf(c)!=="2024"||lv>=REVISED_SLOT_MIN_LEVEL[L]);
 }
 function createTemporarySlot(c,L){
   c.createdSlots={...(c.createdSlots||{}),[L]:temporarySlotCount(c,L)+1};
 }
 function convertFontOfMagic(c,ch){
-  const lv=clsLv(c,"Sorcerer"),R=pcResources(c),sorc=R.find(r=>r.key==="sorc");
+  const lv=classFeatureLevel(c,"Sorcerer"),R=pcResources(c),sorc=R.find(r=>r.key==="sorc");
   if(lv<2||!sorc||typeof ch!=="string")return "Font of Magic unavailable.";
   c.used=c.used||{};
   const make=ch.match(/^make([1-5])$/);
@@ -845,8 +845,8 @@ function cunningStrikeOptions(c){
   return out;
 }
 function brutalStrikeOptions(c){
-  if(edOf(c)!=="2024"||clsLv(c,"Barbarian")<9)return [];
-  const l=clsLv(c,"Barbarian"),ids=["Forceful Blow","Hamstring Blow",...(l>=13?["Staggering Blow","Sundering Blow"]:[])],out=ids.map(x=>[x]);
+  if(edOf(c)!=="2024"||classFeatureLevel(c,"Barbarian")<9)return [];
+  const l=classFeatureLevel(c,"Barbarian"),ids=["Forceful Blow","Hamstring Blow",...(l>=13?["Staggering Blow","Sundering Blow"]:[])],out=ids.map(x=>[x]);
   if(l>=17)ids.forEach((x,i)=>ids.slice(i+1).forEach(y=>out.push([x,y])));
   return out.flatMap(a=>[false,true].map(crit=>[a.join("+")+(crit?":crit":""),a.join(" + ")+(crit?" (critical hit)":"")]));
 }
@@ -855,11 +855,11 @@ function metamagicOptions(c){
   const rows=[["quickened","Quickened Spell",2],["subtle","Subtle Spell",1],["careful","Careful Spell",1],["distant","Distant Spell",1],["empowered","Empowered Spell",1],["extended","Extended Spell",1],["heightened","Heightened Spell",ed==="2024"?2:3],...(ed==="2024"?[["seeking","Seeking Spell",1],["transmuted","Transmuted Spell",1],["twinned","Twinned Spell (eligible higher-slot target)",1]]:Array.from({length:9},(_,i)=>["twinned:"+(i+1),"Twinned Spell, level "+(i+1),i+1]))];
   if(ed==="2014")rows.push(["twinned:0","Twinned Spell, cantrip",1]);
   const available=rows.filter(([id])=>mine.includes(id.split(":")[0]));
-  return available.flatMap(([id,label,cost])=>[[id,label+" ("+cost+" points)"],...(ed==="2024"&&clsLv(c,"Sorcerer")>=20&&isActive(c,"Innate Sorcery")&&!c.apotheosisUsedThisTurn?[["free:"+id,label+" (Arcane Apotheosis: free)"]]:[])]);
+  return available.flatMap(([id,label,cost])=>[[id,label+" ("+cost+" points)"],...(ed==="2024"&&classFeatureLevel(c,"Sorcerer")>=20&&isActive(c,"Innate Sorcery")&&!c.apotheosisUsedThisTurn?[["free:"+id,label+" (Arcane Apotheosis: free)"]]:[])]);
 }
 function metamagicCost(c,id){
   if(typeof id!=="string")return Infinity;
-  if(id.startsWith("free:"))return edOf(c)==="2024"&&clsLv(c,"Sorcerer")>=20&&isActive(c,"Innate Sorcery")&&!c.apotheosisUsedThisTurn?0:Infinity;
+  if(id.startsWith("free:"))return edOf(c)==="2024"&&classFeatureLevel(c,"Sorcerer")>=20&&isActive(c,"Innate Sorcery")&&!c.apotheosisUsedThisTurn?0:Infinity;
   if(id==="quickened")return 2;
   if(id==="heightened")return edOf(c)==="2024"?2:3;
   if(id.startsWith("twinned:"))return Math.max(1,+id.split(":")[1]);
@@ -908,7 +908,7 @@ function artificerStore(c,name){
 function channelDivinityAction(owner){
   return {kind:"instant",choices:c=>owner(c)==="Paladin"?[["oath","Oath option"],...(edOf(c)==="2024"?[["sense","Divine Sense"],...(clsLv(c,"Paladin")>=9?[["abjure","Abjure Foes"]]:[])]:[])]:[["turn","Turn Undead"],...(edOf(c)==="2024"?[["spark","Divine Spark"]]:[])],
     use:(c,ch)=>{
-      const lv=clsLv(c,"Cleric"),wis=8+c.prof+c.mods.wis,cha=8+c.prof+c.mods.cha;
+      const lv=classFeatureLevel(c,"Cleric"),wis=8+c.prof+c.mods.wis,cha=8+c.prof+c.mods.cha;
       if(ch==="spark")return roll("Divine Spark",`${lv>=18?4:lv>=13?3:lv>=7?2:1}d8${sgn(c.mods.wis)}`,"either",`Heal a creature or deal Radiant or Necrotic damage (CON save DC ${wis} for half).`,true);
       if(ch==="turn")return edOf(c)==="2024"?`Turn Undead: visible Undead within 30 feet make a WIS save DC ${wis}. On failure Frightened and Incapacitated for 1 minute; try to move away. Effect ends on damage, your Incapacitation or death.${lv>=5?" Sear Undead: roll "+Math.max(1,c.mods.wis)+"d8 Radiant damage for each failed save; this damage does not end the turning.":""}`:`Turn Undead: undead within 30 ft that can see or hear you make a WIS save DC ${wis} or are turned for 1 minute or until damaged.`;
       if(ch==="sense")return "Divine Sense: sense Celestials, Fiends and Undead within 60 ft for 10 minutes or until Incapacitated.";
@@ -1373,7 +1373,7 @@ const ACT = {
   "Record Artificer death":{kind:"instant",choices:[["dead","Confirm the Artificer died"]],use:c=>"Started expiry for "+artificerRecordDeath(c)+" Artificer item(s)."},
   "Advance Artificer item expiry":{kind:"instant",choices:[["day","Confirm one campaign day elapsed"]],use:artificerAdvanceDeathExpiry},
   "Cunning Strike":{kind:"instant",choices:cunningStrikeOptions,use:(c,ch)=>{if(!ch)return "Choose an eligible effect.";const critical=ch.endsWith(":crit"),ids=ch.replace(/:crit$/,"").split("+"),p=cunningStrikePlan(clsLv(c,"Rogue"),ids,hasPoisonersKit(c),critical);if(!p)return "Invalid Cunning Strike.";const n=p.dice?rollDice(p.dice+"d6").total:0;return "Cunning Strike: "+n+" extra damage (weapon damage type), "+p.cost+" dice forgone; save DC "+(8+c.mods.dex+c.prof)+". "+p.effects.join(" ");}},
-  "Brutal Strike":{kind:"instant",choices:brutalStrikeOptions,use:(c,ch)=>{if(!isActive(c,"Reckless Attack")||!brutalStrikeOptions(c).some(([id])=>id===ch))return "Requires an eligible Reckless Attack; forgo Advantage before rolling.";const critical=ch.endsWith(":crit"),n=(clsLv(c,"Barbarian")>=17?2:1)*(critical?2:1);return rollMsg("Brutal Strike",n+"d10",ch.replace(/:crit$/,"").replaceAll("+"," and ")+"; resolve target and movement effects manually.");}},
+  "Brutal Strike":{kind:"instant",choices:brutalStrikeOptions,use:(c,ch)=>{if(!isActive(c,"Reckless Attack")||!brutalStrikeOptions(c).some(([id])=>id===ch))return "Requires an eligible Reckless Attack; forgo Advantage before rolling.";const critical=ch.endsWith(":crit"),n=(classFeatureLevel(c,"Barbarian")>=17?2:1)*(critical?2:1);return rollMsg("Brutal Strike",n+"d10",ch.replace(/:crit$/,"").replaceAll("+"," and ")+"; resolve target and movement effects manually.");}},
   "Arcane Apotheosis":{kind:"none"},
   "Flash of Genius":{kind:"instant",use:c=>"Flash of Genius: "+sgn(edOf(c)==="2024"?Math.max(1,c.mods.int):c.mods.int)+" to the eligible check or save. Apply manually."},
   "Wild Companion":{kind:"instant",choices:wildCompanionOptions,use:castWildCompanion},
@@ -1412,7 +1412,7 @@ const ACT = {
   "Mantle of Majesty": {kind:"instant",noCost:true,dialog:c=>castDialog(c,edOf(c),"Command",{prefer:majestyActive(c)?"majestyRepeat":"majestyStart",featureOnly:"majesty"})},
   "Unbreakable Majesty": { kind: "toggle", fx: () => ({ notes: ["Unbreakable Majesty: a creature that attacks you must make a CHA save or pick a new target"] }) },
   // ---------- Cleric
-  "Channel Divinity": channelDivinityAction(c=>clsLv(c,"Cleric")>=2?"Cleric":"Paladin"),
+  "Channel Divinity": channelDivinityAction(c=>classFeatureLevel(c,"Cleric")>=2?"Cleric":"Paladin"),
   "Channel Divinity (Cleric)":channelDivinityAction(()=>"Cleric"),
   "Channel Divinity (Paladin)":channelDivinityAction(()=>"Paladin"),
   "Warding Flare": { kind: "instant", use: () => "Warding Flare: impose disadvantage on that attack roll." },
@@ -1728,7 +1728,7 @@ function actDialogClick(e) {
 }
 /* ---- choose which spent slots Arcane Recovery or Natural Recovery brings back ---- */
 function recoveryDialog(c, name, resKey) {
-  const budget = Math.ceil((clsLv(c, name === "Arcane Recovery" ? "Wizard" : "Druid") || c.level) / 2), spent = [1, 2, 3, 4, 5].map(L => ({ L, n: Math.min(+((c.used || {})["slot" + L]) || 0, (pcResources(c).find(r => r.key === "slot" + L) || { max: 0 }).max) })).filter(x => x.n > 0);
+  const budget = Math.ceil((classFeatureLevel(c, name === "Arcane Recovery" ? "Wizard" : "Druid") || c.level) / 2), spent = [1, 2, 3, 4, 5].map(L => ({ L, n: Math.min(+((c.used || {})["slot" + L]) || 0, (pcResources(c).find(r => r.key === "slot" + L) || { max: 0 }).max) })).filter(x => x.n > 0);
   ACTX.c = c; ACTX.rec = { name, resKey, budget };
   if (!spent.length) { actDialog(`<h3 id="actTitle">${esc(name)}</h3><p style="margin:10px 0">You have no spent spell slots of 5th level or lower to recover.</p><div class="row" style="justify-content:flex-end"><button class="btn primary" type="button" data-actclose style="flex:0 0 auto">OK</button></div>`); return; }
   actDialog(`<h3 id="actTitle">${esc(name)}</h3><p style="margin:10px 0">Recover spent slots with a combined level of up to <b>${budget}</b>.</p>
@@ -1758,7 +1758,7 @@ function shortRestDialog(c) {
     <p style="margin:0 0 8px"><b>Hit points:</b> <span id="srHp">${c.hpCur}/${c.hp}</span> · <b>Hit dice left:</b> <span id="srHd">${left}/${hd.max}</span></p>
     <div class="row" style="flex-wrap:wrap;gap:8px"><label style="flex:0 0 auto;display:inline-flex;gap:6px;align-items:center">Spend <input type="number" id="srN" min="1" max="${left}" value="${left ? 1 : 0}" style="width:64px" ${left ? "" : "disabled"}> hit dice</label><button class="btn" type="button" data-hdroll style="flex:0 0 auto" ${left ? "" : "disabled"}>Roll and heal</button></div>
     <div id="srLog" class="hint"></div>
-    ${edOf(c)==="2024"&&clsLv(c,"Sorcerer")>=5&&resLeft(c,pcResources(c).find(r=>r.key==="sorcerousRestore"))>0?`<label class="check"><input type="checkbox" id="srSorcerousRestoration"><span>Use Sorcerous Restoration (regain up to ${Math.floor(clsLv(c,"Sorcerer")/2)} Sorcery Points)</span></label>`:""}
+    ${edOf(c)==="2024"&&classFeatureLevel(c,"Sorcerer")>=5&&resLeft(c,pcResources(c).find(r=>r.key==="sorcerousRestore"))>0?`<label class="check"><input type="checkbox" id="srSorcerousRestoration"><span>Use Sorcerous Restoration (regain up to ${Math.floor(classFeatureLevel(c,"Sorcerer")/2)} Sorcery Points)</span></label>`:""}
     <div class="row" style="justify-content:flex-end;margin-top:14px"><button class="btn" type="button" data-actclose style="flex:0 0 auto">Cancel</button><button class="btn primary" type="button" data-restfinish style="flex:0 0 auto" autofocus>Finish short rest</button></div>`);
 }
 function shortRestRoll() {
@@ -1774,7 +1774,6 @@ function shortRestRoll() {
 function shortRestFinish() {
   const c = ACTX.c, restoreSorcery=!!$("#srSorcerousRestoration")?.checked, back = pcRest(c, "short"), fxEnded = c.fxEnded; delete c.fxEnded;
   if(restoreSorcery){const n=sorcerousRestoration(c);if(n)back.push(n+" Sorcery Points");}
-  if(edOf(c)==="2024"&&clsLv(c,"Ranger")>=10&&exhOf(c)>0&&exhOf(c)<6&&!c.death?.dead){c.exh=exhOf(c)-1;back.push("one Exhaustion level removed");pcRecompute(c);}
   pcPersist();
   const healed = ACTX.log.length ? ` Hit points ${c.hpCur}/${c.hp}.` : "";
   toast(`${c.name} takes a short rest${back.length ? `: ${back.join(", ").toLowerCase()} regained` : ""}.${healed}${fxEnded ? " Active abilities ended." : ""}`);

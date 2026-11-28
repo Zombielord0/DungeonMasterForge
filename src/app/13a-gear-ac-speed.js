@@ -45,7 +45,7 @@ function applyCoreSkillChoices(c){
   }
   if(edOf(c)!=="2024")return;
   const apply=(key,flag,attr,cls,level,eligible)=>{
-    if(clsLv(c,cls)<level)return;
+    if((cls==="Wizard"?classFeatureLevel(c,cls):clsLv(c,cls))<level)return;
     const selected=choiceOf(c,key)[0],s=(c.skills||[]).find(x=>x.s===selected&&eligible(x));
     if(s){s[attr]=true;s[flag]=true;}
   };
@@ -426,7 +426,7 @@ function pcAttacks(c) {
   }
   F.attacks.forEach(a => out.push({ prof: true, ...a }));
   out.forEach(a => { a.tags = []; a.extra = []; a.dmgB = 0; if (+c.atkBonus && (a.iid || a.unarmed)) { a.hit += +c.atkBonus; a.tags.push(`homebrew ${sgn(+c.atkBonus)}`); } });
-  out.forEach(a=>{if(a.mastery)a.tags.push("Mastery: "+a.mastery+(clsLv(c,"Fighter")>=9?" (Tactical Master: Push, Sap or Slow may replace)":""));});
+  out.forEach(a=>{if(a.mastery)a.tags.push("Mastery: "+a.mastery+(classFeatureLevel(c,"Fighter")>=9?" (Tactical Master: Push, Sap or Slow may replace)":""));});
   if (SB.crit < 20) out.forEach(a => { if (a.iid || a.unarmed) a.crit = SB.crit; });
   // fighting styles
   const melee = out.filter(a => a.iid && a.melee);
