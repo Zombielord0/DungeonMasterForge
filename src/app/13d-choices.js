@@ -112,15 +112,16 @@ const CHOICES = {
     opts: () => opt3(["Blood", "Frost", "Unholy"]),
   },
   "Demon Hunter specialization": {label:"Specialization",n:c=>demonHunterOwner(c)?1:0,opts:()=>opt3(["Devourer","Havoc","Vengeance"])},
-  "Evoker specialization": expansionChoice("Evoker", "Draconic Sorcery", "Specialization", ["Augmentation", "Devastation", "Preservation"], () => 1, "2024"),
+  "Evoker specialization": {label:"Specialization",n:c=>(warcraftSubclassOwner(c,"Draconic Sorcery",["Evoker"])?.level||0)>=3?1:0,
+    opts:()=>opt3(["Augmentation","Devastation","Preservation"])},
   "Storm Aura": expansionChoice("Barbarian", "Path of the Storm Herald", "Storm environment", ["Desert", "Sea", "Tundra"]),
   "Divine Fury": expansionChoice("Barbarian", "Path of the Zealot", "Divine Fury damage", ["Radiant", "Necrotic"]),
   "Form of the Beast": expansionChoice("Barbarian", "Path of the Beast", "Natural weapon for this rage", ["Bite", "Claws", "Tail"]),
   "Bestial Soul": expansionChoice("Barbarian", "Path of the Beast", "Bestial adaptation", ["Swimming", "Climbing", "Jumping"], level => level >= 6 ? 1 : 0),
   "Fighting Style": expansionChoice("Bard", "College of Swords", "College of Swords fighting style", ["Dueling", "Two-Weapon Fighting"]),
   "Implement of Peace": expansionChoice("Cleric", "Peace Domain", "Skill proficiency", ["Insight", "Performance", "Persuasion"]),
-  "Rune Carver": expansionChoice("Fighter", "Rune Knight", "Runes", level => ["Cloud", "Fire", "Frost", "Stone", ...(level >= 7 ? ["Hill", "Storm"] : [])],
-    level => level >= 15 ? 5 : level >= 10 ? 4 : level >= 7 ? 3 : 2),
+  "Rune Carver": {label:"Runes",n:c=>{const level=runeKnightLevel(c);return level>=15?5:level>=10?4:level>=7?3:level>=3?2:0;},
+    opts:c=>{const level=runeKnightLevel(c);return level<3?[]:Object.entries(KNIGHT_RUNES).filter(([,rune])=>level>=(rune.level||3)).map(([name,rune])=>[name,name,`${rune.passive} ${rune.effect}`]);}},
   "Arcane Shot Options": {label:"Arcane Shot options",n:c=>{const level=arcaneArcherLevel(c);return level>=18?6:level>=15?5:level>=10?4:level>=7?3:level>=3?2:0;},
     opts:c=>opt3(Object.keys(REVISED_ARCANE_SHOTS).map(id=>[id,revisedArcaneArcher(c)?id.replace(/ Arrow$/," Shot"):id]))},
   "Otherworldly Glamour": expansionChoice("Ranger", "Fey Wanderer", "Skill proficiency", ["Deception", "Performance", "Persuasion"], () => 1, null),
@@ -260,7 +261,7 @@ Object.assign(CHOICES, {
  "Battle Ready Ability":{label:"Magic weapon attack ability",n:c=>battleSmithLevel(c)>=3?1:0,opts:()=>opt3(["Intelligence","Normal weapon ability"])},
  "Lore Bonus Proficiencies":{label:"College of Lore skills",n:c=>characterSubclassLevel(c,"Bard","College of Lore")>=3?3:0,opts:c=>opt3((c.skills||[]).filter(s=>!s.p||s.loreGranted).map(s=>s.s))},
  "Magical Discoveries":{label:"Two additional prepared spells",n:c=>edOf(c)==="2024"&&characterSubclassLevel(c,"Bard","College of Lore")>=6?2:0,opts:c=>choiceSpellOptions(c,s=>s.l<=(FULL_SLOTS[clsLv(c,"Bard")]||[]).length&&["Cleric","Druid","Wizard"].some(k=>s.c.includes(k))&&!s.hb&&!s.ref&&!s.referenceOnly&&!s.rulesSummary&&!s.shadow)},
- "Elemental Affinity":{label:"Draconic damage affinity",n:c=>edOf(c)==="2024"&&characterSubclassLevel(c,"Sorcerer","Draconic Sorcery")>=6?1:0,opts:()=>opt3(["acid","cold","fire","lightning","poison"].map(x=>[x,x.charAt(0).toUpperCase()+x.slice(1)]))},
+ "Elemental Affinity":{label:"Draconic damage affinity",n:c=>(draconicSorceryOwner(c)?.level||0)>=6?1:0,opts:()=>opt3(["acid","cold","fire","lightning","poison"].map(x=>[x,x.charAt(0).toUpperCase()+x.slice(1)]))},
   "Chain Master Movement":{label:"Familiar movement",n:c=>edOf(c)==="2024"&&hasChoice(c,"Eldritch Invocations","investment")?1:0,opts:()=>opt3(["Fly 40 feet","Swim 40 feet"])},
  "Replicate Magic Item":{label:"Known magic item plans (confirm generic eligibility)",n:c=>edOf(c)==="2024"?artificerPlanLimits("2024",clsLv(c,"Artificer")).known:0,opts:artificerPlanOptions},
  "Infuse Item":{label:"Known infusions and individual magic item variants",n:c=>artificerPlanLimits("2014",artificerInfusionLevel(c)).known,opts:artificerLegacyInfusionOptions},
@@ -641,6 +642,8 @@ function pcRest(c, kind) {
   if(c.death?.dead)companionOnOwnerDeath(c);
   delete c.dragonPresencePending; delete c.dragonFuryPending;
   delete c.shamanTotem; // its one-minute duration cannot survive either rest
+  delete c.runeKnightEffects;
+  if(kind==="long")delete c.runeKnightInscriptions;
   const back = [];
   pcResources(c).forEach(r => {
     if(r.recharge==="never")return; // Stored item uses do not refill automatically.

@@ -471,9 +471,10 @@ function syncGrantedSpells(c) {
       if (affinity) add({ [subclassLevel(ed, cls)]: [affinity[2]] }, lv, { ...source, feature: "Divine Magic", known: true });
     }
     if (entry?.spellTracks) {
-      add(entry.spellTracks.All, lv, source);
+      const spellsSource=entry.spellTrackChoice==="Evoker specialization"?{...source,feature:"Evoker Spells"}:source;
+      add(entry.spellTracks.All, lv, spellsSource);
       const choice = choiceOf(c, entry.spellTrackChoice)[0];
-      if (choice && choice !== "All" && Object.hasOwn(entry.spellTracks, choice)) add(entry.spellTracks[choice], lv, { ...source, feature: choice });
+      if (choice && choice !== "All" && Object.hasOwn(entry.spellTracks, choice)) add(entry.spellTracks[choice], lv, {...spellsSource, feature: choice});
     }
     if(entry?.src==="wow"&&demonHunterOwner(c)?.cls===cls){
       add({3:["Feather Fall","Jump"]},lv,{...source,feature:"Double Jump",ab:"wis",innate:true,known:true});
@@ -516,7 +517,7 @@ function syncGrantedSpells(c) {
       const chosen=[...new Set(choiceOf(c,"Magical Discoveries"))].filter(n=>eligible.has(n)).slice(0,2);
       add({6:chosen},lv,{...source,feature:"Magical Discoveries"});
     }
-    if(ed==="2024"&&cls==="Sorcerer"&&subclass==="Draconic Sorcery"&&lv>=18){
+    if(lv>=18&&draconicSorceryOwner(c)?.cls===cls){
       add({18:["Summon Dragon"]},lv,{...source,feature:"Dragon Companion"},()=>({free:"dragonCompanion",uses:1}));
     }
     if (cls === "Druid" && subclass === "Circle of the Land") {

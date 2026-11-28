@@ -1431,6 +1431,73 @@ const { chromium } = require("playwright");
       revisedFeature: "Replicate Magic Item",
       legacyFeature: "Infuse Item",
     });
+    const runeKnight=await page.evaluate(()=>{
+      const c=pcEnsure(generateCharacter({seed:"INSCRIBED",ed:"2014",cls:"Fighter",subclass:"Rune Knight",level:18}));
+      c.inv=["helm","sword","shield","ring","cloak"].map(id=>({id,n:id,qty:1,eq:true}));
+      c.choices={"Rune Carver":["Cloud","Fire","Frost","Hill","Storm"]};
+      c.used={};
+      const inscribe=(name,item)=>actRun(c,"Rune Carver inscriptions",JSON.stringify([name,item]));
+      inscribe("Cloud","cloak");
+      const occupied=inscribe("Fire","cloak");
+      inscribe("Fire","sword");inscribe("Frost","helm");inscribe("Hill","shield");inscribe("Storm","ring");
+      const proficiencies=profInfo(c);
+      const limit=pcResources(c).find(r=>r.key==="runeKnightFire").max;
+      const cloud=rollState(c,"check","cha",{skill:"Deception"}).adv.includes("Cloud Rune");
+      const fire=actRun(c,"Invoke Fire Rune","critical");
+      actRun(c,"Invoke Frost Rune","invoke");actRun(c,"Invoke Hill Rune","invoke");actRun(c,"Invoke Storm Rune","invoke");
+      c.conds={stunned:true};pcRecompute(c);delete c.conds.stunned;
+      const stormEnded=!pcAbilities(c).some(a=>a.name==="Storm Rune foresight");
+      actRun(c,"Giant's Might","huge");
+      const huge=rcActiveHTML(c).includes("Huge, with 5 feet of extra reach");
+      const strength=rollState(c,"save","str"),constitution=rollState(c,"check","con");
+      const resistance=[...pcFx(c).res];
+      const hit=actRun(c,"Giant’s Might damage","hit");
+      const sameTurn=actRun(c,"Giant’s Might damage","hit");
+      actRun(c,"Begin Giant’s Might turn","next");
+      const crit=actRun(c,"Giant’s Might damage","critical");
+      actRun(c,"Runic Shield","hit");
+      const shield=c.rollLog[0].label;
+      c.inv.find(i=>i.id==="cloak").eq=false;
+      const unequipped=!rollState(c,"check","cha",{skill:"Deception"}).adv.includes("Cloud Rune");
+      const stored=JSON.parse(JSON.stringify(c));pcRecompute(stored);
+      const persisted=stored.runeKnightInscriptions.Fire==="sword"&&runeKnightEffect(stored,"might")?.size==="huge";
+      pcRest(c,"short");
+      const short=[c.used.runeKnightFire,c.used.runeKnightMight,c.used.runeKnightShield,!!c.runeKnightInscriptions,!runeKnightEffect(c,"might")];
+      pcRest(c,"long");
+      const long=[c.used.runeKnightMight,c.used.runeKnightShield,!!c.runeKnightInscriptions];
+      const low=pcEnsure(generateCharacter({seed:"LOW-RUNE",ed:"2024",cls:"Wizard",level:7,multi:[{cls:"Fighter",lv:3,subclass:"Rune Knight"}]}));
+      const multiclass=[runeKnightLevel(low),runeKnightDie(low),CHOICES["Rune Carver"].opts(low).length,pcResources(low).find(r=>r.key==="runeKnightMight")?.max];
+      low.multi[0].subclass="Champion";pcRecompute(low);
+      return {occupied,limit,cloud,fire:fire.msg,huge,strength,constitution,resistance,hit:hit.msg,sameTurn,crit:crit.msg,shield,unequipped,stormEnded,persisted,short,long,multiclass,
+        training:proficiencies.langs.includes("Giant")&&proficiencies.tools.some(tool=>/smith/i.test(tool)),removed:!pcResources(low).some(r=>r.key.startsWith("runeKnight"))};
+    });
+    assert.match(runeKnight.occupied,/unavailable/);assert.equal(runeKnight.limit,2);assert.match(runeKnight.fire,/4d6/);
+    assert.deepEqual([runeKnight.cloud,runeKnight.huge,runeKnight.unequipped,runeKnight.stormEnded,runeKnight.persisted,runeKnight.training,runeKnight.removed],Array(7).fill(true));
+    assert.deepEqual(runeKnight.strength.adv,["Giant’s Might"]);assert.equal(runeKnight.strength.pen,2);assert.equal(runeKnight.constitution.pen,2);
+    assert.deepEqual(runeKnight.resistance,["bludgeoning","piercing","slashing","poison"]);assert.equal(runeKnight.shield,"Runic Shield reroll");
+    assert.match(runeKnight.hit,/1d10/);assert.equal(runeKnight.sameTurn,"");assert.match(runeKnight.crit,/2d10/);
+    assert.deepEqual(runeKnight.short,[0,1,1,true,true]);assert.deepEqual(runeKnight.long,[0,0,false]);assert.deepEqual(runeKnight.multiclass,[3,6,4,4]);
+    const evoker=await page.evaluate(()=>{
+      const c=pcEnsure(generateCharacter({seed:"AUGMENT",ed:"2024",cls:"Evoker",subclass:"Draconic Sorcery",level:18}));
+      c.choices={"Evoker specialization":["Augmentation"],"Elemental Affinity":["fire"]};syncGrantedSpells(c);
+      const grants=()=>c.prepared.filter(p=>p.sources?.some(s=>s.kind==="subclass"&&s.cls==="Evoker")).map(p=>p.n);
+      const before=grants(),source=spellPreparationSources(c,"Eruption")[0];
+      const features=subclassEntry("2024","Evoker","Draconic Sorcery").features.map(f=>f.n);
+      const resistance=pcFx(c).res.has("fire");
+      c.used={};actRun(c,"Dragon Wings");const wings=[c.used.draconicWings,pcFx(c).fly];
+      actRun(c,"Restore Dragon Wings");const restored=[c.used.draconicWings,c.used.sorc];
+      const dragon=spellOf("2024","Summon Dragon"),free=castOpts(c,dragon,"2024").some(x=>x[0]==="dragonCompanion"&&!x[3]);
+      c.conc={spell:"Fly"};castDialog(c,"2024","Summon Dragon",{prefer:"dragonCompanion"});
+      document.querySelector("#dragonNoConcentration").checked=true;castGo();actClose();
+      const cast=[c.conc?.spell,c.used.dragonCompanion,c.used.slot5||0];
+      c.choices["Evoker specialization"]=["Preservation"];syncGrantedSpells(c);
+      return {before,source:source?.cls,features,resistance,wings,restored,free,cast,after:grants()};
+    });
+    assert.deepEqual(evoker.before.sort(),["Chromatic Orb","Dragon's Breath","Fly","Arcane Eye","Summon Dragon","Ebon Might","Eruption","Blistering Scales","Upheaval","Breath of Eons"].sort());
+    assert.deepEqual(evoker.after.sort(),["Chromatic Orb","Dragon's Breath","Fly","Arcane Eye","Summon Dragon","Dream Breath","Living Flame","Emerald Blossom","Time Dilation","Dream Flight"].sort());
+    assert.deepEqual(evoker.features.sort(),["Draconic Resilience","Evoker Spells","Elemental Affinity","Dragon Wings","Dragon Companion"].sort());
+    assert.equal(evoker.source,"Evoker");assert.equal(evoker.resistance,true);assert.deepEqual(evoker.wings,[1,60]);assert.deepEqual(evoker.restored,[0,3]);
+    assert.equal(evoker.free,true);assert.deepEqual(evoker.cast,["Fly",1,0]);
     const revised = await page.evaluate(() => {
       const c = pcEnsure(generateCharacter({ seed: "EBERRON", ed: "2024", cls: "Artificer",
         race: "Warforged", bg: "House Lyrandar Heir", subclass: "Armorer", level: 5 }));

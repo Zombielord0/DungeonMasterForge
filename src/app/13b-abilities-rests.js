@@ -273,8 +273,87 @@ const DEDICATED_SUBCLASS_ACTIONS=new Set([
   "Enhanced Bond","Cauterizing Flames","Blazing Revival","Reflexive Resistance","Drake's Breath","Drake’s Breath",
   "Symbiotic Entity","Halo of Spores","Spreading Spores","Fungal Infestation",
   "Fighting Spirit","Tireless Spirit","Warding Maneuver","Unwavering Mark","Ferocious Charger","Strength before Death",
-  "Star Map","Starry Form","Cosmic Omen","Soul Cleave","Regain Soul Fragment","Spiritual Protectors"
+  "Star Map","Starry Form","Cosmic Omen","Soul Cleave","Regain Soul Fragment","Spiritual Protectors",
+  "Giant's Might","Runic Shield","Great Stature"
 ]);
+const KNIGHT_RUNES={
+  Cloud:{skills:["Sleight of Hand","Deception"],passive:"Advantage on Sleight of Hand and Deception.",when:"Reaction",trigger:"Confirm a hit on you or a visible creature within 30 feet.",effect:"Redirect the original attack roll to a different creature within 30 feet of you, excluding the attacker. The original attack range does not restrict this transfer."},
+  Fire:{passive:"Double your proficiency bonus on checks using a tool you are proficient with.",when:"On a weapon hit",trigger:"Confirm a hit with a weapon attack.",effect:"The target takes extra fire damage. On a failed STR save, it is Restrained for up to 1 minute. It takes 2d6 fire at the start of each turn while shackled and repeats the save at the end of each turn, ending the shackles on success."},
+  Frost:{skills:["Animal Handling","Intimidation"],passive:"Advantage on Animal Handling and Intimidation.",when:"Bonus action",effect:"Add +2 to Strength and Constitution ability checks and saves for 10 minutes.",minutes:10},
+  Stone:{skills:["Insight"],passive:"Advantage on Insight and darkvision out to 120 feet.",when:"Reaction",trigger:"Confirm a visible creature ended its turn within 30 feet.",effect:"On a failed WIS save, the creature is Charmed by you for up to 1 minute, with Speed 0 and the Incapacitated condition. It repeats the save at the end of each turn, ending the effect on success."},
+  Hill:{level:7,passive:"Poison resistance and advantage on saves against being poisoned.",when:"Bonus action",effect:"Gain resistance to bludgeoning, piercing, and slashing for 1 minute.",minutes:1},
+  Storm:{level:7,skills:["Arcana"],passive:"Advantage on Arcana. You cannot be surprised unless incapacitated.",when:"Bonus action",effect:"Enter a prophetic state for up to 1 minute. It ends if you become incapacitated.",minutes:1}
+};
+function runeKnightLevel(c){
+  const level=characterSubclassLevel(c,"Fighter","Rune Knight");
+  const entry=level&&subclassEntry(edOf(c),"Fighter","Rune Knight",false,characterSubclassPrinting(c,"Fighter"));
+  return entry?.book&&entry.src==="tce"?level:0;
+}
+function runeKnightKnown(c){
+  const rule=CHOICES["Rune Carver"],allowed=new Set(rule.opts(c).map(([name])=>name));
+  return [...new Set(choiceOf(c,"Rune Carver"))].filter(name=>allowed.has(name)).slice(0,rule.n(c));
+}
+function runeKnightWorn(c,name){
+  return runeKnightKnown(c).includes(name)&&(c.inv||[]).some(item=>item.id===c.runeKnightInscriptions?.[name]&&item.eq&&+item.qty>0);
+}
+function runeKnightInscriptions(c){
+  const assigned=Object.values(c.runeKnightInscriptions||{});
+  return runeKnightKnown(c).filter(name=>!Object.hasOwn(c.runeKnightInscriptions||{},name)).flatMap(name=>
+    (c.inv||[]).filter(item=>item.id&&item.n&&+item.qty>0&&!assigned.includes(item.id)).map(item=>
+      [JSON.stringify([name,item.id]),`${name} Rune on ${item.n}`]));
+}
+function runeKnightEffect(c,name){
+  const effect=c.runeKnightEffects?.[name];
+  if(!runeKnightLevel(c)||!effect||Date.now()>=effect.until||c.death?.dead)return null;
+  if(name!=="might"&&(!runeKnightKnown(c).includes(name)||name==="Storm"&&COND_INCAP.some(key=>condOn(c,key))))return null;
+  return effect;
+}
+function syncRuneKnight(c){
+  if(!runeKnightLevel(c)){delete c.runeKnightInscriptions;delete c.runeKnightEffects;return;}
+  for(const name of Object.keys(c.runeKnightEffects||{}))if(!runeKnightEffect(c,name))delete c.runeKnightEffects[name];
+}
+function runeKnightStart(c,name,minutes,details={}){
+  c.runeKnightEffects={...c.runeKnightEffects,[name]:{...details,until:Date.now()+minutes*60000}};
+}
+function runeKnightDie(c){
+  const level=runeKnightLevel(c);
+  return level>=18?10:level>=10?8:6;
+}
+function runeKnightDamage(c,critical){
+  const might=runeKnightEffect(c,"might");
+  if(!might||might.used)return "Giant’s Might damage is unavailable this turn.";
+  might.used=true;
+  return roll("Giant’s Might",`${critical?2:1}d${runeKnightDie(c)}`,"damage","Use the triggering attack’s damage type.");
+}
+function runeKnightInvoke(c,name,choice){
+  const rune=KNIGHT_RUNES[name],dc=8+c.prof+c.mods.con;
+  if(rune.minutes)runeKnightStart(c,name,rune.minutes);
+  if(name==="Fire")return roll("Fire Rune",choice==="critical"?"4d6":"2d6","damage",`Fire damage. STR save DC ${dc}. ${rune.effect}`);
+  return `${name} Rune. ${name==="Stone"?`WIS save DC ${dc}. `:""}${rune.effect}`;
+}
+function runeKnightActions(c,add){
+  const level=runeKnightLevel(c),owner="Rune Knight";
+  if(level<3)return;
+  add("Rune Knight training","Passive","Proficiency with Smith’s Tools and the Giant language.",null,owner);
+  add("Rune Carver inscriptions","After a long rest","Choose one object you can hold or wear for each known rune. One rune per object. Equip the inscribed object to carry or wear its rune in play.",null,owner);
+  const able=!c.death?.dead&&!COND_INCAP.some(key=>condOn(c,key));
+  const might=runeKnightEffect(c,"might"),die=runeKnightDie(c);
+  if(able)add("Giant's Might","Bonus action",`For 1 minute, grow if space permits and gain advantage on STR checks and saves. Add 1d${die} to one weapon or unarmed hit on each of your turns.`,"runeKnightMight",owner);
+  if(might){
+    if(able&&!might.used)add("Giant’s Might damage","On a hit on your turn",`Add 1d${die} damage to a confirmed weapon or unarmed hit.`,null,owner);
+    if(might.used)add("Begin Giant’s Might turn","Start of your turn","Allow the bonus damage on your new turn.",null,owner);
+    add("End Giant’s Might","After 1 minute","Clear the transformation and extra reach.",null,owner);
+  }
+  for(const name of runeKnightKnown(c)){
+    const rune=KNIGHT_RUNES[name],worn=runeKnightWorn(c,name),res="runeKnight"+name;
+    const item=(c.inv||[]).find(item=>item.id===c.runeKnightInscriptions?.[name]);
+    add(`${name} Rune`,"While wearing or carrying its inscription",`${rune.passive} ${item?`${item.n}${worn?" is equipped.":" is unequipped."}`:"Inscribe an eligible object, then equip it."}`,null,owner);
+    if(able&&worn)add(`Invoke ${name} Rune`,rune.when,`${rune.trigger?rune.trigger+" ":""}${rune.effect}`,res,owner);
+  }
+  if(able&&runeKnightEffect(c,"Storm"))add("Storm Rune foresight","Reaction","Confirm an attack, save, or check by you or another visible creature within 60 feet. Apply your chosen advantage or disadvantage to that roll.",null,owner);
+  if(able&&level>=7)add("Runic Shield","Reaction","Confirm another visible creature within 60 feet was hit. The attacker rerolls the d20 and uses the new roll.","runeKnightShield",owner);
+  if(level>=10)add("Great Stature","When gained","Roll 3d4 once and grow that many inches permanently.",null,owner);
+}
 function starDruidLevel(c){
   const ed=edOf(c),name=ed==="2014"?"Circle of Stars":"Circle of the Stars";
   const level=characterSubclassLevel(c,"Druid",name);
@@ -324,6 +403,13 @@ function warcraftSubclassOwner(c,name,classes){
 const demonHunterOwner=c=>warcraftSubclassOwner(c,"Demon Hunter",["Demon Hunter","Ranger"]);
 const spiritualGuardianOwner=c=>warcraftSubclassOwner(c,"Path of the Spiritual Guardian",["Shaman","Barbarian"]);
 const ebonBladeOwner=c=>warcraftSubclassOwner(c,"Oath of the Ebon Blade",["Death Knight","Paladin"]);
+const draconicSorceryOwner=c=>{
+  if(edOf(c)!=="2024")return null;
+  const evoker=warcraftSubclassOwner(c,"Draconic Sorcery",["Evoker"]);
+  if(evoker)return evoker;
+  const level=characterSubclassLevel(c,"Sorcerer","Draconic Sorcery");
+  return level&&!subclassEntry("2024","Sorcerer","Draconic Sorcery",true,characterSubclassPrinting(c,"Sorcerer"))?{cls:"Sorcerer",level}:null;
+};
 function demonFragments(c){
   const level=demonHunterOwner(c)?.level||0;
   return level>=3?Math.max(1,c.mods.wis)+(level>=13?1:0)+(level>=17?1:0):0;
@@ -774,7 +860,7 @@ function pcResources(c) {
   if (giantBoon(c)) add("giant", "Giant Ancestry", prof, "long");
   if(ed==="2024"&&c.race==="Dwarf"&&tr("Stonecunning"))add("stonecunning","Stonecunning",prof,"long");
   if(ed==="2024"&&characterSubclassLevel(c,"Barbarian","Path of the Berserker")>=14)add("berserkerPresence","Intimidating Presence",1,"long");
-  if(ed==="2024"&&characterSubclassLevel(c,"Sorcerer","Draconic Sorcery")>=14)add("draconicWings","Dragon Wings",1,"long");
+  if((draconicSorceryOwner(c)?.level||0)>=14)add("draconicWings","Dragon Wings",1,"long");
   for(const r of psionicPools(c))if(!R.some(x=>x.key===r.key))add(r.key,r.name,r.max,r.recharge);
   for(const r of legacyMonkPools(c))add(r.key,r.name,r.max,r.recharge);
   if(companionLevel(c,"drake")>=3)add("drakeSummon","Drake summon",1,"long");
@@ -787,6 +873,12 @@ function pcResources(c) {
     if(revisedArcaneArcher(c)&&arcaneArcherLevel(c)>=7)add("magicalAmmunition","Magical Ammunition",1,"short");
   }
   const cavalier=xgeFighterLevel(c,"Cavalier"),samurai=xgeFighterLevel(c,"Samurai");
+  const knight=runeKnightLevel(c);
+  if(knight>=3){
+    add("runeKnightMight","Giant’s Might",prof,"long");
+    for(const name of runeKnightKnown(c))add("runeKnight"+name,name+" Rune",knight>=15?2:1,"short");
+  }
+  if(knight>=7)add("runeKnightShield","Runic Shield",prof,"long");
   if(cavalier>=3)add("unwaveringMark","Unwavering Mark attacks",Math.max(1,m.str),"long");
   if(cavalier>=7)add("wardingManeuver","Warding Maneuver",Math.max(1,m.con),"long");
   if(samurai>=3)add("fightingSpirit","Fighting Spirit",3,"long");
@@ -822,6 +914,7 @@ function resCtr(c, r) {
 function pcAbilities(c) {
   const ed = edOf(c), lv = c.level, m = c.mods, prof = c.prof, has = n => (c.feats || []).some(f => f.f === n), tr = n => (c.traits || []).includes(n); const CLV = k => classFeatureLevel(c, k), TLV = totalLv(c);
   const A = [], add = (name, when, text, res, src) => A.push({ name, when, text, res, src });
+  runeKnightActions(c,add);
   if(companionLevel(c,"drake")>=11)add("Drake’s Breath","Action","Choose a 30-foot cone from you or your summoned drake. Free once per Long Rest, then spend a level 3 or higher spell slot.","drakeBreath","Drakewarden");
   if(companionLevel(c,"drake")>=15&&companionState(c,"drake"))add("Reflexive Resistance","Reaction","When you or your drake takes damage while within 30 feet of each other, give the creature taking damage resistance to that instance.","drakeResistance","Drakewarden");
   if(companionLevel(c,"wildfire")>=6&&companionState(c,"wildfire"))add("Enhanced Bond","When casting","Roll 1d8 for one fire damage or healing roll of your spell. A non-Self spell can also originate from the spirit.",null,"Circle of Wildfire");
@@ -1691,7 +1784,7 @@ function subclassRecoverySpecs(c){
   {name:"Restore Hurl Through Hell",owner:"Fiend Patron",cls:"Warlock",lv:14,target:subAblKey("Hurl Through Hell"),pay:"pact",cost:1,text:"Spend one Pact Magic spell slot to recover Hurl Through Hell."},
   {name:"Restore Beguiling Magic",owner:"College of Glamour",cls:"Bard",lv:3,target:subAblKey("Beguiling Magic"),pay:"bardic",cost:1,text:"Spend one Bardic Inspiration use to recover Beguiling Magic."},
   {name:"Restore Mantle of Majesty",owner:"College of Glamour",cls:"Bard",lv:6,target:subAblKey("Mantle of Majesty"),pay:"slot3+",cost:1,text:"Spend one available level 3 or higher spell slot to recover Mantle of Majesty."}
- ].filter(s=>characterSubclassLevel(c,s.cls,s.owner)>=s.lv);
+ ].filter(s=>(s.name==="Restore Dragon Wings"?draconicSorceryOwner(c)?.level||0:characterSubclassLevel(c,s.cls,s.owner))>=s.lv);
 }
 function subclassRecoverySlots(c,name){
  const spec=subclassRecoverySpecs(c).find(s=>s.name===name&&s.pay==="slot3+");
@@ -1751,6 +1844,37 @@ function arcaneJoltUse(c,ch){
  return roll("Arcane Jolt",(battleSmithLevel(c)>=15?4:2)+"d6",ch==="heal"?"heal":"damage",ch==="heal"?"Confirm qualifying hit and recipient within 30 feet.":"Extra Force damage on confirmed magic weapon or defender hit.");
 }
 const ACT = {
+ "Rune Carver inscriptions":{kind:"instant",choices:runeKnightInscriptions,use:(c,choice)=>{
+   const [name,item]=JSON.parse(choice);
+   c.runeKnightInscriptions={...c.runeKnightInscriptions,[name]:item};
+   return `${name} Rune inscribed until the next long rest.`;
+ }},
+ "Giant's Might":{kind:"instant",choices:c=>[["large","Confirm growing to Large"],
+   ...(runeKnightLevel(c)>=18?[["huge","Confirm growing to Huge"]]:[]),["same","Keep your size (space or already large enough)"]],use:(c,size)=>{
+   runeKnightStart(c,"might",1,{size,used:!!runeKnightEffect(c,"might")?.used});
+   return "Giant’s Might active for 1 minute.";
+ }},
+ "Giant’s Might damage":{kind:"instant",choices:[["hit","Confirm hit on your turn"],["critical","Confirm critical hit on your turn"]],use:(c,choice)=>runeKnightDamage(c,choice==="critical")},
+ "Begin Giant’s Might turn":{kind:"instant",choices:[["next","Confirm start of your turn"]],use:c=>{
+   const might=runeKnightEffect(c,"might");
+   if(might)might.used=false;
+   return "Giant’s Might damage is available on the new turn.";
+ }},
+ "End Giant’s Might":{kind:"instant",use:c=>{delete c.runeKnightEffects.might;return "Giant’s Might ended.";}},
+ "Runic Shield":{kind:"instant",choices:[["hit","Confirm a hit on another eligible creature"]],use:c=>{
+   const die=d20();
+   rollLog(c,{label:"Runic Shield reroll",d:[die],keep:die,total:die,note:"The attacker uses this d20 with its original attack modifier."});
+   return `Runic Shield reroll ${die}. Apply the original attack modifier.`;
+ }},
+ "Great Stature":{kind:"instant",choices:c=>c.runeKnightGrowth?[]:[["grow","Roll once for permanent height gain"]],use:c=>{
+   c.runeKnightGrowth=rollDice("3d4").total;
+   return `Great Stature adds ${c.runeKnightGrowth} inches to your height.`;
+ }},
+ ...Object.fromEntries(Object.entries(KNIGHT_RUNES).map(([name,rune])=>[`Invoke ${name} Rune`,{
+   kind:"instant",choices:name==="Fire"?[["hit","Confirm weapon hit"],["critical","Confirm weapon critical hit"]]:[["invoke",rune.trigger||`Confirm ${name} Rune invocation`]],
+   use:(c,choice)=>runeKnightInvoke(c,name,choice)
+ }])),
+ "Storm Rune foresight":{kind:"instant",choices:[["advantage","Advantage"],["disadvantage","Disadvantage"]],use:(c,choice)=>`Apply ${choice} to the qualifying d20 roll and expend your Reaction.`},
  "Symbiotic Entity":{kind:"toggle",choices:c=>[["take",`Use ${4*sporesLevel(c)} temporary HP from Symbiotic Entity`]],start:c=>{
    c.hpTemp=4*sporesLevel(c);return `Symbiotic Entity grants ${c.hpTemp} temporary HP.`;
  }},
@@ -2122,6 +2246,13 @@ const actChoices = (c, S) => typeof S.choices === "function" ? S.choices(c) : S.
 // everything active right now, merged into one set of effects
 function pcFx(c) {
   const F = { ac: [], acMin: null, acUnarm: [], speed: [], mult: 1, fly: null, climb: null, swim: null, res: new Set(), atk: [], attacks: [], notes: [], on: [], form: null };
+  const giant=runeKnightEffect(c,"might");
+  if(giant)F.notes.push(`Giant’s Might: ${giant.size==="same"?"unchanged size":giant.size==="huge"?"Huge, with 5 feet of extra reach":"Large"}. Advantage on Strength checks and saves.`);
+  if(runeKnightEffect(c,"Hill"))for(const type of ["bludgeoning","piercing","slashing"])F.res.add(type);
+  if(runeKnightEffect(c,"Frost"))F.notes.push("Frost Rune: +2 on Strength and Constitution checks and saves.");
+  if(runeKnightEffect(c,"Storm"))F.notes.push("Storm Rune: prophetic state active.");
+  if(runeKnightWorn(c,"Hill"))F.res.add("poison");
+  if(runeKnightWorn(c,"Stone"))F.notes.push("Stone Rune: darkvision out to 120 feet.");
   if(sporesActive(c)){
     const source=subclassEntry(edOf(c),"Druid","Circle of Spores",false,characterSubclassPrinting(c,"Druid"));
     F.atk.push({f:"meleeWeapon",extra:`1d6 ${source.src==="ggr"?"poison":"necrotic"} (Symbiotic Entity)`});
@@ -2135,7 +2266,7 @@ function pcFx(c) {
     const land=choiceOf(c,"Circle of the Land Spells")[0],ward={Arid:"fire",Polar:"cold",Temperate:"lightning",Tropical:"poison"}[land];
     if(characterSubclassLevel(c,"Druid","Circle of the Land")>=10&&ward){F.res.add(ward);F.notes.push("Nature's Ward: immune to Poisoned.");}
     const affinity=choiceOf(c,"Elemental Affinity")[0];
-    if(characterSubclassLevel(c,"Sorcerer","Draconic Sorcery")>=6&&["acid","cold","fire","lightning","poison"].includes(affinity)){F.res.add(affinity);F.notes.push("Elemental Affinity: add Charisma modifier to one matching spell damage roll.");}
+    if((draconicSorceryOwner(c)?.level||0)>=6&&["acid","cold","fire","lightning","poison"].includes(affinity)){F.res.add(affinity);F.notes.push("Elemental Affinity: add Charisma modifier to one matching spell damage roll.");}
   }
   if(psiLevel(c,"Fighter")>=10)F.res.add("psychic");
   if((ebonBladeOwner(c)?.level||0)>=7&&!c.death?.dead&&!COND_INCAP.some(key=>condOn(c,key))){
@@ -2159,6 +2290,7 @@ function pcFx(c) {
 function actControls(c, a, R) {
   const S = actSpec(a); if (!S || S.kind === "none") return "";
   const on = (c.active || {})[a.name], ch = actChoices(c, S), k = esc(a.name);
+  if((a.name==="Rune Carver inscriptions"||a.name==="Great Stature")&&!ch.length)return "";
   const sel = cur => ch.length ? `<select class="act-sel" data-actsel="${k}" aria-label="${k} option"${S.kind === "persist" ? ` data-actpersist="${k}"` : ""}>${S.kind === "persist" ? `<option value="">Choose…</option>` : ""}${ch.map(([id, l]) => `<option value="${esc(id)}" ${cur === id ? "selected" : ""}>${esc(l)}</option>`).join("")}</select>` : "";
   if (S.kind === "persist") return `<span class="act">${sel(on || "")}</span>`;
   if (S.kind === "toggle") return on ? `<span class="act">${ch.length ? `<span class="tag">${esc((ch.find(x => x[0] === on) || [, ""])[1])}</span>` : ""}<button type="button" class="btn sm primary" data-act="${k}">■ End</button></span>`
@@ -2168,10 +2300,11 @@ function actControls(c, a, R) {
 }
 function rcActiveHTML(c) {
   const F = pcFx(c), act = c.active || {}, list = Object.entries(act).filter(([n, v]) => v && ACT[n] && pcAbilities(c).some(a => a.name === n));
-  if (!list.length) return "";
+  const runic=["might","Hill","Frost","Storm"].filter(name=>runeKnightEffect(c,name));
+  if (!list.length&&!runic.length) return "";
   const lab = ([n, v]) => { const ch = actChoices(c, ACT[n]).find(x => x[0] === v); return ch ? `${n}: ${ch[1]}` : n; };
   const res = [...F.res], move = pcSpeed(c).other;
-  return `<div class="active-fx"><div class="row" style="flex-wrap:wrap;gap:6px;align-items:center"><b style="flex:0 0 auto">Active</b>${list.map(e => `<span class="tag act-on">${esc(lab(e))}${ACT[e[0]].kind === "toggle" ? ` <button type="button" class="icon-btn" data-act="${esc(e[0])}" title="End ${esc(e[0])}" aria-label="End ${esc(e[0])}">✕</button>` : ""}</span>`).join("")}</div>
+  return `<div class="active-fx"><div class="row" style="flex-wrap:wrap;gap:6px;align-items:center"><b style="flex:0 0 auto">Active</b>${runic.map(name=>`<span class="tag act-on">${name==="might"?"Giant’s Might":`${name} Rune`}</span>`).join("")}${list.map(e => `<span class="tag act-on">${esc(lab(e))}${ACT[e[0]].kind === "toggle" ? ` <button type="button" class="icon-btn" data-act="${esc(e[0])}" title="End ${esc(e[0])}" aria-label="End ${esc(e[0])}">✕</button>` : ""}</span>`).join("")}</div>
     ${F.form ? `<div class="beast"><b>${esc(F.form.name)}</b> <span class="muted">${esc(cap1(F.form.size || ""))} beast</span> · AC ${F.form.ac} · STR ${F.form.scores[0]} (${sgn(mod(F.form.scores[0]))}) · DEX ${F.form.scores[1]} (${sgn(mod(F.form.scores[1]))}) · CON ${F.form.scores[2]} (${sgn(mod(F.form.scores[2]))})${F.form.senses ? ` · ${esc(F.form.senses)}` : ""}${F.form.traits.length ? `<br><span class="muted">Traits: ${F.form.traits.map(esc).join(", ")}</span>` : ""}
       ${edOf(c) === "2014" ? `<div class="slot" style="margin-top:6px"><span>Beast hit points</span><span class="ctr"><input type="number" min="0" max="${F.form.hp}" data-formhp="1" value="${esc(c.formHp ?? F.form.hp)}" aria-label="Beast hit points"><span class="ctr-max">/ ${F.form.hp}</span></span>${(c.formHp ?? F.form.hp) <= 0 ? ` <span class="tag">at 0: you revert; extra damage carries over to you</span>` : ""}</div>` : ""}</div>` : ""}
     ${res.length ? `<p style="margin:6px 0 0"><b>Resistances:</b> ${res.map(esc).join(", ")}</p>` : ""}${move.length ? `<p style="margin:4px 0 0"><b>Movement:</b> ${move.map(esc).join(" · ")}</p>` : ""}

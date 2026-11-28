@@ -64,6 +64,7 @@ function pcRecompute(c) {
   artificerInfusionCleanup(c);
   companionCleanup(c);
   syncStarDruid(c);
+  syncRuneKnight(c);
   if(c.active?.["Symbiotic Entity"]&&!sporesActive(c))endSymbioticEntity(c);
   if(c.active?.["Fighting Spirit"]&&(c.death?.dead||xgeFighterLevel(c,"Samurai")<3))delete c.active["Fighting Spirit"];
   if(c.samuraiDeathTurn&&(c.death?.dead||xgeFighterLevel(c,"Samurai")<18))endSamuraiDeathTurn(c);

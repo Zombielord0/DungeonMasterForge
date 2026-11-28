@@ -657,7 +657,7 @@ function subclassEntry(ed, cls, name, includePending = true, printing) {
   if(ed==="2024"&&entry?.book&&entry.sourceEdition==="2014")entry={...entry,compatibility:true};
   if (!entry?.baseSubclass) return entry;
   const features = subFeatsOf(ed, entry.baseSubclass)
-    .filter(([level, name]) => !entry.features.some(f => +f.l === level && f.n === name))
+    .filter(([level, name]) => !entry.replacesBaseFeatures?.includes(name) && !entry.features.some(f => +f.l === level && f.n === name))
     .map(([l, n, d]) => ({ l, n, d }));
   return { ...entry, features: [...entry.features, ...features].sort((a, b) => +a.l - +b.l) };
 }

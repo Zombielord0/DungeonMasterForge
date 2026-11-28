@@ -5177,7 +5177,14 @@
         "d": "A necromancy spell of levels 1–5 that normally targets one creature can target two in range within 5 feet of each other. Supply consumed materials for both targets.",
         "fx": []
       }
-    ]
+    ],
+    "featureSourceReview": {
+      "status": "printed_progression_outline_matched",
+      "reference": "2014 Dungeon Master’s Guide, pp. 96–97",
+      "primaryVerified": false,
+      "runtimeVerified": false,
+      "note": "Matched the domain and printed progression headings, including the spell table. Individual rules, feature coverage, and rights review are pending."
+    }
   },
   {
     "id": "book-dmg14-oathbreaker",
@@ -5225,7 +5232,14 @@
         "d": "Once per long rest, as an action, create a 30-foot aura for 1 minute. It dims bright light. Frightened enemies starting a turn in it take 4d10 psychic damage. Chosen creatures in the aura gain protection against attacks that rely on sight. As a bonus action make a melee spell attack for 3d10 plus your Charisma modifier necrotic damage.",
         "fx": []
       }
-    ]
+    ],
+    "featureSourceReview": {
+      "status": "printed_progression_outline_matched",
+      "reference": "2014 Dungeon Master’s Guide, p. 97",
+      "primaryVerified": false,
+      "runtimeVerified": false,
+      "note": "Matched the oath and printed progression headings, including its spell table. Alignment, atonement, individual rules, feature coverage, and rights review are pending."
+    }
   },
   {
     "id": "reference-bgg-barbarian-path-of-the-giant",
@@ -6311,7 +6325,14 @@
         "d": "Resist acid and poison, gain poison immunity against the condition, and cast Heal and Greater Restoration once each per long rest."
       }
     ],
-    "page": 14
+    "page": 14,
+    "featureSourceReview": {
+      "status": "printed_progression_outline_matched",
+      "reference": "Tasha’s Cauldron of Everything, subclass starts p. 14",
+      "primaryVerified": false,
+      "runtimeVerified": false,
+      "note": "Matched the subclass, owning class, edition, and progression outline to the supplied printing. Individual rule coverage and rights review are pending."
+    }
   },
   {
     "id": "reference-tce-artificer-armorer",
@@ -6394,7 +6415,14 @@
         "d": "Your chosen armor model gains an upgraded combat ability."
       }
     ],
-    "page": 15
+    "page": 15,
+    "featureSourceReview": {
+      "status": "printed_progression_outline_matched",
+      "reference": "Tasha’s Cauldron of Everything, subclass starts p. 15",
+      "primaryVerified": false,
+      "runtimeVerified": false,
+      "note": "Matched the subclass, owning class, edition, and progression outline to the supplied printing. Individual rule coverage and rights review are pending."
+    }
   },
   {
     "id": "reference-tce-artificer-artillerist",
@@ -6437,7 +6465,14 @@
         "d": "Keep two cannons active and grant nearby allies half cover."
       }
     ],
-    "page": 17
+    "page": 17,
+    "featureSourceReview": {
+      "status": "printed_progression_outline_matched",
+      "reference": "Tasha’s Cauldron of Everything, subclass starts p. 17",
+      "primaryVerified": false,
+      "runtimeVerified": false,
+      "note": "Matched the subclass, owning class, edition, and progression outline to the supplied printing. Individual rule coverage and rights review are pending."
+    }
   },
   {
     "id": "reference-tce-artificer-battle-smith",
@@ -6525,7 +6560,14 @@
         "d": "Spirit Shield deals force damage to the attacker equal to the damage it prevents."
       }
     ],
-    "page": 9
+    "page": 9,
+    "featureSourceReview": {
+      "status": "printed_progression_outline_matched",
+      "reference": "Xanathar’s Guide to Everything, subclass starts p. 9",
+      "primaryVerified": false,
+      "runtimeVerified": false,
+      "note": "Matched the subclass, owning class, edition, and progression outline to the supplied printing. Individual rule coverage and rights review are pending."
+    }
   },
   {
     "id": "reference-xge-barbarian-path-of-the-storm-herald",
@@ -6603,7 +6645,14 @@
         "d": "Your storm environment adds a new combat effect while raging."
       }
     ],
-    "page": 10
+    "page": 10,
+    "featureSourceReview": {
+      "status": "printed_progression_outline_matched",
+      "reference": "Xanathar’s Guide to Everything, subclass starts p. 10",
+      "primaryVerified": false,
+      "runtimeVerified": false,
+      "note": "Matched the subclass, owning class, edition, and progression outline to the supplied printing. Individual rule coverage and rights review are pending."
+    }
   },
   {
     "id": "reference-xge-barbarian-path-of-the-zealot",
@@ -6641,7 +6690,14 @@
         "d": "While raging, 0 HP and failed death saves can delay your death until your rage ends."
       }
     ],
-    "page": 11
+    "page": 11,
+    "featureSourceReview": {
+      "status": "printed_progression_outline_matched",
+      "reference": "Xanathar’s Guide to Everything, subclass starts p. 11",
+      "primaryVerified": false,
+      "runtimeVerified": false,
+      "note": "Matched the subclass, owning class, edition, and progression outline to the supplied printing. Individual rule coverage and rights review are pending."
+    }
   },
   {
     "id": "reference-tce-barbarian-path-of-the-beast",
@@ -6674,7 +6730,14 @@
         "d": "When starting a rage, gain temporary HP and let chosen allies add damage to a hit each turn."
       }
     ],
-    "page": 24
+    "page": 24,
+    "featureSourceReview": {
+      "status": "printed_progression_outline_matched",
+      "reference": "Tasha’s Cauldron of Everything, subclass starts p. 24",
+      "primaryVerified": false,
+      "runtimeVerified": false,
+      "note": "Matched the subclass, owning class, edition, and progression outline to the supplied printing. Individual rule coverage and rights review are pending."
+    }
   },
   {
     "id": "reference-tce-barbarian-path-of-wild-magic",
@@ -6712,7 +6775,14 @@
         "d": "Roll twice for each surge and choose the result, or pick any effect on doubles."
       }
     ],
-    "page": 25
+    "page": 25,
+    "featureSourceReview": {
+      "status": "printed_progression_outline_matched",
+      "reference": "Tasha’s Cauldron of Everything, subclass starts p. 25",
+      "primaryVerified": false,
+      "runtimeVerified": false,
+      "note": "Matched the subclass, owning class, edition, and progression outline to the supplied printing. Individual rule coverage and rights review are pending."
+    }
   },
   {
     "id": "reference-xge-bard-college-of-glamour",
@@ -6745,7 +6815,14 @@
         "d": "For one minute, attackers must pass a Charisma save to attack you for the first time each turn."
       }
     ],
-    "page": 14
+    "page": 14,
+    "featureSourceReview": {
+      "status": "printed_progression_outline_matched",
+      "reference": "Xanathar’s Guide to Everything, subclass starts p. 14",
+      "primaryVerified": false,
+      "runtimeVerified": false,
+      "note": "Matched the subclass, owning class, edition, and progression outline to the supplied printing. Individual rule coverage and rights review are pending."
+    }
   },
   {
     "id": "reference-xge-bard-college-of-swords",
@@ -6798,7 +6875,14 @@
         "d": "Use a d6 for a flourish without spending Bardic Inspiration."
       }
     ],
-    "page": 15
+    "page": 15,
+    "featureSourceReview": {
+      "status": "printed_progression_outline_matched",
+      "reference": "Xanathar’s Guide to Everything, subclass starts p. 15",
+      "primaryVerified": false,
+      "runtimeVerified": false,
+      "note": "Matched the subclass, owning class, edition, and progression outline to the supplied printing. Individual rule coverage and rights review are pending."
+    }
   },
   {
     "id": "reference-xge-bard-college-of-whispers",
@@ -6831,7 +6915,14 @@
         "d": "Charm a creature with a whispered threat and gain its fearful cooperation."
       }
     ],
-    "page": 16
+    "page": 16,
+    "featureSourceReview": {
+      "status": "printed_progression_outline_matched",
+      "reference": "Xanathar’s Guide to Everything, subclass starts p. 16",
+      "primaryVerified": false,
+      "runtimeVerified": false,
+      "note": "Matched the subclass, owning class, edition, and progression outline to the supplied printing. Individual rule coverage and rights review are pending."
+    }
   },
   {
     "id": "reference-tce-bard-college-of-creation",
@@ -6864,7 +6955,14 @@
         "d": "Create several objects at once and ignore the price limit."
       }
     ],
-    "page": 28
+    "page": 28,
+    "featureSourceReview": {
+      "status": "printed_progression_outline_matched",
+      "reference": "Tasha’s Cauldron of Everything, subclass starts p. 28",
+      "primaryVerified": false,
+      "runtimeVerified": false,
+      "note": "Matched the subclass, owning class, edition, and progression outline to the supplied printing. Individual rule coverage and rights review are pending."
+    }
   },
   {
     "id": "reference-tce-bard-college-of-eloquence",
@@ -6902,7 +7000,14 @@
         "d": "When a creature succeeds with your inspiration, pass a new die to another creature as a reaction."
       }
     ],
-    "page": 29
+    "page": 29,
+    "featureSourceReview": {
+      "status": "printed_progression_outline_matched",
+      "reference": "Tasha’s Cauldron of Everything, subclass starts p. 29",
+      "primaryVerified": false,
+      "runtimeVerified": false,
+      "note": "Matched the subclass, owning class, edition, and progression outline to the supplied printing. Individual rule coverage and rights review are pending."
+    }
   },
   {
     "id": "reference-xge-cleric-forge-domain",
@@ -6945,7 +7050,14 @@
         "d": "Gain fire immunity and resist nonmagical weapon damage while wearing heavy armor."
       }
     ],
-    "page": 18
+    "page": 18,
+    "featureSourceReview": {
+      "status": "printed_progression_outline_matched",
+      "reference": "Xanathar’s Guide to Everything, subclass starts p. 18",
+      "primaryVerified": false,
+      "runtimeVerified": false,
+      "note": "Matched the subclass, owning class, edition, and progression outline to the supplied printing. Individual rule coverage and rights review are pending. The printed heading is Bonus Proficiencies."
+    }
   },
   {
     "id": "reference-xge-cleric-grave-domain",
@@ -6988,7 +7100,14 @@
         "d": "When an enemy dies nearby, restore HP to yourself or an ally."
       }
     ],
-    "page": 19
+    "page": 19,
+    "featureSourceReview": {
+      "status": "printed_progression_outline_matched",
+      "reference": "Xanathar’s Guide to Everything, subclass starts p. 19",
+      "primaryVerified": false,
+      "runtimeVerified": false,
+      "note": "Matched the subclass, owning class, edition, and progression outline to the supplied printing. Individual rule coverage and rights review are pending."
+    }
   },
   {
     "id": "reference-tce-cleric-order-domain",
@@ -7031,7 +7150,14 @@
         "d": "Your Divine Strike can mark a foe for extra psychic damage from an ally’s next hit."
       }
     ],
-    "page": 31
+    "page": 31,
+    "featureSourceReview": {
+      "status": "printed_progression_outline_matched",
+      "reference": "Tasha’s Cauldron of Everything, subclass starts p. 31",
+      "primaryVerified": false,
+      "runtimeVerified": false,
+      "note": "Matched the subclass, owning class, edition, and progression outline to the supplied printing. Individual rule coverage and rights review are pending."
+    }
   },
   {
     "id": "reference-tce-cleric-peace-domain",
@@ -7074,7 +7200,14 @@
         "d": "Extend the bond’s working range and grant resistance to damage intercepted with Protective Bond."
       }
     ],
-    "page": 32
+    "page": 32,
+    "featureSourceReview": {
+      "status": "printed_progression_outline_matched",
+      "reference": "Tasha’s Cauldron of Everything, subclass starts p. 32",
+      "primaryVerified": false,
+      "runtimeVerified": false,
+      "note": "Matched the subclass, owning class, edition, and progression outline to the supplied printing. Individual rule coverage and rights review are pending."
+    }
   },
   {
     "id": "reference-tce-cleric-twilight-domain",
@@ -7122,7 +7255,14 @@
         "d": "You and allies gain half cover inside Twilight Sanctuary."
       }
     ],
-    "page": 34
+    "page": 34,
+    "featureSourceReview": {
+      "status": "printed_progression_outline_matched",
+      "reference": "Tasha’s Cauldron of Everything, subclass starts p. 34",
+      "primaryVerified": false,
+      "runtimeVerified": false,
+      "note": "Matched the subclass, owning class, edition, and progression outline to the supplied printing. Individual rule coverage and rights review are pending."
+    }
   },
   {
     "id": "reference-xge-druid-circle-of-dreams",
@@ -7155,7 +7295,14 @@
         "d": "After a short rest, cast a qualifying dream, divination, or return-travel spell without a slot."
       }
     ],
-    "page": 22
+    "page": 22,
+    "featureSourceReview": {
+      "status": "printed_progression_outline_matched",
+      "reference": "Xanathar’s Guide to Everything, subclass starts p. 22",
+      "primaryVerified": false,
+      "runtimeVerified": false,
+      "note": "Matched the subclass, owning class, edition, and progression outline to the supplied printing. Individual rule coverage and rights review are pending."
+    }
   },
   {
     "id": "reference-xge-druid-circle-of-the-shepherd",
@@ -7193,7 +7340,14 @@
         "d": "When incapacitated against your will or reduced to 0 HP, summon beasts to defend you once per long rest."
       }
     ],
-    "page": 23
+    "page": 23,
+    "featureSourceReview": {
+      "status": "printed_progression_outline_matched",
+      "reference": "Xanathar’s Guide to Everything, subclass starts p. 23",
+      "primaryVerified": false,
+      "runtimeVerified": false,
+      "note": "Matched the subclass, owning class, edition, and progression outline to the supplied printing. Individual rule coverage and rights review are pending."
+    }
   },
   {
     "id": "reference-tce-druid-circle-of-spores",
@@ -7586,7 +7740,14 @@
         "d": "Cast Telekinesis with Intelligence and make a weapon attack as a bonus action while concentrating on it."
       }
     ],
-    "page": 42
+    "page": 42,
+    "featureSourceReview": {
+      "status": "printed_progression_outline_matched",
+      "reference": "Tasha’s Cauldron of Everything, subclass starts p. 42",
+      "primaryVerified": false,
+      "runtimeVerified": false,
+      "note": "Matched the subclass, owning class, edition, and progression outline to the supplied printing. Individual rule coverage and rights review are pending."
+    }
   },
   {
     "id": "reference-tce-fighter-rune-knight",
@@ -7606,37 +7767,37 @@
       {
         "l": 3,
         "n": "Giant's Might",
-        "d": "Become Large when space allows, gain Strength advantage and add damage to one hit per turn."
+        "d": "As a bonus action, grow to Large for 1 minute if you are smaller and have room. Your worn equipment grows with you. For the duration, you have advantage on Strength checks and Strength saves. Once on each of your own turns, add 1d6 damage when you hit with a weapon or unarmed strike. Uses equal your proficiency bonus and return on a long rest."
       },
       {
         "l": 3,
         "n": "Rune Carver",
-        "d": "Inscribe objects with learned runes that confer passive benefits and can be invoked for a stronger effect."
+        "d": "Learn two runes. On gaining a Fighter level, you can replace one known rune with another you qualify for. When you finish a long rest, inscribe each known rune on a different object you can wear or hold, such as a weapon, armor, shield, or jewelry. Inscriptions last until the next long rest. The wearer or carrier of their own inscriptions gains the listed benefits. Each rune can be invoked once per short or long rest. Rune Magic save DC is 8 + proficiency bonus + Constitution modifier.\n\nCloud: Advantage on Sleight of Hand and Deception. As a reaction to a hit on you or a visible creature within 30 feet, redirect the attack to a different creature within 30 feet of you, excluding the attacker. Keep the attack roll and ignore its original range for the transfer.\n\nFire: Double your proficiency bonus for ability checks using a tool you are proficient with. On a weapon hit, deal an extra 2d6 fire. A failed Strength save restrains the target for up to 1 minute. The shackles deal 2d6 fire at the start of each of the target's turns. The target repeats the save at the end of each of its turns and escapes on a success.\n\nFrost: Advantage on Animal Handling and Intimidation. As a bonus action, gain +2 to Strength and Constitution checks and saves for 10 minutes.\n\nStone: Advantage on Insight and darkvision to 120 feet. As a reaction when a visible creature ends its turn within 30 feet, force a Wisdom save. On a failure it is charmed by you, incapacitated, and has Speed 0 for 1 minute. It can save again at the end of each of its turns to end the effect.\n\nHill (Fighter 7): Poison resistance and advantage on saves against being poisoned. Invoke as a bonus action for 1 minute of bludgeoning, piercing, and slashing resistance.\n\nStorm (Fighter 7): Advantage on Arcana and immunity to surprise while you are not incapacitated. Invoke as a bonus action for a prophetic state lasting up to 1 minute or until incapacitated. During that state, use your reaction when you or another creature you can see within 60 feet makes an attack, save, or check to give the roll advantage or disadvantage."
       },
       {
         "l": 7,
         "n": "Additional Rune Known",
-        "d": "Learn another rune."
+        "d": "Learn a third rune. Hill and Storm are available starting at Fighter level 7."
       },
       {
         "l": 7,
         "n": "Runic Shield",
-        "d": "React to force an attack against a nearby creature to be rerolled."
+        "d": "When another creature you see within 60 feet is hit by an attack roll, use your reaction to have its attacker reroll the d20 and use the new roll. Uses equal your proficiency bonus and return on a long rest."
       },
       {
         "l": 10,
         "n": "Additional Rune Known",
-        "d": "Learn another rune."
+        "d": "Learn a fourth rune."
       },
       {
         "l": 10,
         "n": "Great Stature",
-        "d": "Grow taller and increase Giant’s Might damage to a d8."
+        "d": "When you gain this feature, roll 3d4 and permanently increase your height by that many inches. The extra damage from Giant’s Might increases to 1d8."
       },
       {
         "l": 15,
         "n": "Additional Rune Known",
-        "d": "Learn another rune."
+        "d": "Learn a fifth rune."
       },
       {
         "l": 15,
@@ -7646,10 +7807,17 @@
       {
         "l": 18,
         "n": "Runic Juggernaut",
-        "d": "Giant’s Might damage becomes a d10 and you can grow Huge with extra reach."
+        "d": "The extra damage from Giant’s Might increases to 1d10. When you activate it, you can grow to Huge if you have room. While Huge from the feature, your reach increases by 5 feet."
       }
     ],
-    "page": 44
+    "page": 44,
+    "featureSourceReview": {
+      "status": "source_mechanics_runtime_partial",
+      "reference": "Tasha’s Cauldron of Everything, pp. 44–46",
+      "primaryVerified": true,
+      "runtimeVerified": false,
+      "note": "Reviewed the printed progression and all six rune contracts. The sheet tracks inscriptions, activation resources, damage rolls, active check/save modifiers and defenses. Object eligibility, level-up replacement, grid size, eligible targets, reaction timing, and ongoing target effects require table adjudication."
+    }
   },
   {
     "id": "reference-xge-monk-way-of-the-drunken-master",
@@ -7697,7 +7865,14 @@
         "d": "Flurry of Blows can make up to three additional attacks if each Flurry attack targets a different creature."
       }
     ],
-    "page": 33
+    "page": 33,
+    "featureSourceReview": {
+      "status": "printed_progression_outline_matched",
+      "reference": "Xanathar’s Guide to Everything, subclass starts p. 33",
+      "primaryVerified": false,
+      "runtimeVerified": false,
+      "note": "Matched the subclass, owning class, edition, and progression outline to the supplied printing. Individual rule coverage and rights review are pending."
+    }
   },
   {
     "id": "reference-xge-monk-way-of-the-kensei",
@@ -7740,7 +7915,14 @@
         "d": "Reroll one missed monk weapon attack per turn."
       }
     ],
-    "page": 34
+    "page": 34,
+    "featureSourceReview": {
+      "status": "printed_progression_outline_matched",
+      "reference": "Xanathar’s Guide to Everything, subclass starts p. 34",
+      "primaryVerified": false,
+      "runtimeVerified": false,
+      "note": "Matched the subclass, owning class, edition, and progression outline to the supplied printing. Individual rule coverage and rights review are pending."
+    }
   },
   {
     "id": "reference-xge-monk-way-of-the-sun-soul",
@@ -7773,7 +7955,14 @@
         "d": "Emit light and retaliate with radiant damage when hit by a melee attack while it shines."
       }
     ],
-    "page": 35
+    "page": 35,
+    "featureSourceReview": {
+      "status": "printed_progression_outline_matched",
+      "reference": "Xanathar’s Guide to Everything, subclass starts p. 35",
+      "primaryVerified": false,
+      "runtimeVerified": false,
+      "note": "Matched the subclass, owning class, edition, and progression outline to the supplied printing. Individual rule coverage and rights review are pending."
+    }
   },
   {
     "id": "reference-tce-monk-way-of-mercy",
@@ -7816,7 +8005,14 @@
         "d": "Spend ki to revive a creature that died within the past 24 hours, once per long rest."
       }
     ],
-    "page": 49
+    "page": 49,
+    "featureSourceReview": {
+      "status": "printed_progression_outline_matched",
+      "reference": "Tasha’s Cauldron of Everything, subclass starts p. 49",
+      "primaryVerified": false,
+      "runtimeVerified": false,
+      "note": "Matched the subclass, owning class, edition, and progression outline to the supplied printing. Individual rule coverage and rights review are pending."
+    }
   },
   {
     "id": "reference-tce-monk-way-of-the-astral-self",
@@ -7849,7 +8045,14 @@
         "d": "Manifest the complete form for an AC bonus and a third astral arm attack when attacking twice with the arms."
       }
     ],
-    "page": 50
+    "page": 50,
+    "featureSourceReview": {
+      "status": "printed_progression_outline_matched",
+      "reference": "Tasha’s Cauldron of Everything, subclass starts p. 50",
+      "primaryVerified": false,
+      "runtimeVerified": false,
+      "note": "Matched the subclass, owning class, edition, and progression outline to the supplied printing. Individual rule coverage and rights review are pending."
+    }
   },
   {
     "id": "reference-xge-paladin-oath-of-conquest",
@@ -7902,7 +8105,14 @@
         "d": "For one minute, resist all damage, gain another attack, and score weapon critical hits on 19 or 20."
       }
     ],
-    "page": 37
+    "page": 37,
+    "featureSourceReview": {
+      "status": "printed_progression_outline_matched",
+      "reference": "Xanathar’s Guide to Everything, subclass starts p. 37",
+      "primaryVerified": false,
+      "runtimeVerified": false,
+      "note": "Matched the subclass, owning class, edition, and progression outline to the supplied printing. Individual rule coverage and rights review are pending."
+    }
   },
   {
     "id": "reference-xge-paladin-oath-of-redemption",
@@ -7955,7 +8165,14 @@
         "d": "Resist damage from a creature and reflect part of it, losing that protection against a creature you attack or harm until your next long rest."
       }
     ],
-    "page": 38
+    "page": 38,
+    "featureSourceReview": {
+      "status": "printed_progression_outline_matched",
+      "reference": "Xanathar’s Guide to Everything, subclass starts p. 38",
+      "primaryVerified": false,
+      "runtimeVerified": false,
+      "note": "Matched the subclass, owning class, edition, and progression outline to the supplied printing. Individual rule coverage and rights review are pending."
+    }
   },
   {
     "id": "reference-tce-paladin-oath-of-glory",
@@ -8008,7 +8225,14 @@
         "d": "Temporarily improve Charisma checks and gain limited rerolls for attacks and saving throws."
       }
     ],
-    "page": 53
+    "page": 53,
+    "featureSourceReview": {
+      "status": "printed_progression_outline_matched",
+      "reference": "Tasha’s Cauldron of Everything, subclass starts p. 53",
+      "primaryVerified": false,
+      "runtimeVerified": false,
+      "note": "Matched the subclass, owning class, edition, and progression outline to the supplied printing. Individual rule coverage and rights review are pending."
+    }
   },
   {
     "id": "reference-tce-paladin-oath-of-the-watchers",
@@ -8061,7 +8285,14 @@
         "d": "Gain truesight and advantage against certain extraplanar creatures. Hits can banish a creature that fails a Charisma save."
       }
     ],
-    "page": 54
+    "page": 54,
+    "featureSourceReview": {
+      "status": "printed_progression_outline_matched",
+      "reference": "Tasha’s Cauldron of Everything, subclass starts p. 54",
+      "primaryVerified": false,
+      "runtimeVerified": false,
+      "note": "Matched the subclass, owning class, edition, and progression outline to the supplied printing. Individual rule coverage and rights review are pending."
+    }
   },
   {
     "id": "reference-xge-ranger-gloom-stalker",
@@ -8104,7 +8335,14 @@
         "d": "React to impose disadvantage on an attack that otherwise has no advantage."
       }
     ],
-    "page": 41
+    "page": 41,
+    "featureSourceReview": {
+      "status": "printed_progression_outline_matched",
+      "reference": "Xanathar’s Guide to Everything, subclass starts p. 41",
+      "primaryVerified": false,
+      "runtimeVerified": false,
+      "note": "Matched the subclass, owning class, edition, and progression outline to the supplied printing. Individual rule coverage and rights review are pending."
+    }
   },
   {
     "id": "reference-xge-ranger-horizon-walker",
@@ -8147,7 +8385,14 @@
         "d": "React to gain resistance to all damage from a hit."
       }
     ],
-    "page": 42
+    "page": 42,
+    "featureSourceReview": {
+      "status": "printed_progression_outline_matched",
+      "reference": "Xanathar’s Guide to Everything, subclass starts p. 42",
+      "primaryVerified": false,
+      "runtimeVerified": false,
+      "note": "Matched the subclass, owning class, edition, and progression outline to the supplied printing. Individual rule coverage and rights review are pending."
+    }
   },
   {
     "id": "reference-xge-ranger-monster-slayer",
@@ -8190,7 +8435,14 @@
         "d": "React with a weapon attack when your prey forces a save. A hit automatically succeeds on the save."
       }
     ],
-    "page": 43
+    "page": 43,
+    "featureSourceReview": {
+      "status": "printed_progression_outline_matched",
+      "reference": "Xanathar’s Guide to Everything, subclass starts p. 43",
+      "primaryVerified": false,
+      "runtimeVerified": false,
+      "note": "Matched the subclass, owning class, edition, and progression outline to the supplied printing. Individual rule coverage and rights review are pending."
+    }
   },
   {
     "id": "reference-tce-ranger-fey-wanderer",
@@ -8233,7 +8485,14 @@
         "d": "Cast Misty Step without slots a limited number of times and bring a willing creature."
       }
     ],
-    "page": 58
+    "page": 58,
+    "featureSourceReview": {
+      "status": "printed_progression_outline_matched",
+      "reference": "Tasha’s Cauldron of Everything, subclass starts p. 58",
+      "primaryVerified": false,
+      "runtimeVerified": false,
+      "note": "Matched the subclass, owning class, edition, and progression outline to the supplied printing. Individual rule coverage and rights review are pending."
+    }
   },
   {
     "id": "reference-tce-ranger-swarmkeeper",
@@ -8271,7 +8530,14 @@
         "d": "React to resist triggering damage and teleport up to 30 feet."
       }
     ],
-    "page": 59
+    "page": 59,
+    "featureSourceReview": {
+      "status": "printed_progression_outline_matched",
+      "reference": "Tasha’s Cauldron of Everything, subclass starts p. 59",
+      "primaryVerified": false,
+      "runtimeVerified": false,
+      "note": "Matched the subclass, owning class, edition, and progression outline to the supplied printing. Individual rule coverage and rights review are pending."
+    }
   },
   {
     "id": "reference-xge-rogue-inquisitive",
@@ -8314,7 +8580,14 @@
         "d": "Deal an extra 3d6 Sneak Attack damage to a creature under Insightful Fighting."
       }
     ],
-    "page": 45
+    "page": 45,
+    "featureSourceReview": {
+      "status": "printed_progression_outline_matched",
+      "reference": "Xanathar’s Guide to Everything, subclass starts p. 45",
+      "primaryVerified": false,
+      "runtimeVerified": false,
+      "note": "Matched the subclass, owning class, edition, and progression outline to the supplied printing. Individual rule coverage and rights review are pending."
+    }
   },
   {
     "id": "reference-xge-rogue-mastermind",
@@ -8352,7 +8625,14 @@
         "d": "Block involuntary thought reading and deceive magic that would determine whether you’re telling the truth."
       }
     ],
-    "page": 46
+    "page": 46,
+    "featureSourceReview": {
+      "status": "printed_progression_outline_matched",
+      "reference": "Xanathar’s Guide to Everything, subclass starts p. 46",
+      "primaryVerified": false,
+      "runtimeVerified": false,
+      "note": "Matched the subclass, owning class, edition, and progression outline to the supplied printing. Individual rule coverage and rights review are pending."
+    }
   },
   {
     "id": "reference-xge-rogue-scout",
@@ -8390,7 +8670,14 @@
         "d": "After taking the Attack action, make a bonus-action attack that can Sneak Attack a second target."
       }
     ],
-    "page": 47
+    "page": 47,
+    "featureSourceReview": {
+      "status": "printed_progression_outline_matched",
+      "reference": "Xanathar’s Guide to Everything, subclass starts p. 47",
+      "primaryVerified": false,
+      "runtimeVerified": false,
+      "note": "Matched the subclass, owning class, edition, and progression outline to the supplied printing. Individual rule coverage and rights review are pending."
+    }
   },
   {
     "id": "reference-xge-rogue-swashbuckler",
@@ -8428,7 +8715,14 @@
         "d": "After a miss, reroll the attack with advantage once per short or long rest."
       }
     ],
-    "page": 48
+    "page": 48,
+    "featureSourceReview": {
+      "status": "printed_progression_outline_matched",
+      "reference": "Xanathar’s Guide to Everything, subclass starts p. 48",
+      "primaryVerified": false,
+      "runtimeVerified": false,
+      "note": "Matched the subclass, owning class, edition, and progression outline to the supplied printing. Individual rule coverage and rights review are pending."
+    }
   },
   {
     "id": "reference-tce-rogue-phantom",
@@ -8466,7 +8760,14 @@
         "d": "Wails can damage your Sneak Attack target as well, and you gain a token on a long rest if you have none."
       }
     ],
-    "page": 62
+    "page": 62,
+    "featureSourceReview": {
+      "status": "printed_progression_outline_matched",
+      "reference": "Tasha’s Cauldron of Everything, subclass starts p. 62",
+      "primaryVerified": false,
+      "runtimeVerified": false,
+      "note": "Matched the subclass, owning class, edition, and progression outline to the supplied printing. Individual rule coverage and rights review are pending."
+    }
   },
   {
     "id": "reference-tce-rogue-soulknife",
@@ -8524,7 +8825,14 @@
         "d": "After a psychic-blade Sneak Attack, force a Wisdom save or stun the target."
       }
     ],
-    "page": 63
+    "page": 63,
+    "featureSourceReview": {
+      "status": "printed_progression_outline_matched",
+      "reference": "Tasha’s Cauldron of Everything, subclass starts p. 63",
+      "primaryVerified": false,
+      "runtimeVerified": false,
+      "note": "Matched the subclass, owning class, edition, and progression outline to the supplied printing. Individual rule coverage and rights review are pending."
+    }
   },
   {
     "id": "reference-xge-sorcerer-divine-soul",
@@ -8562,7 +8870,14 @@
         "d": "As a bonus action while below half HP, recover half your maximum HP once per long rest."
       }
     ],
-    "page": 50
+    "page": 50,
+    "featureSourceReview": {
+      "status": "printed_progression_outline_matched",
+      "reference": "Xanathar’s Guide to Everything, subclass starts p. 50",
+      "primaryVerified": false,
+      "runtimeVerified": false,
+      "note": "Matched the subclass, owning class, edition, and progression outline to the supplied printing. Individual rule coverage and rights review are pending."
+    }
   },
   {
     "id": "reference-xge-sorcerer-shadow-magic",
@@ -8600,7 +8915,14 @@
         "d": "Spend sorcery points to become shadowy, resisting most damage and moving through creatures and objects."
       }
     ],
-    "page": 50
+    "page": 50,
+    "featureSourceReview": {
+      "status": "printed_progression_outline_matched",
+      "reference": "Xanathar’s Guide to Everything, subclass starts p. 50",
+      "primaryVerified": false,
+      "runtimeVerified": false,
+      "note": "Matched the subclass, owning class, edition, and progression outline to the supplied printing. Individual rule coverage and rights review are pending."
+    }
   },
   {
     "id": "reference-xge-sorcerer-storm-sorcery",
@@ -8643,7 +8965,14 @@
         "d": "Gain immunity to lightning and thunder, fly, and temporarily share flight with allies."
       }
     ],
-    "page": 51
+    "page": 51,
+    "featureSourceReview": {
+      "status": "printed_progression_outline_matched",
+      "reference": "Xanathar’s Guide to Everything, subclass starts p. 51",
+      "primaryVerified": false,
+      "runtimeVerified": false,
+      "note": "Matched the subclass, owning class, edition, and progression outline to the supplied printing. Individual rule coverage and rights review are pending."
+    }
   },
   {
     "id": "reference-tce-sorcerer-aberrant-mind",
@@ -8686,7 +9015,14 @@
         "d": "Teleport and force nearby creatures at your departure space to save against force damage and a pull."
       }
     ],
-    "page": 66
+    "page": 66,
+    "featureSourceReview": {
+      "status": "printed_progression_outline_matched",
+      "reference": "Tasha’s Cauldron of Everything, subclass starts p. 66",
+      "primaryVerified": false,
+      "runtimeVerified": false,
+      "note": "Matched the subclass, owning class, edition, and progression outline to the supplied printing. Individual rule coverage and rights review are pending."
+    }
   },
   {
     "id": "reference-tce-sorcerer-clockwork-soul",
@@ -8724,7 +9060,14 @@
         "d": "In a cube near you, distribute up to 100 healing, repair objects, and end eligible spells."
       }
     ],
-    "page": 68
+    "page": 68,
+    "featureSourceReview": {
+      "status": "printed_progression_outline_matched",
+      "reference": "Tasha’s Cauldron of Everything, subclass starts p. 68",
+      "primaryVerified": false,
+      "runtimeVerified": false,
+      "note": "Matched the subclass, owning class, edition, and progression outline to the supplied printing. Individual rule coverage and rights review are pending."
+    }
   },
   {
     "id": "reference-xge-warlock-the-celestial",
@@ -8762,7 +9105,14 @@
         "d": "Instead of making a death save, regain half your HP, stand, and deal radiant damage and blindness to nearby enemies."
       }
     ],
-    "page": 54
+    "page": 54,
+    "featureSourceReview": {
+      "status": "printed_progression_outline_matched",
+      "reference": "Xanathar’s Guide to Everything, subclass starts p. 54",
+      "primaryVerified": false,
+      "runtimeVerified": false,
+      "note": "Matched the subclass, owning class, edition, and progression outline to the supplied printing. Individual rule coverage and rights review are pending."
+    }
   },
   {
     "id": "reference-xge-warlock-the-hexblade",
@@ -8800,7 +9150,14 @@
         "d": "Move your curse to another creature after its target dies, giving up the healing."
       }
     ],
-    "page": 55
+    "page": 55,
+    "featureSourceReview": {
+      "status": "printed_progression_outline_matched",
+      "reference": "Xanathar’s Guide to Everything, subclass starts p. 55",
+      "primaryVerified": false,
+      "runtimeVerified": false,
+      "note": "Matched the subclass, owning class, edition, and progression outline to the supplied printing. Individual rule coverage and rights review are pending."
+    }
   },
   {
     "id": "reference-tce-warlock-the-fathomless",
@@ -8843,7 +9200,14 @@
         "d": "Teleport yourself and willing creatures to a known body of water within one mile."
       }
     ],
-    "page": 72
+    "page": 72,
+    "featureSourceReview": {
+      "status": "printed_progression_outline_matched",
+      "reference": "Tasha’s Cauldron of Everything, subclass starts p. 72",
+      "primaryVerified": false,
+      "runtimeVerified": false,
+      "note": "Matched the subclass, owning class, edition, and progression outline to the supplied printing. Individual rule coverage and rights review are pending."
+    }
   },
   {
     "id": "reference-tce-warlock-the-genie",
@@ -8886,7 +9250,14 @@
         "d": "Request the effect of a spell of up to 6th level with a casting time of one action, then recharge after 1d4 long rests."
       }
     ],
-    "page": 73
+    "page": 73,
+    "featureSourceReview": {
+      "status": "printed_progression_outline_matched",
+      "reference": "Tasha’s Cauldron of Everything, subclass starts p. 73",
+      "primaryVerified": false,
+      "runtimeVerified": false,
+      "note": "Matched the subclass, owning class, edition, and progression outline to the supplied printing. Individual rule coverage and rights review are pending."
+    }
   },
   {
     "id": "reference-xge-wizard-war-magic",
@@ -8924,7 +9295,14 @@
         "d": "When using Arcane Deflection, deal force damage to up to three nearby creatures."
       }
     ],
-    "page": 59
+    "page": 59,
+    "featureSourceReview": {
+      "status": "printed_progression_outline_matched",
+      "reference": "Xanathar’s Guide to Everything, subclass starts p. 59",
+      "primaryVerified": false,
+      "runtimeVerified": false,
+      "note": "Matched the subclass, owning class, edition, and progression outline to the supplied printing. Individual rule coverage and rights review are pending."
+    }
   },
   {
     "id": "reference-tce-wizard-bladesinging",
@@ -8962,7 +9340,14 @@
         "d": "Add Intelligence to melee weapon damage while Bladesong is active."
       }
     ],
-    "page": 76
+    "page": 76,
+    "featureSourceReview": {
+      "status": "printed_progression_outline_matched",
+      "reference": "Tasha’s Cauldron of Everything, subclass starts p. 76",
+      "primaryVerified": false,
+      "runtimeVerified": false,
+      "note": "Matched the subclass, owning class, edition, and progression outline to the supplied printing. Individual rule coverage and rights review are pending. The parenthetical suffix on Training in War and Song is an app label."
+    }
   },
   {
     "id": "reference-tce-wizard-order-of-scribes",
@@ -9000,7 +9385,14 @@
         "d": "Prevent damage by temporarily losing spells from your book, and gain advantage on Arcana checks while the mind is present."
       }
     ],
-    "page": 77
+    "page": 77,
+    "featureSourceReview": {
+      "status": "printed_progression_outline_matched",
+      "reference": "Tasha’s Cauldron of Everything, subclass starts p. 77",
+      "primaryVerified": false,
+      "runtimeVerified": false,
+      "note": "Matched the subclass, owning class, edition, and progression outline to the supplied printing. Individual rule coverage and rights review are pending."
+    }
   },
   {
     "id": "reference-efota-artificer",
@@ -9546,7 +9938,14 @@
         "d": "Roll twice when invoking a random spirit and use the result you prefer."
       }
     ],
-    "page": 17
+    "page": 17,
+    "featureSourceReview": {
+      "status": "printed_progression_outline_matched",
+      "reference": "Ravenloft: The Horrors Within, p. 17, College of Spirits",
+      "primaryVerified": false,
+      "runtimeVerified": false,
+      "note": "Matched the four revised progression headings. Individual spirit outcomes, session requirements, feature coverage, and rights review are pending."
+    }
   },
   {
     "id": "reference-rthw-grave-domain",
@@ -11046,7 +11445,14 @@
         "d": "A map can save a holder from dropping to 0 hit points and teleport them to another holder. Map holders can also cast Find the Path."
       }
     ],
-    "page": 20
+    "page": 20,
+    "featureSourceReview": {
+      "status": "printed_progression_outline_matched",
+      "reference": "Eberron: Forge of the Artificer, Cartographer chapter",
+      "primaryVerified": false,
+      "runtimeVerified": false,
+      "note": "Matched the seven Cartographer progression headings and source locator. Individual atlas, map, and teleport mechanics, runtime coverage, and rights review are pending."
+    }
   },
   {
     "id": "reference-rthw-reanimator",
@@ -16561,6 +16967,7 @@
       }
     ],
     "baseSubclass": "Draconic Sorcery",
+    "replacesBaseFeatures": ["Draconic Spells"],
     "spellTracks": {
       "All": {
         "3": [
@@ -16623,7 +17030,14 @@
         ]
       }
     },
-    "spellTrackChoice": "Evoker specialization"
+    "spellTrackChoice": "Evoker specialization",
+    "featureSourceReview": {
+      "status": "source_mechanics_runtime_partial",
+      "reference": "World of Warcraft conversion, Evoker chapter, Draconic Sorcery",
+      "primaryVerified": true,
+      "runtimeVerified": false,
+      "note": "Reviewed the five features and all four Evoker spell columns against the supplied chapter. Evoker replaces Draconic Spells and retains the other printed features. Individual spell rights and manual effects remain subject to review."
+    }
   },
   {
     "id": "book-wow-class-hunter",
@@ -16774,7 +17188,14 @@
     "src": "wow",
     "desc": "Beast Master, a Hunter specialization.",
     "features": [],
-    "baseSubclass": "Beast Master"
+    "baseSubclass": "Beast Master",
+    "featureSourceReview": {
+      "status": "inherited_subclass_linkage_matched",
+      "reference": "World of Warcraft conversion, Hunter chapter",
+      "primaryVerified": false,
+      "runtimeVerified": false,
+      "note": "Matched the conversion's Beast Master specialization to the inherited Beast Master progression. Per-feature differences, runtime, and rights review are pending."
+    }
   },
   {
     "id": "book-wow-subclass-hunter-hunter",
@@ -16786,7 +17207,14 @@
     "src": "wow",
     "desc": "Hunter, a Hunter specialization.",
     "features": [],
-    "baseSubclass": "Hunter"
+    "baseSubclass": "Hunter",
+    "featureSourceReview": {
+      "status": "inherited_subclass_linkage_matched",
+      "reference": "World of Warcraft conversion, Hunter chapter",
+      "primaryVerified": false,
+      "runtimeVerified": false,
+      "note": "Matched the conversion's Hunter specialization to the inherited Hunter progression. Per-feature differences, runtime, and rights review are pending."
+    }
   },
   {
     "id": "book-wow-class-mage",
@@ -16907,7 +17335,14 @@
     "src": "wow",
     "desc": "Evoker, a Mage specialization.",
     "features": [],
-    "baseSubclass": "Evoker"
+    "baseSubclass": "Evoker",
+    "featureSourceReview": {
+      "status": "inherited_subclass_linkage_matched",
+      "reference": "World of Warcraft conversion, Mage chapter",
+      "primaryVerified": false,
+      "runtimeVerified": false,
+      "note": "Matched the conversion's Evoker specialization to the inherited Evoker progression. Per-feature differences, runtime, and rights review are pending."
+    }
   },
   {
     "id": "book-wow-class-priest",
@@ -17081,7 +17516,14 @@
     "src": "wow",
     "desc": "Life Domain, a Priest specialization.",
     "features": [],
-    "baseSubclass": "Life Domain"
+    "baseSubclass": "Life Domain",
+    "featureSourceReview": {
+      "status": "inherited_subclass_linkage_matched",
+      "reference": "World of Warcraft conversion, Priest chapter",
+      "primaryVerified": false,
+      "runtimeVerified": false,
+      "note": "Matched the conversion's Life Domain specialization to the inherited Life Domain progression. Per-feature differences, runtime, and rights review are pending."
+    }
   },
   {
     "id": "book-wow-subclass-priest-shadow-domain",
@@ -17136,7 +17578,14 @@
     "src": "wow",
     "desc": "War Domain, a Priest specialization.",
     "features": [],
-    "baseSubclass": "War Domain"
+    "baseSubclass": "War Domain",
+    "featureSourceReview": {
+      "status": "conversion_source_attribution_gap",
+      "reference": "World of Warcraft conversion, Priest chapter",
+      "primaryVerified": false,
+      "runtimeVerified": false,
+      "note": "The supplied Priest chapter lists Discipline, Life, and Shadow. War Domain is mentioned as a Cleric alternative in the Paladin chapter. This inherited app option needs source attribution review."
+    }
   },
   {
     "id": "book-wow-class-shaman",
@@ -17284,7 +17733,14 @@
     "src": "wow",
     "desc": "Path of the Berserker, a Shaman specialization.",
     "features": [],
-    "baseSubclass": "Path of the Berserker"
+    "baseSubclass": "Path of the Berserker",
+    "featureSourceReview": {
+      "status": "conversion_source_attribution_gap",
+      "reference": "World of Warcraft conversion, Shaman chapter",
+      "primaryVerified": false,
+      "runtimeVerified": false,
+      "note": "The supplied Shaman chapter assigns Spiritual Guardian and World Tree specializations. The Berserker recommendation appears as a Barbarian alternative in the Warrior chapter. This inherited app option needs source attribution review."
+    }
   },
   {
     "id": "book-wow-subclass-shaman-path-of-the-elements",
@@ -17372,7 +17828,14 @@
     "src": "wow",
     "desc": "Path of the World Tree, a Shaman specialization.",
     "features": [],
-    "baseSubclass": "Path of the World Tree"
+    "baseSubclass": "Path of the World Tree",
+    "featureSourceReview": {
+      "status": "inherited_subclass_linkage_matched",
+      "reference": "World of Warcraft conversion, Shaman chapter",
+      "primaryVerified": false,
+      "runtimeVerified": false,
+      "note": "Matched the conversion's Path of the World Tree specialization to the inherited Path of the World Tree progression. Per-feature differences, runtime, and rights review are pending."
+    }
   },
   {
     "id": "book-wow-class-warrior",
@@ -17504,7 +17967,14 @@
     "src": "wow",
     "desc": "Battle Master, a Warrior specialization.",
     "features": [],
-    "baseSubclass": "Battle Master"
+    "baseSubclass": "Battle Master",
+    "featureSourceReview": {
+      "status": "inherited_subclass_linkage_matched",
+      "reference": "World of Warcraft conversion, Warrior chapter",
+      "primaryVerified": false,
+      "runtimeVerified": false,
+      "note": "Matched the conversion's Battle Master specialization to the inherited Battle Master progression. Per-feature differences, runtime, and rights review are pending."
+    }
   },
   {
     "id": "book-wow-subclass-warrior-champion",
@@ -17516,6 +17986,13 @@
     "src": "wow",
     "desc": "Champion, a Warrior specialization.",
     "features": [],
-    "baseSubclass": "Champion"
+    "baseSubclass": "Champion",
+    "featureSourceReview": {
+      "status": "inherited_subclass_linkage_matched",
+      "reference": "World of Warcraft conversion, Warrior chapter",
+      "primaryVerified": false,
+      "runtimeVerified": false,
+      "note": "Matched the conversion's Champion specialization to the inherited Champion progression. Per-feature differences, runtime, and rights review are pending."
+    }
   }
 ]

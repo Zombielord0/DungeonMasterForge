@@ -62,6 +62,16 @@ function rollState(c, kind, ab, o = {}) {
   if(ed==="2024"&&kind==="save"&&ab==="dex"&&classFeatureLevel(c,"Barbarian")>=2&&!COND_INCAP.some(on))S.adv.push("Danger Sense");
   if(kind==="save"&&ed==="2014"&&clsLv(c,"Artificer")>=20)S.pen+=artificerAttunedCount(c);
   if (ed === "2024" && n) S.pen = -2 * n;
+  if(kind==="check"||kind==="save"){
+    if(ab==="str"&&runeKnightEffect(c,"might"))S.adv.push("Giant’s Might");
+    if((ab==="str"||ab==="con")&&runeKnightEffect(c,"Frost"))S.pen+=2;
+    if(kind==="save"&&o.poisoned&&runeKnightWorn(c,"Hill"))S.adv.push("Hill Rune");
+    if(kind==="check"&&o.skill){
+      for(const [name,rune] of Object.entries(KNIGHT_RUNES)){
+        if(rune.skills?.includes(o.skill)&&runeKnightWorn(c,name))S.adv.push(`${name} Rune`);
+      }
+    }
+  }
   return S;
 }
 const advMark = `<span class="advm" title="Advantage">A</span>`;
@@ -353,6 +363,11 @@ function rollLifeHealing(expr,life){
 function feySummonOption(c,sp,ed=edOf(c)){
   return ed===edOf(c)&&sp?.n==="Summon Fey"&&characterSubclassLevel(c,"Ranger","Fey Wanderer")>=11;
 }
+function summonSubclassCast(c,sp,ed){
+  if(feySummonOption(c,sp,ed))return {feature:"Fey Reinforcements",control:"feyNoConcentration"};
+  if(ed==="2024"&&sp?.n==="Summon Dragon"&&(draconicSorceryOwner(c)?.level||0)>=18)return {feature:"Dragon Companion",control:"dragonNoConcentration"};
+  return null;
+}
 function feyTeleportOptions(c,sp,ed=edOf(c)){
   if(ed!==edOf(c)||sp?.n!=="Misty Step")return [];
   const out=[];
@@ -364,7 +379,8 @@ function feyTeleportOptions(c,sp,ed=edOf(c)){
 function castPreview(c, sp, how, ed = edOf(c)) {
   const P = spellTweak(c, sp, spellPlan(sp)), K = spellCaster(c, sp, how, ed), slot = castSlotLevel(c, sp, how, ed), up = Math.max(0, slot - sp.l);
   const spirit=summonSpiritDefinition(sp,ed);
-  if(spirit&&!spellManualResolution(sp))return `At ${ordinal(slot)}: summon ${spirit.name}; resolve its stat block and attacks after casting${feySummonOption(c,sp,ed)?" · no material component; optional one-minute non-concentration cast":sp.co?" · needs concentration":""}.`;
+  const subclassCast=summonSubclassCast(c,sp,ed);
+  if(spirit&&!spellManualResolution(sp))return `At ${ordinal(slot)}: summon ${spirit.name}; resolve its stat block and attacks after casting${subclassCast?" · no material component; optional one-minute non-concentration cast":sp.co?" · needs concentration":""}.`;
   const count = P.count + (P.countPer ? up : 0), parts = [];
   if(["majestyStart","majestyRepeat"].includes(how))parts.push("Command as a Bonus Action; a creature Charmed by you automatically fails its save. Confirm timing and target.");
   if(arcaneWardCastEligible(c,sp,how,slot,ed))parts.push(arcaneWardExists(c)?"Restore up to "+2*slot+" Ward HP":"Optionally create an Arcane Ward ("+arcaneWardMax(c)+" HP)");
@@ -388,7 +404,7 @@ function castPreview(c, sp, how, ed = edOf(c)) {
   if (sp.manualRoll || sp.manualEffects) parts.push("Resolve all rolls and effects manually using the complete spell rules");
   if(sp.l===0&&invocationAffects(c,"spear",sp.n))parts.push(ed==="2024"?"Eldritch Spear: +"+30*clsLv(c,"Warlock")+" ft range":"Eldritch Spear: 300 ft range");
   if(sp.l===0&&invocationAffects(c,"repel",sp.n))parts.push(ed==="2024"?"Repelling Blast: push Large or smaller target up to 10 ft on hit":"Repelling Blast: push target up to 10 ft on hit");
-  if(feySummonOption(c,sp,ed))parts.push("No material component; optional one-minute non-concentration cast");
+  if(subclassCast)parts.push("No material component; optional one-minute non-concentration cast");
   else if (sp.co) parts.push(`needs concentration${c.conc ? ` (ends ${c.conc.spell})` : ""}`);
   parts.push(...feyTeleportOptions(c,sp,ed));
   if(ed==="2024"&&characterSubclassLevel(c,"Wizard","Abjurer")>=10&&["Counterspell","Dispel Magic"].includes(sp.n))parts.push("Spell Breaker: record whether this cast stopped a spell to retain or refund its slot. Dispel Magic can use a Bonus Action; add proficiency to its ability check.");
@@ -416,7 +432,9 @@ function castDialog(c, ed, name, o = {}) {
   }
   const sp = spellOf(ed, name); if (!sp) { toast("That spell isn't in the spell list"); return; }
   ACTX.c = c; ACTX.cast = { ed, name };
-  const stats = [["Casting time", sp.t], ["Range", sp.r], ["Components", [sp.cp, sp.m ? `(${sp.m})` : ""].filter(Boolean).join(" ")], ["Duration", `${sp.co ? "Concentration, " : ""}${sp.du || ""}`]].filter(([, v]) => v);
+  const subclassCast=summonSubclassCast(c,sp,ed);
+  const components=subclassCast?String(sp.cp||"").replace(/M/g,""):[sp.cp,sp.m?`(${sp.m})`:""].filter(Boolean).join(" ");
+  const stats = [["Casting time", sp.t], ["Range", sp.r], ["Components", components], ["Duration", `${sp.co ? "Concentration, " : ""}${sp.du || ""}`]].filter(([, v]) => v);
   const higher=summonHigherRules(sp,ed);
   const rules = `<div class="spell-rules"><p class="muted" style="margin:2px 0 8px">${sp.l ? ordinal(sp.l) : "Cantrip"} · ${esc(String(sp.s || "").toLowerCase())}${sp.ri ? " · ritual" : ""}</p>
     <div class="sp-stats">${stats.map(([k, v]) => `<div><span>${esc(k)}</span>${esc(v)}</div>`).join("")}</div>
@@ -430,7 +448,7 @@ function castDialog(c, ed, name, o = {}) {
     const first = opts.find(x => !x[3] && x[0]===o.prefer)||opts.find(x => !x[3] && (sp.l === 0 || /^slot\d$|^pact$/.test(x[0])));
     cast = `<div class="cast-box"><div class="cast-h">${sp.l ? "Cast at level" : "Cast"}</div>
       ${sp.l ? `<div class="cast-lvs" role="group" aria-label="Cast at level">${opts.map(([v, l, sub, dis]) => `<button type="button" class="cast-lv" data-castlv="${esc(v)}" aria-pressed="${!!(first && first[0] === v)}" ${dis ? "disabled" : ""}><b>${esc(l)}</b><span>${esc(sub)}</span></button>`).join("")}</div>` : ""}
-      ${feySummonOption(c,sp,ed)?`<label class="hint"><input type="checkbox" id="feyNoConcentration"> Fey Reinforcements: cast without concentration (duration 1 minute)</label>`:""}
+      ${subclassCast?`<label class="hint"><input type="checkbox" id="${subclassCast.control}"> ${subclassCast.feature}: cast without concentration (duration 1 minute)</label>`:""}
       ${arcaneWardLevel(c)&&!arcaneWardExists(c)&&String(sp.s).toLowerCase()==="abjuration"&&sp.l>0?`<label class="hint"><input type="checkbox" id="createArcaneWard" checked> Create Arcane Ward if this casting qualifies</label>`:""}
       <div id="expertDivinationChoice">${first?expertDivinationHTML(c,sp,first[0],ed):""}</div>
       <input type="hidden" id="castSlot" value="${first ? esc(first[0]) : ""}">
@@ -480,9 +498,9 @@ function castGo() {
   if(how==="invocation:vigor"){const n=ed==="2024"?12:rollDice("1d4+4").total;giveTemp(c,n);notes.push("False Life: "+n+" temporary HP offered; higher existing temporary HP retained.");}
   if(how==="invocation:armor"){c.fx={...(c.fx||{}),mageArmor:true};pcACApply(c);notes.push("Mage Armor effect active if unarmored; end manually when the spell expires.");}
   if(how==="freeContactPatron"&&sp.n==="Contact Other Plane")notes.push("Contact your patron; the spell’s saving throw automatically succeeds.");
-  const feySummon=feySummonOption(c,sp,ed),feyNoConc=feySummon&&!!$("#feyNoConcentration")?.checked;
-  if(feySummon)notes.push("Fey Reinforcements: no material component required.");
-  if(feyNoConc)notes.push("Duration 1 minute without concentration; track expiry manually.");
+  const subclassCast=summonSubclassCast(c,sp,ed);
+  if(subclassCast)notes.push(`${subclassCast.feature}: no material component required.`);
+  if(subclassCast&&$("#"+subclassCast.control)?.checked)notes.push("Duration 1 minute without concentration; track expiry manually.");
   else if (sp.co) { const ended = concStart(c, sp.n); if (ended) notes.push(ended); notes.push(`Concentrating on ${sp.n}.`); }
   notes.push(...feyTeleportOptions(c,sp,ed));
   rollLog(c, { label: `Cast ${sp.n}`, total: sp.l ? `L${slot}` : "✦", note: how === "free" ? "no slot" : how === "ritual" ? "ritual" : "" });

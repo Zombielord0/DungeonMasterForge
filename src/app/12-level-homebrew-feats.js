@@ -676,6 +676,10 @@ function profInfo(c) {
     if(!langs.includes(language))langs.push(language);
   }
   tools.push(...bgSelections.tool.map(v=>v+" (background)"));
+  if(runeKnightLevel(c)>=3){
+    if(!langs.includes("Giant"))langs.push("Giant");
+    if(!tools.some(tool=>/^smith['’]s tools\b/i.test(tool)))tools.push("Smith's tools (Rune Knight)");
+  }
   if (B.lang && !bgRules.some(q=>q.effect==="language")) picks.push(`${B.lang.toLowerCase()} (background)`);
   for(const q of bgRules.filter(q=>q.effect==="language"||q.effect==="tool")){
     const left=q.count-backgroundSelectionValues(c,q).length;
