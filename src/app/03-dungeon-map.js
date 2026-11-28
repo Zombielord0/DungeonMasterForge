@@ -929,7 +929,7 @@ function tvInitRows(c, e, o = {}) {
   return encOrder(c, e).map(row => {
     const m = row.foe ? e.enemies.find(x => x.id === row.key) : null;
     const state = !m ? "" : m.hp <= 0 ? "Down" : m.hp <= m.max / 2 ? "Bloodied" : "";
-    const r = { name: row.name, foe: !!row.foe, cur: e.turn === row.key, state };
+    const r = { name: row.name, foe: !!row.foe && !row.ally, cur: e.turn === row.key, state };
     if (o.conds) {
       const pt = !row.foe ? (c.party || []).find(p => p.id === row.key) : null, pc = pt && pt.pcId ? PCS.roster.find(x => x.id === pt.pcId) : null;
       const ks = m ? (m.conds || []).map(cd => cd.k) : [...((e.pcConds || {})[row.key] || []).map(cd => cd.k), ...(pc ? CONDS.filter(([k]) => condOn(pc, k)).map(([k]) => k) : [])];

@@ -447,7 +447,7 @@ function subclassFeatureRows(ed,cls,name,includePending=false,printing){
   const minimum=subclassLevel(ed,cls);
   const rows=entry?(entry.features||[]).map(f=>({...f,originalLevel:+f.l})) : subFeatsOf(ed,name).map(([l,n,d])=>({l,n,d,originalLevel:l}));
   return rows.filter(f=>f.n&&Number.isInteger(+f.l)&&+f.l>=1&&+f.l<=20)
-    .map(f=>{const srd=ed==="2024"&&!entry&&SRD_REVISED_SUBCLASS_SOURCES[name];return {...f,l:Math.max(minimum,+f.l),book:!!entry?.book,source:entry?.src||(srd?"srd52":""),sourceEdition:entry?.ed||ed,...(srd?{sourceId:"srd52:subclass:"+srd[0],page:srd[1],pageEnd:srd[2]}:{})};})
+    .map(f=>{const srd=ed==="2024"&&!entry&&SRD_REVISED_SUBCLASS_SOURCES[name];return {...f,l:Math.max(minimum,+f.l),book:!!entry?.book,source:entry?.src||(srd?"srd52":""),sourceEdition:entry?.sourceEdition||entry?.ed||ed,...(srd?{sourceId:"srd52:subclass:"+srd[0],page:srd[1],pageEnd:srd[2]}:{})};})
     .sort((x,y)=>x.l-y.l);
 }
 function subclassCharacterFeatures(ed,cls,name,level,secondary=false,printing){
@@ -653,7 +653,8 @@ function subclassEntry(ed, cls, name, includePending = true, printing) {
   /* a book subclass only printed for the other rules set (Oathbreaker with 2024 rules) still brings its features */
   const other = !book && !builtIn && ed==="2024" ? legacySubclassEntries(cls).find(x=>x.name===name) : null;
   const selected=printing&&prints.find(x=>x.id===printing);
-  const entry = selected || custom.find(x => !(hbFromImport(x) && (book || builtIn || other))) || book || (builtIn ? undefined : other || undefined);
+  let entry = selected || custom.find(x => !(hbFromImport(x) && (book || builtIn || other))) || book || (builtIn ? undefined : other || undefined);
+  if(ed==="2024"&&entry?.book&&entry.sourceEdition==="2014")entry={...entry,compatibility:true};
   if (!entry?.baseSubclass) return entry;
   const features = subFeatsOf(ed, entry.baseSubclass)
     .filter(([level, name]) => !entry.features.some(f => +f.l === level && f.n === name))
@@ -663,7 +664,10 @@ function subclassEntry(ed, cls, name, includePending = true, printing) {
 function subclassList(ed, cls, allowed = () => true) {
   const builtIn = ((SUBCLASSES[ed] || SUBCLASSES["2014"])[cls]) || [];
   const custom = hbOf("subclass").filter(x => x.cls === cls && hbEdOk(x, ed)).map(x => [x.name, x.desc || "", true]);
-  const books = bookSubclassEntries(ed, cls).map(x => [x.name, x.desc || "", true, x.src]);
+  const books = bookSubclassEntries(ed, cls).map(x => [
+    x.name, (x.desc||"")+(ed==="2024"&&x.sourceEdition==="2014"?" (2014 subclass compatibility)":""),
+    true, x.src
+  ]);
   if(ed==="2024")books.push(...legacySubclassEntries(cls).map(x=>[x.name,(x.desc||"")+" (2014 subclass compatibility; confirm legacy feature interactions with the DM.)",true,x.src]));
   const seen = new Set();
   return [...builtIn, ...custom, ...books].filter(entry => {

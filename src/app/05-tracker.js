@@ -1018,7 +1018,8 @@ function newEncounter(chId, name, level, groups, extra = {}) {
 }
 function partySize(c) { return (c.gen && c.gen.settings && c.gen.settings.party) || (c.party || []).length || 4; }
 function encMath(c, e) {
-  const raw = e.enemies.reduce((s, m) => s + xpOf(m.cr), 0), n = e.enemies.length;
+  const enemies=e.enemies.filter(m=>!m.fungal);
+  const raw = enemies.reduce((s, m) => s + xpOf(m.cr), 0), n = enemies.length;
   const adj = Math.round(raw * mult(n)), lv = clamp(+e.level || c.currentLevel || 1, 1, 20), p = partySize(c);
   return { raw, adj, rating: n ? rateXP(adj, lv, p) : "—", lv, p };
 }
@@ -1046,7 +1047,7 @@ function seedEncounters(c) {
 }
 function encGuide(c, e) {
   const g = c.gen, loc = g && e.loc !== undefined ? g.locations[e.loc] : null;
-  const types = []; e.enemies.forEach(m => { let t = types.find(x => x.stat === m.stat && x.boss === m.boss); if (!t) types.push(t = { stat: m.stat, boss: m.boss, name: m.boss ? m.name : m.stat, n: 0, cr: m.cr }); t.n++; });
+  const types = []; e.enemies.filter(m=>!m.fungal).forEach(m => { let t = types.find(x => x.stat === m.stat && x.boss === m.boss); if (!t) types.push(t = { stat: m.stat, boss: m.boss, name: m.boss ? m.name : m.stat, n: 0, cr: m.cr }); t.n++; });
   const roles = types.map(t => (MSTAT[t.stat] || [])[7] || "brute");
   const M = encMath(c, e), boss = types.find(t => t.boss);
   const P = [];
@@ -1082,9 +1083,12 @@ function encGuide(c, e) {
 }
 const openGuides = new Set();
 function encOrder(c, e) {
-  const rows = e.enemies.filter(m => m.init !== "" && m.init !== null).map(m => ({ key: m.id, name: m.name, init: +m.init, foe: true, down: m.hp <= 0, dex: foeInit(m.stat) }));
+  const rows = e.enemies.filter(m => !m.fungal && m.init !== "" && m.init !== null).map(m => ({ key: m.id, name: m.name, init: +m.init, foe: true, down: m.hp <= 0, dex: foeInit(m.stat) }));
   (c.party || []).forEach(p => { const v = e.pcInit && e.pcInit[p.id]; if (v !== undefined && v !== "") rows.push({ key: p.id, name: p.name || "Hero", init: +v, foe: false, down: false, dex: 99 }); });
-  return rows.sort((a, b) => b.init - a.init || b.dex - a.dex);
+  rows.sort((a, b) => b.init - a.init || b.dex - a.dex);
+  const allies=e.enemies.filter(m=>m.fungal&&fungalZombiePresent(m,e));
+  return rows.flatMap(row=>row.foe?[row]:[row,...allies.filter(m=>m.fungal.ownerId===row.key)
+    .map(m=>({key:m.id,name:m.name,init:row.init,foe:true,ally:true,down:m.hp<=0}))]);
 }
 function campaignBestiaryEntryAllowed(c, b) {
   const rules = normalizeSourceRules(c.sourceRules);
@@ -1131,15 +1135,15 @@ function encCard(c, e) {
       <span class="muted" style="font-size:14px">${e.round ? `Round <b>${e.round}</b>` : "Not started"}</span>
       <details class="enc-more"><summary class="btn sm">More</summary>${sessionQueueButton("encounters", e)}<button class="btn sm" type="button" data-ea="saveTemplate" data-eid="${esc(e.id)}">Save as template</button></details>
     </div>
-    ${order.length ? `<div class="init-strip">${order.map(o => `<span class="init-chip ${o.foe ? "foe" : "pc"} ${o.down ? "down" : ""} ${e.turn === o.key ? "cur" : ""}">${e.turn === o.key ? "▶ " : ""}${esc(o.name)} <b>${o.init}</b></span>`).join("")}</div>` : ""}
+    ${order.length ? `<div class="init-strip">${order.map(o => `<span class="init-chip ${o.foe && !o.ally ? "foe" : "pc"} ${o.down ? "down" : ""} ${e.turn === o.key ? "cur" : ""}">${e.turn === o.key ? "▶ " : ""}${esc(o.name)} <b>${o.init}</b></span>`).join("")}</div>` : ""}
     ${combatHistoryHTML(e)}
-    <table class="foes"><thead><tr><th>Enemy</th><th>AC</th><th>HP</th><th>Damage / heal</th><th>Init</th><th>Conditions</th><th></th></tr></thead><tbody>
-      ${e.enemies.map(m => `<tr class="${m.hp <= 0 ? "down" : ""} ${e.turn === m.id ? "cur" : ""}">
-        <td><input type="text" data-ef="mname" data-eid="${e.id}" data-mid="${m.id}" value="${esc(m.name)}" aria-label="Enemy name">${m.boss ? `<div class="k">${esc(m.stat)} stat block · CR ${crLabel(m.cr)}</div>` : `<div class="k">CR ${crLabel(m.cr)}</div>`}</td>
+    <table class="foes"><thead><tr><th>${e.enemies.some(m=>m.fungal&&fungalZombiePresent(m,e))?"Creature":"Enemy"}</th><th>AC</th><th>HP</th><th>Damage / heal</th><th>Init</th><th>Conditions</th><th></th></tr></thead><tbody>
+      ${e.enemies.filter(m=>fungalZombiePresent(m,e)).map(m => `<tr class="${m.hp <= 0 ? "down" : ""} ${e.turn === m.id ? "cur" : ""}">
+        <td><input type="text" data-ef="mname" data-eid="${e.id}" data-mid="${m.id}" value="${esc(m.name)}" aria-label="${m.fungal?"Ally":"Enemy"} name">${m.fungal?`<div class="k">Fungal Infestation ally</div>`:m.boss ? `<div class="k">${esc(m.stat)} stat block · CR ${crLabel(m.cr)}</div>` : `<div class="k">CR ${crLabel(m.cr)}</div>`}</td>
         <td><b>${m.ac}</b></td>
         <td style="min-width:110px"><div class="row" style="gap:4px;align-items:center"><input type="number" data-ef="hp" data-eid="${e.id}" data-mid="${m.id}" value="${m.hp}" style="width:64px" aria-label="Current HP"><span class="muted">/ ${m.max}</span></div><div class="hpbar"><i style="width:${hpPct(m)}%;background:${hpPct(m) > 50 ? "var(--green)" : hpPct(m) > 0 ? "var(--gold)" : "var(--red)"}"></i></div></td>
         <td><div class="row" style="gap:4px"><input type="number" min="0" data-amt="${m.id}" placeholder="0" style="width:58px" aria-label="Amount"><button class="btn sm danger" data-ea="dmg" data-eid="${e.id}" data-mid="${m.id}" title="Apply damage">−</button><button class="btn sm" data-ea="heal" data-eid="${e.id}" data-mid="${m.id}" title="Heal">+</button></div></td>
-        <td><input type="number" data-ef="init" data-eid="${e.id}" data-mid="${m.id}" value="${m.init}" style="width:56px" aria-label="Initiative"></td>
+        <td>${m.fungal?"After owner":`<input type="number" data-ef="init" data-eid="${e.id}" data-mid="${m.id}" value="${m.init}" style="width:56px" aria-label="Initiative">`}</td>
         <td>${(m.conds || []).length || m.conc ? `<div class="enc-conds">${m.conc ? `<span class="fight-chip conc">◎ ${esc(m.conc.spell)}</span>` : ""}${(m.conds || []).map(cd => `<span class="fight-chip">${esc(fightCondLabel(cd.k))}</span>`).join("")}</div>` : ""}<input type="text" data-ef="cond" data-eid="${e.id}" data-mid="${m.id}" value="${esc(m.cond)}" placeholder="prone, poisoned…" aria-label="Conditions"></td>
         <td><button class="icon-btn" data-ea="delMon" data-eid="${e.id}" data-mid="${m.id}" title="Remove">✕</button></td></tr>`).join("") || `<tr><td colspan="7" class="muted">No enemies yet. Add some below.</td></tr>`}
     </tbody></table>
@@ -1199,13 +1203,13 @@ function renderEncounters(c) {
   if (orphans.length || !c.chapters.length) h += group(null, orphans, 0) + (c.chapters.length ? "" : `<button class="btn sm" data-ea="addEnc" data-ch="">+ Add encounter</button>`);
   return h;
 }
-const COMBAT_FIELDS = ["hp", "init", "cond", "conds", "conc"];
+const COMBAT_FIELDS = ["hp", "init", "cond", "conds", "conc", "fungal"];
 const ENCOUNTER_STATE_FIELDS = ["status", "round", "turn", "pcInit", "prompts", "casts"]; /* conds, conc, prompts, casts: the fight window (2026-11-25) */
 const combatCopy = v => v === undefined ? null : JSON.parse(JSON.stringify(v));
 function combatSnapshot(e) {
   return {
     state: Object.fromEntries(ENCOUNTER_STATE_FIELDS.map(key => [key, key === "pcInit" ? { ...e.pcInit } : combatCopy(e[key])])),
-    enemies: e.enemies.map(m => ({ id: m.id, hp: m.hp, init: m.init ?? "", cond: m.cond ?? "", conds: combatCopy(m.conds || []), conc: combatCopy(m.conc) }))
+    enemies: e.enemies.map(m => ({ id: m.id, hp: m.hp, init: m.init ?? "", cond: m.cond ?? "", conds: combatCopy(m.conds || []), conc: combatCopy(m.conc), fungal: combatCopy(m.fungal) }))
   };
 }
 function combatHistory(e) {
@@ -1319,7 +1323,7 @@ async function encClick(ev) {
     c.encounterTemplates = [...templates, {
       id: uid("template"), name: name || "Encounter", level, mapId, notes, kind,
       pcInit: { ...pcInit },
-      enemies: enemies.map(({ name, stat, cr, ac, max, init, boss }) => ({ name, stat, cr, ac, max, init, boss }))
+      enemies: enemies.filter(m=>!m.fungal).map(({ name, stat, cr, ac, max, init, boss }) => ({ name, stat, cr, ac, max, init, boss }))
     }];
     Store.save(c); renderTracker(); toast("Encounter template saved");
     return;
@@ -1381,10 +1385,17 @@ async function encClick(ev) {
   const m = e.enemies.find(x => x.id === b.dataset.mid);
   let before = ["dmg", "heal", "roll", "next"].includes(a) ? combatSnapshot(e) : null;
   if (a === "undo") { combatUndo(c, e); Store.save(c); rerenderEnc(c, e); return; }
+  if (a === "fungalSlam" || a === "fungalDamage") {
+    if(m?.fungal&&fungalZombiePresent(m,e)){
+      const result=fungalZombieSlam(m,a==="fungalSlam"?"hit":"damage");
+      toast(typeof result==="string"?result:result.msg);
+    }
+    return;
+  }
   if (a === "dmg" || a === "heal") {
     const inp = (b.closest("#fightWin") || document).querySelector(`[data-amt="${b.dataset.mid}"]`); const v = Math.abs(parseInt(inp && inp.value) || 0); if (!m || !v) return;
     m.hp = a === "dmg" ? Math.max(0, m.hp - v) : Math.min(m.max, m.hp + v);
-    if (a === "dmg" && m.hp === 0) toast(`${m.name} is down`);
+    if (a === "dmg" && m.hp === 0) toast(`${m.name} is down${m.fungal?". Check Undead Fortitude if the damage qualifies.":""}`);
     if (a === "dmg") fightOnFoeDamage(c, e, m, v); /* a foe concentrating: save reminder, or its spell ends at 0 HP */
   } else if (a === "delMon") { e.enemies = e.enemies.filter(x => x !== m); if (e.turn === b.dataset.mid) e.turn = null; }
   else if (a === "addMon") {
@@ -1404,7 +1415,7 @@ async function encClick(ev) {
     /* Group initiative: one roll for each kind of monster, as the rules suggest for big fights (2026-11-24) */
     before = combatSnapshot(e); /* after the question, so Undo restores what was there */
     const group = {}, key = x => x.boss ? x.id : x.stat || x.name; /* a boss rolls alone; creatures with no stat block group by name */
-    e.enemies.forEach(x => {
+    e.enemies.filter(x=>!x.fungal).forEach(x => {
       if (e.groupInit && group[key(x)] !== undefined) { x.init = group[key(x)]; return; }
       x.init = group[key(x)] = 1 + Math.floor(Math.random() * 20) + foeInit(x.stat);
     });
@@ -1423,7 +1434,10 @@ async function encClick(ev) {
     if (!(await confirmBox("Reset encounter?", "Restore all enemies to full HP and clear initiative and conditions?", "Reset"))) return;
     before = combatSnapshot(e);
     fightReset(c, e); /* conditions, concentration and reminders from the fight window (heroes' come off their sheets) */
-    e.enemies.forEach(x => { x.hp = x.max; x.init = ""; x.cond = ""; }); e.round = 0; e.turn = null; e.pcInit = {}; e.status = "Planned";
+    e.enemies.forEach(x => {
+      x.hp=x.fungal?0:x.max;x.init="";x.cond="";
+      if(x.fungal)x.fungal.endRound=0;
+    }); e.round = 0; e.turn = null; e.pcInit = {}; e.status = "Planned";
   }
   if (before) {
     const hpBefore = before.enemies.find(x => x.id === m?.id)?.hp;
@@ -1452,7 +1466,7 @@ function onEncField(ev, commit) {
     if (f === "mname") m.name = t.value;
     else if (f === "cond") m.cond = t.value;
     else if (f === "init") m.init = t.value === "" ? "" : +t.value;
-    else if (f === "hp") m.hp = clamp(parseInt(t.value) || 0, 0, 9999);
+    else if (f === "hp") m.hp = clamp(parseInt(t.value) || 0, 0, m.fungal?m.max:9999);
   }
   if (before) {
     const hero = (c.party || []).find(p => p.id === t.dataset.pid);

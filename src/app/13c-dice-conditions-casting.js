@@ -120,24 +120,46 @@ function rollDockHTML(c) {
     ${ROLL.open ? rollShareHTML() : ""}${ROLL.open ? `<ol class="rd-list">${L.length ? L.map(e => `<li class="${e.crit || e.nat20 ? "crit" : ""} ${e.fumble ? "fumble" : ""}"><span class="rd-t">${new Date(e.t).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}</span> <b>${esc(e.label)}</b> <span class="rd-total">${esc(String(e.total))}</span>${e.d ? `<small>d20 ${esc(e.d.join(" / "))}${e.bonus ? ` ${esc(sgn(e.bonus))}` : ""}${e.mode && e.mode !== "normal" ? (e.mode === "adv" ? " · advantage" : " · disadvantage") : ""}</small>` : ""}${e.note ? `<small>${esc(e.note)}</small>` : ""}</li>`).join("") : `<li class="muted">Click a skill, save, ability, initiative or attack to roll.</li>`}</ol>${L.length ? `<button type="button" class="btn sm" data-rdclear style="margin-top:6px">Clear</button>` : ""}` : ""}</div>`;
 }
 /* hit points: damage at 0 counts as a death save failure; dropping to 0 knocks you out; damage asks for a concentration save */
-function pcDamaged(c, dmg, wasZero) {
+function pcFellUnconscious(c){
+  c.conds={...(c.conds||{}),unconscious:true};c.condAuto=true;endStarryForm(c);
+  const notes=[`${c.name} falls unconscious`];
+  if(c.conc){notes.push(`concentration on ${c.conc.spell} ends`);delete c.conc;delete c.concCheck;}
+  return notes;
+}
+function pcDamaged(c, dmg, wasZero, excess=0) {
   const notes = [];
   if (!dmg) return notes;
   c.death = c.death || { s: 0, f: 0 };
-  if (wasZero && !c.death.dead) { c.death.f = Math.min(3, c.death.f + 1); c.death.stable = false; notes.push(`${c.name} takes a death save failure (${c.death.f}/3)`); if (c.death.f >= 3) { c.death.dead = true; notes.push(`${c.name} dies`); } }
-  else if (!wasZero && +c.hpCur === 0) { c.conds = { ...(c.conds || {}), unconscious: true }; c.condAuto = true; c.death = { s: 0, f: 0 }; endStarryForm(c); notes.push(`${c.name} drops to 0 hit points and falls unconscious`); if (c.conc) { notes.push(`concentration on ${c.conc.spell} ends`); delete c.conc; } }
-  if(c.death.dead){artificerRecordDeath(c);companionOnOwnerDeath(c);}
-  if (c.conc && +c.hpCur > 0) {
+  if(+c.hpCur===0&&+c.hp>0&&excess>=+c.hp&&xgeFighterLevel(c,"Samurai")>=18){
+    c.death={s:0,f:0,dead:true};notes.push(`${c.name} dies from massive damage`);
+  }else if(wasZero&&!c.death.dead){
+    if(c.samuraiDeathTurn==="pending")notes.push(...endSamuraiDeathTurn(c));
+    c.death.f=Math.min(3,(+c.death.f||0)+1);c.death.stable=false;
+    notes.push(`${c.name} takes a death save failure (${c.death.f}/3)`);
+    if(c.death.f>=3){c.death.dead=true;notes.push(`${c.name} dies`);}
+  }else if(!wasZero&&+c.hpCur===0&&!c.death.dead){
+    c.death={s:0,f:0};notes.push(`${c.name} drops to 0 hit points`);
+    if(samuraiDeathReady(c)){
+      c.samuraiDeathTurn="pending";
+      notes.push("Use or decline Strength before Death now");
+    }else if(c.samuraiDeathTurn!=="active")notes.push(...pcFellUnconscious(c));
+  }
+  if(c.death.dead){
+    delete c.samuraiDeathTurn;delete c.conc;delete c.concCheck;endStarryForm(c);
+    artificerRecordDeath(c);companionOnOwnerDeath(c);
+  }
+  if(c.conc&&(+c.hpCur>0||c.samuraiDeathTurn)){
     if(edOf(c)==="2024"&&classFeatureLevel(c,"Ranger")>=13&&String(c.conc.spell).replaceAll("’","\x27").toLowerCase()==="hunter\x27s mark")notes.push("Relentless Hunter: damage cannot break Concentration on Hunter’s Mark");
     else {const dc=Math.min(edOf(c)==="2024"?30:99,Math.max(10,Math.floor(dmg/2)));c.concCheck=dc;notes.push(`concentration save needed (CON, DC ${dc})`);}
   }
   return notes;
 }
 function pcHealed(c, wasZero) {
-  if (wasZero && +c.hpCur > 0) { c.death = { s: 0, f: 0 }; if (c.condAuto && c.conds) { delete c.conds.unconscious; delete c.condAuto; } return [`${c.name} is back on their feet`]; }
+  if (wasZero && +c.hpCur > 0) { c.death = { s: 0, f: 0 }; if(c.samuraiDeathTurn==="pending")delete c.samuraiDeathTurn; if (c.condAuto && c.conds) { delete c.conds.unconscious; delete c.condAuto; } return [`${c.name} is back on their feet`]; }
   return [];
 }
 function deathSave(c) {
+  if(c.samuraiDeathTurn==="pending"||c.death?.dead)return;
   c.death = c.death || { s: 0, f: 0 };
   const r = rollD20(c, "Death save", 0, "save", "", {}); if (r.fail) return;
   if (r.keep === 20) { c.hpCur = 1; pcHealed(c, true); toast(`Natural 20! ${c.name} regains 1 hit point.`); }
@@ -145,7 +167,7 @@ function deathSave(c) {
   else if (r.total >= 10) c.death.s = Math.min(3, c.death.s + 1);
   else c.death.f = Math.min(3, c.death.f + 1);
   if (c.death.s >= 3) { c.death.stable = true; toast(`${c.name} is stable.`); }
-  if (c.death.f >= 3) { c.death.dead = true; artificerRecordDeath(c); companionOnOwnerDeath(c); toast(`${c.name} has died.`); }
+  if (c.death.f >= 3) { c.death.dead = true; delete c.samuraiDeathTurn;delete c.conc;delete c.concCheck;artificerRecordDeath(c); companionOnOwnerDeath(c); toast(`${c.name} has died.`); }
 }
 function concSave(c) {
   const dc = c.concCheck || 10, bonus = c.mods.con + (c.saves.includes("con") ? c.prof : 0) + itemSaveBonus(c);
@@ -164,7 +186,8 @@ function rcStatusHTML(c) {
     ${on.length || n ? `<ul class="plain cond-notes">${on.map(([k, l, d]) => `<li><b>${l}:</b> ${esc(d)}</li>`).join("")}${n ? `<li><b>Exhaustion:</b> ${esc(exhText(c))}</li>` : ""}</ul>` : ""}
     <div class="conc-row"><span class="lbl" style="margin:0">Concentration</span>${c.conc ? `<span class="tag gold">${esc(c.conc.spell)}</span><button type="button" class="icon-btn" data-concend title="Stop concentrating" aria-label="Stop concentrating">✕</button>${c.concCheck ? `<button type="button" class="btn sm primary" data-concsave>🎲 CON save (DC ${c.concCheck})</button>` : ""}` : `<input type="text" data-concset placeholder="Not concentrating — type a spell to start" aria-label="Concentrating on" style="max-width:280px">`}</div>
     ${D.dead ? `<div class="dying dead"><b>☠ ${esc(c.name)} has died.</b> <button type="button" class="btn sm" data-revive>Revive with 1 HP</button></div>`
-      : zero || D.s || D.f ? `<div class="dying"><b>${D.stable ? "Stable at 0 HP" : "Dying"}</b><span class="dsr">Successes ${dots("s", D.s)}</span><span class="dsr">Failures ${dots("f", D.f)}</span>${D.stable ? "" : `<button type="button" class="btn sm primary" data-deathsave>🎲 Death save</button><button type="button" class="btn sm" data-stabilize>Stabilize</button>`}</div>` : ""}
+      : c.samuraiDeathTurn==="pending"?`<div class="dying"><b>Strength before Death is available.</b> Use or decline it under Abilities.</div>`
+      : zero || D.s || D.f ? `<div class="dying"><b>${c.samuraiDeathTurn==="active"?"Strength before Death extra turn":D.stable ? "Stable at 0 HP" : "Dying"}</b><span class="dsr">Successes ${dots("s", D.s)}</span><span class="dsr">Failures ${dots("f", D.f)}</span>${D.stable ? "" : `<button type="button" class="btn sm primary" data-deathsave>🎲 Death save</button><button type="button" class="btn sm" data-stabilize>Stabilize</button>`}</div>` : ""}
   </div>`;
 }
 /* ---- casting spells from the sheet: pick a slot, spend it, then roll what the spell does ---- */
@@ -401,7 +424,9 @@ function castDialog(c, ed, name, o = {}) {
       <div class="row" style="justify-content:flex-end;margin-top:12px"><button class="btn" type="button" data-actclose style="flex:0 0 auto">Close</button><button class="btn primary" type="button" data-castgo style="flex:0 0 auto" ${first ? "" : "disabled"}>✦ Cast</button></div>`;
   }
   const sources = spellPreparationSources(c, sp.n, ed);
-  const preparation = sources.length ? `<p class="hint">${grantedSpellStatus(sp.l, sources)} · ${esc(sources.map(spellGrantLabel).join(" / "))}</p>` : "";
+  const limits = sources.filter(source=>source.restriction)
+    .map(source=>`${source.name} grant: ${source.restriction}.`);
+  const preparation = sources.length ? `<p class="hint">${grantedSpellStatus(sp.l, sources)} · ${esc(sources.map(spellGrantLabel).join(" / "))}</p>${limits.length?`<p class="hint">${esc(limits.join(" "))}</p>`:""}` : "";
   actDialog(`<h3 id="actTitle">${esc(sp.n)}</h3>${preparation}${rules}${cast}`);
   const m = $("#actBox"); if (m) m.classList.add("spell-box");
 }

@@ -177,8 +177,15 @@ const LEGACY_ADDITIONAL_PREPARED={
 };
 const SUBCLASS_SPELL_ALIASES={"Nystul's Magic Aura":"Magic Aura","Leomund's Secret Chest":"Secret Chest","Otiluke's Resilient Sphere":"Resilient Sphere","Rary's Telepathic Bond":"Telepathic Bond","Leomund's Tiny Hut":"Tiny Hut","Branding Smite":"Shining Smite"};
 function subclassSpellName(ed,name){
- if(spellOf(ed,name))return name;
- const alias=SUBCLASS_SPELL_ALIASES[name];return alias&&spellOf(ed,alias)?alias:name;
+ const exact=spellOf(ed,name);if(exact)return exact.n;
+ const key=Object.keys(SUBCLASS_SPELL_ALIASES).find(candidate=>candidate.toLowerCase()===name.toLowerCase());
+ const alias=SUBCLASS_SPELL_ALIASES[key];return alias&&spellOf(ed,alias)?.n||name;
+}
+function animalLordsEntry(c){
+ const cls="Warlock",name="Animal Lords";
+ if(!characterSubclassLevel(c,cls,name))return null;
+ const entry=subclassEntry(edOf(c),cls,name,true,characterSubclassPrinting(c,cls));
+ return entry?.id==="book-toh_animal-lords"?entry:null;
 }
 function legacySubclassOption(c,ed,cls,sp){
  if(edOf(c)!==ed||!sp||sp.hb||sp.pend||sp.referenceOnly||sp.rulesSummary||sp.ref||sp.shadow)return false;
@@ -187,6 +194,11 @@ function legacySubclassOption(c,ed,cls,sp){
  const entry=subclassEntry(ed,cls,row.subclass,true,characterSubclassPrinting(c,cls));
  if(ed!=="2014"&&!entry?.compatibility)return false;
  if(cls==="Sorcerer"&&row.subclass==="Divine Soul")return (sp.c||[]).includes("Cleric");
+ const affinity=entry?.id==="book-toh_animal-lords"?choiceOf(c,"Animal Lord Affinity")[0]:"";
+ if(entry?.openSpellTracks?.some(track=>track.mode==="expanded"&&track.spells.some(option=>
+   option.level===sp.l&&(!option.affinity||option.affinity===affinity)&&
+   subclassSpellName(ed,option.name).toLowerCase()===sp.n.toLowerCase()
+ )))return true;
  if(cls!=="Warlock"||!LEGACY_PATRON_OPTIONS[row.subclass])return false;
  if(row.subclass==="The Genie"&&sp.l===9&&sp.n==="Wish")return true;
  const names=LEGACY_PATRON_OPTIONS[row.subclass][sp.l-1]||[];
@@ -331,12 +343,13 @@ function speciesSpellChoicesHTML(c) {
 
 function syncGrantedSpells(c) {
   const ed = edOf(c), grants = new Map();
-  const add = (track, level, source, details = () => ({})) => {
+  const add = (track, level, source, details = () => ({}), referenceLevel) => {
     for (const [minimum, names] of Object.entries(track || {})) {
       if (!Array.isArray(names) || +minimum > level) continue;
       for (const name of names) {
         const catalogSpell = spellOf(ed, name);
-        const spell = catalogSpell || SPELL_GRANT_REFERENCES[name.toLowerCase()];
+        const spell = catalogSpell || SPELL_GRANT_REFERENCES[name.toLowerCase()] ||
+          (Number.isInteger(referenceLevel)?{n:name,l:referenceLevel}:null);
         if (!spell) continue;
         const key = spellKey(ed, spell.n);
         if (!grants.has(key)) grants.set(key, {
@@ -418,8 +431,21 @@ function syncGrantedSpells(c) {
       add(normalize(LEGACY_ADDITIONAL_PREPARED[key]),lv,source);
     }
     if (cls === "Artificer" && Object.hasOwn(artificer, subclass)) add(artificer[subclass], lv, source);
-    add(entry?.alwaysPrepared, lv, source);
-    add(entry?.bonusSpells, lv, { ...source, known: true });
+    const openTracks=entry?.openSpellTracks||[];
+    const verified=new Set(openTracks.filter(track=>track.mode!=="expanded").flatMap(track=>
+      track.spells.map(spell=>subclassSpellName(ed,spell.name).toLowerCase())));
+    const otherGrants=track=>verified.size?Object.fromEntries(Object.entries(track||{}).map(([level,names])=>
+      [level,names.filter(name=>!verified.has(subclassSpellName(ed,name).toLowerCase()))])):track;
+    add(otherGrants(entry?.alwaysPrepared), lv, source);
+    add(otherGrants(entry?.bonusSpells), lv, { ...source, known: true });
+    for(const track of openTracks){
+      if(track.mode==="expanded")continue;
+      for(const spell of track.spells)add({[Math.max(spell.gate,subclassLevel(ed,cls))]:[subclassSpellName(ed,spell.name)]},lv,
+        {...source,feature:track.feature},()=>({
+          ...(track.mode==="known"?{known:true}:{}),
+          ...(spell.restriction?{restriction:spell.restriction}:{}),
+        }),spell.level);
+    }
     if (cls === "Rogue" && ["Arcane Trickster", "Eldritch Trickster"].includes(subclass)) {
       add({ 3: ["Mage Hand"] }, lv, { ...source, feature: "Spellcasting", known: true });
     }

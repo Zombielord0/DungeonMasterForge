@@ -311,6 +311,15 @@ function samuraiInitiative(c){
   c.used.fightingSpirit=2;
   return true;
 }
+function samuraiDeathReady(c){
+  return xgeFighterLevel(c,"Samurai")>=18&&!c.death?.dead&&!(+c.used?.strengthBeforeDeath>0)&&
+    !COND_INCAP.some(key=>condOn(c,key));
+}
+function endSamuraiDeathTurn(c){
+  if(!c.samuraiDeathTurn)return [];
+  delete c.samuraiDeathTurn;
+  return !c.death?.dead&&+c.hpCur===0?pcFellUnconscious(c):[];
+}
 function cavalierWeapons(c){
   return (c.attacks||[]).filter(a=>a.iid&&a.melee&&!a.save);
 }
@@ -332,6 +341,78 @@ function endSymbioticEntity(c){
 function sporesDamage(c,name,text){
   const level=sporesLevel(c),die=level>=14?10:level>=10?8:level>=6?6:4;
   return area(name,`${sporesActive(c)?2:1}d${die}`,"con",8+c.prof+c.mods.wis,"necrotic",text,{noneOnSave:true,singleTarget:true,chooseTargets:true});
+}
+function fungalZombieStat(){
+  return dmData("monsterData")["2014"]?.find(mon=>mon.n==="Zombie"&&mon.type==="undead");
+}
+function fungalZombiePresent(z,encounter){
+  if(!z.fungal)return true;
+  return encounter
+    ? !["Done","Completed"].includes(encounter.status)&&(+encounter.round||1)<z.fungal.endRound
+    : Date.now()<z.fungal.expiresAt;
+}
+function fungalCorpseChoices(c){
+  if(sporesLevel(c)<6||c.death?.dead||COND_INCAP.some(key=>condOn(c,key))||!fungalZombieStat())return [];
+  const options=[["sheet","Confirm an eligible recent death and track on character sheet"]];
+  if(Store.readOnly||window.Portal?.cloud&&!Portal.isDM())return options;
+  for(const campaign of Store.list()){
+    const owner=(campaign.party||[]).find(p=>p.pcId===c.id);
+    if(!owner)continue;
+    for(const encounter of campaign.encounters||[]){
+      if(encounter.status!=="Active")continue;
+      const claimed=new Set(encounter.enemies.filter(row=>row.fungal?.endRound>0).map(row=>row.fungal.corpseId));
+      for(const corpse of encounter.enemies){
+        if(corpse.hp>0||corpse.fungal||claimed.has(corpse.id))continue;
+        const ed=corpse.statEdition||edOf(c),mon=dmData("monsterData")[ed]?.find(mon=>mon.n===corpse.stat)
+          || campaign.bestiary?.find(mon=>mon.name===corpse.stat)?.statBlock;
+        if(!mon||!["beast","humanoid"].includes(mon.type?.toLowerCase())||!["small","medium"].includes(mon.size?.toLowerCase()))continue;
+        const key=JSON.stringify([campaign.id,encounter.id,owner.id,corpse.id]);
+        options.push([key,`${corpse.name} · ${encounter.name} · confirm recent death within 10 feet`]);
+      }
+    }
+  }
+  return options;
+}
+function animateFungalZombie(c,selection){
+  const stat=fungalZombieStat();
+  const zombie={id:uid("fungal"),name:"Fungal Zombie",stat:stat.n,statEdition:"2014",hp:1,max:stat.hp,ac:stat.ac,cr:stat.cr,init:"",cond:"",fungal:{}};
+  if(selection==="sheet"){
+    zombie.fungal.expiresAt=Date.now()+3600000;
+    c.fungalZombies=(c.fungalZombies||[]).filter(row=>fungalZombiePresent(row));
+    zombie.name+=c.fungalZombies.length?` ${c.fungalZombies.length+1}`:"";
+    c.fungalZombies.push(zombie);
+    return "The zombie is on your character sheet. Its turn follows yours.";
+  }
+  const [campaignId,encounterId,ownerId,corpseId]=JSON.parse(selection);
+  const campaign=Store.get(campaignId),encounter=findEnc(campaign,encounterId);
+  zombie.name=`Fungal Zombie (${encounter.enemies.find(row=>row.id===corpseId).name})`;
+  zombie.fungal={ownerId,corpseId,endRound:(+encounter.round||1)+600};
+  encounter.enemies.push(zombie);
+  Store.save(campaign);rerenderEnc(campaign,encounter);
+  return `${zombie.name} joined ${encounter.name} immediately after your initiative.`;
+}
+function fungalZombieSlam(zombie,kind){
+  if(zombie.hp<=0)return "The zombie can’t attack at 0 HP.";
+  return kind==="hit"
+    ? rollMsg(zombie.name+" · Slam","1d20+3","Confirm one melee target within 5 feet on the zombie’s turn.")
+    : roll(zombie.name+" · Slam","1d6+1","damage","Bludgeoning damage on a confirmed hit.");
+}
+function fungalSheetHTML(c){
+  return (c.fungalZombies||[]).filter(row=>fungalZombiePresent(row)).map(row=>{
+    const button=(action,label)=>`<button type="button" class="btn sm" data-fungal-id="${esc(row.id)}" data-fungal-action="${action}">${label}</button>`;
+    return `<div class="abl"><div class="abl-h"><b>${esc(row.name)}</b><span class="tag">AC 8 · 20 ft.</span></div>
+      <label>Current HP <input type="number" aria-label="${esc(row.name)} current HP" value="${esc(row.hp)}" min="0" max="${esc(row.max)}" data-fungal-hp="${esc(row.id)}"> / ${esc(row.max)}</label>
+      <p>Acts after your turn and obeys mental commands. Its only action is one melee attack. If it takes lethal nonradiant, noncritical damage, resolve Undead Fortitude (CON +3, DC 5 + damage taken).</p>
+      <div class="row">${row.hp?button("hit","Roll Slam")+button("damage","Roll damage"):button("fortitude","Resolve Undead Fortitude")}${button("expire","End animation")}</div></div>`;
+  }).join("");
+}
+function fungalSheetAction(c,id,op){
+  const z=(c.fungalZombies||[]).find(row=>row.id===id);
+  if(!z||!fungalZombiePresent(z))return "This zombie’s animation ended.";
+  if(op==="expire"){c.fungalZombies=c.fungalZombies.filter(row=>row!==z);return "The zombie collapses.";}
+  if(op==="fortitude"&&!z.hp){z.hp=1;return "Zombie restored to 1 HP after the successful table save.";}
+  if(op==="hit"||op==="damage")return fungalZombieSlam(z,op);
+  return "";
 }
 function arcaneArcherPrint(c){
   const entry=subclassEntry(edOf(c),"Fighter","Arcane Archer",false,characterSubclassPrinting(c,"Fighter"));
@@ -730,7 +811,7 @@ function pcAbilities(c) {
     const owner="Circle of Spores";
     add("Symbiotic Entity","Action","Spend Wild Shape and take temporary HP equal to four times your Druid level. The spores last at most 10 minutes and end when those temporary HP are lost or you use Wild Shape again.","wild",owner);
     if(!c.active?.["Spreading Spores"])add("Halo of Spores","Reaction","Confirm a visible creature entered within 10 feet or started its turn there. A successful Constitution save prevents the damage.",null,owner);
-    if(sporesLevel(c)>=6)add("Fungal Infestation","Reaction","Animate an eligible corpse within 10 feet as a 1 HP Zombie for one hour. The Zombie acts immediately after you and can only take the Attack action for one melee attack.","fungalInfestation",owner);
+    if(sporesLevel(c)>=6)add("Fungal Infestation","Reaction","Confirm a Small or Medium Beast or Humanoid just died within 10 feet of you. Track it as a 1 HP Zombie on your sheet or add it after you in an active encounter.","fungalInfestation",owner);
     if(sporesLevel(c)>=10&&sporesActive(c)){
       add("Spreading Spores","Bonus action","Place a 10-foot cube within 30 feet for 1 minute. It replaces your previous cube and prevents Halo reactions until dismissed or expired.",null,owner);
       if(c.active?.["Spreading Spores"])add("Spreading Spores damage","Creature enters or starts its turn in the cube","Resolve the damage once per creature per turn.",null,owner);
@@ -763,7 +844,11 @@ function pcAbilities(c) {
   if(cavalier>=15)add("Ferocious Charger","Once on your turn after a hit",`Confirm you moved 10 feet in a straight line immediately before the attack. Target makes a Strength save (DC ${8+prof+m.str}) or falls prone.`,null,"Cavalier");
   if(samurai>=3)add("Fighting Spirit","Bonus action","Gain temporary HP and advantage on weapon attacks until this turn ends. End the advantage when your turn ends.","fightingSpirit","Samurai");
   if(samurai>=10)add("Tireless Spirit","On initiative","When all three Fighting Spirit uses are spent, rolling initiative restores one use.",null,"Samurai");
-  if(samurai>=18)add("Strength before Death","Reaction when damage reduces you to 0 HP","Confirm the damage did not kill you outright. Resolve the extra turn and any death save failures at the table.","strengthBeforeDeath","Samurai");
+  if(samurai>=18){
+    add("Strength before Death","Reaction when damage reduces you to 0 HP","Confirm that you can take a reaction and were not killed outright. Take the extra turn immediately, interrupting the current turn.","strengthBeforeDeath","Samurai");
+    if(c.samuraiDeathTurn==="pending")add("Decline Strength before Death","When reduced to 0 HP","Fall unconscious without spending the feature.",null,"Samurai");
+    if(c.samuraiDeathTurn==="active")add("End Strength before Death turn","End of the extra turn","If still at 0 HP, fall unconscious. Then continue the interrupted creature’s turn.",null,"Samurai");
+  }
   const stars=starDruidLevel(c);
   if(stars){
     const owner=ed==="2014"?"Circle of Stars":"Circle of the Stars",form=starryForm(c);
@@ -1639,7 +1724,7 @@ const ACT = {
    c.hpTemp=4*sporesLevel(c);return `Symbiotic Entity grants ${c.hpTemp} temporary HP.`;
  }},
  "Halo of Spores":{kind:"instant",use:c=>sporesDamage(c,"Halo of Spores","Confirm the visible creature’s movement or turn start within 10 feet and spend your Reaction.")},
- "Fungal Infestation":{kind:"instant",choices:[["confirm","Confirm Small or Medium Beast or Humanoid corpse within 10 feet"]],use:()=>"Use the Zombie stat block with 1 HP. It obeys mental commands, acts immediately after your turn, and collapses after one hour."},
+ "Fungal Infestation":{kind:"instant",choices:fungalCorpseChoices,use:animateFungalZombie},
  "Spreading Spores":{kind:"toggle",start:()=>"Place a 10-foot cube within 30 feet for up to 1 minute."},
  "Spreading Spores damage":{kind:"instant",use:c=>sporesDamage(c,"Spreading Spores","Confirm the creature entered the cube or started its turn there, and has not taken this damage this turn.")},
  "Arcane Shot":{kind:"instant",choices:arcaneShotChoices,use:arcaneShotUse},
@@ -1658,7 +1743,10 @@ const ACT = {
    const gained=giveTemp(c,hp);
    return gained?`Gain ${hp} temporary HP and advantage on weapon attacks until the current turn ends.`:`Keep your ${c.hpTemp} temporary HP and gain advantage on weapon attacks until the current turn ends.`;
  },fx:()=>({atk:[{f:"weapon",adv:"advantage (Fighting Spirit)"}]})},
- "Strength before Death":{kind:"instant",choices:c=>c.hpCur!==""&&+c.hpCur===0&&!c.death?.dead?[["reaction","Confirm you just dropped to 0 HP and can take a reaction"]]:[],use:()=>"Take an extra turn now. Track death save failures normally. If still at 0 HP after the extra turn, fall unconscious."},
+ "Strength before Death":{kind:"instant",choices:c=>c.samuraiDeathTurn==="pending"&&samuraiDeathReady(c)?[["reaction","Confirm available reaction and nonfatal damage"]]:[],
+   use:c=>{c.samuraiDeathTurn="active";return "Take the extra turn now, interrupting the current turn. Finish it with End Strength before Death turn.";}},
+ "Decline Strength before Death":{kind:"instant",use:c=>endSamuraiDeathTurn(c).join(". ")},
+ "End Strength before Death turn":{kind:"instant",use:c=>endSamuraiDeathTurn(c).join(". ")||"Resume the interrupted turn."},
  "Magical Ammunition":{kind:"instant",choices:c=>arcaneArcherWeapons(c).flatMap(({item})=>Object.keys(REVISED_MAGICAL_AMMO).map(name=>[JSON.stringify([name,item.id]),`${name} · ${item.n}`])),use:(c,key)=>{
    const [name]=JSON.parse(key);return REVISED_MAGICAL_AMMO[name]+" Confirm the selected weapon, ammunition, and surface at the table.";
  }},
@@ -2060,7 +2148,10 @@ function actTargets(c) {
   const pcs = PCS.roster.map(p => ({ id: "pc:" + p.id, label: `${p.name}${p.id === c.id ? " (you)" : ""} · ${p.hpCur ?? p.hp}/${p.hp} HP${+p.hpTemp ? ` +${p.hpTemp} temp` : ""}`, self: p.id === c.id }));
   let camps = Store.list().filter(k => (k.party || []).some(x => x.pcId === c.id)); if (!camps.length) camps = Store.list();
   const foes = [];
-  camps.forEach(k => (k.encounters || []).filter(e => e.status !== "Done" && e.status !== "Completed").forEach(e => (e.enemies || []).filter(m => m.hp > 0).forEach(m => foes.push({ id: `foe:${k.id}:${e.id}:${m.id}`, label: `${m.name} · ${m.hp}/${m.max} HP`, group: `${k.name} — ${e.name}` }))));
+  camps.forEach(k => (k.encounters || []).filter(e => e.status !== "Done" && e.status !== "Completed").forEach(e => (e.enemies || []).filter(m => m.hp > 0&&fungalZombiePresent(m,e)).forEach(m => foes.push({
+    id: `foe:${k.id}:${e.id}:${m.id}`, label: `${m.name} · ${m.hp}/${m.max} HP`,
+    group: `${k.name} — ${e.name}${m.fungal?" · Allies":""}`, ally:!!m.fungal
+  }))));
   return { pcs: pcs.sort((a, b) => b.self - a.self), foes };
 }
 function actApply(targetId, amount, kind, options={}) {
@@ -2072,10 +2163,10 @@ function actApply(targetId, amount, kind, options={}) {
     if (kind === "temp") { const gained=giveTemp(p,amount);pcPersist();return gained?`${p.name} has ${amount} temporary hit points.`:`${p.name} keeps their ${+p.hpTemp||0} temporary hit points (they don't stack).`; }
     const ward=arcaneWardAbsorb(p,amount); let left = ward.left; const tmp = +p.hpTemp || 0; if (tmp) { const use = Math.min(tmp, left); p.hpTemp = tmp - use || ""; left -= use; }
     if(!+p.hpTemp)endSymbioticEntity(p);
-    p.hpCur = Math.max(0, cur - left); const dn = pcDamaged(p, ward.left, cur === 0); pcPersist(); return `${p.name} takes ${ward.left} damage${ward.absorbed?` (${ward.absorbed} absorbed by Arcane Ward)`:""} (${p.hpCur}/${max}${+p.hpTemp ? `, ${p.hpTemp} temp left` : ""}).${dn.length ? " " + dn.map(cap1).join(". ") + "." : ""}`;
+    p.hpCur = Math.max(0, cur - left); const dn = pcDamaged(p, ward.left, cur === 0, Math.max(0,left-cur)); pcPersist(); return `${p.name} takes ${ward.left} damage${ward.absorbed?` (${ward.absorbed} absorbed by Arcane Ward)`:""} (${p.hpCur}/${max}${+p.hpTemp ? `, ${p.hpTemp} temp left` : ""}).${dn.length ? " " + dn.map(cap1).join(". ") + "." : ""}`;
   }
   const k = Store.get(a), e = k && (k.encounters || []).find(x => x.id === b), m = e && e.enemies.find(x => x.id === d);
-  if (!m) return "That creature is gone.";
+  if (!m||!fungalZombiePresent(m,e)) return "That creature is gone.";
   if (kind === "damage") m.hp = Math.max(0, m.hp - amount); else m.hp=Math.max(m.hp,Math.min(options.halfHpCap?Math.floor(m.max/2):m.max,m.hp+Math.max(0,amount)));
   Store.save(k);
   return kind === "damage" ? `${m.name} takes ${amount} damage (${m.hp}/${m.max}).${m.hp === 0 ? ` ${m.name} is down.` : ""}` : `${m.name} regains hit points (${m.hp}/${m.max}).`;
@@ -2093,7 +2184,7 @@ function actResultDialog(c, R) {
     ${R.amount ? `<div class="field" style="margin:0"><label for="actTarget">${kind === "heal" ? "Heal" : kind === "temp" ? "Give temporary hit points to" : "Apply damage to"}</label>${sel}${!T.foes.length && wantFoe ? `<p class="hint" style="margin:6px 0 0">No monsters in an active encounter. Add an encounter in the Campaign Tracker to apply damage to it.</p>` : ""}</div>${kinds}
     <div class="row" style="justify-content:flex-end;margin-top:16px;flex-wrap:wrap"><button class="btn" type="button" data-actclose style="flex:0 0 auto">Don't apply</button>${R.half ? `<button class="btn" type="button" data-actapply="half" style="flex:0 0 auto">${saveLabel} (${saveAmount})</button>` : ""}<button class="btn primary" type="button" data-actapply="full" style="flex:0 0 auto" autofocus>Apply ${R.amount}</button></div>`
     : `<div class="row" style="justify-content:flex-end;margin-top:12px"><button class="btn primary" type="button" data-actclose style="flex:0 0 auto" autofocus>OK</button></div>`}`);
-  const s = $("#actTarget"); if (s) s.value = (wantFoe && T.foes.length ? T.foes[0].id : "pc:" + c.id);
+  const s = $("#actTarget"); if (s) s.value = (wantFoe && T.foes.find(f=>!f.ally)?.id) || "pc:" + c.id;
 }
 function actDialogClick(e) {
   const ap = e.target.closest("[data-actapply]");
@@ -2225,7 +2316,7 @@ function pcSaveBonus(p, ab) { return (p.mods || {})[ab] + ((p.saves || []).inclu
 const aoeShared = () => { try { return localStorage.getItem("dmforge.aoeShared") === "1"; } catch { return false; } };
 function aoeTargets(c, ed, includeSelf=false) {
   const T = actTargets(c), out = [];
-  T.foes.forEach(f => { const [, k, e, id] = f.id.split(":"), camp = Store.get(k), enc = camp && camp.encounters.find(x => x.id === e), m = enc && enc.enemies.find(x => x.id === id); if (m) out.push({ id: f.id, label: f.label, group: f.group, foe: m }); });
+  T.foes.forEach(f => { const [, k, e, id] = f.id.split(":"), camp = Store.get(k), enc = camp && camp.encounters.find(x => x.id === e), m = enc && enc.enemies.find(x => x.id === id); if (m) out.push({ id: f.id, label: f.label, group: f.group, foe: m, ally: f.ally }); });
   T.pcs.filter(x => includeSelf||!x.self).forEach(x => out.push({ id: x.id, label: x.label, group: "Characters", pc: x.self?c:PCS.roster.find(p => "pc:" + p.id === x.id) }));
   return out;
 }
@@ -2234,7 +2325,7 @@ function actAoeDialog(c, R) {
   const L = aoeTargets(c, edOf(c), R.includeSelf), groups = [...new Set(L.map(t => t.group))];
   actDialog(`<h3 id="actTitle">${esc(R.title)}</h3><p style="margin:10px 0">${esc(R.desc)}</p>
     ${L.length ? `<p class="hint" style="margin:0 0 6px">${R.singleTarget ? "Select the target" : "Tick every creature in the area"}${R.save ? `. Each one makes its own ${R.save.toUpperCase()} save against DC ${R.dc}` : ""}.</p>
-      <div class="aoe-list">${groups.map(g => `<fieldset><legend>${esc(g)}</legend>${L.filter(t => t.group === g).map(t => `<label class="aoe-t"><input type="${R.singleTarget ? "radio" : "checkbox"}" name="aoeTarget" data-aoet="${esc(t.id)}" ${t.foe && !R.singleTarget && !R.chooseTargets ? "checked" : ""}> ${esc(t.label)}</label>`).join("")}</fieldset>`).join("")}</div>
+      <div class="aoe-list">${groups.map(g => `<fieldset><legend>${esc(g)}</legend>${L.filter(t => t.group === g).map(t => `<label class="aoe-t"><input type="${R.singleTarget ? "radio" : "checkbox"}" name="aoeTarget" data-aoet="${esc(t.id)}" ${t.foe && !t.ally && !R.singleTarget && !R.chooseTargets ? "checked" : ""}> ${esc(t.label)}</label>`).join("")}</fieldset>`).join("")}</div>
       <div class="seg" role="radiogroup" aria-label="Damage rolls" style="margin-top:10px"><label class="opt"><input type="radio" name="aoeShare" value="0" ${aoeShared() ? "" : "checked"}><span>Separate ${esc(R.expr)} roll for each target</span></label><label class="opt"><input type="radio" name="aoeShare" value="1" ${aoeShared() ? "checked" : ""}><span>One shared roll for everyone (rules as written)</span></label></div>
       <div class="row" style="justify-content:flex-end;margin-top:14px;flex-wrap:wrap"><button class="btn" type="button" data-actclose style="flex:0 0 auto">Cancel</button><button class="btn primary" type="button" data-aoeroll style="flex:0 0 auto" autofocus>Roll damage</button></div>`
     : `<p class="hint">No creatures to target. Add an encounter with monsters in the Campaign Tracker, or other characters on the Characters tab.</p><div class="row" style="justify-content:flex-end"><button class="btn primary" type="button" data-actclose style="flex:0 0 auto">OK</button></div>`}`);

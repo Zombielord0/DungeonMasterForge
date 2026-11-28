@@ -199,7 +199,7 @@ spFiltersSync();
   $("#rosterList").addEventListener("click", e => { const b = e.target.closest("[data-rc]"); if (b) { RC.id = b.dataset.rc; CB.on = false; pcShow("sheet"); renderRosterTab(); rosterFoldPhone(); showResult("#rosterMain"); } });
   const main = $("#rosterMain");
   const resSet = (c, key, left) => { const r = pcResources(c).find(x => x.key === key); if (!r || r.max === Infinity) return; c.used = c.used || {}; c.used[key] = r.max - clamp(left, 0, r.max); pcPersist(); renderRosterMain(); };
-  main.addEventListener("click", e => {
+  main.addEventListener("click", async e => {
     const c = rosterCur(); if (!c) return;
     const review = e.target.closest("[data-readiness], [data-readiness-reviewed]");
     if (review) {
@@ -252,6 +252,16 @@ spFiltersSync();
     if (e.target.closest("[data-deathsave]")) { deathSave(c); pcRecompute(c); pcPersist(); renderRosterMain(); return; }
     if (e.target.closest("[data-stabilize]")) { c.death = { s: 0, f: 0, stable: true }; pcPersist(); renderRosterMain(); toast(`${c.name} is stable at 0 hit points.`); return; }
     if (e.target.closest("[data-revive]")) { c.death = { s: 0, f: 0 }; c.hpCur = 1; pcHealed(c, true); pcRecompute(c); pcPersist(); renderRosterMain(); return; }
+    const fungal=e.target.closest("[data-fungal-action]");
+    if(fungal){
+      const op=fungal.dataset.fungalAction,id=fungal.dataset.fungalId;
+      if(op==="fortitude"&&!(await confirmBox("Undead Fortitude", "Confirm the damage was nonradiant and noncritical and the Zombie succeeded at its Constitution save.", "Restore 1 HP")))return;
+      const result=fungalSheetAction(c,id,op);
+      pcPersist();renderRosterMain();
+      if(result?.kind)actResultDialog(c,result);
+      else if(result)toast(result);
+      return;
+    }
     const comp=e.target.closest("[data-companion-op]");
     if(comp){
       const key=comp.dataset.companionKey,op=comp.dataset.companionOp;if(!Object.hasOwn(SUB_COMPANIONS,key))return;
@@ -279,6 +289,13 @@ spFiltersSync();
   });
   main.addEventListener("change", e => {
     const t = e.target, c = rosterCur(); if (!c) return;
+    if(t.dataset.fungalHp){
+      const zombie=(c.fungalZombies||[]).find(row=>row.id===t.dataset.fungalHp);
+      if(zombie&&fungalZombiePresent(zombie)&&Number.isFinite(t.valueAsNumber)){
+        zombie.hp=clamp(Math.trunc(t.valueAsNumber),0,zombie.max);pcPersist();
+      }
+      renderRosterMain();return;
+    }
     if(t.hasAttribute("data-subclass-print")){
       if(setSubclassPrinting(c,t.dataset.subclassPrint,t.value)){pcPersist();renderRosterMain();}
       return;

@@ -963,6 +963,70 @@ const { chromium } = require("playwright");
     assert.deepEqual(legacyArcher.abilities,[true,true,true,true]);
     assert.deepEqual(legacyArcher.curving,["Longbow","Shortbow"]);
     assert.match(legacyArcher.beguile.msg,/ally within 30 feet/);
+    const openSubclassAudit=await page.evaluate(()=>{
+      const make=(ed,cls,subclass,level)=>pcEnsure(generateCharacter({seed:"OPEN-SUBCLASS-SPELLS",ed,cls,subclass,level,race:"Human",bg:"Sage"}));
+      const wind=make("2014","Druid","Circle of Wind",3),windBelow=make("2014","Druid","Circle of Wind",2);
+      const revised=make("2024","Druid","Circle of Wind",3);
+      const level=(c,name)=>c.prepared.find(p=>p.n===name)?.l;
+      const original=revised.feats.find(f=>f.f.startsWith("Circle Spells"));
+      const source=subclassEntry("2024","Druid","Circle of Wind");
+      const serpent=make("2014","Cleric","Serpent Domain",1);
+      const restrict=spellPreparationSources(serpent,"Find Familiar")[0]?.restriction;
+      const warden=make("2014","Ranger","Grove Warden",5);
+      const known=spellPreparationSources(warden,"Branding Smite").some(s=>s.known);
+      const drake=make("2014","Warlock","Ancient Dragons",3);
+      const dragonOption=legacySubclassOption(drake,"2014","Warlock",spellOf("2014","Scorching Ray"));
+      const dragonPrepared=drake.prepared.some(p=>p.n==="Scorching Ray");
+      const animal=make("2024","Warlock","Animal Lords",3);
+      const aOpt=name=>legacySubclassOption(animal,"2024","Warlock",spellOf("2024",name));
+      const before=[aOpt("Speak with Animals"),aOpt("Thunderwave"),aOpt("Fog Cloud")];
+      animal.choices={"Animal Lord Affinity":["Air"]};
+      const after=[aOpt("Thunderwave"),aOpt("Fog Cloud"),animal.prepared.some(p=>p.n==="Druidcraft")];
+      const hunt=make("2014","Cleric","Hunt Domain",1);
+      const huntList=hunt.prepared.map(x=>[x.n,x.l]);
+      return {status:source.featureSourceReview.status,sourceEdition:original.subEdition,compatible:source.compatibility,
+        wind:[level(wind,"Blur"),level(windBelow,"Blur")??null,level(revised,"Blur"),level(windBelow,"Message")],restrict,known,dragonOption,dragonPrepared,before,after,huntList};
+    });
+    assert.deepEqual([openSubclassAudit.status,openSubclassAudit.sourceEdition,openSubclassAudit.compatible],["provider_snapshot_matched","2014",true]);
+    assert.deepEqual(openSubclassAudit.wind,[2,null,2,0]);
+    assert.deepEqual([openSubclassAudit.restrict,openSubclassAudit.known,openSubclassAudit.dragonOption,openSubclassAudit.dragonPrepared],["snakes only",true,true,false]);
+    assert.deepEqual([openSubclassAudit.before,openSubclassAudit.after],[[true,false,false],[true,false,true]]);
+    assert.ok(openSubclassAudit.huntList.some(([name,lv])=>/bloodbound/i.test(name)&&lv===1));
+    const sporesSpawn=await page.evaluate(()=>{
+      const c=pcEnsure(generateCharacter({seed:"SPORES-CORPSES",ed:"2014",cls:"Druid",level:6,subclass:"Circle of Spores",race:"Human",bg:"Sage"}));
+      c.scores.wis=16;pcRecompute(c);PCS.roster.push(c);RC.id=c.id;renderRosterMain();
+      const camp=blankCampaign("Spores encounter");
+      camp.party=[{id:"druid",pcId:c.id,name:"Druid"},{id:"ally",name:"Ally"}];
+      const e=newEncounter(null,"A fallen wolf",5,[
+        {name:"Wolf",stat:"Wolf",cr:0.25,count:1},{name:"Zombie",stat:"Zombie",cr:0.25,count:1},
+      ],{status:"Active",turn:"druid",round:1,pcInit:{druid:15,ally:15}});
+      e.enemies.forEach(row=>Object.assign(row,{hp:0,init:10,statEdition:"2014"}));
+      camp.encounters=[e];Store.save(camp);
+      const options=fungalCorpseChoices(c),xp=encMath(camp,e).raw;
+      renderRosterMain();
+      return {campId:camp.id,encId:e.id,choice:options[1][0],available:options.map(x=>x[1]),xp};
+    });
+    assert.equal(sporesSpawn.available.length,2);assert.match(sporesSpawn.available[1],/Wolf/);
+    await page.locator('[data-actsel="Fungal Infestation"]').selectOption(sporesSpawn.choice);
+    await page.locator('[data-act="Fungal Infestation"]').click();
+    const animated=await page.evaluate(({campId,encId,choice})=>{
+      const camp=Store.get(campId),e=findEnc(camp,encId),z=e.enemies.find(row=>row.fungal),c=rosterCur();
+      const order=encOrder(camp,e),down=actRun(c,"Fungal Infestation",choice);
+      const targets=actTargets(c).foes.filter(t=>t.ally),ref=fightMonster(z);
+      const first=[z.hp,z.max,ref.ed,order[1].key===z.id,order[1].ally,e.enemies[0].hp,targets.length,encMath(camp,e).raw,down];
+      e.round=z.fungal.endRound;
+      const end=!encOrder(camp,e).some(row=>row.key===z.id)&&!actTargets(c).foes.some(t=>t.ally);
+      return {first,end,counter:c.used.fungalInfestation};
+    },sporesSpawn);
+    assert.deepEqual(animated.first,[1,22,"2014",true,true,0,1,sporesSpawn.xp,"That option is unavailable."]);
+    assert.deepEqual([animated.end,animated.counter],[true,1]);
+    await page.locator('[data-actsel="Fungal Infestation"]').selectOption("sheet");
+    await page.locator('[data-act="Fungal Infestation"]').click();
+    assert.equal(await page.locator("[data-fungal-hp]").inputValue(),"1");
+    await page.locator('[data-fungal-action="hit"]').click();
+    assert.match(await page.locator("#toast").textContent(),/Fungal Zombie.*Slam/);
+    await page.locator('[data-fungal-action="expire"]').click();
+    assert.equal(await page.locator("[data-fungal-hp]").count(),0);
     const fighterAudit=await page.evaluate(()=>{
       const make=(name,level,ed="2014")=>{
         const c=pcEnsure(generateCharacter({seed:"XGE-FIGHTER-ARCHETYPE",ed,cls:"Fighter",level,subclass:name,race:"Human",bg:"Sage"}));
@@ -1017,6 +1081,39 @@ const { chromium } = require("playwright");
     assert.deepEqual(fighterAudit.court,[true,true,3]);assert.match(fighterAudit.fighting,/15 temporary HP/);
     assert.deepEqual([fighterAudit.advantage,fighterAudit.ended,fighterAudit.partial,fighterAudit.exhausted,fighterAudit.remaining],[true,[15,true],false,true,2]);
     assert.deepEqual([fighterAudit.alternate,fighterAudit.removed,fighterAudit.temp],[[true,true,"cha"],[true,true,true],[5,10]]);
+    const samuraiDeathAudit=await page.evaluate(()=>{
+      const create=()=>{
+        const c=pcEnsure(generateCharacter({seed:"SAMURAI-REACTION",ed:"2014",cls:"Fighter",subclass:"Samurai",level:18,race:"Human",bg:"Sage"}));
+        c.hp=90;c.hpCur=4;
+        PCS.roster.push(c);pcPersist();return c;
+      };
+      const damage=(c,n)=>actApply("pc:"+c.id,n,"damage");
+      const state=c=>[c.hpCur,c.samuraiDeathTurn||null,condOn(c,"unconscious"),+c.used?.strengthBeforeDeath||0,+c.death?.f||0,!!c.death?.dead];
+      const c=create();concStart(c,"A test spell");
+      const early=actRun(c,"Strength before Death","reaction");
+      damage(c,4);const pending=state(c),concPending=[!!c.conc,c.concCheck];
+      actRun(c,"Strength before Death","reaction");const active=state(c);
+      damage(c,1);const hurt=state(c);
+      actRun(c,"End Strength before Death turn");const ended=state(c),concEnded=!!c.conc;
+      pcRest(c,"long");const recovered=c.used.strengthBeforeDeath;
+      const b=create();damage(b,3);const safe=state(b);
+      damage(b,1);actRun(b,"Decline Strength before Death");const declined=state(b);
+      const d=create();const fatal=damage(d,94),massive=state(d);
+      const e=create();damage(e,4);actRun(e,"Strength before Death","reaction");damage(e,1);damage(e,1);damage(e,1);const dead=state(e);
+      const f=create();damage(f,4);actRun(f,"Strength before Death","reaction");actApply("pc:"+f.id,5,"heal");
+      actRun(f,"End Strength before Death turn");const healed=state(f);
+      return {early,pending,concPending,active,hurt,ended,concEnded,recovered,safe,declined,fatal,massive,dead,healed};
+    });
+    assert.match(samuraiDeathAudit.early,/No eligible/);
+    assert.deepEqual(samuraiDeathAudit.pending,[0,"pending",false,0,0,false]);
+    assert.deepEqual(samuraiDeathAudit.concPending,[true,10]);
+    assert.deepEqual(samuraiDeathAudit.active,[0,"active",false,1,0,false]);
+    assert.deepEqual(samuraiDeathAudit.hurt,[0,"active",false,1,1,false]);
+    assert.deepEqual(samuraiDeathAudit.ended,[0,null,true,1,1,false]);
+    assert.deepEqual([samuraiDeathAudit.concEnded,samuraiDeathAudit.recovered],[false,0]);
+    assert.deepEqual([samuraiDeathAudit.safe,samuraiDeathAudit.declined],[[1,null,false,0,0,false],[0,null,true,0,0,false]]);
+    assert.match(samuraiDeathAudit.fatal,/massive damage/);
+    assert.deepEqual([samuraiDeathAudit.massive,samuraiDeathAudit.dead,samuraiDeathAudit.healed],[[0,null,false,0,0,true],[0,null,false,1,3,true],[5,null,false,1,0,false]]);
     const starsAudit=await page.evaluate(()=>{
       const make=(ed,level,other={})=>{
         const name=ed==="2014"?"Circle of Stars":"Circle of the Stars";

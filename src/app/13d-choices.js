@@ -329,6 +329,7 @@ function wizardSpellChoicesHTML(c) {
 
 for(const cls of MASTERY_CLASSES)CHOICES[masteryKey(cls)]={label:cls+" weapon mastery",n:c=>masteryLimit(edOf(c),cls,clsLv(c,cls)),opts:c=>masteryOptions(c,cls)};
 const additionalFeatureChoices = {
+  "Expanded Spell List (Animal Lords)": ["Animal Lord Affinity"],
   "Bonus Proficiencies":["Lore Bonus Proficiencies","Order Bonus Proficiency"],
   "Bonus Proficiency":["Cavalier or Samurai Training"],
   "Spell-Storing Item":["Spell-Storing Item Object"],
@@ -345,6 +346,7 @@ const additionalFeatureChoices = {
   "Arcane Archer Lore": ["Arcane Archer Skill"],
   "Arcane Mastery": [6, 7, 8, 9].map(level => "Arcane Mastery " + level)
 };
+CHOICES["Animal Lord Affinity"]={label:"Animal Lord affinity",n:c=>animalLordsEntry(c)?1:0,opts:()=>opt3(["Air","Earth","Water"])};
 function featureChoiceHTML(c, k) {
   const keys = CHOICES[k] ? [k] : [];
   return keys.concat(additionalFeatureChoices[k] || []).map(key => choiceHTML(c, key)).join("");
@@ -585,7 +587,7 @@ function rcAbilitiesHTML(c) {
     const ref = a.res && !r && R[a.res] ? ` <span class="muted" style="font-size:13px">uses ${esc(R[a.res].name.toLowerCase())}</span>` : "";
     return `<div class="abl${(c.active || {})[a.name] && actSpec(a) && actSpec(a).kind === "toggle" ? " on" : ""}"><div class="abl-h"><b>${esc(a.name)}</b><span class="tag">${esc(a.when)}</span>${a.src ? `<span class="muted" style="font-size:13px">${esc(a.src)}</span>` : ""}${ref}<span class="sp"></span>${r ? `<span class="muted" style="font-size:13px">${esc(r.name)}</span>${resCtr(c, r)}` : ""}${actControls(c, a, R)}</div><div class="ft-desc">${esc(a.text)}</div></div>`;
   });
-  return rcActiveHTML(c) + rcCompanionsHTML(c) + (rows.length ? rows.join("") : `<p class="muted">No active class abilities at this level yet.</p>`);
+  return rcActiveHTML(c) + rcCompanionsHTML(c) + fungalSheetHTML(c) + (rows.length ? rows.join("") : `<p class="muted">No active class abilities at this level yet.</p>`);
 }
 function rcSlotsHTML(c) {
   const R = pcResources(c).filter(r => r.key === "pact" || r.key.startsWith("slot"));
@@ -594,6 +596,7 @@ function rcSlotsHTML(c) {
 }
 function pcRest(c, kind) {
   c.used = c.used || {};
+  endSamuraiDeathTurn(c);
   if(c.death?.dead)companionOnOwnerDeath(c);
   delete c.dragonPresencePending; delete c.dragonFuryPending;
   delete c.shamanTotem; // its one-minute duration cannot survive either rest
@@ -617,6 +620,7 @@ function pcRest(c, kind) {
   delete c.spellBreakerPending;
   if(c.portent)c.portent.turnUsed=false;
   companionRestUpdate(c,kind);
+  delete c.fungalZombies;
   if(c.conc?.spell==="Mantle of Majesty"){delete c.conc;delete c.concCheck;}
   if(kind==="long"){
     if(edOf(c)==="2024"&&c.race==="Human"&&(c.traits||[]).includes("Resourceful")){if(c.heroicInspiration)back.push("Heroic Inspiration already held; you may give the new one to an eligible ally.");else{c.heroicInspiration=true;back.push("Heroic Inspiration");}}
