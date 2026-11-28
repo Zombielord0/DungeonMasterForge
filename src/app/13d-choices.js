@@ -602,6 +602,7 @@ function pcRest(c, kind) {
   companionRestUpdate(c,kind);
   if(c.conc?.spell==="Mantle of Majesty"){delete c.conc;delete c.concCheck;}
   if(kind==="long"){
+    if(edOf(c)==="2024"&&c.race==="Human"&&(c.traits||[]).includes("Resourceful")){if(c.heroicInspiration)back.push("Heroic Inspiration already held; you may give the new one to an eligible ally.");else{c.heroicInspiration=true;back.push("Heroic Inspiration");}}
     delete c.arcaneWard;
     if(portentCount(c)){back.push(rollPortents(c,true));}else delete c.portent;
     if(c.createdSlots){delete c.createdSlots;back.push("Temporary spell slots expired");}

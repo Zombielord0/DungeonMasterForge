@@ -856,6 +856,16 @@ const { chromium } = require("playwright");
     });
     assert.deepEqual(wizardRecoveryAudit.result,[[["slot1","slot3","slot5"],"",true,0,1,0],[["slot1","slot3","slot5"],"",true,0,1,0]]);
     assert.deepEqual(wizardRecoveryAudit.refund,[true,true,"No eligible Spell Breaker casting.",true,1]);
+    const coreSpeciesAudit=await page.evaluate(()=>{
+      const make=(race,sub,level=5,ed="2024")=>pcEnsure(generateCharacter({seed:"SPECIES-P3",ed,cls:"Fighter",level,race,sub,bg:"Sage"}));
+      const orc=make("Orc",null),adren=pcResources(orc).find(r=>r.key==="adren");orc.used={adren:1};pcRest(orc,"short");const orcRest=orc.used.adren;
+      orc.hpCur=orc.hp;const rejected=actRun(orc,"Relentless Endurance","confirm");const spentBefore=orc.used.relent||0;orc.hpCur=0;orc.death={s:0,f:0};orc.conds={unconscious:true};orc.condAuto=true;actRun(orc,"Relentless Endurance","confirm");
+      const dwarf=make("Dwarf",null);dwarf.used={};actRun(dwarf,"Stonecunning","stone");const stone=[dwarf.used.stonecunning,!!dwarf.active.Stonecunning];pcRest(dwarf,"short");stone.push(dwarf.used.stonecunning,!dwarf.active.Stonecunning);pcRest(dwarf,"long");stone.push(dwarf.used.stonecunning);
+      const giants=Object.keys(GIANT_BOONS).map(sub=>{const c=make("Goliath",sub);c.used={};const b=giantBoon(c);const result=actRun(c,"Giant Ancestry");return [b?.name,c.used.giant,typeof result==="object"?result.kind:!!result];});
+      const human=make("Human",null);pcRest(human,"long");const h1=human.heroicInspiration;actRun(human,"Heroic Inspiration");const h2=!!human.heroicInspiration;pcRest(human,"short");const h3=!!human.heroicInspiration;pcRest(human,"long");
+      return {adren:[adren?.max,adren?.recharge,orcRest],relent:[!!rejected,spentBefore,orc.hpCur,orc.used.relent,!orc.conds.unconscious],stone,giants,human:[h1,h2,h3,human.heroicInspiration]};
+    });
+    assert.deepEqual(coreSpeciesAudit.adren,[3,"short",0]);assert.deepEqual(coreSpeciesAudit.relent,[true,0,1,1,true]);assert.deepEqual(coreSpeciesAudit.stone,[1,true,1,true,0]);assert.deepEqual(coreSpeciesAudit.giants,[["Cloud's Jaunt",1,true],["Fire's Burn",1,"damage"],["Frost's Chill",1,"damage"],["Hill's Tumble",1,true],["Stone's Endurance",1,true],["Storm's Thunder",1,"damage"]]);assert.deepEqual(coreSpeciesAudit.human,[true,false,false,true]);
     const expansion = await page.evaluate(() => {
       const subclasses = hbBook("subclass").filter(x => ["tce", "xge"].includes(x.src));
       const armorer = generateCharacter({ seed: "ARMOR", ed: "2014", cls: "Artificer", subclass: "Armorer", level: 5 });

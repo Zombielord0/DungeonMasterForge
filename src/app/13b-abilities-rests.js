@@ -315,6 +315,24 @@ function wizardSubclassCleanup(c){
  else if(arcaneWardExists(c))c.arcaneWard.hp=arcaneWardHP(c);
  if(c.conc?.spell==="Mantle of Majesty"&&!majestyLevel(c)) {delete c.conc;delete c.concCheck;}
 }
+// Revised Goliath traits are mutually exclusive by chosen ancestry.
+const GIANT_BOONS={
+ "Cloud Giant":{name:"Cloud's Jaunt",when:"Bonus action",text:"Teleport up to 30 ft to a visible unoccupied space."},
+ "Fire Giant":{name:"Fire's Burn",when:"After a damaging attack hit",text:"Deal 1d10 additional fire damage to the target."},
+ "Frost Giant":{name:"Frost's Chill",when:"After a damaging attack hit",text:"Deal 1d6 additional cold damage and reduce the target’s Speed by 10 ft until your next turn begins."},
+ "Hill Giant":{name:"Hill's Tumble",when:"After a damaging attack hit",text:"Give a Large or smaller target the Prone condition."},
+ "Stone Giant":{name:"Stone's Endurance",when:"Reaction when damaged",text:"Reduce incoming damage by 1d12 plus your Constitution modifier."},
+ "Storm Giant":{name:"Storm's Thunder",when:"Reaction when damaged",text:"Deal 1d8 thunder damage to the creature that damaged you, if it is within 60 ft."}
+};
+function giantBoon(c){return edOf(c)==="2024"&&c.race==="Goliath"&&Object.hasOwn(GIANT_BOONS,c.sub)?GIANT_BOONS[c.sub]:null;}
+function giantBoonUse(c){
+ const b=giantBoon(c);if(!b)return "Choose a valid Giant ancestry.";
+ if(c.sub==="Fire Giant")return roll(b.name,"1d10","damage","Confirm damaging attack hit; apply to that target.");
+ if(c.sub==="Frost Giant")return roll(b.name,"1d6","damage","Confirm damaging attack hit; apply the speed reduction manually until your next turn starts.");
+ if(c.sub==="Storm Giant")return roll(b.name,"1d8","damage","Confirm Reaction and creature within 60 ft that damaged you.");
+ if(c.sub==="Stone Giant"){const die=rollDice("1d12"),n=Math.max(0,die.total+c.mods.con);return b.name+": reduce damage by "+n+" ("+die.total+" + CON "+c.mods.con+"). Confirm Reaction; apply the remaining damage manually.";}
+ return b.name+": "+b.text+" Confirm the trigger and target manually.";
+}
 function pcResources(c) {
   const ed = edOf(c), lv = c.level, m = c.mods, prof = c.prof, has = n => (c.feats || []).some(f => f.f === n), tr = n => (c.traits || []).includes(n); const CLV = k => classFeatureLevel(c, k), TLV = totalLv(c);
   const R = [], add = (key, name, max, recharge) => R.push({ key, name, max, recharge });
@@ -378,8 +396,9 @@ function pcResources(c) {
   if (tr("Celestial Revelation") && TLV >= 3) add("crev", "Celestial Revelation", 1, "long");
   if (tr("Large Form") && TLV >= 5) add("large", "Large Form", 1, "long");
   if (tr("Draconic Flight") && TLV >= 5) add("dflight", "Draconic Flight", 1, "long");
-  if (tr("Adrenaline Rush")) add("adren", "Adrenaline Rush", prof, "long");
-  if (tr("Giant Ancestry")) add("giant", "Giant Ancestry", prof, "long");
+  if (tr("Adrenaline Rush")) add("adren", "Adrenaline Rush", prof, ed==="2024"&&c.race==="Orc"?"short":"long");
+  if (giantBoon(c)) add("giant", "Giant Ancestry", prof, "long");
+  if(ed==="2024"&&c.race==="Dwarf"&&tr("Stonecunning"))add("stonecunning","Stonecunning",prof,"long");
   if(ed==="2024"&&characterSubclassLevel(c,"Barbarian","Path of the Berserker")>=14)add("berserkerPresence","Intimidating Presence",1,"long");
   if(ed==="2024"&&characterSubclassLevel(c,"Sorcerer","Draconic Sorcery")>=14)add("draconicWings","Dragon Wings",1,"long");
   for(const r of psionicPools(c))if(!R.some(x=>x.key===r.key))add(r.key,r.name,r.max,r.recharge);
@@ -533,7 +552,9 @@ function pcAbilities(c) {
   if (tr("Large Form") && TLV >= 5) add("Large Form", "Bonus action", "Become Large for 10 minutes: advantage on Strength checks and +10 ft speed.", "large");
   if (tr("Draconic Flight") && TLV >= 5) add("Draconic Flight", "Bonus action", "Spectral wings for 10 minutes: fly at your walking speed.", "dflight");
   if (tr("Adrenaline Rush")) add("Adrenaline Rush", "Bonus action", `Dash, and gain ${prof} temporary hit points.`, "adren");
-  if (tr("Giant Ancestry")) add("Giant Ancestry", "Varies", `Your ${c.sub || "giant"} boon.`, "giant");
+  const boon=giantBoon(c);if(boon)add("Giant Ancestry",boon.when,boon.name+": "+boon.text,"giant","Goliath");
+  if(ed==="2024"&&c.race==="Dwarf"&&tr("Stonecunning"))add("Stonecunning","Bonus action","60 ft Tremorsense while touching stone for 10 minutes. Confirm surface and expiry manually.","stonecunning","Dwarf");
+  if(c.heroicInspiration)add("Heroic Inspiration","After a die roll","Reroll one die immediately and use the new result; confirm the reroll at the table.",null,"2024 rules");
   if (tr("Celestial Revelation") && TLV >= 3) add("Celestial Revelation", "Bonus action", `Transform for 1 minute: once per turn add +${prof} radiant or necrotic damage, plus wings, light or fear.`, "crev");
   for(const spec of psionicActions(c))add(spec.name,spec.when,spec.text,spec.res,spec.owner);
   for(const spec of monkActions)add(spec.name,spec.when,spec.text,spec.res,spec.owner);
@@ -1388,12 +1409,14 @@ const ACT = {
   // ---------- species
   "Breath Weapon": { kind: "instant", use: c => { const x = (c.extras || []).find(e => e.startsWith("Breath Weapon")) || "", d = (x.match(/(\d+d\d+)/) || [])[1] || "2d6", dc = +((x.match(/DC (\d+)/) || [])[1] || 8 + c.prof + c.mods.con), A = DRAGON_ANCESTRY[c.ancestry] || {}, sv = edOf(c) === "2024" ? "dex" : String(A.save || "DEX").toLowerCase(); return area("Breath Weapon", d, sv, dc, cap1(A.type || ""), `Each creature in the ${edOf(c) === "2024" ? "15 ft cone or 30 ft line" : A.shape || "area"} makes a ${sv.toUpperCase()} save: ${A.type || ""} damage, half on a success.`); } },
   "Healing Hands": { kind: "instant", use: c => roll("Healing Hands", `${c.prof}d4`, "heal", "Hit points restored to the creature you touch") },
-  "Relentless Endurance": { kind: "instant", use: c => { c.hpCur = 1; return "Relentless Endurance: you drop to 1 hit point instead of 0."; } },
+  "Relentless Endurance": {kind:"instant",choices:c=>+c.hpCur===0&&c.hpCur!==""&&!c.death?.dead?[["confirm","Confirm reduced to 0 HP, not killed outright"]]:[],use:c=>{c.hpCur=1;pcHealed(c,true);return "Relentless Endurance: you drop to 1 HP instead of 0.";}},
   "Celestial Revelation": { kind: "toggle", choices: [["wings", "Heavenly Wings"], ["radiance", "Inner Radiance"], ["shroud", "Necrotic Shroud"]], fx: (c, ch) => ({ atk: [{ f: "all", extra: `${c.prof} ${ch === "shroud" ? "necrotic" : "radiant"} once per turn`, label: "Celestial Revelation" }], ...(ch === "wings" ? { fly: "speed" } : {}), notes: [ch === "radiance" ? "Inner Radiance: bright light; creatures within 10 ft take radiant damage equal to your proficiency bonus at the end of your turns" : ch === "shroud" ? "Necrotic Shroud: creatures within 10 ft make a CHA save or are frightened of you until the end of your next turn" : "Heavenly Wings: flying speed equal to your speed"] }) },
   "Large Form": { kind: "toggle", fx: () => ({ speed: [10, "Large Form"], notes: ["Large Form: you are Large, with advantage on Strength checks, for 10 minutes"] }) },
   "Draconic Flight": { kind: "toggle", fx: () => ({ fly: "speed", notes: ["Draconic Flight: spectral wings for 10 minutes"] }) },
   "Adrenaline Rush": { kind: "instant", use: c => { giveTemp(c, c.prof); return `Adrenaline Rush: Dash as a bonus action and gain ${c.prof} temporary hit points.`; } },
-  "Giant Ancestry": { kind: "instant", use: c => `${c.sub || "Giant"} boon used.` }
+  "Giant Ancestry": { kind:"instant",use:giantBoonUse },
+  "Stonecunning":{kind:"toggle",choices:()=>[["stone","Confirm contact with stone"]],fx:()=>({notes:["Stonecunning: Tremorsense 60 ft while touching stone, for up to 10 minutes; confirm surface and end manually."]})},
+  "Heroic Inspiration":{kind:"instant",use:c=>{if(!c.heroicInspiration)return "No Heroic Inspiration available.";delete c.heroicInspiration;return "Heroic Inspiration spent: immediately reroll the chosen die and use the new result.";}}
 };
 // spend a recovery on the highest spent slots that fit (5th level at most)
 function slotRecover(c, budget, label) {
