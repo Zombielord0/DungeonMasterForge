@@ -19,7 +19,7 @@ function inventoryRulesSnapshot(x) {
 }
 
 function inventoryNeedsAttunement(i, ref) {
-  return Boolean(i.att || ref?.att || LEGACY_INFUSION_CONTRACTS[i.artificerInfusion?.name]?.att);
+  return Boolean(i.att || ref?.att || (i.artificerInfusion && LEGACY_INFUSION_CONTRACTS[i.artificerInfusion.name]?.att));
 }
 
 function inventoryAttunementControl(i, ed) {
@@ -114,6 +114,14 @@ function inventoryDetailsButton(i, label = "Item details") {
   return `<button class="btn sm" type="button" data-item-details="${esc(i.id)}" aria-label="${esc(label + (i.n ? " for " + i.n : ""))}">${esc(label)}</button>`;
 }
 
+function inventoryInfusionDescription(c,i){
+  const {name,damageType}=i.artificerInfusion,spec=LEGACY_INFUSION_CONTRACTS[name];
+  const bonus=[["armor","AC"],["weapon","weapon attack and damage rolls"],["focus","spell attack rolls"]]
+    .filter(([kind])=>spec[kind]).map(([kind,label])=>"+"+spec[kind](artificerInfusionLevel(c))+" to "+label+".");
+  const selected=INFUSION_RESISTANCES.includes(damageType)?"Resistance to "+damageType+" damage.":"";
+  return [...bonus,spec.text,selected].filter(Boolean).join(" ");
+}
+
 function inventoryEffectsHTML(c) {
   const entries = (c.inv || []).flatMap(i => {
     if(+i.qty<=0)return [];
@@ -121,10 +129,9 @@ function inventoryEffectsHTML(c) {
     if(edOf(c)==="2014"&&clsLv(c,"Artificer")>=1&&tinkering?.owner===c.id&&ARTIFICER_TINKER_PROPERTIES[tinkering.kind]){
       return ['<details><summary>'+esc(i.n)+' · Magical Tinkering</summary><p>'+esc(ARTIFICER_TINKER_PROPERTIES[tinkering.kind])+'</p></details>'];
     }
-    if(artificerInfusions(c).includes(i)){
+    if(artificerInfusions(c).includes(i)&&LEGACY_INFUSION_CONTRACTS[i.artificerInfusion.name]){
       const name=i.artificerInfusion.name,spec=LEGACY_INFUSION_CONTRACTS[name],att=spec?.att&&!i.attuned;
-      const effect=name==="Enhanced Defense"?"+"+spec.bonus(artificerInfusionLevel(c))+" AC while worn/wielded":name==="Enhanced Arcane Focus"?"+"+spec.bonus(artificerInfusionLevel(c))+" spell attack while held; ignores half cover on spell attacks":name==="Returning Weapon"?"+1 attack and damage; returns immediately after a ranged attack":name==="Repeating Shot"?"+1 ranged attack and damage; ignores Loading and generates ammunition when unloaded":"+ "+spec.bonus(artificerInfusionLevel(c))+" weapon attack and damage";
-      return ['<details><summary>'+esc(i.n)+' · '+esc(name)+'</summary><p>'+esc(effect)+(att?' · Requires attunement':'')+(!i.eq?' · Not equipped':'')+'</p></details>'];
+      return ['<details><summary>'+esc(i.n)+' · '+esc(name)+'</summary><p>'+esc(inventoryInfusionDescription(c,i))+(att?' Requires attunement.':'')+(!i.eq?' Carried.':'')+'</p></details>'];
     }
     if (!i.eq || +i.qty <= 0) return [];
     const ref = inventoryCatalogItem(i, edOf(c));
@@ -175,6 +182,8 @@ function inventoryArmorChoices(ref, ed) {
 
 function openInventoryDetails(c, i, trigger) {
   const ed = edOf(c), ref = inventoryCatalogItem(i, ed);
+  const resourceItem=()=>artificerInfusionChargeItem(c,i)||inventoryCatalogItem(i,edOf(c));
+  const infused=artificerInfusions(c).includes(i)&&LEGACY_INFUSION_CONTRACTS[i.artificerInfusion.name];
   const weapon = eqWeaponOf(i, ed), armor = eqArmorOf(i, ed);
   const stats = ref ? itStats({ ...ref, att: String(ref.att || "") }) : [];
   const selectedAttack = (c.attacks || []).find(a => a.iid === i.id);
@@ -201,7 +210,9 @@ function openInventoryDetails(c, i, trigger) {
     <div class="sp-stats">${stats.filter(([, value]) => value !== "" && value != null).map(([label, value]) => `<div><span>${esc(label)}</span>${esc(value)}</div>`).join("")}</div>
     ${itemRuleNotice(ref)?'<p class="hint">'+esc(itemRuleNotice(ref))+'</p>':""}
     ${ref?.rulesSource?'<p class="hint">Rules source: '+esc(ref.rulesSource)+(ref.rulesSourcePage?' · page '+esc(String(ref.rulesSourcePage)):Array.isArray(ref.rulesSourceLines)?' · lines '+esc(ref.rulesSourceLines.join('–')):'')+'</p>':""}
-    ${inventoryItemResourceHTML(i,ref)}
+    ${infused?`<h3>${esc(i.artificerInfusion.name)}</h3><p>${esc(inventoryInfusionDescription(c,i))}</p>`:""}
+    ${i.artificerInfusion?.original?`<p class="hint">Replicate Magic Item · Original object ${esc(i.artificerInfusion.original.n)}</p>`:""}
+    ${inventoryItemResourceHTML(i,resourceItem())}
     ${ref?.d ? spFormat(String(ref.d)) : !i.note ? '<p class="hint">No rules description is available for this item.</p>' : ""}
     ${i.note ? `<h3>Inventory notes</h3>${spFormat(String(i.note))}` : ""}`, trigger);
   const refresh=()=>{pcPersist();renderRosterMain();const next=$$("[data-item-details]",$("#rosterMain")).find(b=>b.dataset.itemDetails===i.id);openInventoryDetails(c,i,next);};
@@ -211,18 +222,19 @@ function openInventoryDetails(c, i, trigger) {
   const confirmItem=async(title,message,label)=>{dialog.close();const yes=await confirmBox(title,message,label);if(!yes)refresh();return yes;};
   $("[data-item-init]",dialog)?.addEventListener("click",()=>{
     const value=$("[data-item-charge-start]",dialog).value;
-    if(value.trim()!==""&&itemChargeInitialize(i,ref,Number(value)))refresh();
+    if(value.trim()!==""&&itemChargeInitialize(i,resourceItem(),Number(value)))refresh();
   });
   $$("[data-item-use]",dialog).forEach(b=>b.addEventListener("click",async()=>{
-    const q=itemChargeContract(ref),a=q?.actions[+b.dataset.itemUse];if(!a)return;
+    const q=itemChargeContract(resourceItem()),a=q?.actions[+b.dataset.itemUse];if(!a)return;
     if(!await confirmItem("Record item use?",a.name+" — resolve the effect manually and spend "+a.cost+" item charges.","Record use"))return;
-    const r=itemChargeUse(i,inventoryCatalogItem(i,edOf(c)),+b.dataset.itemUse,roll);
+    const current=resourceItem();
+    const r=itemChargeContract(current)?.key===q.key?itemChargeUse(i,current,+b.dataset.itemUse,roll):null;
     if(!r){refresh();return;}
     refresh();toast(r.name+": "+r.left+" charges left"+(r.lastRoll!==null?" · final-charge d20: "+r.lastRoll+(r.vanished?" — item destroyed":""):"")+".");
   }));
   $("[data-item-dawn]",dialog)?.addEventListener("click",async()=>{
     if(!await confirmItem("Record dawn recharge?","Confirm that a new dawn has occurred in the campaign and this item has not already recharged for that dawn.","Recharge"))return;
-    const r=itemChargeDawn(i,inventoryCatalogItem(i,edOf(c)),roll);refresh();if(r)toast(r.gained+" charges regained.");
+    const r=itemChargeDawn(i,resourceItem(),roll);refresh();if(r)toast(r.gained+" charges regained.");
   });
   $("[data-item-consume]",dialog)?.addEventListener("click",async()=>{
     if(!await confirmItem("Record consumption?","Confirm this item was expended under its rules. No spell slot, healing, or other effect is applied automatically.","Consume one"))return;

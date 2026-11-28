@@ -34,10 +34,12 @@ const SUB_COMPANIONS={
   drake:{cls:"Ranger",sub:"Drakewarden",ed:"2014",lv:3,forms:["acid","cold","fire","lightning","poison"]},
   steel:{cls:"Artificer",sub:"Battle Smith",ed:"2014",lv:3,forms:["steel"]},
   steel24:{cls:"Artificer",sub:"Battle Smith",ed:"2024",lv:3,forms:["steel"]},
+  homunculus:{cls:"Artificer",sub:"Homunculus Servant",ed:"2014",lv:2,forms:["heart"]},
   beast14:{cls:"Ranger",sub:"Beast Master",ed:"2014",lv:3,forms:[]},
   wildfire:{cls:"Druid",sub:"Circle of Wildfire",ed:"2014",lv:2,forms:["fire"]}
 };
 function companionLevel(c,key){
+  if(key==="homunculus")return artificerInfusions(c).some(i=>i.artificerInfusion.name==="Homunculus Servant")?artificerInfusionLevel(c):0;
   const d=SUB_COMPANIONS[key];return d&&edOf(c)===d.ed?characterSubclassLevel(c,d.cls,d.sub):0;
 }
 function legacyBeastOptions(){
@@ -47,6 +49,11 @@ function companionForms(key){return key==="beast14"?legacyBeastOptions().map(m=>
 function companionStats(c,key,form){
   const d=SUB_COMPANIONS[key],l=companionLevel(c,key);if(!d||l<d.lv||!companionForms(key).some(x=>x[0]===form))return null;
   const p=c.prof,w=c.mods.wis,i=c.mods.int,dc=8+p+w;
+  if(key==="homunculus")return {name:"Homunculus Servant",hp:Math.max(1,1+i+l),ac:13,hd:l+"d4",speed:"20 ft; fly 30 ft",size:"Tiny",scores:[4,15,12,10,10,7],hit:p+i,damage:"1d4"+sgn(p),type:"force",attacks:1,notes:[
+    "Force Strike has range 30 feet and targets one visible creature. DEX saves "+sgn(2+p)+", Perception "+sgn(2*p)+", Stealth "+sgn(2+p)+". Darkvision 60 feet, passive Perception "+(10+2*p)+". Understands your languages.",
+    "Immune to Poison damage and Exhaustion and Poisoned. Evasion gives no damage on successful Dexterity saves for half damage and half on failures, while not Incapacitated.",
+    "Acts immediately after your turn. It can move and use its Reaction, and Dodges unless you command a different action as a Bonus Action. It acts independently if you are Incapacitated.",
+    "Mending restores 2d6 HP. If either the Artificer or servant dies, the servant vanishes, leaving the heart behind."]};
   if(key==="primal"){
     const sky=form==="sky",sea=form==="sea",hp=(sky?4:5)*(1+l);
     return {name:"Beast of the "+form.charAt(0).toUpperCase()+form.slice(1),hp,ac:13+w,hd:l+"d"+(sky?6:8),speed:sky?"10 ft; fly 60 ft":sea?"5 ft; swim 60 ft":"40 ft; climb 40 ft",size:sky?"Small":"Medium",scores:sky?[6,16,13,8,14,11]:[14,14,15,8,14,11],hit:p+w,damage:"1d"+(sky?4:sea?6:8)+sgn((sky?3:2)+w),type:sky?"slashing":sea?"bludgeoning or piercing":"bludgeoning, piercing or slashing",attacks:l>=11?2:1,dc,notes:["Acts during your turn; Dodge unless commanded (Bonus Action or replace one attack for Beast's Strike).","Proficiency bonus applies to all ability checks and saves.",sky?"Flyby.":sea?"Amphibious; hit grapples (escape DC "+dc+").":"Charge: after moving 20 ft straight toward a target before the hit, extra 1d6 damage; Large or smaller target falls Prone.",l>=7?"May choose Force damage; Bonus Action commands can also grant beast Dash, Disengage, Dodge or Help.":"",l>=11?"First hit each turn against your Hunter's Mark target adds the mark damage as Force.":"",l>=15?"Self-targeted spells may also affect beast within 30 ft.":""]};
@@ -69,6 +76,7 @@ function companionState(c,key){
 }
 function companionSlots(c){return pcResources(c).filter(r=>/^slot[1-9]$/.test(r.key)||r.key==="pact").filter(r=>resLeft(c,r)>0);}
 function companionSummon(c,key,form,pay){
+  if(key==="homunculus")return "Infuse an eligible heart to create the servant.";
   const s=companionStats(c,key,form);if(!s)return "Companion unavailable.";
   c.used=c.used||{};c.subCompanions=c.subCompanions||{};c.companionRest=c.companionRest||{};
   const existing=companionState(c,key);
@@ -95,7 +103,9 @@ function companionSetHP(c,key,hp){
   const s=companionState(c,key);if(!s||s.pending||!Number.isFinite(+hp))return false;
   // Never revive a zero-HP summoned creature by editing its counter.
   if(s.current===0&&+hp>0)return false;
-  c.subCompanions[key].hp=Math.max(0,Math.min(s.hp,Math.trunc(+hp)));return true;
+  const current=Math.max(0,Math.min(s.hp,Math.trunc(+hp)));
+  if(key==="homunculus"&&current===0)delete c.subCompanions[key];else c.subCompanions[key].hp=current;
+  return true;
 }
 function companionRevive(c,key,pay){
   const s=companionState(c,key);if(!s||s.current!==0||s.pending||!["primal","steel","steel24"].includes(key))return "No eligible dead companion.";
@@ -123,7 +133,8 @@ function companionRoll(c,key,kind){
     c.used=c.used||{};if((+c.used.steelRepair||0)>=3)return "No repair uses left.";
     c.used.steelRepair=(+c.used.steelRepair||0)+1;const r=rollDice("2d8"+sgn(key==="steel24"?c.mods.int:c.prof));companionSetHP(c,key,s.current+r.total);return "Repair: "+r.text+". Defender now "+companionState(c,key).current+"/"+s.hp+" HP.";
   }
-  if(key==="steel"&&kind==="mending"){const r=rollDice("2d6");companionSetHP(c,key,s.current+r.total);return "Mending: "+r.text+". Confirm a completed casting.";}
+  if(["steel","homunculus"].includes(key)&&kind==="mending"){const r=rollDice("2d6");companionSetHP(c,key,s.current+r.total);return "Mending: "+r.text+". Confirm a completed casting.";}
+  if(key==="homunculus"&&kind==="channel")return "Confirm its Reaction and that it is within 120 feet of you. Resolve a Touch-range spell you cast from the servant’s location.";
   return "Unavailable.";
 }
 function companionRestUpdate(c,kind){
@@ -140,7 +151,9 @@ function rcCompanionsHTML(c){
     const pay=key==="beast14"?'<option value="bond">Confirm bond (8 hours for replacement)</option>':key==="wildfire"?'<option value="wild">Wild Shape</option>':key==="drake"?((c.used?.drakeSummon?"":'<option value="free">Free summon</option>')+opts):'<option value="free">Create / replace</option>';
     const btn=(op,label)=>'<button type="button" class="btn sm" data-companion-op="'+op+'" data-companion-key="'+key+'">'+label+'</button>';
     const card=s?'<p><b>'+esc(s.name)+'</b> · '+esc(s.size)+' · AC '+s.ac+' · '+esc(s.speed)+' · HD '+esc(s.hd)+'</p><label>HP <input type="number" min="0" max="'+s.hp+'" value="'+s.current+'" data-companion-hp="'+key+'" '+(s.pending||!s.current?"disabled":"")+'> / '+s.hp+'</label><p>'+esc(s.scores.join(" / "))+' (STR / DEX / CON / INT / WIS / CHA)</p><p>Attack '+sgn(s.hit)+' · '+esc(s.damage+" "+s.type)+' · '+s.attacks+' attack(s)</p><p>'+s.notes.filter(Boolean).map(esc).join('<br>')+'</p>'+ (s.current>0?(key==="beast14"?s.attackOptions.map((a,i)=>btn("attack:"+i,esc(a.name)+" attack")+btn("damage:"+i,esc(a.name)+" damage")).join(""):btn("attack","Roll attack")+btn("damage","Roll damage"))+(["steel","steel24"].includes(key)?btn("repair","Repair ("+Math.max(0,3-(+c.used?.steelRepair||0))+")")+btn("deflect","Deflect Attack")+(key==="steel"?btn("mending","Mending"):""):""):"<p>At 0 HP</p>")+(s.pending?btn("finish","Confirm 1 minute elapsed"):s.current===0&&["primal","steel","steel24"].includes(key)&&opts?'<select data-companion-revive="'+key+'">'+opts+'</select>'+btn("revive","Begin revival"):"")+(key==="wildfire"||key==="drake"?btn("dismiss","End summon"):""):"<p>No companion recorded.</p>";
-    return '<div class="abl"><div class="abl-h"><b>'+esc(d.sub)+' companion</b></div><div class="ft-desc">'+card+'<div class="row" style="flex-wrap:wrap"><select aria-label="Companion form" data-companion-form="'+key+'">'+forms+'</select><select aria-label="Creation resource" data-companion-pay="'+key+'">'+pay+'</select>'+btn("summon","Create / summon")+'</div><p class="hint">Confirm commands, combat timing, range, revival eligibility and placement with the DM. Source-specific companion only.</p></div></div>';
+    const controls=key==="homunculus"?(s?btn("mending","Mending")+btn("channel","Channel Magic"):'<p class="hint">The servant has vanished. Its heart remains in the inventory.</p>'):
+      '<div class="row" style="flex-wrap:wrap"><select aria-label="Companion form" data-companion-form="'+key+'">'+forms+'</select><select aria-label="Creation resource" data-companion-pay="'+key+'">'+pay+'</select>'+btn("summon","Create / summon")+'</div>';
+    return '<div class="abl"><div class="abl-h"><b>'+esc(d.sub)+' companion</b></div><div class="ft-desc">'+card+controls+'<p class="hint">Confirm commands, combat timing, range, revival eligibility and placement with the DM. Source-specific companion only.</p></div></div>';
   }).join("");
 }
 
@@ -333,11 +346,25 @@ function giantBoonUse(c){
  if(c.sub==="Stone Giant"){const die=rollDice("1d12"),n=Math.max(0,die.total+c.mods.con);return b.name+": reduce damage by "+n+" ("+die.total+" + CON "+c.mods.con+"). Confirm Reaction; apply the remaining damage manually.";}
  return b.name+": "+b.text+" Confirm the trigger and target manually.";
 }
+// World of Warcraft, Death Knight base class: Death Coil and Improved Death Coil.
+function deathCoilChoices(c){
+ const pool=pcResources(c).find(r=>r.key==="deathCoil");
+ if(!pool)return [];
+ const limit=Math.min(resLeft(c,pool),Math.max(1,c.mods.cha));
+ return Array.from({length:limit},(_,i)=>i+1).flatMap(n=>[["damage:"+n,n+"d8 Necrotic"],["heal:"+n,n+"d8 healing for an Undead"]]);
+}
+function deathCoilUse(c,choice,cost){
+ const kind=choice.startsWith("heal:")?"heal":"damage",dice=rollDice(cost+"d8"),level=clsLv(c,"Death Knight");
+ const extra=level>=14?(kind==="heal"?level:Math.max(1,c.mods.cha)):0,amount=dice.total+extra;
+ const target=kind==="heal"?"Confirm a visible Undead target within 60 feet.":"Confirm a visible target within 60 feet. Constitution save DC "+(8+c.prof+c.mods.cha)+".";
+ return {title:"Death Coil",kind,amount,half:kind==="damage",halfAmount:Math.floor(dice.total/2)+extra,
+  msg:"Death Coil: "+dice.text+(extra?" + "+extra+" from Improved Death Coil ("+amount+" total). ":". ")+target};
+}
 function pcResources(c) {
   const ed = edOf(c), lv = c.level, m = c.mods, prof = c.prof, has = n => (c.feats || []).some(f => f.f === n), tr = n => (c.traits || []).includes(n); const CLV = k => classFeatureLevel(c, k), TLV = totalLv(c);
   const R = [], add = (key, name, max, recharge) => R.push({ key, name, max, recharge });
   add("hd", `Hit dice (${[...new Set(c.hdList || [c.hd])].map(d => "d" + d).join(" + ")})`, TLV, "hd");
-  if (clsLv(c, "Death Knight")) add("deathCoil", "Death Coil dice", Math.max(1, 1 + c.mods.cha), "long");
+  if (ed==="2024"&&clsLv(c,"Death Knight")) add("deathCoil", "Death Coil dice", Math.max(1,1+m.cha), "long");
   if (has("Runic Smite")) add("freeRuneStrike", "Free Rune Strike", 1, "long");
   if (ed === "2024" && clsLv(c, "Paladin") >= 2) add("freeDivineSmite", "Paladin's Smite", 1, "long");
   if (ed === "2024" && clsLv(c, "Paladin") >= 5) add("freePaladinSteed", "Faithful Steed", 1, "long");
@@ -382,6 +409,7 @@ function pcResources(c) {
   if(clsLv(c,"Artificer")>=7)add("flashGenius","Flash of Genius",Math.max(1,m.int),ed==="2024"?(clsLv(c,"Artificer")>=20&&artificerAttunedCount(c)>0?"short":clsLv(c,"Artificer")>=14?"short1":"long"):"long");
   if(ed==="2024"&&clsLv(c,"Artificer")>=1)add("tinkersMagic","Tinker's Magic",Math.max(1,m.int),"long");
   if(ed==="2024"&&clsLv(c,"Artificer")>=2)add("replicateCreation","Replicate Magic Item (rest creation)",artificerPlanLimits("2024",clsLv(c,"Artificer")).active,"long");
+  if(artificerInfusionLevel(c)>=2)add("infusionCreation","Infuse Item (rest creation)",artificerPlanLimits("2014",artificerInfusionLevel(c)).active,"long");
   if(ed==="2024"&&clsLv(c,"Artificer")>=6){add("replicateDrain","Drain Magic Item",1,"long");add("replicateTransmute","Transmute Magic Item",1,"long");}
   if(clsLv(c,"Artificer")>=11)add("artificerStoreSetup","Spell-Storing Item setup",1,"long");
   const stored=artificerStoredSpell(c);if(stored)add("artificerStored","Stored "+stored.spell.n+" · "+stored.item.n,stored.max,"never");
@@ -480,6 +508,10 @@ function pcAbilities(c) {
   if (has("Uncanny Dodge")) add("Uncanny Dodge", "Reaction", "Halve the damage of an attack that hits you from an attacker you can see.");
   if (has("Evasion")) add("Evasion", "Defense", "On a DEX save for half damage, take none on a success and half on a failure.");
   if (has("Lay on Hands")) add("Lay on Hands", ed === "2024" ? "Bonus action" : "Action", `Touch a creature and restore hit points from your pool of ${5 * CLV("Paladin")}, or spend 5 to ${ed==="2024"?"remove the Poisoned condition":"cure a disease or neutralize a poison"}.`, "loh");
+  if(ed==="2024"&&clsLv(c,"Death Knight")){
+    add("Death Coil","Bonus action","Your creature type is Undead. Spend dice to damage a visible creature within 60 feet, or heal it if it is Undead.","deathCoil","Death Knight");
+    if(clsLv(c,"Death Knight")>=11)add("Runic Strikes","On hit","Deal 1d8 additional Necrotic damage when you hit with a melee weapon or Unarmed Strike.",null,"Death Knight");
+  }
   if (ed==="2014"&&has("Divine Smite")) add("Divine Smite", "On hit", "Spend a spell slot: +2d8 radiant, +1d8 per slot level above 1st (max 5d8), +1d8 more against undead and fiends.");
   if (has("Divine Sense") && ed === "2014") add("Divine Sense", "Action", "Sense celestials, fiends and undead within 60 ft until the end of your next turn.", "dsense");
   if (has("Aura of Protection")) add("Aura of Protection", "Aura", `You and allies within ${CLV("Paladin") >= 18 ? 30 : 10} ft add +${chaB} to saving throws.`);
@@ -510,15 +542,21 @@ function pcAbilities(c) {
   if(artificerInfusionLevel(c)>=3)add("The Right Tool for the Job","1 hour","Create one set of nonmagical Artisan's Tools; the previous created set vanishes. Confirm uninterrupted hour and tools.");
   if(artificerInfusionLevel(c)>=6)add("Tool Expertise","Ability check","Double proficiency bonus on any check that uses a tool proficiency. Confirm proficiency and selected ability.");
   if(artificerInfusionLevel(c)>=2){
-    add("Apply Infusion","After Long Rest","Apply a known supported infusion to an eligible individual nonmagical item. Oldest ends if the active limit is exceeded.");
-    if(artificerInfusions(c).length)add("End Infusion","Your choice","End an infusion on an item; confirm permitted timing.");
+    add("Apply Infusion","After Long Rest","Infuse a single mundane item. Confirm that it is nonmagical and that you finished a Long Rest. The oldest infusion ends at the active limit.","infusionCreation");
+    if(artificerInfusions(c).length)add("End Infusion","When an infusion expires","Record the end of an infusion under its rules.");
   }
   if(artificerInfusionLevel(c)>=20)add("Soul of Artifice survival","Reaction","At 0 HP without outright death, end an active infusion to drop to 1 HP instead.");
   if(ed==="2024"&&clsLv(c,"Artificer")>=20)add("Cheat Death","At 0 HP","Disintegrate selected Uncommon or Rare replicas to regain 20 HP each. Confirm no outright death.");
+  if(artificerDeathItems(c).some(([,origin])=>!origin.deathDays))add("Record Artificer death","At death","Start the expiry of active infusions and replicas when their creator dies.");
+  if(artificerDeathItems(c).some(([,origin])=>origin.deathDays>0))add("Advance Artificer item expiry","After an in-game day","Advance the expiry of the Artificer’s affected items by one campaign day.");
   if(battleSmithLevel(c)>=9){add("Arcane Jolt","On qualifying hit","Once per turn: "+(battleSmithLevel(c)>=15?"4d6":"2d6")+" extra Force damage or healing within 30 feet of target.","arcaneJolt","Battle Smith");if(c.arcaneJoltThisTurn)add("Arcane Jolt — next turn","New creature turn","Reset the once-per-turn restriction only after the current creature turn ends.");}
   if(clsLv(c,"Artificer")>=11){
     add("Store spell in item","After Long Rest","Choose a qualifying weapon or spellcasting focus in Features, then store an eligible Artificer spell. Confirm long-rest timing; replacing the stored spell ends the previous effect.","artificerStoreSetup");
-    const stored=artificerStoredSpell(c);if(stored)add("Spell-Storing Item","Action",`${stored.item.n}: ${stored.spell.n}. The holder produces its effects using your spellcasting ability; the holder maintains any required Concentration. No spell slot used. Resolve target, spell effects and concentration manually.`,"artificerStored");
+    const stored=artificerStoredSpell(c);
+    if(stored){
+      add("Spell-Storing Item",ed==="2024"?"Magic action":"Action",`${stored.item.n}: ${stored.spell.n}. The holder uses your spellcasting ability and maintains any required Concentration. Resolve targets and spell effects at the table.`,"artificerStored");
+      if(ed==="2024"&&c.artificerStored.usedThisTurn)add("Reset Spell-Storing Item turn","Start of previous user’s next turn","Confirm that the creature that last used the item has started its next turn.");
+    }
   }
   if (has("Arcane Recovery")) add("Arcane Recovery", "Short rest", `Recover spell slots with a combined level up to ${Math.ceil(CLV("Wizard") / 2)} (none above 5th).`, "arcrec");
   for (const feat of activeCharacterFeats(c)) {
@@ -843,7 +881,7 @@ function artificerStoreOptions(c){
 function artificerStoreItemOptions(c){
   if(clsLv(c,"Artificer")<11)return [];
   return (c.inv||[]).filter(i=>{
-    if(!i.id||!i.n||!(+i.qty>0))return false;
+    if(!i.id||!i.n||+i.qty!==1)return false;
     const w=eqWeaponOf(i,edOf(c));if(w&&/Simple|Martial/.test(w.cat||""))return true;
     if(/^(?:Tinker['’]s Tools|Thieves['’] Tools)$/i.test(i.n))return true;
     const ref=inventoryCatalogItem(i,edOf(c));
@@ -855,7 +893,7 @@ function artificerStoreItemOptions(c){
 function artificerStoredSpell(c){
   const s=c.artificerStored;
   if(!s||s.ed!==edOf(c)||clsLv(c,"Artificer")<11||!Number.isInteger(s.max)||s.max<2||s.max>100)return null;
-  const item=(c.inv||[]).find(i=>i.id===s.iid&&+i.qty>0),spell=spellOf(s.ed,s.name);
+  const item=(c.inv||[]).find(i=>i.id===s.iid&&+i.qty===1),spell=spellOf(s.ed,s.name);
   return item&&artificerStoreSpellEligible(s.ed,clsLv(c,"Artificer"),spell)?{item,spell,max:s.max}:null;
 }
 function artificerStore(c,name){
@@ -887,6 +925,12 @@ const ARTIFICER_PLAN_TIERS={
 };
 const ARTIFICER_INFUSIONS={2:["Enhanced Arcane Focus","Enhanced Defense","Enhanced Weapon","Homunculus Servant","Mind Sharpener","Repeating Shot","Returning Weapon"],6:["Boots of the Winding Path","Radiant Weapon","Repulsion Shield","Resistant Armor","Spell-Refueling Ring"],10:["Helm of Awareness"],14:["Arcane Propulsion Armor"]};
 ARTIFICER_INFUSIONS[2].push("Armor of Magical Strength");
+const LEGACY_REPLICA_TIERS={
+ 2:["Alchemy Jug","Bag of Holding","Cap of Water Breathing","Goggles of Night","Rope of Climbing","Sending Stones","Wand of Magic Detection","Wand of Secrets"],
+ 6:["Boots of Elvenkind","Cloak of Elvenkind","Cloak of the Manta Ray","Eyes of Charming","Gloves of Thievery","Lantern of Revealing","Pipes of Haunting","Ring of Water Walking"],
+ 10:["Boots of Striding and Springing","Boots of the Winterlands","Bracers of Archery","Brooch of Shielding","Cloak of Protection","Eyes of the Eagle","Gauntlets of Ogre Power","Gloves of Missile Snaring","Gloves of Swimming and Climbing","Hat of Disguise","Headband of Intellect","Helm of Telepathy","Medallion of Thoughts","Necklace of Adaptation","Periapt of Wound Closure","Pipes of the Sewers","Quiver of Ehlonna","Ring of Jumping","Ring of Mind Shielding","Slippers of Spider Climbing","Winged Boots"],
+ 14:["Amulet of Health","Belt of Hill Giant Strength","Boots of Levitation","Boots of Speed","Bracers of Defense","Cloak of the Bat","Dimensional Shackles","Gem of Seeing","Horn of Blasting","Ring of Free Action","Ring of Protection","Ring of the Ram"]
+};
 const TINKER_GEAR=["Ball Bearings","Basket","Bedroll","Bell","Blanket","Block and Tackle","Glass Bottle","Bucket","Caltrops","Candle","Crowbar","Flask","Grappling Hook","Hunting Trap","Jug","Lamp","Manacles","Net","Oil","Paper","Parchment","Pole","Pouch","Rope","Sack","Shovel","Iron Spikes","String","Tinderbox","Torch","Vial"];
 function artificerPlanLimits(ed,lv){
  if(lv<2)return {known:0,active:0};
@@ -900,8 +944,11 @@ function artificerGenericPlanEligible(lv,x){
  if(rarity==="common"&&lv>=2&&!/potion|scroll/.test(type+" "+x.n.toLowerCase()))return true;
  return /wondrous/.test(type)&&((rarity==="uncommon"&&lv>=10)||(rarity==="rare"&&lv>=14));
 }
+function artificerCanAvoidZero(c){
+ return c.hpCur!==""&&c.hpCur!=null&&+c.hpCur===0&&!c.death?.dead&&(+c.death?.f||0)<3;
+}
 function artificerCheatDeathOptions(c){
- if(edOf(c)!=="2024"||clsLv(c,"Artificer")<20||c.hpCur===""||c.hpCur==null||+c.hpCur!==0||(+c.death?.f||0)>=3)return [];
+ if(edOf(c)!=="2024"||clsLv(c,"Artificer")<20||!artificerCanAvoidZero(c))return [];
  const items=artificerReplicas(c).filter(i=>["uncommon","rare"].includes(String(itFind(i.ref)?.r||"").toLowerCase())).slice(0,6),out=[];
  for(let mask=1;mask<(1<<items.length);mask++){
   const picked=items.filter((_,i)=>mask&(1<<i));
@@ -915,57 +962,148 @@ function artificerCheatDeath(c,key){
  items.forEach(i=>artificerRemove(c,i));c.hpCur=Math.min(c.hp,20*items.length);pcHealed(c,true);
  return "Cheat Death: disintegrated "+items.map(i=>i.n).join(", ")+"; HP now "+c.hpCur+". Confirm you were not killed outright.";
 }
-// Legacy infused-item records remain distinct from permanent catalog magic.
+// Tasha's Cauldron of Everything, pp. 20–23. Item charges recover at dawn.
+const INFUSION_RESISTANCES=["acid","cold","fire","force","lightning","necrotic","poison","psychic","radiant","thunder"];
 const LEGACY_INFUSION_CONTRACTS={
- "Enhanced Defense":{kind:"armor",bonus:lv=>lv>=10?2:1},
- "Enhanced Weapon":{kind:"weapon",bonus:lv=>lv>=10?2:1},
- "Enhanced Arcane Focus":{kind:"focus",att:true,bonus:lv=>lv>=10?2:1},
- "Returning Weapon":{kind:"thrown",bonus:()=>1},
- "Repeating Shot":{kind:"ammunition",att:true,bonus:()=>1}
+ "Enhanced Defense":{kind:"armor",armor:lv=>lv>=10?2:1},
+ "Enhanced Weapon":{kind:"weapon",weapon:lv=>lv>=10?2:1},
+ "Enhanced Arcane Focus":{kind:"focus",att:true,focus:lv=>lv>=10?2:1,text:"Ignore half cover on spell attacks while holding the focus."},
+ "Returning Weapon":{kind:"thrown",weapon:()=>1,text:"After a ranged attack with this weapon, it returns to the wielder’s hand."},
+ "Repeating Shot":{kind:"ammunition",att:true,weapon:()=>1,text:"The bonus applies to ranged attacks. Ignore Loading, and when unloaded the weapon produces a shot that disappears after the attack."},
+ "Homunculus Servant":{kind:"heart",text:"The gem or crystal forms the servant’s heart. Confirm its value of at least 100 gp. Use the Homunculus Servant card for its rules and hit points."},
+ "Armor of Magical Strength":{kind:"suit",att:true,charges:6,dice:6,actions:["Add Intelligence to a Strength roll","Avoid being knocked prone"],text:"Spend one charge to add the wearer’s Intelligence modifier to their Strength check or saving throw, or spend one charge as a Reaction to avoid being knocked prone. Regain 1d6 charges at dawn."},
+ "Mind Sharpener":{kind:"armor-or-robes",charges:4,dice:4,actions:["Succeed on failed Concentration save"],text:"After failing a Constitution save to maintain Concentration, the wearer can spend one charge as a Reaction to succeed instead. Regain 1d4 charges at dawn."},
+ "Boots of the Winding Path":{kind:"boots",att:true,text:"As a Bonus Action, teleport up to 15 feet to a visible, unoccupied space you occupied earlier this turn."},
+ "Radiant Weapon":{kind:"weapon",att:true,weapon:()=>1,charges:4,dice:4,actions:["Blind the attacker"],text:"While holding the weapon, use a Bonus Action to toggle bright light for 30 feet and dim light for 30 feet beyond. Immediately after being hit, use a Reaction and one charge. The attacker must pass a Constitution save against the creator’s spell save DC or be Blinded through the end of its next turn. Regain 1d4 charges at dawn."},
+ "Repulsion Shield":{kind:"shield",att:true,armor:()=>1,charges:4,dice:4,actions:["Push the attacker"],text:"Immediately after a melee attack hits you, use a Reaction and one charge while holding the shield to push the attacker up to 15 feet away. Regain 1d4 charges at dawn."},
+ "Resistant Armor":{kind:"suit",att:true,text:"While worn, the suit grants resistance to the damage type chosen when infused."},
+ "Spell-Refueling Ring":{kind:"ring",att:true,charges:1,dice:0,actions:["Recover an expended spell slot"],text:"While wearing the ring, take an Action to recover one expended spell slot of level 3 or lower. It can be used again after dawn."},
+ "Helm of Awareness":{kind:"helmet",att:true,text:"While worn, gain Advantage on Initiative and immunity to surprise while you aren’t Incapacitated."},
+ "Arcane Propulsion Armor":{kind:"suit",att:true,text:"While worn, walking speed increases by 5 feet. Each empty-handed gauntlet is a proficient melee weapon dealing 1d8 Force with thrown range 20/60 feet. It returns and reattaches after throwing. The suit cannot be removed against the wearer’s will and its replacements for missing limbs work like the original limbs."}
 };
 function artificerInfusionLevel(c){return edOf(c)==="2014"?clsLv(c,"Artificer"):0;}
+function legacyReplicaEligible(lv,ref){
+ if(lv<2||ref?.ed!=="2014"||ref.kind!=="magic"||!ref.d?.trim()||itemRulesIncomplete(ref))return false;
+ return ref.r==="Common"&&!/\b(?:potion|scroll)\b/i.test(ref.type||ref.cat)
+  ||Object.entries(LEGACY_REPLICA_TIERS).some(([min,names])=>lv>=+min&&names.some(name=>name.toLowerCase()===ref.n.toLowerCase()));
+}
+function legacyReplicaRef(choice){return typeof choice==="string"&&choice.startsWith("replica:2014-")?itFind(choice.slice(8)):null;}
+function artificerLegacyInfusionOptions(c){
+ const lv=artificerInfusionLevel(c);
+ if(lv<2)return [];
+ itLoad();
+ const known=Object.entries(ARTIFICER_INFUSIONS).filter(([min])=>lv>=+min).flatMap(([,names])=>names.map(name=>[name,name]));
+ if(choiceOf(c,"Infuse Item").includes("Replicate Magic Item (DM-recorded variant)"))known.push(["Replicate Magic Item (DM-recorded variant)","Replicate Magic Item (DM-recorded variant)"]);
+ const replicas=IT.data["2014"].filter(ref=>legacyReplicaEligible(lv,ref)).map(ref=>["replica:"+ref.id,"Replicate Magic Item · "+ref.n,ref.rulesSource||ref.src||"2014 catalog"]);
+ return known.concat(replicas);
+}
 function artificerInfusionKnown(c,name){
  const lv=artificerInfusionLevel(c);
- return lv>=2&&Object.entries(ARTIFICER_INFUSIONS).some(([l,names])=>lv>=+l&&names.includes(name))&&choiceOf(c,"Infuse Item").slice(0,artificerPlanLimits("2014",lv).known).includes(name);
+ if(lv<2||!choiceOf(c,"Infuse Item").slice(0,artificerPlanLimits("2014",lv).known).includes(name))return false;
+ return Object.entries(ARTIFICER_INFUSIONS).some(([l,names])=>lv>=+l&&names.includes(name))||legacyReplicaEligible(lv,legacyReplicaRef(name));
 }
 function artificerInfusionObject(c,i,name){
- const spec=LEGACY_INFUSION_CONTRACTS[name],ref=inventoryCatalogItem(i,"2014");
- if(!spec||!i?.id||+i.qty!==1||i.artificerOrigin||i.artificerInfusion||ref?.kind!=="gear"||itemRulesIncomplete(ref))return false;
+ const ref=inventoryCatalogItem(i,"2014");
+ if(!i.id||+i.qty!==1||i.artificerOrigin||i.artificerInfusion||(ref&&ref.kind!=="gear")||i.att||i.attuned)return false;
+ const baseName=String(ref?.n||i.n).toLowerCase();
+ const replica=legacyReplicaRef(name);
+ if(replica){
+   if(/^Wand\b/i.test(replica.type||replica.cat))return /\bwand\b/.test(baseName);
+   if(/^Ring\b/i.test(replica.type||replica.cat))return /\bring\b/.test(baseName);
+   if(/^Weapon\b/i.test(replica.type||replica.cat))return !!eqWeaponOf(i,"2014");
+   if(/^Armor\b/i.test(replica.type||replica.cat))return !!eqArmorOf(i,"2014");
+   return true; // The table confirms the form of a specific Wondrous Item.
+ }
+ const spec=LEGACY_INFUSION_CONTRACTS[name];if(!spec)return false;
+ if(spec.kind==="heart"){
+   const gem=/\b(?:gem(?:stone)?|crystal|agate|amethyst|diamond|emerald|garnet|jade|opal|quartz|ruby|sapphire|topaz)\b/.test(baseName);
+   const value=Number(ref?.gp??String(i.value||"").match(/^\s*(\d+(?:\.\d+)?)\s*gp\s*$/i)?.[1]);
+   return gem&&value>=100;
+ }
+ if(spec.kind==="boots")return /^(?:pair of |leather )?boots$/.test(baseName);
+ if(spec.kind==="helmet")return /^(?:(?:iron|steel|leather) )?(?:helmet|helm)$/.test(baseName);
+ if(spec.kind==="ring")return /^(?:(?:signet|gold|silver|platinum|copper) )?ring$/.test(baseName);
+ if(spec.kind==="focus")return /\b(rod|staff|wand)\b/.test(baseName);
+ const armor=eqArmorOf(i,"2014"),suit=armor&&armor.cat!=="Shield";
+ if(spec.kind==="armor")return !!armor;
+ if(spec.kind==="armor-or-robes")return !!suit||/^(?:plain )?robes?$/.test(baseName);
+ if(spec.kind==="suit")return !!suit;
+ if(spec.kind==="shield")return armor?.cat==="Shield";
+ if(ref?.kind!=="gear")return false;
  const w=eqWeaponOf(i,"2014"),props=w?.st?.find(x=>x[0]==="Properties")?.[1]||"";
- if(spec.kind==="armor")return !!eqArmorOf(i,"2014");
- if(spec.kind==="focus")return /\b(rod|staff|wand)\b/i.test(i.n);
- if(!w)return false;
+ if(!w||!/^(?:Simple|Martial)\b/.test(w.cat||""))return false;
  if(spec.kind==="thrown")return /Thrown/i.test(props);
  if(spec.kind==="ammunition")return /Ammunition/i.test(props);
- return /Simple|Martial/.test(w.cat||"");
+ return true;
 }
 function artificerInfusions(c){return (c.inv||[]).filter(i=>i.artificerInfusion?.owner===c.id&&artificerInfusionKnown(c,i.artificerInfusion.name));}
-function artificerInfusionOptions(c){
- const active=new Set(artificerInfusions(c).map(i=>i.artificerInfusion.name));
- return Object.keys(LEGACY_INFUSION_CONTRACTS).filter(n=>artificerInfusionKnown(c,n)&&!active.has(n)).flatMap(n=>(c.inv||[]).filter(i=>artificerInfusionObject(c,i,n)).map(i=>[JSON.stringify([n,i.id]),n+" · "+i.n]));
+function artificerInfusionEquipped(c,name){
+ return artificerInfusions(c).find(i=>i.artificerInfusion.name===name&&i.eq&&+i.qty===1&&(!LEGACY_INFUSION_CONTRACTS[name].att||i.attuned));
 }
-function artificerEndInfusion(c,i){if(i?.artificerInfusion?.owner!==c.id)return false;const att=LEGACY_INFUSION_CONTRACTS[i.artificerInfusion.name]?.att;delete i.artificerInfusion;if(att&&!inventoryNeedsAttunement(i,inventoryCatalogItem(i,edOf(c))))i.attuned=false;return true;}
+function artificerInfusionOptions(c){
+ const identity=n=>legacyReplicaRef(n)?.n.toLowerCase()||n;
+ const active=new Set(artificerInfusions(c).map(i=>identity(i.artificerInfusion.name)));
+ return [...new Set(choiceOf(c,"Infuse Item"))].filter(n=>artificerInfusionKnown(c,n)&&!active.has(identity(n))).flatMap(n=>(c.inv||[]).filter(i=>artificerInfusionObject(c,i,n)).flatMap(i=>{
+   const label=(legacyReplicaRef(n)?.n||n)+" · "+i.n;
+   return n==="Resistant Armor"?INFUSION_RESISTANCES.map(type=>[JSON.stringify([n,i.id,type]),label+" · "+type]):[[JSON.stringify([n,i.id]),label]];
+ }));
+}
+function artificerEndInfusion(c,i){
+ if(i?.artificerInfusion?.owner!==c.id)return false;
+ const {name,original}=i.artificerInfusion,spec=LEGACY_INFUSION_CONTRACTS[name];
+ delete i.artificerInfusion;
+ if(name==="Homunculus Servant"&&c.subCompanions)delete c.subCompanions.homunculus;
+ if(original){Object.assign(i,original);delete i.itemCharge;i.attuned=false;}
+ if(spec?.charges)delete i.itemCharge;
+ if(spec?.att&&!inventoryNeedsAttunement(i,inventoryCatalogItem(i,edOf(c))))i.attuned=false;
+ return true;
+}
 function artificerApplyInfusion(c,key){
  if(!artificerInfusionOptions(c).some(x=>x[0]===key))return "Select a known infusion and eligible nonmagical individual item.";
- const [name,id]=JSON.parse(key),i=c.inv.find(x=>x.id===id),active=artificerInfusions(c),cap=artificerPlanLimits("2014",artificerInfusionLevel(c)).active;
+ const [name,id,damageType]=JSON.parse(key),i=c.inv.find(x=>x.id===id),active=artificerInfusions(c),cap=artificerPlanLimits("2014",artificerInfusionLevel(c)).active;
  active.sort((a,b)=>(+a.artificerInfusion.created||0)-(+b.artificerInfusion.created||0));
  while(active.length>=cap)artificerEndInfusion(c,active.shift());
- c.artificerInfusionSeq=(+c.artificerInfusionSeq||0)+1;i.artificerInfusion={owner:c.id,name,created:c.artificerInfusionSeq};return "Infused "+i.n+" with "+name+". Confirm completion of Long Rest and any required attunement.";
+ c.artificerInfusionSeq=(+c.artificerInfusionSeq||0)+1;
+ i.artificerInfusion={owner:c.id,name,created:c.artificerInfusionSeq,damageType};
+ const replica=legacyReplicaRef(name);
+ if(replica){
+   i.artificerInfusion.original={ref:i.ref||"",n:i.n,att:!!i.att};
+   Object.assign(i,{ref:replica.id,n:replica.n,att:!!replica.att});
+   return "Replicated "+replica.n+". Confirm the form of the source object and completed Long Rest.";
+ }
+ const ref=artificerInfusionChargeItem(c,i);
+ if(ref)itemChargeInitialize(i,ref,ref.maxCharges);
+ if(name==="Homunculus Servant"){
+   c.subCompanions=c.subCompanions||{};
+   c.subCompanions.homunculus={form:"heart",hp:companionStats(c,"homunculus","heart").hp};
+ }
+ return "Infused "+i.n+" with "+name+". Confirm completion of Long Rest and any required attunement.";
 }
 function artificerInfusionBonus(c,i,kind){
  const n=i?.artificerInfusion?.name,s=LEGACY_INFUSION_CONTRACTS[n];
  if(!s||i.artificerInfusion.owner!==c.id||!artificerInfusionKnown(c,n)||s.att&&!i.attuned)return 0;
- if(kind==="weapon"&&["weapon","thrown","ammunition"].includes(s.kind)||kind==="armor"&&s.kind==="armor"||kind==="focus"&&s.kind==="focus")return s.bonus(artificerInfusionLevel(c));
- return 0;
+ return s[kind]?.(artificerInfusionLevel(c))||0;
+}
+function artificerInfusionChargeItem(c,i){
+ const inf=i.artificerInfusion,spec=LEGACY_INFUSION_CONTRACTS[inf?.name];
+ if(!spec?.charges||inf.owner!==c.id||!artificerInfusionKnown(c,inf.name))return null;
+ return {id:i.id+":"+inf.created,ed:"2014",src:"TCE",n:inf.name,att:spec.att,
+  maxCharges:spec.charges,chargeRecharge:{at:"dawn",dice:spec.dice,add:spec.dice?0:1},
+  chargeActions:Object.fromEntries(spec.actions.map(action=>[action,1]))};
 }
 function artificerLegacyDeathOptions(c){
- return artificerInfusionLevel(c)>=20&&c.hpCur!==""&&c.hpCur!=null&&+c.hpCur===0&&(+c.death?.f||0)<3?artificerInfusions(c).map(i=>[i.id,i.n+" · "+i.artificerInfusion.name]):[];
+ return artificerInfusionLevel(c)>=20&&artificerCanAvoidZero(c)?artificerInfusions(c).map(i=>[i.id,i.artificerInfusion.original?i.n:i.n+" · "+i.artificerInfusion.name]):[];
 }
 function artificerLegacyDeath(c,id){
  if(!artificerLegacyDeathOptions(c).some(x=>x[0]===id))return "Requires 0 HP without outright death and an active infusion.";
  const i=c.inv.find(x=>x.id===id);artificerEndInfusion(c,i);c.hpCur=1;pcHealed(c,true);return "Soul of Artifice: ended infusion on "+i.n+"; restored to 1 HP. Confirm Reaction and no outright death.";
 }
-function artificerInfusionCleanup(c){for(const i of c.inv||[])if(i.artificerInfusion?.owner===c.id&&(!artificerInfusionKnown(c,i.artificerInfusion.name)||+i.qty!==1))artificerEndInfusion(c,i);}
+function artificerInfusionCleanup(c){
+ for(const i of c.inv||[])if(i.artificerInfusion?.owner===c.id&&(!artificerInfusionKnown(c,i.artificerInfusion.name)||+i.qty!==1))artificerEndInfusion(c,i);
+ const active=artificerInfusions(c).sort((a,b)=>a.artificerInfusion.created-b.artificerInfusion.created);
+ const cap=artificerPlanLimits("2014",artificerInfusionLevel(c)).active;
+ for(const i of active.slice(0,Math.max(0,active.length-cap)))artificerEndInfusion(c,i);
+}
 function artificerFocusAttackBonus(c){return Math.max(0,...(c.inv||[]).filter(i=>i.eq&&+i.qty===1).map(i=>artificerInfusionBonus(c,i,"focus")));}
 
 const ARTIFICER_TINKER_PROPERTIES={
@@ -1020,6 +1158,28 @@ function artificerRemove(c,i){c.inv=(c.inv||[]).filter(x=>x.id!==i.id);if(c.arti
 function artificerForgetPlan(c,id){
  for(const i of artificerReplicas(c).filter(x=>x.ref===id))artificerRemove(c,i);
 }
+function artificerDeathItems(c){
+ return [...artificerInfusions(c).map(i=>[i,i.artificerInfusion]),...artificerReplicas(c).map(i=>[i,i.artificerOrigin])];
+}
+function artificerRecordDeath(c){
+ if(c.subCompanions)delete c.subCompanions.homunculus;
+ let started=0;
+ for(const [i,origin] of artificerDeathItems(c)){
+  if(origin.deathDays>0)continue;
+  origin.deathDays=i.artificerInfusion?Math.max(1,c.mods.int):rollDice("1d4").total;
+  started++;
+ }
+ return started;
+}
+function artificerAdvanceDeathExpiry(c){
+ const expired=[];
+ for(const [i,origin] of artificerDeathItems(c)){
+  if(!(origin.deathDays>0)||--origin.deathDays>0)continue;
+  expired.push(i.n);
+  if(i.artificerInfusion)artificerEndInfusion(c,i);else artificerRemove(c,i);
+ }
+ return expired.length?"Expired: "+expired.join(", ")+". Place any container contents in or around its space.":"Advanced the expiry timers by one campaign day.";
+}
 function artificerTinkerOptions(c){
  if(edOf(c)!=="2024"||clsLv(c,"Artificer")<1)return [];
  itLoad();return IT.data["2024"].filter(x=>x.kind==="gear"&&TINKER_GEAR.includes(x.n)&&!itemRulesIncomplete(x)).map(x=>[x.id,x.n]);
@@ -1057,7 +1217,9 @@ function artificerTransmute(c,key){
  if(!artificerTransmuteOptions(c).some(x=>x[0]===key))return "No eligible transformation.";
  const [iid,id]=JSON.parse(key),i=artificerReplicas(c).find(x=>x.id===iid);
  const replacement=artificerInventoryItem(c,itFind(id),"replica");
- c.inv=c.inv.map(x=>x.id===iid?replacement:x);return "Transmuted "+i.n+" into "+replacement.n+".";
+ if(+i.artificerOrigin.deathDays>0)replacement.artificerOrigin.deathDays=i.artificerOrigin.deathDays;
+ const at=c.inv.indexOf(i);artificerRemove(c,i);c.inv.splice(at,0,replacement);
+ return "Transmuted "+i.n+" into "+replacement.n+".";
 }
 function artificerChargeOptions(c){
  if(edOf(c)!=="2024"||clsLv(c,"Artificer")<6)return [];
@@ -1161,11 +1323,11 @@ const ACT = {
  "The Right Tool for the Job":{kind:"instant",choices:legacyRightToolOptions,use:legacyRightTool},
 
  "Apply Infusion":{kind:"instant",choices:artificerInfusionOptions,use:artificerApplyInfusion},
- "End Infusion":{kind:"instant",choices:c=>artificerInfusions(c).map(i=>[i.id,i.n+" · "+i.artificerInfusion.name]),use:(c,id)=>artificerEndInfusion(c,c.inv.find(i=>i.id===id))?"Infusion ended.":"No active infusion."},
+ "Death Coil":{kind:"instant",choices:deathCoilChoices,cost:(c,choice)=>+choice.split(":")[1],use:deathCoilUse},
+ "End Infusion":{kind:"instant",choices:c=>artificerInfusions(c).map(i=>[i.id,i.artificerInfusion.original?i.n:i.n+" · "+i.artificerInfusion.name]),use:(c,id)=>artificerEndInfusion(c,c.inv.find(i=>i.id===id))?"Infusion ended.":"No active infusion."},
  "Soul of Artifice survival":{kind:"instant",choices:artificerLegacyDeathOptions,use:artificerLegacyDeath},
  "Cheat Death":{kind:"instant",choices:artificerCheatDeathOptions,use:artificerCheatDeath},
 
- "Draconic Presence":{kind:"instant",noCost:true,choices:dragonPresenceChoices,use:dragonPresenceUse},
  "Breath of the Dragon":{kind:"instant",noCost:true,choices:dragonBreathChoices,use:dragonBreathUse},
  "Wings Unfurled":{kind:"instant",use:()=> "Fly at walking speed until end of your turn; confirm Step of the Wind and resolve movement."},
  "Aspect of the Wyrm":{kind:"toggle",noCost:true,choices:dragonAuraChoices,start:dragonAuraStart,fx:(c,ch)=>ch==="fear"?{notes:["Frightful Presence: 10-ft aura; resolve Wisdom save and fear manually."]}:{res:[ch],notes:["Allies within 10 ft also resist "+ch+"; 1 minute."]}},
@@ -1202,7 +1364,14 @@ const ACT = {
  "Transmute Magic Item":{kind:"instant",choices:artificerTransmuteOptions,use:artificerTransmute},
  "Charge Magic Item":{kind:"instant",choices:artificerChargeOptions,use:artificerCharge},
   "Store spell in item":{kind:"instant",noCost:true,choices:artificerStoreOptions,use:artificerStore},
-  "Spell-Storing Item":{kind:"instant",use:c=>{const x=artificerStoredSpell(c);return x?x.item.n+" produces "+x.spell.n+" at its base level (Artificer Intelligence; DC "+(8+c.prof+c.mods.int)+", spell attack "+sgn(c.prof+c.mods.int)+"). The holder maintains Concentration if required. Resolve the effects manually.":"No eligible stored spell.";}},
+  "Spell-Storing Item":{kind:"instant",choices:c=>edOf(c)==="2024"&&c.artificerStored?.usedThisTurn?[]:[["use","Confirm eligible holder and timing"]],use:c=>{
+    const x=artificerStoredSpell(c);if(!x)return "No eligible stored spell.";
+    if(edOf(c)==="2024")c.artificerStored.usedThisTurn=true;
+    return x.item.n+" produces "+x.spell.n+" at its base level (Artificer Intelligence; DC "+(8+c.prof+c.mods.int)+", spell attack "+sgn(c.prof+c.mods.int)+"). The holder maintains Concentration if required. Resolve the effects manually.";
+  }},
+  "Reset Spell-Storing Item turn":{kind:"instant",choices:[["next","Confirm the previous user’s next turn"]],use:c=>{delete c.artificerStored.usedThisTurn;return "Spell-Storing Item can be used again if charges remain.";}},
+  "Record Artificer death":{kind:"instant",choices:[["dead","Confirm the Artificer died"]],use:c=>"Started expiry for "+artificerRecordDeath(c)+" Artificer item(s)."},
+  "Advance Artificer item expiry":{kind:"instant",choices:[["day","Confirm one campaign day elapsed"]],use:artificerAdvanceDeathExpiry},
   "Cunning Strike":{kind:"instant",choices:cunningStrikeOptions,use:(c,ch)=>{if(!ch)return "Choose an eligible effect.";const critical=ch.endsWith(":crit"),ids=ch.replace(/:crit$/,"").split("+"),p=cunningStrikePlan(clsLv(c,"Rogue"),ids,hasPoisonersKit(c),critical);if(!p)return "Invalid Cunning Strike.";const n=p.dice?rollDice(p.dice+"d6").total:0;return "Cunning Strike: "+n+" extra damage (weapon damage type), "+p.cost+" dice forgone; save DC "+(8+c.mods.dex+c.prof)+". "+p.effects.join(" ");}},
   "Brutal Strike":{kind:"instant",choices:brutalStrikeOptions,use:(c,ch)=>{if(!isActive(c,"Reckless Attack")||!brutalStrikeOptions(c).some(([id])=>id===ch))return "Requires an eligible Reckless Attack; forgo Advantage before rolling.";const critical=ch.endsWith(":crit"),n=(clsLv(c,"Barbarian")>=17?2:1)*(critical?2:1);return rollMsg("Brutal Strike",n+"d10",ch.replace(/:crit$/,"").replaceAll("+"," and ")+"; resolve target and movement effects manually.");}},
   "Arcane Apotheosis":{kind:"none"},
@@ -1424,11 +1593,15 @@ function slotRecover(c, budget, label) {
   for (let L = 5; L >= 1; L--) while (budget >= L && (+c.used["slot" + L] || 0) > 0) { c.used["slot" + L] -= 1; budget -= L; got.push(L); }
   return got.length ? `${label}: recovered ${got.map(L => `a level ${L}`).join(", ")} slot${got.length > 1 ? "s" : ""}.` : `${label}: no spent slots that it can recover.`;
 }
-const actSpec = a => ACT[a.name] || (a.res ? { kind: "instant" } : null);
+const DRACONIC_PRESENCE_REROLL = {kind:"instant",noCost:true,choices:dragonPresenceChoices,use:dragonPresenceUse};
+const actSpec = a => a.res === "dragonPresence" ? DRACONIC_PRESENCE_REROLL : ACT[a.name] || (a.res ? { kind: "instant" } : null);
 const actChoices = (c, S) => typeof S.choices === "function" ? S.choices(c) : S.choices || [];
 // everything active right now, merged into one set of effects
 function pcFx(c) {
   const F = { ac: [], acMin: null, acUnarm: [], speed: [], mult: 1, fly: null, climb: null, swim: null, res: new Set(), atk: [], attacks: [], notes: [], on: [], form: null };
+  const armorResistance=artificerInfusionEquipped(c,"Resistant Armor")?.artificerInfusion.damageType;
+  if(INFUSION_RESISTANCES.includes(armorResistance))F.res.add(armorResistance);
+  if(artificerInfusionEquipped(c,"Arcane Propulsion Armor"))F.speed.push([5,"Arcane Propulsion Armor"]);
   if(edOf(c)==="2024"){
     const land=choiceOf(c,"Circle of the Land Spells")[0],ward={Arid:"fire",Polar:"cold",Temperate:"lightning",Tropical:"poison"}[land];
     if(characterSubclassLevel(c,"Druid","Circle of the Land")>=10&&ward){F.res.add(ward);F.notes.push("Nature's Ward: immune to Poisoned.");}
@@ -1522,16 +1695,18 @@ function actResultDialog(c, R) {
   const groups = [...new Set(T.foes.map(f => f.group))];
   const sel = `<select id="actTarget" aria-label="Target">${wantFoe && T.foes.length ? "" : ""}<optgroup label="Characters">${T.pcs.map(opt).join("")}</optgroup>${groups.map(g => `<optgroup label="${esc(g)}">${T.foes.filter(f => f.group === g).map(opt).join("")}</optgroup>`).join("")}</select>`;
   const kinds = R.kind === "either" ? `<div class="seg" style="margin:10px 0 0"><label class="opt"><input type="radio" name="actKind" value="heal"><span>Heal</span></label><label class="opt"><input type="radio" name="actKind" value="damage" checked><span>Damage</span></label></div>` : "";
+  const saveAmount=R.halfAmount??Math.floor(R.amount/2);
+  const saveLabel=R.halfAmount===undefined?"Apply half":"Apply on successful save";
   actDialog(`<h3 id="actTitle">${esc(R.title || "Result")}</h3><p style="margin:10px 0">${esc(R.msg)}</p>
     ${R.amount ? `<div class="field" style="margin:0"><label for="actTarget">${kind === "heal" ? "Heal" : kind === "temp" ? "Give temporary hit points to" : "Apply damage to"}</label>${sel}${!T.foes.length && wantFoe ? `<p class="hint" style="margin:6px 0 0">No monsters in an active encounter. Add an encounter in the Campaign Tracker to apply damage to it.</p>` : ""}</div>${kinds}
-    <div class="row" style="justify-content:flex-end;margin-top:16px;flex-wrap:wrap"><button class="btn" type="button" data-actclose style="flex:0 0 auto">Don't apply</button>${R.half ? `<button class="btn" type="button" data-actapply="half" style="flex:0 0 auto">Apply half (${Math.floor(R.amount / 2)})</button>` : ""}<button class="btn primary" type="button" data-actapply="full" style="flex:0 0 auto" autofocus>Apply ${R.amount}</button></div>`
+    <div class="row" style="justify-content:flex-end;margin-top:16px;flex-wrap:wrap"><button class="btn" type="button" data-actclose style="flex:0 0 auto">Don't apply</button>${R.half ? `<button class="btn" type="button" data-actapply="half" style="flex:0 0 auto">${saveLabel} (${saveAmount})</button>` : ""}<button class="btn primary" type="button" data-actapply="full" style="flex:0 0 auto" autofocus>Apply ${R.amount}</button></div>`
     : `<div class="row" style="justify-content:flex-end;margin-top:12px"><button class="btn primary" type="button" data-actclose style="flex:0 0 auto" autofocus>OK</button></div>`}`);
   const s = $("#actTarget"); if (s) s.value = (wantFoe && T.foes.length ? T.foes[0].id : "pc:" + c.id);
 }
 function actDialogClick(e) {
   const ap = e.target.closest("[data-actapply]");
   if (ap && ACTX.r) {
-    const R = ACTX.r, k = R.kind === "either" ? (($("input[name=actKind]:checked") || {}).value || "damage") : R.kind, n = ap.dataset.actapply === "half" ? Math.floor(R.amount / 2) : R.amount;
+    const R = ACTX.r, k = R.kind === "either" ? (($("input[name=actKind]:checked") || {}).value || "damage") : R.kind, n = ap.dataset.actapply === "half" ? (R.halfAmount??Math.floor(R.amount / 2)) : R.amount;
     const msg = actApply($("#actTarget").value,n,k,{halfHpCap:!!R.halfHpCap}); actClose(); toast(msg); return;
   }
   const spellDiceButton = e.target.closest("[data-spell-dice]");

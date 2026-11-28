@@ -345,7 +345,7 @@ function itGive(x, quiet) {
   const lotWeight=units?(canonical?.w??x.w??0):(x.w||0);
   // Each charged magic item is a distinct physical copy, not a shared stack.
   const charged=Number.isSafeInteger((x.id?itFind(x.id):null)?.maxCharges||x.maxCharges);
-  const ex = !charged && c.inv.find(i => !i.artificerOrigin&&i.ref === x.id&&(!units||i.ammunitionUnits===true));
+  const ex = !charged && c.inv.find(i => !i.artificerOrigin&&!i.artificerInfusion&&i.ref === x.id&&(!units||i.ammunitionUnits===true));
   if (ex) ex.qty = (+ex.qty || 0) + lot;
   else c.inv.push({ id: uid("i"), ref: x.id, itemRules: inventoryRulesSnapshot(x), n: x.n, qty: lot, w: lotWeight/lot, ...(units?{ammunitionUnits:true}:{}), att: !!x.att, attuned: false, value: units?x.c+" per "+lot:x.c, note: x.kind === "gear" ? "" : `${rarName(x)} ${String(x.cat).toLowerCase()}` });
   pcPersist(); if (!quiet) toast(`${x.n} given to ${c.name}`); return true;

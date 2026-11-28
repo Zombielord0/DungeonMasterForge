@@ -297,7 +297,7 @@ spFiltersSync();
     if (t.dataset.rcoin) { c.coins[t.dataset.rcoin] = Math.max(0, +t.value || 0); pcACApply(c); const sl = $("#rcSpeedLine"); if (sl) sl.innerHTML = rcSpeedLine(c); const sp = $('[data-rf="speed"]', main); if (sp && !c.speedManual) sp.value = c.speed; pcPersist(); return; }
     if (t.dataset.rinv) {
       const i = c.inv.find(x => x.id === t.dataset.iid); if (!i) return; const f = t.dataset.rinv;
-      if(i.artificerOrigin&&["qty","n"].includes(f)){t.value=i[f];toast("Class-created items are individual objects. Remove the item or use its class feature instead.");return;}
+      if((i.artificerOrigin||i.artificerInfusion)&&["qty","n"].includes(f)){t.value=i[f];toast("Artificer-created and infused items are individual objects. Use the class feature to change them.");return;}
       if(f==="attuned"&&t.checked&&!i.attuned&&artificerAttunedCount(c)>=artificerAttunementLimit(c)){t.checked=false;toast("Attunement limit reached.");return;}
       i[f] = f === "attuned" || f === "eq" ? t.checked : f === "qty" ? Math.max(0, +t.value || 0) : t.value;
       c.attacks = pcAttacks(c); pcACApply(c); pcPersist();

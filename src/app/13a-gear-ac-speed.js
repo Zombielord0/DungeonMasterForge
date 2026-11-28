@@ -412,6 +412,11 @@ function pcAttacks(c) {
     return out;
   }
   (c.inv || []).filter(i => i.eq && (+i.qty || 0) > 0).forEach(i => { const w = eqWeaponOf(i, ed), a = w && eqAttack(c, i, w); if (a) out.push(a); });
+  const propulsion=artificerInfusionEquipped(c,"Arcane Propulsion Armor");
+  if(propulsion){
+    const ab=battleSmithLevel(c)>=3&&choiceOf(c,"Battle Ready Ability")[0]==="Intelligence"?"int":"str";
+    out.push({name:"Arcane Propulsion gauntlet",iid:propulsion.id,hit:m[ab]+c.prof,die:"1d8",mod:m[ab],type:"force",prof:true,melee:true,thrown:true,ab,altNote:"Requires an empty hand. Thrown 20/60 ft, returns after the attack."});
+  }
   if (c.cls === "Monk") { const wm = Math.max(m.str, m.dex); out.push({ name: "Unarmed strike", hit: wm + c.prof, die: "1d" + maDie(c), mod: wm, type: "bludgeoning", prof: true, melee: true, unarmed: true, ab: m.dex > m.str ? "dex" : "str" }); }
   else if (!out.length) out.push({ name: "Unarmed strike", hit: m.str + c.prof, die: "", mod: 1 + m.str, type: "bludgeoning", prof: true, melee: true, unarmed: true, ab: "str" });
   if (characterSubclassLevel(c,"Rogue","Soulknife")>=3) {
@@ -439,6 +444,7 @@ function pcAttacks(c) {
   }
   // Radiant Strikes is an attack rider, never a separate spell-slot cost.
   if(ed==="2024"&&clsLv(c,"Paladin")>=11)out.filter(a=>a.unarmed||(a.iid&&a.melee)).forEach(a=>a.extra.push("1d8 radiant (Radiant Strikes)"));
+  if(ed==="2024"&&clsLv(c,"Death Knight")>=11)out.filter(a=>a.unarmed||(a.iid&&a.melee)).forEach(a=>a.extra.push("1d8 necrotic (Runic Strikes)"));
   // active abilities
   F.atk.forEach(x => out.filter(ATK_F[x.f] || ATK_F.all).forEach(a => { if (x.hit) a.hit += x.hit; if (x.dmg) a.dmgB += x.dmg; if (x.extra) a.extra.push(x.extra); if (x.adv) a.tags.push(x.adv); else if (x.label) a.tags.push(x.label); }));
   const A = pcAC(c);

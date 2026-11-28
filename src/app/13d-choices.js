@@ -255,7 +255,7 @@ Object.assign(CHOICES, {
  "Elemental Affinity":{label:"Draconic damage affinity",n:c=>edOf(c)==="2024"&&characterSubclassLevel(c,"Sorcerer","Draconic Sorcery")>=6?1:0,opts:()=>opt3(["acid","cold","fire","lightning","poison"].map(x=>[x,x.charAt(0).toUpperCase()+x.slice(1)]))},
   "Chain Master Movement":{label:"Familiar movement",n:c=>edOf(c)==="2024"&&hasChoice(c,"Eldritch Invocations","investment")?1:0,opts:()=>opt3(["Fly 40 feet","Swim 40 feet"])},
  "Replicate Magic Item":{label:"Known magic item plans (confirm generic eligibility)",n:c=>edOf(c)==="2024"?artificerPlanLimits("2024",clsLv(c,"Artificer")).known:0,opts:artificerPlanOptions},
- "Infuse Item":{label:"Known legacy infusions (supported effects in Abilities; others manual)",n:c=>edOf(c)==="2014"?artificerPlanLimits("2014",clsLv(c,"Artificer")).known:0,opts:c=>opt3(Object.entries(ARTIFICER_INFUSIONS).filter(([min])=>clsLv(c,"Artificer")>=+min).flatMap(([,names])=>names).concat("Replicate Magic Item (DM-recorded variant)"))},
+ "Infuse Item":{label:"Known infusions and individual magic item variants",n:c=>artificerPlanLimits("2014",artificerInfusionLevel(c)).known,opts:artificerLegacyInfusionOptions},
   "Spell-Storing Item Object":{label:"Qualifying weapon or spellcasting focus (confirm eligibility)",n:c=>clsLv(c,"Artificer")>=11?1:0,opts:artificerStoreItemOptions},
   "Pact Weapon":{label:"Bonded inventory weapon",n:c=>warlockPact(c,"blade")?1:0,opts:pactWeaponOptions},
   "Pact Weapon Ability":{label:"Pact weapon attack ability",n:c=>edOf(c)==="2024"&&warlockPact(c,"blade")?1:0,opts:()=>opt3(["Charisma","Normal weapon ability"])},
@@ -595,6 +595,7 @@ function pcRest(c, kind) {
   });
   if (kind === "long") { const z = +c.hpCur === 0; c.hpCur = c.hp; c.hpTemp = ""; pcHealed(c, z); c.death = { s: 0, f: 0 }; if (c.conc) { delete c.conc; delete c.concCheck; c.fxEnded = true; } if (exhOf(c)) { c.exh = exhOf(c) - 1; back.push("Exhaustion level"); } if (c.fx && Object.values(c.fx).some(Boolean)) { c.fx = {}; c.fxEnded = true; } }
   delete c.apotheosisUsedThisTurn;
+  if(c.artificerStored)delete c.artificerStored.usedThisTurn;
   delete c.arcaneJoltThisTurn;
   delete c.psiPending; // an unresolved check or attack cannot carry across a rest
   delete c.spellBreakerPending;
