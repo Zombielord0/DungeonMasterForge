@@ -63,6 +63,7 @@ function rollState(c, kind, ab, o = {}) {
   if(kind==="save"&&ed==="2014"&&clsLv(c,"Artificer")>=20)S.pen+=artificerAttunedCount(c);
   if (ed === "2024" && n) S.pen = -2 * n;
   if(kind==="check"||kind==="save"){
+    if(kind==="check"&&ab==="str"&&speciesFormActive(c,"Large Form"))S.adv.push("Large Form");
     if(ab==="str"&&runeKnightEffect(c,"might"))S.adv.push("Giant’s Might");
     if((ab==="str"||ab==="con")&&runeKnightEffect(c,"Frost"))S.pen+=2;
     if(kind==="save"&&o.poisoned&&runeKnightWorn(c,"Hill"))S.adv.push("Hill Rune");
@@ -132,6 +133,7 @@ function rollDockHTML(c) {
 /* hit points: damage at 0 counts as a death save failure; dropping to 0 knocks you out; damage asks for a concentration save */
 function pcFellUnconscious(c){
   c.conds={...(c.conds||{}),unconscious:true};c.condAuto=true;endStarryForm(c);
+  syncSpeciesForm(c);
   const notes=[`${c.name} falls unconscious`];
   if(c.conc){notes.push(`concentration on ${c.conc.spell} ends`);delete c.conc;delete c.concCheck;}
   return notes;

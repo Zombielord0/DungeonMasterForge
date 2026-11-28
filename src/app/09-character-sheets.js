@@ -53,7 +53,7 @@ function pcIncoming(d) {
   pcNums(d);
   return d;
 }
-function pcEnsure(c) { if (c) { pcNums(c); if(c.death?.dead)companionOnOwnerDeath(c); if (c.bgV === undefined && c.cls) { c.bgV = 1; if (c.ed === "2024") c.bgAsiLegacy = true; } if (!c.id) c.id = uid("pc"); if (c.subclass === undefined) { const f = (c.feats || []).find(x => String(x.f).startsWith("Subclass: ") && x.f !== "Subclass: not chosen yet"); c.subclass = f ? f.f.slice(10) : null; } if (!Array.isArray(c.prepared)) c.prepared = []; syncGrantedSpells(c); if (c.race === "Dragonborn" && !c.ancestry) c.ancestry = makeRng("anc", c.seed || c.id).pick(Object.keys(DRAGON_ANCESTRY)); if (c.race === "Dragonborn" && !c.sub) c.sub = c.ancestry; withTraitRes(c); raceLvUpgrade(c); hookUpgrade(c); } return c; }
+function pcEnsure(c) { if (c) { pcNums(c); if(c.death?.dead)companionOnOwnerDeath(c); if (c.bgV === undefined && c.cls) { c.bgV = 1; if (c.ed === "2024") c.bgAsiLegacy = true; } if (!c.id) c.id = uid("pc"); if (c.subclass === undefined) { const f = (c.feats || []).find(x => String(x.f).startsWith("Subclass: ") && x.f !== "Subclass: not chosen yet"); c.subclass = f ? f.f.slice(10) : null; } if (!Array.isArray(c.prepared)) c.prepared = []; syncGrantedSpells(c); syncDragonbornBreath(c); withTraitRes(c); raceLvUpgrade(c); hookUpgrade(c); } return c; }
 function pcPersist() {
   PCS.cur = currentPC; PCS.updated = Date.now();
   if (currentPC) { const i = PCS.roster.findIndex(x => x.id === currentPC.id); if (i >= 0) PCS.roster[i] = currentPC; }

@@ -1394,6 +1394,46 @@ const { chromium } = require("playwright");
       return {adren:[adren?.max,adren?.recharge,orcRest],relent:[!!rejected,spentBefore,orc.hpCur,orc.used.relent,!orc.conds.unconscious],stone,giants,human:[h1,h2,h3,human.heroicInspiration]};
     });
     assert.deepEqual(coreSpeciesAudit.adren,[3,"short",0]);assert.deepEqual(coreSpeciesAudit.relent,[true,0,1,1,true]);assert.deepEqual(coreSpeciesAudit.stone,[1,true,1,true,0]);assert.deepEqual(coreSpeciesAudit.giants,[["Cloud's Jaunt",1,true],["Fire's Burn",1,"damage"],["Frost's Chill",1,"damage"],["Hill's Tumble",1,true],["Stone's Endurance",1,true],["Storm's Thunder",1,"damage"]]);assert.deepEqual(coreSpeciesAudit.human,[true,false,false,true]);
+    const speciesForms=await page.evaluate(()=>{
+      const make=(ed,race,sub,level,multi)=>pcEnsure(generateCharacter({seed:"SPECIES-FORMS",ed,race,sub,level,multi,cls:"Fighter",bg:"Sage"}));
+      const dragon=make("2024","Dragonborn","Green",2,[{cls:"Wizard",lv:3}]);
+      dragon.scores.con=8;pcRecompute(dragon);
+      const revised=actRun(dragon,"Breath Weapon","line"), shape=revised.desc;
+      const breathSummary=dragon.extras.find(s=>s.startsWith("Breath Weapon"));
+      actRun(dragon,"Draconic Flight");
+      const fly=pcSpeed(dragon).other.includes("Fly 30 ft");
+      dragon.conds={stunned:true};pcRecompute(dragon);delete dragon.conds.stunned;
+      const ended=!pcSpeed(dragon).other.some(s=>s.startsWith("Fly"));
+      const blocked=actRun(dragon,"Draconic Flight");
+      pcRest(dragon,"short");const short=[dragon.used.dflight,dragon.used.breath];
+      pcRest(dragon,"long");const long=[dragon.used.dflight,dragon.used.breath];
+      const legacy=make("2014","Dragonborn","Green",3,[{cls:"Wizard",lv:3}]);
+      const old=actRun(legacy,"Breath Weapon","ancestry");pcRest(legacy,"short");
+      const giant=make("2024","Goliath","Cloud Giant",5),carry=pcLoad(giant).cap;
+      const rejected=actRun(giant,"Large Form","not-enough-room"), untouched=giant.used.large||0;
+      actRun(giant,"Large Form","room");
+      const large=[pcSpeed(giant).speed,pcLoad(giant).cap/carry,rollState(giant,"check","str").adv.includes("Large Form"),rollState(giant,"save","str").adv.includes("Large Form")];
+      giant.speciesFormUntil=Date.now()-1;
+      const expired=[pcSpeed(giant).speed,pcLoad(giant).cap/carry,rollState(giant,"check","str").adv.includes("Large Form")];
+      const under=make("2024","Dragonborn","Black",4),noFlight=!pcAbilities(under).some(a=>a.name==="Draconic Flight");
+      const matrix=Object.entries(DRAGON_ANCESTRY).flatMap(([ancestry,spec])=>["2014","2024"].map(ed=>{
+        const tiers=ed==="2024"?[1,5,11,17]:[1,6,11,16];
+        return tiers.every((level,index)=>{
+          const c=make(ed,"Dragonborn",ancestry,level),breath=characterDragonBreath(c);
+          const dice=ed==="2024"?`${index+1}d10`:`${index+2}d6`;
+          return breath.type===spec.type&&breath.dice===dice&&breath.save===(ed==="2024"?"DEX":spec.save)&&c.res.includes(spec.type);
+        });
+      }));
+      return {revised:[revised.expr,revised.save,revised.dc,revised.dtype],shape,breathSummary,fly,ended,blocked,short,long,
+        legacy:[old.expr,old.save,old.dtype,legacy.used.breath],rejected,untouched,large,expired,noFlight,matrix};
+    });
+    assert.deepEqual(speciesForms.revised,["2d10","dex",10,"Poison"]);assert.match(speciesForms.shape,/30 ft line, 5 ft wide/);
+    assert.match(speciesForms.breathSummary,/2d10 poison damage · DEX save DC 10/);
+    assert.deepEqual([speciesForms.fly,speciesForms.ended,speciesForms.noFlight],[true,true,true]);assert.match(speciesForms.blocked,/Not enough/);
+    assert.deepEqual(speciesForms.short,[1,1]);assert.deepEqual(speciesForms.long,[0,0]);assert.deepEqual(speciesForms.legacy,["3d6","con","Poison",0]);
+    assert.match(speciesForms.rejected,/unavailable/);assert.equal(speciesForms.untouched,0);
+    assert.deepEqual(speciesForms.large,[45,2,true,false]);assert.deepEqual(speciesForms.expired,[35,1,false]);
+    assert.deepEqual(speciesForms.matrix,Array(20).fill(true));
     const expansion = await page.evaluate(() => {
       const subclasses = hbBook("subclass").filter(x => ["tce", "xge"].includes(x.src));
       const armorer = generateCharacter({ seed: "ARMOR", ed: "2014", cls: "Artificer", subclass: "Armorer", level: 5 });
@@ -1725,6 +1765,28 @@ const { chromium } = require("playwright");
     await page.locator('#actModal [data-castlv^="speciesSpell:"]').click();
     await page.locator("#actModal [data-castgo]").click();
     assert.equal(await page.evaluate(() => Object.entries(rosterCur().used).find(([key]) => key.startsWith("speciesSpell:"))?.[1]), 1);
+    await page.evaluate(()=>{
+      actClose();
+      const c=pcEnsure(generateCharacter({seed:"HIGH-ELF-REST",ed:"2024",cls:"Wizard",level:5,race:"Elf",sub:"High Elf",bg:"Sage"}));
+      c.prepared.push({n:"Prestidigitation",ed:"2024",l:0});syncGrantedSpells(c);
+      PCS.roster=[c];RC.id=c.id;renderRosterTab();
+    });
+    const elfCantrip=page.locator("[data-high-elf-cantrip]");
+    assert.equal(await elfCantrip.count(),0);
+    await page.locator('[data-rest="long"]').click();
+    assert.equal(await elfCantrip.count(),1);
+    await elfCantrip.selectOption("Ray of Frost");
+    assert.equal(await elfCantrip.count(),0);
+    const swapped=await page.evaluate(()=>{
+      const c=rosterCur(),names=()=>c.prepared.filter(p=>p.sources?.some(s=>s.kind==="species")).map(p=>p.n);
+      pcRest(c,"short");const blocked=!highElfCantripChange(c,"Mage Hand"),legitimate=names();
+      const stored=pcEnsure(JSON.parse(JSON.stringify(c)));
+      c.sub="Wood Elf";syncGrantedSpells(c);
+      return {legitimate,blocked,retained:c.prepared.some(p=>p.n==="Prestidigitation"&&!p.bookGrant),
+        stored:highElfCantrip(stored),wood:names(),canSwap:!!c.highElfCantripSwap};
+    });
+    assert.deepEqual(swapped,{legitimate:["Ray of Frost","Detect Magic","Misty Step"],blocked:true,retained:true,stored:"Ray of Frost",
+      wood:["Druidcraft","Longstrider","Pass without Trace"],canSwap:false});
     const example = await page.evaluate(() => {
       actClose();
       const legacy = pcEnsure(generateCharacter({ seed: "LEGACY", ed: "2014", cls: "Cleric", level: 3, subclass: "Light Domain", race: "Tiefling" }));

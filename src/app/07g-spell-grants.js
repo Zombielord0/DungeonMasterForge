@@ -332,17 +332,37 @@ function speciesSpellAbility(c) {
   const selected = choiceOf(c, "Species Spellcasting")[0];
   return selected === "Wisdom" ? "wis" : selected === "Charisma" ? "cha" : "int";
 }
+const REVISED_HIGH_ELF_CANTRIP = "Elven Lineage Cantrip";
+const isRevisedHighElf=c=>edOf(c)==="2024"&&c.race==="Elf"&&c.sub==="High Elf";
+function highElfCantrip(c){
+  const pick=choiceOf(c,REVISED_HIGH_ELF_CANTRIP)[0];
+  return pick&&CHOICES[REVISED_HIGH_ELF_CANTRIP].opts(c).some(([name])=>name===pick)?pick:"Prestidigitation";
+}
+function highElfCantripChange(c,name){
+  if(!isRevisedHighElf(c)||!c.highElfCantripSwap||name===highElfCantrip(c)||!CHOICES[REVISED_HIGH_ELF_CANTRIP].opts(c).some(([id])=>id===name))return false;
+  c.choices={...c.choices,[REVISED_HIGH_ELF_CANTRIP]:[name]};
+  delete c.highElfCantripSwap;
+  syncGrantedSpells(c);
+  return true;
+}
+function highElfCantripHTML(c){
+  const current=highElfCantrip(c);
+  return `<div class="choice"><span class="lbl">High Elf lineage cantrip</span><span class="tag gold">${esc(current)}</span>${c.highElfCantripSwap?
+    `<select data-high-elf-cantrip aria-label="Replace your High Elf lineage cantrip"><option value="">Choose a replacement…</option>${CHOICES[REVISED_HIGH_ELF_CANTRIP].opts(c).filter(([name])=>name!==current).map(([name])=>`<option value="${esc(name)}">${esc(name)}</option>`).join("")}</select>`:
+    '<p class="hint">You can replace this cantrip after a long rest.</p>'}</div>`;
+}
 function speciesSpellChoicesHTML(c) {
   if (edOf(c) === "2014") return c.race === "Elf" && c.sub === "High Elf" ? choiceHTML(c, "High Elf Cantrip") : "";
   if (!(c.prepared || []).some(p => p.bookGrant && p.sources?.some(g => g.kind === "species" && !g.ab && g.name !== "Aasimar"))) return "";
   const current = AB_FULL[speciesSpellAbility(c)];
-  const cantripChoice = c.race === "Elf" && c.sub === "High Elf" ? choiceHTML(c, "Elven Lineage Cantrip")
+  const cantripChoice = isRevisedHighElf(c) ? highElfCantripHTML(c)
     : c.race === "Khoravar" ? choiceHTML(c, "Fey Gift Cantrip") : "";
   return `<p class="hint">Species spellcasting ability · ${esc(current)}</p>${choiceHTML(c, "Species Spellcasting")}${cantripChoice}`;
 }
 
 function syncGrantedSpells(c) {
   const ed = edOf(c), grants = new Map();
+  if(c.highElfCantripSwap&&!isRevisedHighElf(c))delete c.highElfCantripSwap;
   const add = (track, level, source, details = () => ({}), referenceLevel) => {
     for (const [minimum, names] of Object.entries(track || {})) {
       if (!Array.isArray(names) || +minimum > level) continue;
@@ -552,9 +572,7 @@ function syncGrantedSpells(c) {
   } else {
     add(SPECIES_SPELL_GRANTS[c.race], level, species);
     const track = lineage && SPECIES_SPELL_GRANTS[c.race + "|" + c.sub];
-    const choice = c.race === "Elf" && c.sub === "High Elf" && choiceOf(c, "Elven Lineage Cantrip")[0];
-    const cantrip = choice && CHOICES["Elven Lineage Cantrip"].opts(c).some(([id]) => id === choice);
-    add(cantrip ? { ...track, 1: [choice] } : track, level, subSpecies, spell => freeCast(spell, c.race === "Gnome" ? "proficiency" : 1));
+    add(isRevisedHighElf(c) ? { ...track, 1: [highElfCantrip(c)] } : track, level, subSpecies, spell => freeCast(spell, c.race === "Gnome" ? "proficiency" : 1));
   }
   if (c.race === "Genasi" && lineage && Object.hasOwn(GENASI_SPELL_GRANTS, c.sub)) {
     const ability = choiceOf(c, c.sub)[0];

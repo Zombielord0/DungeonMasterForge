@@ -303,8 +303,8 @@ for (const level of [6, 7, 8, 9]) {
   CHOICES["Arcane Mastery " + level] = { label: "Level " + level + " wizard spell", n: c => expansionSubclassLevel(c,"Cleric","Arcana Domain","2014") >= 17 ? 1 : 0, opts: c => choiceSpellOptions(c, s => s.l === level && s.c.includes("Wizard") && !s.hb && !s.ref && !s.referenceOnly && !s.rulesSummary && !s.shadow) };
 }
 CHOICES["Species Spellcasting"] = choiceList("Species spellcasting ability", ["Intelligence", "Wisdom", "Charisma"]);
-CHOICES["Elven Lineage Cantrip"] = { label: "High Elf cantrip (change after a long rest)", n: () => 1,
-  opts: c => choiceSpellOptions(c, s => s.l === 0 && s.c.includes("Wizard")) };
+CHOICES[REVISED_HIGH_ELF_CANTRIP] = { label: "High Elf cantrip (change after a long rest)", n: () => 1,
+  opts: c => choiceSpellOptions(c, s => s.l === 0 && s.c.includes("Wizard") && !s.hb && !s.ref && !s.referenceOnly && !s.rulesSummary && !s.shadow) };
 
 CHOICES["Fey Gift Cantrip"] = { label: "Fey Gift cantrip (change after a long rest)", n: () => 1,
   opts: c => choiceSpellOptions(c, s => s.l === 0 && ["Cleric", "Druid", "Wizard"].some(cls => s.c.includes(cls))) };
@@ -603,9 +603,10 @@ function miHTML(c) {
     <p class="hint">Cast the 1st-level spell once per long rest without spending a slot.</p>` : ""}</div>`;
 }
 function actRun(c, name, choice) {
+  if(Object.hasOwn(SPECIES_FORMS,name))syncSpeciesForm(c);
   const a = pcAbilities(c).find(x => x.name === name), S = a && actSpec(a); if (!S) return "";
   c.active = c.active || {}; c.used = c.used || {};
-  if (S.kind === "toggle" && c.active[name]) { delete c.active[name]; if (name === "Wild Shape") delete c.formHp; if (name === "Aspect of the Wyrm") delete c.dragonFuryPending; if(name==="Symbiotic Entity")endSymbioticEntity(c); if(name==="Starry Form")endStarryForm(c); return `${name} ended.`; }
+  if (S.kind === "toggle" && c.active[name]) { delete c.active[name]; if (name === "Wild Shape") delete c.formHp; if (name === "Aspect of the Wyrm") delete c.dragonFuryPending; if(name==="Symbiotic Entity")endSymbioticEntity(c); if(name==="Starry Form")endStarryForm(c); if(Object.hasOwn(SPECIES_FORMS,name))syncSpeciesForm(c); return `${name} ended.`; }
   if (S.dialog) { S.dialog(c, a); return null; }
   const options=actChoices(c,S);
   if(S.choices&&!options.length)return "No eligible options available.";
@@ -668,6 +669,7 @@ function pcRest(c, kind) {
   delete c.fungalZombies;
   if(c.conc?.spell==="Mantle of Majesty"){delete c.conc;delete c.concCheck;}
   if(kind==="long"){
+    if(isRevisedHighElf(c))c.highElfCantripSwap=true;
     if(edOf(c)==="2024"&&c.race==="Human"&&(c.traits||[]).includes("Resourceful")){if(c.heroicInspiration)back.push("Heroic Inspiration already held; you may give the new one to an eligible ally.");else{c.heroicInspiration=true;back.push("Heroic Inspiration");}}
     delete c.arcaneWard;
     delete c.starsOmen;
@@ -678,6 +680,7 @@ function pcRest(c, kind) {
     if((+c.divineInterventionCooldown||0)>0){c.divineInterventionCooldown=Math.max(0,Math.trunc(+c.divineInterventionCooldown)-1);if(c.divineInterventionCooldown>0){c.used.divineIntervention=1;const i=back.indexOf("Divine Intervention");if(i>=0)back.splice(i,1);}else{delete c.divineInterventionCooldown;c.used.divineIntervention=0;}}
   }
   Object.keys(c.active || {}).forEach(n => { if (!ACT[n] || ACT[n].kind !== "persist") { delete c.active[n]; c.fxEnded = true; } });
+  syncSpeciesForm(c);
   endStarryForm(c);
   delete c.formHp;
   pcACApply(c);

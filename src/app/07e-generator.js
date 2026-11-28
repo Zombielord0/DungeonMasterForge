@@ -21,9 +21,9 @@ function generateCharacter(o) {
   // a separate rng for the subrace, so older characters re-level to the same results
   let sub = o.sub === "none" ? null : o.sub || (race === "Dragonborn" && o.ancestry) || null;
   if (o.sub !== "none" && !sub && RB && RB.subs) sub = makeRng("sub", o.seed).pick(o.campaign ? campaignLineageChoices(ed, race) : Object.keys(RB.subs));
-  if (sub && !(RB && RB.subs && RB.subs[sub])) sub = null;
+  if (sub && !(RB?.subs && Object.hasOwn(RB.subs,sub))) sub = null;
   const R = raceInfo(ed, race, sub);
-  const anc = race === "Dragonborn" ? (sub || o.ancestry || r.pick(Object.keys(DRAGON_ANCESTRY))) : null;
+  const anc = race === "Dragonborn" ? (sub || (Object.hasOwn(DRAGON_ANCESTRY,o.ancestry)?o.ancestry:r.pick(Object.keys(DRAGON_ANCESTRY)))) : null;
   if ((ed === "2024" || R.flexible) && o.bonus === "fixed") o = { ...o, bonus: "flex" };
   // Subclass: a random forge picks one (own rng, so other rolls stay the same); custom builds and level-ups ask the player.
   const subLv = subclassLevel(ed, cls);
@@ -201,9 +201,7 @@ function generateCharacter(o) {
   if (cls === "Paladin") extras.push(`Lay on Hands pool: ${lv * 5} HP`);
   if (cls === "Sorcerer" && lv >= 2) extras.push(`Sorcery points: ${lv}`);
   if (anc) {
-    const A = DRAGON_ANCESTRY[anc];
-    if (ed === "2024") extras.push(`Breath Weapon (${anc.toLowerCase()} dragon): replaces one attack; 15 ft cone or 30 ft line of ${A.type}, ${lv >= 17 ? "4d10" : lv >= 11 ? "3d10" : lv >= 5 ? "2d10" : "1d10"} ${A.type} damage, DEX save DC ${8 + prof + m.con}, ${prof} uses per long rest`);
-    else extras.push(`Breath Weapon (${anc.toLowerCase()} dragon): ${A.shape} of ${A.type}, ${lv >= 16 ? "5d6" : lv >= 11 ? "4d6" : lv >= 6 ? "3d6" : "2d6"} ${A.type} damage, ${A.save} save DC ${8 + prof + m.con}, once per short or long rest`);
+    extras.push(dragonbornBreathSummary(ed,anc,TL,prof,m.con));
   }
   const gender = o.gender === "male" || o.gender === "female" ? o.gender : makeRng("gender", o.seed).pick(["male", "female"]);
   const pcName = o.name || fullName(r, gender);
@@ -222,7 +220,7 @@ function generateCharacter(o) {
 // Characters saved before species level features existed: add the ones they have reached.
 function raceLvUpgrade(c) {
   if (c.raceLv || !Array.isArray(c.traits) || !Array.isArray(c.feats)) return;
-  const R = raceLevelFeats(edOf(c), c.race, c.traits, c.level || 1);
+  const R = raceLevelFeats(edOf(c), c.race, c.traits, totalLv(c) || 1);
   R.feats.forEach(f => { if (!c.feats.some(x => x.f === f.f)) c.feats.push(f); });
   c.feats.sort((a, b) => a.l - b.l); c.traits = c.traits.filter(t => !R.hidden.has(t)); c.raceLv = 1;
 }

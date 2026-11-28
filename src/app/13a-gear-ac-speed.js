@@ -65,6 +65,8 @@ function pcRecompute(c) {
   companionCleanup(c);
   syncStarDruid(c);
   syncRuneKnight(c);
+  syncDragonbornBreath(c);
+  syncSpeciesForm(c);
   if(c.active?.["Symbiotic Entity"]&&!sporesActive(c))endSymbioticEntity(c);
   if(c.active?.["Fighting Spirit"]&&(c.death?.dead||xgeFighterLevel(c,"Samurai")<3))delete c.active["Fighting Spirit"];
   if(c.samuraiDeathTurn&&(c.death?.dead||xgeFighterLevel(c,"Samurai")<18))endSamuraiDeathTurn(c);
@@ -319,7 +321,7 @@ const unarmoredMove = lv => lv >= 18 ? 30 : lv >= 14 ? 25 : lv >= 10 ? 20 : lv >
 /* carrying: items × quantity, plus coins (50 to the pound); capacity STR × 15, doubled for Powerful Build */
 function pcLoad(c) {
   const items = (c.inv || []).reduce((t, i) => t + (+i.w || 0) * (+i.qty || 0), 0), coins = Object.values(c.coins || {}).reduce((t, n) => t + (+n || 0), 0) / 50;
-  const str = +c.scores.str || 10, big = (c.traits || []).includes("Powerful Build") ? 2 : 1;
+  const str = +c.scores.str || 10, big = ((c.traits || []).includes("Powerful Build") ? 2 : 1)*(speciesFormActive(c,"Large Form")?2:1);
   return { lb: Math.round((items + coins) * 10) / 10, cap: str * 15 * big, enc: str * 5 * big, heavy: str * 10 * big, variant: !!c.varEnc && edOf(c) === "2014" };
 }
 function pcSpeed(c, A) {

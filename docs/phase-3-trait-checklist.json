@@ -1,0 +1,3448 @@
+{
+  "description": "Phase 3 baseline of named species traits and level-gated grants in the character catalog. A lineage row lists its own entries and overrides. Use its base row for inherited entries. Supplemental printings keep their catalog ID. Source provenance, source review, runtime coverage, and release clearance are separate.",
+  "verification": "A partial browser coverage mark names the specific exercised behavior. This inventory does not certify trait completeness or rights.",
+  "evidence": "test/e2e/character-reference.cjs",
+  "officialRules": {
+    "2014": "https://www.dndbeyond.com/sources/dnd/basic-rules-2014/races",
+    "2024": "https://www.dndbeyond.com/sources/dnd/br-2024/character-origins"
+  },
+  "supplemental": 44,
+  "rows": [
+    {
+      "edition": "2014",
+      "species": "Dwarf",
+      "source": "phb-2014",
+      "traits": [
+        {
+          "name": "Darkvision 60 ft",
+          "level": 1,
+          "sourceReview": "catalog_inventory",
+          "runtimeReview": "pending"
+        },
+        {
+          "name": "Dwarven Resilience",
+          "level": 1,
+          "sourceReview": "catalog_inventory",
+          "runtimeReview": "pending"
+        },
+        {
+          "name": "Stonecunning",
+          "level": 1,
+          "sourceReview": "catalog_inventory",
+          "runtimeReview": "pending"
+        }
+      ]
+    },
+    {
+      "edition": "2014",
+      "species": "Dwarf",
+      "lineage": "Hill Dwarf",
+      "source": "phb-2014",
+      "traits": [
+        {
+          "name": "Dwarven Toughness",
+          "level": 1,
+          "sourceReview": "catalog_inventory",
+          "runtimeReview": "pending"
+        }
+      ]
+    },
+    {
+      "edition": "2014",
+      "species": "Dwarf",
+      "lineage": "Mountain Dwarf",
+      "source": "phb-2014",
+      "traits": [
+        {
+          "name": "Dwarven Armor Training",
+          "level": 1,
+          "sourceReview": "catalog_inventory",
+          "runtimeReview": "pending"
+        }
+      ]
+    },
+    {
+      "edition": "2014",
+      "species": "Dwarf",
+      "lineage": "Duergar",
+      "source": "scag",
+      "traits": [
+        {
+          "name": "Duergar",
+          "level": 1,
+          "sourceReview": "catalog_inventory",
+          "runtimeReview": "pending"
+        },
+        {
+          "name": "Superior Darkvision 120 ft",
+          "level": 1,
+          "sourceReview": "catalog_inventory",
+          "runtimeReview": "pending",
+          "replaces": "Darkvision 60 ft"
+        }
+      ]
+    },
+    {
+      "edition": "2014",
+      "species": "Dwarf",
+      "lineage": "Mark of Warding",
+      "source": "erlw",
+      "traits": [
+        {
+          "name": "Mark of Warding",
+          "level": 1,
+          "sourceReview": "catalog_inventory",
+          "runtimeReview": "pending"
+        }
+      ]
+    },
+    {
+      "edition": "2014",
+      "species": "Elf",
+      "source": "phb-2014",
+      "traits": [
+        {
+          "name": "Darkvision 60 ft",
+          "level": 1,
+          "sourceReview": "catalog_inventory",
+          "runtimeReview": "pending"
+        },
+        {
+          "name": "Keen Senses",
+          "level": 1,
+          "sourceReview": "catalog_inventory",
+          "runtimeReview": "pending"
+        },
+        {
+          "name": "Fey Ancestry",
+          "level": 1,
+          "sourceReview": "catalog_inventory",
+          "runtimeReview": "pending"
+        },
+        {
+          "name": "Trance",
+          "level": 1,
+          "sourceReview": "catalog_inventory",
+          "runtimeReview": "pending"
+        }
+      ]
+    },
+    {
+      "edition": "2014",
+      "species": "Elf",
+      "lineage": "High Elf",
+      "source": "phb-2014",
+      "traits": [
+        {
+          "name": "Elf Weapon Training",
+          "level": 1,
+          "sourceReview": "catalog_inventory",
+          "runtimeReview": "pending"
+        },
+        {
+          "name": "High Elf Cantrip",
+          "level": 1,
+          "sourceReview": "catalog_inventory",
+          "runtimeReview": "pending"
+        },
+        {
+          "name": "Extra language",
+          "level": 1,
+          "sourceReview": "catalog_inventory",
+          "runtimeReview": "pending"
+        }
+      ]
+    },
+    {
+      "edition": "2014",
+      "species": "Elf",
+      "lineage": "Wood Elf",
+      "source": "phb-2014",
+      "traits": [
+        {
+          "name": "Elf Weapon Training",
+          "level": 1,
+          "sourceReview": "catalog_inventory",
+          "runtimeReview": "pending"
+        },
+        {
+          "name": "Fleet of Foot",
+          "level": 1,
+          "sourceReview": "catalog_inventory",
+          "runtimeReview": "pending"
+        },
+        {
+          "name": "Mask of the Wild",
+          "level": 1,
+          "sourceReview": "catalog_inventory",
+          "runtimeReview": "pending"
+        }
+      ]
+    },
+    {
+      "edition": "2014",
+      "species": "Elf",
+      "lineage": "Drow",
+      "source": "phb-2014",
+      "traits": [
+        {
+          "name": "Sunlight Sensitivity",
+          "level": 1,
+          "sourceReview": "catalog_inventory",
+          "runtimeReview": "pending"
+        },
+        {
+          "name": "Drow Magic",
+          "level": 1,
+          "sourceReview": "catalog_inventory",
+          "runtimeReview": "pending"
+        },
+        {
+          "name": "Drow Magic",
+          "level": 3,
+          "sourceReview": "catalog_inventory",
+          "runtimeReview": "pending",
+          "spell": "Faerie Fire"
+        },
+        {
+          "name": "Drow Magic",
+          "level": 5,
+          "sourceReview": "catalog_inventory",
+          "runtimeReview": "pending",
+          "spell": "Darkness"
+        },
+        {
+          "name": "Drow Weapon Training",
+          "level": 1,
+          "sourceReview": "catalog_inventory",
+          "runtimeReview": "pending"
+        },
+        {
+          "name": "Superior Darkvision 120 ft",
+          "level": 1,
+          "sourceReview": "catalog_inventory",
+          "runtimeReview": "pending",
+          "replaces": "Darkvision 60 ft"
+        }
+      ]
+    },
+    {
+      "edition": "2014",
+      "species": "Elf",
+      "lineage": "Eladrin",
+      "source": "mtf",
+      "traits": [
+        {
+          "name": "Eladrin",
+          "level": 1,
+          "sourceReview": "catalog_inventory",
+          "runtimeReview": "pending"
+        }
+      ]
+    },
+    {
+      "edition": "2014",
+      "species": "Elf",
+      "lineage": "Sea Elf",
+      "source": "mtf",
+      "traits": [
+        {
+          "name": "Sea Elf",
+          "level": 1,
+          "sourceReview": "catalog_inventory",
+          "runtimeReview": "pending"
+        }
+      ]
+    },
+    {
+      "edition": "2014",
+      "species": "Elf",
+      "lineage": "Shadar-kai",
+      "source": "mtf",
+      "traits": [
+        {
+          "name": "Shadar-kai",
+          "level": 1,
+          "sourceReview": "catalog_inventory",
+          "runtimeReview": "pending"
+        }
+      ]
+    },
+    {
+      "edition": "2014",
+      "species": "Elf",
+      "lineage": "Mark of Shadow",
+      "source": "erlw",
+      "traits": [
+        {
+          "name": "Mark of Shadow",
+          "level": 1,
+          "sourceReview": "catalog_inventory",
+          "runtimeReview": "pending"
+        }
+      ]
+    },
+    {
+      "edition": "2014",
+      "species": "Halfling",
+      "source": "phb-2014",
+      "traits": [
+        {
+          "name": "Lucky",
+          "level": 1,
+          "sourceReview": "catalog_inventory",
+          "runtimeReview": "pending"
+        },
+        {
+          "name": "Brave",
+          "level": 1,
+          "sourceReview": "catalog_inventory",
+          "runtimeReview": "pending"
+        },
+        {
+          "name": "Halfling Nimbleness",
+          "level": 1,
+          "sourceReview": "catalog_inventory",
+          "runtimeReview": "pending"
+        }
+      ]
+    },
+    {
+      "edition": "2014",
+      "species": "Halfling",
+      "lineage": "Lightfoot Halfling",
+      "source": "phb-2014",
+      "traits": [
+        {
+          "name": "Naturally Stealthy",
+          "level": 1,
+          "sourceReview": "catalog_inventory",
+          "runtimeReview": "pending"
+        }
+      ]
+    },
+    {
+      "edition": "2014",
+      "species": "Halfling",
+      "lineage": "Stout Halfling",
+      "source": "phb-2014",
+      "traits": [
+        {
+          "name": "Stout Resilience",
+          "level": 1,
+          "sourceReview": "catalog_inventory",
+          "runtimeReview": "pending"
+        }
+      ]
+    },
+    {
+      "edition": "2014",
+      "species": "Halfling",
+      "lineage": "Ghostwise Halfling",
+      "source": "scag",
+      "traits": [
+        {
+          "name": "Ghostwise Halfling",
+          "level": 1,
+          "sourceReview": "catalog_inventory",
+          "runtimeReview": "pending"
+        }
+      ]
+    },
+    {
+      "edition": "2014",
+      "species": "Halfling",
+      "lineage": "Mark of Healing",
+      "source": "erlw",
+      "traits": [
+        {
+          "name": "Mark of Healing",
+          "level": 1,
+          "sourceReview": "catalog_inventory",
+          "runtimeReview": "pending"
+        }
+      ]
+    },
+    {
+      "edition": "2014",
+      "species": "Halfling",
+      "lineage": "Mark of Hospitality",
+      "source": "erlw",
+      "traits": [
+        {
+          "name": "Mark of Hospitality",
+          "level": 1,
+          "sourceReview": "catalog_inventory",
+          "runtimeReview": "pending"
+        }
+      ]
+    },
+    {
+      "edition": "2014",
+      "species": "Human",
+      "source": "phb-2014",
+      "traits": [
+        {
+          "name": "Extra language",
+          "level": 1,
+          "sourceReview": "catalog_inventory",
+          "runtimeReview": "pending"
+        }
+      ]
+    },
+    {
+      "edition": "2014",
+      "species": "Human",
+      "lineage": "Standard Human",
+      "source": "phb-2014",
+      "traits": []
+    },
+    {
+      "edition": "2014",
+      "species": "Human",
+      "lineage": "Variant Human",
+      "source": "phb-2014",
+      "traits": [
+        {
+          "name": "Variant: Bonus Skill",
+          "level": 1,
+          "sourceReview": "catalog_inventory",
+          "runtimeReview": "pending"
+        },
+        {
+          "name": "Variant: Feat",
+          "level": 1,
+          "sourceReview": "catalog_inventory",
+          "runtimeReview": "pending"
+        },
+        {
+          "name": "Extra language",
+          "level": 1,
+          "sourceReview": "catalog_inventory",
+          "runtimeReview": "pending"
+        }
+      ]
+    },
+    {
+      "edition": "2014",
+      "species": "Dragonborn",
+      "source": "phb-2014",
+      "traits": [
+        {
+          "name": "Draconic Ancestry",
+          "level": 1,
+          "sourceReview": "catalog_inventory",
+          "runtimeReview": "pending"
+        },
+        {
+          "name": "Breath Weapon",
+          "level": 1,
+          "sourceReview": "official_rule_checked",
+          "runtimeReview": "partial_browser_coverage",
+          "evidence": "action, ancestry area, save, dice and short-rest recovery"
+        },
+        {
+          "name": "Damage Resistance",
+          "level": 1,
+          "sourceReview": "catalog_inventory",
+          "runtimeReview": "pending"
+        }
+      ]
+    },
+    {
+      "edition": "2014",
+      "species": "Dragonborn",
+      "lineage": "Black",
+      "source": "phb-2014",
+      "modifies": [
+        "Draconic Ancestry",
+        "Breath Weapon",
+        "Damage Resistance"
+      ],
+      "traits": []
+    },
+    {
+      "edition": "2014",
+      "species": "Dragonborn",
+      "lineage": "Blue",
+      "source": "phb-2014",
+      "modifies": [
+        "Draconic Ancestry",
+        "Breath Weapon",
+        "Damage Resistance"
+      ],
+      "traits": []
+    },
+    {
+      "edition": "2014",
+      "species": "Dragonborn",
+      "lineage": "Brass",
+      "source": "phb-2014",
+      "modifies": [
+        "Draconic Ancestry",
+        "Breath Weapon",
+        "Damage Resistance"
+      ],
+      "traits": []
+    },
+    {
+      "edition": "2014",
+      "species": "Dragonborn",
+      "lineage": "Bronze",
+      "source": "phb-2014",
+      "modifies": [
+        "Draconic Ancestry",
+        "Breath Weapon",
+        "Damage Resistance"
+      ],
+      "traits": []
+    },
+    {
+      "edition": "2014",
+      "species": "Dragonborn",
+      "lineage": "Copper",
+      "source": "phb-2014",
+      "modifies": [
+        "Draconic Ancestry",
+        "Breath Weapon",
+        "Damage Resistance"
+      ],
+      "traits": []
+    },
+    {
+      "edition": "2014",
+      "species": "Dragonborn",
+      "lineage": "Gold",
+      "source": "phb-2014",
+      "modifies": [
+        "Draconic Ancestry",
+        "Breath Weapon",
+        "Damage Resistance"
+      ],
+      "traits": []
+    },
+    {
+      "edition": "2014",
+      "species": "Dragonborn",
+      "lineage": "Green",
+      "source": "phb-2014",
+      "modifies": [
+        "Draconic Ancestry",
+        "Breath Weapon",
+        "Damage Resistance"
+      ],
+      "traits": []
+    },
+    {
+      "edition": "2014",
+      "species": "Dragonborn",
+      "lineage": "Red",
+      "source": "phb-2014",
+      "modifies": [
+        "Draconic Ancestry",
+        "Breath Weapon",
+        "Damage Resistance"
+      ],
+      "traits": []
+    },
+    {
+      "edition": "2014",
+      "species": "Dragonborn",
+      "lineage": "Silver",
+      "source": "phb-2014",
+      "modifies": [
+        "Draconic Ancestry",
+        "Breath Weapon",
+        "Damage Resistance"
+      ],
+      "traits": []
+    },
+    {
+      "edition": "2014",
+      "species": "Dragonborn",
+      "lineage": "White",
+      "source": "phb-2014",
+      "modifies": [
+        "Draconic Ancestry",
+        "Breath Weapon",
+        "Damage Resistance"
+      ],
+      "traits": []
+    },
+    {
+      "edition": "2014",
+      "species": "Gnome",
+      "source": "phb-2014",
+      "traits": [
+        {
+          "name": "Darkvision 60 ft",
+          "level": 1,
+          "sourceReview": "catalog_inventory",
+          "runtimeReview": "pending"
+        },
+        {
+          "name": "Gnome Cunning",
+          "level": 1,
+          "sourceReview": "catalog_inventory",
+          "runtimeReview": "pending"
+        }
+      ]
+    },
+    {
+      "edition": "2014",
+      "species": "Gnome",
+      "lineage": "Forest Gnome",
+      "source": "phb-2014",
+      "traits": [
+        {
+          "name": "Natural Illusionist",
+          "level": 1,
+          "sourceReview": "catalog_inventory",
+          "runtimeReview": "pending"
+        },
+        {
+          "name": "Speak with Small Beasts",
+          "level": 1,
+          "sourceReview": "catalog_inventory",
+          "runtimeReview": "pending"
+        }
+      ]
+    },
+    {
+      "edition": "2014",
+      "species": "Gnome",
+      "lineage": "Rock Gnome",
+      "source": "phb-2014",
+      "traits": [
+        {
+          "name": "Artificer's Lore",
+          "level": 1,
+          "sourceReview": "catalog_inventory",
+          "runtimeReview": "pending"
+        },
+        {
+          "name": "Tinker",
+          "level": 1,
+          "sourceReview": "catalog_inventory",
+          "runtimeReview": "pending"
+        }
+      ]
+    },
+    {
+      "edition": "2014",
+      "species": "Gnome",
+      "lineage": "Deep Gnome",
+      "source": "scag",
+      "traits": [
+        {
+          "name": "Deep Gnome",
+          "level": 1,
+          "sourceReview": "catalog_inventory",
+          "runtimeReview": "pending"
+        },
+        {
+          "name": "Superior Darkvision 120 ft",
+          "level": 1,
+          "sourceReview": "catalog_inventory",
+          "runtimeReview": "pending",
+          "replaces": "Darkvision 60 ft"
+        }
+      ]
+    },
+    {
+      "edition": "2014",
+      "species": "Gnome",
+      "lineage": "Mark of Scribing",
+      "source": "erlw",
+      "traits": [
+        {
+          "name": "Mark of Scribing",
+          "level": 1,
+          "sourceReview": "catalog_inventory",
+          "runtimeReview": "pending"
+        }
+      ]
+    },
+    {
+      "edition": "2014",
+      "species": "Half-Elf",
+      "source": "phb-2014",
+      "traits": [
+        {
+          "name": "Darkvision 60 ft",
+          "level": 1,
+          "sourceReview": "catalog_inventory",
+          "runtimeReview": "pending"
+        },
+        {
+          "name": "Fey Ancestry",
+          "level": 1,
+          "sourceReview": "catalog_inventory",
+          "runtimeReview": "pending"
+        },
+        {
+          "name": "Skill Versatility",
+          "level": 1,
+          "sourceReview": "catalog_inventory",
+          "runtimeReview": "pending"
+        }
+      ]
+    },
+    {
+      "edition": "2014",
+      "species": "Half-Orc",
+      "source": "phb-2014",
+      "traits": [
+        {
+          "name": "Darkvision 60 ft",
+          "level": 1,
+          "sourceReview": "catalog_inventory",
+          "runtimeReview": "pending"
+        },
+        {
+          "name": "Relentless Endurance",
+          "level": 1,
+          "sourceReview": "catalog_inventory",
+          "runtimeReview": "pending"
+        },
+        {
+          "name": "Savage Attacks",
+          "level": 1,
+          "sourceReview": "catalog_inventory",
+          "runtimeReview": "pending"
+        }
+      ]
+    },
+    {
+      "edition": "2014",
+      "species": "Tiefling",
+      "source": "phb-2014",
+      "traits": [
+        {
+          "name": "Darkvision 60 ft",
+          "level": 1,
+          "sourceReview": "catalog_inventory",
+          "runtimeReview": "pending"
+        },
+        {
+          "name": "Hellish Resistance",
+          "level": 1,
+          "sourceReview": "catalog_inventory",
+          "runtimeReview": "pending"
+        },
+        {
+          "name": "Infernal Legacy",
+          "level": 1,
+          "sourceReview": "catalog_inventory",
+          "runtimeReview": "pending"
+        },
+        {
+          "name": "Infernal Legacy",
+          "level": 3,
+          "sourceReview": "catalog_inventory",
+          "runtimeReview": "pending",
+          "spell": "Hellish Rebuke"
+        },
+        {
+          "name": "Infernal Legacy",
+          "level": 5,
+          "sourceReview": "catalog_inventory",
+          "runtimeReview": "pending",
+          "spell": "Darkness"
+        }
+      ]
+    },
+    {
+      "edition": "2014",
+      "species": "Aasimar",
+      "source": "vgm",
+      "traits": [
+        {
+          "name": "Darkvision 60 ft",
+          "level": 1,
+          "sourceReview": "catalog_inventory",
+          "runtimeReview": "pending"
+        },
+        {
+          "name": "Celestial Resistance (2014)",
+          "level": 1,
+          "sourceReview": "catalog_inventory",
+          "runtimeReview": "pending"
+        },
+        {
+          "name": "Healing Hands (2014)",
+          "level": 1,
+          "sourceReview": "catalog_inventory",
+          "runtimeReview": "pending"
+        },
+        {
+          "name": "Light Bearer (2014)",
+          "level": 1,
+          "sourceReview": "catalog_inventory",
+          "runtimeReview": "pending"
+        }
+      ]
+    },
+    {
+      "edition": "2014",
+      "species": "Aasimar",
+      "lineage": "Protector Aasimar",
+      "source": "vgm",
+      "traits": [
+        {
+          "name": "Protector Aasimar",
+          "level": 1,
+          "sourceReview": "catalog_inventory",
+          "runtimeReview": "pending"
+        }
+      ]
+    },
+    {
+      "edition": "2014",
+      "species": "Aasimar",
+      "lineage": "Scourge Aasimar",
+      "source": "vgm",
+      "traits": [
+        {
+          "name": "Scourge Aasimar",
+          "level": 1,
+          "sourceReview": "catalog_inventory",
+          "runtimeReview": "pending"
+        }
+      ]
+    },
+    {
+      "edition": "2014",
+      "species": "Aasimar",
+      "lineage": "Fallen Aasimar",
+      "source": "vgm",
+      "traits": [
+        {
+          "name": "Fallen Aasimar",
+          "level": 1,
+          "sourceReview": "catalog_inventory",
+          "runtimeReview": "pending"
+        }
+      ]
+    },
+    {
+      "edition": "2014",
+      "species": "Gith",
+      "source": "mtf",
+      "traits": []
+    },
+    {
+      "edition": "2014",
+      "species": "Gith",
+      "lineage": "Githyanki",
+      "source": "mtf",
+      "traits": [
+        {
+          "name": "Githyanki",
+          "level": 1,
+          "sourceReview": "catalog_inventory",
+          "runtimeReview": "pending"
+        }
+      ]
+    },
+    {
+      "edition": "2014",
+      "species": "Gith",
+      "lineage": "Githzerai",
+      "source": "mtf",
+      "traits": [
+        {
+          "name": "Githzerai",
+          "level": 1,
+          "sourceReview": "catalog_inventory",
+          "runtimeReview": "pending"
+        }
+      ]
+    },
+    {
+      "edition": "2014",
+      "species": "Genasi",
+      "source": "mpmm",
+      "traits": [
+        {
+          "name": "Darkvision 60 ft",
+          "level": 1,
+          "sourceReview": "catalog_inventory",
+          "runtimeReview": "pending"
+        }
+      ]
+    },
+    {
+      "edition": "2014",
+      "species": "Genasi",
+      "lineage": "Air Genasi",
+      "source": "mpmm",
+      "traits": [
+        {
+          "name": "Air Genasi",
+          "level": 1,
+          "sourceReview": "catalog_inventory",
+          "runtimeReview": "pending"
+        }
+      ]
+    },
+    {
+      "edition": "2014",
+      "species": "Genasi",
+      "lineage": "Earth Genasi",
+      "source": "mpmm",
+      "traits": [
+        {
+          "name": "Earth Genasi",
+          "level": 1,
+          "sourceReview": "catalog_inventory",
+          "runtimeReview": "pending"
+        }
+      ]
+    },
+    {
+      "edition": "2014",
+      "species": "Genasi",
+      "lineage": "Fire Genasi",
+      "source": "mpmm",
+      "traits": [
+        {
+          "name": "Fire Genasi",
+          "level": 1,
+          "sourceReview": "catalog_inventory",
+          "runtimeReview": "pending"
+        }
+      ]
+    },
+    {
+      "edition": "2014",
+      "species": "Genasi",
+      "lineage": "Water Genasi",
+      "source": "mpmm",
+      "traits": [
+        {
+          "name": "Water Genasi",
+          "level": 1,
+          "sourceReview": "catalog_inventory",
+          "runtimeReview": "pending"
+        }
+      ]
+    },
+    {
+      "edition": "2014",
+      "species": "Shifter",
+      "source": "erlw",
+      "traits": [
+        {
+          "name": "Darkvision 60 ft",
+          "level": 1,
+          "sourceReview": "catalog_inventory",
+          "runtimeReview": "pending"
+        },
+        {
+          "name": "Shifting (Eberron)",
+          "level": 1,
+          "sourceReview": "catalog_inventory",
+          "runtimeReview": "pending"
+        }
+      ]
+    },
+    {
+      "edition": "2014",
+      "species": "Shifter",
+      "lineage": "Beasthide Shifter",
+      "source": "erlw",
+      "traits": [
+        {
+          "name": "Beasthide Shifter",
+          "level": 1,
+          "sourceReview": "catalog_inventory",
+          "runtimeReview": "pending"
+        }
+      ]
+    },
+    {
+      "edition": "2014",
+      "species": "Shifter",
+      "lineage": "Longtooth Shifter",
+      "source": "erlw",
+      "traits": [
+        {
+          "name": "Longtooth Shifter",
+          "level": 1,
+          "sourceReview": "catalog_inventory",
+          "runtimeReview": "pending"
+        }
+      ]
+    },
+    {
+      "edition": "2014",
+      "species": "Shifter",
+      "lineage": "Swiftstride Shifter",
+      "source": "erlw",
+      "traits": [
+        {
+          "name": "Swiftstride Shifter",
+          "level": 1,
+          "sourceReview": "catalog_inventory",
+          "runtimeReview": "pending"
+        }
+      ]
+    },
+    {
+      "edition": "2014",
+      "species": "Shifter",
+      "lineage": "Wildhunt Shifter",
+      "source": "erlw",
+      "traits": [
+        {
+          "name": "Wildhunt Shifter",
+          "level": 1,
+          "sourceReview": "catalog_inventory",
+          "runtimeReview": "pending"
+        }
+      ]
+    },
+    {
+      "edition": "2024",
+      "species": "Aasimar",
+      "source": "phb-2024",
+      "traits": [
+        {
+          "name": "Celestial Resistance",
+          "level": 1,
+          "sourceReview": "catalog_inventory",
+          "runtimeReview": "pending"
+        },
+        {
+          "name": "Darkvision 60 ft",
+          "level": 1,
+          "sourceReview": "catalog_inventory",
+          "runtimeReview": "pending"
+        },
+        {
+          "name": "Healing Hands",
+          "level": 1,
+          "sourceReview": "catalog_inventory",
+          "runtimeReview": "pending"
+        },
+        {
+          "name": "Light Bearer",
+          "level": 1,
+          "sourceReview": "catalog_inventory",
+          "runtimeReview": "pending"
+        },
+        {
+          "name": "Celestial Revelation",
+          "level": 3,
+          "sourceReview": "catalog_inventory",
+          "runtimeReview": "pending"
+        }
+      ]
+    },
+    {
+      "edition": "2024",
+      "species": "Dragonborn",
+      "source": "phb-2024",
+      "traits": [
+        {
+          "name": "Draconic Ancestry",
+          "level": 1,
+          "sourceReview": "catalog_inventory",
+          "runtimeReview": "pending"
+        },
+        {
+          "name": "Breath Weapon",
+          "level": 1,
+          "sourceReview": "official_rule_checked",
+          "runtimeReview": "partial_browser_coverage",
+          "evidence": "attack replacement, shape choice, save, dice, live DC and long-rest pool"
+        },
+        {
+          "name": "Damage Resistance",
+          "level": 1,
+          "sourceReview": "catalog_inventory",
+          "runtimeReview": "pending"
+        },
+        {
+          "name": "Darkvision 60 ft",
+          "level": 1,
+          "sourceReview": "catalog_inventory",
+          "runtimeReview": "pending"
+        },
+        {
+          "name": "Draconic Flight",
+          "level": 5,
+          "sourceReview": "official_rule_checked",
+          "runtimeReview": "partial_browser_coverage",
+          "evidence": "level gate, activation, speed, incapacity and resource recovery"
+        }
+      ]
+    },
+    {
+      "edition": "2024",
+      "species": "Dragonborn",
+      "lineage": "Black",
+      "source": "phb-2024",
+      "modifies": [
+        "Draconic Ancestry",
+        "Breath Weapon",
+        "Damage Resistance"
+      ],
+      "traits": []
+    },
+    {
+      "edition": "2024",
+      "species": "Dragonborn",
+      "lineage": "Blue",
+      "source": "phb-2024",
+      "modifies": [
+        "Draconic Ancestry",
+        "Breath Weapon",
+        "Damage Resistance"
+      ],
+      "traits": []
+    },
+    {
+      "edition": "2024",
+      "species": "Dragonborn",
+      "lineage": "Brass",
+      "source": "phb-2024",
+      "modifies": [
+        "Draconic Ancestry",
+        "Breath Weapon",
+        "Damage Resistance"
+      ],
+      "traits": []
+    },
+    {
+      "edition": "2024",
+      "species": "Dragonborn",
+      "lineage": "Bronze",
+      "source": "phb-2024",
+      "modifies": [
+        "Draconic Ancestry",
+        "Breath Weapon",
+        "Damage Resistance"
+      ],
+      "traits": []
+    },
+    {
+      "edition": "2024",
+      "species": "Dragonborn",
+      "lineage": "Copper",
+      "source": "phb-2024",
+      "modifies": [
+        "Draconic Ancestry",
+        "Breath Weapon",
+        "Damage Resistance"
+      ],
+      "traits": []
+    },
+    {
+      "edition": "2024",
+      "species": "Dragonborn",
+      "lineage": "Gold",
+      "source": "phb-2024",
+      "modifies": [
+        "Draconic Ancestry",
+        "Breath Weapon",
+        "Damage Resistance"
+      ],
+      "traits": []
+    },
+    {
+      "edition": "2024",
+      "species": "Dragonborn",
+      "lineage": "Green",
+      "source": "phb-2024",
+      "modifies": [
+        "Draconic Ancestry",
+        "Breath Weapon",
+        "Damage Resistance"
+      ],
+      "traits": []
+    },
+    {
+      "edition": "2024",
+      "species": "Dragonborn",
+      "lineage": "Red",
+      "source": "phb-2024",
+      "modifies": [
+        "Draconic Ancestry",
+        "Breath Weapon",
+        "Damage Resistance"
+      ],
+      "traits": []
+    },
+    {
+      "edition": "2024",
+      "species": "Dragonborn",
+      "lineage": "Silver",
+      "source": "phb-2024",
+      "modifies": [
+        "Draconic Ancestry",
+        "Breath Weapon",
+        "Damage Resistance"
+      ],
+      "traits": []
+    },
+    {
+      "edition": "2024",
+      "species": "Dragonborn",
+      "lineage": "White",
+      "source": "phb-2024",
+      "modifies": [
+        "Draconic Ancestry",
+        "Breath Weapon",
+        "Damage Resistance"
+      ],
+      "traits": []
+    },
+    {
+      "edition": "2024",
+      "species": "Dwarf",
+      "source": "phb-2024",
+      "traits": [
+        {
+          "name": "Darkvision 120 ft",
+          "level": 1,
+          "sourceReview": "catalog_inventory",
+          "runtimeReview": "pending"
+        },
+        {
+          "name": "Dwarven Resilience",
+          "level": 1,
+          "sourceReview": "catalog_inventory",
+          "runtimeReview": "pending"
+        },
+        {
+          "name": "Dwarven Toughness",
+          "level": 1,
+          "sourceReview": "catalog_inventory",
+          "runtimeReview": "pending"
+        },
+        {
+          "name": "Stonecunning",
+          "level": 1,
+          "sourceReview": "catalog_inventory",
+          "runtimeReview": "partial_browser_coverage",
+          "evidence": "existing resource use and recovery, tactile trigger and duration handled at the table"
+        }
+      ]
+    },
+    {
+      "edition": "2024",
+      "species": "Elf",
+      "source": "phb-2024",
+      "traits": [
+        {
+          "name": "Darkvision 60 ft",
+          "level": 1,
+          "sourceReview": "catalog_inventory",
+          "runtimeReview": "pending"
+        },
+        {
+          "name": "Fey Ancestry",
+          "level": 1,
+          "sourceReview": "catalog_inventory",
+          "runtimeReview": "pending"
+        },
+        {
+          "name": "Keen Senses",
+          "level": 1,
+          "sourceReview": "catalog_inventory",
+          "runtimeReview": "pending"
+        },
+        {
+          "name": "Trance",
+          "level": 1,
+          "sourceReview": "catalog_inventory",
+          "runtimeReview": "pending"
+        }
+      ]
+    },
+    {
+      "edition": "2024",
+      "species": "Elf",
+      "lineage": "Drow",
+      "source": "phb-2024",
+      "traits": [
+        {
+          "name": "Drow Lineage",
+          "level": 1,
+          "sourceReview": "catalog_inventory",
+          "runtimeReview": "pending"
+        },
+        {
+          "name": "Drow Lineage",
+          "level": 3,
+          "sourceReview": "catalog_inventory",
+          "runtimeReview": "pending",
+          "spell": "Faerie Fire"
+        },
+        {
+          "name": "Drow Lineage",
+          "level": 5,
+          "sourceReview": "catalog_inventory",
+          "runtimeReview": "pending",
+          "spell": "Darkness"
+        },
+        {
+          "name": "Darkvision 120 ft",
+          "level": 1,
+          "sourceReview": "catalog_inventory",
+          "runtimeReview": "pending",
+          "replaces": "Darkvision 60 ft"
+        }
+      ]
+    },
+    {
+      "edition": "2024",
+      "species": "Elf",
+      "lineage": "High Elf",
+      "source": "phb-2024",
+      "traits": [
+        {
+          "name": "High Elf Lineage",
+          "level": 1,
+          "sourceReview": "official_rule_checked",
+          "runtimeReview": "partial_browser_coverage",
+          "evidence": "default, long-rest replacement, saves and independent spell grant retention"
+        },
+        {
+          "name": "High Elf Lineage",
+          "level": 3,
+          "sourceReview": "official_rule_checked",
+          "runtimeReview": "partial_browser_coverage",
+          "evidence": "default, long-rest replacement, saves and independent spell grant retention",
+          "spell": "Detect Magic"
+        },
+        {
+          "name": "High Elf Lineage",
+          "level": 5,
+          "sourceReview": "official_rule_checked",
+          "runtimeReview": "partial_browser_coverage",
+          "evidence": "default, long-rest replacement, saves and independent spell grant retention",
+          "spell": "Misty Step"
+        }
+      ]
+    },
+    {
+      "edition": "2024",
+      "species": "Elf",
+      "lineage": "Wood Elf",
+      "source": "phb-2024",
+      "traits": [
+        {
+          "name": "Wood Elf Lineage",
+          "level": 1,
+          "sourceReview": "catalog_inventory",
+          "runtimeReview": "pending"
+        },
+        {
+          "name": "Wood Elf Lineage",
+          "level": 3,
+          "sourceReview": "catalog_inventory",
+          "runtimeReview": "pending",
+          "spell": "Longstrider"
+        },
+        {
+          "name": "Wood Elf Lineage",
+          "level": 5,
+          "sourceReview": "catalog_inventory",
+          "runtimeReview": "pending",
+          "spell": "Pass without Trace"
+        }
+      ]
+    },
+    {
+      "edition": "2024",
+      "species": "Gnome",
+      "source": "phb-2024",
+      "traits": [
+        {
+          "name": "Darkvision 60 ft",
+          "level": 1,
+          "sourceReview": "catalog_inventory",
+          "runtimeReview": "pending"
+        },
+        {
+          "name": "Gnomish Cunning",
+          "level": 1,
+          "sourceReview": "catalog_inventory",
+          "runtimeReview": "pending"
+        }
+      ]
+    },
+    {
+      "edition": "2024",
+      "species": "Gnome",
+      "lineage": "Forest Gnome",
+      "source": "phb-2024",
+      "traits": [
+        {
+          "name": "Forest Gnome Lineage",
+          "level": 1,
+          "sourceReview": "official_rule_checked",
+          "runtimeReview": "partial_browser_coverage",
+          "evidence": "existing preparation, Charisma choice and proficiency-based free casting"
+        }
+      ]
+    },
+    {
+      "edition": "2024",
+      "species": "Gnome",
+      "lineage": "Rock Gnome",
+      "source": "phb-2024",
+      "traits": [
+        {
+          "name": "Rock Gnome Lineage",
+          "level": 1,
+          "sourceReview": "catalog_inventory",
+          "runtimeReview": "pending"
+        }
+      ]
+    },
+    {
+      "edition": "2024",
+      "species": "Goliath",
+      "source": "phb-2024",
+      "traits": [
+        {
+          "name": "Giant Ancestry",
+          "level": 1,
+          "sourceReview": "catalog_inventory",
+          "runtimeReview": "pending"
+        },
+        {
+          "name": "Large Form",
+          "level": 5,
+          "sourceReview": "official_rule_checked",
+          "runtimeReview": "partial_browser_coverage",
+          "evidence": "space confirmation, level gate, speed, carrying capacity, Strength checks and expiry"
+        },
+        {
+          "name": "Powerful Build",
+          "level": 1,
+          "sourceReview": "catalog_inventory",
+          "runtimeReview": "pending"
+        }
+      ]
+    },
+    {
+      "edition": "2024",
+      "species": "Goliath",
+      "lineage": "Cloud Giant",
+      "source": "phb-2024",
+      "traits": [
+        {
+          "name": "Cloud's Jaunt",
+          "level": 1,
+          "sourceReview": "catalog_inventory",
+          "runtimeReview": "partial_browser_coverage",
+          "evidence": "existing ancestry use and resolution prompt"
+        }
+      ]
+    },
+    {
+      "edition": "2024",
+      "species": "Goliath",
+      "lineage": "Fire Giant",
+      "source": "phb-2024",
+      "traits": [
+        {
+          "name": "Fire's Burn",
+          "level": 1,
+          "sourceReview": "catalog_inventory",
+          "runtimeReview": "partial_browser_coverage",
+          "evidence": "existing ancestry use and damage roll"
+        }
+      ]
+    },
+    {
+      "edition": "2024",
+      "species": "Goliath",
+      "lineage": "Frost Giant",
+      "source": "phb-2024",
+      "traits": [
+        {
+          "name": "Frost's Chill",
+          "level": 1,
+          "sourceReview": "catalog_inventory",
+          "runtimeReview": "partial_browser_coverage",
+          "evidence": "existing ancestry use and damage roll"
+        }
+      ]
+    },
+    {
+      "edition": "2024",
+      "species": "Goliath",
+      "lineage": "Hill Giant",
+      "source": "phb-2024",
+      "traits": [
+        {
+          "name": "Hill's Tumble",
+          "level": 1,
+          "sourceReview": "catalog_inventory",
+          "runtimeReview": "partial_browser_coverage",
+          "evidence": "existing ancestry use and resolution prompt"
+        }
+      ]
+    },
+    {
+      "edition": "2024",
+      "species": "Goliath",
+      "lineage": "Stone Giant",
+      "source": "phb-2024",
+      "traits": [
+        {
+          "name": "Stone's Endurance",
+          "level": 1,
+          "sourceReview": "catalog_inventory",
+          "runtimeReview": "partial_browser_coverage",
+          "evidence": "existing ancestry use and damage reduction roll"
+        }
+      ]
+    },
+    {
+      "edition": "2024",
+      "species": "Goliath",
+      "lineage": "Storm Giant",
+      "source": "phb-2024",
+      "traits": [
+        {
+          "name": "Storm's Thunder",
+          "level": 1,
+          "sourceReview": "catalog_inventory",
+          "runtimeReview": "partial_browser_coverage",
+          "evidence": "existing ancestry use and damage roll"
+        }
+      ]
+    },
+    {
+      "edition": "2024",
+      "species": "Halfling",
+      "source": "phb-2024",
+      "traits": [
+        {
+          "name": "Brave",
+          "level": 1,
+          "sourceReview": "catalog_inventory",
+          "runtimeReview": "pending"
+        },
+        {
+          "name": "Halfling Nimbleness",
+          "level": 1,
+          "sourceReview": "catalog_inventory",
+          "runtimeReview": "pending"
+        },
+        {
+          "name": "Luck",
+          "level": 1,
+          "sourceReview": "catalog_inventory",
+          "runtimeReview": "pending"
+        },
+        {
+          "name": "Naturally Stealthy",
+          "level": 1,
+          "sourceReview": "catalog_inventory",
+          "runtimeReview": "pending"
+        }
+      ]
+    },
+    {
+      "edition": "2024",
+      "species": "Human",
+      "source": "phb-2024",
+      "traits": [
+        {
+          "name": "Resourceful",
+          "level": 1,
+          "sourceReview": "catalog_inventory",
+          "runtimeReview": "partial_browser_coverage",
+          "evidence": "existing long-rest award and consumption"
+        },
+        {
+          "name": "Skillful",
+          "level": 1,
+          "sourceReview": "catalog_inventory",
+          "runtimeReview": "pending"
+        },
+        {
+          "name": "Versatile",
+          "level": 1,
+          "sourceReview": "catalog_inventory",
+          "runtimeReview": "pending"
+        }
+      ]
+    },
+    {
+      "edition": "2024",
+      "species": "Orc",
+      "source": "phb-2024",
+      "traits": [
+        {
+          "name": "Adrenaline Rush",
+          "level": 1,
+          "sourceReview": "catalog_inventory",
+          "runtimeReview": "partial_browser_coverage",
+          "evidence": "existing short-rest recovery"
+        },
+        {
+          "name": "Darkvision 120 ft",
+          "level": 1,
+          "sourceReview": "catalog_inventory",
+          "runtimeReview": "pending"
+        },
+        {
+          "name": "Relentless Endurance",
+          "level": 1,
+          "sourceReview": "catalog_inventory",
+          "runtimeReview": "partial_browser_coverage",
+          "evidence": "existing 0 HP gate and recovery to 1 HP"
+        }
+      ]
+    },
+    {
+      "edition": "2024",
+      "species": "Tiefling",
+      "source": "phb-2024",
+      "traits": [
+        {
+          "name": "Darkvision 60 ft",
+          "level": 1,
+          "sourceReview": "catalog_inventory",
+          "runtimeReview": "pending"
+        },
+        {
+          "name": "Otherworldly Presence",
+          "level": 1,
+          "sourceReview": "catalog_inventory",
+          "runtimeReview": "pending"
+        }
+      ]
+    },
+    {
+      "edition": "2024",
+      "species": "Tiefling",
+      "lineage": "Abyssal",
+      "source": "phb-2024",
+      "traits": [
+        {
+          "name": "Abyssal Legacy",
+          "level": 1,
+          "sourceReview": "catalog_inventory",
+          "runtimeReview": "pending"
+        },
+        {
+          "name": "Abyssal Legacy",
+          "level": 3,
+          "sourceReview": "catalog_inventory",
+          "runtimeReview": "pending",
+          "spell": "Ray of Sickness"
+        },
+        {
+          "name": "Abyssal Legacy",
+          "level": 5,
+          "sourceReview": "catalog_inventory",
+          "runtimeReview": "pending",
+          "spell": "Hold Person"
+        }
+      ]
+    },
+    {
+      "edition": "2024",
+      "species": "Tiefling",
+      "lineage": "Chthonic",
+      "source": "phb-2024",
+      "traits": [
+        {
+          "name": "Chthonic Legacy",
+          "level": 1,
+          "sourceReview": "catalog_inventory",
+          "runtimeReview": "pending"
+        },
+        {
+          "name": "Chthonic Legacy",
+          "level": 3,
+          "sourceReview": "catalog_inventory",
+          "runtimeReview": "pending",
+          "spell": "False Life"
+        },
+        {
+          "name": "Chthonic Legacy",
+          "level": 5,
+          "sourceReview": "catalog_inventory",
+          "runtimeReview": "pending",
+          "spell": "Ray of Enfeeblement"
+        }
+      ]
+    },
+    {
+      "edition": "2024",
+      "species": "Tiefling",
+      "lineage": "Infernal",
+      "source": "phb-2024",
+      "traits": [
+        {
+          "name": "Infernal Legacy",
+          "level": 1,
+          "sourceReview": "catalog_inventory",
+          "runtimeReview": "pending"
+        },
+        {
+          "name": "Infernal Legacy",
+          "level": 3,
+          "sourceReview": "catalog_inventory",
+          "runtimeReview": "pending",
+          "spell": "Hellish Rebuke"
+        },
+        {
+          "name": "Infernal Legacy",
+          "level": 5,
+          "sourceReview": "catalog_inventory",
+          "runtimeReview": "pending",
+          "spell": "Darkness"
+        }
+      ]
+    },
+    {
+      "edition": "both",
+      "species": "Alseid",
+      "source": "toh",
+      "printing": "book-toh_alseid",
+      "traits": [
+        {
+          "name": "Darkvision",
+          "level": 1,
+          "sourceReview": "catalog_inventory",
+          "runtimeReview": "pending"
+        },
+        {
+          "name": "Alseid Weapon Training",
+          "level": 1,
+          "sourceReview": "catalog_inventory",
+          "runtimeReview": "pending"
+        },
+        {
+          "name": "Light Hooves",
+          "level": 1,
+          "sourceReview": "catalog_inventory",
+          "runtimeReview": "pending"
+        },
+        {
+          "name": "Quadruped",
+          "level": 1,
+          "sourceReview": "catalog_inventory",
+          "runtimeReview": "pending"
+        },
+        {
+          "name": "Woodfriend",
+          "level": 1,
+          "sourceReview": "catalog_inventory",
+          "runtimeReview": "pending"
+        }
+      ]
+    },
+    {
+      "edition": "both",
+      "species": "Catfolk",
+      "source": "toh",
+      "printing": "book-toh_catfolk",
+      "traits": [
+        {
+          "name": "Darkvision",
+          "level": 1,
+          "sourceReview": "catalog_inventory",
+          "runtimeReview": "pending"
+        },
+        {
+          "name": "Cat's Claws",
+          "level": 1,
+          "sourceReview": "catalog_inventory",
+          "runtimeReview": "pending"
+        },
+        {
+          "name": "Hunter's Senses",
+          "level": 1,
+          "sourceReview": "catalog_inventory",
+          "runtimeReview": "pending"
+        }
+      ]
+    },
+    {
+      "edition": "both",
+      "species": "Catfolk",
+      "source": "toh",
+      "printing": "book-toh_catfolk",
+      "lineage": "Malkin",
+      "traits": [
+        {
+          "name": "Malkin",
+          "level": 1,
+          "sourceReview": "catalog_inventory",
+          "runtimeReview": "pending"
+        }
+      ]
+    },
+    {
+      "edition": "both",
+      "species": "Catfolk",
+      "source": "toh",
+      "printing": "book-toh_catfolk",
+      "lineage": "Pantheran",
+      "traits": [
+        {
+          "name": "Pantheran",
+          "level": 1,
+          "sourceReview": "catalog_inventory",
+          "runtimeReview": "pending"
+        }
+      ]
+    },
+    {
+      "edition": "both",
+      "species": "Darakhul",
+      "source": "toh",
+      "printing": "book-toh_darakhul",
+      "traits": [
+        {
+          "name": "Darkvision",
+          "level": 1,
+          "sourceReview": "catalog_inventory",
+          "runtimeReview": "pending"
+        },
+        {
+          "name": "Hunger for Flesh",
+          "level": 1,
+          "sourceReview": "catalog_inventory",
+          "runtimeReview": "pending"
+        },
+        {
+          "name": "Imperfect Undeath",
+          "level": 1,
+          "sourceReview": "catalog_inventory",
+          "runtimeReview": "pending"
+        },
+        {
+          "name": "Powerful Jaw",
+          "level": 1,
+          "sourceReview": "catalog_inventory",
+          "runtimeReview": "pending"
+        },
+        {
+          "name": "Sunlight Sensitivity",
+          "level": 1,
+          "sourceReview": "catalog_inventory",
+          "runtimeReview": "pending"
+        },
+        {
+          "name": "Undead Resilience",
+          "level": 1,
+          "sourceReview": "catalog_inventory",
+          "runtimeReview": "pending"
+        },
+        {
+          "name": "Undead Vitality",
+          "level": 1,
+          "sourceReview": "catalog_inventory",
+          "runtimeReview": "pending"
+        },
+        {
+          "name": "Heritage Subrace",
+          "level": 1,
+          "sourceReview": "catalog_inventory",
+          "runtimeReview": "pending"
+        }
+      ]
+    },
+    {
+      "edition": "both",
+      "species": "Darakhul",
+      "source": "toh",
+      "printing": "book-toh_darakhul",
+      "lineage": "Derro Heritage",
+      "traits": [
+        {
+          "name": "Derro Heritage",
+          "level": 1,
+          "sourceReview": "catalog_inventory",
+          "runtimeReview": "pending"
+        }
+      ]
+    },
+    {
+      "edition": "both",
+      "species": "Darakhul",
+      "source": "toh",
+      "printing": "book-toh_darakhul",
+      "lineage": "Dragonborn Heritage",
+      "traits": [
+        {
+          "name": "Dragonborn Heritage",
+          "level": 1,
+          "sourceReview": "catalog_inventory",
+          "runtimeReview": "pending"
+        }
+      ]
+    },
+    {
+      "edition": "both",
+      "species": "Darakhul",
+      "source": "toh",
+      "printing": "book-toh_darakhul",
+      "lineage": "Drow Heritage",
+      "traits": [
+        {
+          "name": "Drow Heritage",
+          "level": 1,
+          "sourceReview": "catalog_inventory",
+          "runtimeReview": "pending"
+        }
+      ]
+    },
+    {
+      "edition": "both",
+      "species": "Darakhul",
+      "source": "toh",
+      "printing": "book-toh_darakhul",
+      "lineage": "Dwarf Heritage",
+      "traits": [
+        {
+          "name": "Dwarf Heritage",
+          "level": 1,
+          "sourceReview": "catalog_inventory",
+          "runtimeReview": "pending"
+        }
+      ]
+    },
+    {
+      "edition": "both",
+      "species": "Darakhul",
+      "source": "toh",
+      "printing": "book-toh_darakhul",
+      "lineage": "Elf/Shadow Fey Heritage",
+      "traits": [
+        {
+          "name": "Elf/Shadow Fey Heritage",
+          "level": 1,
+          "sourceReview": "catalog_inventory",
+          "runtimeReview": "pending"
+        }
+      ]
+    },
+    {
+      "edition": "both",
+      "species": "Darakhul",
+      "source": "toh",
+      "printing": "book-toh_darakhul",
+      "lineage": "Gnome Heritage",
+      "traits": [
+        {
+          "name": "Gnome Heritage",
+          "level": 1,
+          "sourceReview": "catalog_inventory",
+          "runtimeReview": "pending"
+        }
+      ]
+    },
+    {
+      "edition": "both",
+      "species": "Darakhul",
+      "source": "toh",
+      "printing": "book-toh_darakhul",
+      "lineage": "Halfling Heritage",
+      "traits": [
+        {
+          "name": "Halfling Heritage",
+          "level": 1,
+          "sourceReview": "catalog_inventory",
+          "runtimeReview": "pending"
+        }
+      ]
+    },
+    {
+      "edition": "both",
+      "species": "Darakhul",
+      "source": "toh",
+      "printing": "book-toh_darakhul",
+      "lineage": "Human/Half-Elf Heritage",
+      "traits": [
+        {
+          "name": "Human/Half-Elf Heritage",
+          "level": 1,
+          "sourceReview": "catalog_inventory",
+          "runtimeReview": "pending"
+        }
+      ]
+    },
+    {
+      "edition": "both",
+      "species": "Darakhul",
+      "source": "toh",
+      "printing": "book-toh_darakhul",
+      "lineage": "Kobold Heritage",
+      "traits": [
+        {
+          "name": "Kobold Heritage",
+          "level": 1,
+          "sourceReview": "catalog_inventory",
+          "runtimeReview": "pending"
+        }
+      ]
+    },
+    {
+      "edition": "both",
+      "species": "Darakhul",
+      "source": "toh",
+      "printing": "book-toh_darakhul",
+      "lineage": "Ravenfolk",
+      "traits": [
+        {
+          "name": "Ravenfolk",
+          "level": 1,
+          "sourceReview": "catalog_inventory",
+          "runtimeReview": "pending"
+        }
+      ]
+    },
+    {
+      "edition": "both",
+      "species": "Darakhul",
+      "source": "toh",
+      "printing": "book-toh_darakhul",
+      "lineage": "Tiefling Heritage",
+      "traits": [
+        {
+          "name": "Tiefling Heritage",
+          "level": 1,
+          "sourceReview": "catalog_inventory",
+          "runtimeReview": "pending"
+        }
+      ]
+    },
+    {
+      "edition": "both",
+      "species": "Darakhul",
+      "source": "toh",
+      "printing": "book-toh_darakhul",
+      "lineage": "Trollkin Heritage",
+      "traits": [
+        {
+          "name": "Trollkin Heritage",
+          "level": 1,
+          "sourceReview": "catalog_inventory",
+          "runtimeReview": "pending"
+        }
+      ]
+    },
+    {
+      "edition": "both",
+      "species": "Derro",
+      "source": "toh",
+      "printing": "book-toh_derro",
+      "traits": [
+        {
+          "name": "Superior Darkvision",
+          "level": 1,
+          "sourceReview": "catalog_inventory",
+          "runtimeReview": "pending"
+        },
+        {
+          "name": "Eldritch Resilience",
+          "level": 1,
+          "sourceReview": "catalog_inventory",
+          "runtimeReview": "pending"
+        },
+        {
+          "name": "Sunlight Sensitivity",
+          "level": 1,
+          "sourceReview": "catalog_inventory",
+          "runtimeReview": "pending"
+        }
+      ]
+    },
+    {
+      "edition": "both",
+      "species": "Derro",
+      "source": "toh",
+      "printing": "book-toh_derro",
+      "lineage": "Far-Touched",
+      "traits": [
+        {
+          "name": "Far-Touched",
+          "level": 1,
+          "sourceReview": "catalog_inventory",
+          "runtimeReview": "pending"
+        }
+      ]
+    },
+    {
+      "edition": "both",
+      "species": "Derro",
+      "source": "toh",
+      "printing": "book-toh_derro",
+      "lineage": "Mutated",
+      "traits": [
+        {
+          "name": "Mutated",
+          "level": 1,
+          "sourceReview": "catalog_inventory",
+          "runtimeReview": "pending"
+        }
+      ]
+    },
+    {
+      "edition": "both",
+      "species": "Derro",
+      "source": "toh",
+      "printing": "book-toh_derro",
+      "lineage": "Uncorrupted",
+      "traits": [
+        {
+          "name": "Uncorrupted",
+          "level": 1,
+          "sourceReview": "catalog_inventory",
+          "runtimeReview": "pending"
+        }
+      ]
+    },
+    {
+      "edition": "both",
+      "species": "Drow",
+      "source": "toh",
+      "printing": "book-toh_drow",
+      "traits": [
+        {
+          "name": "Superior Darkvision",
+          "level": 1,
+          "sourceReview": "catalog_inventory",
+          "runtimeReview": "pending"
+        },
+        {
+          "name": "Fey Ancestry",
+          "level": 1,
+          "sourceReview": "catalog_inventory",
+          "runtimeReview": "pending"
+        },
+        {
+          "name": "Mind of Steel",
+          "level": 1,
+          "sourceReview": "catalog_inventory",
+          "runtimeReview": "pending"
+        },
+        {
+          "name": "Sunlight Sensitivity",
+          "level": 1,
+          "sourceReview": "catalog_inventory",
+          "runtimeReview": "pending"
+        }
+      ]
+    },
+    {
+      "edition": "both",
+      "species": "Drow",
+      "source": "toh",
+      "printing": "book-toh_drow",
+      "lineage": "Delver",
+      "traits": [
+        {
+          "name": "Delver",
+          "level": 1,
+          "sourceReview": "catalog_inventory",
+          "runtimeReview": "pending"
+        }
+      ]
+    },
+    {
+      "edition": "both",
+      "species": "Drow",
+      "source": "toh",
+      "printing": "book-toh_drow",
+      "lineage": "Fever-Bit",
+      "traits": [
+        {
+          "name": "Fever-Bit",
+          "level": 1,
+          "sourceReview": "catalog_inventory",
+          "runtimeReview": "pending"
+        }
+      ]
+    },
+    {
+      "edition": "both",
+      "species": "Drow",
+      "source": "toh",
+      "printing": "book-toh_drow",
+      "lineage": "Purified",
+      "traits": [
+        {
+          "name": "Purified",
+          "level": 1,
+          "sourceReview": "catalog_inventory",
+          "runtimeReview": "pending"
+        }
+      ]
+    },
+    {
+      "edition": "both",
+      "species": "Erina",
+      "source": "toh",
+      "printing": "book-toh_erina",
+      "traits": [
+        {
+          "name": "Darkvision",
+          "level": 1,
+          "sourceReview": "catalog_inventory",
+          "runtimeReview": "pending"
+        },
+        {
+          "name": "Hardy",
+          "level": 1,
+          "sourceReview": "catalog_inventory",
+          "runtimeReview": "pending"
+        },
+        {
+          "name": "Spines",
+          "level": 1,
+          "sourceReview": "catalog_inventory",
+          "runtimeReview": "pending"
+        },
+        {
+          "name": "Keen Senses",
+          "level": 1,
+          "sourceReview": "catalog_inventory",
+          "runtimeReview": "pending"
+        },
+        {
+          "name": "Digger",
+          "level": 1,
+          "sourceReview": "catalog_inventory",
+          "runtimeReview": "pending"
+        }
+      ]
+    },
+    {
+      "edition": "both",
+      "species": "Gearforged",
+      "source": "toh",
+      "printing": "book-toh_gearforged",
+      "traits": [
+        {
+          "name": "Construct Resilience",
+          "level": 1,
+          "sourceReview": "catalog_inventory",
+          "runtimeReview": "pending"
+        },
+        {
+          "name": "Construct Vitality",
+          "level": 1,
+          "sourceReview": "catalog_inventory",
+          "runtimeReview": "pending"
+        },
+        {
+          "name": "Living Construct",
+          "level": 1,
+          "sourceReview": "catalog_inventory",
+          "runtimeReview": "pending"
+        },
+        {
+          "name": "Race Chassis",
+          "level": 1,
+          "sourceReview": "catalog_inventory",
+          "runtimeReview": "pending"
+        }
+      ]
+    },
+    {
+      "edition": "both",
+      "species": "Gearforged",
+      "source": "toh",
+      "printing": "book-toh_gearforged",
+      "lineage": "Dwarf Chassis",
+      "traits": [
+        {
+          "name": "Dwarf Chassis",
+          "level": 1,
+          "sourceReview": "catalog_inventory",
+          "runtimeReview": "pending"
+        }
+      ]
+    },
+    {
+      "edition": "both",
+      "species": "Gearforged",
+      "source": "toh",
+      "printing": "book-toh_gearforged",
+      "lineage": "Gnome Chassis",
+      "traits": [
+        {
+          "name": "Gnome Chassis",
+          "level": 1,
+          "sourceReview": "catalog_inventory",
+          "runtimeReview": "pending"
+        }
+      ]
+    },
+    {
+      "edition": "both",
+      "species": "Gearforged",
+      "source": "toh",
+      "printing": "book-toh_gearforged",
+      "lineage": "Human Chassis",
+      "traits": [
+        {
+          "name": "Human Chassis",
+          "level": 1,
+          "sourceReview": "catalog_inventory",
+          "runtimeReview": "pending"
+        }
+      ]
+    },
+    {
+      "edition": "both",
+      "species": "Gearforged",
+      "source": "toh",
+      "printing": "book-toh_gearforged",
+      "lineage": "Kobold Chassis",
+      "traits": [
+        {
+          "name": "Kobold Chassis",
+          "level": 1,
+          "sourceReview": "catalog_inventory",
+          "runtimeReview": "pending"
+        }
+      ]
+    },
+    {
+      "edition": "both",
+      "species": "Minotaur",
+      "source": "toh",
+      "printing": "book-toh_minotaur",
+      "traits": [
+        {
+          "name": "Darkvision",
+          "level": 1,
+          "sourceReview": "catalog_inventory",
+          "runtimeReview": "pending"
+        },
+        {
+          "name": "Natural Attacks",
+          "level": 1,
+          "sourceReview": "catalog_inventory",
+          "runtimeReview": "pending"
+        },
+        {
+          "name": "Charge",
+          "level": 1,
+          "sourceReview": "catalog_inventory",
+          "runtimeReview": "pending"
+        },
+        {
+          "name": "Labyrinth Sense",
+          "level": 1,
+          "sourceReview": "catalog_inventory",
+          "runtimeReview": "pending"
+        }
+      ]
+    },
+    {
+      "edition": "both",
+      "species": "Minotaur",
+      "source": "toh",
+      "printing": "book-toh_minotaur",
+      "lineage": "Bhain Kwai",
+      "traits": [
+        {
+          "name": "Bhain Kwai",
+          "level": 1,
+          "sourceReview": "catalog_inventory",
+          "runtimeReview": "pending"
+        }
+      ]
+    },
+    {
+      "edition": "both",
+      "species": "Minotaur",
+      "source": "toh",
+      "printing": "book-toh_minotaur",
+      "lineage": "Boghaid",
+      "traits": [
+        {
+          "name": "Boghaid",
+          "level": 1,
+          "sourceReview": "catalog_inventory",
+          "runtimeReview": "pending"
+        }
+      ]
+    },
+    {
+      "edition": "both",
+      "species": "Mushroomfolk",
+      "source": "toh",
+      "printing": "book-toh_mushroomfolk",
+      "traits": [
+        {
+          "name": "Darkvision",
+          "level": 1,
+          "sourceReview": "catalog_inventory",
+          "runtimeReview": "pending"
+        },
+        {
+          "name": "Fungoid Form",
+          "level": 1,
+          "sourceReview": "catalog_inventory",
+          "runtimeReview": "pending"
+        },
+        {
+          "name": "Hardy Survivor",
+          "level": 1,
+          "sourceReview": "catalog_inventory",
+          "runtimeReview": "pending"
+        },
+        {
+          "name": "Subrace",
+          "level": 1,
+          "sourceReview": "catalog_inventory",
+          "runtimeReview": "pending"
+        }
+      ]
+    },
+    {
+      "edition": "both",
+      "species": "Mushroomfolk",
+      "source": "toh",
+      "printing": "book-toh_mushroomfolk",
+      "lineage": "Acid Cap",
+      "traits": [
+        {
+          "name": "Acid Cap",
+          "level": 1,
+          "sourceReview": "catalog_inventory",
+          "runtimeReview": "pending"
+        }
+      ]
+    },
+    {
+      "edition": "both",
+      "species": "Mushroomfolk",
+      "source": "toh",
+      "printing": "book-toh_mushroomfolk",
+      "lineage": "Favored",
+      "traits": [
+        {
+          "name": "Favored",
+          "level": 1,
+          "sourceReview": "catalog_inventory",
+          "runtimeReview": "pending"
+        }
+      ]
+    },
+    {
+      "edition": "both",
+      "species": "Mushroomfolk",
+      "source": "toh",
+      "printing": "book-toh_mushroomfolk",
+      "lineage": "Morel",
+      "traits": [
+        {
+          "name": "Morel",
+          "level": 1,
+          "sourceReview": "catalog_inventory",
+          "runtimeReview": "pending"
+        }
+      ]
+    },
+    {
+      "edition": "both",
+      "species": "Satarre",
+      "source": "toh",
+      "printing": "book-toh_satarre",
+      "traits": [
+        {
+          "name": "Darkvision",
+          "level": 1,
+          "sourceReview": "catalog_inventory",
+          "runtimeReview": "pending"
+        },
+        {
+          "name": "A Friend to Death",
+          "level": 1,
+          "sourceReview": "catalog_inventory",
+          "runtimeReview": "pending"
+        },
+        {
+          "name": "Keeper of Secrets",
+          "level": 1,
+          "sourceReview": "catalog_inventory",
+          "runtimeReview": "pending"
+        },
+        {
+          "name": "Carrier of Rot",
+          "level": 1,
+          "sourceReview": "catalog_inventory",
+          "runtimeReview": "pending"
+        }
+      ]
+    },
+    {
+      "edition": "both",
+      "species": "Shade",
+      "source": "toh",
+      "printing": "book-toh_shade",
+      "traits": []
+    },
+    {
+      "edition": "2024",
+      "species": "Changeling",
+      "source": "efota",
+      "printing": "reference-efota-changeling",
+      "traits": [
+        {
+          "name": "Changeling Instincts",
+          "level": 1,
+          "sourceReview": "catalog_inventory",
+          "runtimeReview": "pending"
+        },
+        {
+          "name": "Shape-Shifter",
+          "level": 1,
+          "sourceReview": "catalog_inventory",
+          "runtimeReview": "pending"
+        }
+      ]
+    },
+    {
+      "edition": "2024",
+      "species": "Kalashtar",
+      "source": "efota",
+      "printing": "reference-efota-kalashtar",
+      "traits": [
+        {
+          "name": "Dual Mind",
+          "level": 1,
+          "sourceReview": "catalog_inventory",
+          "runtimeReview": "pending"
+        },
+        {
+          "name": "Mental Discipline",
+          "level": 1,
+          "sourceReview": "catalog_inventory",
+          "runtimeReview": "pending"
+        },
+        {
+          "name": "Mind Link",
+          "level": 1,
+          "sourceReview": "catalog_inventory",
+          "runtimeReview": "pending"
+        },
+        {
+          "name": "Severed from Dreams",
+          "level": 1,
+          "sourceReview": "catalog_inventory",
+          "runtimeReview": "pending"
+        }
+      ]
+    },
+    {
+      "edition": "2024",
+      "species": "Khoravar",
+      "source": "efota",
+      "printing": "reference-efota-khoravar",
+      "traits": [
+        {
+          "name": "Darkvision 60 ft",
+          "level": 1,
+          "sourceReview": "catalog_inventory",
+          "runtimeReview": "pending"
+        },
+        {
+          "name": "Fey Ancestry",
+          "level": 1,
+          "sourceReview": "catalog_inventory",
+          "runtimeReview": "pending"
+        },
+        {
+          "name": "Fey Gift",
+          "level": 1,
+          "sourceReview": "catalog_inventory",
+          "runtimeReview": "pending"
+        },
+        {
+          "name": "Lethargy Resilience",
+          "level": 1,
+          "sourceReview": "catalog_inventory",
+          "runtimeReview": "pending"
+        },
+        {
+          "name": "Skill Versatility",
+          "level": 1,
+          "sourceReview": "catalog_inventory",
+          "runtimeReview": "pending"
+        }
+      ]
+    },
+    {
+      "edition": "2024",
+      "species": "Shifter",
+      "source": "efota",
+      "printing": "reference-efota-shifter",
+      "traits": [
+        {
+          "name": "Bestial Instincts",
+          "level": 1,
+          "sourceReview": "catalog_inventory",
+          "runtimeReview": "pending"
+        },
+        {
+          "name": "Darkvision 60 ft",
+          "level": 1,
+          "sourceReview": "catalog_inventory",
+          "runtimeReview": "pending"
+        },
+        {
+          "name": "Shifting",
+          "level": 1,
+          "sourceReview": "catalog_inventory",
+          "runtimeReview": "pending"
+        }
+      ]
+    },
+    {
+      "edition": "2024",
+      "species": "Shifter",
+      "source": "efota",
+      "printing": "reference-efota-shifter",
+      "lineage": "Beasthide",
+      "traits": [
+        {
+          "name": "Beasthide",
+          "level": 1,
+          "sourceReview": "catalog_inventory",
+          "runtimeReview": "pending"
+        }
+      ]
+    },
+    {
+      "edition": "2024",
+      "species": "Shifter",
+      "source": "efota",
+      "printing": "reference-efota-shifter",
+      "lineage": "Longtooth",
+      "traits": [
+        {
+          "name": "Longtooth",
+          "level": 1,
+          "sourceReview": "catalog_inventory",
+          "runtimeReview": "pending"
+        }
+      ]
+    },
+    {
+      "edition": "2024",
+      "species": "Shifter",
+      "source": "efota",
+      "printing": "reference-efota-shifter",
+      "lineage": "Swiftstride",
+      "traits": [
+        {
+          "name": "Swiftstride",
+          "level": 1,
+          "sourceReview": "catalog_inventory",
+          "runtimeReview": "pending"
+        }
+      ]
+    },
+    {
+      "edition": "2024",
+      "species": "Shifter",
+      "source": "efota",
+      "printing": "reference-efota-shifter",
+      "lineage": "Wildhunt",
+      "traits": [
+        {
+          "name": "Wildhunt",
+          "level": 1,
+          "sourceReview": "catalog_inventory",
+          "runtimeReview": "pending"
+        }
+      ]
+    },
+    {
+      "edition": "2024",
+      "species": "Warforged",
+      "source": "efota",
+      "printing": "reference-efota-warforged",
+      "traits": [
+        {
+          "name": "Construct Resilience",
+          "level": 1,
+          "sourceReview": "catalog_inventory",
+          "runtimeReview": "pending"
+        },
+        {
+          "name": "Integrated Protection",
+          "level": 1,
+          "sourceReview": "catalog_inventory",
+          "runtimeReview": "pending"
+        },
+        {
+          "name": "Sentry’s Rest",
+          "level": 1,
+          "sourceReview": "catalog_inventory",
+          "runtimeReview": "pending"
+        },
+        {
+          "name": "Specialized Design",
+          "level": 1,
+          "sourceReview": "catalog_inventory",
+          "runtimeReview": "pending"
+        },
+        {
+          "name": "Tireless",
+          "level": 1,
+          "sourceReview": "catalog_inventory",
+          "runtimeReview": "pending"
+        }
+      ]
+    },
+    {
+      "edition": "2024",
+      "species": "Boggart",
+      "source": "lfl",
+      "printing": "reference-lfl-species-boggart",
+      "traits": []
+    },
+    {
+      "edition": "2024",
+      "species": "Dhampir",
+      "source": "rthw",
+      "printing": "reference-rthw-species-dhampir",
+      "traits": [
+        {
+          "name": "Darkvision",
+          "level": 1,
+          "sourceReview": "catalog_inventory",
+          "runtimeReview": "pending"
+        },
+        {
+          "name": "Spider Climb",
+          "level": 1,
+          "sourceReview": "catalog_inventory",
+          "runtimeReview": "pending"
+        },
+        {
+          "name": "Trace of Undeath",
+          "level": 1,
+          "sourceReview": "catalog_inventory",
+          "runtimeReview": "pending"
+        },
+        {
+          "name": "Vampiric Bite",
+          "level": 1,
+          "sourceReview": "catalog_inventory",
+          "runtimeReview": "pending"
+        },
+        {
+          "name": "Damage resistances",
+          "level": 1,
+          "sourceReview": "catalog_inventory",
+          "runtimeReview": "pending"
+        }
+      ]
+    },
+    {
+      "edition": "2024",
+      "species": "Dracthyr",
+      "source": "wow",
+      "printing": "reference-wow-species-dracthyr",
+      "traits": [
+        {
+          "name": "Darkvision",
+          "level": 1,
+          "sourceReview": "catalog_inventory",
+          "runtimeReview": "pending"
+        },
+        {
+          "name": "Gliding Wings",
+          "level": 1,
+          "sourceReview": "catalog_inventory",
+          "runtimeReview": "pending"
+        },
+        {
+          "name": "Natural Weaponry",
+          "level": 1,
+          "sourceReview": "catalog_inventory",
+          "runtimeReview": "pending"
+        },
+        {
+          "name": "Visage",
+          "level": 1,
+          "sourceReview": "catalog_inventory",
+          "runtimeReview": "pending"
+        },
+        {
+          "name": "Draconic Flight",
+          "level": 1,
+          "sourceReview": "catalog_inventory",
+          "runtimeReview": "pending"
+        }
+      ]
+    },
+    {
+      "edition": "2024",
+      "species": "Draenei",
+      "source": "wow",
+      "printing": "reference-wow-species-draenei",
+      "traits": [
+        {
+          "name": "Darkvision",
+          "level": 1,
+          "sourceReview": "catalog_inventory",
+          "runtimeReview": "pending"
+        },
+        {
+          "name": "Eredar Lineage",
+          "level": 1,
+          "sourceReview": "catalog_inventory",
+          "runtimeReview": "pending"
+        },
+        {
+          "name": "Heroic Presence",
+          "level": 1,
+          "sourceReview": "catalog_inventory",
+          "runtimeReview": "pending"
+        }
+      ]
+    },
+    {
+      "edition": "2024",
+      "species": "Draenei",
+      "source": "wow",
+      "printing": "reference-wow-species-draenei",
+      "lineage": "Draenei",
+      "traits": [
+        {
+          "name": "Draenei",
+          "level": 1,
+          "sourceReview": "catalog_inventory",
+          "runtimeReview": "pending"
+        }
+      ]
+    },
+    {
+      "edition": "2024",
+      "species": "Draenei",
+      "source": "wow",
+      "printing": "reference-wow-species-draenei",
+      "lineage": "Krokul",
+      "traits": [
+        {
+          "name": "Krokul",
+          "level": 1,
+          "sourceReview": "catalog_inventory",
+          "runtimeReview": "pending"
+        }
+      ]
+    },
+    {
+      "edition": "2024",
+      "species": "Draenei",
+      "source": "wow",
+      "printing": "reference-wow-species-draenei",
+      "lineage": "Lightforged",
+      "traits": [
+        {
+          "name": "Lightforged",
+          "level": 1,
+          "sourceReview": "catalog_inventory",
+          "runtimeReview": "pending"
+        }
+      ]
+    },
+    {
+      "edition": "2024",
+      "species": "Draenei",
+      "source": "wow",
+      "printing": "reference-wow-species-draenei",
+      "lineage": "Man’ari",
+      "traits": [
+        {
+          "name": "Man’ari",
+          "level": 1,
+          "sourceReview": "catalog_inventory",
+          "runtimeReview": "pending"
+        }
+      ]
+    },
+    {
+      "edition": "2024",
+      "species": "Dwarf (Azeroth)",
+      "source": "wow",
+      "printing": "reference-wow-species-dwarf",
+      "traits": []
+    },
+    {
+      "edition": "2024",
+      "species": "Earthen",
+      "source": "wow",
+      "printing": "reference-wow-species-earthen",
+      "traits": [
+        {
+          "name": "Azerite Surge",
+          "level": 1,
+          "sourceReview": "catalog_inventory",
+          "runtimeReview": "pending"
+        },
+        {
+          "name": "Darkvision",
+          "level": 1,
+          "sourceReview": "catalog_inventory",
+          "runtimeReview": "pending"
+        },
+        {
+          "name": "Earthen Resilience",
+          "level": 1,
+          "sourceReview": "catalog_inventory",
+          "runtimeReview": "pending"
+        },
+        {
+          "name": "Ingest Minerals",
+          "level": 1,
+          "sourceReview": "catalog_inventory",
+          "runtimeReview": "pending"
+        },
+        {
+          "name": "Quiet Contemplation",
+          "level": 1,
+          "sourceReview": "catalog_inventory",
+          "runtimeReview": "pending"
+        },
+        {
+          "name": "Damage resistances",
+          "level": 1,
+          "sourceReview": "catalog_inventory",
+          "runtimeReview": "pending"
+        }
+      ]
+    },
+    {
+      "edition": "2024",
+      "species": "Elf",
+      "source": "lfl",
+      "printing": "reference-lfl-species-elf",
+      "traits": []
+    },
+    {
+      "edition": "2024",
+      "species": "Elf (Azeroth)",
+      "source": "wow",
+      "printing": "reference-wow-species-elf",
+      "traits": []
+    },
+    {
+      "edition": "2024",
+      "species": "Faerie",
+      "source": "lfl",
+      "printing": "reference-lfl-species-faerie",
+      "traits": []
+    },
+    {
+      "edition": "2024",
+      "species": "Flamekin",
+      "source": "lfl",
+      "printing": "reference-lfl-species-flamekin",
+      "traits": [
+        {
+          "name": "Damage resistances",
+          "level": 1,
+          "sourceReview": "catalog_inventory",
+          "runtimeReview": "pending"
+        }
+      ]
+    },
+    {
+      "edition": "2024",
+      "species": "Forsaken",
+      "source": "wow",
+      "printing": "reference-wow-species-forsaken",
+      "traits": [
+        {
+          "name": "Darkvision",
+          "level": 1,
+          "sourceReview": "catalog_inventory",
+          "runtimeReview": "pending"
+        },
+        {
+          "name": "Deathly Endurance",
+          "level": 1,
+          "sourceReview": "catalog_inventory",
+          "runtimeReview": "pending"
+        },
+        {
+          "name": "Everlasting",
+          "level": 1,
+          "sourceReview": "catalog_inventory",
+          "runtimeReview": "pending"
+        },
+        {
+          "name": "Touch of the Grave",
+          "level": 1,
+          "sourceReview": "catalog_inventory",
+          "runtimeReview": "pending"
+        },
+        {
+          "name": "Will of the Forsaken",
+          "level": 1,
+          "sourceReview": "catalog_inventory",
+          "runtimeReview": "pending"
+        },
+        {
+          "name": "Damage resistances",
+          "level": 1,
+          "sourceReview": "catalog_inventory",
+          "runtimeReview": "pending"
+        }
+      ]
+    },
+    {
+      "edition": "2024",
+      "species": "Gnome (Azeroth)",
+      "source": "wow",
+      "printing": "reference-wow-species-gnome",
+      "traits": []
+    },
+    {
+      "edition": "2024",
+      "species": "Goblin (Azeroth)",
+      "source": "wow",
+      "printing": "reference-wow-species-goblin",
+      "traits": [
+        {
+          "name": "Darkvision",
+          "level": 1,
+          "sourceReview": "catalog_inventory",
+          "runtimeReview": "pending"
+        },
+        {
+          "name": "Fey Ancestry",
+          "level": 1,
+          "sourceReview": "catalog_inventory",
+          "runtimeReview": "pending"
+        },
+        {
+          "name": "Fury of the Small",
+          "level": 1,
+          "sourceReview": "catalog_inventory",
+          "runtimeReview": "pending"
+        },
+        {
+          "name": "Nimble Escape",
+          "level": 1,
+          "sourceReview": "catalog_inventory",
+          "runtimeReview": "pending"
+        }
+      ]
+    },
+    {
+      "edition": "2024",
+      "species": "Haranir",
+      "source": "wow",
+      "printing": "reference-wow-species-haranir",
+      "traits": [
+        {
+          "name": "Darkvision",
+          "level": 1,
+          "sourceReview": "catalog_inventory",
+          "runtimeReview": "pending"
+        },
+        {
+          "name": "Gift of the World Tree",
+          "level": 1,
+          "sourceReview": "catalog_inventory",
+          "runtimeReview": "pending"
+        },
+        {
+          "name": "Haranir Magic",
+          "level": 1,
+          "sourceReview": "catalog_inventory",
+          "runtimeReview": "pending"
+        }
+      ]
+    },
+    {
+      "edition": "2024",
+      "species": "Hexblood",
+      "source": "rthw",
+      "printing": "reference-rthw-species-hexblood",
+      "traits": [
+        {
+          "name": "Darkvision",
+          "level": 1,
+          "sourceReview": "catalog_inventory",
+          "runtimeReview": "pending"
+        },
+        {
+          "name": "Eerie Token",
+          "level": 1,
+          "sourceReview": "catalog_inventory",
+          "runtimeReview": "pending"
+        }
+      ]
+    },
+    {
+      "edition": "2024",
+      "species": "Human (Azeroth)",
+      "source": "wow",
+      "printing": "reference-wow-species-human",
+      "traits": []
+    },
+    {
+      "edition": "2024",
+      "species": "Kithkin",
+      "source": "lfl",
+      "printing": "reference-lfl-species-kithkin",
+      "traits": []
+    },
+    {
+      "edition": "2024",
+      "species": "Lorwyn Changeling",
+      "source": "lfl",
+      "printing": "reference-lfl-species-lorwyn-changeling",
+      "traits": [
+        {
+          "name": "Shape Self",
+          "level": 1,
+          "sourceReview": "catalog_inventory",
+          "runtimeReview": "pending"
+        },
+        {
+          "name": "Darkvision",
+          "level": 1,
+          "sourceReview": "catalog_inventory",
+          "runtimeReview": "pending"
+        },
+        {
+          "name": "Delightful Imitator",
+          "level": 1,
+          "sourceReview": "catalog_inventory",
+          "runtimeReview": "pending"
+        },
+        {
+          "name": "Unpredictable Movement",
+          "level": 1,
+          "sourceReview": "catalog_inventory",
+          "runtimeReview": "pending"
+        }
+      ]
+    },
+    {
+      "edition": "2024",
+      "species": "Lupin",
+      "source": "rthw",
+      "printing": "reference-rthw-species-lupin",
+      "traits": [
+        {
+          "name": "Darkvision",
+          "level": 1,
+          "sourceReview": "catalog_inventory",
+          "runtimeReview": "pending"
+        },
+        {
+          "name": "Feral Pounce",
+          "level": 1,
+          "sourceReview": "catalog_inventory",
+          "runtimeReview": "pending"
+        },
+        {
+          "name": "Howl",
+          "level": 1,
+          "sourceReview": "catalog_inventory",
+          "runtimeReview": "pending"
+        },
+        {
+          "name": "Werewolf Instincts",
+          "level": 1,
+          "sourceReview": "catalog_inventory",
+          "runtimeReview": "pending"
+        }
+      ]
+    },
+    {
+      "edition": "2024",
+      "species": "Mechagnome",
+      "source": "wow",
+      "printing": "reference-wow-species-mechagnome",
+      "traits": [
+        {
+          "name": "Built for Success",
+          "level": 1,
+          "sourceReview": "catalog_inventory",
+          "runtimeReview": "pending"
+        },
+        {
+          "name": "Emergency Fail-Safe",
+          "level": 1,
+          "sourceReview": "catalog_inventory",
+          "runtimeReview": "pending"
+        },
+        {
+          "name": "Mechanical Nature",
+          "level": 1,
+          "sourceReview": "catalog_inventory",
+          "runtimeReview": "pending"
+        },
+        {
+          "name": "Sentry's Rest",
+          "level": 1,
+          "sourceReview": "catalog_inventory",
+          "runtimeReview": "pending"
+        },
+        {
+          "name": "Specialized Design",
+          "level": 1,
+          "sourceReview": "catalog_inventory",
+          "runtimeReview": "pending"
+        },
+        {
+          "name": "Damage resistances",
+          "level": 1,
+          "sourceReview": "catalog_inventory",
+          "runtimeReview": "pending"
+        }
+      ]
+    },
+    {
+      "edition": "2024",
+      "species": "Orc (Azeroth)",
+      "source": "wow",
+      "printing": "reference-wow-species-orc",
+      "traits": []
+    },
+    {
+      "edition": "2024",
+      "species": "Pandaren",
+      "source": "wow",
+      "printing": "reference-wow-species-pandaren",
+      "traits": [
+        {
+          "name": "Bouncy",
+          "level": 1,
+          "sourceReview": "catalog_inventory",
+          "runtimeReview": "pending"
+        },
+        {
+          "name": "Darkvision",
+          "level": 1,
+          "sourceReview": "catalog_inventory",
+          "runtimeReview": "pending"
+        },
+        {
+          "name": "Inner Peace",
+          "level": 1,
+          "sourceReview": "catalog_inventory",
+          "runtimeReview": "pending"
+        },
+        {
+          "name": "Quaking Palm",
+          "level": 1,
+          "sourceReview": "catalog_inventory",
+          "runtimeReview": "pending"
+        }
+      ]
+    },
+    {
+      "edition": "2024",
+      "species": "Reborn",
+      "source": "rthw",
+      "printing": "reference-rthw-species-reborn",
+      "traits": [
+        {
+          "name": "Escaped Death",
+          "level": 1,
+          "sourceReview": "catalog_inventory",
+          "runtimeReview": "pending"
+        },
+        {
+          "name": "Everlasting",
+          "level": 1,
+          "sourceReview": "catalog_inventory",
+          "runtimeReview": "pending"
+        },
+        {
+          "name": "Knowledge from a Past Life",
+          "level": 1,
+          "sourceReview": "catalog_inventory",
+          "runtimeReview": "pending"
+        },
+        {
+          "name": "Strange Endurance",
+          "level": 1,
+          "sourceReview": "catalog_inventory",
+          "runtimeReview": "pending"
+        }
+      ]
+    },
+    {
+      "edition": "2024",
+      "species": "Rimekin",
+      "source": "lfl",
+      "printing": "reference-lfl-species-rimekin",
+      "traits": [
+        {
+          "name": "Cold Fire Magic",
+          "level": 1,
+          "sourceReview": "catalog_inventory",
+          "runtimeReview": "pending"
+        },
+        {
+          "name": "Cold Resistance",
+          "level": 1,
+          "sourceReview": "catalog_inventory",
+          "runtimeReview": "pending"
+        },
+        {
+          "name": "Darkvision",
+          "level": 1,
+          "sourceReview": "catalog_inventory",
+          "runtimeReview": "pending"
+        },
+        {
+          "name": "Damage resistances",
+          "level": 1,
+          "sourceReview": "catalog_inventory",
+          "runtimeReview": "pending"
+        }
+      ]
+    },
+    {
+      "edition": "2024",
+      "species": "Tauren",
+      "source": "wow",
+      "printing": "reference-wow-species-tauren",
+      "traits": [
+        {
+          "name": "Horns",
+          "level": 1,
+          "sourceReview": "catalog_inventory",
+          "runtimeReview": "pending"
+        },
+        {
+          "name": "Goring Rush",
+          "level": 1,
+          "sourceReview": "catalog_inventory",
+          "runtimeReview": "pending"
+        },
+        {
+          "name": "Hammering Horns",
+          "level": 1,
+          "sourceReview": "catalog_inventory",
+          "runtimeReview": "pending"
+        },
+        {
+          "name": "Tauren Lineage",
+          "level": 1,
+          "sourceReview": "catalog_inventory",
+          "runtimeReview": "pending"
+        }
+      ]
+    },
+    {
+      "edition": "2024",
+      "species": "Troll",
+      "source": "wow",
+      "printing": "reference-wow-species-troll",
+      "traits": [
+        {
+          "name": "Bloodied Frenzy",
+          "level": 1,
+          "sourceReview": "catalog_inventory",
+          "runtimeReview": "pending"
+        },
+        {
+          "name": "Darkvision",
+          "level": 1,
+          "sourceReview": "catalog_inventory",
+          "runtimeReview": "pending"
+        },
+        {
+          "name": "Troll Healing",
+          "level": 1,
+          "sourceReview": "catalog_inventory",
+          "runtimeReview": "pending"
+        },
+        {
+          "name": "Troll Lineage",
+          "level": 1,
+          "sourceReview": "catalog_inventory",
+          "runtimeReview": "pending"
+        }
+      ]
+    },
+    {
+      "edition": "2024",
+      "species": "Vulpera",
+      "source": "wow",
+      "printing": "reference-wow-species-vulpera",
+      "traits": [
+        {
+          "name": "Darkvision",
+          "level": 1,
+          "sourceReview": "catalog_inventory",
+          "runtimeReview": "pending"
+        },
+        {
+          "name": "Fire Resistance",
+          "level": 1,
+          "sourceReview": "catalog_inventory",
+          "runtimeReview": "pending"
+        },
+        {
+          "name": "Nose for Trouble",
+          "level": 1,
+          "sourceReview": "catalog_inventory",
+          "runtimeReview": "pending"
+        },
+        {
+          "name": "Vulpera Nimbleness",
+          "level": 1,
+          "sourceReview": "catalog_inventory",
+          "runtimeReview": "pending"
+        },
+        {
+          "name": "Damage resistances",
+          "level": 1,
+          "sourceReview": "catalog_inventory",
+          "runtimeReview": "pending"
+        }
+      ]
+    },
+    {
+      "edition": "2024",
+      "species": "Worgen",
+      "source": "wow",
+      "printing": "reference-wow-species-worgen",
+      "traits": [
+        {
+          "name": "Darkflight",
+          "level": 1,
+          "sourceReview": "catalog_inventory",
+          "runtimeReview": "pending"
+        },
+        {
+          "name": "Darkvision",
+          "level": 1,
+          "sourceReview": "catalog_inventory",
+          "runtimeReview": "pending"
+        },
+        {
+          "name": "Instinctual Shift",
+          "level": 1,
+          "sourceReview": "catalog_inventory",
+          "runtimeReview": "pending"
+        }
+      ]
+    }
+  ]
+}

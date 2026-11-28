@@ -771,6 +771,27 @@ const GIANT_BOONS={
  "Stone Giant":{name:"Stone's Endurance",when:"Reaction when damaged",text:"Reduce incoming damage by 1d12 plus your Constitution modifier."},
  "Storm Giant":{name:"Storm's Thunder",when:"Reaction when damaged",text:"Deal 1d8 thunder damage to the creature that damaged you, if it is within 60 ft."}
 };
+const SPECIES_FORMS={"Draconic Flight":{race:"Dragonborn",resource:"dflight"},"Large Form":{race:"Goliath",resource:"large"}};
+function speciesFormAvailable(c,name){
+  return edOf(c)==="2024"&&c.race===SPECIES_FORMS[name].race&&totalLv(c)>=5;
+}
+function speciesFormActive(c,name){
+  if(!c.active?.[name]||!speciesFormAvailable(c,name)||!(+c.speciesFormUntil>Date.now())||c.death?.dead)return false;
+  return name!=="Draconic Flight"||!COND_INCAP.some(key=>condOn(c,key));
+}
+function syncSpeciesForm(c){
+  for(const name of Object.keys(SPECIES_FORMS))if(c.active?.[name]&&!speciesFormActive(c,name))delete c.active[name];
+  if(!Object.keys(SPECIES_FORMS).some(name=>c.active?.[name]))delete c.speciesFormUntil;
+}
+function startSpeciesForm(c,name){
+  c.speciesFormUntil=Date.now()+600000;
+  return `${name} active for 10 minutes.`;
+}
+function dragonbornBreathAction(c,choice){
+  const breath=characterDragonBreath(c),shape=edOf(c)==="2024"?REVISED_BREATH_SHAPES[choice]:breath.shape;
+  return area("Breath Weapon",breath.dice,breath.save.toLowerCase(),breath.dc,cap1(breath.type),
+    `Each creature in the ${shape} makes a ${breath.save} save against DC ${breath.dc}, taking ${breath.type} damage or half on a success.`);
+}
 function giantBoon(c){return edOf(c)==="2024"&&c.race==="Goliath"&&Object.hasOwn(GIANT_BOONS,c.sub)?GIANT_BOONS[c.sub]:null;}
 function giantBoonUse(c){
  const b=giantBoon(c);if(!b)return "Choose a valid Giant ancestry.";
@@ -850,12 +871,12 @@ function pcResources(c) {
   if (ed === "2024" && featTaken(c, "Ritual Caster")) add("featQuickRitual", "Quick Ritual", 1, "long");
   if (ed === "2024" && featTaken(c, "Mage Slayer")) add("featGuardedMind", "Guarded Mind", 1, "short");
   if (featTaken(c, "Lucky")) add("luckfeat", "Luck points", ed === "2024" ? prof : 3, "long");
-  if (c.race === "Dragonborn") add("breath", "Breath Weapon", ed === "2024" ? prof : 1, ed === "2024" ? "long" : "short");
+  const breath=characterDragonBreath(c);
+  if(breath)add("breath","Breath Weapon",breath.max,breath.recharge);
   if (tr("Healing Hands")) add("hhands", "Healing Hands", 1, "long");
   if (tr("Relentless Endurance")) add("relent", "Relentless Endurance", 1, "long");
   if (tr("Celestial Revelation") && TLV >= 3) add("crev", "Celestial Revelation", 1, "long");
-  if (tr("Large Form") && TLV >= 5) add("large", "Large Form", 1, "long");
-  if (tr("Draconic Flight") && TLV >= 5) add("dflight", "Draconic Flight", 1, "long");
+  for(const [name,spec] of Object.entries(SPECIES_FORMS))if(speciesFormAvailable(c,name))add(spec.resource,name,1,"long");
   if (tr("Adrenaline Rush")) add("adren", "Adrenaline Rush", prof, ed==="2024"&&c.race==="Orc"?"short":"long");
   if (giantBoon(c)) add("giant", "Giant Ancestry", prof, "long");
   if(ed==="2024"&&c.race==="Dwarf"&&tr("Stonecunning"))add("stonecunning","Stonecunning",prof,"long");
@@ -1095,7 +1116,8 @@ function pcAbilities(c) {
     if (text) add(feat === "Lucky" ? "Lucky (feat)" : feat, feat === "Lucky" ? "On a roll" : "Feat", text, feat === "Lucky" ? "luckfeat" : null);
   }
   if (has("Stroke of Luck")) add("Stroke of Luck", "Free", "Turn a missed attack into a hit, or treat a failed ability check's d20 as a 20.", "luck");
-  if (c.race === "Dragonborn") { const x = (c.extras || []).find(e => e.startsWith("Breath Weapon")); if (x) add("Breath Weapon", ed === "2024" ? "Replaces an attack" : "Action", x.replace(/^Breath Weapon \([^)]*\):\s*/, "").replace(/, (\d+ uses per long rest|once per short or long rest)$/, ""), "breath"); }
+  const breath=characterDragonBreath(c);
+  if(breath&&!c.death?.dead&&!COND_INCAP.some(key=>condOn(c,key)))add("Breath Weapon",breath.when,breath.text,"breath","Dragonborn");
   if (tr("Healing Hands")) add("Healing Hands", "Action", `Touch a creature and heal ${prof}d4 hit points.`, "hhands");
   if (tr("Relentless Endurance")) add("Relentless Endurance", "When reduced to 0 HP", "Drop to 1 hit point instead.", "relent");
   const monkActions=legacyMonkActions(c),monkActionNames=new Set(monkActions.map(a=>a.name));
@@ -1112,8 +1134,10 @@ function pcAbilities(c) {
     const when=revised&&["Intimidating Presence","Wholeness of Body","Holy Nimbus"].includes(f.f)?"Bonus action":S.when;
     add(f.f,when,S.text?S.text({...c,level:o.level}):desc,special||(S.res?subAblKey(f.f):S.uses==="channel"?channelKey(c,o.cls):S.uses),o.name);
   });
-  if (tr("Large Form") && TLV >= 5) add("Large Form", "Bonus action", "Become Large for 10 minutes: advantage on Strength checks and +10 ft speed.", "large");
-  if (tr("Draconic Flight") && TLV >= 5) add("Draconic Flight", "Bonus action", "Spectral wings for 10 minutes: fly at your walking speed.", "dflight");
+  for(const [name,spec] of Object.entries(SPECIES_FORMS)){
+    if(speciesFormAvailable(c,name)&&(speciesFormActive(c,name)||!c.death?.dead&&!COND_INCAP.some(key=>condOn(c,key))))
+      add(name,"Bonus action",featDesc(name,c),spec.resource,spec.race);
+  }
   if (tr("Adrenaline Rush")) add("Adrenaline Rush", "Bonus action", `Dash, and gain ${prof} temporary hit points.`, "adren");
   const boon=giantBoon(c);if(boon)add("Giant Ancestry",boon.when,boon.name+": "+boon.text,"giant","Goliath");
   if(ed==="2024"&&c.race==="Dwarf"&&tr("Stonecunning"))add("Stonecunning","Bonus action","60 ft Tremorsense while touching stone for 10 minutes. Confirm surface and expiry manually.","stonecunning","Dwarf");
@@ -2223,12 +2247,14 @@ const ACT = {
   "Resolve Spell Breaker":{kind:"instant",choices:[["stopped","Stopped a spell"],["failed","Failed to stop a spell (refund slot)"]],use:spellBreakerResolve},
   "Illusory Self": { kind: "instant", use: () => "Illusory Self: the attack misses." },
   // ---------- species
-  "Breath Weapon": { kind: "instant", use: c => { const x = (c.extras || []).find(e => e.startsWith("Breath Weapon")) || "", d = (x.match(/(\d+d\d+)/) || [])[1] || "2d6", dc = +((x.match(/DC (\d+)/) || [])[1] || 8 + c.prof + c.mods.con), A = DRAGON_ANCESTRY[c.ancestry] || {}, sv = edOf(c) === "2024" ? "dex" : String(A.save || "DEX").toLowerCase(); return area("Breath Weapon", d, sv, dc, cap1(A.type || ""), `Each creature in the ${edOf(c) === "2024" ? "15 ft cone or 30 ft line" : A.shape || "area"} makes a ${sv.toUpperCase()} save: ${A.type || ""} damage, half on a success.`); } },
+  "Breath Weapon": {kind:"instant",choices:c=>edOf(c)==="2024"?Object.entries(REVISED_BREATH_SHAPES):[["ancestry",characterDragonBreath(c)?.shape]],use:dragonbornBreathAction},
   "Healing Hands": { kind: "instant", use: c => roll("Healing Hands", `${c.prof}d4`, "heal", "Hit points restored to the creature you touch") },
   "Relentless Endurance": {kind:"instant",choices:c=>+c.hpCur===0&&c.hpCur!==""&&!c.death?.dead?[["confirm","Confirm reduced to 0 HP, not killed outright"]]:[],use:c=>{c.hpCur=1;pcHealed(c,true);return "Relentless Endurance: you drop to 1 HP instead of 0.";}},
   "Celestial Revelation": { kind: "toggle", choices: [["wings", "Heavenly Wings"], ["radiance", "Inner Radiance"], ["shroud", "Necrotic Shroud"]], fx: (c, ch) => ({ atk: [{ f: "all", extra: `${c.prof} ${ch === "shroud" ? "necrotic" : "radiant"} once per turn`, label: "Celestial Revelation" }], ...(ch === "wings" ? { fly: "speed" } : {}), notes: [ch === "radiance" ? "Inner Radiance: bright light; creatures within 10 ft take radiant damage equal to your proficiency bonus at the end of your turns" : ch === "shroud" ? "Necrotic Shroud: creatures within 10 ft make a CHA save or are frightened of you until the end of your next turn" : "Heavenly Wings: flying speed equal to your speed"] }) },
-  "Large Form": { kind: "toggle", fx: () => ({ speed: [10, "Large Form"], notes: ["Large Form: you are Large, with advantage on Strength checks, for 10 minutes"] }) },
-  "Draconic Flight": { kind: "toggle", fx: () => ({ fly: "speed", notes: ["Draconic Flight: spectral wings for 10 minutes"] }) },
+  "Large Form": {kind:"toggle",choices:[["room","Confirm room to become Large"]],start:c=>startSpeciesForm(c,"Large Form"),
+    fx:c=>speciesFormActive(c,"Large Form")?{speed:[10,"Large Form"],notes:["Large Form: your size is Large and your Strength checks have advantage."]}:{}},
+  "Draconic Flight": {kind:"toggle",start:c=>startSpeciesForm(c,"Draconic Flight"),
+    fx:c=>speciesFormActive(c,"Draconic Flight")?{fly:"speed",notes:["Draconic Flight: your Fly Speed equals your Speed."]}:{}},
   "Adrenaline Rush": { kind: "instant", use: c => { giveTemp(c, c.prof); return `Adrenaline Rush: Dash as a bonus action and gain ${c.prof} temporary hit points.`; } },
   "Giant Ancestry": { kind:"instant",use:giantBoonUse },
   "Stonecunning":{kind:"toggle",choices:()=>[["stone","Confirm contact with stone"]],fx:()=>({notes:["Stonecunning: Tremorsense 60 ft while touching stone, for up to 10 minutes; confirm surface and end manually."]})},
@@ -2276,6 +2302,7 @@ function pcFx(c) {
   const have = new Set(pcAbilities(c).map(a => a.name));
   for (const [name, val] of Object.entries(act)) {
     const S = ACT[name]; if (!val || !S || !S.fx || !have.has(name)) continue;
+    if(Object.hasOwn(SPECIES_FORMS,name)&&!speciesFormActive(c,name))continue;
     if (S.needs && !act[S.needs]) continue;
     const ch = val === true ? null : val, x = S.fx(c, ch) || {};
     F.on.push(name);
@@ -2289,7 +2316,8 @@ function pcFx(c) {
 }
 function actControls(c, a, R) {
   const S = actSpec(a); if (!S || S.kind === "none") return "";
-  const on = (c.active || {})[a.name], ch = actChoices(c, S), k = esc(a.name);
+  const on = Object.hasOwn(SPECIES_FORMS,a.name)?speciesFormActive(c,a.name)&&(c.active||{})[a.name]:(c.active||{})[a.name];
+  const ch = actChoices(c, S), k = esc(a.name);
   if((a.name==="Rune Carver inscriptions"||a.name==="Great Stature")&&!ch.length)return "";
   const sel = cur => ch.length ? `<select class="act-sel" data-actsel="${k}" aria-label="${k} option"${S.kind === "persist" ? ` data-actpersist="${k}"` : ""}>${S.kind === "persist" ? `<option value="">Choose…</option>` : ""}${ch.map(([id, l]) => `<option value="${esc(id)}" ${cur === id ? "selected" : ""}>${esc(l)}</option>`).join("")}</select>` : "";
   if (S.kind === "persist") return `<span class="act">${sel(on || "")}</span>`;
@@ -2299,7 +2327,7 @@ function actControls(c, a, R) {
   return "";
 }
 function rcActiveHTML(c) {
-  const F = pcFx(c), act = c.active || {}, list = Object.entries(act).filter(([n, v]) => v && ACT[n] && pcAbilities(c).some(a => a.name === n));
+  const F = pcFx(c), act = c.active || {}, list = Object.entries(act).filter(([n, v]) => v && ACT[n] && pcAbilities(c).some(a => a.name === n) && (!Object.hasOwn(SPECIES_FORMS,n)||speciesFormActive(c,n)));
   const runic=["might","Hill","Frost","Storm"].filter(name=>runeKnightEffect(c,name));
   if (!list.length&&!runic.length) return "";
   const lab = ([n, v]) => { const ch = actChoices(c, ACT[n]).find(x => x[0] === v); return ch ? `${n}: ${ch[1]}` : n; };

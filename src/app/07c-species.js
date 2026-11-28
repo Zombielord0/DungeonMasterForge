@@ -1,7 +1,36 @@
 /* 07c-species.js: Species and races by rules edition (PC_RACES, raceInfo), their defences, and species features that arrive at later levels. */
 
 /* ---- races / species by rules edition, with subraces and lineages ---- */
-const DRAGON_SUBS = () => Object.fromEntries(Object.entries(DRAGON_ANCESTRY).map(([k, A]) => [k, { label: `${k} Dragonborn`, d: `${A.type[0].toUpperCase() + A.type.slice(1)} breath (${A.shape}, ${A.save} save) and ${A.type} resistance.` }]));
+const REVISED_BREATH_SHAPES = { cone: "15 ft cone", line: "30 ft line, 5 ft wide" };
+const DRAGON_SUBS = ed => Object.fromEntries(Object.entries(DRAGON_ANCESTRY).map(([k, A]) => [k, {
+  label: `${k} Dragonborn`, d: `${cap1(A.type)} breath (${ed === "2024" ? "15 ft cone or 30 ft line, DEX save" : `${A.shape}, ${A.save} save`}) and ${A.type} resistance.`,
+}]));
+function dragonbornBreath(ed, ancestry, level, prof, con) {
+  const dragon=Object.hasOwn(DRAGON_ANCESTRY,ancestry)&&DRAGON_ANCESTRY[ancestry];
+  if(!dragon)return null;
+  const revised=ed==="2024";
+  const dice=revised?`${1+(level>=5)+(level>=11)+(level>=17)}d10`:`${2+(level>=6)+(level>=11)+(level>=16)}d6`;
+  const save=revised?"DEX":dragon.save, dc=8+prof+con;
+  const shape=revised?"15 ft cone or 30 ft line (5 ft wide)":dragon.shape;
+  const when=revised?"Replaces an attack":"Action", max=revised?prof:1, recharge=revised?"long":"short";
+  return {dice,save,dc,shape,when,max,recharge,type:dragon.type,
+    text:`${shape} · ${dice} ${dragon.type} damage · ${save} save DC ${dc} for half`};
+}
+const characterDragonBreath=c=>c.race==="Dragonborn"?dragonbornBreath(edOf(c),c.ancestry||c.sub,totalLv(c),c.prof,mod(+c.scores?.con||10)):null;
+function dragonbornBreathSummary(ed,ancestry,level,prof,con){
+  const breath=dragonbornBreath(ed,ancestry,level,prof,con);
+  return `Breath Weapon (${ancestry.toLowerCase()} dragon): ${breath.when.toLowerCase()} · ${breath.text} · ${ed==="2024"?`${breath.max} uses per long rest`:"once per short or long rest"}`;
+}
+function syncDragonbornBreath(c){
+  if(c.race!=="Dragonborn")return;
+  const valid=value=>Object.hasOwn(DRAGON_ANCESTRY,value);
+  const ancestry=[c.sub,c.ancestry].find(valid)||makeRng("anc",c.seed||c.id).pick(Object.keys(DRAGON_ANCESTRY));
+  c.sub=c.ancestry=ancestry;
+  const text=dragonbornBreathSummary(edOf(c),ancestry,totalLv(c),c.prof,mod(+c.scores?.con||10));
+  const extras=Array.isArray(c.extras)?c.extras:[],index=extras.findIndex(line=>typeof line==="string"&&line.startsWith("Breath Weapon"));
+  if(index<0)c.extras=[...extras,text];
+  else if(extras[index]!==text)extras[index]=text;
+}
 const PC_RACES = {
   "2014": {
     Dwarf: { ...RACE_DATA.Dwarf, term: "Subrace", subs: {
@@ -17,7 +46,7 @@ const PC_RACES = {
     Human: { ...RACE_DATA.Human, term: "Variant", subs: {
       "Standard Human": { label: "Human", d: "+1 to every ability score." },
       "Variant Human": { asiOverride: {}, plus1: 2, plus1Any: true, extraSkills: 1, traitsOverride: ["Variant: Bonus Skill", "Variant: Feat", "Extra language"], d: "+1 to two scores, one extra skill and a feat at level 1." } } },
-    Dragonborn: { ...RACE_DATA.Dragonborn, term: "Draconic ancestry", subs: DRAGON_SUBS() },
+    Dragonborn: { ...RACE_DATA.Dragonborn, term: "Draconic ancestry", subs: DRAGON_SUBS("2014") },
     Gnome: { ...RACE_DATA.Gnome, term: "Subrace", subs: {
       "Forest Gnome": { asi: { dex: 1 }, traits: ["Natural Illusionist", "Speak with Small Beasts"], d: "+1 DEX. Minor Illusion and a knack for talking to small animals." },
       "Rock Gnome": { asi: { con: 1 }, traits: ["Artificer's Lore", "Tinker"], d: "+1 CON. Inventors: expert lore on magic items and tiny clockwork gadgets." } } },
@@ -28,7 +57,7 @@ const PC_RACES = {
   // 2024: ability score increases come from the background, so species carry none
   "2024": {
     Aasimar: { asi: {}, speed: 30, traits: ["Celestial Resistance", "Darkvision 60 ft", "Healing Hands", "Light Bearer", "Celestial Revelation"] },
-    Dragonborn: { asi: {}, speed: 30, term: "Draconic ancestry", traits: ["Draconic Ancestry", "Breath Weapon", "Damage Resistance", "Darkvision 60 ft", "Draconic Flight"], subs: DRAGON_SUBS() },
+    Dragonborn: { asi: {}, speed: 30, term: "Draconic ancestry", traits: ["Draconic Ancestry", "Breath Weapon", "Damage Resistance", "Darkvision 60 ft", "Draconic Flight"], subs: DRAGON_SUBS("2024") },
     Dwarf: { asi: {}, speed: 30, hpLv: 1, traits: ["Darkvision 120 ft", "Dwarven Resilience", "Dwarven Toughness", "Stonecunning"] },
     Elf: { asi: {}, speed: 30, skillChoices: ["Perception", "Insight", "Survival"], term: "Elven lineage", traits: ["Darkvision 60 ft", "Fey Ancestry", "Keen Senses", "Trance"], subs: {
       "Drow": { label: "Drow", replace: { "Darkvision 60 ft": "Darkvision 120 ft" }, traits: ["Drow Lineage"], d: "Darkvision 120 ft; Dancing Lights, then Faerie Fire and Darkness." },
@@ -240,7 +269,7 @@ Object.assign(FEAT_DESC, {
   "Variant: Bonus Skill": "Proficiency in one skill of your choice (included above).", "Variant: Feat": "One feat of your choice at level 1 — note it under Features on the sheet.",
   "Celestial Resistance": "Resistance to necrotic and radiant damage.", "Healing Hands": "Magic action: heal proficiency-bonus d4s, once per long rest.",
   "Light Bearer": "Light cantrip, cast with CHA.", "Celestial Revelation": "From level 3, transform for a minute as a bonus action: spectral wings, searing radiance or a necrotic shroud.",
-  "Draconic Flight": "From level 5, sprout spectral wings for 10 minutes once per long rest, flying at your walking speed.",
+  "Draconic Flight": "At character level 5, use a bonus action to sprout spectral wings and gain a Fly Speed equal to your Speed. The wings last 10 minutes, until you dismiss them with no action, or until you are incapacitated. Once per long rest.",
   "Darkvision 120 ft": "See 120 ft in dim light as if bright, and in darkness in shades of grey.",
   "Drow Lineage": "Darkvision 120 ft; Dancing Lights cantrip, Faerie Fire at 3rd level, Darkness at 5th.",
   "High Elf Lineage": "Prestidigitation (swap for another wizard cantrip each long rest); Detect Magic at 3rd, Misty Step at 5th.",
@@ -252,7 +281,7 @@ Object.assign(FEAT_DESC, {
   "Cloud's Jaunt": "Bonus action: teleport up to 30 ft to a space you can see.", "Fire's Burn": "When you hit with an attack, deal an extra 1d10 fire damage.",
   "Frost's Chill": "After a damaging attack hit, add 1d6 cold damage and reduce the target’s speed by 10 ft until your next turn begins.", "Hill's Tumble": "After a damaging attack hit against a Large or smaller creature, you can make it prone.",
   "Stone's Endurance": "Reaction when damaged: reduce the damage by 1d12 + CON.", "Storm's Thunder": "Reaction when a creature within 60 ft damages you: deal it 1d8 thunder damage.",
-  "Large Form": "From level 5, become Large for 10 minutes once per long rest: advantage on STR checks, +10 ft speed.",
+  "Large Form": "At character level 5, use a bonus action to become Large if there is room. Gain advantage on Strength checks and increase your Speed by 10 feet. The form lasts up to 10 minutes and can be ended without an action. Once per long rest.",
   "Powerful Build": "Advantage to end being grappled; count as one size larger for carrying capacity.",
   Luck: "When you roll a 1 on a d20 Test, reroll it and use the new roll.",
   Resourceful: "Gain Heroic Inspiration whenever you finish a long rest.", Skillful: "Proficiency in one skill of your choice (included above).",
