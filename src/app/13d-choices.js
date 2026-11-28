@@ -111,7 +111,7 @@ const CHOICES = {
       expansionSubclassLevel(c, "Paladin", "Oath of the Ebon Blade", "2024")) >= 3 ? 1 : 0,
     opts: () => opt3(["Blood", "Frost", "Unholy"]),
   },
-  "Demon Hunter specialization": expansionChoice("Demon Hunter", "Demon Hunter", "Specialization", ["Devourer", "Havoc", "Vengeance"], () => 1, "2024"),
+  "Demon Hunter specialization": {label:"Specialization",n:c=>demonHunterOwner(c)?1:0,opts:()=>opt3(["Devourer","Havoc","Vengeance"])},
   "Evoker specialization": expansionChoice("Evoker", "Draconic Sorcery", "Specialization", ["Augmentation", "Devastation", "Preservation"], () => 1, "2024"),
   "Storm Aura": expansionChoice("Barbarian", "Path of the Storm Herald", "Storm environment", ["Desert", "Sea", "Tundra"]),
   "Divine Fury": expansionChoice("Barbarian", "Path of the Zealot", "Divine Fury damage", ["Radiant", "Necrotic"]),
@@ -616,6 +616,7 @@ function pcRest(c, kind) {
   if(c.artificerStored)delete c.artificerStored.usedThisTurn;
   delete c.arcaneJoltThisTurn;
   delete c.arcaneShotUsedThisTurn;
+  delete c.soulCleaveThisTurn;
   delete c.psiPending; // an unresolved check or attack cannot carry across a rest
   delete c.spellBreakerPending;
   if(c.portent)c.portent.turnUsed=false;

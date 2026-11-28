@@ -273,7 +273,7 @@ const DEDICATED_SUBCLASS_ACTIONS=new Set([
   "Enhanced Bond","Cauterizing Flames","Blazing Revival","Reflexive Resistance","Drake's Breath","Drake’s Breath",
   "Symbiotic Entity","Halo of Spores","Spreading Spores","Fungal Infestation",
   "Fighting Spirit","Tireless Spirit","Warding Maneuver","Unwavering Mark","Ferocious Charger","Strength before Death",
-  "Star Map","Starry Form","Cosmic Omen"
+  "Star Map","Starry Form","Cosmic Omen","Soul Cleave","Regain Soul Fragment","Spiritual Protectors"
 ]);
 function starDruidLevel(c){
   const ed=edOf(c),name=ed==="2014"?"Circle of Stars":"Circle of the Stars";
@@ -309,6 +309,28 @@ function xgeFighterLevel(c,name){
 function samuraiInitiative(c){
   if(xgeFighterLevel(c,"Samurai")<10||!(+c.used?.fightingSpirit>=3))return false;
   c.used.fightingSpirit=2;
+  return true;
+}
+function warcraftSubclassOwner(c,name,classes){
+  if(edOf(c)!=="2024")return null;
+  for(const cls of classes){
+    const level=characterSubclassLevel(c,cls,name);
+    if(!level)continue;
+    const entry=subclassEntry("2024",cls,name,true,characterSubclassPrinting(c,cls));
+    if(entry?.book&&entry.src==="wow")return {cls,level};
+  }
+  return null;
+}
+const demonHunterOwner=c=>warcraftSubclassOwner(c,"Demon Hunter",["Demon Hunter","Ranger"]);
+const spiritualGuardianOwner=c=>warcraftSubclassOwner(c,"Path of the Spiritual Guardian",["Shaman","Barbarian"]);
+const ebonBladeOwner=c=>warcraftSubclassOwner(c,"Oath of the Ebon Blade",["Death Knight","Paladin"]);
+function demonFragments(c){
+  const level=demonHunterOwner(c)?.level||0;
+  return level>=3?Math.max(1,c.mods.wis)+(level>=13?1:0)+(level>=17?1:0):0;
+}
+function demonHunterInitiative(c){
+  if((demonHunterOwner(c)?.level||0)<15||!(+c.used?.soulFragments>=demonFragments(c)))return false;
+  c.used.soulFragments=demonFragments(c)-1;
   return true;
 }
 function samuraiDeathReady(c){
@@ -704,10 +726,8 @@ function pcResources(c) {
     }
   }
   if (clsLv(c, "Death Knight") >= 5) add("freeFindSteed", "Free Find Steed", 1, "long");
-  if (has("Soul Fragments")) {
-    const level = clsLv(c, "Demon Hunter");
-    add("soulFragments", "Soul fragments", Math.max(1, c.mods.wis) + (level >= 13 ? 1 : 0) + (level >= 17 ? 1 : 0), "long");
-  }
+  const fragments=demonFragments(c);
+  if(fragments)add("soulFragments","Soul fragments",fragments,"long");
   if(ed==="2024"&&clsLv(c,"Shaman")>=3)add("totemPrimal","Primal Knowledge Totem",1,"long");
   if (has("Rage")) add("rage", "Rages", ed === "2014" && CLV("Barbarian") >= 20 ? Infinity : CLV("Barbarian") >= 17 ? 6 : CLV("Barbarian") >= 12 ? 5 : CLV("Barbarian") >= 6 ? 4 : CLV("Barbarian") >= 3 ? 3 : 2, ed === "2024" ? "short1" : "long");
   if (has("Bardic Inspiration")) add("bardic", "Bardic Inspiration", Math.max(1, m.cha), CLV("Bard") >= 5 ? "short" : "long");
@@ -848,6 +868,17 @@ function pcAbilities(c) {
     add("Strength before Death","Reaction when damage reduces you to 0 HP","Confirm that you can take a reaction and were not killed outright. Take the extra turn immediately, interrupting the current turn.","strengthBeforeDeath","Samurai");
     if(c.samuraiDeathTurn==="pending")add("Decline Strength before Death","When reduced to 0 HP","Fall unconscious without spending the feature.",null,"Samurai");
     if(c.samuraiDeathTurn==="active")add("End Strength before Death turn","End of the extra turn","If still at 0 HP, fall unconscious. Then continue the interrupted creature’s turn.",null,"Samurai");
+  }
+  const demon=demonHunterOwner(c);
+  if(demon?.level>=3){
+    add("Soul Cleave","Replaces an attack","Spend one soul fragment once on your turn. Creatures in a 10-foot emanation make a Dexterity save. Heal your Wisdom modifier per creature that fails.","soulFragments","Demon Hunter");
+    if(c.soulCleaveThisTurn)add("Begin Demon Hunter turn","Start of your turn","Clear the once-per-turn Soul Cleave limit.",null,"Demon Hunter");
+    if(+c.used?.soulFragments>0)add("Regain Soul Fragment","Reaction","Confirm a visible enemy died within 30 feet. Restore one spent fragment.",null,"Demon Hunter");
+  }
+  const spiritual=spiritualGuardianOwner(c);
+  if(spiritual?.level>=3&&isActive(c,"Rage")){
+    add("Spiritual Protectors","Weapon or unarmed hit during Rage","Choose Distract, Slow, or an extra elemental damage roll.",null,"Path of the Spiritual Guardian");
+    if(spiritual.level>=6)add("Spirit Shield (Spiritual Guardian)","Reaction during Rage","Reduce damage to another visible creature within 30 feet using your Rage Damage bonus.",null,"Path of the Spiritual Guardian");
   }
   const stars=starDruidLevel(c);
   if(stars){
@@ -1747,6 +1778,25 @@ const ACT = {
    use:c=>{c.samuraiDeathTurn="active";return "Take the extra turn now, interrupting the current turn. Finish it with End Strength before Death turn.";}},
  "Decline Strength before Death":{kind:"instant",use:c=>endSamuraiDeathTurn(c).join(". ")},
  "End Strength before Death turn":{kind:"instant",use:c=>endSamuraiDeathTurn(c).join(". ")||"Resume the interrupted turn."},
+ "Soul Cleave":{kind:"instant",choices:c=>c.soulCleaveThisTurn||c.death?.dead?[]:[["attack","Confirm an Attack-action attack on your turn"]],use:c=>{
+   const level=demonHunterOwner(c).level,wis=c.mods.wis;
+   c.soulCleaveThisTurn=true;
+   return area("Soul Cleave",(level>=15?"2d12":"1d12")+sgn(wis),"dex",8+c.prof+wis,"psychic",
+     "Choose every creature in your 10-foot emanation. A successful save prevents damage.",
+     {chooseTargets:true,noneOnSave:true,healPerFailedTarget:Math.max(0,wis)});
+ }},
+ "Begin Demon Hunter turn":{kind:"instant",choices:[["turn","Confirm the start of your turn"]],use:c=>{delete c.soulCleaveThisTurn;return "Soul Cleave can be used this turn."}},
+ "Regain Soul Fragment":{kind:"instant",choices:[["kill","Confirm visible enemy died within 30 feet and you can use a reaction"]],use:c=>{
+   c.used.soulFragments=Math.max(0,Math.min(demonFragments(c),+c.used.soulFragments)-1);
+   return "Recovered one soul fragment.";
+ }},
+ "Spiritual Protectors":{kind:"instant",choices:[["distract","Distract"],["slow","Apply Slow"],["cold","Strike · Cold"],["fire","Strike · Fire"],["lightning","Strike · Lightning"]],
+   use:(c,kind)=>kind==="distract"?"The target has disadvantage on attacks against others until your next turn starts. Attacks against you and other Barbarians with this feature are exempt.":kind==="slow"?
+     "Apply the Slow weapon mastery in addition to the other mastery you are using on this weapon.":rollMsg("Spiritual Protectors","1d4",cap1(kind)+" damage on the confirmed hit.")},
+ "Spirit Shield (Spiritual Guardian)":{kind:"instant",choices:[["confirm","Confirm another visible creature within 30 feet took damage"]],use:c=>{
+   const level=spiritualGuardianOwner(c).level,dice=level>=16?4:level>=9?3:2;
+   return rollMsg("Spirit Shield",dice+"d6","Reduce the triggering damage by the result.");
+ }},
  "Magical Ammunition":{kind:"instant",choices:c=>arcaneArcherWeapons(c).flatMap(({item})=>Object.keys(REVISED_MAGICAL_AMMO).map(name=>[JSON.stringify([name,item.id]),`${name} · ${item.n}`])),use:(c,key)=>{
    const [name]=JSON.parse(key);return REVISED_MAGICAL_AMMO[name]+" Confirm the selected weapon, ammunition, and surface at the table.";
  }},
@@ -2088,6 +2138,9 @@ function pcFx(c) {
     if(characterSubclassLevel(c,"Sorcerer","Draconic Sorcery")>=6&&["acid","cold","fire","lightning","poison"].includes(affinity)){F.res.add(affinity);F.notes.push("Elemental Affinity: add Charisma modifier to one matching spell damage roll.");}
   }
   if(psiLevel(c,"Fighter")>=10)F.res.add("psychic");
+  if((ebonBladeOwner(c)?.level||0)>=7&&!c.death?.dead&&!COND_INCAP.some(key=>condOn(c,key))){
+    for(const type of ["cold","necrotic","psychic"])F.res.add(type);
+  }
   const act = c.active || {}; if (!Object.keys(act).length) return F;
   const have = new Set(pcAbilities(c).map(a => a.name));
   for (const [name, val] of Object.entries(act)) {
@@ -2355,6 +2408,11 @@ function aoeRoll() {
 }
 function aoeApply() {
   const msgs = ACTX.aoe.map(r => { const n = ACTX.aoeAmt(r); return n ? actApply(r.id, n, "damage") : `${r.name} takes no damage.`; });
-  const R = ACTX.r, c = ACTX.c; actClose(); toast(msgs.join(" "));
+  const R = ACTX.r, c = ACTX.c;
+  if(R.healPerFailedTarget){
+    const count=ACTX.aoe.filter(target=>target.save&&!target.saveOk).length;
+    if(count)msgs.push(actApply("pc:"+c.id,count*R.healPerFailedTarget,"heal"));
+  }
+  actClose(); toast(msgs.join(" "));
   if (R.heal) actResultDialog(c, { title: `${R.title}: healing`, msg: `One creature of your choice in the area regains ${R.heal} hit points.`, amount: R.heal, kind: "heal" });
 }

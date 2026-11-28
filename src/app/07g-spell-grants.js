@@ -473,6 +473,14 @@ function syncGrantedSpells(c) {
       const choice = choiceOf(c, entry.spellTrackChoice)[0];
       if (choice && choice !== "All" && Object.hasOwn(entry.spellTracks, choice)) add(entry.spellTracks[choice], lv, { ...source, feature: choice });
     }
+    if(entry?.src==="wow"&&demonHunterOwner(c)?.cls===cls){
+      add({3:["Feather Fall","Jump"]},lv,{...source,feature:"Double Jump",ab:"wis",innate:true,known:true});
+      add({11:["Counterspell"]},lv,{...source,feature:"Disrupt",ab:"wis",innate:true,known:true});
+    }
+    if(entry?.src==="wow"&&spiritualGuardianOwner(c)?.cls===cls){
+      add({10:["Augury","Clairvoyance"]},lv,{...source,feature:"Consult the Spirits",ab:"wis",innate:true,known:true},
+        ()=>({free:"consultSpirits",uses:1,recharge:"short",sharedResource:"Consult the Spirits"}));
+    }
     if(cls==="Ranger"&&subclass==="Fey Wanderer"){
       if(lv>=11)add({11:["Summon Fey"]},lv,{...source,feature:"Fey Reinforcements",known:legacy},()=>({free:subAblKey("Fey Reinforcements"),uses:1}));
       if(lv>=15)add({15:["Misty Step"]},lv,{...source,feature:"Misty Wanderer",known:legacy},()=>({free:subAblKey("Misty Wanderer"),uses:"wisdom"}));

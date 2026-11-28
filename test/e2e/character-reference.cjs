@@ -1114,6 +1114,61 @@ const { chromium } = require("playwright");
     assert.deepEqual([samuraiDeathAudit.safe,samuraiDeathAudit.declined],[[1,null,false,0,0,false],[0,null,true,0,0,false]]);
     assert.match(samuraiDeathAudit.fatal,/massive damage/);
     assert.deepEqual([samuraiDeathAudit.massive,samuraiDeathAudit.dead,samuraiDeathAudit.healed],[[0,null,false,0,0,true],[0,null,false,1,3,true],[5,null,false,1,0,false]]);
+    const warcraftSubclassAudit=await page.evaluate(()=>{
+      const make=(cls,name,level)=>{
+        const c=pcEnsure(generateCharacter({seed:"AZEROTH-SUBCLASS",ed:"2024",cls,subclass:name,level,race:"Human",bg:"Sage"}));
+        c.scores.wis=16;pcRecompute(c);syncGrantedSpells(c);return c;
+      };
+      const fragments=["Ranger","Demon Hunter"].map(cls=>{
+        const c=make(cls,"Demon Hunter",17),owner=demonHunterOwner(c);
+        c.choices={"Demon Hunter specialization":["Havoc"]};syncGrantedSpells(c);
+        const cap=pcResources(c).find(r=>r.key==="soulFragments").max;
+        const f=c.feats.find(f=>f.f==="Illidari Knowledge"),sights=c.feats.filter(f=>f.f.includes("Spectral Sight")).map(f=>f.f);
+        const a=actRun(c,"Soul Cleave","attack"),again=actRun(c,"Soul Cleave","attack");
+        actRun(c,"Begin Demon Hunter turn","turn");
+        const restored=actRun(c,"Regain Soul Fragment","kill");
+        c.used.soulFragments=cap;const initiative=demonHunterInitiative(c);
+        const jump=castOpts(c,spellOf("2024","Jump"),"2024").find(x=>x[0]==="soulFragment");
+        const counter=castOpts(c,spellOf("2024","Counterspell"),"2024").find(x=>x[0]==="soulFragment");
+        return {owner,cap,l:f.l,sights,dc:a.dc,expectedDC:8+c.prof+c.mods.wis,
+          cleave:[a.expr,a.dtype,a.healPerFailedTarget,a.noneOnSave],again,restored,initiative,remaining:c.used.soulFragments,
+          fragmentCast:[jump[3],counter[3]],havoc:c.prepared.some(p=>p.n==="Fel Rush")};
+      });
+      const aura=["Paladin","Death Knight"].map(cls=>{
+        const c=make(cls,"Oath of the Ebon Blade",7);c.choices={Runeforging:["Frost"]};syncGrantedSpells(c);
+        const f=pcFx(c),spells=["Death Grip","Chains of Ice","Frostscythe"].every(name=>c.prepared.some(p=>p.n===name));
+        c.conds={stunned:true};
+        return [[...f.res],spells,pcFx(c).res.has("cold")];
+      });
+      const guardian=["Barbarian","Shaman"].map(cls=>{
+        const c=make(cls,"Path of the Spiritual Guardian",10);c.active={Rage:true};pcRecompute(c);
+        const shield=actRun(c,"Spirit Shield (Spiritual Guardian)","confirm");
+        const element=actRun(c,"Spiritual Protectors","cold");
+        const consult=pcResources(c).find(r=>r.key==="consultSpirits");
+        return [shield,element,consult.max,consult.recharge,c.prepared.some(p=>p.n==="Augury")];
+      });
+      const castActor=make("Ranger","Demon Hunter",11);PCS.roster.push(castActor);RC.id=castActor.id;renderRoster();renderRosterMain();
+      return {fragments,aura,guardian,actor:castActor.id};
+    });
+    for(const [i,d] of warcraftSubclassAudit.fragments.entries()){
+      assert.deepEqual([d.owner.cls,d.cap,d.l,d.sights],[i===0?"Ranger":"Demon Hunter",5,11,["Spectral Sight"]]);
+      assert.deepEqual(d.cleave,["2d12+3","psychic",3,true]);assert.equal(d.dc,d.expectedDC);
+      assert.match(d.again,/eligible/);assert.match(d.restored,/Recovered/);
+      assert.deepEqual([d.initiative,d.remaining,d.fragmentCast,d.havoc],[true,4,[false,true],true]);
+    }
+    for(const a of warcraftSubclassAudit.aura)assert.deepEqual(a,[["cold","necrotic","psychic"],true,false]);
+    for(const [shield,element,max,recharge,augury] of warcraftSubclassAudit.guardian){
+      assert.match(shield,/3d6/);assert.match(element,/1d4.*Cold/);assert.deepEqual([max,recharge,augury],[1,"short",true]);
+    }
+    await page.evaluate(id=>castDialog(PCS.roster.find(c=>c.id===id),"2024","Counterspell",{prefer:"soulFragment"}),warcraftSubclassAudit.actor);
+    assert.equal(await page.locator("#castSlot").inputValue(),"soulFragment");
+    await page.locator("#actModal [data-castgo]").click();
+    const fragmentCost=await page.evaluate(id=>{
+      const c=PCS.roster.find(x=>x.id===id);return [c.used.soulFragments,c.used.slot3||0,c.rollLog.some(r=>r.label==="Cast Counterspell")];
+    },warcraftSubclassAudit.actor);
+    assert.deepEqual(fragmentCost,[2,0,true]);
+    assert.equal(await page.locator("#actModal.open").count(),0);
+    assert.match(await page.locator("#toast").textContent(),/Disrupt/);
     const starsAudit=await page.evaluate(()=>{
       const make=(ed,level,other={})=>{
         const name=ed==="2014"?"Circle of Stars":"Circle of the Stars";

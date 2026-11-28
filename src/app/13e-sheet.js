@@ -235,6 +235,7 @@ spFiltersSync();
         rollD20(c,"Initiative",c.init,"init","dex");
         if(arcaneArcherInitiative(c)){pcPersist();renderRosterMain();toast("Ever-Ready Shot restored one Arcane Shot use.");}
         if(samuraiInitiative(c)){pcPersist();renderRosterMain();toast("Tireless Spirit restored one Fighting Spirit use.");}
+        if(demonHunterInitiative(c)){pcPersist();renderRosterMain();toast("Soul Shatter restored one soul fragment.");}
       }
       else if (k === "atk") { const a = c.attacks[+v]; const r = rollD20(c, `${a.name} attack`, a.hit, "attack", a.ab, { tags: a.tags, crit: a.crit }); ROLL.lastCrit = r && r.crit ? a.name : ""; }
       else if (k === "dmg") { const a = c.attacks[+v]; rollDamage(c, `${a.name} damage`, a, ROLL.lastCrit === a.name); ROLL.lastCrit = ""; }

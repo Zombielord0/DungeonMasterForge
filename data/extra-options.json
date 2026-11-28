@@ -10188,25 +10188,118 @@
     "features": [
       {
         "l": 3,
+        "n": "Oath of the Ebon Blade Spells",
+        "d": "Always prepare the shared spells and those from your selected specialization. All: level 3 Death Grip, level 5 Death and Decay, level 9 Summon Undead, level 13 Freedom of Movement, level 17 Circle of Power; Blood: level 3 Vampiric Blood, level 5 Spiritual Weapon, level 9 Leeching Strike, level 13 Evard's Black Tentacles, level 17 Bonestorm; Frost: level 3 Chains of Ice, level 5 Frostscythe, level 9 Remorseless Winter, level 13 Ice Storm, level 17 Cone of Cold; Unholy: level 3 Scourge Strike, level 5 Ray of Enfeeblement, level 9 Bestow Curse, level 13 Blight, level 17 Contagion.",
+        "fx": []
+      },
+      {
+        "l": 3,
         "n": "Runeforging",
-        "d": "Choose a Blood, Frost, or Unholy rune and imbue your weapon with its power."
+        "d": "After a long rest, inscribe one rune on a melee weapon you are holding or transfer your existing rune to another such weapon. When you gain a level you can choose a different rune. Blood grants temporary HP equal to owning-class level plus Charisma modifier on inscription and at each long rest while inscribed. It also grants that amount when you reduce an enemy to 0 HP while wielding the weapon. Frost makes weapon attacks, class spells, and class features ignore Cold resistance while wielding it. A hit with the Light property's extra attack while wielding it deals 1d4 extra Cold damage. Unholy removes Necrotic resistance for the same sources while wielding it. If the inscribed weapon is Heavy, the first creature you hit with it each turn takes extra Necrotic damage equal to your Charisma modifier, minimum 1.",
+        "fx": []
       },
       {
         "l": 3,
         "n": "Runic Power",
-        "d": "Spend Channel Divinity to enhance an eligible Rune Strike."
+        "d": "After casting Rune Strike you may spend Channel Divinity. Blood heals you for the spell’s Necrotic damage. Frost deals 2d6 Cold to the target and enemies within 10 feet of it. Unholy curses the target, subtracting 1d6 from its next save before the end of your next turn.",
+        "fx": []
+      },
+      {
+        "l": 7,
+        "n": "Aura of Deathly Endurance",
+        "d": "You and allies inside your Aura of Protection have resistance to Cold, Necrotic, and Psychic damage.",
+        "fx": []
       },
       {
         "l": 15,
         "n": "Runic Mastery",
-        "d": "Invoke a stronger daily effect associated with your rune."
+        "d": "Use the effect of your inscribed rune once per long rest. Blood: when an attack hits another creature you can see within 10 feet, use a reaction to reduce its damage by your owning-class level, then lose that many HP yourself. Frost: replace one attack during your Attack action with a 30-foot cold cone. Creatures make Dexterity saves against your spell DC, taking 8d6 Cold damage on failure or half on success. Unholy: cast Summon Undead without concentration and with a duration of 1 minute. The spirit gains temporary HP equal to your owning-class level plus Charisma modifier and deals extra Necrotic damage equal to half that class level (rounded up) on its first hit each turn.",
+        "fx": []
       },
       {
         "l": 20,
         "n": "Aspect of the Horsemen",
-        "d": "Temporarily harness benefits from runes outside your specialization."
+        "d": "As a bonus action, empower your runes for 10 minutes. Pick any rune effect when using Runic Power or Runic Mastery. Restore Runic Mastery with a level 4 slot. Recharge this aspect on a long rest or with a level 5 slot.",
+        "fx": []
       }
-    ]
+    ],
+    "spellTracks": {
+      "All": {
+        "3": [
+          "Death Grip"
+        ],
+        "5": [
+          "Death and Decay"
+        ],
+        "9": [
+          "Summon Undead"
+        ],
+        "13": [
+          "Freedom of Movement"
+        ],
+        "17": [
+          "Circle of Power"
+        ]
+      },
+      "Blood": {
+        "3": [
+          "Vampiric Blood"
+        ],
+        "5": [
+          "Spiritual Weapon"
+        ],
+        "9": [
+          "Leeching Strike"
+        ],
+        "13": [
+          "Evard's Black Tentacles"
+        ],
+        "17": [
+          "Bonestorm"
+        ]
+      },
+      "Frost": {
+        "3": [
+          "Chains of Ice"
+        ],
+        "5": [
+          "Frostscythe"
+        ],
+        "9": [
+          "Remorseless Winter"
+        ],
+        "13": [
+          "Ice Storm"
+        ],
+        "17": [
+          "Cone of Cold"
+        ]
+      },
+      "Unholy": {
+        "3": [
+          "Scourge Strike"
+        ],
+        "5": [
+          "Ray of Enfeeblement"
+        ],
+        "9": [
+          "Bestow Curse"
+        ],
+        "13": [
+          "Blight"
+        ],
+        "17": [
+          "Contagion"
+        ]
+      }
+    },
+    "spellTrackChoice": "Runeforging",
+    "featureSourceReview": {
+      "status": "drive_transcription_mechanics_reviewed",
+      "reference": "World of Warcraft.md, Oath of the Ebon Blade subclass",
+      "primaryVerified": false,
+      "runtimeVerified": false
+    }
   },
   {
     "id": "reference-wow-demon-hunter",
@@ -10220,20 +10313,147 @@
     "features": [
       {
         "l": 3,
+        "n": "Demon Hunter Spells",
+        "d": "Always prepare the shared spells and those from your selected specialization. All: level 3 Throw Glaive, level 5 Sigil of Flame, level 9 Metamorphosis, level 13 Chaos Nova, level 17 Destructive Wave; Devourer: level 3 Consume Soul, level 5 Misty Step, level 9 Soul Reap, level 13 Collapsing Star, level 17 Steel Wind Strike; Havoc: level 3 Fel Rush, level 5 Eye Beam, level 9 Blink, level 13 Fire Shield, level 17 Conjure Volley; Vengeance: level 3 Infernal Strike, level 5 Fiery Brand, level 9 Demon Spikes, level 13 Banishment, level 17 Sigil of Chains.",
+        "fx": []
+      },
+      {
+        "l": 3,
+        "n": "Double Jump",
+        "d": "Spend one soul fragment to cast Feather Fall or Jump without a slot.",
+        "fx": []
+      },
+      {
+        "l": 3,
         "n": "Soul Cleave",
-        "d": "Use harvested soul fragments to power supernatural attacks."
+        "d": "Once on your turn when attacking, spend a soul fragment and replace an attack. Each creature within a 10-foot emanation must make a Dexterity save. On failure it takes 1d12 plus your Wisdom modifier Psychic damage and you heal your Wisdom modifier.",
+        "fx": []
+      },
+      {
+        "l": 3,
+        "n": "Soul Fragments",
+        "d": "On a long rest gain soul fragments equal to your Wisdom modifier, minimum one. Add one at Ranger or Demon Hunter level 13 and two at 17. The Tiny crystals disappear at your next long rest and teleport onto your person if you travel farther than 30 feet from them. Use your Ranger-equivalent spell save DC for their effects.",
+        "fx": []
+      },
+      {
+        "l": 3,
+        "n": "Spectral Sight",
+        "d": "Gain Blindsight out to 10 feet.",
+        "fx": []
+      },
+      {
+        "l": 3,
+        "n": "Regain Soul Fragment",
+        "d": "When a visible enemy within 30 feet dies, you can use your reaction to recover one spent soul fragment."
       },
       {
         "l": 7,
+        "n": "Torment",
+        "d": "The target of your Hunter’s Mark has disadvantage on attacks against creatures other than you. Once per turn when you hit that target with a weapon or Ranger spell attack, choose Aura of Pain (subtract 1d4 from its next save before the end of your next turn) or Chaos Strike (deal 1d8 extra Fire damage).",
+        "fx": []
+      },
+      {
+        "l": 11,
+        "n": "Disrupt",
+        "d": "Spend two soul fragments to cast Counterspell as a reaction to its usual trigger.",
+        "fx": []
+      },
+      {
+        "l": 11,
+        "n": "Warglaive Mastery",
+        "d": "Spend one soul fragment to cast Throw Glaive as a bonus action without a spell slot.",
+        "fx": []
+      },
+      {
+        "l": 11,
         "n": "Illidari Knowledge",
-        "d": "Spend soul fragments on additional spells, including Counterspell."
+        "d": "Gain the Disrupt and Warglaive Mastery soul fragment abilities.",
+        "fx": []
       },
       {
         "l": 15,
-        "n": "Improved Spectral Sight",
-        "d": "Gain 30 feet of truesight."
+        "n": "Soul Shatter",
+        "d": "Soul Cleave deals 2d12 plus Wisdom modifier Psychic damage. Regain one soul fragment when you roll initiative with none left.",
+        "fx": []
       }
-    ]
+    ],
+    "spellTracks": {
+      "All": {
+        "3": [
+          "Throw Glaive"
+        ],
+        "5": [
+          "Sigil of Flame"
+        ],
+        "9": [
+          "Metamorphosis"
+        ],
+        "13": [
+          "Chaos Nova"
+        ],
+        "17": [
+          "Destructive Wave"
+        ]
+      },
+      "Devourer": {
+        "3": [
+          "Consume Soul"
+        ],
+        "5": [
+          "Misty Step"
+        ],
+        "9": [
+          "Soul Reap"
+        ],
+        "13": [
+          "Collapsing Star"
+        ],
+        "17": [
+          "Steel Wind Strike"
+        ]
+      },
+      "Havoc": {
+        "3": [
+          "Fel Rush"
+        ],
+        "5": [
+          "Eye Beam"
+        ],
+        "9": [
+          "Blink"
+        ],
+        "13": [
+          "Fire Shield"
+        ],
+        "17": [
+          "Conjure Volley"
+        ]
+      },
+      "Vengeance": {
+        "3": [
+          "Infernal Strike"
+        ],
+        "5": [
+          "Fiery Brand"
+        ],
+        "9": [
+          "Demon Spikes"
+        ],
+        "13": [
+          "Banishment"
+        ],
+        "17": [
+          "Sigil of Chains"
+        ]
+      }
+    },
+    "spellTrackChoice": "Demon Hunter specialization",
+    "featureSourceReview": {
+      "status": "drive_transcription_mechanics_reviewed",
+      "reference": "World of Warcraft.md, Demon Hunter subclass",
+      "primaryVerified": false,
+      "runtimeVerified": false
+    }
   },
   {
     "id": "reference-wow-warrior-of-mystic-brews",
@@ -10493,25 +10713,31 @@
       {
         "l": 3,
         "n": "Spiritual Protectors",
-        "d": "Call on spirits while raging to distract, hinder, or strike an opponent after a hit."
+        "d": "During Rage, when your weapon or Unarmed Strike hits, pick one effect: Distract gives that target disadvantage on attack rolls against anyone other than you or another Barbarian with this feature through the start of your next turn. Hinder can add Slow to the other mastery you are using on that weapon. Strike adds 1d4 Cold, Fire, or Lightning damage, your choice."
       },
       {
         "l": 6,
         "n": "Spirit Shield",
-        "d": "Shield a nearby ally from incoming harm."
+        "d": "During Rage, when another creature you can see within 30 feet takes damage, you may take a reaction. Roll a number of d6s equal to your Rage Damage bonus and reduce its damage by the total."
       },
       {
         "l": 10,
         "n": "Consult the Spirits",
-        "d": "Cast qualifying divinations without material components."
+        "d": "Cast Augury or Clairvoyance without spending a slot or using Material components. Clairvoyance invisibly sends a guardian spirit to the target location in place of the usual spherical sensor. Wisdom is your spellcasting ability. After casting either spell this way, recharge after a short or long rest."
       },
       {
         "l": 14,
         "n": "Spirits' Fury",
-        "d": "Make an extra attack when you land a powerful blow."
+        "d": "As part of your Attack action, when a melee weapon attack roll shows 18–20 on the d20, you can make one additional attack roll with that weapon during the same action. Recharge at the start of your next turn."
       }
     ],
-    "page": null
+    "page": null,
+    "featureSourceReview": {
+      "status": "drive_transcription_mechanics_reviewed",
+      "reference": "World of Warcraft.md, Path of the Spiritual Guardian subclass",
+      "primaryVerified": false,
+      "runtimeVerified": false
+    }
   },
   {
     "id": "reference-wow-path-of-the-elements",
@@ -15797,7 +16023,7 @@
       {
         "l": 3,
         "n": "Runeforging",
-        "d": "Inscribe a melee weapon after a long rest with Blood, Frost, or Unholy. You can transfer the rune after a long rest or switch it at level-up. Your rune also determines your bonus prepared spells.",
+        "d": "After a long rest, inscribe one rune on a melee weapon you are holding or transfer your existing rune to another such weapon. When you gain a level you can choose a different rune. Blood grants temporary HP equal to owning-class level plus Charisma modifier on inscription and at each long rest while inscribed. It also grants that amount when you reduce an enemy to 0 HP while wielding the weapon. Frost makes weapon attacks, class spells, and class features ignore Cold resistance while wielding it. A hit with the Light property's extra attack while wielding it deals 1d4 extra Cold damage. Unholy removes Necrotic resistance for the same sources while wielding it. If the inscribed weapon is Heavy, the first creature you hit with it each turn takes extra Necrotic damage equal to your Charisma modifier, minimum 1.",
         "fx": []
       },
       {
@@ -15815,7 +16041,7 @@
       {
         "l": 15,
         "n": "Runic Mastery",
-        "d": "Once per long rest, invoke the power of your inscribed rune. See the rune-specific options in World of Warcraft.",
+        "d": "Use the effect of your inscribed rune once per long rest. Blood: when an attack hits another creature you can see within 10 feet, use a reaction to reduce its damage by your owning-class level, then lose that many HP yourself. Frost: replace one attack during your Attack action with a 30-foot cold cone. Creatures make Dexterity saves against your spell DC, taking 8d6 Cold damage on failure or half on success. Unholy: cast Summon Undead without concentration and with a duration of 1 minute. The spirit gains temporary HP equal to your owning-class level plus Charisma modifier and deals extra Necrotic damage equal to half that class level (rounded up) on its first hit each turn.",
         "fx": []
       },
       {
@@ -15895,7 +16121,13 @@
         ]
       }
     },
-    "spellTrackChoice": "Runeforging"
+    "spellTrackChoice": "Runeforging",
+    "featureSourceReview": {
+      "status": "drive_transcription_mechanics_reviewed",
+      "reference": "World of Warcraft.md, Oath of the Ebon Blade subclass",
+      "primaryVerified": false,
+      "runtimeVerified": false
+    }
   },
   {
     "id": "book-wow-class-demonhunter",
@@ -16061,7 +16293,7 @@
       {
         "l": 3,
         "n": "Soul Fragments",
-        "d": "On a long rest replenish fragments equal to your Wisdom modifier (minimum 1), plus one at level 13 and a second at level 17. Fragments are Tiny crystals that return to you when more than 30 feet away. Their powers use your spell save DC.",
+        "d": "On a long rest gain soul fragments equal to your Wisdom modifier, minimum one. Add one at Ranger or Demon Hunter level 13 and two at 17. The Tiny crystals disappear at your next long rest and teleport onto your person if you travel farther than 30 feet from them. Use your Ranger-equivalent spell save DC for their effects.",
         "fx": []
       },
       {
@@ -16071,9 +16303,14 @@
         "fx": []
       },
       {
+        "l": 3,
+        "n": "Regain Soul Fragment",
+        "d": "When a visible enemy within 30 feet dies, you can use your reaction to recover one spent soul fragment."
+      },
+      {
         "l": 7,
         "n": "Torment",
-        "d": "Your Hunter’s Mark target has disadvantage on attacks against creatures other than you. Once a turn, when you hit it with a weapon or spell attack, either deal an extra 1d8 Fire damage or subtract 1d4 from its next save before the end of your next turn.",
+        "d": "The target of your Hunter’s Mark has disadvantage on attacks against creatures other than you. Once per turn when you hit that target with a weapon or Ranger spell attack, choose Aura of Pain (subtract 1d4 from its next save before the end of your next turn) or Chaos Strike (deal 1d8 extra Fire damage).",
         "fx": []
       },
       {
@@ -16171,7 +16408,13 @@
         ]
       }
     },
-    "spellTrackChoice": "Demon Hunter specialization"
+    "spellTrackChoice": "Demon Hunter specialization",
+    "featureSourceReview": {
+      "status": "drive_transcription_mechanics_reviewed",
+      "reference": "World of Warcraft.md, Demon Hunter subclass",
+      "primaryVerified": false,
+      "runtimeVerified": false
+    }
   },
   {
     "id": "book-wow-class-evoker",
@@ -17094,24 +17337,30 @@
       {
         "l": 3,
         "n": "Spiritual Protectors",
-        "d": "Call on spirits while raging to distract, hinder, or strike an opponent after a hit."
+        "d": "During Rage, when your weapon or Unarmed Strike hits, pick one effect: Distract gives that target disadvantage on attack rolls against anyone other than you or another Barbarian with this feature through the start of your next turn. Hinder can add Slow to the other mastery you are using on that weapon. Strike adds 1d4 Cold, Fire, or Lightning damage, your choice."
       },
       {
         "l": 6,
         "n": "Spirit Shield",
-        "d": "Shield a nearby ally from incoming harm."
+        "d": "During Rage, when another creature you can see within 30 feet takes damage, you may take a reaction. Roll a number of d6s equal to your Rage Damage bonus and reduce its damage by the total."
       },
       {
         "l": 10,
         "n": "Consult the Spirits",
-        "d": "Cast qualifying divinations without material components."
+        "d": "Cast Augury or Clairvoyance without spending a slot or using Material components. Clairvoyance invisibly sends a guardian spirit to the target location in place of the usual spherical sensor. Wisdom is your spellcasting ability. After casting either spell this way, recharge after a short or long rest."
       },
       {
         "l": 14,
         "n": "Spirits' Fury",
-        "d": "Make an extra attack when you land a powerful blow."
+        "d": "As part of your Attack action, when a melee weapon attack roll shows 18–20 on the d20, you can make one additional attack roll with that weapon during the same action. Recharge at the start of your next turn."
       }
-    ]
+    ],
+    "featureSourceReview": {
+      "status": "drive_transcription_mechanics_reviewed",
+      "reference": "World of Warcraft.md, Path of the Spiritual Guardian subclass",
+      "primaryVerified": false,
+      "runtimeVerified": false
+    }
   },
   {
     "id": "book-wow-subclass-shaman-path-of-the-world-tree",

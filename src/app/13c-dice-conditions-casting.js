@@ -259,6 +259,7 @@ function spellDice(c, sp, P, slot, caster = spellCaster(c, sp)) {
 }
 function spellCaster(c, sp, how, ed = edOf(c)) {
   if(sp.n==="Command"&&["majestyStart","majestyRepeat"].includes(how)&&majestyLevel(c)>=6)return {cls:"Bard",ab:"cha",dc:8+c.prof+c.mods.cha,atk:c.prof+c.mods.cha};
+  if(how==="soulFragment"&&demonHunterOwner(c))return {cls:demonHunterOwner(c).cls,ab:"wis",dc:8+c.prof+c.mods.wis,atk:c.prof+c.mods.wis};
   const own = [...(c.spell ? [{ cls: c.spell.cls || c.cls, list: c.spell.list, ab: c.spell.ab, dc: c.spell.dc, atk: c.spell.atk }, ...(c.spell.others || [])] : [])];
   const sources = spellPreparationSources(c, sp.n, ed);
   const source = sources.find(g => how && g.free === how) || sources.find(g => own.some(x => x.cls === g.cls))
@@ -303,6 +304,11 @@ function castOpts(c, sp, ed = edOf(c)) {
   if (sp.l === 0) { opts.push(["free", "Cantrip", "no slot needed"]); return opts; }
   const sources = spellPreparationSources(c, sp.n, ed);
   const grants = freeSpellResources(c, sp, ed, R).map(r => [r.key, r.name, r.max === Infinity ? "no slot needed" : `${resLeft(c, r)} left per ${r.recharge === "short" ? "short or long" : "long"} rest`, !resLeft(c, r)]);
+  const fragment=demonFragmentCast(c,sp,ed);
+  if(fragment){
+    const available=resLeft(c,R.find(r=>r.key==="soulFragments"));
+    grants.push(["soulFragment",fragment.feature,`Spend ${fragment.cost} soul fragment${fragment.cost>1?"s":""} · ${available} left`,available<fragment.cost]);
+  }
   const manual = c.prepared?.some(p => !p.bookGrant && p.n === sp.n && p.ed === ed);
   if(wizardBookActive(c)&&isWizardBookSpell(c,sp)&&!wizardBookOtherClass(c,sp,ed)&&!manual&&!sources.length){return wizardBookContains(c,sp.n)&&sp.ri?[["ritual","As a spellbook ritual","no slot, 10 min longer"]]:[];}
   if(sources.length&&sources.every(g=>g.feature==="Mystic Arcanum")&&!manual)return grants;
@@ -318,6 +324,14 @@ function castOpts(c, sp, ed = edOf(c)) {
   if (sp.ri && (!featOnly || ed === "2024" || sources.some(g => g.ritualOnly))) opts.push(ritual);
   if (!featOnly) opts.push(["free", "Without a slot", "a feature or item"]);
   return opts;
+}
+function demonFragmentCast(c,sp,ed=edOf(c)){
+  if(ed!==edOf(c))return null;
+  const level=demonHunterOwner(c)?.level||0;
+  if(level>=3&&["Feather Fall","Jump"].includes(sp.n))return {feature:"Double Jump",cost:1,timing:"Use the spell’s normal casting time."};
+  if(level>=11&&sp.n==="Counterspell")return {feature:"Disrupt",cost:2,timing:"Confirm the spell’s reaction trigger."};
+  if(level>=11&&sp.n==="Throw Glaive")return {feature:"Warglaive Mastery",cost:1,timing:"Cast as a bonus action."};
+  return null;
 }
 function castSlotLevel(c, sp, how, ed = edOf(c)) {
   if (/^slot\d$/.test(how)) return +how.slice(4);
@@ -448,6 +462,12 @@ function castGo() {
     if (grant.max !== Infinity) c.used[how] = (+c.used[how] || 0) + 1;
   }
   const notes = [`${c.name} casts ${sp.n}${sp.l ? ` at level ${slot}` : ""}${how === "ritual" ? " as a ritual" : ""}.`];
+  if(how==="soulFragment"){
+    const fragment=demonFragmentCast(c,sp,ed);
+    c.used.soulFragments=(+c.used.soulFragments||0)+fragment.cost;
+    notes.push(fragment.feature+". "+fragment.timing);
+  }
+  if(how==="consultSpirits")notes.push("No Material components. "+(sp.n==="Clairvoyance"?"Place an invisible guardian spirit at the chosen location in place of the sensor.":"Consult your guardian spirits."));
   const recovered=expertDivinationRecover(c,sp,how,slot,$("#expertDivinationSlot")?.value,ed);if(recovered)notes.push(recovered);
   if(spellBreakerRecord(c,sp,how,ed))notes.push("Spell Breaker: resolve success or failure in Abilities before casting another spell."+ (sp.n==="Dispel Magic"?" Bonus Action is permitted; ability check bonus "+sgn(c.mods.int+c.prof)+".":""));
   if(["majestyStart","majestyRepeat"].includes(how)){const msg=majestyCast(c,how);if(!msg){toast("Mantle of Majesty is unavailable");return;}notes.push(msg,"A creature Charmed by you automatically fails its save; resolve the target and action timing manually.");}
