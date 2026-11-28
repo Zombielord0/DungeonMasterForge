@@ -552,7 +552,7 @@ function miHTML(c) {
 function actRun(c, name, choice) {
   const a = pcAbilities(c).find(x => x.name === name), S = a && actSpec(a); if (!S) return "";
   c.active = c.active || {}; c.used = c.used || {};
-  if (S.kind === "toggle" && c.active[name]) { delete c.active[name]; if (name === "Wild Shape") delete c.formHp; if (name === "Aspect of the Wyrm") delete c.dragonFuryPending; return `${name} ended.`; }
+  if (S.kind === "toggle" && c.active[name]) { delete c.active[name]; if (name === "Wild Shape") delete c.formHp; if (name === "Aspect of the Wyrm") delete c.dragonFuryPending; if(name==="Symbiotic Entity")endSymbioticEntity(c); return `${name} ended.`; }
   if (S.dialog) { S.dialog(c, a); return null; }
   const options=actChoices(c,S);
   if(S.choices&&!options.length)return "No eligible options available.";
@@ -565,6 +565,7 @@ function actRun(c, name, choice) {
     if (r.max !== Infinity) { if (resLeft(c, r) < cost) return `Not enough ${r.name.toLowerCase()} left (needs ${cost}).`; c.used[r.key] = (+c.used[r.key] || 0) + cost; }
     spent = cost;
   }
+  if(a.res==="wild"&&name!=="Symbiotic Entity")endSymbioticEntity(c);
   if (S.kind === "toggle") { c.active[name] = ch || true; return S.start ? S.start(c, ch) : `${name} active${ch ? `: ${(actChoices(c, S).find(x => x[0] === ch) || [, ""])[1]}` : ""}.`; }
   return S.use ? S.use(c, ch, spent) || "" : `${name} used.`;
 }

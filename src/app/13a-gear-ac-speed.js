@@ -60,6 +60,7 @@ function applyCoreSkillChoices(c){
 function pcRecompute(c) {
   artificerInfusionCleanup(c);
   companionCleanup(c);
+  if(c.active?.["Symbiotic Entity"]&&!sporesActive(c))endSymbioticEntity(c);
   wizardSubclassCleanup(c);
   const m = {}; AB.forEach(a => m[a] = mod(+c.scores[a] || 10)); c.mods = m; const SB = subBonusOf(c);
   c.init = m.dex + (c.initBonus ?? ((c.feats || []).some(f => f.f === "Feat: Alert") ? (edOf(c) === "2024" ? c.prof : 5) : 0)) + SB.init + (SB.athlete ? Math.ceil(c.prof / 2) : 0) + (clsLv(c,"Bard") >= 2 && edOf(c) === "2014" ? Math.floor(c.prof / 2) : 0);
@@ -86,7 +87,7 @@ function pcRecompute(c) {
 }
 function pcLevelTo(c, lv) {
   const n = generateCharacter({ seed: c.seed || c.id, name: c.name, race: c.race, ed: edOf(c), sub: c.sub || (c.race === "Dragonborn" && c.ancestry) || "none", ancestry: c.ancestry || undefined, cls: c.cls, bg: c.bg, level: lv, subclass: c.subclass || "none", asiPicks: c.asiPicks || undefined, bonusFeats: c.bonusFeats || undefined, bgAsiLegacy: c.bgAsiLegacy || undefined, ...pcKeep(c), method: c.method || "array", bonus: c.bonus || "flex", custom: c.customData || undefined });
-  ["level", "base", "scores", "mods", "rolls", "prof", "saves", "skills", "hp", "ac", "acSrc", "speed", "init", "passive", "attacks", "spell", "feats", "extras", "hd", "traits", "initBonus", "atkBonus", "hbSig", "res", "imm", "vul", "cimm", "sadv", "subHp", "subSpd", "subSaveGrants", "hbAc", "hbSpeed", "skilled", "expertOrder", "speciesSkill", "totalLevel", "mcSkills", "hdList"].forEach(k => c[k] = n[k]);
+  ["level", "base", "scores", "mods", "rolls", "prof", "saves", "skills", "hp", "ac", "acSrc", "speed", "init", "passive", "attacks", "spell", "feats", "extras", "hd", "traits", "initBonus", "atkBonus", "hbSig", "res", "imm", "vul", "cimm", "sadv", "subHp", "subSpd", "subSaveGrants", "hbAc", "hbSpeed", "skilled", "expertOrder", "speciesSkill", "totalLevel", "mcSkills", "hdList", "subclassPrints"].forEach(k => c[k] = n[k]);
   c.hpCur = n.hp;
   if (Array.isArray(c.prepared)) syncGrantedSpells(c);
   if (c.kitMoved) { c.attacks = pcAttacks(c); pcACApply(c); }
@@ -406,7 +407,7 @@ function rcACLine(c) {
     ? `<p class="hint" style="margin:10px 0 0">Armor class is set by hand to <b>${esc(c.ac)}</b>. Your equipment gives <b>${c.acAuto}</b> (${esc(c.acAutoSrc)}). <button class="btn sm" type="button" data-acauto="1">Use equipment AC</button></p>`
     : `<p class="hint" style="margin:10px 0 0">Armor class <b>${c.acAuto}</b>: ${esc(c.acAutoSrc)}.</p>`);
 }
-const ATK_F = { strMelee: a => a.melee && a.ab === "str", strWeapon: a=>a.ab==="str"&&(a.iid||a.unarmed), weapon: a => !!a.iid, melee: a => !!a.melee, ranged: a => !a.melee, unarmed: a => !!a.unarmed, all: () => true };
+const ATK_F = { strMelee: a => a.melee && a.ab === "str", strWeapon: a=>a.ab==="str"&&(a.iid||a.unarmed), weapon: a => !!a.iid, meleeWeapon:a=>!!a.iid&&a.melee, melee: a => !!a.melee, ranged: a => !a.melee, unarmed: a => !!a.unarmed, all: () => true };
 function pcAttacks(c) {
   const ed = edOf(c), out = [], SB = subBonusOf(c), m = c.mods, F = pcFx(c);
   if (F.form) {

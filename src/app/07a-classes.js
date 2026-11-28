@@ -433,9 +433,9 @@ const subFeatsOf = (ed, name) => SUB_FEATS[`${ed}|${name}`] || [];
 // a built-in subclass's features up to this level, as feature-list entries
 const subFeatList = (ed, name, lv) => subFeatsOf(ed, name).filter(x => x[0] <= lv).map(x => ({ l: x[0], f: x[1], sub: true }));
 // A single owner-aware progression contract for creation, rebuilds and the reference view.
-function subclassFeatureRows(ed,cls,name,includePending=false){
+function subclassFeatureRows(ed,cls,name,includePending=false,printing){
   if(!name||name==="none")return [];
-  const entry=subclassEntry(ed,cls,name,includePending);
+  const entry=subclassEntry(ed,cls,name,includePending,printing);
   const builtin=((SUBCLASSES[ed]||{})[cls]||[]).some(x=>x[0]===name);
   if(!entry&&!builtin)return [];
   const minimum=subclassLevel(ed,cls);
@@ -444,9 +444,9 @@ function subclassFeatureRows(ed,cls,name,includePending=false){
     .map(f=>{const srd=ed==="2024"&&!entry&&SRD_REVISED_SUBCLASS_SOURCES[name];return {...f,l:Math.max(minimum,+f.l),book:!!entry?.book,source:entry?.src||(srd?"srd52":""),sourceEdition:entry?.ed||ed,...(srd?{sourceId:"srd52:subclass:"+srd[0],page:srd[1],pageEnd:srd[2]}:{})};})
     .sort((x,y)=>x.l-y.l);
 }
-function subclassCharacterFeatures(ed,cls,name,level,secondary=false){
+function subclassCharacterFeatures(ed,cls,name,level,secondary=false,printing){
   if(!name||level<subclassLevel(ed,cls))return [];
-  return subclassFeatureRows(ed,cls,name,true).filter(f=>f.l<=level).map(f=>({
+  return subclassFeatureRows(ed,cls,name,true,printing).filter(f=>f.l<=level).map(f=>({
     l:f.l,f:f.n,sub:true,...(f.book?{bookSub:true}:{}),...(secondary?{mc:cls,mcsub:name}:{}),
     subOwner:cls,subName:name,subSource:f.source,subEdition:f.sourceEdition
   }));
@@ -464,7 +464,7 @@ function subFeatDesc(f,c,feature){
   const owners=feature?[subclassFeatureOwner(c,feature)]:[{cls:c.cls,name:c.subclass,level:c.level},...(c.multi||[]).map(x=>({cls:x.cls,name:x.subclass,level:x.lv}))];
   for(const o of owners){
     if(!o.name||o.level<subclassLevel(edOf(c),o.cls))continue;
-    const x=subclassFeatureRows(edOf(c),o.cls,o.name,true).find(y=>y.n===f&&y.l<=o.level&&(!feature||+feature.l===y.l));
+    const x=subclassFeatureRows(edOf(c),o.cls,o.name,true,characterSubclassPrinting(c,o.cls)).find(y=>y.n===f&&y.l<=o.level&&(!feature||+feature.l===y.l));
     if(x)return (x.d||"")+fxNote(x.fx);
   }return "";
 }
@@ -475,7 +475,7 @@ function pcSubSync(c) {
   for(const [i,x] of owners.entries()){
     if(+x.lv<subclassLevel(ed,x.cls))continue;
     keep.push({l:subclassLevel(ed,x.cls),f:x.subclass?"Subclass: "+x.subclass:(i?"Subclass: not chosen yet ("+x.cls+")":"Subclass: not chosen yet"),...(i?{mc:x.cls}:{})});
-    keep.push(...subclassCharacterFeatures(ed,x.cls,x.subclass,+x.lv,i>0));
+    keep.push(...subclassCharacterFeatures(ed,x.cls,x.subclass,+x.lv,i>0,characterSubclassPrinting(c,x.cls)));
   }
   // Do not duplicate existing untagged custom features from old saves.
   const seen=new Set(keep.filter(f=>f.subOwner).map(f=>JSON.stringify([f.subOwner,+f.l,f.f])));
@@ -625,13 +625,21 @@ function legacySubclassEntries(cls){
  const candidates=[...bookSubclassEntries("2014",cls).filter(x=>x.ed==="2014"&&["tce","xge","scag","vrgr","dmg-2014","bgg","ftd","ggr","mot"].includes(x.src)),...((SUBCLASSES["2014"]||{})[cls]||[]).map(([name,desc])=>({name,desc,ed:"2014",src:"phb-2014",cls,book:true,features:subFeatsOf("2014",name).map(([l,n,d])=>({l,n,d}))}))];
  return candidates.filter(x=>{if(!available(x)||!valid(x))return false;seen.add(x.name);return true;}).map(x=>({...x,compatibility:true}));
 }
-function subclassEntry(ed, cls, name, includePending = true) {
+function namedSubclassPrints(ed,cls,name){
+  return bookSubclassEntries(ed,cls).filter(x=>x.name===name&&x.id);
+}
+function characterSubclassPrinting(c,cls){
+  const prints=c?.subclassPrints;
+  return prints&&Object.hasOwn(prints,cls)&&typeof prints[cls]==="string"?prints[cls]:undefined;
+}
+function subclassEntry(ed, cls, name, includePending = true, printing) {
   const custom = (includePending ? [...hbOf("subclass"), ...HB.pend.filter(x => x.kind === "subclass")] : hbOf("subclass")).filter(x => x.cls === cls && x.name === name && hbEdOk(x, ed));
-  const book = bookSubclassEntries(ed, cls).find(x => x.name === name);
+  const prints=namedSubclassPrints(ed,cls,name),book=prints[0];
   const builtIn = (((SUBCLASSES[ed] || SUBCLASSES["2014"])[cls]) || []).some(x => x[0] === name);
   /* a book subclass only printed for the other rules set (Oathbreaker with 2024 rules) still brings its features */
   const other = !book && !builtIn && ed==="2024" ? legacySubclassEntries(cls).find(x=>x.name===name) : null;
-  const entry = custom.find(x => !(hbFromImport(x) && (book || builtIn || other))) || book || (builtIn ? undefined : other || undefined);
+  const selected=printing&&prints.find(x=>x.id===printing);
+  const entry = selected || custom.find(x => !(hbFromImport(x) && (book || builtIn || other))) || book || (builtIn ? undefined : other || undefined);
   if (!entry?.baseSubclass) return entry;
   const features = subFeatsOf(ed, entry.baseSubclass)
     .filter(([level, name]) => !entry.features.some(f => +f.l === level && f.n === name))
@@ -725,8 +733,8 @@ function hbClassData(x) {
     ...(cast ? { cast } : {}), spellsFrom: x.spellsFrom && CLASS_DATA[x.spellsFrom] && !CLASS_DATA[x.spellsFrom].hb ? x.spellsFrom : undefined,
     armorT: (x.armor || []).filter(k => ["light", "medium", "heavy", "shield"].includes(k)).join(" "), weapons: String(x.weapons || "").slice(0, 300), tools: String(x.tools || "").slice(0, 300) };
 }
-function subclassDesc(name, ed, cls) {
-  if (ed && cls) return subclassEntry(ed, cls, name)?.desc || subclassList(ed, cls).find(x => x[0] === name)?.[1] || "";
+function subclassDesc(name, ed, cls, printing) {
+  if (ed && cls) return subclassEntry(ed, cls, name,true,printing)?.desc || subclassList(ed, cls).find(x => x[0] === name)?.[1] || "";
   const h = hbAny("subclass").find(x => x.name === name); if (h) return h.desc || "";
   for (const ed of ["2024", "2014"]) for (const list of Object.values(SUBCLASSES[ed])) { const h = list.find(x => x[0] === name); if (h) return h[1]; }
   return SUB_DESC[name] || "";

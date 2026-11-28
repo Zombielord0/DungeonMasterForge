@@ -402,7 +402,7 @@ function chosenSubclassFeature(f, c, feature) {
   const cls = feature?.mc || c?.cls;
   const subclass = feature?.mcsub || c?.subclass;
   if (!subclass || (feature && !feature.bookSub && !feature.mcsub && !feature.sub)) return null;
-  return subclassFeatureRows(edOf(c),cls,subclass,true).find(x=>x.n===f&&(!feature||+x.l===+feature.l));
+  return subclassFeatureRows(edOf(c),cls,subclass,true,characterSubclassPrinting(c,cls)).find(x=>x.n===f&&(!feature||+x.l===+feature.l));
 }
 function featDesc(f, c, feature) {
   const ed = edOf(c);
@@ -412,7 +412,7 @@ function featDesc(f, c, feature) {
   const classRow = classData(ed, cls)?.hbx?.features?.find(x => x.n === f);
   if (classRow?.d) return classRow.d;
   if (f === "Subclass: not chosen yet") return "Pick your subclass with the Choose subclass button on this sheet.";
-  if (f.startsWith("Subclass: ")) return subclassDesc(f.slice(10), ed, cls);
+  if (f.startsWith("Subclass: ")) return subclassDesc(f.slice(10),ed,cls,characterSubclassPrinting(c,cls));
   if (f.startsWith("Background: ")) return bgSummary(edOf(c), f.slice(12));
   { const bf = Object.values(BG_DATA["2014"]).find(B => B.feature[0] === f); if (bf) return `${bf.feature[1]} (From your background.)`; }
   if (f.startsWith("Ability Score Improvement: ")) return "Your choice at this level — already applied to the scores above.";

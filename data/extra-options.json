@@ -7203,40 +7203,47 @@
     "ed": "2014",
     "book": true,
     "src": "tce",
-    "desc": "2014 Druid subclass from Tasha’s Cauldron of Everything, p. 36.",
+    "desc": "A Druid Circle that channels decay through fungal spores, turning fallen creatures into short-lived allies.",
     "features": [
       {
         "l": 2,
         "n": "Circle Spells",
-        "d": "Learn Chill Touch and always prepare fungus-themed spells at the listed levels."
+        "d": "Learn Chill Touch at Druid level 2. At level 3, always prepare Blindness/Deafness and Gentle Repose. At level 5, add Animate Dead and Gaseous Form. At level 7, add Blight and Confusion. At level 9, add Cloudkill and Contagion. They count as Druid spells and do not use your preparation allowance."
       },
       {
         "l": 2,
         "n": "Halo of Spores",
-        "d": "React to creatures entering or starting near you with necrotic damage on a failed Constitution save."
+        "d": "When a creature you can see enters a space within 10 feet of you or starts its turn there, you can use your Reaction. It takes 1d4 Necrotic damage if it fails a Constitution save against your spell save DC. At Druid levels 6, 10, and 14, the die becomes a d6, d8, and d10 respectively."
       },
       {
         "l": 2,
         "n": "Symbiotic Entity",
-        "d": "Spend Wild Shape for temporary HP, improved spores, and extra melee weapon damage."
+        "d": "Use an Action and expend one Wild Shape use. Gain 4 temporary HP per Druid level. While these spores are active, roll one additional Halo of Spores die and deal an extra 1d6 Necrotic damage on melee weapon hits. These benefits last 10 minutes and end early if you lose these temporary HP or use Wild Shape again."
       },
       {
         "l": 6,
         "n": "Fungal Infestation",
-        "d": "Animate a nearby dying beast or humanoid briefly as a zombie."
+        "d": "When a Small or Medium Beast or Humanoid dies within 10 feet of you, use your Reaction to animate its corpse as a Zombie with 1 HP. Its turn follows yours. It obeys mental commands and can take the Attack action for one melee attack as its only action. It collapses after 1 hour. Uses equal your Wisdom modifier, minimum one, and all return after a Long Rest."
       },
       {
         "l": 10,
         "n": "Spreading Spores",
-        "d": "Move your damaging spores into a nearby cube while Symbiotic Entity is active."
+        "d": "While Symbiotic Entity is active, use a Bonus Action to create a 10-foot cube of spores within 30 feet for up to 1 minute. A creature entering or starting its turn there takes Halo of Spores damage on a failed Constitution save against your spell save DC, at most once per turn. You cannot use your Halo Reaction while the cube remains. It ends if you create another cube, dismiss it with a Bonus Action, or end Symbiotic Entity."
       },
       {
         "l": 14,
         "n": "Fungal Body",
-        "d": "Gain immunity to several conditions and prevent critical hits unless incapacitated."
+        "d": "You cannot be Blinded, Deafened, Frightened, or Poisoned. While you are not Incapacitated, a critical hit against you becomes an ordinary hit."
       }
     ],
-    "page": 36
+    "page": 36,
+    "featureSourceReview": {
+      "status": "source_mechanics_runtime_partial",
+      "reference": "Tasha’s Cauldron of Everything, Circle of Spores, pp. 36–38",
+      "primaryVerified": false,
+      "runtimeVerified": false,
+      "note": "Compared all six feature descriptions with the supplied PDF. The 1d6 Necrotic melee rider is specific to this reprint. Fungal Infestation positioning and the Zombie are table-managed."
+    }
   },
   {
     "id": "reference-tce-druid-circle-of-stars",

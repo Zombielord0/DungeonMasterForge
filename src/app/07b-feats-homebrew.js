@@ -210,12 +210,12 @@ function fxText(e) {
 }
 const fxNote = l => { const c = fxClean(l); return c.length ? ` [On the sheet: ${c.map(fxText).join(", ")}.]` : ""; };
 // Every homebrew effect a character has: species traits and subrace, background, subclass features reached, feats taken.
-function hbEffects(ed, race, sub, bg, cls, subclass, lv, featNames) {
+function hbEffects(ed, race, sub, bg, cls, subclass, lv, featNames, printing) {
   const out = [], add = (src, l) => fxClean(l).forEach(e => out.push({ ...e, src }));
   const sp = hbAny("species").find(x => x.name === race && hbEdOk(x, ed) && PC_RACES[ed][race] && PC_RACES[ed][race].hb);
   if (sp) { (sp.traits || []).filter(t => (+t.l || 1) <= lv).forEach(t => add(t.n, t.fx)); const su = (sp.subs || []).find(t => t.n === sub); if (su) add(su.n, su.fx); }
   if (HB_BG[bg]) add(`${bg} background`, HB_BG[bg].fx);
-  const sc = subclass && subclassEntry(ed, cls, subclass);
+  const sc = subclass && subclassEntry(ed,cls,subclass,true,printing);
   if (sc) (sc.features || []).filter(f => f.n && +f.l <= lv).forEach(f => add(f.n, f.fx));
   const hc = classData(ed, cls)?.hbx;
   if (hc) (hc.features || []).filter(f => f.n && +f.l <= lv).forEach(f => add(f.n, f.fx));

@@ -184,7 +184,7 @@ function legacySubclassOption(c,ed,cls,sp){
  if(edOf(c)!==ed||!sp||sp.hb||sp.pend||sp.referenceOnly||sp.rulesSummary||sp.ref||sp.shadow)return false;
  const row=[{cls:c.cls,lv:c.level,subclass:c.subclass},...(c.multi||[])].find(x=>x.cls===cls);
  if(!row||!row.subclass||+row.lv<subclassLevel(ed,cls))return false;
- const entry=subclassEntry(ed,cls,row.subclass);
+ const entry=subclassEntry(ed,cls,row.subclass,true,characterSubclassPrinting(c,cls));
  if(ed!=="2014"&&!entry?.compatibility)return false;
  if(cls==="Sorcerer"&&row.subclass==="Divine Soul")return (sp.c||[]).includes("Cleric");
  if(cls!=="Warlock"||!LEGACY_PATRON_OPTIONS[row.subclass])return false;
@@ -406,7 +406,7 @@ function syncGrantedSpells(c) {
     const data = classData(ed, cls)?.hbx;
     add(data?.alwaysPrepared, lv, { ...classSource, book: data?.src });
     if (!subclass || lv < subclassLevel(ed, cls)) continue;
-    const entry = subclassEntry(ed, cls, subclass);
+    const entry = subclassEntry(ed,cls,subclass,true,characterSubclassPrinting(c,cls));
     const source = { kind: "subclass", name: subclass, cls, book: entry?.src };
     const artificer = ed === "2024" ? REVISED_ARTIFICER_SPELL_GRANTS : ARTIFICER_SPELL_GRANTS;
     const legacy=ed==="2014"||entry?.compatibility===true,key=cls+"|"+subclass;

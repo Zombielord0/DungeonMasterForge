@@ -67,7 +67,17 @@ function impSubclass(ed, cls, name, arch, D) {
   const m = impFuzzyFirst(tiers, names(home.filter(hbFromImport)), nm, true);
   if (m) {
     const tag = m.tier === 1 || m.tier === 3 ? " (extra book)" : m.tier === 0 ? "" : " (homebrew)";
-    impReport(D, `${cls} subclass`, m, nm, tag); return m.name;
+    impReport(D,`${cls} subclass`,m,nm,tag);
+    const source=String(arch?.source||arch?.src||String(name).match(/\[([^\]]+)\]\s*$/)?.[1]||"").trim();
+    if(source&&!/^ua$/i.test(source)){
+      const prints=namedSubclassPrints(ed,cls,m.name),wanted=impLetters(source);
+      const matches=prints.filter(row=>[row.src,dmBook(row.src)?.short,dmBook(row.src)?.name].some(label=>label&&impLetters(label)===wanted));
+      if(matches.length===1){
+        D.opts.subclassPrints={...D.opts.subclassPrints,[cls]:matches[0].id};
+        D.report.matched.push(`${cls} subclass source: ${dmBook(matches[0].src)?.name||matches[0].src}`);
+      }else if(prints.length>1)D.report.differ.push(`${cls} subclass source “${impCut(source,60)}” could not be matched. Check the source selector on the character sheet.`);
+    }
+    return m.name;
   }
   D.homebrew.push({ id: uid("hb"), kind: "subclass", src: IMP_SRC, ed, cls, name: impCut(nm, 60), desc: "",
     features: ((arch && arch.features) || []).map(f => ({ l: clamp(+f.level || +impFeat(f).level || 1, 1, 20), n: impCut(impFeat(f).name, 60), d: impDesc(impFeat(f)), fx: [] })).filter(f => f.n) });
@@ -379,7 +389,7 @@ function compImport(j, ed) {
   const profs = j.proficiencies || [], langs = profs.filter(p => p.typeName === "LANGUAGE").map(p => p.name), tools = profs.filter(p => p.typeName === "TOOL").map(p => p.name);
   if (j.about) notes.unshift(String(j.about));
   (j.notes || []).map(n => n && n.text).filter(t => t && !/Swipe this message to dismiss/i.test(t)).forEach(t => notes.push(t));
-  D.opts = { seed: String(j.id || uid("imp")), name: impCut(j.name, 80) || "Imported character", ed, bonus: "fixed", method: "array", cls: main.cls, level: main.lv, subclass: main.subclass || "none", race, sub, bg: bg || undefined,
+  D.opts = { ...D.opts,seed: String(j.id || uid("imp")), name: impCut(j.name, 80) || "Imported character", ed, bonus: "fixed", method: "array", cls: main.cls, level: main.lv, subclass: main.subclass || "none", race, sub, bg: bg || undefined,
     multi: more.length ? more.map(x => ({ cls: x.cls, lv: x.lv, subclass: x.subclass })) : undefined, keepSkills, keepExpert, bonusFeats: bonusFeats.length ? bonusFeats : undefined };
   impGenderSet(D, impGender({ preferences: j.preferences, player: j.player, gender: j.gender, pronouns: j.pronouns, sex: j.sex },
     [j.about, j.personalityTraits, j.ideals, j.bonds, j.flaws, ...(j.notes || []).map(n => n && n.text)]));
@@ -504,7 +514,7 @@ function fecsImport(text, ed) {
   }
   if (note(0)) notes.unshift(note(0));
   if (note(6)) notes.push(note(6));
-  D.opts = { seed: uid("imp"), name: impCut(note(15), 80) || "Imported character", ed, bonus: "fixed", method: "array", cls: main.cls, level: main.lv, subclass: main.subclass || "none", race, sub, bg: bg || undefined,
+  D.opts = { ...D.opts,seed: uid("imp"), name: impCut(note(15), 80) || "Imported character", ed, bonus: "fixed", method: "array", cls: main.cls, level: main.lv, subclass: main.subclass || "none", race, sub, bg: bg || undefined,
     multi: more.length ? more.map(x => ({ cls: x.cls, lv: x.lv, subclass: x.subclass })) : undefined, keepSkills, keepExpert };
   impGenderSet(D, impGender({}, [note(0), note(6), note(11), note(12), note(13), note(14)]));
   const coin = i => Math.max(0, Math.floor(+note(i) || 0));

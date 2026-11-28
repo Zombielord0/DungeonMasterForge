@@ -70,6 +70,30 @@ function quickSheetHTML(c) {
 }
 
 const armorCastingWarningHTML = c => `<div id="rcArmorCastingWarning" class="enc" style="margin-top:10px" ${c.armorUntrained ? "" : "hidden"}>${esc(ARMOR_CASTING_WARNING)}</div>`;
+function subclassPrintingHTML(c){
+  const ed=edOf(c),owners=[{cls:c.cls,subclass:c.subclass},...(c.multi||[])];
+  return owners.map(({cls,subclass})=>{
+    const prints=namedSubclassPrints(ed,cls,subclass);
+    if(prints.length<2||!characterSubclassLevel(c,cls,subclass))return "";
+    const explicit=characterSubclassPrinting(c,cls),current=subclassEntry(ed,cls,subclass,false,explicit);
+    const defaultName=dmBook(subclassEntry(ed,cls,subclass,false)?.src)?.name||"Forge default";
+    const options=prints.map(row=>{
+      const book=dmBook(row.src)?.name||row.src;
+      const page=row.page?` · p. ${row.page}`:"";
+      return `<option value="${esc(row.id)}" ${current?.id===row.id&&explicit===row.id?"selected":""}>${esc(book+page)}</option>`;
+    }).join("");
+    return `<label>${esc(subclass)} source<select data-subclass-print="${esc(cls)}"><option value="">Default · ${esc(defaultName)}</option>${options}</select></label>`;
+  }).join("");
+}
+function setSubclassPrinting(c,cls,printing){
+  const row=[{cls:c.cls,subclass:c.subclass},...(c.multi||[])].find(x=>x.cls===cls);
+  if(!row?.subclass||printing&&!namedSubclassPrints(edOf(c),cls,row.subclass).some(x=>x.id===printing))return false;
+  const previous=c.subclassPrints&&typeof c.subclassPrints==="object"?Object.entries(c.subclassPrints):[];
+  c.subclassPrints=Object.fromEntries(previous.filter(([key])=>key!==cls).concat(printing?[[cls,printing]]:[]));
+  if(cls==="Druid")endSymbioticEntity(c);
+  pcSubSync(c);syncGrantedSpells(c);pcSubNumbers(c);pcRecompute(c);
+  return true;
+}
 function rosterHTML(c) {
   const isb = itemSaveBonus(c), sv = a => c.mods[a] + (c.saves.includes(a) ? c.prof : 0) + isb;
   const D = c.hookDetail || { story: "", questions: [], use: "" };
@@ -80,6 +104,7 @@ function rosterHTML(c) {
       <div style="flex:0 1 auto;min-width:0;display:flex;gap:6px;flex-wrap:wrap"><button class="btn sm" type="button" data-ra="sheet">⎙ Export character sheet</button><button class="btn sm" type="button" data-ra="cards" title="Printable cards for this character's prepared spells">🃏 Spell cards</button><button class="btn sm" type="button" data-ra="copy">Copy as text</button><button class="btn sm danger" type="button" data-ra="del">✕ Delete</button></div></div>
     <div class="gen-sub"><span class="tag gold">${esc(raceLabel(c))} ${esc((c.multi || []).length ? classLine(c) : c.cls)}</span>${(c.multi || []).length ? `<span class="tag">Level ${totalLv(c)}</span>` : ""}<span class="tag">${esc(edOf(c))} rules</span><span class="tag">${esc(c.bg)}</span>${c.custom ? `<span class="tag">Custom build</span>` : ""}</div>
     <div class="rc-grid">
+      ${subclassPrintingHTML(c)}
       <label>Level<input type="number" min="1" max="20" data-rlv="1" value="${c.level}"></label>
       <label>Gender<select data-rf="gender">${c.gender ? "" : `<option value="">Not set</option>`}${GENDERS.map(([v, l]) => `<option value="${v}" ${c.gender === v ? "selected" : ""}>${l}</option>`).join("")}</select></label>
       <label>Alignment<input type="text" data-rf="align" value="${esc(c.align || "")}"></label>
@@ -253,6 +278,10 @@ spFiltersSync();
   });
   main.addEventListener("change", e => {
     const t = e.target, c = rosterCur(); if (!c) return;
+    if(t.hasAttribute("data-subclass-print")){
+      if(setSubclassPrinting(c,t.dataset.subclassPrint,t.value)){pcPersist();renderRosterMain();}
+      return;
+    }
     if(t.dataset.companionHp){companionSetHP(c,t.dataset.companionHp,t.value);pcRecompute(c);pcPersist();renderRosterMain();return;}
     if(t.hasAttribute("data-companion-variant")){
       const variant=t.value,previous=c.beastCompanionVariant||"natural";
@@ -284,6 +313,7 @@ spFiltersSync();
       else if (prev !== null && now > prev) { const n = pcHealed(c, prev === 0); if (n.length) toast(n.join(". ") + "."); }
       pcRecompute(c); pcPersist(); renderRosterMain();
     }
+    else if (t.dataset.rf==="hpTemp") { pcRecompute(c);pcPersist();renderRosterMain(); }
     else if (t.dataset.formhp) { c.formHp = Math.max(0, parseInt(t.value) || 0); pcPersist(); renderRosterMain(); }
     else if (t.dataset.actpersist) { c.active = c.active || {}; if (t.value) c.active[t.dataset.actpersist] = t.value; else delete c.active[t.dataset.actpersist]; pcRecompute(c); pcPersist(); renderRosterMain(); }
     else if (t.dataset.fx) { c.fx = c.fx || {}; c.fx[t.dataset.fx] = t.checked; pcACApply(c); pcPersist(); renderRosterMain(); }
@@ -295,7 +325,7 @@ spFiltersSync();
     if (t.dataset.rf) {
       const k = t.dataset.rf, v = t.value;
       if (k.startsWith("hd.")) { c.hookDetail = c.hookDetail || { story: "", questions: [], use: "" }; const f = k.slice(3); c.hookDetail[f] = f === "questions" ? v.split("\n").map(x => x.trim()).filter(Boolean) : v; }
-      else if (["hp", "hpCur", "hpTemp", "ac", "speed", "xp"].includes(k)) { c[k] = v === "" ? "" : +v; if (k === "ac") { c.acManual = v !== "" && +v !== c.acAuto; const l = $("#rcACLine"); if (l) l.innerHTML = rcACLine(c); } if (k === "speed") { c.speedManual = v !== "" && +v !== c.speedAuto; const l = $("#rcSpeedLine"); if (l) l.innerHTML = rcSpeedLine(c); } }
+      else if (["hp", "hpCur", "hpTemp", "ac", "speed", "xp"].includes(k)) { c[k] = v === "" ? "" : +v; if(k==="hpTemp"&&!+v)endSymbioticEntity(c); if (k === "ac") { c.acManual = v !== "" && +v !== c.acAuto; const l = $("#rcACLine"); if (l) l.innerHTML = rcACLine(c); } if (k === "speed") { c.speedManual = v !== "" && +v !== c.speedAuto; const l = $("#rcSpeedLine"); if (l) l.innerHTML = rcSpeedLine(c); } }
       else c[k] = v;
       const vital = $(`[data-quick-vital="${CSS.escape(k)}"]`, main);
       if (vital) vital.textContent = c[k] || 0;

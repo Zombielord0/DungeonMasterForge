@@ -905,6 +905,48 @@ const { chromium } = require("playwright");
     assert.deepEqual([arcaneAudit.bursting.aoe,arcaneAudit.bursting.expr,arcaneAudit.bursting.chooseTargets,arcaneAudit.regained,arcaneAudit.afterInit],[true,"2d8",true,true,1]);
     assert.match(arcaneAudit.ammo,/120-foot vine/);assert.match(arcaneAudit.same,/Not enough/);
     assert.deepEqual([arcaneAudit.recovery,arcaneAudit.afterRest,arcaneAudit.cleanup,arcaneAudit.legacy],[[1,0],[0,false],true,false]);
+    const printingChoices=await page.evaluate(()=>{
+      const id="reference-ggr-druid-circle-of-spores",name="Circle of Spores";
+      const opts={seed:"SOURCE-CHOICE",ed:"2014",cls:"Druid",level:6,subclass:name,race:"Human",bg:"Sage"};
+      const base=pcEnsure(generateCharacter(opts));
+      const defaults=base.feats.find(f=>f.f==="Symbiotic Entity").subSource;
+      const source=()=>rosterCur().feats.find(f=>f.f==="Symbiotic Entity").subSource;
+      PCS.roster.push(base);RC.id=base.id;renderRoster();renderRosterMain();
+      const imported={report:{matched:[],differ:[]},opts:{},homebrew:[]};
+      impSubclass("2014","Druid","Circle of Spores [GGR]",null,imported);
+      const exact=generateCharacter({...opts,subclassPrints:imported.opts.subclassPrints});
+      const guard=generateCharacter({...opts,ed:"2024",subclassPrints:{Druid:id}});
+      const multiclass=pcEnsure(generateCharacter({...opts,cls:"Fighter",subclass:"none",level:1,multi:[{cls:"Druid",lv:6,subclass:name}],subclassPrints:{Druid:id}}));
+      const multiFeature=multiclass.feats.find(f=>f.f==="Symbiotic Entity");
+      const invalid=generateCharacter({...opts,subclassPrints:{Druid:"reference-ggr-cleric-order-domain"}});
+      return {id,defaults,current:source(),exact:exact.feats.find(f=>f.f==="Symbiotic Entity").subSource,
+        selection:imported.opts.subclassPrints?.Druid,wrongEdition:guard.subclassPrints?.Druid??null,
+        multi:[multiFeature.mc,multiFeature.subSource],invalid:invalid.subclassPrints?.Druid??null};
+    });
+    assert.deepEqual([printingChoices.defaults,printingChoices.current,printingChoices.exact,printingChoices.selection,printingChoices.wrongEdition,printingChoices.multi,printingChoices.invalid],
+      ["tce","tce","ggr",printingChoices.id,null,["Druid","ggr"],null]);
+    const printingPicker=page.locator('[data-subclass-print="Druid"]');
+    await printingPicker.selectOption(printingChoices.id);
+    const printingSaved=await page.evaluate(()=>{
+      const current=rosterCur(),sym=current.feats.find(f=>f.f==="Symbiotic Entity");
+      const stored=JSON.parse(localStorage.getItem(PC_KEY)).roster.find(c=>c.id===current.id);
+      pcLevelTo(current,8);pcSubSync(current);
+      return [sym.subSource,featDesc(sym.f,current,sym),stored.subclassPrints.Druid,current.feats.find(f=>f.f===sym.f).subSource];
+    });
+    assert.equal(printingSaved[0],"ggr");assert.match(printingSaved[1],/Poison damage/i);assert.equal(printingSaved[2],printingChoices.id);assert.equal(printingSaved[3],"ggr");
+    await printingPicker.selectOption("");
+    assert.equal(await page.evaluate(()=>rosterCur().feats.find(f=>f.f==="Symbiotic Entity").subSource),"tce");
+    const sporesAudit=await page.evaluate(()=>{
+      const c=rosterCur(),d=eqGear("2014","Dagger");c.inv=[{id:"spore-dagger",ref:d.id,n:d.n,qty:1,eq:true}];
+      pcLevelTo(c,10);pcRecompute(c);const ordinary=actRun(c,"Halo of Spores").expr;
+      actRun(c,"Symbiotic Entity","take");const tasha=[c.hpTemp,pcAttacks(c)[0].extra[0],actRun(c,"Halo of Spores").expr];
+      actRun(c,"Spreading Spores");const spread=actRun(c,"Spreading Spores damage").expr,haloBlocked=actRun(c,"Halo of Spores")==="";
+      setSubclassPrinting(c,"Druid","reference-ggr-druid-circle-of-spores");const cleared=!sporesActive(c)&&!c.active["Spreading Spores"];
+      actRun(c,"Symbiotic Entity","take");const ravnica=pcAttacks(c)[0].extra[0];
+      actApply("pc:"+c.id,40,"damage");const ended=!sporesActive(c)&&!c.active["Symbiotic Entity"];
+      return {ordinary,tasha,spread,haloBlocked,cleared,ravnica,ended,spent:c.used.wild};
+    });
+    assert.deepEqual(sporesAudit,{ordinary:"1d8",tasha:[40,"1d6 necrotic (Symbiotic Entity)","2d8"],spread:"2d8",haloBlocked:true,cleared:true,ravnica:"1d6 poison (Symbiotic Entity)",ended:true,spent:2});
     const monkSubclassAudit=await page.evaluate(()=>{
       const make=(subclass)=>pcEnsure(generateCharacter({seed:"MONK-SUBCLASS",ed:"2014",cls:"Monk",level:17,subclass,race:"Human",bg:"Sage"}));
       const d=make("Way of the Ascendant Dragon"); d.used={};d.active={};

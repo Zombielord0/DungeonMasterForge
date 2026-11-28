@@ -47,7 +47,7 @@ function companionLevel(c,key){
   if(!d)return 0;
   const level=characterSubclassLevel(c,d.cls,d.sub);
   if(!level)return 0;
-  const entry=subclassEntry(ed,d.cls,d.sub,false);
+  const entry=subclassEntry(ed,d.cls,d.sub,false,characterSubclassPrinting(c,d.cls));
   if(entry&&!entry.book||d.src&&entry?.src!==d.src)return 0;
   if(ed!==d.ed&&!(d.src&&entry?.compatibility&&entry.ed===d.ed))return 0;
   if(key==="primal14"||key==="beast14"){
@@ -260,10 +260,26 @@ const REVISED_MAGICAL_AMMO={
 };
 const DEDICATED_SUBCLASS_ACTIONS=new Set([
   "Arcane Shot","Curving Shot","Magical Ammunition","Masterful Shots","Ever-Ready Shot","Indomitable Teleport",
-  "Enhanced Bond","Cauterizing Flames","Blazing Revival","Reflexive Resistance","Drake's Breath","Drake’s Breath"
+  "Enhanced Bond","Cauterizing Flames","Blazing Revival","Reflexive Resistance","Drake's Breath","Drake’s Breath",
+  "Symbiotic Entity","Halo of Spores","Spreading Spores","Fungal Infestation"
 ]);
+function sporesLevel(c){
+  const level=characterSubclassLevel(c,"Druid","Circle of Spores");
+  const entry=level&&subclassEntry(edOf(c),"Druid","Circle of Spores",false,characterSubclassPrinting(c,"Druid"));
+  return entry?.book&&["ggr","tce"].includes(entry.src)?level:0;
+}
+function sporesActive(c){return sporesLevel(c)>=2&&+c.hpTemp>0&&!!c.active?.["Symbiotic Entity"];}
+function endSymbioticEntity(c){
+  if(!c.active)return;
+  delete c.active["Symbiotic Entity"];
+  delete c.active["Spreading Spores"];
+}
+function sporesDamage(c,name,text){
+  const level=sporesLevel(c),die=level>=14?10:level>=10?8:level>=6?6:4;
+  return area(name,`${sporesActive(c)?2:1}d${die}`,"con",8+c.prof+c.mods.wis,"necrotic",text,{noneOnSave:true,singleTarget:true,chooseTargets:true});
+}
 function arcaneArcherPrint(c){
-  const entry=subclassEntry(edOf(c),"Fighter","Arcane Archer",false);
+  const entry=subclassEntry(edOf(c),"Fighter","Arcane Archer",false,characterSubclassPrinting(c,"Fighter"));
   return entry?.book&&["au","xge"].includes(entry.src)?entry.src:"";
 }
 function arcaneArcherLevel(c){
@@ -599,6 +615,7 @@ function pcResources(c) {
     add("arcaneShot","Arcane Shot",Math.max(1,m.int),"short");
     if(arcaneArcherLevel(c)>=7)add("magicalAmmunition","Magical Ammunition",1,"short");
   }
+  if(sporesLevel(c)>=6)add("fungalInfestation","Fungal Infestation",Math.max(1,m.wis),"long");
   if(companionLevel(c,"steel")>=3||companionLevel(c,"steel24")>=3)add("steelRepair","Steel Defender repair",3,"long");
   if(battleSmithLevel(c)>=9)add("arcaneJolt","Arcane Jolt",Math.max(1,c.mods.int),"long");
   const subSeen=new Set();
@@ -633,6 +650,16 @@ function pcAbilities(c) {
   if(companionLevel(c,"wildfire")>=6&&companionState(c,"wildfire"))add("Enhanced Bond","When casting","Roll 1d8 for one fire damage or healing roll of your spell. A non-Self spell can also originate from the spirit.",null,"Circle of Wildfire");
   if(companionLevel(c,"wildfire")>=10)add("Cauterizing Flames","Reaction","A Small or larger creature dying within 30 feet of you or your spirit leaves a flame for 1 minute. When a visible creature enters its space, extinguish the flame to heal or deal fire damage to that creature.","cauterizingFlames","Circle of Wildfire");
   if(wildfireRevivalReady(c))add("Blazing Revival","When reduced to 0 HP","Your spirit within 120 feet drops to 0 HP. You regain half your maximum hit points and stand up.","blazingRevival","Circle of Wildfire");
+  if(sporesLevel(c)>=2){
+    const owner="Circle of Spores";
+    add("Symbiotic Entity","Action","Spend Wild Shape and take temporary HP equal to four times your Druid level. The spores last at most 10 minutes and end when those temporary HP are lost or you use Wild Shape again.","wild",owner);
+    if(!c.active?.["Spreading Spores"])add("Halo of Spores","Reaction","Confirm a visible creature entered within 10 feet or started its turn there. A successful Constitution save prevents the damage.",null,owner);
+    if(sporesLevel(c)>=6)add("Fungal Infestation","Reaction","Animate an eligible corpse within 10 feet as a 1 HP Zombie for one hour. The Zombie acts immediately after you and can only take the Attack action for one melee attack.","fungalInfestation",owner);
+    if(sporesLevel(c)>=10&&sporesActive(c)){
+      add("Spreading Spores","Bonus action","Place a 10-foot cube within 30 feet for 1 minute. It replaces your previous cube and prevents Halo reactions until dismissed or expired.",null,owner);
+      if(c.active?.["Spreading Spores"])add("Spreading Spores damage","Creature enters or starts its turn in the cube","Resolve the damage once per creature per turn.",null,owner);
+    }
+  }
   if(revisedArcaneArcher(c)){
     const level=arcaneArcherLevel(c),owner="Arcane Archer";
     add("Arcane Shot","On a qualifying ranged attack","Use a learned shot once per turn with a ranged Ammunition weapon. Confirm the hit unless the shot replaces the attack roll.","arcaneShot",owner);
@@ -792,7 +819,7 @@ function rollDice(expr) {
   return { total, text: `${n}d${d}${k ? sgn(k) : ""}: ${rolls.join(" + ")}${k ? ` ${k < 0 ? "−" : "+"} ${Math.abs(k)}` : ""} = ${total}` };
 }
 const healSelf = (c, n) => { const before = +c.hpCur || 0, max = +c.hp || 0; c.hpCur = Math.min(max, before + n); pcHealed(c, before === 0); return c.hpCur - before; };
-const giveTemp = (c, n) => { if (n > (+c.hpTemp || 0)) { c.hpTemp = n; return true; } return false; };
+const giveTemp = (c, n) => { if (n > (+c.hpTemp || 0)) { c.hpTemp = n; endSymbioticEntity(c); return true; } return false; };
 const wearingArmor = c => (c.inv || []).some(i => i.eq && (+i.qty || 0) > 0 && (a => a && a.cat !== "Shield")(eqArmorOf(i, edOf(c))));
 const isActive = (c, n) => !!(c.active || {})[n];
 const maDie = c => { const lv = clsLv(c, "Monk") || c.level; return edOf(c) === "2024" ? (lv >= 17 ? 12 : lv >= 11 ? 10 : lv >= 5 ? 8 : 6) : (lv >= 17 ? 10 : lv >= 11 ? 8 : lv >= 5 ? 6 : 4); };
@@ -1504,6 +1531,13 @@ function arcaneJoltUse(c,ch){
  return roll("Arcane Jolt",(battleSmithLevel(c)>=15?4:2)+"d6",ch==="heal"?"heal":"damage",ch==="heal"?"Confirm qualifying hit and recipient within 30 feet.":"Extra Force damage on confirmed magic weapon or defender hit.");
 }
 const ACT = {
+ "Symbiotic Entity":{kind:"toggle",choices:c=>[["take",`Use ${4*sporesLevel(c)} temporary HP from Symbiotic Entity`]],start:c=>{
+   c.hpTemp=4*sporesLevel(c);return `Symbiotic Entity grants ${c.hpTemp} temporary HP.`;
+ }},
+ "Halo of Spores":{kind:"instant",use:c=>sporesDamage(c,"Halo of Spores","Confirm the visible creature’s movement or turn start within 10 feet and spend your Reaction.")},
+ "Fungal Infestation":{kind:"instant",choices:[["confirm","Confirm Small or Medium Beast or Humanoid corpse within 10 feet"]],use:()=>"Use the Zombie stat block with 1 HP. It obeys mental commands, acts immediately after your turn, and collapses after one hour."},
+ "Spreading Spores":{kind:"toggle",start:()=>"Place a 10-foot cube within 30 feet for up to 1 minute."},
+ "Spreading Spores damage":{kind:"instant",use:c=>sporesDamage(c,"Spreading Spores","Confirm the creature entered the cube or started its turn there, and has not taken this damage this turn.")},
  "Arcane Shot":{kind:"instant",choices:revisedShotChoices,use:revisedShotUse},
  "Begin Arcane Archer turn":{kind:"instant",choices:[["next","Confirm a new creature turn"]],use:c=>{delete c.arcaneShotUsedThisTurn;return "Arcane Shot turn limit reset.";}},
  "Curving Shot":{kind:"instant",choices:archerAttackChoices,use:(c,id)=>archerReroll(c,id,"Curving Shot")},
@@ -1806,6 +1840,10 @@ const actChoices = (c, S) => typeof S.choices === "function" ? S.choices(c) : S.
 // everything active right now, merged into one set of effects
 function pcFx(c) {
   const F = { ac: [], acMin: null, acUnarm: [], speed: [], mult: 1, fly: null, climb: null, swim: null, res: new Set(), atk: [], attacks: [], notes: [], on: [], form: null };
+  if(sporesActive(c)){
+    const source=subclassEntry(edOf(c),"Druid","Circle of Spores",false,characterSubclassPrinting(c,"Druid"));
+    F.atk.push({f:"meleeWeapon",extra:`1d6 ${source.src==="ggr"?"poison":"necrotic"} (Symbiotic Entity)`});
+  }
   const essence=companionLevel(c,"drake")>=7&&companionState(c,"drake")?.form;
   if(essence)F.res.add(essence);
   const armorResistance=artificerInfusionEquipped(c,"Resistant Armor")?.artificerInfusion.damageType;
@@ -1887,8 +1925,9 @@ function actApply(targetId, amount, kind, options={}) {
     const p = PCS.roster.find(x => x.id === a); if (!p) return "That character is gone.";
     const cur = +(p.hpCur ?? p.hp) || 0, max = +p.hp || 0;
     if (kind === "heal") { p.hpCur = Math.max(cur,Math.min(options.halfHpCap?Math.floor(max/2):max,cur+Math.max(0,amount))); const hn = pcHealed(p, cur === 0&&p.hpCur>0); pcPersist(); return `${p.name} regains ${p.hpCur - cur} hit points (${p.hpCur}/${max}).${hn.length ? " " + hn.join(". ") + "." : ""}`; }
-    if (kind === "temp") { const was = +p.hpTemp || 0; if (amount > was) p.hpTemp = amount; pcPersist(); return amount > was ? `${p.name} has ${amount} temporary hit points.` : `${p.name} keeps their ${was} temporary hit points (they don't stack).`; }
+    if (kind === "temp") { const gained=giveTemp(p,amount);pcPersist();return gained?`${p.name} has ${amount} temporary hit points.`:`${p.name} keeps their ${+p.hpTemp||0} temporary hit points (they don't stack).`; }
     const ward=arcaneWardAbsorb(p,amount); let left = ward.left; const tmp = +p.hpTemp || 0; if (tmp) { const use = Math.min(tmp, left); p.hpTemp = tmp - use || ""; left -= use; }
+    if(!+p.hpTemp)endSymbioticEntity(p);
     p.hpCur = Math.max(0, cur - left); const dn = pcDamaged(p, ward.left, cur === 0); pcPersist(); return `${p.name} takes ${ward.left} damage${ward.absorbed?` (${ward.absorbed} absorbed by Arcane Ward)`:""} (${p.hpCur}/${max}${+p.hpTemp ? `, ${p.hpTemp} temp left` : ""}).${dn.length ? " " + dn.map(cap1).join(". ") + "." : ""}`;
   }
   const k = Store.get(a), e = k && (k.encounters || []).find(x => x.id === b), m = e && e.enemies.find(x => x.id === d);
