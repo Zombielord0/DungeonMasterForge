@@ -253,6 +253,16 @@ const REVISED_ARCANE_SHOTS={
   "Seeking Arrow":[2,"force","No attack roll. Choose a creature seen in the last minute. The shot turns corners, ignores Half and Three-Quarters Cover, and disappears if the target is outside long range. In range the target makes a DEX save for half of weapon plus extra damage. On failure you learn its location."],
   "Shadow Arrow":[1,"psychic","WIS save or Blinded through the end of its next turn."]
 };
+const LEGACY_ARCANE_SHOTS={
+  "Banishing Arrow":[0,2,"force","CHA save or banished to the Feywild. The target is Incapacitated with Speed 0 until the end of its next turn, then returns to its space or the nearest unoccupied space."],
+  "Beguiling Arrow":[2,4,"psychic","Choose an ally within 30 feet of the target. On a failed WIS save, the target is Charmed by that ally until your next turn starts. This ends early if the ally attacks, damages, or forces a save on the target."],
+  "Bursting Arrow":[2,4,"force","After the hit, the target and all other creatures within 10 feet of it take the force damage. There is no save."],
+  "Enfeebling Arrow":[2,4,"necrotic","On a failed CON save, halve the damage the target deals with weapon attacks until your next turn starts."],
+  "Grasping Arrow":[2,4,"poison","Reduce the target’s Speed by 10 feet. The first time on each turn it moves at least 1 foot without teleporting, it takes {dice} slashing damage. This lasts 1 minute, until you use this shot again, or until the target or a creature in reach uses an action and succeeds on a Strength (Athletics) check against your shot DC."],
+  "Piercing Arrow":[1,2,"piercing","The arrow travels in a line 30 feet long and 1 foot wide, passes harmlessly through objects, and ignores cover. Every creature in the line makes the DEX save."],
+  "Seeking Arrow":[1,2,"force","Choose a creature you saw in the last minute. The arrow can turn corners and ignore half and three-quarters cover. The target must be in weapon range and the arrow must have a path to it, or the arrow disappears. On a failed DEX save, you also learn its location."],
+  "Shadow Arrow":[2,4,"psychic","On a failed WIS save, the target can’t see beyond 5 feet until your next turn starts."]
+};
 const REVISED_MAGICAL_AMMO={
   Darkening:"Shadows fill a 15-foot Emanation for 1 minute. Extinguish nonmagical flames and apply −5 to Perception checks and passive Perception within it.",
   Unlocking:"A knock audible to 300 feet opens stuck or barred objects and one nonmagical lock per locked object within a 15-foot Emanation.",
@@ -261,8 +271,26 @@ const REVISED_MAGICAL_AMMO={
 const DEDICATED_SUBCLASS_ACTIONS=new Set([
   "Arcane Shot","Curving Shot","Magical Ammunition","Masterful Shots","Ever-Ready Shot","Indomitable Teleport",
   "Enhanced Bond","Cauterizing Flames","Blazing Revival","Reflexive Resistance","Drake's Breath","Drake’s Breath",
-  "Symbiotic Entity","Halo of Spores","Spreading Spores","Fungal Infestation"
+  "Symbiotic Entity","Halo of Spores","Spreading Spores","Fungal Infestation",
+  "Fighting Spirit","Tireless Spirit","Warding Maneuver","Unwavering Mark","Ferocious Charger","Strength before Death"
 ]);
+function xgeFighterLevel(c,name){
+  const level=characterSubclassLevel(c,"Fighter",name);
+  const source=level&&subclassEntry(edOf(c),"Fighter",name,false,characterSubclassPrinting(c,"Fighter"));
+  return source?.book&&source.src==="xge"?level:0;
+}
+function samuraiInitiative(c){
+  if(xgeFighterLevel(c,"Samurai")<10||!(+c.used?.fightingSpirit>=3))return false;
+  c.used.fightingSpirit=2;
+  return true;
+}
+function cavalierWeapons(c){
+  return (c.attacks||[]).filter(a=>a.iid&&a.melee&&!a.save);
+}
+function cavalierWardingReady(c){
+  return !c.death?.dead&&!COND_INCAP.some(key=>condOn(c,key))&&(cavalierWeapons(c).length>0||
+    (c.inv||[]).some(item=>item.eq&&+item.qty>0&&eqArmorOf(item,edOf(c))?.cat==="Shield"));
+}
 function sporesLevel(c){
   const level=characterSubclassLevel(c,"Druid","Circle of Spores");
   const entry=level&&subclassEntry(edOf(c),"Druid","Circle of Spores",false,characterSubclassPrinting(c,"Druid"));
@@ -287,48 +315,63 @@ function arcaneArcherLevel(c){
   return level&&arcaneArcherPrint(c)?level:0;
 }
 function revisedArcaneArcher(c){return arcaneArcherLevel(c)>0&&arcaneArcherPrint(c)==="au";}
-function arcaneArcherWeapons(c,requireAmmunition=true){
+function arcaneArcherWeapons(c,requireAmmunition=true,legacyBows=false){
   const ed=edOf(c);
   return (c.inv||[]).filter(i=>i.id&&i.eq&&+i.qty>0).flatMap(item=>{
     const weapon=eqWeaponOf(item,ed);
+    if(legacyBows&&!["Shortbow","Longbow"].includes(weapon?.n))return [];
     const ammunition=weapon?.st?.some(([key,value])=>key==="Properties"&&/\bAmmunition\b/i.test(value));
     const attack=weapon&&(!requireAmmunition||ammunition)&&eqAttack(c,item,weapon);
     return attack&&(!attack.melee||(!requireAmmunition&&attack.thrown))?[{item,attack}]:[];
   });
 }
-function revisedShotChoices(c){
-  if(!revisedArcaneArcher(c)||c.arcaneShotUsedThisTurn||c.death?.dead)return [];
+function arcaneShotChoices(c){
+  if(arcaneArcherLevel(c)<3||c.arcaneShotUsedThisTurn||c.death?.dead)return [];
+  const revised=revisedArcaneArcher(c);
   const selections=[...new Set(choiceOf(c,"Arcane Shot Options").map(name=>String(name).replace(/ Shot$/," Arrow")))];
-  const shots=selections.filter(name=>Object.hasOwn(REVISED_ARCANE_SHOTS,name)).slice(0,CHOICES["Arcane Shot Options"].n(c));
-  return arcaneArcherWeapons(c).flatMap(({item})=>shots.map(name=>[
-    JSON.stringify([name,item.id]),`${name.replace(/ Arrow$/," Shot")} · ${item.n}`
+  const rules=revised?REVISED_ARCANE_SHOTS:LEGACY_ARCANE_SHOTS;
+  const shots=selections.filter(name=>Object.hasOwn(rules,name)).slice(0,CHOICES["Arcane Shot Options"].n(c));
+  return arcaneArcherWeapons(c,true,!revised).flatMap(({item})=>shots.map(name=>[
+    JSON.stringify([name,item.id]),`${revised?name.replace(/ Arrow$/," Shot"):name} · ${item.n}`
   ]));
 }
-function revisedShotUse(c,selection){
-  const [id,weaponId]=JSON.parse(selection),[dice,type,effect]=REVISED_ARCANE_SHOTS[id];
-  const name=id.replace(/ Arrow$/," Shot"),level=arcaneArcherLevel(c),die=level>=18?12:level>=15?10:level>=10?8:6;
+function arcaneShotUse(c,selection){
+  const [id,weaponId]=JSON.parse(selection),level=arcaneArcherLevel(c),revised=revisedArcaneArcher(c);
+  let [dice,type,effect]=REVISED_ARCANE_SHOTS[id];
+  const name=revised?id.replace(/ Arrow$/," Shot"):id;
+  const die=revised?(level>=18?12:level>=15?10:level>=10?8:6):6;
+  if(!revised){
+    const [base,improved,damageType,rider]=LEGACY_ARCANE_SHOTS[id];
+    dice=level>=18?improved:base;
+    type=damageType;
+    effect=rider.replace("{dice}",`${dice}d6`);
+  }
   const expr=`${dice}d${die}`,dc=8+c.prof+c.mods.int;
   c.arcaneShotUsedThisTurn=true;
   if(id==="Piercing Arrow"||id==="Seeking Arrow"){
     const equipped=arcaneArcherWeapons(c).find(({item})=>item.id===weaponId);
     const attack=(c.attacks||[]).find(a=>a.iid===weaponId)||equipped.attack;
     const weapon=rollDice(attack.dmg||attack.die+sgn(attack.mod)),extra=rollDice(expr);
-    return `${name} · DC ${dc}. ${weapon.total} ${attack.type} weapon damage and ${extra.total} ${type} damage, ${Math.floor((weapon.total+extra.total)/2)} total on a successful save. ${effect} Resolve damage types and defenses separately.`;
+    return `${name} · Dexterity save DC ${dc}, no attack roll. ${weapon.total} ${attack.type} weapon damage and ${extra.total} ${type} damage, ${Math.floor((weapon.total+extra.total)/2)} total on a successful save. ${effect} Resolve damage types and defenses separately.`;
   }
-  const text=`${type} damage on a confirmed hit. ${effect}${id==="Bursting Arrow"?"":` Save DC ${dc}.`}${id==="Enfeebling Arrow"?` Roll d${die} for the reduction.`:""}`;
-  return id==="Bursting Arrow"?area(name,expr,null,0,type,text,{chooseTargets:true}):roll(name,expr,"damage",text);
+  const text=`${effect}${id==="Bursting Arrow"?"":` ${!revised&&id==="Grasping Arrow"?"Athletics":"Save"} DC ${dc}.`}`;
+  if(!dice)return `${name} · ${text}`;
+  const damage=`${type} damage on a confirmed hit. ${text}${revised&&id==="Enfeebling Arrow"?` Roll d${die} for the reduction.`:""}`;
+  return id==="Bursting Arrow"?area(name,expr,null,0,type,damage,{chooseTargets:true}):roll(name,expr,"damage",damage);
 }
 function arcaneArcherInitiative(c){
-  if(!revisedArcaneArcher(c)||arcaneArcherLevel(c)<10||!(+c.used?.arcaneShot>0))return false;
-  const max=Math.max(1,c.mods.int);
+  const level=arcaneArcherLevel(c),revised=revisedArcaneArcher(c),used=+c.used?.arcaneShot||0;
+  const max=revised?Math.max(1,c.mods.int):2;
+  if(revised?(level<10||used===0):(level<15||used<max))return false;
   c.used.arcaneShot=Math.max(0,Math.min(max,+c.used.arcaneShot)-1);
   return true;
 }
-function archerAttackChoices(c){return arcaneArcherWeapons(c).map(({item})=>[item.id,item.n]);}
+function archerAttackChoices(c){return arcaneArcherWeapons(c,true,!revisedArcaneArcher(c)).map(({item})=>[item.id,item.n]);}
 function archerReroll(c,id,label,requireAmmunition=true){
   const {item,attack:base}=arcaneArcherWeapons(c,requireAmmunition).find(({item})=>item.id===id);
   const attack=(c.attacks||[]).find(a=>a.iid===item.id)||base;
-  rollD20(c,`${label} · ${item.n}`,attack.hit,"attack",attack.ab,{tags:attack.tags,crit:attack.crit});
+  const outcome=rollD20(c,`${label} · ${item.n}`,attack.hit,"attack",attack.ab,{tags:attack.tags,crit:attack.crit});
+  ROLL.lastCrit=outcome.crit?attack.name:"";
   return null;
 }
 
@@ -611,10 +654,15 @@ function pcResources(c) {
   if(companionLevel(c,"drake")>=15)add("drakeResistance","Reflexive Resistance",prof,"long");
   if(companionLevel(c,"wildfire")>=10)add("cauterizingFlames","Cauterizing Flames",prof,"long");
   if(companionLevel(c,"wildfire")>=14)add("blazingRevival","Blazing Revival",1,"long");
-  if(revisedArcaneArcher(c)){
-    add("arcaneShot","Arcane Shot",Math.max(1,m.int),"short");
-    if(arcaneArcherLevel(c)>=7)add("magicalAmmunition","Magical Ammunition",1,"short");
+  if(arcaneArcherLevel(c)>=3){
+    add("arcaneShot","Arcane Shot",revisedArcaneArcher(c)?Math.max(1,m.int):2,"short");
+    if(revisedArcaneArcher(c)&&arcaneArcherLevel(c)>=7)add("magicalAmmunition","Magical Ammunition",1,"short");
   }
+  const cavalier=xgeFighterLevel(c,"Cavalier"),samurai=xgeFighterLevel(c,"Samurai");
+  if(cavalier>=3)add("unwaveringMark","Unwavering Mark attacks",Math.max(1,m.str),"long");
+  if(cavalier>=7)add("wardingManeuver","Warding Maneuver",Math.max(1,m.con),"long");
+  if(samurai>=3)add("fightingSpirit","Fighting Spirit",3,"long");
+  if(samurai>=18)add("strengthBeforeDeath","Strength before Death",1,"long");
   if(sporesLevel(c)>=6)add("fungalInfestation","Fungal Infestation",Math.max(1,m.wis),"long");
   if(companionLevel(c,"steel")>=3||companionLevel(c,"steel24")>=3)add("steelRepair","Steel Defender repair",3,"long");
   if(battleSmithLevel(c)>=9)add("arcaneJolt","Arcane Jolt",Math.max(1,c.mods.int),"long");
@@ -660,19 +708,34 @@ function pcAbilities(c) {
       if(c.active?.["Spreading Spores"])add("Spreading Spores damage","Creature enters or starts its turn in the cube","Resolve the damage once per creature per turn.",null,owner);
     }
   }
-  if(revisedArcaneArcher(c)){
+  if(arcaneArcherLevel(c)>=3){
     const level=arcaneArcherLevel(c),owner="Arcane Archer";
-    add("Arcane Shot","On a qualifying ranged attack","Use a learned shot once per turn with a ranged Ammunition weapon. Confirm the hit unless the shot replaces the attack roll.","arcaneShot",owner);
+    const revised=revisedArcaneArcher(c);
+    add("Arcane Shot","On a qualifying ranged attack",revised?
+      "Use a learned shot once per turn with a ranged Ammunition weapon. Confirm the hit unless the shot replaces the attack roll.":
+      "Use a learned shot once per turn when you fire a shortbow or longbow as part of the Attack action. Confirm the hit unless the shot replaces the attack roll.","arcaneShot",owner);
     if(c.arcaneShotUsedThisTurn)add("Begin Arcane Archer turn","New turn","Reset the once-per-turn shot limit after the current creature’s turn ends.",null,owner);
-    if(level>=7){
+    if(level>=7&&!revised){
+      add("Magic Arrow","When firing a shortbow or longbow","An ordinary arrow can overcome resistance and immunity to nonmagical attacks and damage. The magic fades immediately after the hit or miss.",null,owner);
+      add("Curving Shot","Bonus action after a miss","Confirm you missed with a magical arrow. Reroll the attack against a different target within 60 feet of the original target.",null,owner);
+    }
+    if(level>=15&&!revised)add("Ever-Ready Shot","On initiative","If all Arcane Shot uses are spent, rolling initiative restores one use.",null,owner);
+    if(level>=7&&revised){
       add("Curving Shot","Bonus action after a miss","Immediately roll with the same Ammunition weapon against a visible new target within its range and within 60 feet of the original target.",null,owner);
       add("Magical Ammunition","Magic action","Use nonmagical ammunition and fire at a visible solid surface within range. The effect starts on impact. Removing it takes a Magic action and ends the effect. The ammunition is destroyed when the effect ends.","magicalAmmunition",owner);
       if(+c.used?.magicalAmmunition>0)add("Restore Magical Ammunition","No action","Spend one use of Second Wind to recover the feature.","wind",owner);
     }
-    if(level>=10)add("Ever-Ready Shot","On initiative","Rolling initiative on the character sheet restores one spent Arcane Shot use.",null,owner);
-    if(level>=15)add("Indomitable Teleport","After a successful Indomitable save","Teleport up to 60 feet to a visible, unoccupied space.",null,owner);
-    if(level>=18)add("Masterful Shots","Reaction when an attacker misses","Move up to half your Speed away from the visible attacker without provoking Opportunity Attacks. Then you may make a ranged attack against that attacker within weapon range.",null,owner);
+    if(revised&&level>=10)add("Ever-Ready Shot","On initiative","Rolling initiative on the character sheet restores one spent Arcane Shot use.",null,owner);
+    if(revised&&level>=15)add("Indomitable Teleport","After a successful Indomitable save","Teleport up to 60 feet to a visible, unoccupied space.",null,owner);
+    if(revised&&level>=18)add("Masterful Shots","Reaction when an attacker misses","Move up to half your Speed away from the visible attacker without provoking Opportunity Attacks. Then you may make a ranged attack against that attacker within weapon range.",null,owner);
   }
+  const cavalier=xgeFighterLevel(c,"Cavalier"),samurai=xgeFighterLevel(c,"Samurai");
+  if(cavalier>=3)add("Unwavering Mark","Bonus action on your next turn","After a creature you marked damages someone else, confirm the trigger and roll a melee weapon attack against it with advantage.","unwaveringMark","Cavalier");
+  if(cavalier>=7)add("Warding Maneuver","Reaction after a hit","While wielding a melee weapon or shield, roll to protect yourself or a visible creature within 5 feet.","wardingManeuver","Cavalier");
+  if(cavalier>=15)add("Ferocious Charger","Once on your turn after a hit",`Confirm you moved 10 feet in a straight line immediately before the attack. Target makes a Strength save (DC ${8+prof+m.str}) or falls prone.`,null,"Cavalier");
+  if(samurai>=3)add("Fighting Spirit","Bonus action","Gain temporary HP and advantage on weapon attacks until this turn ends. End the advantage when your turn ends.","fightingSpirit","Samurai");
+  if(samurai>=10)add("Tireless Spirit","On initiative","When all three Fighting Spirit uses are spent, rolling initiative restores one use.",null,"Samurai");
+  if(samurai>=18)add("Strength before Death","Reaction when damage reduces you to 0 HP","Confirm the damage did not kill you outright. Resolve the extra turn and any death save failures at the table.","strengthBeforeDeath","Samurai");
   const wisDC = 8 + prof + m.wis, chaB = Math.max(1, m.cha);
   if(arcaneWardLevel(c)){
     add("Arcane Ward status","Passive",arcaneWardExists(c)?"Ward HP "+arcaneWardHP(c)+"/"+arcaneWardMax(c)+". Apply Damage depletes the ward before temporary HP. "+(ed==="2024"?"Enter damage after resistance or vulnerability.":"Enter damage before resistance; manually reconcile resistance on overflow.")+" Direct HP edits are final values.":"Cast a qualifying Abjuration spell to create the ward.",null,"Wizard");
@@ -1538,9 +1601,23 @@ const ACT = {
  "Fungal Infestation":{kind:"instant",choices:[["confirm","Confirm Small or Medium Beast or Humanoid corpse within 10 feet"]],use:()=>"Use the Zombie stat block with 1 HP. It obeys mental commands, acts immediately after your turn, and collapses after one hour."},
  "Spreading Spores":{kind:"toggle",start:()=>"Place a 10-foot cube within 30 feet for up to 1 minute."},
  "Spreading Spores damage":{kind:"instant",use:c=>sporesDamage(c,"Spreading Spores","Confirm the creature entered the cube or started its turn there, and has not taken this damage this turn.")},
- "Arcane Shot":{kind:"instant",choices:revisedShotChoices,use:revisedShotUse},
+ "Arcane Shot":{kind:"instant",choices:arcaneShotChoices,use:arcaneShotUse},
  "Begin Arcane Archer turn":{kind:"instant",choices:[["next","Confirm a new creature turn"]],use:c=>{delete c.arcaneShotUsedThisTurn;return "Arcane Shot turn limit reset.";}},
  "Curving Shot":{kind:"instant",choices:archerAttackChoices,use:(c,id)=>archerReroll(c,id,"Curving Shot")},
+ "Unwavering Mark":{kind:"instant",choices:c=>c.death?.dead||COND_INCAP.some(key=>condOn(c,key))?[]:cavalierWeapons(c).map(a=>[a.iid,a.name]),use:(c,id)=>{
+   const a=cavalierWeapons(c).find(x=>x.iid===id),extra=Math.floor(xgeFighterLevel(c,"Cavalier")/2);
+   const outcome=rollD20(c,`Unwavering Mark · ${a.name}`,a.hit,"attack",a.ab,{tags:[...(a.tags||[]),"advantage (Unwavering Mark)"],crit:a.crit});
+   ROLL.lastCrit=outcome.crit?a.name:"";
+   if(outcome.fumble)return "Unwavering Mark misses.";
+   return `Unwavering Mark attack ${outcome.total}${outcome.crit?" (critical)":""}. On a hit, roll ${a.name} damage and add ${extra} damage.`;
+ }},
+ "Warding Maneuver":{kind:"instant",choices:c=>cavalierWardingReady(c)?[["hit","Confirm eligible target just got hit"]]:[],use:()=>rollMsg("Warding Maneuver","1d8","Add the result to the target’s AC for this attack. If it still hits, the target has resistance to this attack’s damage.")},
+ "Fighting Spirit":{kind:"toggle",choices:c=>c.death?.dead||COND_INCAP.some(key=>condOn(c,key))?[]:[["turn","Confirm bonus action on your turn"]],start:c=>{
+   const level=xgeFighterLevel(c,"Samurai"),hp=level>=15?15:level>=10?10:5;
+   const gained=giveTemp(c,hp);
+   return gained?`Gain ${hp} temporary HP and advantage on weapon attacks until the current turn ends.`:`Keep your ${c.hpTemp} temporary HP and gain advantage on weapon attacks until the current turn ends.`;
+ },fx:()=>({atk:[{f:"weapon",adv:"advantage (Fighting Spirit)"}]})},
+ "Strength before Death":{kind:"instant",choices:c=>c.hpCur!==""&&+c.hpCur===0&&!c.death?.dead?[["reaction","Confirm you just dropped to 0 HP and can take a reaction"]]:[],use:()=>"Take an extra turn now. Track death save failures normally. If still at 0 HP after the extra turn, fall unconscious."},
  "Magical Ammunition":{kind:"instant",choices:c=>arcaneArcherWeapons(c).flatMap(({item})=>Object.keys(REVISED_MAGICAL_AMMO).map(name=>[JSON.stringify([name,item.id]),`${name} · ${item.n}`])),use:(c,key)=>{
    const [name]=JSON.parse(key);return REVISED_MAGICAL_AMMO[name]+" Confirm the selected weapon, ammunition, and surface at the table.";
  }},

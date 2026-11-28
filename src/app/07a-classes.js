@@ -583,6 +583,10 @@ const athleteBonus = (B, s, prof) => B.athlete && !s.p && ["str", "dex", "con"].
 // bring a saved character's subclass numbers up to date; the hit point and speed bonuses are tracked so they're applied once
 function pcSubNumbers(c) {
   const B = subBonusOf(c), before = JSON.stringify([c.hp, c.hpCur, c.speed, c.saves, c.ac, c.acSrc]);
+  if(c.samuraiSaveGrant){
+    c.saves=c.saves.filter(a=>a!==c.samuraiSaveGrant);
+    delete c.samuraiSaveGrant;
+  }
   const dHp = B.hp - (+c.subHp || 0); if (dHp && c.hp !== "") { c.hp = (+c.hp || 0) + dHp; if (c.hpCur !== "" && c.hpCur !== undefined) c.hpCur = Math.max(0, (+c.hpCur || 0) + dHp); } c.subHp = B.hp;
   c.subSpd = B.speed;
   if(Array.isArray(c.subSaveGrants)){
@@ -593,6 +597,11 @@ function pcSubNumbers(c) {
     // not repeatedly add alternative Iron Mind saves on every render.
     const beforeSaves=new Set(c.saves);for(const a of B.saves)if(!c.saves.includes(a))c.saves.push(a);
     c.subSaveGrants=c.saves.filter(a=>!beforeSaves.has(a));
+  }
+  if(xgeFighterLevel(c,"Samurai")>=7){
+    const selected=choiceOf(c,"Elegant Courtier")[0];
+    const grant=!c.saves.includes("wis")?"wis":["int","cha"].includes(selected)&&!c.saves.includes(selected)?selected:"";
+    if(grant){c.saves.push(grant);c.samuraiSaveGrant=grant;}
   }
   if (c.cls === "Sorcerer" && !c.kitMoved) {
     if (B.ac && c.acSrc !== B.ac[1]) [c.ac, c.acSrc] = B.ac;

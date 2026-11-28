@@ -24,6 +24,7 @@ function applyCoreSkillChoices(c){
     if(s.peaceGranted){s.p=false;s.x=false;delete s.peaceGranted;}
     if(s.glamourGranted){s.p=false;s.x=false;delete s.glamourGranted;}
     if(s.archerGranted){s.p=false;s.x=false;delete s.archerGranted;}
+    if(s.xgeTrainingGranted){s.p=false;s.x=false;delete s.xgeTrainingGranted;}
   }
   if(characterSubclassLevel(c,"Bard","College of Lore")>=3){const options=new Set(CHOICES["Lore Bonus Proficiencies"].opts(c).map(x=>x[0]));for(const name of [...new Set(choiceOf(c,"Lore Bonus Proficiencies"))].filter(n=>options.has(n)).slice(0,3)){const s=c.skills.find(x=>x.s===name);if(s&&!s.p){s.p=true;s.loreGranted=true;}}}
   const skills=c.skills||[],choose=(name,flag)=>{const s=skills.find(x=>x.s===name);if(s&&!s.p){s.p=true;s[flag]=true;}};
@@ -43,6 +44,8 @@ function applyCoreSkillChoices(c){
     const rule=CHOICES[key],selected=choiceOf(c,key)[0];
     if(rule.n(c)>0&&rule.opts(c).some(([id])=>id===selected))choose(selected,flag);
   }
+  const training=CHOICES["Cavalier or Samurai Training"],trained=choiceOf(c,"Cavalier or Samurai Training")[0];
+  if(training.n(c)&&training.opts(c).some(([id])=>id===trained))choose(trained,"xgeTrainingGranted");
   if(arcaneArcherLevel(c)>=3){
     const rule=CHOICES["Arcane Archer Skill"],opts=rule.opts(c),max=rule.n(c);
     if(revisedArcaneArcher(c))for(const skill of ["Arcana","Nature"])choose(skill,"archerGranted");
@@ -61,12 +64,14 @@ function pcRecompute(c) {
   artificerInfusionCleanup(c);
   companionCleanup(c);
   if(c.active?.["Symbiotic Entity"]&&!sporesActive(c))endSymbioticEntity(c);
+  if(c.active?.["Fighting Spirit"]&&(c.death?.dead||xgeFighterLevel(c,"Samurai")<3))delete c.active["Fighting Spirit"];
   wizardSubclassCleanup(c);
   const m = {}; AB.forEach(a => m[a] = mod(+c.scores[a] || 10)); c.mods = m; const SB = subBonusOf(c);
   c.init = m.dex + (c.initBonus ?? ((c.feats || []).some(f => f.f === "Feat: Alert") ? (edOf(c) === "2024" ? c.prof : 5) : 0)) + SB.init + (SB.athlete ? Math.ceil(c.prof / 2) : 0) + (clsLv(c,"Bard") >= 2 && edOf(c) === "2014" ? Math.floor(c.prof / 2) : 0);
   const jack = clsLv(c,"Bard")>=2;
   applyCoreSkillChoices(c);
-  c.skills.forEach(s => s.v = m[s.ab] + (s.x ? c.prof * 2 : s.p ? c.prof : jack ? Math.floor(c.prof / 2) : 0) + athleteBonus(SB, s, c.prof) + orderCheckBonus(c,s.s) + (s.ab==="cha"&&characterSubclassLevel(c,"Ranger","Fey Wanderer")>=3?Math.max(1,m.wis):0));
+  const courtierBonus=xgeFighterLevel(c,"Samurai")>=7?m.wis:0;
+  c.skills.forEach(s => s.v = m[s.ab] + (s.x ? c.prof * 2 : s.p ? c.prof : jack ? Math.floor(c.prof / 2) : 0) + athleteBonus(SB, s, c.prof) + orderCheckBonus(c,s.s) + (s.ab==="cha"&&characterSubclassLevel(c,"Ranger","Fey Wanderer")>=3?Math.max(1,m.wis):0) + (s.s==="Persuasion"?courtierBonus:0));
   const per = c.skills.find(s => s.s === "Perception"); c.passive = 10 + (per ? per.v : m.wis);
   const C = CLASS_DATA[c.cls];
   if (c.kitMoved) c.attacks = pcAttacks(c);
@@ -87,7 +92,7 @@ function pcRecompute(c) {
 }
 function pcLevelTo(c, lv) {
   const n = generateCharacter({ seed: c.seed || c.id, name: c.name, race: c.race, ed: edOf(c), sub: c.sub || (c.race === "Dragonborn" && c.ancestry) || "none", ancestry: c.ancestry || undefined, cls: c.cls, bg: c.bg, level: lv, subclass: c.subclass || "none", asiPicks: c.asiPicks || undefined, bonusFeats: c.bonusFeats || undefined, bgAsiLegacy: c.bgAsiLegacy || undefined, ...pcKeep(c), method: c.method || "array", bonus: c.bonus || "flex", custom: c.customData || undefined });
-  ["level", "base", "scores", "mods", "rolls", "prof", "saves", "skills", "hp", "ac", "acSrc", "speed", "init", "passive", "attacks", "spell", "feats", "extras", "hd", "traits", "initBonus", "atkBonus", "hbSig", "res", "imm", "vul", "cimm", "sadv", "subHp", "subSpd", "subSaveGrants", "hbAc", "hbSpeed", "skilled", "expertOrder", "speciesSkill", "totalLevel", "mcSkills", "hdList", "subclassPrints"].forEach(k => c[k] = n[k]);
+  ["level", "base", "scores", "mods", "rolls", "prof", "saves", "skills", "hp", "ac", "acSrc", "speed", "init", "passive", "attacks", "spell", "feats", "extras", "hd", "traits", "initBonus", "atkBonus", "hbSig", "res", "imm", "vul", "cimm", "sadv", "subHp", "subSpd", "subSaveGrants", "samuraiSaveGrant", "hbAc", "hbSpeed", "skilled", "expertOrder", "speciesSkill", "totalLevel", "mcSkills", "hdList", "subclassPrints"].forEach(k => c[k] = n[k]);
   c.hpCur = n.hp;
   if (Array.isArray(c.prepared)) syncGrantedSpells(c);
   if (c.kitMoved) { c.attacks = pcAttacks(c); pcACApply(c); }
@@ -179,7 +184,9 @@ function eqAttack(c, i, w) {
   const prof = pact||eqProficient(c, w), mod = m[ab] + bonus, hit = m[ab] + (prof ? c.prof : 0) + bonus;
   const two = (dmgTxt.match(/two-handed (\d+d\d+)/) || [])[1];
   const chosenType=choiceOf(c,"Pact Weapon Damage")[0],type=pact&&edOf(c)==="2024"&&["Necrotic","Psychic","Radiant"].includes(chosenType)?chosenType.toLowerCase():dm[2];
-  return { name: i.n, iid: i.id, hit, type, pact, two, ab, prof, magic, needsAtt, mastery:activeMastery(c,w), melee: !ranged, twoH: /Two-Handed/.test(props), thrown: /Thrown/.test(props), mod, die: dm[1] };
+  const magicArrow=["Shortbow","Longbow"].includes(w.n)&&xgeFighterLevel(c,"Arcane Archer")>=7;
+  return { name: i.n, iid: i.id, hit, type, pact, two, ab, prof, magic, needsAtt, mastery:activeMastery(c,w), melee: !ranged, twoH: /Two-Handed/.test(props), thrown: /Thrown/.test(props), mod, die: dm[1],
+    ...(magicArrow?{altNote:"Magic Arrow can overcome resistance and immunity to nonmagical attacks and damage"}:{}) };
 }
 /* ---- fighting styles, armor training, protective items and spell effects ---- */
 const FIGHT_STYLES = {

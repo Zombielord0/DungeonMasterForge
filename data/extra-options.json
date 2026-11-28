@@ -7351,7 +7351,7 @@
     "ed": "2014",
     "book": true,
     "src": "xge",
-    "desc": "2014 Fighter subclass from Xanathar’s Guide to Everything, p. 28.",
+    "desc": "This Fighter archetype uses an elven archery tradition to add magical effects to arrows, redirect misses, and regain a spent shot in combat.",
     "features": [
       {
         "l": 3,
@@ -7361,12 +7361,12 @@
       {
         "l": 3,
         "n": "Arcane Shot",
-        "d": "Imbue a qualifying bow shot with magic, twice per short or long rest."
+        "d": "Once per turn, apply one learned Arcane Shot to an arrow fired from a shortbow or longbow as part of the Attack action. Decide when the arrow hits a creature, except for options that replace the attack roll. Any arrow qualifies under the official errata. You have two uses and regain both on a short or long rest. Shot save DC equals 8 + proficiency bonus + Intelligence modifier."
       },
       {
         "l": 3,
         "n": "Arcane Shot Options",
-        "d": "Learn two arcane shots from Banishing, Beguiling, Bursting, Enfeebling, Grasping, Piercing, Seeking, and Shadow Arrow."
+        "d": "Learn two of these magical effects. Banishing (abjuration): on a failed Charisma save, the target goes to a harmless part of the Feywild, incapacitated and with speed 0 until the end of its next turn. It returns to its previous space, or the closest unoccupied space if needed. At Fighter 18 the hit also deals 2d6 force damage. Beguiling (enchantment): add 2d6 psychic damage and pick an ally within 30 feet of the target. A failed Wisdom save charms the target by that ally until the start of your next turn or until the ally attacks it, damages it, or makes it save. Bursting (evocation): immediately after the hit, deal 2d6 force damage to the target and all other creatures within 10 feet of it, without a save. Enfeebling (necromancy): add 2d6 necrotic damage. On a failed Constitution save, halve the target’s weapon attack damage until the start of your next turn. Grasping (conjuration): add 2d6 poison damage and reduce speed by 10 feet. The target takes 2d6 slashing damage the first time each turn it moves at least 1 foot without teleporting. Brambles last 1 minute or until you reuse this option. The target or a creature in reach can end the effect as an action with a successful Strength (Athletics) check against the shot DC. Piercing (transmutation): replace the attack roll with Dexterity saves for all creatures in a 30-by-1-foot line. The arrow passes harmlessly through objects and ignores cover. On failure deal the arrow’s normal hit damage plus 1d6 piercing damage, or half on success. Seeking (divination): replace the attack roll and pick one creature you saw in the past minute. The arrow turns corners and ignores half and three-quarters cover. If the target is within weapon range and the arrow has a path, the target makes a Dexterity save. On failure deal normal hit damage plus 1d6 force damage and learn its current location. On success deal half damage and gain no location. If the target is unreachable, the arrow disappears once it can travel no farther. Shadow (illusion): add 2d6 psychic damage. A failed Wisdom save prevents the target from seeing beyond 5 feet until the start of your next turn. At Fighter 18, Piercing and Seeking increase from 1d6 to 2d6 extra damage, and Beguiling, Bursting, Enfeebling, Grasping (both damage types), and Shadow increase from 2d6 to 4d6."
       },
       {
         "l": 7,
@@ -7376,12 +7376,12 @@
       {
         "l": 7,
         "n": "Curving Shot",
-        "d": "After a missed magical arrow, use a bonus action to try hitting a different nearby target."
+        "d": "When an attack roll with a magical arrow misses, use a bonus action to reroll the attack against a different target within 60 feet of the original target."
       },
       {
         "l": 7,
         "n": "Magic Arrow",
-        "d": "Your ordinary arrows from a shortbow or longbow can count as magical."
+        "d": "You can infuse a nonmagical arrow fired from a shortbow or longbow so it overcomes resistance and immunity to nonmagical attacks and damage. The magic fades immediately after the arrow hits or misses."
       },
       {
         "l": 10,
@@ -7396,15 +7396,22 @@
       {
         "l": 15,
         "n": "Ever-Ready Shot",
-        "d": "Regain one use when rolling initiative with none remaining."
+        "d": "When you roll initiative and all Arcane Shot uses are spent, regain one use."
       },
       {
         "l": 18,
         "n": "Additional Arcane Shot Option",
-        "d": "Learn another Arcane Shot option and improve your shots’ effects."
+        "d": "Learn a sixth Arcane Shot option. The damage for each option improves as described in Arcane Shot Options."
       }
     ],
-    "page": 28
+    "page": 28,
+    "featureSourceReview": {
+      "status": "source_mechanics_runtime_partial",
+      "reference": "Xanathar’s Guide to Everything, pp. 28–30, and official Arcane Shot errata",
+      "primaryVerified": true,
+      "runtimeVerified": false,
+      "note": "Reviewed all eight shot options, every advancement, and the ordinary-arrow erratum. The sheet handles charges, eligibility, rolls, save DC, and recovery. Confirm shot timing, conditions, movement, ammunition, and damage defenses at the table."
+    }
   },
   {
     "id": "reference-xge-fighter-cavalier",
@@ -7414,7 +7421,7 @@
     "ed": "2014",
     "book": true,
     "src": "xge",
-    "desc": "2014 Fighter subclass from Xanathar’s Guide to Everything, p. 30.",
+    "desc": "Fight from the saddle or on foot, protect nearby allies, and punish enemies who cross your reach.",
     "features": [
       {
         "l": 3,
@@ -7424,35 +7431,42 @@
       {
         "l": 3,
         "n": "Born to the Saddle",
-        "d": "Mount quickly, resist being dismounted, and land safely on certain falls."
+        "d": "You have advantage on saving throws to stay on your mount. If you fall from it by 10 feet or less and aren’t incapacitated, you can land on your feet. Mounting and dismounting each cost 5 feet of movement."
       },
       {
         "l": 3,
         "n": "Unwavering Mark",
-        "d": "Mark a creature you hit, hinder its attacks against others nearby, and punish it with a limited bonus-action attack."
+        "d": "When you hit a creature with a melee weapon attack, you may mark it through the end of your next turn. The mark also ends if you die, become incapacitated, or someone else marks it. While within 5 feet of you, it has disadvantage on attack rolls that don’t target you. If it damages anyone else while marked, on your next turn you may use a bonus action to make one melee weapon attack against it with advantage. On a hit add damage equal to half your Fighter level. The special attack has uses equal to your Strength modifier (minimum one), all restored on a long rest. Marking itself spends no uses."
       },
       {
         "l": 7,
         "n": "Warding Maneuver",
-        "d": "React to add a d8 to AC for a nearby target and grant resistance to the triggering damage if the attack still hits."
+        "d": "While wielding a melee weapon or shield, when you or a visible creature within 5 feet is hit by an attack, use a reaction to add 1d8 to the target’s AC against that attack. If it still hits, the target has resistance to that attack’s damage. Uses equal your Constitution modifier, minimum one, and all return on a long rest."
       },
       {
         "l": 10,
         "n": "Hold the Line",
-        "d": "Enemies provoke when moving within your reach, and your opportunity hits stop their movement."
+        "d": "A creature provokes an opportunity attack when it moves at least 5 feet within your reach. If you hit with an opportunity attack, its speed becomes 0 for the rest of that turn."
       },
       {
         "l": 15,
         "n": "Ferocious Charger",
-        "d": "After a straight charge, a melee hit can knock a target prone."
+        "d": "Once on each of your turns, if you move at least 10 feet in a straight line immediately before attacking a creature and hit it, it must make a Strength save or fall prone. Use DC 8 + proficiency bonus + Strength modifier. You can be mounted or on foot."
       },
       {
         "l": 18,
         "n": "Vigilant Defender",
-        "d": "Gain a separate opportunity-attack reaction on each other creature’s turn."
+        "d": "In combat, you have a special reaction available once on every creature’s turn except yours. It can only make an opportunity attack and is unavailable on any turn when you use your normal reaction."
       }
     ],
-    "page": 30
+    "page": 30,
+    "featureSourceReview": {
+      "status": "source_mechanics_runtime_partial",
+      "reference": "Xanathar’s Guide to Everything, pp. 30–31",
+      "primaryVerified": true,
+      "runtimeVerified": false,
+      "note": "Reviewed all seven features. The sheet covers the starting choice, special attack and Warding Maneuver pools, their rolls, and the charge save DC. Confirm marks, movement, reactions, and attack outcomes at the table."
+    }
   },
   {
     "id": "reference-xge-fighter-samurai",
@@ -7462,7 +7476,7 @@
     "ed": "2014",
     "book": true,
     "src": "xge",
-    "desc": "2014 Fighter subclass from Xanathar’s Guide to Everything, p. 31.",
+    "desc": "Turn discipline into precise weapon attacks, temporary hit points, and social finesse.",
     "features": [
       {
         "l": 3,
@@ -7472,12 +7486,12 @@
       {
         "l": 3,
         "n": "Fighting Spirit",
-        "d": "Use a bonus action to gain temporary HP and advantage on weapon attacks for the turn."
+        "d": "Use a bonus action on your turn to gain advantage on weapon attack rolls until that turn ends and gain 5 temporary hit points. The temporary hit points rise to 10 at Fighter 10 and 15 at Fighter 15. You have three uses, all restored on a long rest."
       },
       {
         "l": 7,
         "n": "Elegant Courtier",
-        "d": "Add Wisdom to Persuasion checks and gain Wisdom save proficiency or a substitute."
+        "d": "Add your Wisdom modifier to Charisma (Persuasion) checks. Gain Wisdom saving throw proficiency; if you already have it, choose Intelligence or Charisma saving throw proficiency instead."
       },
       {
         "l": 10,
@@ -7487,15 +7501,22 @@
       {
         "l": 15,
         "n": "Rapid Strike",
-        "d": "Trade advantage on one attack for an extra attack against the same target once per turn."
+        "d": "Once per turn, during the Attack action on your turn, you may give up advantage on one attack roll to make one additional weapon attack against the same target as part of that action."
       },
       {
         "l": 18,
         "n": "Strength before Death",
-        "d": "React to taking damage to 0 HP by taking a turn before falling unconscious."
+        "d": "When damage reduces you to 0 hit points without killing you outright, you may use a reaction to delay unconsciousness and immediately take an extra turn, interrupting the current one. Damage taken at 0 hit points still causes death save failures and three failures can still kill you. If you end the extra turn at 0 hit points, fall unconscious. This reaction returns after a long rest."
       }
     ],
-    "page": 31
+    "page": 31,
+    "featureSourceReview": {
+      "status": "source_mechanics_runtime_partial",
+      "reference": "Xanathar’s Guide to Everything, p. 31",
+      "primaryVerified": true,
+      "runtimeVerified": false,
+      "note": "Reviewed all six features. The sheet handles training choices, Fighting Spirit, initiative recovery, and Elegant Courtier. Rapid Strike and the Strength before Death extra turn require table adjudication."
+    }
   },
   {
     "id": "reference-tce-fighter-psi-warrior",

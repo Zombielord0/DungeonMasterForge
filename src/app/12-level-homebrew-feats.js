@@ -670,6 +670,11 @@ function profInfo(c) {
   const bgSelections=backgroundSelectionEffects(c);
   const bgRules=backgroundSelectionRules(c);
   langs.push(...bgSelections.language.filter(v=>!langs.includes(v)));
+  const training=CHOICES["Cavalier or Samurai Training"],selectedTraining=choiceOf(c,"Cavalier or Samurai Training")[0];
+  if(training.n(c)&&selectedTraining?.startsWith("language:")&&training.opts(c).some(([id])=>id===selectedTraining)){
+    const language=selectedTraining.slice("language:".length);
+    if(!langs.includes(language))langs.push(language);
+  }
   tools.push(...bgSelections.tool.map(v=>v+" (background)"));
   if (B.lang && !bgRules.some(q=>q.effect==="language")) picks.push(`${B.lang.toLowerCase()} (background)`);
   for(const q of bgRules.filter(q=>q.effect==="language"||q.effect==="tool")){

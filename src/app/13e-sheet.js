@@ -234,6 +234,7 @@ spFiltersSync();
       else if (k === "init") {
         rollD20(c,"Initiative",c.init,"init","dex");
         if(arcaneArcherInitiative(c)){pcPersist();renderRosterMain();toast("Ever-Ready Shot restored one Arcane Shot use.");}
+        if(samuraiInitiative(c)){pcPersist();renderRosterMain();toast("Tireless Spirit restored one Fighting Spirit use.");}
       }
       else if (k === "atk") { const a = c.attacks[+v]; const r = rollD20(c, `${a.name} attack`, a.hit, "attack", a.ab, { tags: a.tags, crit: a.crit }); ROLL.lastCrit = r && r.crit ? a.name : ""; }
       else if (k === "dmg") { const a = c.attacks[+v]; rollDamage(c, `${a.name} damage`, a, ROLL.lastCrit === a.name); ROLL.lastCrit = ""; }
@@ -392,7 +393,7 @@ spFiltersSync();
     if (dr) { const k = dr.dataset.draft; if (k === "forge") forgeOpen(); else if (k === "keep") keepPC(); else if (k === "reroll" && window.pcReroll) pcReroll(); else if (k === "discard") discardPC(); return; }
     const c = rosterCur(); if (!c) return; const t = e.target;
     const sk = t.closest("[data-rsk]");
-    if (sk) { const s = c.skills[+sk.dataset.rsk]; if(s.primalGranted||s.scholarGranted||s.loreGranted||s.orderGranted||s.envoyGranted||s.envoyExpert||s.peaceGranted||s.glamourGranted||s.archerGranted){toast("Change the feature choice in Features instead.");return;} if (s.x) { s.x = false; s.p = false; } else if (s.p) s.x = true; else s.p = true; pcRecompute(c); pcPersist(); renderRosterMain(); return; }
+    if (sk) { const s = c.skills[+sk.dataset.rsk]; if(s.primalGranted||s.scholarGranted||s.loreGranted||s.orderGranted||s.envoyGranted||s.envoyExpert||s.peaceGranted||s.glamourGranted||s.archerGranted||s.xgeTrainingGranted){toast("Change the feature choice in Features instead.");return;} if (s.x) { s.x = false; s.p = false; } else if (s.p) s.x = true; else s.p = true; pcRecompute(c); pcPersist(); renderRosterMain(); return; }
     const a = t.closest("[data-ra]");
     if (a) {
       const k = a.dataset.ra;
