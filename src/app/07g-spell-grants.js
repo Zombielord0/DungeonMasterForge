@@ -454,10 +454,10 @@ function syncGrantedSpells(c) {
     if(ed==="2024"&&!legacy&&cls==="Warlock"&&subclass==="Archfey Patron"){
       add({3:["Misty Step"]},lv,{...source,feature:"Steps of the Fey"},()=>({free:subAblKey("Steps of the Fey"),uses:"charisma"}));
     }
-    if (cls === "Druid" && subclass === "Circle of Stars") {
-      add({ 2: ["Guidance", "Guiding Bolt"] }, lv, { ...source, feature: "Star Map" }, spell => spell.l ? {
-        free: "starMapGuidingBolt", uses: ed === "2014" ? "proficiency" : Math.max(1, c.mods?.wis || 0),
-      } : {});
+    if (cls === "Druid" && starDruidLevel(c)) {
+      const unlock=subclassLevel(ed,cls);
+      add({[unlock]:["Guidance","Guiding Bolt"]},lv,{...source,feature:"Star Map",ab:"wis"},
+        spell=>spell.l?{free:"starMapGuidingBolt",uses:ed==="2014"?"proficiency":"wisdom"}:{known:ed==="2014"});
     }
     if (cls === "Wizard" && ["School of Illusion", "Illusionist"].includes(subclass)) {
       add({ [subclassLevel(ed, cls)]: ["Minor Illusion"] }, lv, { ...source, feature: "Improved Illusions" });

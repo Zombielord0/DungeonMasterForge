@@ -92,11 +92,12 @@ function rollD20(c, label, bonus, kind, ab, o = {}) {
   const mode = S.adv.length && !S.dis.length ? "adv" : S.dis.length && !S.adv.length ? "dis" : "normal";
   if (S.fail) { rollLog(c, { label, total: "Fail", note: `automatically fails (${S.fail})`, fail: true }); toast(`${label}: automatically fails (${S.fail})`); return { fail: true }; }
   const dice = mode === "normal" ? [d20()] : [d20(), d20()], raw = mode === "adv" ? Math.max(...dice) : mode === "dis" ? Math.min(...dice) : dice[0];
-  const keep=skillCheckD20Floor(c,kind,o.skill,raw);
+  const starFloor=raw<10&&((kind==="check"&&["int","wis"].includes(ab))||(kind==="save"&&ab==="con"&&o.conc))&&starryForm(c)==="dragon";
+  const keep=starFloor?10:skillCheckD20Floor(c,kind,o.skill,raw);
   const ordinary=keep+bonus+S.pen;
   const indomitable=classFeatureLevel(c,"Barbarian")>=18&&ab==="str"&&(kind==="check"||edOf(c)==="2024"&&kind==="save");
   const total=indomitable?Math.max(ordinary,+c.scores.str||0):ordinary, crit = raw >= (o.crit || 20), fumble = raw === 1;
-  const why = [...S.adv.map(x => "adv: " + x), ...S.dis.map(x => "dis: " + x), ...(keep!==raw?["Reliable Talent: "+raw+" treated as "+keep]:[]),...(total!==ordinary?["Indomitable Might: total raised to Strength score"]:[])].join(", ");
+  const why = [...S.adv.map(x => "adv: " + x), ...S.dis.map(x => "dis: " + x), ...(keep!==raw?[`${starFloor?"Starry Form (Dragon)":"Reliable Talent"}: ${raw} treated as ${keep}`]:[]),...(total!==ordinary?["Indomitable Might: total raised to Strength score"]:[])].join(", ");
   rollLog(c, { label, d: dice, keep, bonus: bonus + S.pen, total, mode, crit: kind === "attack" && crit, fumble: kind === "attack" && fumble, nat20: keep === 20, note: why });
   toast(`${label}: ${total}${dice.length > 1 ? ` (${dice.join(" / ")}${mode === "adv" ? ", advantage" : ", disadvantage"})` : ` (d20 ${keep})`}${kind === "attack" && crit ? " — critical hit!" : kind === "attack" && fumble ? " — miss" : ""}`);
   return { total, keep, crit, fumble, mode };
@@ -124,7 +125,7 @@ function pcDamaged(c, dmg, wasZero) {
   if (!dmg) return notes;
   c.death = c.death || { s: 0, f: 0 };
   if (wasZero && !c.death.dead) { c.death.f = Math.min(3, c.death.f + 1); c.death.stable = false; notes.push(`${c.name} takes a death save failure (${c.death.f}/3)`); if (c.death.f >= 3) { c.death.dead = true; notes.push(`${c.name} dies`); } }
-  else if (!wasZero && +c.hpCur === 0) { c.conds = { ...(c.conds || {}), unconscious: true }; c.condAuto = true; c.death = { s: 0, f: 0 }; notes.push(`${c.name} drops to 0 hit points and falls unconscious`); if (c.conc) { notes.push(`concentration on ${c.conc.spell} ends`); delete c.conc; } }
+  else if (!wasZero && +c.hpCur === 0) { c.conds = { ...(c.conds || {}), unconscious: true }; c.condAuto = true; c.death = { s: 0, f: 0 }; endStarryForm(c); notes.push(`${c.name} drops to 0 hit points and falls unconscious`); if (c.conc) { notes.push(`concentration on ${c.conc.spell} ends`); delete c.conc; } }
   if(c.death.dead){artificerRecordDeath(c);companionOnOwnerDeath(c);}
   if (c.conc && +c.hpCur > 0) {
     if(edOf(c)==="2024"&&classFeatureLevel(c,"Ranger")>=13&&String(c.conc.spell).replaceAll("’","\x27").toLowerCase()==="hunter\x27s mark")notes.push("Relentless Hunter: damage cannot break Concentration on Hunter’s Mark");

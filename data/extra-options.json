@@ -7253,42 +7253,42 @@
     "ed": "2014",
     "book": true,
     "src": "tce",
-    "desc": "2014 Druid subclass from Tasha’s Cauldron of Everything, p. 38.",
+    "desc": "Read omens in the stars and adopt constellations that improve spells, attacks, and healing.",
     "features": [
       {
         "l": 2,
         "n": "Star Map",
-        "d": "Use a star map as a focus, learn Guidance, and cast Guiding Bolt for free a limited number of times."
+        "d": "Create a Tiny chart that serves as a focus for your Druid spells. Choose its form or roll d6: illustrated scroll, pierced stone tablet, tooled owlbear hide, ebony-bound atlas, engraved crystal, or engraved glass disks. While holding it, know Guidance and prepare Guiding Bolt as a Druid spell without using your preparation allowance. Cast Guiding Bolt without a spell slot up to your proficiency bonus times per long rest. If the map is lost, a one-hour ceremony during a short or long rest can create a replacement and destroys the previous map."
       },
       {
         "l": 2,
         "n": "Starry Form",
-        "d": "Spend Wild Shape to take the Archer, Chalice, or Dragon form."
+        "d": "As a bonus action, expend Wild Shape and choose Archer, Chalice, or Dragon. Keep your statistics and shed bright light to 10 feet and dim light for another 10 feet. It lasts 10 minutes or until you dismiss it without an action, become incapacitated, die, or use Starry Form again."
       },
       {
         "l": 2,
         "n": "Archer",
-        "d": "Make a ranged radiant spell attack when you activate the form and as a bonus action later."
+        "d": "When you activate Archer, and as a bonus action on later turns in that form, make a ranged spell attack targeting one creature within 60 feet. A hit deals 1d8 plus your Wisdom modifier as radiant damage."
       },
       {
         "l": 2,
         "n": "Chalice",
-        "d": "When you spend a slot healing, also heal yourself or a nearby creature."
+        "d": "When a spell you cast with a spell slot restores hit points to a creature, you or another creature within 30 feet can regain 1d8 plus your Wisdom modifier hit points."
       },
       {
         "l": 2,
         "n": "Dragon",
-        "d": "Treat low rolls on Intelligence, Wisdom, and concentration checks as 10."
+        "d": "Treat a d20 roll of 9 or less as 10 on an Intelligence check, a Wisdom check, or a Constitution save to maintain concentration on a spell."
       },
       {
         "l": 6,
         "n": "Cosmic Omen",
-        "d": "After a long rest, roll for whether you can add or subtract a d6 from nearby rolls as a reaction."
+        "d": "After a long rest, you may consult the map and roll a die. An even result grants Weal and an odd result grants Woe until your next long rest. Before a creature you can see within 30 feet makes an attack roll, saving throw, or ability check, you may use a reaction to add 1d6 for Weal or subtract 1d6 for Woe. Use this reaction a number of times equal to your proficiency bonus and recover all uses on a long rest."
       },
       {
         "l": 10,
         "n": "Twinkling Constellations",
-        "d": "Improve all three forms, give Dragon flight, and switch forms at the start of your turns."
+        "d": "Archer and Chalice each roll 2d8 instead of 1d8. In Dragon you gain a 20-foot flying speed and can hover. You may change constellations at the start of each of your turns while in Starry Form."
       },
       {
         "l": 14,
@@ -7296,7 +7296,14 @@
         "d": "Resist bludgeoning, piercing, and slashing damage in Starry Form."
       }
     ],
-    "page": 38
+    "page": 38,
+    "featureSourceReview": {
+      "status": "source_mechanics_runtime_partial",
+      "reference": "Tasha’s Cauldron of Everything, pp. 38–39",
+      "primaryVerified": true,
+      "runtimeVerified": false,
+      "note": "Reviewed all eight feature rows. The sheet handles granted spells, free casts, Omen sign and uses, constellation changes, healing rolls, Dragon roll floors, and resistance. The player confirms Star Map possession and ceremony, action timing, range, and qualifying healing."
+    }
   },
   {
     "id": "reference-tce-druid-circle-of-wildfire",

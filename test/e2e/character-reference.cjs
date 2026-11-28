@@ -1017,6 +1017,83 @@ const { chromium } = require("playwright");
     assert.deepEqual(fighterAudit.court,[true,true,3]);assert.match(fighterAudit.fighting,/15 temporary HP/);
     assert.deepEqual([fighterAudit.advantage,fighterAudit.ended,fighterAudit.partial,fighterAudit.exhausted,fighterAudit.remaining],[true,[15,true],false,true,2]);
     assert.deepEqual([fighterAudit.alternate,fighterAudit.removed,fighterAudit.temp],[[true,true,"cha"],[true,true,true],[5,10]]);
+    const starsAudit=await page.evaluate(()=>{
+      const make=(ed,level,other={})=>{
+        const name=ed==="2014"?"Circle of Stars":"Circle of the Stars";
+        const c=pcEnsure(generateCharacter({seed:"STAR-DRUID-GRANTS",ed,cls:"Druid",level,subclass:name,race:"Human",bg:"Sage",...other}));
+        c.scores.wis=14;pcInvUpgrade(c);pcRecompute(c);syncGrantedSpells(c);return c;
+      };
+      const pool=(c,key)=>pcResources(c).find(r=>r.key===key);
+      const omenKey=subAblKey("Cosmic Omen"),mapKey="starMapGuidingBolt";
+      const caps=["2014","2024"].map(ed=>{
+        const c=make(ed,14);
+        const grant=c.prepared.find(p=>p.n==="Guiding Bolt").sources.find(s=>s.feature==="Star Map");
+        return [pool(c,mapKey).max,pool(c,omenKey).max,!!pool(c,"sub:star-map"),grant.ab,
+          c.prepared.some(p=>p.n==="Guidance"&&p.sources?.some(s=>s.feature==="Star Map"))];
+      });
+      const source=subclassEntry("2014","Druid","Circle of Stars");
+      const c=make("2014",14),early=actRun(c,"Cosmic Omen","omen"),random=Math.random;
+      let omens,floor,life;
+      try {
+        Math.random=()=>0;
+        const first=actRun(c,"Consult Star Map","consult"),forbidden=actRun(c,"Consult Star Map","consult");
+        const use=actRun(c,"Cosmic Omen","omen"),spent=c.used[omenKey];
+        pcRest(c,"short");const afterShort=[c.starsOmen,c.used[omenKey]];
+        pcRest(c,"long");const afterLong=[c.starsOmen??null,c.used[omenKey]];
+        Math.random=()=>0.2;
+        const second=actRun(c,"Consult Star Map","consult"),weal=actRun(c,"Cosmic Omen","omen");
+        omens={first,forbidden,use,spent,afterShort,afterLong,second,weal};
+        Math.random=()=>0;
+        actRun(c,"Starry Form","dragon");pcRecompute(c);
+        floor=[rollD20(c,"INT",0,"check","int").keep,rollD20(c,"WIS",0,"check","wis").keep,
+          rollD20(c,"concentration",0,"save","con",{conc:true}).keep,rollD20(c,"CON",0,"save","con").keep,
+          rollD20(c,"WIS save",0,"save","wis").keep];
+        const fx=pcFx(c),when=c.starryFormUntil,wild=c.used.wild;
+        actRun(c,"Change constellation","chalice");pcRecompute(c);
+        const heal=actRun(c,"Chalice healing","heal");
+        const same=[c.starryFormUntil===when,c.used.wild===wild];
+        actRun(c,"Change constellation","archer");pcRecompute(c);
+        const arrow=c.attacks.find(a=>a.name==="Luminous Arrow");
+        c.starryFormUntil=Date.now()-1;
+        const expired=starryForm(c);
+        pcRecompute(c);
+        const cleared=!c.active["Starry Form"];
+        pcRest(c,"long");actRun(c,"Starry Form","dragon");
+        c.conds={stunned:true};pcRecompute(c);c.conds={};
+        const stunned=!starryForm(c);
+        life={fly:fx.fly,res:[...fx.res],same,heal:heal.amount,kind:heal.kind,arrow:[arrow.die,arrow.hit,c.prof+c.mods.wis],expired,cleared,stunned};
+      }finally{Math.random=random;}
+      c.used={starMapGuidingBolt:2,"sub:star-map":1};pcRecompute(c);pcRecompute(c);
+      const migrated=[c.used.starMapGuidingBolt,!!c.used["sub:star-map"]];
+      const canCast=castOpts(c,spellOf("2014","Guiding Bolt"),"2014").some(([id,,,disabled])=>id===mapKey&&!disabled);
+      c.subclass="Circle of the Land";pcSubSync(c);pcRecompute(c);syncGrantedSpells(c);
+      const cleared=!pool(c,mapKey)&&!pool(c,omenKey)&&!c.starsOmen;
+      const ready=[starDruidLevel(make("2014",1)),starDruidLevel(make("2024",2)),starDruidLevel(make("2024",3))];
+      return {caps,source:source.featureSourceReview.primaryVerified,early,omens,floor,life,migrated,canCast,cleared,ready};
+    });
+    assert.deepEqual(starsAudit.caps,[[5,5,false,"wis",true],[2,2,false,"wis",true]]);
+    assert.equal(starsAudit.source,true);assert.match(starsAudit.early,/No eligible/);
+    assert.match(starsAudit.omens.first,/Woe/);assert.equal(starsAudit.omens.forbidden,"");
+    assert.match(starsAudit.omens.use,/Subtract/);assert.match(starsAudit.omens.second,/Weal/);assert.match(starsAudit.omens.weal,/Add/);
+    assert.deepEqual([starsAudit.omens.spent,starsAudit.omens.afterShort,starsAudit.omens.afterLong],[1,["woe",1],[null,0]]);
+    assert.deepEqual(starsAudit.floor,[10,10,10,1,1]);
+    assert.deepEqual([starsAudit.life.fly,starsAudit.life.res,starsAudit.life.same,starsAudit.life.heal,starsAudit.life.kind],[20,["bludgeoning","piercing","slashing"],[true,true],4,"heal"]);
+    assert.equal(starsAudit.life.arrow[0],"2d8");assert.equal(starsAudit.life.arrow[1],starsAudit.life.arrow[2]);
+    assert.deepEqual([starsAudit.life.expired,starsAudit.life.cleared,starsAudit.life.stunned,starsAudit.migrated,starsAudit.canCast,starsAudit.cleared,starsAudit.ready],["",true,true,[3,false],true,true,[0,0,3]]);
+    const starMapActor=await page.evaluate(()=>{
+      const c=pcEnsure(generateCharacter({seed:"STAR-MAP-CAST",ed:"2024",cls:"Druid",level:3,subclass:"Circle of the Stars",race:"Human",bg:"Sage"}));
+      PCS.roster.push(c);RC.id=c.id;renderRoster();renderRosterMain();
+      return c.id;
+    });
+    await page.locator('[data-act="Star Map"]').click();
+    assert.equal(await page.locator("#castSlot").inputValue(),"starMapGuidingBolt");
+    await page.locator("#actModal [data-castgo]").click();
+    const castFromMap=await page.evaluate(id=>{
+      const c=PCS.roster.find(x=>x.id===id);
+      return [c.used.starMapGuidingBolt,c.used.slot1||0,c.rollLog.some(r=>r.label==="Cast Guiding Bolt")];
+    },starMapActor);
+    assert.deepEqual(castFromMap,[1,0,true]);
+    await page.locator("#actModal [data-actclose]").last().click();
     const printingChoices=await page.evaluate(()=>{
       const id="reference-ggr-druid-circle-of-spores",name="Circle of Spores";
       const opts={seed:"SOURCE-CHOICE",ed:"2014",cls:"Druid",level:6,subclass:name,race:"Human",bg:"Sage"};

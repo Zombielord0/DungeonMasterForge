@@ -272,8 +272,35 @@ const DEDICATED_SUBCLASS_ACTIONS=new Set([
   "Arcane Shot","Curving Shot","Magical Ammunition","Masterful Shots","Ever-Ready Shot","Indomitable Teleport",
   "Enhanced Bond","Cauterizing Flames","Blazing Revival","Reflexive Resistance","Drake's Breath","Drake’s Breath",
   "Symbiotic Entity","Halo of Spores","Spreading Spores","Fungal Infestation",
-  "Fighting Spirit","Tireless Spirit","Warding Maneuver","Unwavering Mark","Ferocious Charger","Strength before Death"
+  "Fighting Spirit","Tireless Spirit","Warding Maneuver","Unwavering Mark","Ferocious Charger","Strength before Death",
+  "Star Map","Starry Form","Cosmic Omen"
 ]);
+function starDruidLevel(c){
+  const ed=edOf(c),name=ed==="2014"?"Circle of Stars":"Circle of the Stars";
+  const level=characterSubclassLevel(c,"Druid",name);
+  if(!level)return 0;
+  const entry=subclassEntry(ed,"Druid",name,true,characterSubclassPrinting(c,"Druid"));
+  return (ed==="2014"?entry?.book&&entry.src==="tce":!entry)?level:0;
+}
+const STAR_FORMS=[["archer","Archer"],["chalice","Chalice"],["dragon","Dragon"]];
+function starryForm(c){
+  const form=c.active?.["Starry Form"];
+  if(!form||!starDruidLevel(c)||c.death?.dead||(+c.starryFormUntil>0&&Date.now()>=c.starryFormUntil)||COND_INCAP.some(key=>condOn(c,key)))return "";
+  return STAR_FORMS.some(([id])=>id===form)?form:"";
+}
+function endStarryForm(c){
+  if(c.active)delete c.active["Starry Form"];
+  delete c.starryFormUntil;
+}
+function syncStarDruid(c){
+  const level=starDruidLevel(c);
+  if(c.active?.["Starry Form"]&&!starryForm(c))endStarryForm(c);
+  if(level<6)delete c.starsOmen;
+  if(level&&c.used&&Object.hasOwn(c.used,"sub:star-map")){
+    c.used.starMapGuidingBolt=Math.max(0,+c.used.starMapGuidingBolt||0)+Math.max(0,+c.used["sub:star-map"]||0);
+    delete c.used["sub:star-map"];
+  }
+}
 function xgeFighterLevel(c,name){
   const level=characterSubclassLevel(c,"Fighter",name);
   const source=level&&subclassEntry(edOf(c),"Fighter",name,false,characterSubclassPrinting(c,"Fighter"));
@@ -663,6 +690,7 @@ function pcResources(c) {
   if(cavalier>=7)add("wardingManeuver","Warding Maneuver",Math.max(1,m.con),"long");
   if(samurai>=3)add("fightingSpirit","Fighting Spirit",3,"long");
   if(samurai>=18)add("strengthBeforeDeath","Strength before Death",1,"long");
+  if(starDruidLevel(c)>=6)add(subAblKey("Cosmic Omen"),"Cosmic Omen",ed==="2014"?prof:Math.max(1,m.wis),"long");
   if(sporesLevel(c)>=6)add("fungalInfestation","Fungal Infestation",Math.max(1,m.wis),"long");
   if(companionLevel(c,"steel")>=3||companionLevel(c,"steel24")>=3)add("steelRepair","Steel Defender repair",3,"long");
   if(battleSmithLevel(c)>=9)add("arcaneJolt","Arcane Jolt",Math.max(1,c.mods.int),"long");
@@ -736,6 +764,19 @@ function pcAbilities(c) {
   if(samurai>=3)add("Fighting Spirit","Bonus action","Gain temporary HP and advantage on weapon attacks until this turn ends. End the advantage when your turn ends.","fightingSpirit","Samurai");
   if(samurai>=10)add("Tireless Spirit","On initiative","When all three Fighting Spirit uses are spent, rolling initiative restores one use.",null,"Samurai");
   if(samurai>=18)add("Strength before Death","Reaction when damage reduces you to 0 HP","Confirm the damage did not kill you outright. Resolve the extra turn and any death save failures at the table.","strengthBeforeDeath","Samurai");
+  const stars=starDruidLevel(c);
+  if(stars){
+    const owner=ed==="2014"?"Circle of Stars":"Circle of the Stars",form=starryForm(c);
+    add("Star Map","Spellcasting focus","While holding your star map, use its granted spells. If you lose it, a 1-hour ceremony can replace it during a short or long rest.",null,owner);
+    add("Starry Form","Bonus action","Spend Wild Shape to choose a constellation for 10 minutes, shedding bright light out to 10 feet and dim light for another 10 feet.","wild",owner);
+    if(form==="chalice")add("Chalice healing","After a slot-paid spell restores HP","After restoring hit points with a spell slot, choose yourself or one creature within 30 feet.",null,owner);
+    if(form&&stars>=10)add("Change constellation","Start of your turn","Change your active constellation without spending Wild Shape or restarting its duration.",null,owner);
+    if(stars>=6){
+      if(!c.starsOmen)add("Consult Star Map","After a long rest","Roll an omen for the time until your next long rest.",null,owner);
+      add("Cosmic Omen","Reaction before a visible creature’s roll within 30 feet",
+        c.starsOmen==="weal"?"Weal: add 1d6 to its roll.":c.starsOmen==="woe"?"Woe: subtract 1d6 from its roll.":"Consult the star map to determine Weal or Woe.",subAblKey("Cosmic Omen"),owner);
+    }
+  }
   const wisDC = 8 + prof + m.wis, chaB = Math.max(1, m.cha);
   if(arcaneWardLevel(c)){
     add("Arcane Ward status","Passive",arcaneWardExists(c)?"Ward HP "+arcaneWardHP(c)+"/"+arcaneWardMax(c)+". Apply Damage depletes the ward before temporary HP. "+(ed==="2024"?"Enter damage after resistance or vulnerability.":"Enter damage before resistance; manually reconcile resistance on overflow.")+" Direct HP edits are final values.":"Cast a qualifying Abjuration spell to create the ward.",null,"Wizard");
@@ -1760,13 +1801,39 @@ const ACT = {
         notes: [`You keep your INT, WIS and CHA, features, proficiencies and hit points${ed === "2014" ? " (the beast's hit points come first)" : ""}. ${ed === "2014" ? "You can't cast spells in beast form." : "You can't cast spells, but you can keep concentrating on one."}`] }; },
     start: (c, ch) => { const ed = edOf(c), moon = druidSub(c) === "Circle of the Moon", B = beastForm(ch), t = ed === "2024" ? (moon ? 3 * clsLv(c,"Druid") : clsLv(c,"Druid")) : 0, got = t && giveTemp(c, t); if (ed === "2014" && B) c.formHp = B.m.hp; return `${c.name} becomes ${B ? (/^[aeiou]/i.test(B.m.n) ? "an " : "a ") + B.m.n : "a beast"}.${got ? ` ${t} temporary hit points.` : ""}${ed === "2014" && B ? ` Beast hit points: ${B.m.hp}.` : ""}`; } },
   "Combat Wild Shape": { kind: "none" }, "Circle Forms": { kind: "none" },
-  "Starry Form": { kind: "toggle", choices: [["archer", "Archer"], ["chalice", "Chalice"], ["dragon", "Dragon"]], fx: (c, ch) => { const d = clsLv(c,"Druid") >= 10 ? "2d8" : "1d8", w = c.mods.wis; return ch === "archer" ? { attacks: [{ name: "Luminous arrow (bonus action)", hit: c.prof + w, die: d, mod: w, type: "radiant", ab: "wis", altNote: "ranged spell attack, 60 ft" }] } : ch === "chalice" ? { notes: [`Chalice: when you heal with a spell slot, another creature within 30 ft regains ${d} + ${w}`] } : { fly: clsLv(c,"Druid") >= 10 ? 20 : null, notes: ["Dragon: treat d20 rolls of 9 or lower as 10 on INT and WIS checks and concentration saves"] }; }, start: () => "Starry Form for 10 minutes." },
+  "Starry Form":{kind:"toggle",choices:c=>c.death?.dead||COND_INCAP.some(key=>condOn(c,key))?[]:STAR_FORMS,
+    start:(c,form)=>{
+      c.starryFormUntil=Date.now()+10*60_000;
+      return form==="archer"?"Starry Form for 10 minutes. You may make one Luminous Arrow attack now as part of this bonus action.":"Starry Form for 10 minutes.";
+    },
+    fx:c=>{
+      const form=starryForm(c),level=starDruidLevel(c);
+      if(!form)return {};
+      const die=level>=10?"2d8":"1d8",wis=c.mods.wis,fx={res:level>=14?["bludgeoning","piercing","slashing"]:[]};
+      if(form==="archer")fx.attacks=[{name:"Luminous Arrow",hit:c.prof+wis,die,mod:wis,type:"radiant",ab:"wis",altNote:"Ranged spell attack, 60 ft. Use on activation or as a bonus action on a subsequent turn."}];
+      if(form==="dragon"){
+        if(level>=10)fx.fly=20;
+        fx.notes=[level>=10?"Dragon: fly 20 ft and hover.":"Dragon: low Intelligence and Wisdom checks and concentration saves use 10 on the d20."];
+      }
+      return fx;
+    }},
+  "Change constellation":{kind:"instant",choices:c=>STAR_FORMS.filter(([id])=>id!==starryForm(c)),use:(c,id)=>{
+    c.active["Starry Form"]=id;
+    return `Change to ${STAR_FORMS.find(([key])=>key===id)[1]} at the start of your turn.`;
+  }},
+  "Chalice healing":{kind:"instant",choices:[["heal","Confirm a spell slot just restored hit points"]],use:c=>roll("Chalice",(starDruidLevel(c)>=10?"2d8":"1d8")+sgn(c.mods.wis),"heal","Apply to yourself or one creature within 30 feet.")},
   "Wrath of the Sea": { kind: "toggle", fx: c => { const n = Math.max(1, c.mods.wis); return { attacks: [{ name: "Wrath of the Sea (bonus action)", save: `CON save DC ${8 + c.prof + c.mods.wis}`, die: `${n}d6`, mod: 0, type: "cold", altNote: "pushed up to 15 ft" }], ...(clsLv(c,"Druid") >= 10 && (c.feats || []).some(f => f.f === "Stormborn") ? { fly: "speed", res: ["cold", "lightning", "thunder"] } : {}), notes: [`Wrath of the Sea: ${clsLv(c,"Druid") >= 6 ? 10 : 5} ft emanation for 10 minutes`] }; } },
   "Land's Aid": { kind: "instant", use: c => { const n = clsLv(c,"Druid") >= 14 ? 4 : clsLv(c,"Druid") >= 10 ? 3 : 2, h = rollDice(`${n}d6`); return area("Land's Aid", `${n}d6`, "con", 8 + c.prof + c.mods.wis, "Necrotic", "Creatures you choose in a 10 ft sphere make a CON save: necrotic damage, half on a success.", { note: `One creature of your choice in the sphere also regains ${h.text.split(" = ").pop()} hit points (${h.text}).`, heal: h.total }); } },
   "Moonlight Step": { kind: "instant", use: () => "Moonlight Step: teleport up to 30 ft; advantage on your next attack this turn." },
   "Nature's Sanctuary": { kind: "toggle", fx: () => ({ notes: ["Nature's Sanctuary: you and allies in the trees have half cover and resistance to your land's damage type"] }) },
-  "Star Map": { kind: "instant", use: () => "Guiding bolt cast without a spell slot." },
-  "Cosmic Omen": { kind: "instant", use: () => rollMsg("Cosmic Omen", "1d6", "Add it to an ally's roll (Weal) or subtract it from an enemy's (Woe)") },
+  "Star Map":{kind:"instant",dialog:c=>castDialog(c,edOf(c),"Guiding Bolt",{prefer:"starMapGuidingBolt"})},
+  "Consult Star Map":{kind:"instant",choices:[["consult","Confirm the most recent long rest"]],use:c=>{
+    const n=rollDice("1d6").total;
+    c.starsOmen=n%2===0?"weal":"woe";
+    return `Star Map rolled ${n}. ${cap1(c.starsOmen)} is active until the next long rest.`;
+  }},
+  "Cosmic Omen":{kind:"instant",choices:c=>!c.starsOmen||c.death?.dead||COND_INCAP.some(key=>condOn(c,key))?[]:[["omen","Confirm the creature is visible, within 30 feet, and about to roll"]],
+    use:c=>rollMsg("Cosmic Omen","1d6",c.starsOmen==="weal"?"Add the d6 to the creature’s roll.":"Subtract the d6 from the creature’s roll.")},
   "Natural Recovery": { kind: "instant", dialog: (c, a) => recoveryDialog(c, "Natural Recovery", a.res) },
   // ---------- Fighter
   "Second Wind": { kind: "instant", use: c => healMsg(c, "Second Wind", rollDice(`1d10+${classFeatureLevel(c, "Fighter")}`)) },

@@ -561,7 +561,7 @@ function miHTML(c) {
 function actRun(c, name, choice) {
   const a = pcAbilities(c).find(x => x.name === name), S = a && actSpec(a); if (!S) return "";
   c.active = c.active || {}; c.used = c.used || {};
-  if (S.kind === "toggle" && c.active[name]) { delete c.active[name]; if (name === "Wild Shape") delete c.formHp; if (name === "Aspect of the Wyrm") delete c.dragonFuryPending; if(name==="Symbiotic Entity")endSymbioticEntity(c); return `${name} ended.`; }
+  if (S.kind === "toggle" && c.active[name]) { delete c.active[name]; if (name === "Wild Shape") delete c.formHp; if (name === "Aspect of the Wyrm") delete c.dragonFuryPending; if(name==="Symbiotic Entity")endSymbioticEntity(c); if(name==="Starry Form")endStarryForm(c); return `${name} ended.`; }
   if (S.dialog) { S.dialog(c, a); return null; }
   const options=actChoices(c,S);
   if(S.choices&&!options.length)return "No eligible options available.";
@@ -621,6 +621,7 @@ function pcRest(c, kind) {
   if(kind==="long"){
     if(edOf(c)==="2024"&&c.race==="Human"&&(c.traits||[]).includes("Resourceful")){if(c.heroicInspiration)back.push("Heroic Inspiration already held; you may give the new one to an eligible ally.");else{c.heroicInspiration=true;back.push("Heroic Inspiration");}}
     delete c.arcaneWard;
+    delete c.starsOmen;
     if(portentCount(c)){back.push(rollPortents(c,true));}else delete c.portent;
     if(c.createdSlots){delete c.createdSlots;back.push("Temporary spell slots expired");}
     if(artificerExpire(c))back.push("Tinker's Magic gear expired");
@@ -628,6 +629,7 @@ function pcRest(c, kind) {
     if((+c.divineInterventionCooldown||0)>0){c.divineInterventionCooldown=Math.max(0,Math.trunc(+c.divineInterventionCooldown)-1);if(c.divineInterventionCooldown>0){c.used.divineIntervention=1;const i=back.indexOf("Divine Intervention");if(i>=0)back.splice(i,1);}else{delete c.divineInterventionCooldown;c.used.divineIntervention=0;}}
   }
   Object.keys(c.active || {}).forEach(n => { if (!ACT[n] || ACT[n].kind !== "persist") { delete c.active[n]; c.fxEnded = true; } });
+  endStarryForm(c);
   delete c.formHp;
   pcACApply(c);
   return back;
