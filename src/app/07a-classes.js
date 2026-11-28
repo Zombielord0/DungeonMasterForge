@@ -720,13 +720,37 @@ const baseClassOf = name => CLASS_DATA[name]?.hbx?.bookBase || name;
 const builtInClasses = () => Object.keys(CLASS_DATA).filter(k => !CLASS_DATA[k].hb);
 /* whose spell list a class uses: its own, or for a homebrew class the class the DM chose */
 const clsSpellList = cls => (CLASS_DATA[cls] && CLASS_DATA[cls].spellsFrom) || cls;
-/* Subclasses that cast spells (2026-11-19): Eldritch Knight and Arcane Trickster are third casters with Intelligence and
-   the wizard list, in both rule sets. A class's casting is castOf(cls, subclass): the class's own, else its subclass's.
-   Third-caster slots are FULL_SLOTS[ceil(level / 3)] from level 3; they count a third of their level when multiclassing. */
-const SUB_CASTERS = { "Fighter|Eldritch Knight": { cast: ["third", "int"], list: "Wizard", cantrips: 2 }, "Rogue|Arcane Trickster": { cast: ["third", "int"], list: "Wizard", cantrips: 3 } };
-const subCaster = (cls, sub) => (sub && SUB_CASTERS[cls + "|" + sub]) || null;
-const castOf = (cls, sub) => { const C = CLASS_DATA[cls]; if (!C) return null; return C.cast || (subCaster(cls, sub) ? subCaster(cls, sub).cast : null); };
-const castListOf = (cls, sub) => subCaster(cls, sub) ? subCaster(cls, sub).list : clsSpellList(cls);
+/* Third-caster slots are FULL_SLOTS[ceil(level / 3)] from level 3.
+   These levels count one third (rounded down) when combining spellcasting classes. */
+const SUB_CASTERS = {
+  "Fighter|Eldritch Knight": { cast: ["third", "int"], list: "Wizard", cantrips: 2 },
+  "Rogue|Arcane Trickster": { cast: ["third", "int"], list: "Wizard", cantrips: 3, fixedCantrip: "Mage Hand" },
+};
+const OPEN_THIRD_CASTERS = {
+  "Fighter|Arcane Warrior": {
+    id:"book-open5e_arcane-warrior", cast:["third","int"],list:"Wizard",cantrips:2,schools:["Abjuration","Evocation"],minimum:4,
+  },
+  "Rogue|Eldritch Trickster": {
+    id:"book-open5e_eldritch-trickster", cast:["third","int"],list:"Wizard",cantrips:3,fixedCantrip:"Mage Hand",
+    schools:["Enchantment","Illusion"],minimum:4,
+  },
+  "Rogue|Soulspy": {
+    id:"book-toh_soulspy",cast:["third","wis"],list:"Cleric",cantrips:3,schools:["Abjuration","Necromancy"],
+  },
+  "Rogue|Underfoot": {
+    id:"book-toh_underfoot",cast:["third","wis"],list:"Druid",cantrips:3,fixedCantrip:"Shillelagh",
+    schools:["Divination","Transmutation"],race:"Erina",
+  },
+};
+function subCaster(cls,sub,ed="2014",printing,race){
+  if(!sub)return null;
+  const key=cls+"|"+sub;
+  if(SUB_CASTERS[key])return SUB_CASTERS[key];
+  const rules=OPEN_THIRD_CASTERS[key];
+  if(!rules||rules.race&&race&&race!==rules.race)return null;
+  return subclassEntry(ed,cls,sub,false,printing)?.id===rules.id?rules:null;
+}
+const castOf=(cls,sub,ed,printing,race)=>CLASS_DATA[cls]?.cast||subCaster(cls,sub,ed,printing,race)?.cast||null;
 const thirdSlots = lv => lv >= 3 ? FULL_SLOTS[Math.min(20, Math.ceil(lv / 3))] || [] : [];
 const THIRD_KNOWN = [0, 0, 3, 4, 4, 4, 5, 6, 6, 7, 8, 8, 9, 10, 10, 11, 11, 11, 12, 13];
 /* A homebrew class entry -> the shape CLASS_DATA uses (see Barbarian above), so the generator, level up, multiclassing

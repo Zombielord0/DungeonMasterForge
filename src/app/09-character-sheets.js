@@ -19,7 +19,7 @@ const mcMeets = (c, k) => mcPrereq(k).every(g => g.some(a => (+c.scores[a] || 0)
 const MC_ARMOR = { Barbarian: "shield", Bard: "light", Cleric: "light medium shield", Druid: "light medium shield", Fighter: "light medium shield", Paladin: "light medium shield", Ranger: "light medium shield", Rogue: "light", Warlock: "light", Monk: "", Sorcerer: "", Wizard: "" };
 const MC_MARTIAL = ["Barbarian", "Fighter", "Paladin", "Ranger"];
 // a class's own caster level for multiclass slots
-function casterLv(ed, k, l, sub) { const cast = castOf(k, sub); if (!cast) return 0; const kind = cast[0]; return kind === "full" ? l : kind === "artificer" ? Math.ceil(l / 2) : kind === "half" ? (ed === "2024" ? Math.ceil(l / 2) : Math.floor(l / 2)) : kind === "third" ? Math.floor(l / 3) : 0; }
+function casterLv(ed, k, l, sub, printing, race) { const cast = castOf(k, sub, ed, printing, race); if (!cast) return 0; const kind = cast[0]; return kind === "full" ? l : kind === "artificer" ? Math.ceil(l / 2) : kind === "half" ? (ed === "2024" ? Math.ceil(l / 2) : Math.floor(l / 2)) : kind === "third" ? Math.floor(l / 3) : 0; }
 const pactSlots = l => ({ n: l >= 17 ? 4 : l >= 11 ? 3 : l >= 2 ? 2 : 1, lvl: Math.min(5, Math.ceil(l / 2)) });
 // what a rebuild keeps from the character as it is: rolled or assigned base scores, skill picks, expertise
 const pcKeep = c => ({ multi:c.multi?.length?c.multi:undefined,subclassPrints:c.subclassPrints,keepMcSkills: c.mcSkills, speciesSkill: c.speciesSkill, base: c.customData ? undefined : c.base, rolls: c.rolls || undefined, keepSkills: (c.skills || []).filter(s => s.p&&!s.primalGranted&&!s.loreGranted&&!s.orderGranted&&!s.envoyGranted&&!s.peaceGranted&&!s.glamourGranted&&!s.archerGranted).map(s => s.s), keepExpert: c.expertOrder || (c.skills || []).filter(s => s.x&&!s.scholarGranted&&!s.primalGranted&&!s.loreGranted&&!s.orderGranted&&!s.envoyExpert&&!s.envoyGranted&&!s.peaceGranted&&!s.glamourGranted&&!s.archerGranted).map(s => s.s), keepSkilled: c.skilled });
@@ -128,11 +128,16 @@ function revisedSpellAllowance(cls,lv){
 function spellLimits(c) {
   if (!c || !c.spell) return null;
   // every spellcasting class counts, each at its own level
-  const m = c.mods, list = [...(castOf(c.cls, c.subclass) ? [{ cls: c.cls, lv: c.level, subclass: c.subclass }] : []), ...(c.multi || []).filter(x => castOf(x.cls, x.subclass) && +x.lv > 0)];
+  const m=c.mods,list=pcCastClasses(c);
   let n = 0, cant = 0, word = "prepared";
-  list.forEach(({ cls, lv, subclass }) => {
-    const sc = subCaster(cls, subclass);
-    if (sc) { n += THIRD_KNOWN[lv - 1] || 0; if (list.length === 1 && edOf(c) === "2014") word = "known"; cant += sc.cantrips + (lv >= 10 ? 1 : 0) - (cls === "Rogue" && lv >= 3 ? 1 : 0); return; } /* Eldritch Knight, Arcane Trickster */
+  list.forEach(({cls,lv,third})=>{
+    if(third){
+      if(list.length===1&&(edOf(c)==="2014"||third.id))word="known";
+      if(third.id)return;
+      n+=THIRD_KNOWN[lv-1]||0;
+      cant+=third.cantrips+(lv>=10?1:0)-(third.fixedCantrip&&lv>=3?1:0);
+      return;
+    }
     const book = classData(edOf(c), cls).hbx;
     if (book?.preparedAt) {
       n += Number(book.preparedAt[lv - 1]) || 0;
@@ -197,6 +202,10 @@ function togglePrep(c, s, ed) {
   if (i >= 0) { c.prepared.splice(i, 1); toast(`${s.n} removed from ${c.name}`); return false; }
   if (s.referenceOnly || s.pend) { toast("Complete spell rules are required before preparation."); return false; }
   if (!spellConditionalEligible(c,s,ed)) { toast("This spell is not available through this character’s class or background."); return false; }
+  const casters=pcCastClasses(c);
+  if(casters.some(k=>k.third?.id)&&!casters.some(k=>!k.third?.id&&spellClassListEligible(c,s,ed,k)&&(s.l===0?k.cantrips:s.l<=k.max))){
+    toast("Choose this subclass’s known spells under Features & Traits.");return false;
+  }
   if(wizardBookActive(c)&&s.l>0&&isWizardBookSpell(c,s)&&!wizardBookOtherClass(c,s,ed)&&!wizardBookContains(c,s.n)){toast("Record this spell in your Wizard spellbook first.");return false;}
   c.prepared.push({ n: s.n, l: s.l, ed });
   const L = spellLimits(c);
@@ -218,13 +227,15 @@ function pcChanged(c) {
    reaches and whether it has cantrips. A Fighter/Wizard prepares from the Wizard list (owner's bug, 2026-11-18). */
 function pcCastClasses(c) {
   if (!c || !c.spell) return [];
-  const ed = edOf(c), list = [{ cls: c.cls, lv: c.level, subclass: c.subclass }, ...(c.multi || []).filter(x => +x.lv > 0)].filter(x => castOf(x.cls, x.subclass));
-  return list.map(({ cls, lv, subclass }) => {
-    const k = castOf(cls, subclass)[0];
-    if (k === "third") return { cls, lv, list: castListOf(cls, subclass), max: thirdSlots(lv).length, cantrips: true };
-    if (k === "artificer") return { cls, lv, max: ARTIFICER_SLOTS[lv].length, cantrips: true };
+  const ed=edOf(c),list=[{cls:c.cls,lv:c.level,subclass:c.subclass},...(c.multi||[])];
+  return list.flatMap(({cls,lv,subclass})=>{
+    const printing=characterSubclassPrinting(c,cls),third=subCaster(cls,subclass,ed,printing,c.race);
+    const k=CLASS_DATA[cls]?.cast?.[0]||third?.cast[0];
+    if(!k||+lv<=0)return [];
+    if(k==="third")return [{cls,lv,list:third.list,max:thirdSlots(lv).length,cantrips:true,third}];
+    if(k==="artificer")return [{cls,lv,max:ARTIFICER_SLOTS[lv].length,cantrips:true}];
     const max = k === "pact" ? Math.min(5, Math.ceil(lv / 2)) : k === "full" ? (FULL_SLOTS[lv] || []).length : (lv >= 2 || ed === "2024" ? (FULL_SLOTS[Math.ceil(lv / 2)] || []).length : 0);
-    return { cls, lv, max: Math.max(k === "half" && !max ? 0 : 1, max), cantrips: k !== "half" };
+    return [{cls,lv,max:Math.max(k==="half"&&!max?0:1,max),cantrips:k!=="half"}];
   });
 }
 const pcCastNames = c => { const L = pcCastClasses(c).map(x => x.cls); return L.length ? L.join(" and ") : c.cls; };
@@ -296,14 +307,16 @@ function prepPanelHTML(c, pre = "pc") {
 function renderPrepList(c = currentPC, pre = "pc") {
   const box = $(`#${pre}PrepList`); if (!c || !c.spell || !box) return;
   const ed = $(`#${pre}PrepEd`).value, lv = $(`#${pre}PrepLv`).value, words = $(`#${pre}PrepQ`).value.trim().toLowerCase().split(/\s+/).filter(Boolean);
-  const list = pcSpellPool(c, ed).filter(s => (!words.length || words.every(w => s.hay.includes(w))) && (lv === "" || s.l === +lv)).sort((a, b) => a.l - b.l || a.n.localeCompare(b.n));
+  const explicit=pcCastClasses(c),manual=explicit.filter(x=>!x.third?.id);
+  const canBrowse=s=>!explicit.some(cls=>cls.third?.id)||manual.some(k=>spellClassListEligible(c,s,ed,k)&&(s.l===0?k.cantrips:s.l<=k.max));
+  const list = pcSpellPool(c, ed).filter(s => canBrowse(s)&&(!words.length || words.every(w => s.hay.includes(w))) && (lv === "" || s.l === +lv)).sort((a, b) => a.l - b.l || a.n.localeCompare(b.n));
   box.innerHTML = list.length ? list.slice(0, 150).map(s => {
     const on = isPrep(c, s.n, ed), locked = c.prepared.some(p => p.n === s.n && p.ed === ed && p.src);
     return `<div class="prep-row"><details><summary><b>${esc(s.n)}</b> <span class="muted">${s.l ? "Lv " + s.l : "Cantrip"} · ${esc(s.s)}${s.co ? " · Concentration" : ""}${s.ri ? " · Ritual" : ""}</span></summary>
       <div class="sp-desc"><div class="muted" style="font-size:13.5px">${esc(s.t)} · ${esc(s.r)} · ${esc(s.du)}</div>${spFormat(s.d)}</div></details>
       <button type="button" class="btn sm ${on ? "" : "primary"}" data-prep="${s.id}" style="flex:0 0 auto" ${locked ? "disabled" : ""}>${locked ? "✓ Granted" : on ? "✓ Prepared" : "+ Prepare"}</button></div>`;
   }).join("") + (list.length > 150 ? `<p class="hint">Showing 150 of ${list.length}. Narrow the search to see more.</p>` : "")
-    : `<p class="muted" style="margin:8px 0">No ${esc(pcCastNames(c))} spells match.</p>`;
+    : `<p class="muted" style="margin:8px 0">${!manual.length&&explicit.length?"Choose your subclass’s known spells under Features & Traits.":`No ${esc(pcCastNames(c))} spells match.`}</p>`;
 }
 
 /* ---- prepare from the Spells tab ---- */

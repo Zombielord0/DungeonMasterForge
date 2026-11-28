@@ -347,6 +347,47 @@ const additionalFeatureChoices = {
   "Arcane Mastery": [6, 7, 8, 9].map(level => "Arcane Mastery " + level)
 };
 CHOICES["Animal Lord Affinity"]={label:"Animal Lord affinity",n:c=>animalLordsEntry(c)?1:0,opts:()=>opt3(["Air","Earth","Water"])};
+function openThirdChoiceKeys(name){
+  return [`Cantrips (${name})`,`School spells (${name})`,`Any-school spells (${name})`];
+}
+function openThirdLimits(caster){
+  if(!caster||caster.lv<3)return [0,0,0];
+  const {lv,third}=caster,spells=THIRD_KNOWN[lv-1];
+  const schools=third.minimum?Math.min(third.minimum,spells-1):spells-[3,8,14,20].filter(l=>lv>=l).length;
+  return [third.cantrips+Number(lv>=10)-Number(!!third.fixedCantrip),schools,spells-schools];
+}
+for(const [key,rules] of Object.entries(OPEN_THIRD_CASTERS)){
+  const name=key.split("|")[1],keys=openThirdChoiceKeys(name);
+  const caster=c=>pcCastClasses(c).find(k=>k.third?.id===rules.id);
+  const labels=["Cantrips",rules.schools.join(" or ")+" spells","Spells from any school"];
+  const onList=sp=>!sp.ref&&!sp.referenceOnly&&!sp.rulesSummary&&!sp.shadow&&sp.c.includes(rules.list)&&sp.n!==rules.fixedCantrip;
+  const leveled=(sp,own)=>sp.l>0&&sp.l<=own.max;
+  keys.forEach((choice,index)=>{
+    CHOICES[choice]={
+      label:labels[index],n:c=>openThirdLimits(caster(c))[index],
+      opts:c=>{
+        const own=caster(c);if(!own)return [];
+        const other=index===1?2:index===2?1:0;
+        const elsewhere=index===0?[]:choiceOf(c,keys[other]).filter(id=>{
+          const sp=spellOf(edOf(c),id);
+          return sp&&onList(sp)&&leveled(sp,own)&&(other===2||rules.schools.includes(sp.s));
+        }).slice(0,openThirdLimits(own)[other]);
+        return choiceSpellOptions(c,sp=>{
+          if(!onList(sp)||elsewhere.includes(sp.n))return false;
+          if(index===0)return sp.l===0;
+          return leveled(sp,own)&&(index===2||rules.schools.includes(sp.s));
+        });
+      },
+    };
+  });
+  additionalFeatureChoices[`Spellcasting (${name})`]=keys;
+}
+function openThirdKnownSpells(c,subclass){
+  return openThirdChoiceKeys(subclass).flatMap(key=>{
+    const rule=CHOICES[key],options=new Set(rule.opts(c).map(([id])=>id));
+    return [...new Set(choiceOf(c,key))].filter(id=>options.has(id)).slice(0,rule.n(c));
+  });
+}
 function featureChoiceHTML(c, k) {
   const keys = CHOICES[k] ? [k] : [];
   return keys.concat(additionalFeatureChoices[k] || []).map(key => choiceHTML(c, key)).join("");

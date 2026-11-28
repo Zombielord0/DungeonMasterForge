@@ -133,7 +133,10 @@ function generateCharacter(o) {
   if (cls === "Monk") { const md = ed==="2024"?(lv>=17?"1d12":lv>=11?"1d10":lv>=5?"1d8":"1d6"):(lv >= 17 ? "1d10" : lv >= 11 ? "1d8" : lv >= 5 ? "1d6" : "1d4"); attacks.push({ name: "Unarmed strike", hit: wm + prof + atkBonus, dmg: md + sgn(wm) }); }
   // spells
   let spell = null;
-  const CAST = castOf(cls, subclass);
+  const castingFor=(cls,sub)=>castOf(cls,sub,ed,subclassPrints[cls],race);
+  const subclassCastingFor=(cls,sub)=>subCaster(cls,sub,ed,subclassPrints[cls],race);
+  const CAST = castingFor(cls,subclass);
+  const subclassCasting=subclassCastingFor(cls,subclass);
   if (CAST) {
     const [kind, sa] = CAST; let slots = [], note = "";
     if (kind === "full") slots = FULL_SLOTS[lv];
@@ -143,17 +146,17 @@ function generateCharacter(o) {
     else { const n = lv >= 17 ? 4 : lv >= 11 ? 3 : lv >= 2 ? 2 : 1, sl = Math.min(5, Math.ceil(lv / 2)); note = `${n} pact slot${n > 1 ? "s" : ""} of level ${sl}, regained on a short rest`; }
     const max = kind === "pact" ? Math.min(5, Math.ceil(lv / 2)) : Math.max(1, slots.length);
     const sb = fxSum("spell");
-    spell = { ab: sa, dc: 8 + prof + m[sa] + sb, atk: prof + m[sa] + sb, bonus: sb, slots, note, max, cantrips: kind !== "half", ...(subCaster(cls, subclass) ? { list: castListOf(cls, subclass) } : {}) };
+    spell = { ab: sa, dc: 8 + prof + m[sa] + sb, atk: prof + m[sa] + sb, bonus: sb, slots, note, max, cantrips: kind !== "half", ...(subclassCasting ? { list: subclassCasting.list } : {}) };
   }
-  const mcCasters = MC.filter(x => castOf(x.cls, x.subclass));
+  const mcCasters = MC.filter(x => castingFor(x.cls,x.subclass));
   if (mcCasters.length) {
-    const sb = fxSum("spell"), all = [...(CAST ? [{ cls, lv, subclass }] : []), ...mcCasters], slotted = all.filter(x => castOf(x.cls, x.subclass)[0] !== "pact");
-    const cl = slotted.reduce((t, x) => t + casterLv(ed, x.cls, x.lv, x.subclass), 0);
-    const own = x => { const k = castOf(x.cls, x.subclass)[0]; return k === "full" ? FULL_SLOTS[x.lv] : k === "third" ? thirdSlots(x.lv) : k === "artificer" ? ARTIFICER_SLOTS[x.lv] : (k === "half" && (x.lv >= 2 || ed === "2024")) ? FULL_SLOTS[Math.ceil(x.lv / 2)] : []; };
+    const sb = fxSum("spell"), all = [...(CAST ? [{ cls, lv, subclass }] : []), ...mcCasters], slotted = all.filter(x => castingFor(x.cls,x.subclass)[0] !== "pact");
+    const cl = slotted.reduce((t,x)=>t+casterLv(ed,x.cls,x.lv,x.subclass,subclassPrints[x.cls],race),0);
+    const own = x => { const k = castingFor(x.cls,x.subclass)[0]; return k === "full" ? FULL_SLOTS[x.lv] : k === "third" ? thirdSlots(x.lv) : k === "artificer" ? ARTIFICER_SLOTS[x.lv] : (k === "half" && (x.lv >= 2 || ed === "2024")) ? FULL_SLOTS[Math.ceil(x.lv / 2)] : []; };
     const slots = slotted.length >= 2 ? (FULL_SLOTS[Math.max(0, Math.min(20, cl))] || []) : slotted.length === 1 ? own(slotted[0]) : [];
     const lock = all.find(x => x.cls === "Warlock"), P = lock ? pactSlots(lock.lv) : null;
-    const mk = x => { const sa = castOf(x.cls, x.subclass)[1]; return { cls: x.cls, ...(subCaster(x.cls, x.subclass) ? { list: castListOf(x.cls, x.subclass) } : {}), ab: sa, dc: 8 + prof + m[sa] + sb, atk: prof + m[sa] + sb }; };
-    const head = spell ? { ...spell } : { ...mk(mcCasters[0]), bonus: sb, cantrips: castOf(mcCasters[0].cls, mcCasters[0].subclass)[0] !== "half", max: 1 };
+    const mk = x => { const sa = castingFor(x.cls,x.subclass)[1],sc=subclassCastingFor(x.cls,x.subclass); return { cls: x.cls, ...(sc ? { list:sc.list } : {}), ab: sa, dc: 8 + prof + m[sa] + sb, atk: prof + m[sa] + sb }; };
+    const head = spell ? { ...spell } : { ...mk(mcCasters[0]), bonus: sb, cantrips: castingFor(mcCasters[0].cls,mcCasters[0].subclass)[0] !== "half", max: 1 };
     head.slots = slots; head.note = slots.length ? "" : P ? `${P.n} pact slot${P.n > 1 ? "s" : ""} of level ${P.lvl}, regained on a short rest` : head.note || "";
     head.pact = P && slots.length ? P : null;
     head.max = Math.max(head.max || 1, slots.length, P ? P.lvl : 0);

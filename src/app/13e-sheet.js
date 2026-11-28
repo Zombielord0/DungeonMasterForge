@@ -16,7 +16,7 @@ function renderRosterMain() {
   c.inv = c.inv || []; c.coins = c.coins || { cp: 0, sp: 0, ep: 0, gp: 0, pp: 0 }; if (c.hpCur === undefined) c.hpCur = c.hp;
   if (c.bgV === 1 && CLASS_DATA[c.cls]) { const cur = c.hpCur; pcLevelTo(c, c.level); c.bgV = 2; if (cur !== undefined && cur !== "") c.hpCur = Math.min(+cur, c.hp); pcPersist(); }
   /* saved before 2026-11-19, when Eldritch Knights and Arcane Tricksters had no spellcasting: rebuild to add it, keeping current HP */
-  if (!c.spell && CLASS_DATA[c.cls] && [{ cls: c.cls, lv: c.level, subclass: c.subclass }, ...(c.multi || [])].some(x => x && subCaster(x.cls, x.subclass) && +x.lv >= 3)) { const cur = c.hpCur; pcLevelTo(c, c.level); if (cur !== undefined && cur !== "") c.hpCur = Math.min(+cur, c.hp); pcPersist(); }
+  if (!c.spell && CLASS_DATA[c.cls] && [{ cls: c.cls, lv: c.level, subclass: c.subclass }, ...(c.multi || [])].some(x => x && subCaster(x.cls,x.subclass,edOf(c),characterSubclassPrinting(c,x.cls),c.race) && +x.lv >= 3)) { const cur = c.hpCur; pcLevelTo(c, c.level); if (cur !== undefined && cur !== "") c.hpCur = Math.min(+cur, c.hp); pcPersist(); }
   const moved = pcInvUpgrade(c), synced = pcSubSync(c), nums = pcSubNumbers(c);
   let repairedAttunement = false;
   for (const item of c.inv) {
@@ -142,7 +142,8 @@ function rosterHTML(c) {
   ${c.spell ? `<div class="sec" id="sec-spells"><div class="sec-h"><h3>Spells</h3><span class="sp"></span><button class="btn sm" type="button" data-ra="prep">✦ Prepare spells</button></div>
     <div class="spell-top">${armorCastingWarningHTML(c)}<p style="margin:0 0 4px"><b>Spell save DC ${esc(c.spell.dc)}</b> · spell attack ${esc(sgn(c.spell.atk))} · ability ${AB_NAME[c.spell.ab]}${(c.spell.others || []).length ? ` <span class="muted">(${esc(c.spell.cls || c.cls)})</span>` : ""}</p>${(c.spell.others || []).map(o => `<p style="margin:0 0 4px"><b>${esc(o.cls)}: DC ${esc(o.dc)}</b> · spell attack ${esc(sgn(o.atk))} · ${AB_NAME[o.ab]}</p>`).join("")}
         ${rcSlotsHTML(c)}
-        <button class="btn sm" type="button" style="margin-top:10px" data-spells="${esc(c.spell.list || c.spell.cls || c.cls)}|${esc(c.spell.max)}|${c.spell.cantrips ? 1 : 0}">✦ Browse ${esc(c.spell.cls || c.cls)} spells</button></div>
+        <button class="btn sm" type="button" style="margin-top:10px" data-spells="${esc(c.spell.list || c.spell.cls || c.cls)}|${esc(c.spell.max)}|${c.spell.cantrips ? 1 : 0}">✦ Browse ${esc(c.spell.list || c.spell.cls || c.cls)} spells</button>
+        ${pcCastClasses(c).some(k=>k.third?.id)?'<button type="button" class="btn sm" data-jump="features">Choose subclass spells</button>':""}</div>
     ${speciesSpellChoicesHTML(c)}${wizardSpellChoicesHTML(c)}
     <div class="prep-h">${L.word === "known" ? "Spells known" : "Prepared spells"}</div>
     <div id="rcPrepared">${preparedHTML(c, true)}</div>${prepPanelHTML(c, "rc")}</div>` : hasSheetSpells(c) ? `<div class="sec" id="sec-spells"><div class="sec-h"><h3>Spells</h3><span class="sp"></span></div>${armorCastingWarningHTML(c)}${speciesSpellChoicesHTML(c)}<div id="rcPrepared">${preparedHTML(c, true)}</div></div>` : ""}
@@ -162,7 +163,7 @@ function rosterHTML(c) {
     <p class="hint">Attuned to ${inventoryAttunementCount(c)} magic items · ${(() => { const LD = pcLoad(c); return `carrying <b class="${LD.lb > LD.cap ? "over" : ""}">${LD.lb} lb</b> of ${LD.cap} lb${LD.lb > LD.cap ? " — over your carrying capacity: speed 5 ft" : LD.variant && LD.lb > LD.heavy ? " — heavily encumbered" : LD.variant && LD.lb > LD.enc ? " — encumbered" : ""}`; })()}.</p>
     ${edOf(c) === "2014" ? `<label style="display:flex;gap:8px;align-items:center;font-size:14px"><input type="checkbox" data-varenc ${c.varEnc ? "checked" : ""}> Use variant encumbrance (−10 ft over ${pcLoad(c).enc} lb, −20 ft and disadvantage over ${pcLoad(c).heavy} lb)</label>` : ""}</div>
   <div class="grid2 rc-two" style="margin-top:0">
-    <div class="sec"><div class="sec-h"><h3>Features & Traits</h3></div>${featuresListHTML(c, true)}<div id="rcItemFeatures">${inventoryEffectsHTML(c)}</div>
+    <div class="sec" id="sec-features"><div class="sec-h"><h3>Features & Traits</h3></div>${featuresListHTML(c, true)}<div id="rcItemFeatures">${inventoryEffectsHTML(c)}</div>
       <textarea data-rf="featNotes" placeholder="Extra features, feats, boons…" style="margin-top:8px">${esc(c.featNotes || "")}</textarea></div>
     <div class="sec"><div class="sec-h"><h3>Equipped Items</h3></div><div id="rcEquipped">${rcEquippedHTML(c)}</div><div id="rcACLine">${rcACLine(c)}</div></div>
   </div>

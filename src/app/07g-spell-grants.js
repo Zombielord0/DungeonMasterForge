@@ -446,8 +446,10 @@ function syncGrantedSpells(c) {
           ...(spell.restriction?{restriction:spell.restriction}:{}),
         }),spell.level);
     }
-    if (cls === "Rogue" && ["Arcane Trickster", "Eldritch Trickster"].includes(subclass)) {
-      add({ 3: ["Mage Hand"] }, lv, { ...source, feature: "Spellcasting", known: true });
+    const third=subCaster(cls,subclass,ed,characterSubclassPrinting(c,cls),c.race);
+    if(third?.fixedCantrip)add({3:[third.fixedCantrip]},lv,{...source,feature:"Spellcasting",known:true});
+    if(third?.id){
+      add({3:openThirdKnownSpells(c,subclass)},lv,{...source,feature:`Spellcasting (${subclass})`,known:true});
     }
     if (cls === "Cleric" && subclass === "Arcana Domain" && choiceOf(c, "Arcane Initiate").length) {
       const candidates = CHOICES["Arcane Initiate"].opts(c);
