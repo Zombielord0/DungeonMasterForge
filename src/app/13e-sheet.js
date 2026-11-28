@@ -16,7 +16,7 @@ function renderRosterMain() {
   c.inv = c.inv || []; c.coins = c.coins || { cp: 0, sp: 0, ep: 0, gp: 0, pp: 0 }; if (c.hpCur === undefined) c.hpCur = c.hp;
   if (c.bgV === 1 && CLASS_DATA[c.cls]) { const cur = c.hpCur; pcLevelTo(c, c.level); c.bgV = 2; if (cur !== undefined && cur !== "") c.hpCur = Math.min(+cur, c.hp); pcPersist(); }
   /* saved before 2026-11-19, when Eldritch Knights and Arcane Tricksters had no spellcasting: rebuild to add it, keeping current HP */
-  if (!c.spell && CLASS_DATA[c.cls] && [{ cls: c.cls, lv: c.level, subclass: c.subclass }, ...(c.multi || [])].some(x => x && subCaster(x.cls, x.subclass) && +x.lv >= 3)) { const cur = c.hpCur; pcLevelTo(c, c.level); if (cur !== undefined && cur !== "") c.hpCur = Math.min(+cur, c.hp); pcPersist(); }
+  if (!c.spell && CLASS_DATA[c.cls] && [{ cls: c.cls, lv: c.level, subclass: c.subclass }, ...(c.multi || [])].some(x => x && subCaster(x.cls,x.subclass,edOf(c),characterSubclassPrinting(c,x.cls),c.race) && +x.lv >= 3)) { const cur = c.hpCur; pcLevelTo(c, c.level); if (cur !== undefined && cur !== "") c.hpCur = Math.min(+cur, c.hp); pcPersist(); }
   const moved = pcInvUpgrade(c), synced = pcSubSync(c), nums = pcSubNumbers(c);
   let repairedAttunement = false;
   for (const item of c.inv) {
@@ -37,9 +37,7 @@ function clearUnsupportedAttunement(item, edition) {
   return true;
 }
 function inventoryAttunementCount(c) {
-  const count = c.inv.filter(i => i.attuned && inventoryNeedsAttunement(i, inventoryCatalogItem(i, edOf(c)))).length;
-  const level = clsLv(c, "Artificer");
-  const limit = level >= 18 ? 6 : level >= 14 ? 5 : level >= 10 ? 4 : 3;
+  const count=artificerAttunedCount(c),limit=artificerAttunementLimit(c);
   return `<b id="rcAttunementCount" class="${count > limit ? "over" : ""}">${count} / ${limit}</b>`;
 }
 function quickSheetActions(c) {
@@ -47,6 +45,7 @@ function quickSheetActions(c) {
   const attack = c.attacks[attackIndex];
   return `
     <button type="button" class="btn sm" data-quick-roll="init">Initiative</button>
+    ${edOf(c)==="2024"&&classFeatureLevel(c,"Sorcerer")>=20?`<button type="button" class="btn sm" data-core-turn>Begin your turn</button>`:""}
     ${attack ? `<button type="button" class="btn sm" data-quick-roll="atk:${attackIndex}">Roll ${esc(attack.name)}</button>` : ""}
     <button type="button" class="btn sm" data-jump="attacks">Attacks</button>
     ${hasSheetSpells(c) ? '<button type="button" class="btn sm" data-jump="spells">Spells</button>' : ""}
@@ -71,6 +70,30 @@ function quickSheetHTML(c) {
 }
 
 const armorCastingWarningHTML = c => `<div id="rcArmorCastingWarning" class="enc" style="margin-top:10px" ${c.armorUntrained ? "" : "hidden"}>${esc(ARMOR_CASTING_WARNING)}</div>`;
+function subclassPrintingHTML(c){
+  const ed=edOf(c),owners=[{cls:c.cls,subclass:c.subclass},...(c.multi||[])];
+  return owners.map(({cls,subclass})=>{
+    const prints=namedSubclassPrints(ed,cls,subclass);
+    if(prints.length<2||!characterSubclassLevel(c,cls,subclass))return "";
+    const explicit=characterSubclassPrinting(c,cls),current=subclassEntry(ed,cls,subclass,false,explicit);
+    const defaultName=dmBook(subclassEntry(ed,cls,subclass,false)?.src)?.name||"Forge default";
+    const options=prints.map(row=>{
+      const book=dmBook(row.src)?.name||row.src;
+      const page=row.page?` · p. ${row.page}`:"";
+      return `<option value="${esc(row.id)}" ${current?.id===row.id&&explicit===row.id?"selected":""}>${esc(book+page)}</option>`;
+    }).join("");
+    return `<label>${esc(subclass)} source<select data-subclass-print="${esc(cls)}"><option value="">Default · ${esc(defaultName)}</option>${options}</select></label>`;
+  }).join("");
+}
+function setSubclassPrinting(c,cls,printing){
+  const row=[{cls:c.cls,subclass:c.subclass},...(c.multi||[])].find(x=>x.cls===cls);
+  if(!row?.subclass||printing&&!namedSubclassPrints(edOf(c),cls,row.subclass).some(x=>x.id===printing))return false;
+  const previous=c.subclassPrints&&typeof c.subclassPrints==="object"?Object.entries(c.subclassPrints):[];
+  c.subclassPrints=Object.fromEntries(previous.filter(([key])=>key!==cls).concat(printing?[[cls,printing]]:[]));
+  if(cls==="Druid")endSymbioticEntity(c);
+  pcSubSync(c);syncGrantedSpells(c);pcSubNumbers(c);pcRecompute(c);
+  return true;
+}
 function rosterHTML(c) {
   const isb = itemSaveBonus(c), sv = a => c.mods[a] + (c.saves.includes(a) ? c.prof : 0) + isb;
   const D = c.hookDetail || { story: "", questions: [], use: "" };
@@ -81,6 +104,7 @@ function rosterHTML(c) {
       <div style="flex:0 1 auto;min-width:0;display:flex;gap:6px;flex-wrap:wrap"><button class="btn sm" type="button" data-ra="sheet">⎙ Export character sheet</button><button class="btn sm" type="button" data-ra="cards" title="Printable cards for this character's prepared spells">🃏 Spell cards</button><button class="btn sm" type="button" data-ra="copy">Copy as text</button><button class="btn sm danger" type="button" data-ra="del">✕ Delete</button></div></div>
     <div class="gen-sub"><span class="tag gold">${esc(raceLabel(c))} ${esc((c.multi || []).length ? classLine(c) : c.cls)}</span>${(c.multi || []).length ? `<span class="tag">Level ${totalLv(c)}</span>` : ""}<span class="tag">${esc(edOf(c))} rules</span><span class="tag">${esc(c.bg)}</span>${c.custom ? `<span class="tag">Custom build</span>` : ""}</div>
     <div class="rc-grid">
+      ${subclassPrintingHTML(c)}
       <label>Level<input type="number" min="1" max="20" data-rlv="1" value="${c.level}"></label>
       <label>Gender<select data-rf="gender">${c.gender ? "" : `<option value="">Not set</option>`}${GENDERS.map(([v, l]) => `<option value="${v}" ${c.gender === v ? "selected" : ""}>${l}</option>`).join("")}</select></label>
       <label>Alignment<input type="text" data-rf="align" value="${esc(c.align || "")}"></label>
@@ -118,11 +142,13 @@ function rosterHTML(c) {
   ${c.spell ? `<div class="sec" id="sec-spells"><div class="sec-h"><h3>Spells</h3><span class="sp"></span><button class="btn sm" type="button" data-ra="prep">✦ Prepare spells</button></div>
     <div class="spell-top">${armorCastingWarningHTML(c)}<p style="margin:0 0 4px"><b>Spell save DC ${esc(c.spell.dc)}</b> · spell attack ${esc(sgn(c.spell.atk))} · ability ${AB_NAME[c.spell.ab]}${(c.spell.others || []).length ? ` <span class="muted">(${esc(c.spell.cls || c.cls)})</span>` : ""}</p>${(c.spell.others || []).map(o => `<p style="margin:0 0 4px"><b>${esc(o.cls)}: DC ${esc(o.dc)}</b> · spell attack ${esc(sgn(o.atk))} · ${AB_NAME[o.ab]}</p>`).join("")}
         ${rcSlotsHTML(c)}
-        <button class="btn sm" type="button" style="margin-top:10px" data-spells="${esc(c.spell.list || c.spell.cls || c.cls)}|${esc(c.spell.max)}|${c.spell.cantrips ? 1 : 0}">✦ Browse ${esc(c.spell.cls || c.cls)} spells</button></div>
+        <button class="btn sm" type="button" style="margin-top:10px" data-spells="${esc(c.spell.list || c.spell.cls || c.cls)}|${esc(c.spell.max)}|${c.spell.cantrips ? 1 : 0}">✦ Browse ${esc(c.spell.list || c.spell.cls || c.cls)} spells</button>
+        ${pcCastClasses(c).some(k=>k.third?.id)?'<button type="button" class="btn sm" data-jump="features">Choose subclass spells</button>':""}</div>
     ${speciesSpellChoicesHTML(c)}${wizardSpellChoicesHTML(c)}
     <div class="prep-h">${L.word === "known" ? "Spells known" : "Prepared spells"}</div>
     <div id="rcPrepared">${preparedHTML(c, true)}</div>${prepPanelHTML(c, "rc")}</div>` : hasSheetSpells(c) ? `<div class="sec" id="sec-spells"><div class="sec-h"><h3>Spells</h3><span class="sp"></span></div>${armorCastingWarningHTML(c)}${speciesSpellChoicesHTML(c)}<div id="rcPrepared">${preparedHTML(c, true)}</div></div>` : ""}
   ${profSecHTML(c)}
+  ${backgroundSelectionsHTML(c)}
   ${featsSecHTML(c)}
   ${compSectionHTML(c)}
   <div class="sec" id="sec-gear"><div class="sec-h"><h3>Inventory</h3><span class="sp"></span><a class="btn sm" href="#items" data-ra="browse" style="text-decoration:none">Browse items</a><button class="btn sm primary" type="button" data-ra="addInv">+ Add item</button></div>
@@ -137,7 +163,7 @@ function rosterHTML(c) {
     <p class="hint">Attuned to ${inventoryAttunementCount(c)} magic items · ${(() => { const LD = pcLoad(c); return `carrying <b class="${LD.lb > LD.cap ? "over" : ""}">${LD.lb} lb</b> of ${LD.cap} lb${LD.lb > LD.cap ? " — over your carrying capacity: speed 5 ft" : LD.variant && LD.lb > LD.heavy ? " — heavily encumbered" : LD.variant && LD.lb > LD.enc ? " — encumbered" : ""}`; })()}.</p>
     ${edOf(c) === "2014" ? `<label style="display:flex;gap:8px;align-items:center;font-size:14px"><input type="checkbox" data-varenc ${c.varEnc ? "checked" : ""}> Use variant encumbrance (−10 ft over ${pcLoad(c).enc} lb, −20 ft and disadvantage over ${pcLoad(c).heavy} lb)</label>` : ""}</div>
   <div class="grid2 rc-two" style="margin-top:0">
-    <div class="sec"><div class="sec-h"><h3>Features & Traits</h3></div>${featuresListHTML(c, true)}<div id="rcItemFeatures">${inventoryEffectsHTML(c)}</div>
+    <div class="sec" id="sec-features"><div class="sec-h"><h3>Features & Traits</h3></div>${featuresListHTML(c, true)}<div id="rcItemFeatures">${inventoryEffectsHTML(c)}</div>
       <textarea data-rf="featNotes" placeholder="Extra features, feats, boons…" style="margin-top:8px">${esc(c.featNotes || "")}</textarea></div>
     <div class="sec"><div class="sec-h"><h3>Equipped Items</h3></div><div id="rcEquipped">${rcEquippedHTML(c)}</div><div id="rcACLine">${rcACLine(c)}</div></div>
   </div>
@@ -174,7 +200,7 @@ spFiltersSync();
   $("#rosterList").addEventListener("click", e => { const b = e.target.closest("[data-rc]"); if (b) { RC.id = b.dataset.rc; CB.on = false; pcShow("sheet"); renderRosterTab(); rosterFoldPhone(); showResult("#rosterMain"); } });
   const main = $("#rosterMain");
   const resSet = (c, key, left) => { const r = pcResources(c).find(x => x.key === key); if (!r || r.max === Infinity) return; c.used = c.used || {}; c.used[key] = r.max - clamp(left, 0, r.max); pcPersist(); renderRosterMain(); };
-  main.addEventListener("click", e => {
+  main.addEventListener("click", async e => {
     const c = rosterCur(); if (!c) return;
     const review = e.target.closest("[data-readiness], [data-readiness-reviewed]");
     if (review) {
@@ -188,8 +214,14 @@ spFiltersSync();
       }
       return;
     }
+    if(e.target.closest("[data-bgkit]")){if(backgroundEquipmentClaim(c)){pcRecompute(c);pcPersist();renderRosterMain();toast("Background starting equipment added.");}return;}
+    const br=e.target.closest("[data-bgchoice-remove]");
+    if(br){if(backgroundSelectionChange(c,br.dataset.bgchoiceRemove,br.dataset.bgchoiceValue,true)){pcPersist();renderRosterMain();}return;}
+    if(e.target.closest("[data-core-turn]")){if(edOf(c)==="2024"&&classFeatureLevel(c,"Sorcerer")>=20){delete c.apotheosisUsedThisTurn;pcPersist();renderRosterMain();toast("New turn: Arcane Apotheosis allowance reset.");}return;}
+    if(e.target.closest("[data-wizard-book-start]")){if(wizardBookStart(c)){syncGrantedSpells(c);pcPersist();renderRosterMain();}return;}
+    const wr=e.target.closest("[data-wizard-book-remove]");if(wr){if(wizardBookRemove(c,wr.dataset.wizardBookRemove)){syncGrantedSpells(c);pcPersist();renderRosterMain();}else toast("Remove this spell from prepared and class-feature choices first.");return;}
     const cr = e.target.closest("[data-choicerm]");
-    if (cr) { const [k, ...id] = cr.dataset.choicerm.split("|"); c.choices = { ...(c.choices || {}) }; c.choices[k] = choiceOf(c, k).filter(x => x !== id.join("|")); syncGrantedSpells(c); pcRecompute(c); pcPersist(); renderRosterMain(); return; }
+    if (cr) { const [k, ...id] = cr.dataset.choicerm.split("|"); c.choices = { ...(c.choices || {}) }; c.choices[k] = choiceOf(c, k).filter(x => x !== id.join("|")); if(k==="Replicate Magic Item")artificerForgetPlan(c,id.join("|")); syncGrantedSpells(c); pcRecompute(c); pcPersist(); renderRosterMain(); return; }
     const mr = e.target.closest("[data-mirm]");
     if (mr) { const k = "Feat: Magic Initiate"; c.choices = { ...(c.choices || {}) }; c.choices[k] = choiceOf(c, k).filter(x => x !== mr.dataset.mirm); syncGrantedSpells(c); pcRecompute(c); pcPersist(); renderRosterMain(); return; }
     const cb = e.target.closest("[data-spell]");
@@ -200,7 +232,12 @@ spFiltersSync();
       if (k === "check") rollD20(c, `${AB_FULL[v]} check`, c.mods[v], "check", v);
       else if (k === "save") rollD20(c, `${AB_FULL[v]} save`, c.mods[v] + (c.saves.includes(v) ? c.prof : 0) + xb, "save", v);
       else if (k === "skill") { const s = c.skills[+v]; rollD20(c, s.s, s.v, "check", s.ab, { skill: s.s }); }
-      else if (k === "init") rollD20(c, "Initiative", c.init, "init", "dex");
+      else if (k === "init") {
+        rollD20(c,"Initiative",c.init,"init","dex");
+        if(arcaneArcherInitiative(c)){pcPersist();renderRosterMain();toast("Ever-Ready Shot restored one Arcane Shot use.");}
+        if(samuraiInitiative(c)){pcPersist();renderRosterMain();toast("Tireless Spirit restored one Fighting Spirit use.");}
+        if(demonHunterInitiative(c)){pcPersist();renderRosterMain();toast("Soul Shatter restored one soul fragment.");}
+      }
       else if (k === "atk") { const a = c.attacks[+v]; const r = rollD20(c, `${a.name} attack`, a.hit, "attack", a.ab, { tags: a.tags, crit: a.crit }); ROLL.lastCrit = r && r.crit ? a.name : ""; }
       else if (k === "dmg") { const a = c.attacks[+v]; rollDamage(c, `${a.name} damage`, a, ROLL.lastCrit === a.name); ROLL.lastCrit = ""; }
       return;
@@ -217,6 +254,28 @@ spFiltersSync();
     if (e.target.closest("[data-deathsave]")) { deathSave(c); pcRecompute(c); pcPersist(); renderRosterMain(); return; }
     if (e.target.closest("[data-stabilize]")) { c.death = { s: 0, f: 0, stable: true }; pcPersist(); renderRosterMain(); toast(`${c.name} is stable at 0 hit points.`); return; }
     if (e.target.closest("[data-revive]")) { c.death = { s: 0, f: 0 }; c.hpCur = 1; pcHealed(c, true); pcRecompute(c); pcPersist(); renderRosterMain(); return; }
+    const fungal=e.target.closest("[data-fungal-action]");
+    if(fungal){
+      const op=fungal.dataset.fungalAction,id=fungal.dataset.fungalId;
+      if(op==="fortitude"&&!(await confirmBox("Undead Fortitude", "Confirm the damage was nonradiant and noncritical and the Zombie succeeded at its Constitution save.", "Restore 1 HP")))return;
+      const result=fungalSheetAction(c,id,op);
+      pcPersist();renderRosterMain();
+      if(result?.kind)actResultDialog(c,result);
+      else if(result)toast(result);
+      return;
+    }
+    const comp=e.target.closest("[data-companion-op]");
+    if(comp){
+      const key=comp.dataset.companionKey,op=comp.dataset.companionOp;if(!Object.hasOwn(SUB_COMPANIONS,key))return;
+      let msg="";
+      if(op==="summon")msg=companionSummon(c,key,$('[data-companion-form="'+key+'"]',main)?.value,$('[data-companion-pay="'+key+'"]',main)?.value);
+      else if(op==="revive")msg=companionRevive(c,key,$('[data-companion-revive="'+key+'"]',main)?.value,$('[data-companion-recent="'+key+'"]',main)?.checked);
+      else if(op==="finish")msg=companionFinishRevive(c,key);
+      else if(op==="dismiss"&&["drake","wildfire"].includes(key)&&c.subCompanions){delete c.subCompanions[key];msg="Summon ended.";}
+      else msg=companionRoll(c,key,op);
+      pcRecompute(c);pcPersist();renderRosterMain();
+      if(msg&&typeof msg==="object"){if(msg.aoe)actAoeDialog(c,msg);else if(msg.amount)actResultDialog(c,msg);else toast(msg.msg);}else if(msg)toast(msg);return;
+    }
     const ab = e.target.closest("[data-act]");
     if (ab) { const msg = actRun(c, ab.dataset.act, (($(`[data-actsel="${CSS.escape(ab.dataset.act)}"]`, main) || {}).value) || null); pcRecompute(c); pcPersist(); renderRosterMain(); if (msg && typeof msg === "object") { if (msg.aoe) actAoeDialog(c, msg); else if (msg.amount) actResultDialog(c, msg); else toast(msg.msg); } else if (msg) toast(msg); return; }
     const u = e.target.closest("[data-use]");
@@ -232,11 +291,36 @@ spFiltersSync();
   });
   main.addEventListener("change", e => {
     const t = e.target, c = rosterCur(); if (!c) return;
-    if (t.dataset.left) resSet(c, t.dataset.left, parseInt(t.value) || 0);
+    if(t.dataset.fungalHp){
+      const zombie=(c.fungalZombies||[]).find(row=>row.id===t.dataset.fungalHp);
+      if(zombie&&fungalZombiePresent(zombie)&&Number.isFinite(t.valueAsNumber)){
+        zombie.hp=clamp(Math.trunc(t.valueAsNumber),0,zombie.max);pcPersist();
+      }
+      renderRosterMain();return;
+    }
+    if(t.hasAttribute("data-subclass-print")){
+      if(setSubclassPrinting(c,t.dataset.subclassPrint,t.value)){pcPersist();renderRosterMain();}
+      return;
+    }
+    if(t.dataset.companionHp){companionSetHP(c,t.dataset.companionHp,t.value);pcRecompute(c);pcPersist();renderRosterMain();return;}
+    if(t.hasAttribute("data-companion-variant")){
+      const variant=t.value,previous=c.beastCompanionVariant||"natural";
+      if(!["natural","primal"].includes(variant)||variant===previous)return;
+      const apply=()=>{c.beastCompanionVariant=variant;pcRecompute(c);pcPersist();renderRosterMain();};
+      if(c.subCompanions?.[previous==="primal"?"primal14":"beast14"]){
+        t.value=previous;
+        confirmBox("Switch companion rules?","This releases the companion recorded under your current rules.","Switch rules").then(confirmed=>{if(confirmed)apply();});
+      }else apply();
+      return;
+    }
+    if(t.hasAttribute("data-wizard-book-add")){if(t.value&&wizardBookAdd(c,t.value)){syncGrantedSpells(c);pcPersist();renderRosterMain();}}
+    else if (t.dataset.left) resSet(c, t.dataset.left, parseInt(t.value) || 0);
     else if (t.dataset.fstyle !== undefined) { c.fightStyles = c.fightStyles || []; c.fightStyles[+t.dataset.fstyle] = t.value; pcRecompute(c); pcPersist(); renderRosterMain(); }
     else if (t.name === "rollMode") { ROLL.mode = t.value; }
     else if (t.dataset.varenc !== undefined) { c.varEnc = t.checked; pcRecompute(c); pcPersist(); renderRosterMain(); }
-    else if (t.dataset.choice) { if (t.value) { const k = t.dataset.choice; c.choices = { ...(c.choices || {}) }; c.choices[k] = [...choiceOf(c, k), t.value]; syncGrantedSpells(c); pcRecompute(c); pcPersist(); renderRosterMain(); const f = $(`[data-choice="${CSS.escape(k)}"]`, main); if (f) f.focus(); } }
+    else if (t.dataset.bgchoice) { if(t.value&&backgroundSelectionChange(c,t.dataset.bgchoice,t.value)){pcPersist();renderRosterMain();} }
+    else if(t.hasAttribute("data-high-elf-cantrip")){if(t.value&&highElfCantripChange(c,t.value)){pcPersist();renderRosterMain();}}
+    else if (t.dataset.choice) { if (t.value) { const k = t.dataset.choice,S=CHOICES[k]; if(k===REVISED_HIGH_ELF_CANTRIP||!S||!S.opts(c).some(([id])=>id===t.value)||choiceOf(c,k).includes(t.value)||choiceOf(c,k).filter(id=>S.opts(c).some(([x])=>x===id)).length>=S.n(c))return; c.choices = { ...(c.choices || {}) }; c.choices[k] = [...choiceOf(c, k), t.value]; syncGrantedSpells(c); pcRecompute(c); pcPersist(); renderRosterMain(); const f = $(`[data-choice="${CSS.escape(k)}"]`, main); if (f) f.focus(); } }
     else if (t.dataset.mi) { if (t.value) { const k = "Feat: Magic Initiate"; c.choices = { ...(c.choices || {}) }; let L = choiceOf(c, k); if (t.dataset.mi === "list") L = [`list:${t.value}`]; else L = [...L, `${t.dataset.mi}:${t.value}`]; c.choices[k] = [...new Set(L)]; syncGrantedSpells(c); pcRecompute(c); pcPersist(); renderRosterMain(); } }
     else if (t.dataset.concset !== undefined) { const v = t.value.trim().slice(0, 60); if (v) { concStart(c, v); pcPersist(); renderRosterMain(); } }
     else if (t.dataset.rf === "hpCur" || t.hasAttribute("data-quick-hp")) {
@@ -250,6 +334,7 @@ spFiltersSync();
       else if (prev !== null && now > prev) { const n = pcHealed(c, prev === 0); if (n.length) toast(n.join(". ") + "."); }
       pcRecompute(c); pcPersist(); renderRosterMain();
     }
+    else if (t.dataset.rf==="hpTemp") { pcRecompute(c);pcPersist();renderRosterMain(); }
     else if (t.dataset.formhp) { c.formHp = Math.max(0, parseInt(t.value) || 0); pcPersist(); renderRosterMain(); }
     else if (t.dataset.actpersist) { c.active = c.active || {}; if (t.value) c.active[t.dataset.actpersist] = t.value; else delete c.active[t.dataset.actpersist]; pcRecompute(c); pcPersist(); renderRosterMain(); }
     else if (t.dataset.fx) { c.fx = c.fx || {}; c.fx[t.dataset.fx] = t.checked; pcACApply(c); pcPersist(); renderRosterMain(); }
@@ -261,7 +346,7 @@ spFiltersSync();
     if (t.dataset.rf) {
       const k = t.dataset.rf, v = t.value;
       if (k.startsWith("hd.")) { c.hookDetail = c.hookDetail || { story: "", questions: [], use: "" }; const f = k.slice(3); c.hookDetail[f] = f === "questions" ? v.split("\n").map(x => x.trim()).filter(Boolean) : v; }
-      else if (["hp", "hpCur", "hpTemp", "ac", "speed", "xp"].includes(k)) { c[k] = v === "" ? "" : +v; if (k === "ac") { c.acManual = v !== "" && +v !== c.acAuto; const l = $("#rcACLine"); if (l) l.innerHTML = rcACLine(c); } if (k === "speed") { c.speedManual = v !== "" && +v !== c.speedAuto; const l = $("#rcSpeedLine"); if (l) l.innerHTML = rcSpeedLine(c); } }
+      else if (["hp", "hpCur", "hpTemp", "ac", "speed", "xp"].includes(k)) { c[k] = v === "" ? "" : +v; if(k==="hpTemp"&&!+v)endSymbioticEntity(c); if (k === "ac") { c.acManual = v !== "" && +v !== c.acAuto; const l = $("#rcACLine"); if (l) l.innerHTML = rcACLine(c); } if (k === "speed") { c.speedManual = v !== "" && +v !== c.speedAuto; const l = $("#rcSpeedLine"); if (l) l.innerHTML = rcSpeedLine(c); } }
       else c[k] = v;
       const vital = $(`[data-quick-vital="${CSS.escape(k)}"]`, main);
       if (vital) vital.textContent = c[k] || 0;
@@ -276,6 +361,8 @@ spFiltersSync();
     if (t.dataset.rcoin) { c.coins[t.dataset.rcoin] = Math.max(0, +t.value || 0); pcACApply(c); const sl = $("#rcSpeedLine"); if (sl) sl.innerHTML = rcSpeedLine(c); const sp = $('[data-rf="speed"]', main); if (sp && !c.speedManual) sp.value = c.speed; pcPersist(); return; }
     if (t.dataset.rinv) {
       const i = c.inv.find(x => x.id === t.dataset.iid); if (!i) return; const f = t.dataset.rinv;
+      if((i.artificerOrigin||i.artificerInfusion)&&["qty","n"].includes(f)){t.value=i[f];toast("Artificer-created and infused items are individual objects. Use the class feature to change them.");return;}
+      if(f==="attuned"&&t.checked&&!i.attuned&&artificerAttunedCount(c)>=artificerAttunementLimit(c)){t.checked=false;toast("Attunement limit reached.");return;}
       i[f] = f === "attuned" || f === "eq" ? t.checked : f === "qty" ? Math.max(0, +t.value || 0) : t.value;
       c.attacks = pcAttacks(c); pcACApply(c); pcPersist();
       if (f === "attuned" || f === "eq") renderRosterMain();
@@ -326,7 +413,7 @@ spFiltersSync();
     if (dr) { const k = dr.dataset.draft; if (k === "forge") forgeOpen(); else if (k === "keep") keepPC(); else if (k === "reroll" && window.pcReroll) pcReroll(); else if (k === "discard") discardPC(); return; }
     const c = rosterCur(); if (!c) return; const t = e.target;
     const sk = t.closest("[data-rsk]");
-    if (sk) { const s = c.skills[+sk.dataset.rsk]; if (s.x) { s.x = false; s.p = false; } else if (s.p) s.x = true; else s.p = true; pcRecompute(c); pcPersist(); renderRosterMain(); return; }
+    if (sk) { const s = c.skills[+sk.dataset.rsk]; if(s.primalGranted||s.scholarGranted||s.loreGranted||s.orderGranted||s.envoyGranted||s.envoyExpert||s.peaceGranted||s.glamourGranted||s.archerGranted||s.xgeTrainingGranted){toast("Change the feature choice in Features instead.");return;} if (s.x) { s.x = false; s.p = false; } else if (s.p) s.x = true; else s.p = true; pcRecompute(c); pcPersist(); renderRosterMain(); return; }
     const a = t.closest("[data-ra]");
     if (a) {
       const k = a.dataset.ra;

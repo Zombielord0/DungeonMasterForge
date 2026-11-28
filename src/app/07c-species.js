@@ -1,7 +1,36 @@
 /* 07c-species.js: Species and races by rules edition (PC_RACES, raceInfo), their defences, and species features that arrive at later levels. */
 
 /* ---- races / species by rules edition, with subraces and lineages ---- */
-const DRAGON_SUBS = () => Object.fromEntries(Object.entries(DRAGON_ANCESTRY).map(([k, A]) => [k, { label: `${k} Dragonborn`, d: `${A.type[0].toUpperCase() + A.type.slice(1)} breath (${A.shape}, ${A.save} save) and ${A.type} resistance.` }]));
+const REVISED_BREATH_SHAPES = { cone: "15 ft cone", line: "30 ft line, 5 ft wide" };
+const DRAGON_SUBS = ed => Object.fromEntries(Object.entries(DRAGON_ANCESTRY).map(([k, A]) => [k, {
+  label: `${k} Dragonborn`, d: `${cap1(A.type)} breath (${ed === "2024" ? "15 ft cone or 30 ft line, DEX save" : `${A.shape}, ${A.save} save`}) and ${A.type} resistance.`,
+}]));
+function dragonbornBreath(ed, ancestry, level, prof, con) {
+  const dragon=Object.hasOwn(DRAGON_ANCESTRY,ancestry)&&DRAGON_ANCESTRY[ancestry];
+  if(!dragon)return null;
+  const revised=ed==="2024";
+  const dice=revised?`${1+(level>=5)+(level>=11)+(level>=17)}d10`:`${2+(level>=6)+(level>=11)+(level>=16)}d6`;
+  const save=revised?"DEX":dragon.save, dc=8+prof+con;
+  const shape=revised?"15 ft cone or 30 ft line (5 ft wide)":dragon.shape;
+  const when=revised?"Replaces an attack":"Action", max=revised?prof:1, recharge=revised?"long":"short";
+  return {dice,save,dc,shape,when,max,recharge,type:dragon.type,
+    text:`${shape} · ${dice} ${dragon.type} damage · ${save} save DC ${dc} for half`};
+}
+const characterDragonBreath=c=>c.race==="Dragonborn"?dragonbornBreath(edOf(c),c.ancestry||c.sub,totalLv(c),c.prof,mod(+c.scores?.con||10)):null;
+function dragonbornBreathSummary(ed,ancestry,level,prof,con){
+  const breath=dragonbornBreath(ed,ancestry,level,prof,con);
+  return `Breath Weapon (${ancestry.toLowerCase()} dragon): ${breath.when.toLowerCase()} · ${breath.text} · ${ed==="2024"?`${breath.max} uses per long rest`:"once per short or long rest"}`;
+}
+function syncDragonbornBreath(c){
+  if(c.race!=="Dragonborn")return;
+  const valid=value=>Object.hasOwn(DRAGON_ANCESTRY,value);
+  const ancestry=[c.sub,c.ancestry].find(valid)||makeRng("anc",c.seed||c.id).pick(Object.keys(DRAGON_ANCESTRY));
+  c.sub=c.ancestry=ancestry;
+  const text=dragonbornBreathSummary(edOf(c),ancestry,totalLv(c),c.prof,mod(+c.scores?.con||10));
+  const extras=Array.isArray(c.extras)?c.extras:[],index=extras.findIndex(line=>typeof line==="string"&&line.startsWith("Breath Weapon"));
+  if(index<0)c.extras=[...extras,text];
+  else if(extras[index]!==text)extras[index]=text;
+}
 const PC_RACES = {
   "2014": {
     Dwarf: { ...RACE_DATA.Dwarf, term: "Subrace", subs: {
@@ -17,7 +46,7 @@ const PC_RACES = {
     Human: { ...RACE_DATA.Human, term: "Variant", subs: {
       "Standard Human": { label: "Human", d: "+1 to every ability score." },
       "Variant Human": { asiOverride: {}, plus1: 2, plus1Any: true, extraSkills: 1, traitsOverride: ["Variant: Bonus Skill", "Variant: Feat", "Extra language"], d: "+1 to two scores, one extra skill and a feat at level 1." } } },
-    Dragonborn: { ...RACE_DATA.Dragonborn, term: "Draconic ancestry", subs: DRAGON_SUBS() },
+    Dragonborn: { ...RACE_DATA.Dragonborn, term: "Draconic ancestry", subs: DRAGON_SUBS("2014") },
     Gnome: { ...RACE_DATA.Gnome, term: "Subrace", subs: {
       "Forest Gnome": { asi: { dex: 1 }, traits: ["Natural Illusionist", "Speak with Small Beasts"], d: "+1 DEX. Minor Illusion and a knack for talking to small animals." },
       "Rock Gnome": { asi: { con: 1 }, traits: ["Artificer's Lore", "Tinker"], d: "+1 CON. Inventors: expert lore on magic items and tiny clockwork gadgets." } } },
@@ -28,9 +57,9 @@ const PC_RACES = {
   // 2024: ability score increases come from the background, so species carry none
   "2024": {
     Aasimar: { asi: {}, speed: 30, traits: ["Celestial Resistance", "Darkvision 60 ft", "Healing Hands", "Light Bearer", "Celestial Revelation"] },
-    Dragonborn: { asi: {}, speed: 30, term: "Draconic ancestry", traits: ["Draconic Ancestry", "Breath Weapon", "Damage Resistance", "Darkvision 60 ft", "Draconic Flight"], subs: DRAGON_SUBS() },
+    Dragonborn: { asi: {}, speed: 30, term: "Draconic ancestry", traits: ["Draconic Ancestry", "Breath Weapon", "Damage Resistance", "Darkvision 60 ft", "Draconic Flight"], subs: DRAGON_SUBS("2024") },
     Dwarf: { asi: {}, speed: 30, hpLv: 1, traits: ["Darkvision 120 ft", "Dwarven Resilience", "Dwarven Toughness", "Stonecunning"] },
-    Elf: { asi: {}, speed: 30, skills: ["Perception"], term: "Elven lineage", traits: ["Darkvision 60 ft", "Fey Ancestry", "Keen Senses", "Trance"], subs: {
+    Elf: { asi: {}, speed: 30, skillChoices: ["Perception", "Insight", "Survival"], term: "Elven lineage", traits: ["Darkvision 60 ft", "Fey Ancestry", "Keen Senses", "Trance"], subs: {
       "Drow": { label: "Drow", replace: { "Darkvision 60 ft": "Darkvision 120 ft" }, traits: ["Drow Lineage"], d: "Darkvision 120 ft; Dancing Lights, then Faerie Fire and Darkness." },
       "High Elf": { traits: ["High Elf Lineage"], d: "Prestidigitation, then Detect Magic and Misty Step." },
       "Wood Elf": { speed: 35, traits: ["Wood Elf Lineage"], d: "Speed 35 ft; Druidcraft, then Longstrider and Pass without Trace." } } },
@@ -126,7 +155,7 @@ const raceList = ed => { const R = PC_RACES[ed] || PC_RACES["2014"]; return Obje
 function raceInfo(ed, race, sub) {
   const B = (PC_RACES[ed] || PC_RACES["2014"])[race] || RACE_DATA[race] || { asi: {}, speed: 30, traits: [] };
   const S = (B.subs && sub && B.subs[sub]) || null;
-  const R = { asi: { ...B.asi }, plus1: B.plus1 || 0, plus1Any: false, speed: B.speed, skills: [...(B.skills || [])], extraSkills: B.extraSkills || 0, hpLv: B.hpLv || 0, traits: [...(B.traits || [])] };
+  const R = { asi: { ...B.asi }, plus1: B.plus1 || 0, plus1Any: false, speed: B.speed, skills: [...(B.skills || [])], extraSkills: B.extraSkills || 0, skillChoices: [...(B.skillChoices || [])], hpLv: B.hpLv || 0, traits: [...(B.traits || [])] };
   if (S) {
     if (S.asiOverride) R.asi = { ...S.asiOverride };
     Object.entries(S.asi || {}).forEach(([a, v]) => R.asi[a] = (R.asi[a] || 0) + v);
@@ -143,6 +172,12 @@ function raceInfo(ed, race, sub) {
   }
   return R;
 }
+// SRD 5.2.1 p.84: Keen Senses is one of Insight, Perception or Survival.
+function speciesSkillChoice(R, locked, requested, existing = []) {
+  const choices = (R.skillChoices || []).filter(s => !locked.has(s));
+  if (choices.includes(requested)) return requested;
+  return choices.find(s => existing.includes(s)) || choices[0] || "";
+}
 function subLabel(ed, race, sub) {
   const B = (PC_RACES[ed] || PC_RACES["2014"])[race], S = B && B.subs && sub && B.subs[sub];
   if (!S) return race;
@@ -150,8 +185,71 @@ function subLabel(ed, race, sub) {
 }
 const raceLabel = c => subLabel(edOf(c), c.race, c.sub || (c.race === "Dragonborn" ? c.ancestry : null));
 const FEAT_DESC_2024 = {
-  Stonecunning: "Bonus action: tremorsense 60 ft for 10 minutes while on stone, proficiency-bonus times per long rest.",
-  "Keen Senses": "Proficiency in Insight, Perception or Survival (Perception chosen; change it on the sheet).",
+  "Primal Knowledge":"Gain one skill proficiency from the Barbarian class list. While raging, you may use Strength for Acrobatics, Intimidation, Perception, Stealth, and Survival checks (resolve substituted ability checks manually).",
+  "Instinctive Pounce":"As part of the Bonus Action to enter Rage, move up to half your Speed.",
+  "Brutal Strike":"When using Reckless Attack, you can give up its Advantage on one Strength-based attack on your turn, provided the roll does not have Disadvantage. On a hit, deal 1d10 extra damage of the attack’s type and choose Forceful Blow (push 15 feet and optionally move up to half Speed toward the target without provoking Opportunity Attacks) or Hamstring Blow (reduce its Speed by 15 feet until your next turn starts).",
+  "Improved Brutal Strike":"At level 13 add Staggering Blow (Disadvantage on the next saving throw and no Opportunity Attacks until your next turn starts) or Sundering Blow (the next attack by another creature against the target before your next turn starts gains +5). At level 17 the extra damage becomes 2d10 and you may choose two different effects.",
+  "Persistent Rage":"Once per Long Rest when you roll Initiative, regain all expended Rage uses. Rage lasts its full 10 minutes without extending it, ending early if you fall Unconscious or don Heavy armor.",
+  "Monk's Focus":"Focus Points equal your Monk level; regain all after a Short or Long Rest. Flurry of Blows costs 1 point for two Unarmed Strikes as a Bonus Action. Patient Defense gives Disengage as a Bonus Action, or spend 1 point for Disengage and Dodge. Step of the Wind gives Dash as a Bonus Action, or spend 1 point for Dash and Disengage and doubled jump distance for the turn.",
+  "Uncanny Metabolism":"When rolling Initiative, you may regain all spent Focus Points and heal HP equal to your Monk level plus one Martial Arts die. Once per Long Rest.",
+  "Deflect Attacks":"Reaction when an attack hits you and deals Bludgeoning, Piercing, or Slashing damage: reduce total damage by 1d10 + Dexterity modifier + Monk level. If reduced to zero, spend 1 Focus Point to redirect. One visible creature within 5 feet (melee) or 60 feet (ranged, not behind Total Cover) makes a Dexterity save against your Focus DC or takes damage equal to two Martial Arts dice + Dexterity modifier of the original damage type.",
+  "Stunning Strike":"Once per turn when hitting with a Monk weapon or Unarmed Strike, spend 1 Focus Point. Target makes a Constitution save against your Focus DC. Failure: Stunned until your next turn starts. Success: its Speed is halved until then and the next attack against it before then has Advantage.",
+  "Empowered Strikes":"Choose Force damage or the normal damage type when an Unarmed Strike deals damage.",
+  "Acrobatic Movement":"Without armor or a Shield, move along vertical surfaces and across liquids on your turn without falling during the movement.",
+  "Heightened Focus":"Flurry of Blows makes three strikes. Spending a point on Patient Defense also grants temporary HP equal to two Martial Arts dice. Spending a point on Step of the Wind lets you move a willing Large or smaller creature within 5 feet with you until your turn ends, without it provoking Opportunity Attacks.",
+  "Self-Restoration":"At the end of each of your turns, end one Charmed, Frightened, or Poisoned condition on yourself. Forgoing food and drink does not cause Exhaustion.",
+  "Deflect Energy":"Deflect Attacks can reduce damage of any type.",
+  "Disciplined Survivor":"Proficiency in all saving throws; after failing a save, spend 1 Focus Point to reroll it and use the new roll.",
+  "Perfect Focus":"When rolling Initiative with fewer than four Focus Points, regain spent points until you have four.",
+  "Superior Defense":"At the start of your turn spend 3 Focus Points for Resistance to all damage except Force, for 1 minute or until Incapacitated.",
+  "Divine Order":"Choose Protector (Martial weapon proficiency and Heavy armor training) or Thaumaturge (one extra Cleric cantrip and a bonus to Intelligence checks using Arcana or Religion equal to your Wisdom modifier, minimum +1).",
+  "Primal Order":"Choose Warden (Martial weapon proficiency and Medium armor training) or Magician (one extra Druid cantrip and a bonus to Intelligence checks using Arcana or Nature equal to your Wisdom modifier, minimum +1).",
+  "Sear Undead":"When you use Turn Undead, roll a number of d8s equal to your Wisdom modifier (minimum one). Undead that fail the save take the total as Radiant damage without ending the turning effect.",
+  "Blessed Strikes":"Choose Divine Strike or Potent Spellcasting, replacing any equivalent feature from an older subclass. Divine Strike adds 1d8 Necrotic or Radiant damage once on each of your turns when a weapon attack hits. Potent Spellcasting adds your Wisdom modifier to the damage dealt by Cleric cantrips.",
+  "Improved Blessed Strikes":"Divine Strike increases to 2d8. With Potent Spellcasting, after dealing damage with a Cleric cantrip you may grant yourself or a creature within 60 feet temporary HP equal to twice your Wisdom modifier.",
+  "Divine Intervention":"As a Magic action, cast a Cleric spell of level 5 or lower that does not require a Reaction, without a spell slot or Material components. Once per Long Rest.",
+  "Greater Divine Intervention":"You can choose Wish when using Divine Intervention. After casting Wish this way, you cannot use Divine Intervention again until you finish 2d4 Long Rests.",
+  "Wild Companion":"As a Magic action, expend a spell slot or a Wild Shape use to cast Find Familiar without Material components. The familiar is Fey and disappears when you finish a Long Rest.",
+  "Wild Resurgence":"Once on each of your turns when no Wild Shape uses remain, expend a spell slot to regain one use (no action). Alternatively, expend a Wild Shape use to gain one level 1 spell slot (no action, once per Long Rest).",
+  "Elemental Fury":"Choose Potent Spellcasting, adding Wisdom modifier to Druid cantrip damage, or Primal Strike, dealing an extra 1d8 Cold, Fire, Lightning or Thunder damage once on each of your turns when you hit with a weapon or a Beast form attack in Wild Shape.",
+  "Improved Elemental Fury":"Potent Spellcasting increases the range of a Druid cantrip with a range of at least 10 feet by 300 feet. Primal Strike increases its extra damage to 2d8.",
+  "Innate Sorcery":"As a Bonus Action, activate for 1 minute. Your Sorcerer spell save DC increases by 1 and you have Advantage on Sorcerer spell attack rolls. Two uses per Long Rest; end the sheet toggle when the duration expires.",
+  "Sorcerous Restoration":"When finishing a Short Rest, you can regain expended Sorcery Points up to half your Sorcerer level, rounded down. Once per Long Rest.",
+  "Sorcery Incarnate":"With no Innate Sorcery uses left, you can activate it for 2 Sorcery Points. While it is active, use up to two Metamagic options per spell.",
+  "Arcane Apotheosis":"While Innate Sorcery is active, you can use one Metamagic option on each of your turns without spending Sorcery Points.",
+  "Magical Cunning":"Perform a one-minute rite to regain expended Pact Magic slots, up to half your maximum rounded up. Once per Long Rest.",
+  "Contact Patron":"Contact Other Plane is always prepared. Once per Long Rest, cast it without a slot to contact your patron and automatically succeed on its saving throw.",
+  "Eldritch Master":"Magical Cunning restores all expended Pact Magic slots instead of half the maximum.",
+  "Ritual Adept":"Cast a Wizard spell as a Ritual if it has the Ritual tag and is in your spellbook. You need not have it prepared, but must read from the book.",
+  "Scholar":"Choose a skill you are proficient in from Arcana, History, Investigation, Medicine, Nature, or Religion and gain Expertise in it.",
+  "Memorize Spell":"After a Short Rest, study your spellbook and replace one prepared level 1+ Wizard spell with another level 1+ Wizard spell from your spellbook.",
+  Stonecunning: "Bonus Action: gain 60-foot tremorsense for 10 minutes, usable only while touching natural or worked stone. Uses equal your proficiency bonus and recover on a long rest.",
+  "Keen Senses": "Choose proficiency in Insight, Perception, or Survival.",
+  "Primal Champion": "Increase Strength and Constitution by 4 each, to a maximum of 25.",
+  "Body and Mind": "Increase Dexterity and Wisdom by 4 each, to a maximum of 25.",
+  "Weapon Mastery": "Choose eligible proficient weapon types per class. Fighter: 3 initially, 4 at level 4, 5 at level 10, 6 at level 16. Barbarian: melee weapons only, 2 initially, 3 at level 4, 4 at level 10. Paladin, Ranger and Rogue: 2. Change choices after a Long Rest as allowed by the class. The attack displays the selected mastery; adjudicate its target-specific effects manually.",
+  "Action Surge": "On your turn, take one extra action other than the Magic action. Regain the use on a Short or Long Rest; at Fighter level 17 you have two uses per rest, but can use it only once per turn.",
+  "Tactical Mind": "After failing an ability check, roll 1d10 and add it to the check instead of healing with Second Wind. Spend a use of Second Wind only if the new total succeeds.",
+  "Tactical Shift": "When you activate Second Wind with a Bonus Action, you can move up to half your Speed without provoking Opportunity Attacks.",
+  "Tactical Master": "For an attack with a weapon whose mastery you can use, substitute Push, Sap, or Slow for that weapon’s mastery property.",
+  "Studied Attacks": "After missing a creature with an attack roll, you have Advantage on the next attack roll against that creature before your next turn ends.",
+  "Paladin's Smite": "Divine Smite is always prepared. Once per Long Rest you can cast it without spending a spell slot. Cast through the spell sheet after a qualifying hit, including the spell’s Bonus Action requirement.",
+  "Faithful Steed": "Find Steed is always prepared. Once per Long Rest you may cast it without spending a spell slot.",
+  "Abjure Foes": "As a Magic action, spend one use of Paladin Channel Divinity. Present your Holy Symbol or weapon and choose visible creatures within 60 feet, up to your Charisma modifier (minimum one). Each makes a Wisdom save against your Paladin spell save DC or is Frightened for 1 minute or until damaged. While Frightened this way, each can do only one of moving, taking an action, or taking a Bonus Action on its turn.",
+  "Radiant Strikes": "When you hit with an attack roll using a melee weapon or Unarmed Strike, the target takes an additional 1d8 Radiant damage.",
+  "Restoring Touch": "When using Lay on Hands, spend 5 HP from the healing pool per condition removed to end Blinded, Charmed, Deafened, Frightened, Paralyzed, or Stunned on the touched creature. Those points do not heal HP.",
+  "Aura Expansion": "Aura of Protection expands to a 30-foot Emanation.",
+  "Deft Explorer": "Choose one skill you are proficient in but lack Expertise in; gain Expertise in it. Learn two languages of your choice from the character-creation language tables. The generator selects an eligible skill; language choices are recorded manually.",
+  "Roving": "Your Speed increases by 10 feet when not wearing Heavy armor. Your Climb and Swim Speeds equal your Speed.",
+  "Tireless": "As a Magic action, gain temporary HP equal to 1d8 + your Wisdom modifier (minimum 1 HP). Uses equal your Wisdom modifier, minimum one, regained on a Long Rest. Each completed Short Rest also reduces your Exhaustion by one level if any.",
+  "Relentless Hunter": "Damage cannot break your Concentration on Hunter’s Mark. Other causes of losing Concentration still apply.",
+  "Nature's Veil": "As a Bonus Action, gain the Invisible condition until the end of your next turn. Uses equal your Wisdom modifier (minimum one), regained on a Long Rest. Track the duration manually.",
+  "Precise Hunter": "You have Advantage on attack rolls against the creature currently marked by your Hunter’s Mark.",
+  "Feral Senses": "You gain Blindsight out to 30 feet.",
+  "Foe Slayer": "Your Hunter’s Mark damage die becomes a d10 instead of a d6.",
+
+  "Words of Creation": "Power Word Heal and Power Word Kill are always prepared. When you cast either spell, you may also target a second creature within 10 feet of the first target.",
+  "Reliable Talent": "On an ability check using a skill or tool proficiency, you can treat a d20 result of 9 or lower as 10. Proficient skill rolls on the sheet apply this minimum; resolve tool checks manually.",
   "Infernal Legacy": "Fire resistance; Fire Bolt cantrip, Hellish Rebuke at 3rd level, Darkness at 5th.",
   Trance: "You don't need sleep; a 4-hour trance gives you a long rest."
 };
@@ -171,7 +269,7 @@ Object.assign(FEAT_DESC, {
   "Variant: Bonus Skill": "Proficiency in one skill of your choice (included above).", "Variant: Feat": "One feat of your choice at level 1 — note it under Features on the sheet.",
   "Celestial Resistance": "Resistance to necrotic and radiant damage.", "Healing Hands": "Magic action: heal proficiency-bonus d4s, once per long rest.",
   "Light Bearer": "Light cantrip, cast with CHA.", "Celestial Revelation": "From level 3, transform for a minute as a bonus action: spectral wings, searing radiance or a necrotic shroud.",
-  "Draconic Flight": "From level 5, sprout spectral wings for 10 minutes once per long rest, flying at your walking speed.",
+  "Draconic Flight": "At character level 5, use a bonus action to sprout spectral wings and gain a Fly Speed equal to your Speed. The wings last 10 minutes, until you dismiss them with no action, or until you are incapacitated. Once per long rest.",
   "Darkvision 120 ft": "See 120 ft in dim light as if bright, and in darkness in shades of grey.",
   "Drow Lineage": "Darkvision 120 ft; Dancing Lights cantrip, Faerie Fire at 3rd level, Darkness at 5th.",
   "High Elf Lineage": "Prestidigitation (swap for another wizard cantrip each long rest); Detect Magic at 3rd, Misty Step at 5th.",
@@ -181,14 +279,14 @@ Object.assign(FEAT_DESC, {
   "Rock Gnome Lineage": "Mending and Prestidigitation cantrips; build tiny clockwork devices.",
   "Giant Ancestry": "A boon from your giant heritage (listed below), usable proficiency-bonus times per long rest.",
   "Cloud's Jaunt": "Bonus action: teleport up to 30 ft to a space you can see.", "Fire's Burn": "When you hit with an attack, deal an extra 1d10 fire damage.",
-  "Frost's Chill": "When you hit, deal an extra 1d6 cold damage and cut the target's speed by 10 ft.", "Hill's Tumble": "When you hit a Large or smaller creature, knock it prone.",
+  "Frost's Chill": "After a damaging attack hit, add 1d6 cold damage and reduce the target’s speed by 10 ft until your next turn begins.", "Hill's Tumble": "After a damaging attack hit against a Large or smaller creature, you can make it prone.",
   "Stone's Endurance": "Reaction when damaged: reduce the damage by 1d12 + CON.", "Storm's Thunder": "Reaction when a creature within 60 ft damages you: deal it 1d8 thunder damage.",
-  "Large Form": "From level 5, become Large for 10 minutes once per long rest: advantage on STR checks, +10 ft speed.",
+  "Large Form": "At character level 5, use a bonus action to become Large if there is room. Gain advantage on Strength checks and increase your Speed by 10 feet. The form lasts up to 10 minutes and can be ended without an action. Once per long rest.",
   "Powerful Build": "Advantage to end being grappled; count as one size larger for carrying capacity.",
   Luck: "When you roll a 1 on a d20 Test, reroll it and use the new roll.",
   Resourceful: "Gain Heroic Inspiration whenever you finish a long rest.", Skillful: "Proficiency in one skill of your choice (included above).",
   Versatile: "Gain an Origin feat of your choice, such as Alert, Skilled or Tough.",
-  "Adrenaline Rush": "Bonus action: Dash and gain temporary HP equal to your proficiency bonus, proficiency-bonus times per long rest.",
+  "Adrenaline Rush": "Dash as a Bonus Action and gain temporary HP equal to your proficiency bonus. Uses equal your proficiency bonus and recover on either a short or long rest.",
   "Otherworldly Presence": "Thaumaturgy cantrip.",
   "Abyssal Legacy": "Poison resistance; Poison Spray cantrip, Ray of Sickness at 3rd level, Hold Person at 5th.",
   "Chthonic Legacy": "Necrotic resistance; Chill Touch cantrip, False Life at 3rd level, Ray of Enfeeblement at 5th."
@@ -333,7 +431,7 @@ function chosenSubclassFeature(f, c, feature) {
   const cls = feature?.mc || c?.cls;
   const subclass = feature?.mcsub || c?.subclass;
   if (!subclass || (feature && !feature.bookSub && !feature.mcsub && !feature.sub)) return null;
-  return subclassEntry(edOf(c), cls, subclass)?.features?.find(x => x.n === f && (!feature || +x.l === +feature.l));
+  return subclassFeatureRows(edOf(c),cls,subclass,true,characterSubclassPrinting(c,cls)).find(x=>x.n===f&&(!feature||+x.l===+feature.l));
 }
 function featDesc(f, c, feature) {
   const ed = edOf(c);
@@ -343,7 +441,7 @@ function featDesc(f, c, feature) {
   const classRow = classData(ed, cls)?.hbx?.features?.find(x => x.n === f);
   if (classRow?.d) return classRow.d;
   if (f === "Subclass: not chosen yet") return "Pick your subclass with the Choose subclass button on this sheet.";
-  if (f.startsWith("Subclass: ")) return subclassDesc(f.slice(10), ed, cls);
+  if (f.startsWith("Subclass: ")) return subclassDesc(f.slice(10),ed,cls,characterSubclassPrinting(c,cls));
   if (f.startsWith("Background: ")) return bgSummary(edOf(c), f.slice(12));
   { const bf = Object.values(BG_DATA["2014"]).find(B => B.feature[0] === f); if (bf) return `${bf.feature[1]} (From your background.)`; }
   if (f.startsWith("Ability Score Improvement: ")) return "Your choice at this level — already applied to the scores above.";
@@ -353,7 +451,7 @@ function featDesc(f, c, feature) {
   const A = c && c.ancestry && DRAGON_ANCESTRY[c.ancestry];
   if (f === "Draconic Ancestry") return A ? `${c.ancestry} dragon: your breath weapon and resistance are ${A.type}.` : "Your dragon color sets your breath weapon and resistance.";
   if (f === "Breath Weapon") return edOf(c) === "2024" ? (A ? `Replace one attack: exhale ${A.type} in a 15 ft cone or 30 ft line (DEX save) — damage and DC under Attacks.` : "Replace one attack with a cone or line of energy; damage and DC under Attacks.") : A ? `Exhale ${A.type} in a ${A.shape} (${A.save} save) — damage and DC under Attacks.` : "Exhale destructive energy; damage and DC under Attacks.";
-  const sd = subFeatDesc(f, c); if (sd) return sd;
+  const sd = subFeatDesc(f, c, feature); if (sd) return sd;
   const td = hbTraitDesc(f, c); if (td) return td;
   const lineage = c && PC_RACES[edOf(c)]?.[c.race]?.subs?.[c.sub || c.ancestry];
   if (lineage?.src && lineage.traits.includes(f)) return lineage.d;
@@ -365,7 +463,7 @@ function featDesc(f, c, feature) {
 /* The Features & Traits list, shared by both sheets (the Characters tab and My Characters): each feature with where it
    comes from (subclass, multiclass, species, level), then the species traits. My Characters passes edit (features can
    be opened to make choices) and leaves out "Feat: …" entries, which it lists in its own Feats section. */
-const featTagOf = (c, f) => { const l = +f.l || 1; /* a number, never markup: sheets can come from another player */ return (f.sub || f.bookSub) ? `${esc(c.subclass)}, lv ${l}` : f.mcsub ? `${esc(f.mcsub)}, ${esc(f.mc)} lv ${l}` : f.mc ? `${esc(f.mc)} lv ${l}` : (f.race ? esc(raceLabel(c)) + ", " : "") + "lv " + l; };
+const featTagOf = (c, f) => { const l = +f.l || 1; /* a number, never markup: sheets can come from another player */ return f.mcsub ? `${esc(f.mcsub)}, ${esc(f.mc)} lv ${l}` : (f.sub || f.bookSub) ? `${esc(c.subclass)}, lv ${l}` : f.mc ? `${esc(f.mc)} lv ${l}` : (f.race ? esc(raceLabel(c)) + ", " : "") + "lv " + l; };
 function featuresListHTML(c, edit) {
   const feats = (c.feats || []).filter(f => !edit || !String(f.f).startsWith("Feat: "));
   return `<ul class="plain">${feats.map(f => featLi(f.f, featTagOf(c, f), c, edit || undefined, f)).join("")}${(c.traits || []).map(t => featLi(t, esc(raceLabel(c)), c, edit)).join("")}</ul>`;

@@ -68,6 +68,58 @@ const server = http.createServer((req, res) => {
   // the level-up window at 3 says what spellcasting the subclass brings
   const gains = await p.evaluate(() => { const c = pcEnsure(generateCharacter({ seed: "G3", cls: "Fighter", level: 2, ed: "2024" })); LV.c = c; LV.pick = "Eldritch Knight"; const g = lvGains(c, 3).join(" | "); LV.c = null; LV.pick = ""; return g; });
   check("levelling to 3 as an Eldritch Knight lists the new spellcasting", /Spellcasting/.test(gains) && /slot/i.test(gains) && /3 spells/.test(gains), gains);
+  const open=await p.evaluate(()=>{
+    const make=(cls,subclass,level,ed="2014",race="Human",multi)=>pcEnsure(generateCharacter({
+      seed:"OPEN-THIRD",ed,cls,subclass,level,race,bg:"Sage",multi,
+    }));
+    const config=[
+      ["Fighter","Arcane Warrior","Human","int","Wizard",null],
+      ["Rogue","Eldritch Trickster","Human","int","Wizard","Mage Hand"],
+      ["Rogue","Soulspy","Human","wis","Cleric",null],
+      ["Rogue","Underfoot","Erina","wis","Druid","Shillelagh"],
+    ];
+    const levels=[];
+    for(const [cls,name,race,ab,list,fixed] of config)for(const ed of ["2014","2024"]){
+      const low=make(cls,name,3,ed,race),at10=make(cls,name,10,ed,race),high=make(cls,name,20,ed,race);
+      const keys=openThirdChoiceKeys(name),limits=c=>keys.map(key=>CHOICES[key].n(c));
+      const expectedHigh=name==="Arcane Warrior"||name==="Eldritch Trickster"?[3,4,9]:[name==="Soulspy"?4:3,9,4];
+      const actual={
+        slots:low.spell?.slots,ab:low.spell?.ab,list:low.spell?.list,fixed:!fixed||low.prepared.some(p=>p.n===fixed),
+        at3:limits(low),at10:limits(at10),at20:limits(high),expectedHigh,
+        ok:low.spell?.ab===ab&&low.spell?.list===list,
+      };
+      levels.push({name,ed,...actual});
+    }
+    const c=make("Fighter","Arcane Warrior",3),[cantrips,school,any]=openThirdChoiceKeys(c.subclass);
+    const opts=(key,name)=>CHOICES[key].opts(c).some(([id])=>id===name);
+    const schoolOptions=[opts(school,"Shield"),opts(school,"Mage Armor"),opts(school,"Disguise Self"),opts(any,"Disguise Self"),opts(any,"Fireball")];
+    c.choices={[cantrips]:["Fire Bolt"],[school]:["Shield","Mage Armor","Disguise Self"],[any]:["Disguise Self","Protection from Evil and Good"]};
+    syncGrantedSpells(c);
+    const learned=c.prepared.map(s=>s.n).sort();
+    const caster=spellCaster(c,spellOf("2014","Disguise Self"));
+    const directCantrip=togglePrep(c,spellOf("2014","Prestidigitation"),"2014");
+    const multi=make("Wizard","School of Divination",5,"2014","Human",[{cls:"Rogue",lv:3,subclass:"Soulspy"}]);
+    const ineligible=make("Rogue","Underfoot",3);
+    const old=make("Rogue","Eldritch Trickster",5);old.spell=null;old.hpCur=7;PCS.roster.push(old);RC.id=old.id;renderRosterMain();
+    const migration=[old.hpCur,old.spell.slots];
+    const ui=make("Rogue","Soulspy",3);PCS.roster.push(ui);RC.id=ui.id;renderRoster();renderRosterMain();
+    return {levels,schoolOptions,learned,castingAbility:caster.ab,directCantrip,multi:multi.spell.slots,ineligible:!ineligible.spell,migration,ui:ui.id};
+  });
+  check("licensed subclass spells follow the printed lists, levels, and choices in both editions",
+    open.levels.every(x=>x.ok&&x.fixed&&JSON.stringify(x.slots)==="[2]"&&x.at3[1]===2&&x.at3[2]===1
+      &&x.at10[0]===x.at3[0]+1&&JSON.stringify(x.at20)===JSON.stringify(x.expectedHigh)),JSON.stringify(open.levels));
+  check("Arcane Warrior enforces school restrictions and one unrestricted spell at 3rd level",
+    JSON.stringify(open.schoolOptions)==="[true,true,false,true,false]"&&!open.directCantrip,JSON.stringify(open));
+  check("valid school and cantrip choices reach the cast sheet with their owning class ability",
+    JSON.stringify(open.learned)==='["Disguise Self","Fire Bolt","Mage Armor","Shield"]'&&open.castingAbility==="int",JSON.stringify(open.learned));
+  check("licensed third casters combine slots, upgrade old saves, and honor the Underfoot prerequisite",
+    JSON.stringify(open.multi)==="[4,3,3]"&&open.ineligible&&JSON.stringify(open.migration)==="[7,[3]]",JSON.stringify(open));
+  await p.locator('[data-choice="School spells (Soulspy)"]').selectOption("Inflict Wounds");
+  const live=await p.evaluate(id=>{
+    const c=PCS.roster.find(r=>r.id===id);
+    return c.prepared.some(s=>s.n==="Inflict Wounds"&&s.sources.some(g=>g.feature==="Spellcasting (Soulspy)"));
+  },open.ui);
+  check("a Soulspy can learn a school spell through the actual feature picker",live);
   check("no page errors", !errs.length, errs.join(" | "));
   await browser.close(); server.close();
   console.log(fails ? `\n${fails} check(s) failed` : "\nAll checks passed");

@@ -1,0 +1,3157 @@
+{
+  "version": 1,
+  "provenance": "Canonical SRD 5.1 archive; 319 descriptions, higher-level sections and material text fingerprints match the original dependency archive. Metadata corrections are independently source verified. PHB printing equivalence is not asserted.",
+  "entries": [
+    {
+      "name": "Bigby's Hand",
+      "src": "phb-2014",
+      "ed": "2014",
+      "target": "Arcane Hand",
+      "stableId": "cmp:163dba9135bbf04b7b138b2e",
+      "descriptionHash": "b64ded51",
+      "higherLevelHash": "6bfc58e3"
+    },
+    {
+      "name": "Drawmij's Instant Summons",
+      "src": "phb-2014",
+      "ed": "2014",
+      "target": "Instant Summons",
+      "stableId": "cmp:bc607821881b85b1162280a8",
+      "descriptionHash": "430f9342",
+      "higherLevelHash": "811c9dc5"
+    },
+    {
+      "name": "Evard's Black Tentacles",
+      "src": "phb-2014",
+      "ed": "2014",
+      "target": "Black Tentacles",
+      "stableId": "cmp:cb1703bcad9dab7937ea2aa8",
+      "descriptionHash": "cc7b833c",
+      "higherLevelHash": "811c9dc5"
+    },
+    {
+      "name": "Leomund's Secret Chest",
+      "src": "phb-2014",
+      "ed": "2014",
+      "target": "Secret Chest",
+      "stableId": "cmp:0ad01034a462588c475b83a4",
+      "descriptionHash": "6c3e0c58",
+      "higherLevelHash": "811c9dc5"
+    },
+    {
+      "name": "Leomund's Tiny Hut",
+      "src": "phb-2014",
+      "ed": "2014",
+      "target": "Tiny Hut",
+      "stableId": "cmp:464bfb98382dcd25d080ebf8",
+      "descriptionHash": "37ad5de4",
+      "higherLevelHash": "811c9dc5"
+    },
+    {
+      "name": "Melf's Acid Arrow",
+      "src": "phb-2014",
+      "ed": "2014",
+      "target": "Acid Arrow",
+      "stableId": "cmp:397df1f4e4535f4929cda002",
+      "descriptionHash": "794c1c3a",
+      "higherLevelHash": "10fcfb4f"
+    },
+    {
+      "name": "Mordenkainen's Faithful Hound",
+      "src": "phb-2014",
+      "ed": "2014",
+      "target": "Faithful Hound",
+      "stableId": "cmp:2126b3d4ab833c08fea0eafb",
+      "descriptionHash": "601c4b44",
+      "higherLevelHash": "811c9dc5"
+    },
+    {
+      "name": "Mordenkainen's Magnificent Mansion",
+      "src": "phb-2014",
+      "ed": "2014",
+      "target": "Magnificent Mansion",
+      "stableId": "cmp:9039fdb97648ec280a492236",
+      "descriptionHash": "7a0b33d2",
+      "higherLevelHash": "811c9dc5"
+    },
+    {
+      "name": "Mordenkainen's Private Sanctum",
+      "src": "phb-2014",
+      "ed": "2014",
+      "target": "Private Sanctum",
+      "stableId": "cmp:4e16d2f915602cbd97edcd62",
+      "descriptionHash": "0b101511",
+      "higherLevelHash": "3ec9df20"
+    },
+    {
+      "name": "Mordenkainen's Sword",
+      "src": "phb-2014",
+      "ed": "2014",
+      "target": "Arcane Sword",
+      "stableId": "cmp:f61710f0f7943adfb38fa549",
+      "descriptionHash": "771c4605",
+      "higherLevelHash": "811c9dc5"
+    },
+    {
+      "name": "Nystul's Magic Aura",
+      "src": "phb-2014",
+      "ed": "2014",
+      "target": "Arcanist's Magic Aura",
+      "stableId": "cmp:02ef476b075e6a6555dbb306",
+      "descriptionHash": "86188c55",
+      "higherLevelHash": "811c9dc5"
+    },
+    {
+      "name": "Otiluke's Freezing Sphere",
+      "src": "phb-2014",
+      "ed": "2014",
+      "target": "Freezing Sphere",
+      "stableId": "cmp:4ba02c77a21043192daebfa5",
+      "descriptionHash": "bdc5db03",
+      "higherLevelHash": "62d8c7e2"
+    },
+    {
+      "name": "Otiluke's Resilient Sphere",
+      "src": "phb-2014",
+      "ed": "2014",
+      "target": "Resilient Sphere",
+      "stableId": "cmp:8351975e85a069217263bd19",
+      "descriptionHash": "cc70923f",
+      "higherLevelHash": "811c9dc5"
+    },
+    {
+      "name": "Otto's Irresistible Dance",
+      "src": "phb-2014",
+      "ed": "2014",
+      "target": "Irresistible Dance",
+      "stableId": "cmp:661088aa2e72d6b6d76a46e3",
+      "descriptionHash": "7939fbce",
+      "higherLevelHash": "811c9dc5"
+    },
+    {
+      "name": "Rary's Telepathic Bond",
+      "src": "phb-2014",
+      "ed": "2014",
+      "target": "Telepathic Bond",
+      "stableId": "cmp:36d490a3d9937eba359bfbe0",
+      "descriptionHash": "595b2500",
+      "higherLevelHash": "811c9dc5"
+    },
+    {
+      "name": "Tasha's Hideous Laughter",
+      "src": "phb-2014",
+      "ed": "2014",
+      "target": "Hideous Laughter",
+      "stableId": "cmp:1bc6ddd28457b18296b22cf8",
+      "descriptionHash": "922b655b",
+      "higherLevelHash": "811c9dc5"
+    },
+    {
+      "name": "Tenser's Floating Disk",
+      "src": "phb-2014",
+      "ed": "2014",
+      "target": "Floating Disk",
+      "stableId": "cmp:b8835449b725cc58881eafba",
+      "descriptionHash": "6ef2229f",
+      "higherLevelHash": "811c9dc5"
+    },
+    {
+      "name": "Acid Splash",
+      "src": "phb-2014",
+      "ed": "2014",
+      "target": "Acid Splash",
+      "mode": "existing",
+      "archiveSourceKey": "SRD 5.1|2014|Spell|Acid Splash",
+      "descriptionHash": "7acfae6d",
+      "higherLevelHash": "811c9dc5"
+    },
+    {
+      "name": "Aid",
+      "src": "phb-2014",
+      "ed": "2014",
+      "target": "Aid",
+      "mode": "existing",
+      "archiveSourceKey": "SRD 5.1|2014|Spell|Aid",
+      "descriptionHash": "719db93c",
+      "higherLevelHash": "5aeb1a67"
+    },
+    {
+      "name": "Alarm",
+      "src": "phb-2014",
+      "ed": "2014",
+      "target": "Alarm",
+      "mode": "existing",
+      "archiveSourceKey": "SRD 5.1|2014|Spell|Alarm",
+      "descriptionHash": "968cb303",
+      "higherLevelHash": "811c9dc5"
+    },
+    {
+      "name": "Alter Self",
+      "src": "phb-2014",
+      "ed": "2014",
+      "target": "Alter Self",
+      "mode": "existing",
+      "archiveSourceKey": "SRD 5.1|2014|Spell|Alter Self",
+      "descriptionHash": "c8744cde",
+      "higherLevelHash": "811c9dc5"
+    },
+    {
+      "name": "Animal Friendship",
+      "src": "phb-2014",
+      "ed": "2014",
+      "target": "Animal Friendship",
+      "mode": "existing",
+      "archiveSourceKey": "SRD 5.1|2014|Spell|Animal Friendship",
+      "descriptionHash": "b03dc42a",
+      "higherLevelHash": "811c9dc5"
+    },
+    {
+      "name": "Animal Messenger",
+      "src": "phb-2014",
+      "ed": "2014",
+      "target": "Animal Messenger",
+      "mode": "existing",
+      "archiveSourceKey": "SRD 5.1|2014|Spell|Animal Messenger",
+      "descriptionHash": "e2b280b6",
+      "higherLevelHash": "e3abed16"
+    },
+    {
+      "name": "Animal Shapes",
+      "src": "phb-2014",
+      "ed": "2014",
+      "target": "Animal Shapes",
+      "mode": "existing",
+      "archiveSourceKey": "SRD 5.1|2014|Spell|Animal Shapes",
+      "descriptionHash": "ac86b754",
+      "higherLevelHash": "811c9dc5"
+    },
+    {
+      "name": "Animate Dead",
+      "src": "phb-2014",
+      "ed": "2014",
+      "target": "Animate Dead",
+      "mode": "existing",
+      "archiveSourceKey": "SRD 5.1|2014|Spell|Animate Dead",
+      "descriptionHash": "e6b859a4",
+      "higherLevelHash": "81b331af"
+    },
+    {
+      "name": "Animate Objects",
+      "src": "phb-2014",
+      "ed": "2014",
+      "target": "Animate Objects",
+      "mode": "existing",
+      "archiveSourceKey": "SRD 5.1|2014|Spell|Animate Objects",
+      "descriptionHash": "e266e33a",
+      "higherLevelHash": "8d67cbd7"
+    },
+    {
+      "name": "Antipathy/Sympathy",
+      "src": "phb-2014",
+      "ed": "2014",
+      "target": "Antipathy/Sympathy",
+      "mode": "existing",
+      "archiveSourceKey": "SRD 5.1|2014|Spell|Antipathy/Sympathy",
+      "descriptionHash": "698403a1",
+      "higherLevelHash": "811c9dc5"
+    },
+    {
+      "name": "Arcane Eye",
+      "src": "phb-2014",
+      "ed": "2014",
+      "target": "Arcane Eye",
+      "mode": "existing",
+      "archiveSourceKey": "SRD 5.1|2014|Spell|Arcane Eye",
+      "descriptionHash": "d43cc8af",
+      "higherLevelHash": "811c9dc5"
+    },
+    {
+      "name": "Arcane Lock",
+      "src": "phb-2014",
+      "ed": "2014",
+      "target": "Arcane Lock",
+      "mode": "existing",
+      "archiveSourceKey": "SRD 5.1|2014|Spell|Arcane Lock",
+      "descriptionHash": "d663320b",
+      "higherLevelHash": "811c9dc5"
+    },
+    {
+      "name": "Astral Projection",
+      "src": "phb-2014",
+      "ed": "2014",
+      "target": "Astral Projection",
+      "mode": "existing",
+      "archiveSourceKey": "SRD 5.1|2014|Spell|Astral Projection",
+      "descriptionHash": "b04f8bf5",
+      "higherLevelHash": "811c9dc5"
+    },
+    {
+      "name": "Augury",
+      "src": "phb-2014",
+      "ed": "2014",
+      "target": "Augury",
+      "mode": "existing",
+      "archiveSourceKey": "SRD 5.1|2014|Spell|Augury",
+      "descriptionHash": "5935cb45",
+      "higherLevelHash": "811c9dc5"
+    },
+    {
+      "name": "Awaken",
+      "src": "phb-2014",
+      "ed": "2014",
+      "target": "Awaken",
+      "mode": "existing",
+      "archiveSourceKey": "SRD 5.1|2014|Spell|Awaken",
+      "descriptionHash": "27a602ff",
+      "higherLevelHash": "811c9dc5"
+    },
+    {
+      "name": "Bane",
+      "src": "phb-2014",
+      "ed": "2014",
+      "target": "Bane",
+      "mode": "existing",
+      "archiveSourceKey": "SRD 5.1|2014|Spell|Bane",
+      "descriptionHash": "cabca735",
+      "higherLevelHash": "011f97e6"
+    },
+    {
+      "name": "Banishment",
+      "src": "phb-2014",
+      "ed": "2014",
+      "target": "Banishment",
+      "mode": "existing",
+      "archiveSourceKey": "SRD 5.1|2014|Spell|Banishment",
+      "descriptionHash": "08575180",
+      "higherLevelHash": "1043870f"
+    },
+    {
+      "name": "Barkskin",
+      "src": "phb-2014",
+      "ed": "2014",
+      "target": "Barkskin",
+      "mode": "existing",
+      "archiveSourceKey": "SRD 5.1|2014|Spell|Barkskin",
+      "descriptionHash": "34331478",
+      "higherLevelHash": "811c9dc5"
+    },
+    {
+      "name": "Beacon of Hope",
+      "src": "phb-2014",
+      "ed": "2014",
+      "target": "Beacon of Hope",
+      "mode": "existing",
+      "archiveSourceKey": "SRD 5.1|2014|Spell|Beacon of Hope",
+      "descriptionHash": "8870d3e4",
+      "higherLevelHash": "811c9dc5"
+    },
+    {
+      "name": "Bestow Curse",
+      "src": "phb-2014",
+      "ed": "2014",
+      "target": "Bestow Curse",
+      "mode": "existing",
+      "archiveSourceKey": "SRD 5.1|2014|Spell|Bestow Curse",
+      "descriptionHash": "24d90d98",
+      "higherLevelHash": "b7da867c"
+    },
+    {
+      "name": "Blade Barrier",
+      "src": "phb-2014",
+      "ed": "2014",
+      "target": "Blade Barrier",
+      "mode": "existing",
+      "archiveSourceKey": "SRD 5.1|2014|Spell|Blade Barrier",
+      "descriptionHash": "8ec2d4b2",
+      "higherLevelHash": "811c9dc5"
+    },
+    {
+      "name": "Bless",
+      "src": "phb-2014",
+      "ed": "2014",
+      "target": "Bless",
+      "mode": "existing",
+      "archiveSourceKey": "SRD 5.1|2014|Spell|Bless",
+      "descriptionHash": "fa4b6233",
+      "higherLevelHash": "011f97e6"
+    },
+    {
+      "name": "Blight",
+      "src": "phb-2014",
+      "ed": "2014",
+      "target": "Blight",
+      "mode": "existing",
+      "archiveSourceKey": "SRD 5.1|2014|Spell|Blight",
+      "descriptionHash": "5c795ca6",
+      "higherLevelHash": "d396a04c"
+    },
+    {
+      "name": "Blindness/Deafness",
+      "src": "phb-2014",
+      "ed": "2014",
+      "target": "Blindness/Deafness",
+      "mode": "existing",
+      "archiveSourceKey": "SRD 5.1|2014|Spell|Blindness/Deafness",
+      "descriptionHash": "8f7c8fdc",
+      "higherLevelHash": "bdb7e437"
+    },
+    {
+      "name": "Blink",
+      "src": "phb-2014",
+      "ed": "2014",
+      "target": "Blink",
+      "mode": "existing",
+      "archiveSourceKey": "SRD 5.1|2014|Spell|Blink",
+      "descriptionHash": "e13e24a4",
+      "higherLevelHash": "811c9dc5"
+    },
+    {
+      "name": "Blur",
+      "src": "phb-2014",
+      "ed": "2014",
+      "target": "Blur",
+      "mode": "existing",
+      "archiveSourceKey": "SRD 5.1|2014|Spell|Blur",
+      "descriptionHash": "a8892f5a",
+      "higherLevelHash": "811c9dc5"
+    },
+    {
+      "name": "Branding Smite",
+      "src": "phb-2014",
+      "ed": "2014",
+      "target": "Branding Smite",
+      "mode": "existing",
+      "archiveSourceKey": "SRD 5.1|2014|Spell|Branding Smite",
+      "descriptionHash": "55be72a8",
+      "higherLevelHash": "5861838c"
+    },
+    {
+      "name": "Call Lightning",
+      "src": "phb-2014",
+      "ed": "2014",
+      "target": "Call Lightning",
+      "mode": "existing",
+      "archiveSourceKey": "SRD 5.1|2014|Spell|Call Lightning",
+      "descriptionHash": "6e26af77",
+      "higherLevelHash": "522660f1"
+    },
+    {
+      "name": "Calm Emotions",
+      "src": "phb-2014",
+      "ed": "2014",
+      "target": "Calm Emotions",
+      "mode": "existing",
+      "archiveSourceKey": "SRD 5.1|2014|Spell|Calm Emotions",
+      "descriptionHash": "0ba1c728",
+      "higherLevelHash": "811c9dc5"
+    },
+    {
+      "name": "Chain Lightning",
+      "src": "phb-2014",
+      "ed": "2014",
+      "target": "Chain Lightning",
+      "mode": "existing",
+      "archiveSourceKey": "SRD 5.1|2014|Spell|Chain Lightning",
+      "descriptionHash": "3b0d4ac8",
+      "higherLevelHash": "76cfa9cd"
+    },
+    {
+      "name": "Charm Person",
+      "src": "phb-2014",
+      "ed": "2014",
+      "target": "Charm Person",
+      "mode": "existing",
+      "archiveSourceKey": "SRD 5.1|2014|Spell|Charm Person",
+      "descriptionHash": "5466bb2a",
+      "higherLevelHash": "7df7cb61"
+    },
+    {
+      "name": "Chill Touch",
+      "src": "phb-2014",
+      "ed": "2014",
+      "target": "Chill Touch",
+      "mode": "existing",
+      "archiveSourceKey": "SRD 5.1|2014|Spell|Chill Touch",
+      "descriptionHash": "493525ca",
+      "higherLevelHash": "811c9dc5"
+    },
+    {
+      "name": "Circle of Death",
+      "src": "phb-2014",
+      "ed": "2014",
+      "target": "Circle of Death",
+      "mode": "existing",
+      "archiveSourceKey": "SRD 5.1|2014|Spell|Circle of Death",
+      "descriptionHash": "f5e02fd9",
+      "higherLevelHash": "069b0531"
+    },
+    {
+      "name": "Clone",
+      "src": "phb-2014",
+      "ed": "2014",
+      "target": "Clone",
+      "mode": "existing",
+      "archiveSourceKey": "SRD 5.1|2014|Spell|Clone",
+      "descriptionHash": "1df77a37",
+      "higherLevelHash": "811c9dc5"
+    },
+    {
+      "name": "Cloudkill",
+      "src": "phb-2014",
+      "ed": "2014",
+      "target": "Cloudkill",
+      "mode": "existing",
+      "archiveSourceKey": "SRD 5.1|2014|Spell|Cloudkill",
+      "descriptionHash": "55ac2736",
+      "higherLevelHash": "53e3bb64"
+    },
+    {
+      "name": "Command",
+      "src": "phb-2014",
+      "ed": "2014",
+      "target": "Command",
+      "mode": "existing",
+      "archiveSourceKey": "SRD 5.1|2014|Spell|Command",
+      "descriptionHash": "339e20f2",
+      "higherLevelHash": "131fe18d"
+    },
+    {
+      "name": "Commune",
+      "src": "phb-2014",
+      "ed": "2014",
+      "target": "Commune",
+      "mode": "existing",
+      "archiveSourceKey": "SRD 5.1|2014|Spell|Commune",
+      "descriptionHash": "40dd9553",
+      "higherLevelHash": "811c9dc5"
+    },
+    {
+      "name": "Comprehend Languages",
+      "src": "phb-2014",
+      "ed": "2014",
+      "target": "Comprehend Languages",
+      "mode": "existing",
+      "archiveSourceKey": "SRD 5.1|2014|Spell|Comprehend Languages",
+      "descriptionHash": "cf658d1e",
+      "higherLevelHash": "811c9dc5"
+    },
+    {
+      "name": "Compulsion",
+      "src": "phb-2014",
+      "ed": "2014",
+      "target": "Compulsion",
+      "mode": "existing",
+      "archiveSourceKey": "SRD 5.1|2014|Spell|Compulsion",
+      "descriptionHash": "06554430",
+      "higherLevelHash": "811c9dc5"
+    },
+    {
+      "name": "Confusion",
+      "src": "phb-2014",
+      "ed": "2014",
+      "target": "Confusion",
+      "mode": "existing",
+      "archiveSourceKey": "SRD 5.1|2014|Spell|Confusion",
+      "descriptionHash": "7a7ec545",
+      "higherLevelHash": "c640b716"
+    },
+    {
+      "name": "Conjure Animals",
+      "src": "phb-2014",
+      "ed": "2014",
+      "target": "Conjure Animals",
+      "mode": "existing",
+      "archiveSourceKey": "SRD 5.1|2014|Spell|Conjure Animals",
+      "descriptionHash": "bfcd184e",
+      "higherLevelHash": "59f47c3f"
+    },
+    {
+      "name": "Conjure Celestial",
+      "src": "phb-2014",
+      "ed": "2014",
+      "target": "Conjure Celestial",
+      "mode": "existing",
+      "archiveSourceKey": "SRD 5.1|2014|Spell|Conjure Celestial",
+      "descriptionHash": "f7f6f232",
+      "higherLevelHash": "112e2f03"
+    },
+    {
+      "name": "Conjure Fey",
+      "src": "phb-2014",
+      "ed": "2014",
+      "target": "Conjure Fey",
+      "mode": "existing",
+      "archiveSourceKey": "SRD 5.1|2014|Spell|Conjure Fey",
+      "descriptionHash": "f006fe58",
+      "higherLevelHash": "82cb4bdb"
+    },
+    {
+      "name": "Conjure Minor Elementals",
+      "src": "phb-2014",
+      "ed": "2014",
+      "target": "Conjure Minor Elementals",
+      "mode": "existing",
+      "archiveSourceKey": "SRD 5.1|2014|Spell|Conjure Minor Elementals",
+      "descriptionHash": "c3d858f5",
+      "higherLevelHash": "b3768a70"
+    },
+    {
+      "name": "Conjure Woodland Beings",
+      "src": "phb-2014",
+      "ed": "2014",
+      "target": "Conjure Woodland Beings",
+      "mode": "existing",
+      "archiveSourceKey": "SRD 5.1|2014|Spell|Conjure Woodland Beings",
+      "descriptionHash": "a1577e96",
+      "higherLevelHash": "b3768a70"
+    },
+    {
+      "name": "Contact Other Plane",
+      "src": "phb-2014",
+      "ed": "2014",
+      "target": "Contact Other Plane",
+      "mode": "existing",
+      "archiveSourceKey": "SRD 5.1|2014|Spell|Contact Other Plane",
+      "descriptionHash": "d2007287",
+      "higherLevelHash": "811c9dc5"
+    },
+    {
+      "name": "Contagion",
+      "src": "phb-2014",
+      "ed": "2014",
+      "target": "Contagion",
+      "mode": "existing",
+      "archiveSourceKey": "SRD 5.1|2014|Spell|Contagion",
+      "descriptionHash": "6110754a",
+      "higherLevelHash": "811c9dc5"
+    },
+    {
+      "name": "Contingency",
+      "src": "phb-2014",
+      "ed": "2014",
+      "target": "Contingency",
+      "mode": "existing",
+      "archiveSourceKey": "SRD 5.1|2014|Spell|Contingency",
+      "descriptionHash": "f82f73b6",
+      "higherLevelHash": "811c9dc5"
+    },
+    {
+      "name": "Continual Flame",
+      "src": "phb-2014",
+      "ed": "2014",
+      "target": "Continual Flame",
+      "mode": "existing",
+      "archiveSourceKey": "SRD 5.1|2014|Spell|Continual Flame",
+      "descriptionHash": "34cce73c",
+      "higherLevelHash": "811c9dc5"
+    },
+    {
+      "name": "Control Water",
+      "src": "phb-2014",
+      "ed": "2014",
+      "target": "Control Water",
+      "mode": "existing",
+      "archiveSourceKey": "SRD 5.1|2014|Spell|Control Water",
+      "descriptionHash": "b35c9b1e",
+      "higherLevelHash": "811c9dc5"
+    },
+    {
+      "name": "Counterspell",
+      "src": "phb-2014",
+      "ed": "2014",
+      "target": "Counterspell",
+      "mode": "existing",
+      "archiveSourceKey": "SRD 5.1|2014|Spell|Counterspell",
+      "descriptionHash": "3196f5df",
+      "higherLevelHash": "01e1cb9a"
+    },
+    {
+      "name": "Create Food and Water",
+      "src": "phb-2014",
+      "ed": "2014",
+      "target": "Create Food and Water",
+      "mode": "existing",
+      "archiveSourceKey": "SRD 5.1|2014|Spell|Create Food and Water",
+      "descriptionHash": "8ae886ff",
+      "higherLevelHash": "811c9dc5"
+    },
+    {
+      "name": "Create or Destroy Water",
+      "src": "phb-2014",
+      "ed": "2014",
+      "target": "Create or Destroy Water",
+      "mode": "existing",
+      "archiveSourceKey": "SRD 5.1|2014|Spell|Create or Destroy Water",
+      "descriptionHash": "d23de21f",
+      "higherLevelHash": "e9a56b5b"
+    },
+    {
+      "name": "Create Undead",
+      "src": "phb-2014",
+      "ed": "2014",
+      "target": "Create Undead",
+      "mode": "existing",
+      "archiveSourceKey": "SRD 5.1|2014|Spell|Create Undead",
+      "descriptionHash": "98980a0e",
+      "higherLevelHash": "0835974f"
+    },
+    {
+      "name": "Creation",
+      "src": "phb-2014",
+      "ed": "2014",
+      "target": "Creation",
+      "mode": "existing",
+      "archiveSourceKey": "SRD 5.1|2014|Spell|Creation",
+      "descriptionHash": "df4c9855",
+      "higherLevelHash": "26600a14"
+    },
+    {
+      "name": "Cure Wounds",
+      "src": "phb-2014",
+      "ed": "2014",
+      "target": "Cure Wounds",
+      "mode": "existing",
+      "archiveSourceKey": "SRD 5.1|2014|Spell|Cure Wounds",
+      "descriptionHash": "a53861e0",
+      "higherLevelHash": "8b6fac38"
+    },
+    {
+      "name": "Dancing Lights",
+      "src": "phb-2014",
+      "ed": "2014",
+      "target": "Dancing Lights",
+      "mode": "existing",
+      "archiveSourceKey": "SRD 5.1|2014|Spell|Dancing Lights",
+      "descriptionHash": "2c1c2f4e",
+      "higherLevelHash": "811c9dc5"
+    },
+    {
+      "name": "Darkness",
+      "src": "phb-2014",
+      "ed": "2014",
+      "target": "Darkness",
+      "mode": "existing",
+      "archiveSourceKey": "SRD 5.1|2014|Spell|Darkness",
+      "descriptionHash": "ef084ce3",
+      "higherLevelHash": "811c9dc5"
+    },
+    {
+      "name": "Darkvision",
+      "src": "phb-2014",
+      "ed": "2014",
+      "target": "Darkvision",
+      "mode": "existing",
+      "archiveSourceKey": "SRD 5.1|2014|Spell|Darkvision",
+      "descriptionHash": "8c20f172",
+      "higherLevelHash": "811c9dc5"
+    },
+    {
+      "name": "Daylight",
+      "src": "phb-2014",
+      "ed": "2014",
+      "target": "Daylight",
+      "mode": "existing",
+      "archiveSourceKey": "SRD 5.1|2014|Spell|Daylight",
+      "descriptionHash": "e8d74bf8",
+      "higherLevelHash": "811c9dc5"
+    },
+    {
+      "name": "Death Ward",
+      "src": "phb-2014",
+      "ed": "2014",
+      "target": "Death Ward",
+      "mode": "existing",
+      "archiveSourceKey": "SRD 5.1|2014|Spell|Death Ward",
+      "descriptionHash": "ac8de946",
+      "higherLevelHash": "811c9dc5"
+    },
+    {
+      "name": "Delayed Blast Fireball",
+      "src": "phb-2014",
+      "ed": "2014",
+      "target": "Delayed Blast Fireball",
+      "mode": "existing",
+      "archiveSourceKey": "SRD 5.1|2014|Spell|Delayed Blast Fireball",
+      "descriptionHash": "3532800e",
+      "higherLevelHash": "69a8fa49"
+    },
+    {
+      "name": "Demiplane",
+      "src": "phb-2014",
+      "ed": "2014",
+      "target": "Demiplane",
+      "mode": "existing",
+      "archiveSourceKey": "SRD 5.1|2014|Spell|Demiplane",
+      "descriptionHash": "493380c9",
+      "higherLevelHash": "811c9dc5"
+    },
+    {
+      "name": "Detect Magic",
+      "src": "phb-2014",
+      "ed": "2014",
+      "target": "Detect Magic",
+      "mode": "existing",
+      "archiveSourceKey": "SRD 5.1|2014|Spell|Detect Magic",
+      "descriptionHash": "d599611f",
+      "higherLevelHash": "811c9dc5"
+    },
+    {
+      "name": "Detect Poison and Disease",
+      "src": "phb-2014",
+      "ed": "2014",
+      "target": "Detect Poison and Disease",
+      "mode": "existing",
+      "archiveSourceKey": "SRD 5.1|2014|Spell|Detect Poison and Disease",
+      "descriptionHash": "694ade96",
+      "higherLevelHash": "811c9dc5"
+    },
+    {
+      "name": "Detect Thoughts",
+      "src": "phb-2014",
+      "ed": "2014",
+      "target": "Detect Thoughts",
+      "mode": "existing",
+      "archiveSourceKey": "SRD 5.1|2014|Spell|Detect Thoughts",
+      "descriptionHash": "7581aabe",
+      "higherLevelHash": "811c9dc5"
+    },
+    {
+      "name": "Disguise Self",
+      "src": "phb-2014",
+      "ed": "2014",
+      "target": "Disguise Self",
+      "mode": "existing",
+      "archiveSourceKey": "SRD 5.1|2014|Spell|Disguise Self",
+      "descriptionHash": "6188f4f9",
+      "higherLevelHash": "811c9dc5"
+    },
+    {
+      "name": "Disintegrate",
+      "src": "phb-2014",
+      "ed": "2014",
+      "target": "Disintegrate",
+      "mode": "existing",
+      "archiveSourceKey": "SRD 5.1|2014|Spell|Disintegrate",
+      "descriptionHash": "6f312644",
+      "higherLevelHash": "478b7b58"
+    },
+    {
+      "name": "Dispel Evil and Good",
+      "src": "phb-2014",
+      "ed": "2014",
+      "target": "Dispel Evil and Good",
+      "mode": "existing",
+      "archiveSourceKey": "SRD 5.1|2014|Spell|Dispel Evil and Good",
+      "descriptionHash": "62992df5",
+      "higherLevelHash": "811c9dc5"
+    },
+    {
+      "name": "Dispel Magic",
+      "src": "phb-2014",
+      "ed": "2014",
+      "target": "Dispel Magic",
+      "mode": "existing",
+      "archiveSourceKey": "SRD 5.1|2014|Spell|Dispel Magic",
+      "descriptionHash": "ceaf3c1d",
+      "higherLevelHash": "ce27e1f1"
+    },
+    {
+      "name": "Divination",
+      "src": "phb-2014",
+      "ed": "2014",
+      "target": "Divination",
+      "mode": "existing",
+      "archiveSourceKey": "SRD 5.1|2014|Spell|Divination",
+      "descriptionHash": "d7dee415",
+      "higherLevelHash": "811c9dc5"
+    },
+    {
+      "name": "Divine Favor",
+      "src": "phb-2014",
+      "ed": "2014",
+      "target": "Divine Favor",
+      "mode": "existing",
+      "archiveSourceKey": "SRD 5.1|2014|Spell|Divine Favor",
+      "descriptionHash": "31b6e920",
+      "higherLevelHash": "811c9dc5"
+    },
+    {
+      "name": "Divine Word",
+      "src": "phb-2014",
+      "ed": "2014",
+      "target": "Divine Word",
+      "mode": "existing",
+      "archiveSourceKey": "SRD 5.1|2014|Spell|Divine Word",
+      "descriptionHash": "34b1f09a",
+      "higherLevelHash": "811c9dc5"
+    },
+    {
+      "name": "Dominate Beast",
+      "src": "phb-2014",
+      "ed": "2014",
+      "target": "Dominate Beast",
+      "mode": "existing",
+      "archiveSourceKey": "SRD 5.1|2014|Spell|Dominate Beast",
+      "descriptionHash": "6f500926",
+      "higherLevelHash": "686f8a98"
+    },
+    {
+      "name": "Dominate Monster",
+      "src": "phb-2014",
+      "ed": "2014",
+      "target": "Dominate Monster",
+      "mode": "existing",
+      "archiveSourceKey": "SRD 5.1|2014|Spell|Dominate Monster",
+      "descriptionHash": "6f500926",
+      "higherLevelHash": "9ac37c99"
+    },
+    {
+      "name": "Dominate Person",
+      "src": "phb-2014",
+      "ed": "2014",
+      "target": "Dominate Person",
+      "mode": "existing",
+      "archiveSourceKey": "SRD 5.1|2014|Spell|Dominate Person",
+      "descriptionHash": "8366971c",
+      "higherLevelHash": "340b6952"
+    },
+    {
+      "name": "Druidcraft",
+      "src": "phb-2014",
+      "ed": "2014",
+      "target": "Druidcraft",
+      "mode": "existing",
+      "archiveSourceKey": "SRD 5.1|2014|Spell|Druidcraft",
+      "descriptionHash": "d6f0ed56",
+      "higherLevelHash": "811c9dc5"
+    },
+    {
+      "name": "Earthquake",
+      "src": "phb-2014",
+      "ed": "2014",
+      "target": "Earthquake",
+      "mode": "existing",
+      "archiveSourceKey": "SRD 5.1|2014|Spell|Earthquake",
+      "descriptionHash": "bd8fc881",
+      "higherLevelHash": "811c9dc5"
+    },
+    {
+      "name": "Eldritch Blast",
+      "src": "phb-2014",
+      "ed": "2014",
+      "target": "Eldritch Blast",
+      "mode": "existing",
+      "archiveSourceKey": "SRD 5.1|2014|Spell|Eldritch Blast",
+      "descriptionHash": "9a4fefca",
+      "higherLevelHash": "811c9dc5"
+    },
+    {
+      "name": "Enhance Ability",
+      "src": "phb-2014",
+      "ed": "2014",
+      "target": "Enhance Ability",
+      "mode": "existing",
+      "archiveSourceKey": "SRD 5.1|2014|Spell|Enhance Ability",
+      "descriptionHash": "d557f5b5",
+      "higherLevelHash": "bdb7e437"
+    },
+    {
+      "name": "Enlarge/Reduce",
+      "src": "phb-2014",
+      "ed": "2014",
+      "target": "Enlarge/Reduce",
+      "mode": "existing",
+      "archiveSourceKey": "SRD 5.1|2014|Spell|Enlarge/Reduce",
+      "descriptionHash": "2712d670",
+      "higherLevelHash": "811c9dc5"
+    },
+    {
+      "name": "Entangle",
+      "src": "phb-2014",
+      "ed": "2014",
+      "target": "Entangle",
+      "mode": "existing",
+      "archiveSourceKey": "SRD 5.1|2014|Spell|Entangle",
+      "descriptionHash": "fcd992a0",
+      "higherLevelHash": "811c9dc5"
+    },
+    {
+      "name": "Enthrall",
+      "src": "phb-2014",
+      "ed": "2014",
+      "target": "Enthrall",
+      "mode": "existing",
+      "archiveSourceKey": "SRD 5.1|2014|Spell|Enthrall",
+      "descriptionHash": "d8592011",
+      "higherLevelHash": "811c9dc5"
+    },
+    {
+      "name": "Etherealness",
+      "src": "phb-2014",
+      "ed": "2014",
+      "target": "Etherealness",
+      "mode": "existing",
+      "archiveSourceKey": "SRD 5.1|2014|Spell|Etherealness",
+      "descriptionHash": "8e2b6b9a",
+      "higherLevelHash": "c7e24046"
+    },
+    {
+      "name": "Expeditious Retreat",
+      "src": "phb-2014",
+      "ed": "2014",
+      "target": "Expeditious Retreat",
+      "mode": "existing",
+      "archiveSourceKey": "SRD 5.1|2014|Spell|Expeditious Retreat",
+      "descriptionHash": "3d4e92fc",
+      "higherLevelHash": "811c9dc5"
+    },
+    {
+      "name": "Eyebite",
+      "src": "phb-2014",
+      "ed": "2014",
+      "target": "Eyebite",
+      "mode": "existing",
+      "archiveSourceKey": "SRD 5.1|2014|Spell|Eyebite",
+      "descriptionHash": "03fcc352",
+      "higherLevelHash": "811c9dc5"
+    },
+    {
+      "name": "Fabricate",
+      "src": "phb-2014",
+      "ed": "2014",
+      "target": "Fabricate",
+      "mode": "existing",
+      "archiveSourceKey": "SRD 5.1|2014|Spell|Fabricate",
+      "descriptionHash": "fe6403c3",
+      "higherLevelHash": "811c9dc5"
+    },
+    {
+      "name": "Faerie Fire",
+      "src": "phb-2014",
+      "ed": "2014",
+      "target": "Faerie Fire",
+      "mode": "existing",
+      "archiveSourceKey": "SRD 5.1|2014|Spell|Faerie Fire",
+      "descriptionHash": "127e2f9c",
+      "higherLevelHash": "811c9dc5"
+    },
+    {
+      "name": "False Life",
+      "src": "phb-2014",
+      "ed": "2014",
+      "target": "False Life",
+      "mode": "existing",
+      "archiveSourceKey": "SRD 5.1|2014|Spell|False Life",
+      "descriptionHash": "3de5dfb8",
+      "higherLevelHash": "7da5484b"
+    },
+    {
+      "name": "Feather Fall",
+      "src": "phb-2014",
+      "ed": "2014",
+      "target": "Feather Fall",
+      "mode": "existing",
+      "archiveSourceKey": "SRD 5.1|2014|Spell|Feather Fall",
+      "descriptionHash": "2851d799",
+      "higherLevelHash": "811c9dc5"
+    },
+    {
+      "name": "Feeblemind",
+      "src": "phb-2014",
+      "ed": "2014",
+      "target": "Feeblemind",
+      "mode": "existing",
+      "archiveSourceKey": "SRD 5.1|2014|Spell|Feeblemind",
+      "descriptionHash": "dd67a8b9",
+      "higherLevelHash": "811c9dc5"
+    },
+    {
+      "name": "Find Familiar",
+      "src": "phb-2014",
+      "ed": "2014",
+      "target": "Find Familiar",
+      "mode": "existing",
+      "archiveSourceKey": "SRD 5.1|2014|Spell|Find Familiar",
+      "descriptionHash": "efffcc7b",
+      "higherLevelHash": "811c9dc5"
+    },
+    {
+      "name": "Find Steed",
+      "src": "phb-2014",
+      "ed": "2014",
+      "target": "Find Steed",
+      "mode": "existing",
+      "archiveSourceKey": "SRD 5.1|2014|Spell|Find Steed",
+      "descriptionHash": "f36a20e8",
+      "higherLevelHash": "811c9dc5"
+    },
+    {
+      "name": "Find Traps",
+      "src": "phb-2014",
+      "ed": "2014",
+      "target": "Find Traps",
+      "mode": "existing",
+      "archiveSourceKey": "SRD 5.1|2014|Spell|Find Traps",
+      "descriptionHash": "016a5f8d",
+      "higherLevelHash": "811c9dc5"
+    },
+    {
+      "name": "Finger of Death",
+      "src": "phb-2014",
+      "ed": "2014",
+      "target": "Finger of Death",
+      "mode": "existing",
+      "archiveSourceKey": "SRD 5.1|2014|Spell|Finger of Death",
+      "descriptionHash": "1e894157",
+      "higherLevelHash": "811c9dc5"
+    },
+    {
+      "name": "Fire Bolt",
+      "src": "phb-2014",
+      "ed": "2014",
+      "target": "Fire Bolt",
+      "mode": "existing",
+      "archiveSourceKey": "SRD 5.1|2014|Spell|Fire Bolt",
+      "descriptionHash": "5131cad7",
+      "higherLevelHash": "811c9dc5"
+    },
+    {
+      "name": "Fire Shield",
+      "src": "phb-2014",
+      "ed": "2014",
+      "target": "Fire Shield",
+      "mode": "existing",
+      "archiveSourceKey": "SRD 5.1|2014|Spell|Fire Shield",
+      "descriptionHash": "bbdd237c",
+      "higherLevelHash": "811c9dc5"
+    },
+    {
+      "name": "Fire Storm",
+      "src": "phb-2014",
+      "ed": "2014",
+      "target": "Fire Storm",
+      "mode": "existing",
+      "archiveSourceKey": "SRD 5.1|2014|Spell|Fire Storm",
+      "descriptionHash": "2c678607",
+      "higherLevelHash": "811c9dc5"
+    },
+    {
+      "name": "Fireball",
+      "src": "phb-2014",
+      "ed": "2014",
+      "target": "Fireball",
+      "mode": "existing",
+      "archiveSourceKey": "SRD 5.1|2014|Spell|Fireball",
+      "descriptionHash": "2ad3de91",
+      "higherLevelHash": "eb33c1b8"
+    },
+    {
+      "name": "Flame Blade",
+      "src": "phb-2014",
+      "ed": "2014",
+      "target": "Flame Blade",
+      "mode": "existing",
+      "archiveSourceKey": "SRD 5.1|2014|Spell|Flame Blade",
+      "descriptionHash": "d0a881f8",
+      "higherLevelHash": "fcc2ac90"
+    },
+    {
+      "name": "Flame Strike",
+      "src": "phb-2014",
+      "ed": "2014",
+      "target": "Flame Strike",
+      "mode": "existing",
+      "archiveSourceKey": "SRD 5.1|2014|Spell|Flame Strike",
+      "descriptionHash": "f18801b0",
+      "higherLevelHash": "c4feeaa9"
+    },
+    {
+      "name": "Flaming Sphere",
+      "src": "phb-2014",
+      "ed": "2014",
+      "target": "Flaming Sphere",
+      "mode": "existing",
+      "archiveSourceKey": "SRD 5.1|2014|Spell|Flaming Sphere",
+      "descriptionHash": "00d449a6",
+      "higherLevelHash": "11e7dcba"
+    },
+    {
+      "name": "Flesh to Stone",
+      "src": "phb-2014",
+      "ed": "2014",
+      "target": "Flesh to Stone",
+      "mode": "existing",
+      "archiveSourceKey": "SRD 5.1|2014|Spell|Flesh to Stone",
+      "descriptionHash": "a5c590b4",
+      "higherLevelHash": "811c9dc5"
+    },
+    {
+      "name": "Fly",
+      "src": "phb-2014",
+      "ed": "2014",
+      "target": "Fly",
+      "mode": "existing",
+      "archiveSourceKey": "SRD 5.1|2014|Spell|Fly",
+      "descriptionHash": "9fe287b1",
+      "higherLevelHash": "a11e99cb"
+    },
+    {
+      "name": "Fog Cloud",
+      "src": "phb-2014",
+      "ed": "2014",
+      "target": "Fog Cloud",
+      "mode": "existing",
+      "archiveSourceKey": "SRD 5.1|2014|Spell|Fog Cloud",
+      "descriptionHash": "c9352f09",
+      "higherLevelHash": "5a32301d"
+    },
+    {
+      "name": "Forcecage",
+      "src": "phb-2014",
+      "ed": "2014",
+      "target": "Forcecage",
+      "mode": "existing",
+      "archiveSourceKey": "SRD 5.1|2014|Spell|Forcecage",
+      "descriptionHash": "15a41248",
+      "higherLevelHash": "811c9dc5"
+    },
+    {
+      "name": "Foresight",
+      "src": "phb-2014",
+      "ed": "2014",
+      "target": "Foresight",
+      "mode": "existing",
+      "archiveSourceKey": "SRD 5.1|2014|Spell|Foresight",
+      "descriptionHash": "5ea7c573",
+      "higherLevelHash": "811c9dc5"
+    },
+    {
+      "name": "Freedom of Movement",
+      "src": "phb-2014",
+      "ed": "2014",
+      "target": "Freedom of Movement",
+      "mode": "existing",
+      "archiveSourceKey": "SRD 5.1|2014|Spell|Freedom of Movement",
+      "descriptionHash": "35fa91bd",
+      "higherLevelHash": "811c9dc5"
+    },
+    {
+      "name": "Gaseous Form",
+      "src": "phb-2014",
+      "ed": "2014",
+      "target": "Gaseous Form",
+      "mode": "existing",
+      "archiveSourceKey": "SRD 5.1|2014|Spell|Gaseous Form",
+      "descriptionHash": "cb50e9c3",
+      "higherLevelHash": "811c9dc5"
+    },
+    {
+      "name": "Geas",
+      "src": "phb-2014",
+      "ed": "2014",
+      "target": "Geas",
+      "mode": "existing",
+      "archiveSourceKey": "SRD 5.1|2014|Spell|Geas",
+      "descriptionHash": "d2d12184",
+      "higherLevelHash": "9c10ec14"
+    },
+    {
+      "name": "Gentle Repose",
+      "src": "phb-2014",
+      "ed": "2014",
+      "target": "Gentle Repose",
+      "mode": "existing",
+      "archiveSourceKey": "SRD 5.1|2014|Spell|Gentle Repose",
+      "descriptionHash": "1fc3b22b",
+      "higherLevelHash": "811c9dc5"
+    },
+    {
+      "name": "Giant Insect",
+      "src": "phb-2014",
+      "ed": "2014",
+      "target": "Giant Insect",
+      "mode": "existing",
+      "archiveSourceKey": "SRD 5.1|2014|Spell|Giant Insect",
+      "descriptionHash": "88056235",
+      "higherLevelHash": "811c9dc5"
+    },
+    {
+      "name": "Glibness",
+      "src": "phb-2014",
+      "ed": "2014",
+      "target": "Glibness",
+      "mode": "existing",
+      "archiveSourceKey": "SRD 5.1|2014|Spell|Glibness",
+      "descriptionHash": "43af942e",
+      "higherLevelHash": "811c9dc5"
+    },
+    {
+      "name": "Glyph of Warding",
+      "src": "phb-2014",
+      "ed": "2014",
+      "target": "Glyph of Warding",
+      "mode": "existing",
+      "archiveSourceKey": "SRD 5.1|2014|Spell|Glyph of Warding",
+      "descriptionHash": "e8d83cc0",
+      "higherLevelHash": "0d533887"
+    },
+    {
+      "name": "Goodberry",
+      "src": "phb-2014",
+      "ed": "2014",
+      "target": "Goodberry",
+      "mode": "existing",
+      "archiveSourceKey": "SRD 5.1|2014|Spell|Goodberry",
+      "descriptionHash": "87f8c362",
+      "higherLevelHash": "811c9dc5"
+    },
+    {
+      "name": "Grease",
+      "src": "phb-2014",
+      "ed": "2014",
+      "target": "Grease",
+      "mode": "existing",
+      "archiveSourceKey": "SRD 5.1|2014|Spell|Grease",
+      "descriptionHash": "2812bb01",
+      "higherLevelHash": "811c9dc5"
+    },
+    {
+      "name": "Greater Invisibility",
+      "src": "phb-2014",
+      "ed": "2014",
+      "target": "Greater Invisibility",
+      "mode": "existing",
+      "archiveSourceKey": "SRD 5.1|2014|Spell|Greater Invisibility",
+      "descriptionHash": "133868f8",
+      "higherLevelHash": "811c9dc5"
+    },
+    {
+      "name": "Greater Restoration",
+      "src": "phb-2014",
+      "ed": "2014",
+      "target": "Greater Restoration",
+      "mode": "existing",
+      "archiveSourceKey": "SRD 5.1|2014|Spell|Greater Restoration",
+      "descriptionHash": "6493d290",
+      "higherLevelHash": "811c9dc5"
+    },
+    {
+      "name": "Guardian of Faith",
+      "src": "phb-2014",
+      "ed": "2014",
+      "target": "Guardian of Faith",
+      "mode": "existing",
+      "archiveSourceKey": "SRD 5.1|2014|Spell|Guardian of Faith",
+      "descriptionHash": "239fd39f",
+      "higherLevelHash": "811c9dc5"
+    },
+    {
+      "name": "Guards and Wards",
+      "src": "phb-2014",
+      "ed": "2014",
+      "target": "Guards and Wards",
+      "mode": "existing",
+      "archiveSourceKey": "SRD 5.1|2014|Spell|Guards and Wards",
+      "descriptionHash": "fce67ec7",
+      "higherLevelHash": "811c9dc5"
+    },
+    {
+      "name": "Guidance",
+      "src": "phb-2014",
+      "ed": "2014",
+      "target": "Guidance",
+      "mode": "existing",
+      "archiveSourceKey": "SRD 5.1|2014|Spell|Guidance",
+      "descriptionHash": "a435d531",
+      "higherLevelHash": "811c9dc5"
+    },
+    {
+      "name": "Guiding Bolt",
+      "src": "phb-2014",
+      "ed": "2014",
+      "target": "Guiding Bolt",
+      "mode": "existing",
+      "archiveSourceKey": "SRD 5.1|2014|Spell|Guiding Bolt",
+      "descriptionHash": "c723559f",
+      "higherLevelHash": "0fd0fe25"
+    },
+    {
+      "name": "Hallow",
+      "src": "phb-2014",
+      "ed": "2014",
+      "target": "Hallow",
+      "mode": "existing",
+      "archiveSourceKey": "SRD 5.1|2014|Spell|Hallow",
+      "descriptionHash": "5b9e4b18",
+      "higherLevelHash": "811c9dc5"
+    },
+    {
+      "name": "Hallucinatory Terrain",
+      "src": "phb-2014",
+      "ed": "2014",
+      "target": "Hallucinatory Terrain",
+      "mode": "existing",
+      "archiveSourceKey": "SRD 5.1|2014|Spell|Hallucinatory Terrain",
+      "descriptionHash": "aa6b4beb",
+      "higherLevelHash": "811c9dc5"
+    },
+    {
+      "name": "Harm",
+      "src": "phb-2014",
+      "ed": "2014",
+      "target": "Harm",
+      "mode": "existing",
+      "archiveSourceKey": "SRD 5.1|2014|Spell|Harm",
+      "descriptionHash": "c50ac83f",
+      "higherLevelHash": "811c9dc5"
+    },
+    {
+      "name": "Haste",
+      "src": "phb-2014",
+      "ed": "2014",
+      "target": "Haste",
+      "mode": "existing",
+      "archiveSourceKey": "SRD 5.1|2014|Spell|Haste",
+      "descriptionHash": "744b162b",
+      "higherLevelHash": "811c9dc5"
+    },
+    {
+      "name": "Heal",
+      "src": "phb-2014",
+      "ed": "2014",
+      "target": "Heal",
+      "mode": "existing",
+      "archiveSourceKey": "SRD 5.1|2014|Spell|Heal",
+      "descriptionHash": "0cb60433",
+      "higherLevelHash": "d750e5b6"
+    },
+    {
+      "name": "Healing Word",
+      "src": "phb-2014",
+      "ed": "2014",
+      "target": "Healing Word",
+      "mode": "existing",
+      "archiveSourceKey": "SRD 5.1|2014|Spell|Healing Word",
+      "descriptionHash": "26fa5433",
+      "higherLevelHash": "716a68a4"
+    },
+    {
+      "name": "Heat Metal",
+      "src": "phb-2014",
+      "ed": "2014",
+      "target": "Heat Metal",
+      "mode": "existing",
+      "archiveSourceKey": "SRD 5.1|2014|Spell|Heat Metal",
+      "descriptionHash": "0c02f263",
+      "higherLevelHash": "504eb454"
+    },
+    {
+      "name": "Hellish Rebuke",
+      "src": "phb-2014",
+      "ed": "2014",
+      "target": "Hellish Rebuke",
+      "mode": "existing",
+      "archiveSourceKey": "SRD 5.1|2014|Spell|Hellish Rebuke",
+      "descriptionHash": "044cdea1",
+      "higherLevelHash": "037af630"
+    },
+    {
+      "name": "Heroes' Feast",
+      "src": "phb-2014",
+      "ed": "2014",
+      "target": "Heroes' Feast",
+      "mode": "existing",
+      "archiveSourceKey": "SRD 5.1|2014|Spell|Heroes' Feast",
+      "descriptionHash": "219d1b9a",
+      "higherLevelHash": "811c9dc5"
+    },
+    {
+      "name": "Heroism",
+      "src": "phb-2014",
+      "ed": "2014",
+      "target": "Heroism",
+      "mode": "existing",
+      "archiveSourceKey": "SRD 5.1|2014|Spell|Heroism",
+      "descriptionHash": "f4b0dfc9",
+      "higherLevelHash": "811c9dc5"
+    },
+    {
+      "name": "Hold Monster",
+      "src": "phb-2014",
+      "ed": "2014",
+      "target": "Hold Monster",
+      "mode": "existing",
+      "archiveSourceKey": "SRD 5.1|2014|Spell|Hold Monster",
+      "descriptionHash": "2a9b041c",
+      "higherLevelHash": "e4d34128"
+    },
+    {
+      "name": "Hold Person",
+      "src": "phb-2014",
+      "ed": "2014",
+      "target": "Hold Person",
+      "mode": "existing",
+      "archiveSourceKey": "SRD 5.1|2014|Spell|Hold Person",
+      "descriptionHash": "25d782d8",
+      "higherLevelHash": "785bcfe2"
+    },
+    {
+      "name": "Holy Aura",
+      "src": "phb-2014",
+      "ed": "2014",
+      "target": "Holy Aura",
+      "mode": "existing",
+      "archiveSourceKey": "SRD 5.1|2014|Spell|Holy Aura",
+      "descriptionHash": "e17f9b3d",
+      "higherLevelHash": "811c9dc5"
+    },
+    {
+      "name": "Hunter's Mark",
+      "src": "phb-2014",
+      "ed": "2014",
+      "target": "Hunter's Mark",
+      "mode": "existing",
+      "archiveSourceKey": "SRD 5.1|2014|Spell|Hunter's Mark",
+      "descriptionHash": "90a30652",
+      "higherLevelHash": "4fdd0628"
+    },
+    {
+      "name": "Hypnotic Pattern",
+      "src": "phb-2014",
+      "ed": "2014",
+      "target": "Hypnotic Pattern",
+      "mode": "existing",
+      "archiveSourceKey": "SRD 5.1|2014|Spell|Hypnotic Pattern",
+      "descriptionHash": "65a6c8d3",
+      "higherLevelHash": "811c9dc5"
+    },
+    {
+      "name": "Ice Storm",
+      "src": "phb-2014",
+      "ed": "2014",
+      "target": "Ice Storm",
+      "mode": "existing",
+      "archiveSourceKey": "SRD 5.1|2014|Spell|Ice Storm",
+      "descriptionHash": "4cec8da9",
+      "higherLevelHash": "08b3c906"
+    },
+    {
+      "name": "Identify",
+      "src": "phb-2014",
+      "ed": "2014",
+      "target": "Identify",
+      "mode": "existing",
+      "archiveSourceKey": "SRD 5.1|2014|Spell|Identify",
+      "descriptionHash": "64153ae6",
+      "higherLevelHash": "811c9dc5"
+    },
+    {
+      "name": "Illusory Script",
+      "src": "phb-2014",
+      "ed": "2014",
+      "target": "Illusory Script",
+      "mode": "existing",
+      "archiveSourceKey": "SRD 5.1|2014|Spell|Illusory Script",
+      "descriptionHash": "89dc982d",
+      "higherLevelHash": "811c9dc5"
+    },
+    {
+      "name": "Imprisonment",
+      "src": "phb-2014",
+      "ed": "2014",
+      "target": "Imprisonment",
+      "mode": "existing",
+      "archiveSourceKey": "SRD 5.1|2014|Spell|Imprisonment",
+      "descriptionHash": "d73236ba",
+      "higherLevelHash": "811c9dc5"
+    },
+    {
+      "name": "Incendiary Cloud",
+      "src": "phb-2014",
+      "ed": "2014",
+      "target": "Incendiary Cloud",
+      "mode": "existing",
+      "archiveSourceKey": "SRD 5.1|2014|Spell|Incendiary Cloud",
+      "descriptionHash": "5e48c14a",
+      "higherLevelHash": "811c9dc5"
+    },
+    {
+      "name": "Inflict Wounds",
+      "src": "phb-2014",
+      "ed": "2014",
+      "target": "Inflict Wounds",
+      "mode": "existing",
+      "archiveSourceKey": "SRD 5.1|2014|Spell|Inflict Wounds",
+      "descriptionHash": "a0a31ac4",
+      "higherLevelHash": "037af630"
+    },
+    {
+      "name": "Insect Plague",
+      "src": "phb-2014",
+      "ed": "2014",
+      "target": "Insect Plague",
+      "mode": "existing",
+      "archiveSourceKey": "SRD 5.1|2014|Spell|Insect Plague",
+      "descriptionHash": "b770ffe8",
+      "higherLevelHash": "333bb5a7"
+    },
+    {
+      "name": "Invisibility",
+      "src": "phb-2014",
+      "ed": "2014",
+      "target": "Invisibility",
+      "mode": "existing",
+      "archiveSourceKey": "SRD 5.1|2014|Spell|Invisibility",
+      "descriptionHash": "f5b72e76",
+      "higherLevelHash": "bdb7e437"
+    },
+    {
+      "name": "Jump",
+      "src": "phb-2014",
+      "ed": "2014",
+      "target": "Jump",
+      "mode": "existing",
+      "archiveSourceKey": "SRD 5.1|2014|Spell|Jump",
+      "descriptionHash": "3185fd2b",
+      "higherLevelHash": "811c9dc5"
+    },
+    {
+      "name": "Knock",
+      "src": "phb-2014",
+      "ed": "2014",
+      "target": "Knock",
+      "mode": "existing",
+      "archiveSourceKey": "SRD 5.1|2014|Spell|Knock",
+      "descriptionHash": "ce6dbee7",
+      "higherLevelHash": "811c9dc5"
+    },
+    {
+      "name": "Legend Lore",
+      "src": "phb-2014",
+      "ed": "2014",
+      "target": "Legend Lore",
+      "mode": "existing",
+      "archiveSourceKey": "SRD 5.1|2014|Spell|Legend Lore",
+      "descriptionHash": "d74f2312",
+      "higherLevelHash": "811c9dc5"
+    },
+    {
+      "name": "Lesser Restoration",
+      "src": "phb-2014",
+      "ed": "2014",
+      "target": "Lesser Restoration",
+      "mode": "existing",
+      "archiveSourceKey": "SRD 5.1|2014|Spell|Lesser Restoration",
+      "descriptionHash": "54f482e1",
+      "higherLevelHash": "811c9dc5"
+    },
+    {
+      "name": "Light",
+      "src": "phb-2014",
+      "ed": "2014",
+      "target": "Light",
+      "mode": "existing",
+      "archiveSourceKey": "SRD 5.1|2014|Spell|Light",
+      "descriptionHash": "58970f80",
+      "higherLevelHash": "811c9dc5"
+    },
+    {
+      "name": "Locate Animals or Plants",
+      "src": "phb-2014",
+      "ed": "2014",
+      "target": "Locate Animals or Plants",
+      "mode": "existing",
+      "archiveSourceKey": "SRD 5.1|2014|Spell|Locate Animals or Plants",
+      "descriptionHash": "4ae83e5e",
+      "higherLevelHash": "811c9dc5"
+    },
+    {
+      "name": "Locate Creature",
+      "src": "phb-2014",
+      "ed": "2014",
+      "target": "Locate Creature",
+      "mode": "existing",
+      "archiveSourceKey": "SRD 5.1|2014|Spell|Locate Creature",
+      "descriptionHash": "702cd89e",
+      "higherLevelHash": "811c9dc5"
+    },
+    {
+      "name": "Locate Object",
+      "src": "phb-2014",
+      "ed": "2014",
+      "target": "Locate Object",
+      "mode": "existing",
+      "archiveSourceKey": "SRD 5.1|2014|Spell|Locate Object",
+      "descriptionHash": "5d065090",
+      "higherLevelHash": "811c9dc5"
+    },
+    {
+      "name": "Longstrider",
+      "src": "phb-2014",
+      "ed": "2014",
+      "target": "Longstrider",
+      "mode": "existing",
+      "archiveSourceKey": "SRD 5.1|2014|Spell|Longstrider",
+      "descriptionHash": "5a734a8a",
+      "higherLevelHash": "70a885ca"
+    },
+    {
+      "name": "Mage Armor",
+      "src": "phb-2014",
+      "ed": "2014",
+      "target": "Mage Armor",
+      "mode": "existing",
+      "archiveSourceKey": "SRD 5.1|2014|Spell|Mage Armor",
+      "descriptionHash": "96e409d8",
+      "higherLevelHash": "811c9dc5"
+    },
+    {
+      "name": "Mage Hand",
+      "src": "phb-2014",
+      "ed": "2014",
+      "target": "Mage Hand",
+      "mode": "existing",
+      "archiveSourceKey": "SRD 5.1|2014|Spell|Mage Hand",
+      "descriptionHash": "1a75d30e",
+      "higherLevelHash": "811c9dc5"
+    },
+    {
+      "name": "Magic Circle",
+      "src": "phb-2014",
+      "ed": "2014",
+      "target": "Magic Circle",
+      "mode": "existing",
+      "archiveSourceKey": "SRD 5.1|2014|Spell|Magic Circle",
+      "descriptionHash": "c8b042f5",
+      "higherLevelHash": "b5a2ad1b"
+    },
+    {
+      "name": "Magic Jar",
+      "src": "phb-2014",
+      "ed": "2014",
+      "target": "Magic Jar",
+      "mode": "existing",
+      "archiveSourceKey": "SRD 5.1|2014|Spell|Magic Jar",
+      "descriptionHash": "36eac4c8",
+      "higherLevelHash": "811c9dc5"
+    },
+    {
+      "name": "Magic Mouth",
+      "src": "phb-2014",
+      "ed": "2014",
+      "target": "Magic Mouth",
+      "mode": "existing",
+      "archiveSourceKey": "SRD 5.1|2014|Spell|Magic Mouth",
+      "descriptionHash": "76aa911a",
+      "higherLevelHash": "811c9dc5"
+    },
+    {
+      "name": "Magic Weapon",
+      "src": "phb-2014",
+      "ed": "2014",
+      "target": "Magic Weapon",
+      "mode": "existing",
+      "archiveSourceKey": "SRD 5.1|2014|Spell|Magic Weapon",
+      "descriptionHash": "387e461c",
+      "higherLevelHash": "8c003b3e"
+    },
+    {
+      "name": "Major Image",
+      "src": "phb-2014",
+      "ed": "2014",
+      "target": "Major Image",
+      "mode": "existing",
+      "archiveSourceKey": "SRD 5.1|2014|Spell|Major Image",
+      "descriptionHash": "dadae870",
+      "higherLevelHash": "dae5138b"
+    },
+    {
+      "name": "Mass Healing Word",
+      "src": "phb-2014",
+      "ed": "2014",
+      "target": "Mass Healing Word",
+      "mode": "existing",
+      "archiveSourceKey": "SRD 5.1|2014|Spell|Mass Healing Word",
+      "descriptionHash": "447d3039",
+      "higherLevelHash": "791e998d"
+    },
+    {
+      "name": "Mass Suggestion",
+      "src": "phb-2014",
+      "ed": "2014",
+      "target": "Mass Suggestion",
+      "mode": "existing",
+      "archiveSourceKey": "SRD 5.1|2014|Spell|Mass Suggestion",
+      "descriptionHash": "00eac843",
+      "higherLevelHash": "6edd1b34"
+    },
+    {
+      "name": "Maze",
+      "src": "phb-2014",
+      "ed": "2014",
+      "target": "Maze",
+      "mode": "existing",
+      "archiveSourceKey": "SRD 5.1|2014|Spell|Maze",
+      "descriptionHash": "954f5ec2",
+      "higherLevelHash": "811c9dc5"
+    },
+    {
+      "name": "Mending",
+      "src": "phb-2014",
+      "ed": "2014",
+      "target": "Mending",
+      "mode": "existing",
+      "archiveSourceKey": "SRD 5.1|2014|Spell|Mending",
+      "descriptionHash": "b1e7cc84",
+      "higherLevelHash": "811c9dc5"
+    },
+    {
+      "name": "Message",
+      "src": "phb-2014",
+      "ed": "2014",
+      "target": "Message",
+      "mode": "existing",
+      "archiveSourceKey": "SRD 5.1|2014|Spell|Message",
+      "descriptionHash": "5e66d018",
+      "higherLevelHash": "811c9dc5"
+    },
+    {
+      "name": "Mind Blank",
+      "src": "phb-2014",
+      "ed": "2014",
+      "target": "Mind Blank",
+      "mode": "existing",
+      "archiveSourceKey": "SRD 5.1|2014|Spell|Mind Blank",
+      "descriptionHash": "84c6d565",
+      "higherLevelHash": "811c9dc5"
+    },
+    {
+      "name": "Minor Illusion",
+      "src": "phb-2014",
+      "ed": "2014",
+      "target": "Minor Illusion",
+      "mode": "existing",
+      "archiveSourceKey": "SRD 5.1|2014|Spell|Minor Illusion",
+      "descriptionHash": "31dd85ea",
+      "higherLevelHash": "811c9dc5"
+    },
+    {
+      "name": "Mirage Arcane",
+      "src": "phb-2014",
+      "ed": "2014",
+      "target": "Mirage Arcane",
+      "mode": "existing",
+      "archiveSourceKey": "SRD 5.1|2014|Spell|Mirage Arcane",
+      "descriptionHash": "9cb63542",
+      "higherLevelHash": "811c9dc5"
+    },
+    {
+      "name": "Mirror Image",
+      "src": "phb-2014",
+      "ed": "2014",
+      "target": "Mirror Image",
+      "mode": "existing",
+      "archiveSourceKey": "SRD 5.1|2014|Spell|Mirror Image",
+      "descriptionHash": "45eb9fd4",
+      "higherLevelHash": "811c9dc5"
+    },
+    {
+      "name": "Mislead",
+      "src": "phb-2014",
+      "ed": "2014",
+      "target": "Mislead",
+      "mode": "existing",
+      "archiveSourceKey": "SRD 5.1|2014|Spell|Mislead",
+      "descriptionHash": "ae784190",
+      "higherLevelHash": "811c9dc5"
+    },
+    {
+      "name": "Misty Step",
+      "src": "phb-2014",
+      "ed": "2014",
+      "target": "Misty Step",
+      "mode": "existing",
+      "archiveSourceKey": "SRD 5.1|2014|Spell|Misty Step",
+      "descriptionHash": "1e333752",
+      "higherLevelHash": "811c9dc5"
+    },
+    {
+      "name": "Modify Memory",
+      "src": "phb-2014",
+      "ed": "2014",
+      "target": "Modify Memory",
+      "mode": "existing",
+      "archiveSourceKey": "SRD 5.1|2014|Spell|Modify Memory",
+      "descriptionHash": "67c40cbf",
+      "higherLevelHash": "4d99e58d"
+    },
+    {
+      "name": "Moonbeam",
+      "src": "phb-2014",
+      "ed": "2014",
+      "target": "Moonbeam",
+      "mode": "existing",
+      "archiveSourceKey": "SRD 5.1|2014|Spell|Moonbeam",
+      "descriptionHash": "0d6579b3",
+      "higherLevelHash": "a71d9dc2"
+    },
+    {
+      "name": "Move Earth",
+      "src": "phb-2014",
+      "ed": "2014",
+      "target": "Move Earth",
+      "mode": "existing",
+      "archiveSourceKey": "SRD 5.1|2014|Spell|Move Earth",
+      "descriptionHash": "05c8fee0",
+      "higherLevelHash": "811c9dc5"
+    },
+    {
+      "name": "Nondetection",
+      "src": "phb-2014",
+      "ed": "2014",
+      "target": "Nondetection",
+      "mode": "existing",
+      "archiveSourceKey": "SRD 5.1|2014|Spell|Nondetection",
+      "descriptionHash": "10ada261",
+      "higherLevelHash": "811c9dc5"
+    },
+    {
+      "name": "Passwall",
+      "src": "phb-2014",
+      "ed": "2014",
+      "target": "Passwall",
+      "mode": "existing",
+      "archiveSourceKey": "SRD 5.1|2014|Spell|Passwall",
+      "descriptionHash": "fa01d40f",
+      "higherLevelHash": "811c9dc5"
+    },
+    {
+      "name": "Phantasmal Killer",
+      "src": "phb-2014",
+      "ed": "2014",
+      "target": "Phantasmal Killer",
+      "mode": "existing",
+      "archiveSourceKey": "SRD 5.1|2014|Spell|Phantasmal Killer",
+      "descriptionHash": "f1837070",
+      "higherLevelHash": "a5434f15"
+    },
+    {
+      "name": "Phantom Steed",
+      "src": "phb-2014",
+      "ed": "2014",
+      "target": "Phantom Steed",
+      "mode": "existing",
+      "archiveSourceKey": "SRD 5.1|2014|Spell|Phantom Steed",
+      "descriptionHash": "9153a517",
+      "higherLevelHash": "811c9dc5"
+    },
+    {
+      "name": "Planar Ally",
+      "src": "phb-2014",
+      "ed": "2014",
+      "target": "Planar Ally",
+      "mode": "existing",
+      "archiveSourceKey": "SRD 5.1|2014|Spell|Planar Ally",
+      "descriptionHash": "24c0c99d",
+      "higherLevelHash": "811c9dc5"
+    },
+    {
+      "name": "Planar Binding",
+      "src": "phb-2014",
+      "ed": "2014",
+      "target": "Planar Binding",
+      "mode": "existing",
+      "archiveSourceKey": "SRD 5.1|2014|Spell|Planar Binding",
+      "descriptionHash": "96942646",
+      "higherLevelHash": "cc68ec2c"
+    },
+    {
+      "name": "Plane Shift",
+      "src": "phb-2014",
+      "ed": "2014",
+      "target": "Plane Shift",
+      "mode": "existing",
+      "archiveSourceKey": "SRD 5.1|2014|Spell|Plane Shift",
+      "descriptionHash": "c977bdaf",
+      "higherLevelHash": "811c9dc5"
+    },
+    {
+      "name": "Poison Spray",
+      "src": "phb-2014",
+      "ed": "2014",
+      "target": "Poison Spray",
+      "mode": "existing",
+      "archiveSourceKey": "SRD 5.1|2014|Spell|Poison Spray",
+      "descriptionHash": "0d46d6c2",
+      "higherLevelHash": "811c9dc5"
+    },
+    {
+      "name": "Polymorph",
+      "src": "phb-2014",
+      "ed": "2014",
+      "target": "Polymorph",
+      "mode": "existing",
+      "archiveSourceKey": "SRD 5.1|2014|Spell|Polymorph",
+      "descriptionHash": "7e086e34",
+      "higherLevelHash": "811c9dc5"
+    },
+    {
+      "name": "Power Word Kill",
+      "src": "phb-2014",
+      "ed": "2014",
+      "target": "Power Word Kill",
+      "mode": "existing",
+      "archiveSourceKey": "SRD 5.1|2014|Spell|Power Word Kill",
+      "descriptionHash": "a795ed97",
+      "higherLevelHash": "811c9dc5"
+    },
+    {
+      "name": "Power Word Stun",
+      "src": "phb-2014",
+      "ed": "2014",
+      "target": "Power Word Stun",
+      "mode": "existing",
+      "archiveSourceKey": "SRD 5.1|2014|Spell|Power Word Stun",
+      "descriptionHash": "f771b502",
+      "higherLevelHash": "811c9dc5"
+    },
+    {
+      "name": "Prayer of Healing",
+      "src": "phb-2014",
+      "ed": "2014",
+      "target": "Prayer of Healing",
+      "mode": "existing",
+      "archiveSourceKey": "SRD 5.1|2014|Spell|Prayer of Healing",
+      "descriptionHash": "5fc73652",
+      "higherLevelHash": "2227ba29"
+    },
+    {
+      "name": "Prestidigitation",
+      "src": "phb-2014",
+      "ed": "2014",
+      "target": "Prestidigitation",
+      "mode": "existing",
+      "archiveSourceKey": "SRD 5.1|2014|Spell|Prestidigitation",
+      "descriptionHash": "1604f3c6",
+      "higherLevelHash": "811c9dc5"
+    },
+    {
+      "name": "Prismatic Wall",
+      "src": "phb-2014",
+      "ed": "2014",
+      "target": "Prismatic Wall",
+      "mode": "existing",
+      "archiveSourceKey": "SRD 5.1|2014|Spell|Prismatic Wall",
+      "descriptionHash": "a66a9096",
+      "higherLevelHash": "811c9dc5"
+    },
+    {
+      "name": "Produce Flame",
+      "src": "phb-2014",
+      "ed": "2014",
+      "target": "Produce Flame",
+      "mode": "existing",
+      "archiveSourceKey": "SRD 5.1|2014|Spell|Produce Flame",
+      "descriptionHash": "155887cc",
+      "higherLevelHash": "811c9dc5"
+    },
+    {
+      "name": "Programmed Illusion",
+      "src": "phb-2014",
+      "ed": "2014",
+      "target": "Programmed Illusion",
+      "mode": "existing",
+      "archiveSourceKey": "SRD 5.1|2014|Spell|Programmed Illusion",
+      "descriptionHash": "734a5b4c",
+      "higherLevelHash": "811c9dc5"
+    },
+    {
+      "name": "Protection from Evil and Good",
+      "src": "phb-2014",
+      "ed": "2014",
+      "target": "Protection from Evil and Good",
+      "mode": "existing",
+      "archiveSourceKey": "SRD 5.1|2014|Spell|Protection from Evil and Good",
+      "descriptionHash": "8e3b9c44",
+      "higherLevelHash": "811c9dc5"
+    },
+    {
+      "name": "Protection from Poison",
+      "src": "phb-2014",
+      "ed": "2014",
+      "target": "Protection from Poison",
+      "mode": "existing",
+      "archiveSourceKey": "SRD 5.1|2014|Spell|Protection from Poison",
+      "descriptionHash": "3467d232",
+      "higherLevelHash": "811c9dc5"
+    },
+    {
+      "name": "Purify Food and Drink",
+      "src": "phb-2014",
+      "ed": "2014",
+      "target": "Purify Food and Drink",
+      "mode": "existing",
+      "archiveSourceKey": "SRD 5.1|2014|Spell|Purify Food and Drink",
+      "descriptionHash": "2de72910",
+      "higherLevelHash": "811c9dc5"
+    },
+    {
+      "name": "Raise Dead",
+      "src": "phb-2014",
+      "ed": "2014",
+      "target": "Raise Dead",
+      "mode": "existing",
+      "archiveSourceKey": "SRD 5.1|2014|Spell|Raise Dead",
+      "descriptionHash": "7716e4ad",
+      "higherLevelHash": "811c9dc5"
+    },
+    {
+      "name": "Ray of Enfeeblement",
+      "src": "phb-2014",
+      "ed": "2014",
+      "target": "Ray of Enfeeblement",
+      "mode": "existing",
+      "archiveSourceKey": "SRD 5.1|2014|Spell|Ray of Enfeeblement",
+      "descriptionHash": "03578180",
+      "higherLevelHash": "811c9dc5"
+    },
+    {
+      "name": "Ray of Frost",
+      "src": "phb-2014",
+      "ed": "2014",
+      "target": "Ray of Frost",
+      "mode": "existing",
+      "archiveSourceKey": "SRD 5.1|2014|Spell|Ray of Frost",
+      "descriptionHash": "b5573080",
+      "higherLevelHash": "811c9dc5"
+    },
+    {
+      "name": "Regenerate",
+      "src": "phb-2014",
+      "ed": "2014",
+      "target": "Regenerate",
+      "mode": "existing",
+      "archiveSourceKey": "SRD 5.1|2014|Spell|Regenerate",
+      "descriptionHash": "85035f15",
+      "higherLevelHash": "811c9dc5"
+    },
+    {
+      "name": "Reincarnate",
+      "src": "phb-2014",
+      "ed": "2014",
+      "target": "Reincarnate",
+      "mode": "existing",
+      "archiveSourceKey": "SRD 5.1|2014|Spell|Reincarnate",
+      "descriptionHash": "33c15210",
+      "higherLevelHash": "811c9dc5"
+    },
+    {
+      "name": "Remove Curse",
+      "src": "phb-2014",
+      "ed": "2014",
+      "target": "Remove Curse",
+      "mode": "existing",
+      "archiveSourceKey": "SRD 5.1|2014|Spell|Remove Curse",
+      "descriptionHash": "3376ee85",
+      "higherLevelHash": "811c9dc5"
+    },
+    {
+      "name": "Resistance",
+      "src": "phb-2014",
+      "ed": "2014",
+      "target": "Resistance",
+      "mode": "existing",
+      "archiveSourceKey": "SRD 5.1|2014|Spell|Resistance",
+      "descriptionHash": "659e5fff",
+      "higherLevelHash": "811c9dc5"
+    },
+    {
+      "name": "Resurrection",
+      "src": "phb-2014",
+      "ed": "2014",
+      "target": "Resurrection",
+      "mode": "existing",
+      "archiveSourceKey": "SRD 5.1|2014|Spell|Resurrection",
+      "descriptionHash": "2a42ebc1",
+      "higherLevelHash": "811c9dc5"
+    },
+    {
+      "name": "Reverse Gravity",
+      "src": "phb-2014",
+      "ed": "2014",
+      "target": "Reverse Gravity",
+      "mode": "existing",
+      "archiveSourceKey": "SRD 5.1|2014|Spell|Reverse Gravity",
+      "descriptionHash": "2efc30d9",
+      "higherLevelHash": "811c9dc5"
+    },
+    {
+      "name": "Rope Trick",
+      "src": "phb-2014",
+      "ed": "2014",
+      "target": "Rope Trick",
+      "mode": "existing",
+      "archiveSourceKey": "SRD 5.1|2014|Spell|Rope Trick",
+      "descriptionHash": "b28b3a16",
+      "higherLevelHash": "811c9dc5"
+    },
+    {
+      "name": "Sacred Flame",
+      "src": "phb-2014",
+      "ed": "2014",
+      "target": "Sacred Flame",
+      "mode": "existing",
+      "archiveSourceKey": "SRD 5.1|2014|Spell|Sacred Flame",
+      "descriptionHash": "02a7973f",
+      "higherLevelHash": "811c9dc5"
+    },
+    {
+      "name": "Sanctuary",
+      "src": "phb-2014",
+      "ed": "2014",
+      "target": "Sanctuary",
+      "mode": "existing",
+      "archiveSourceKey": "SRD 5.1|2014|Spell|Sanctuary",
+      "descriptionHash": "9b585441",
+      "higherLevelHash": "811c9dc5"
+    },
+    {
+      "name": "Scrying",
+      "src": "phb-2014",
+      "ed": "2014",
+      "target": "Scrying",
+      "mode": "existing",
+      "archiveSourceKey": "SRD 5.1|2014|Spell|Scrying",
+      "descriptionHash": "e295a307",
+      "higherLevelHash": "811c9dc5"
+    },
+    {
+      "name": "See Invisibility",
+      "src": "phb-2014",
+      "ed": "2014",
+      "target": "See Invisibility",
+      "mode": "existing",
+      "archiveSourceKey": "SRD 5.1|2014|Spell|See Invisibility",
+      "descriptionHash": "d3f5c24d",
+      "higherLevelHash": "811c9dc5"
+    },
+    {
+      "name": "Seeming",
+      "src": "phb-2014",
+      "ed": "2014",
+      "target": "Seeming",
+      "mode": "existing",
+      "archiveSourceKey": "SRD 5.1|2014|Spell|Seeming",
+      "descriptionHash": "171c88f5",
+      "higherLevelHash": "811c9dc5"
+    },
+    {
+      "name": "Sending",
+      "src": "phb-2014",
+      "ed": "2014",
+      "target": "Sending",
+      "mode": "existing",
+      "archiveSourceKey": "SRD 5.1|2014|Spell|Sending",
+      "descriptionHash": "63d8cf88",
+      "higherLevelHash": "811c9dc5"
+    },
+    {
+      "name": "Sequester",
+      "src": "phb-2014",
+      "ed": "2014",
+      "target": "Sequester",
+      "mode": "existing",
+      "archiveSourceKey": "SRD 5.1|2014|Spell|Sequester",
+      "descriptionHash": "04d05d5c",
+      "higherLevelHash": "811c9dc5"
+    },
+    {
+      "name": "Shapechange",
+      "src": "phb-2014",
+      "ed": "2014",
+      "target": "Shapechange",
+      "mode": "existing",
+      "archiveSourceKey": "SRD 5.1|2014|Spell|Shapechange",
+      "descriptionHash": "786c24d8",
+      "higherLevelHash": "811c9dc5"
+    },
+    {
+      "name": "Shatter",
+      "src": "phb-2014",
+      "ed": "2014",
+      "target": "Shatter",
+      "mode": "existing",
+      "archiveSourceKey": "SRD 5.1|2014|Spell|Shatter",
+      "descriptionHash": "2f05ee78",
+      "higherLevelHash": "ee6b5c74"
+    },
+    {
+      "name": "Shield",
+      "src": "phb-2014",
+      "ed": "2014",
+      "target": "Shield",
+      "mode": "existing",
+      "archiveSourceKey": "SRD 5.1|2014|Spell|Shield",
+      "descriptionHash": "e0d263b0",
+      "higherLevelHash": "811c9dc5"
+    },
+    {
+      "name": "Shield of Faith",
+      "src": "phb-2014",
+      "ed": "2014",
+      "target": "Shield of Faith",
+      "mode": "existing",
+      "archiveSourceKey": "SRD 5.1|2014|Spell|Shield of Faith",
+      "descriptionHash": "926614cf",
+      "higherLevelHash": "811c9dc5"
+    },
+    {
+      "name": "Shillelagh",
+      "src": "phb-2014",
+      "ed": "2014",
+      "target": "Shillelagh",
+      "mode": "existing",
+      "archiveSourceKey": "SRD 5.1|2014|Spell|Shillelagh",
+      "descriptionHash": "d754221c",
+      "higherLevelHash": "811c9dc5"
+    },
+    {
+      "name": "Shocking Grasp",
+      "src": "phb-2014",
+      "ed": "2014",
+      "target": "Shocking Grasp",
+      "mode": "existing",
+      "archiveSourceKey": "SRD 5.1|2014|Spell|Shocking Grasp",
+      "descriptionHash": "eadbd7a4",
+      "higherLevelHash": "811c9dc5"
+    },
+    {
+      "name": "Silence",
+      "src": "phb-2014",
+      "ed": "2014",
+      "target": "Silence",
+      "mode": "existing",
+      "archiveSourceKey": "SRD 5.1|2014|Spell|Silence",
+      "descriptionHash": "1783daf2",
+      "higherLevelHash": "811c9dc5"
+    },
+    {
+      "name": "Silent Image",
+      "src": "phb-2014",
+      "ed": "2014",
+      "target": "Silent Image",
+      "mode": "existing",
+      "archiveSourceKey": "SRD 5.1|2014|Spell|Silent Image",
+      "descriptionHash": "f201607e",
+      "higherLevelHash": "811c9dc5"
+    },
+    {
+      "name": "Simulacrum",
+      "src": "phb-2014",
+      "ed": "2014",
+      "target": "Simulacrum",
+      "mode": "existing",
+      "archiveSourceKey": "SRD 5.1|2014|Spell|Simulacrum",
+      "descriptionHash": "283d617b",
+      "higherLevelHash": "811c9dc5"
+    },
+    {
+      "name": "Sleep",
+      "src": "phb-2014",
+      "ed": "2014",
+      "target": "Sleep",
+      "mode": "existing",
+      "archiveSourceKey": "SRD 5.1|2014|Spell|Sleep",
+      "descriptionHash": "c682fcce",
+      "higherLevelHash": "cd91e9ad"
+    },
+    {
+      "name": "Sleet Storm",
+      "src": "phb-2014",
+      "ed": "2014",
+      "target": "Sleet Storm",
+      "mode": "existing",
+      "archiveSourceKey": "SRD 5.1|2014|Spell|Sleet Storm",
+      "descriptionHash": "5f3a1659",
+      "higherLevelHash": "811c9dc5"
+    },
+    {
+      "name": "Slow",
+      "src": "phb-2014",
+      "ed": "2014",
+      "target": "Slow",
+      "mode": "existing",
+      "archiveSourceKey": "SRD 5.1|2014|Spell|Slow",
+      "descriptionHash": "2690dc39",
+      "higherLevelHash": "811c9dc5"
+    },
+    {
+      "name": "Spare the Dying",
+      "src": "phb-2014",
+      "ed": "2014",
+      "target": "Spare the Dying",
+      "mode": "existing",
+      "archiveSourceKey": "SRD 5.1|2014|Spell|Spare the Dying",
+      "descriptionHash": "b6dfa94f",
+      "higherLevelHash": "811c9dc5"
+    },
+    {
+      "name": "Speak with Animals",
+      "src": "phb-2014",
+      "ed": "2014",
+      "target": "Speak with Animals",
+      "mode": "existing",
+      "archiveSourceKey": "SRD 5.1|2014|Spell|Speak with Animals",
+      "descriptionHash": "8709d0a4",
+      "higherLevelHash": "811c9dc5"
+    },
+    {
+      "name": "Speak with Dead",
+      "src": "phb-2014",
+      "ed": "2014",
+      "target": "Speak with Dead",
+      "mode": "existing",
+      "archiveSourceKey": "SRD 5.1|2014|Spell|Speak with Dead",
+      "descriptionHash": "b200f6d9",
+      "higherLevelHash": "811c9dc5"
+    },
+    {
+      "name": "Spider Climb",
+      "src": "phb-2014",
+      "ed": "2014",
+      "target": "Spider Climb",
+      "mode": "existing",
+      "archiveSourceKey": "SRD 5.1|2014|Spell|Spider Climb",
+      "descriptionHash": "525cc75f",
+      "higherLevelHash": "811c9dc5"
+    },
+    {
+      "name": "Spike Growth",
+      "src": "phb-2014",
+      "ed": "2014",
+      "target": "Spike Growth",
+      "mode": "existing",
+      "archiveSourceKey": "SRD 5.1|2014|Spell|Spike Growth",
+      "descriptionHash": "e120781e",
+      "higherLevelHash": "811c9dc5"
+    },
+    {
+      "name": "Spiritual Weapon",
+      "src": "phb-2014",
+      "ed": "2014",
+      "target": "Spiritual Weapon",
+      "mode": "existing",
+      "archiveSourceKey": "SRD 5.1|2014|Spell|Spiritual Weapon",
+      "descriptionHash": "f1e42441",
+      "higherLevelHash": "3d5c52a8"
+    },
+    {
+      "name": "Stinking Cloud",
+      "src": "phb-2014",
+      "ed": "2014",
+      "target": "Stinking Cloud",
+      "mode": "existing",
+      "archiveSourceKey": "SRD 5.1|2014|Spell|Stinking Cloud",
+      "descriptionHash": "232891af",
+      "higherLevelHash": "811c9dc5"
+    },
+    {
+      "name": "Stone Shape",
+      "src": "phb-2014",
+      "ed": "2014",
+      "target": "Stone Shape",
+      "mode": "existing",
+      "archiveSourceKey": "SRD 5.1|2014|Spell|Stone Shape",
+      "descriptionHash": "f4204eb0",
+      "higherLevelHash": "811c9dc5"
+    },
+    {
+      "name": "Stoneskin",
+      "src": "phb-2014",
+      "ed": "2014",
+      "target": "Stoneskin",
+      "mode": "existing",
+      "archiveSourceKey": "SRD 5.1|2014|Spell|Stoneskin",
+      "descriptionHash": "d74224e7",
+      "higherLevelHash": "811c9dc5"
+    },
+    {
+      "name": "Storm of Vengeance",
+      "src": "phb-2014",
+      "ed": "2014",
+      "target": "Storm of Vengeance",
+      "mode": "existing",
+      "archiveSourceKey": "SRD 5.1|2014|Spell|Storm of Vengeance",
+      "descriptionHash": "1d1bb444",
+      "higherLevelHash": "811c9dc5"
+    },
+    {
+      "name": "Suggestion",
+      "src": "phb-2014",
+      "ed": "2014",
+      "target": "Suggestion",
+      "mode": "existing",
+      "archiveSourceKey": "SRD 5.1|2014|Spell|Suggestion",
+      "descriptionHash": "645bbd32",
+      "higherLevelHash": "811c9dc5"
+    },
+    {
+      "name": "Sunburst",
+      "src": "phb-2014",
+      "ed": "2014",
+      "target": "Sunburst",
+      "mode": "existing",
+      "archiveSourceKey": "SRD 5.1|2014|Spell|Sunburst",
+      "descriptionHash": "18c7630d",
+      "higherLevelHash": "811c9dc5"
+    },
+    {
+      "name": "Symbol",
+      "src": "phb-2014",
+      "ed": "2014",
+      "target": "Symbol",
+      "mode": "existing",
+      "archiveSourceKey": "SRD 5.1|2014|Spell|Symbol",
+      "descriptionHash": "6dc0c34d",
+      "higherLevelHash": "811c9dc5"
+    },
+    {
+      "name": "Telekinesis",
+      "src": "phb-2014",
+      "ed": "2014",
+      "target": "Telekinesis",
+      "mode": "existing",
+      "archiveSourceKey": "SRD 5.1|2014|Spell|Telekinesis",
+      "descriptionHash": "c1205434",
+      "higherLevelHash": "811c9dc5"
+    },
+    {
+      "name": "Teleport",
+      "src": "phb-2014",
+      "ed": "2014",
+      "target": "Teleport",
+      "mode": "existing",
+      "archiveSourceKey": "SRD 5.1|2014|Spell|Teleport",
+      "descriptionHash": "ff05b4a7",
+      "higherLevelHash": "811c9dc5"
+    },
+    {
+      "name": "Teleportation Circle",
+      "src": "phb-2014",
+      "ed": "2014",
+      "target": "Teleportation Circle",
+      "mode": "existing",
+      "archiveSourceKey": "SRD 5.1|2014|Spell|Teleportation Circle",
+      "descriptionHash": "286e08fc",
+      "higherLevelHash": "811c9dc5"
+    },
+    {
+      "name": "Thaumaturgy",
+      "src": "phb-2014",
+      "ed": "2014",
+      "target": "Thaumaturgy",
+      "mode": "existing",
+      "archiveSourceKey": "SRD 5.1|2014|Spell|Thaumaturgy",
+      "descriptionHash": "001e0d4a",
+      "higherLevelHash": "811c9dc5"
+    },
+    {
+      "name": "Time Stop",
+      "src": "phb-2014",
+      "ed": "2014",
+      "target": "Time Stop",
+      "mode": "existing",
+      "archiveSourceKey": "SRD 5.1|2014|Spell|Time Stop",
+      "descriptionHash": "6cb99c3e",
+      "higherLevelHash": "811c9dc5"
+    },
+    {
+      "name": "Tongues",
+      "src": "phb-2014",
+      "ed": "2014",
+      "target": "Tongues",
+      "mode": "existing",
+      "archiveSourceKey": "SRD 5.1|2014|Spell|Tongues",
+      "descriptionHash": "20bd0325",
+      "higherLevelHash": "811c9dc5"
+    },
+    {
+      "name": "Transport via Plants",
+      "src": "phb-2014",
+      "ed": "2014",
+      "target": "Transport via Plants",
+      "mode": "existing",
+      "archiveSourceKey": "SRD 5.1|2014|Spell|Transport via Plants",
+      "descriptionHash": "c45c8557",
+      "higherLevelHash": "811c9dc5"
+    },
+    {
+      "name": "Tree Stride",
+      "src": "phb-2014",
+      "ed": "2014",
+      "target": "Tree Stride",
+      "mode": "existing",
+      "archiveSourceKey": "SRD 5.1|2014|Spell|Tree Stride",
+      "descriptionHash": "6cb8adc8",
+      "higherLevelHash": "811c9dc5"
+    },
+    {
+      "name": "True Polymorph",
+      "src": "phb-2014",
+      "ed": "2014",
+      "target": "True Polymorph",
+      "mode": "existing",
+      "archiveSourceKey": "SRD 5.1|2014|Spell|True Polymorph",
+      "descriptionHash": "6ab9bc2a",
+      "higherLevelHash": "811c9dc5"
+    },
+    {
+      "name": "True Resurrection",
+      "src": "phb-2014",
+      "ed": "2014",
+      "target": "True Resurrection",
+      "mode": "existing",
+      "archiveSourceKey": "SRD 5.1|2014|Spell|True Resurrection",
+      "descriptionHash": "6d638f48",
+      "higherLevelHash": "811c9dc5"
+    },
+    {
+      "name": "True Seeing",
+      "src": "phb-2014",
+      "ed": "2014",
+      "target": "True Seeing",
+      "mode": "existing",
+      "archiveSourceKey": "SRD 5.1|2014|Spell|True Seeing",
+      "descriptionHash": "3efe7d80",
+      "higherLevelHash": "811c9dc5"
+    },
+    {
+      "name": "True Strike",
+      "src": "phb-2014",
+      "ed": "2014",
+      "target": "True Strike",
+      "mode": "existing",
+      "archiveSourceKey": "SRD 5.1|2014|Spell|True Strike",
+      "descriptionHash": "47be25b4",
+      "higherLevelHash": "811c9dc5"
+    },
+    {
+      "name": "Unseen Servant",
+      "src": "phb-2014",
+      "ed": "2014",
+      "target": "Unseen Servant",
+      "mode": "existing",
+      "archiveSourceKey": "SRD 5.1|2014|Spell|Unseen Servant",
+      "descriptionHash": "4bde63b7",
+      "higherLevelHash": "811c9dc5"
+    },
+    {
+      "name": "Vampiric Touch",
+      "src": "phb-2014",
+      "ed": "2014",
+      "target": "Vampiric Touch",
+      "mode": "existing",
+      "archiveSourceKey": "SRD 5.1|2014|Spell|Vampiric Touch",
+      "descriptionHash": "7e20714b",
+      "higherLevelHash": "eb33c1b8"
+    },
+    {
+      "name": "Vicious Mockery",
+      "src": "phb-2014",
+      "ed": "2014",
+      "target": "Vicious Mockery",
+      "mode": "existing",
+      "archiveSourceKey": "SRD 5.1|2014|Spell|Vicious Mockery",
+      "descriptionHash": "51478f0f",
+      "higherLevelHash": "811c9dc5"
+    },
+    {
+      "name": "Wall of Fire",
+      "src": "phb-2014",
+      "ed": "2014",
+      "target": "Wall of Fire",
+      "mode": "existing",
+      "archiveSourceKey": "SRD 5.1|2014|Spell|Wall of Fire",
+      "descriptionHash": "836060e5",
+      "higherLevelHash": "859a1ce8"
+    },
+    {
+      "name": "Wall of Force",
+      "src": "phb-2014",
+      "ed": "2014",
+      "target": "Wall of Force",
+      "mode": "existing",
+      "archiveSourceKey": "SRD 5.1|2014|Spell|Wall of Force",
+      "descriptionHash": "101b3a1d",
+      "higherLevelHash": "811c9dc5"
+    },
+    {
+      "name": "Wall of Ice",
+      "src": "phb-2014",
+      "ed": "2014",
+      "target": "Wall of Ice",
+      "mode": "existing",
+      "archiveSourceKey": "SRD 5.1|2014|Spell|Wall of Ice",
+      "descriptionHash": "1c37a824",
+      "higherLevelHash": "0283a66a"
+    },
+    {
+      "name": "Wall of Stone",
+      "src": "phb-2014",
+      "ed": "2014",
+      "target": "Wall of Stone",
+      "mode": "existing",
+      "archiveSourceKey": "SRD 5.1|2014|Spell|Wall of Stone",
+      "descriptionHash": "e46c3129",
+      "higherLevelHash": "811c9dc5"
+    },
+    {
+      "name": "Wall of Thorns",
+      "src": "phb-2014",
+      "ed": "2014",
+      "target": "Wall of Thorns",
+      "mode": "existing",
+      "archiveSourceKey": "SRD 5.1|2014|Spell|Wall of Thorns",
+      "descriptionHash": "4d7d5fd8",
+      "higherLevelHash": "97158ed1"
+    },
+    {
+      "name": "Warding Bond",
+      "src": "phb-2014",
+      "ed": "2014",
+      "target": "Warding Bond",
+      "mode": "existing",
+      "archiveSourceKey": "SRD 5.1|2014|Spell|Warding Bond",
+      "descriptionHash": "a9e17083",
+      "higherLevelHash": "811c9dc5"
+    },
+    {
+      "name": "Water Breathing",
+      "src": "phb-2014",
+      "ed": "2014",
+      "target": "Water Breathing",
+      "mode": "existing",
+      "archiveSourceKey": "SRD 5.1|2014|Spell|Water Breathing",
+      "descriptionHash": "93ce4ea5",
+      "higherLevelHash": "811c9dc5"
+    },
+    {
+      "name": "Water Walk",
+      "src": "phb-2014",
+      "ed": "2014",
+      "target": "Water Walk",
+      "mode": "existing",
+      "archiveSourceKey": "SRD 5.1|2014|Spell|Water Walk",
+      "descriptionHash": "b39aef94",
+      "higherLevelHash": "811c9dc5"
+    },
+    {
+      "name": "Weird",
+      "src": "phb-2014",
+      "ed": "2014",
+      "target": "Weird",
+      "mode": "existing",
+      "archiveSourceKey": "SRD 5.1|2014|Spell|Weird",
+      "descriptionHash": "c9f5d50f",
+      "higherLevelHash": "811c9dc5"
+    },
+    {
+      "name": "Wind Walk",
+      "src": "phb-2014",
+      "ed": "2014",
+      "target": "Wind Walk",
+      "mode": "existing",
+      "archiveSourceKey": "SRD 5.1|2014|Spell|Wind Walk",
+      "descriptionHash": "8d51d10e",
+      "higherLevelHash": "811c9dc5"
+    },
+    {
+      "name": "Wind Wall",
+      "src": "phb-2014",
+      "ed": "2014",
+      "target": "Wind Wall",
+      "mode": "existing",
+      "archiveSourceKey": "SRD 5.1|2014|Spell|Wind Wall",
+      "descriptionHash": "bf68e940",
+      "higherLevelHash": "811c9dc5"
+    },
+    {
+      "name": "Wish",
+      "src": "phb-2014",
+      "ed": "2014",
+      "target": "Wish",
+      "mode": "existing",
+      "archiveSourceKey": "SRD 5.1|2014|Spell|Wish",
+      "descriptionHash": "b3681da4",
+      "higherLevelHash": "811c9dc5"
+    },
+    {
+      "name": "Word of Recall",
+      "src": "phb-2014",
+      "ed": "2014",
+      "target": "Word of Recall",
+      "mode": "existing",
+      "archiveSourceKey": "SRD 5.1|2014|Spell|Word of Recall",
+      "descriptionHash": "11a45935",
+      "higherLevelHash": "811c9dc5"
+    },
+    {
+      "name": "Zone of Truth",
+      "src": "phb-2014",
+      "ed": "2014",
+      "target": "Zone of Truth",
+      "mode": "existing",
+      "archiveSourceKey": "SRD 5.1|2014|Spell|Zone of Truth",
+      "descriptionHash": "47d3428b",
+      "higherLevelHash": "811c9dc5"
+    },
+    {
+      "name": "Antilife Shell",
+      "src": "phb-2014",
+      "ed": "2014",
+      "target": "Antilife Shell",
+      "mode": "existing",
+      "archiveSourceKey": "SRD 5.1|2014|Spell|Antilife Shell",
+      "descriptionHash": "8438fad2",
+      "higherLevelHash": "811c9dc5"
+    },
+    {
+      "name": "Antimagic Field",
+      "src": "phb-2014",
+      "ed": "2014",
+      "target": "Antimagic Field",
+      "mode": "existing",
+      "archiveSourceKey": "SRD 5.1|2014|Spell|Antimagic Field",
+      "descriptionHash": "2084fb00",
+      "higherLevelHash": "811c9dc5"
+    },
+    {
+      "name": "Burning Hands",
+      "src": "phb-2014",
+      "ed": "2014",
+      "target": "Burning Hands",
+      "mode": "existing",
+      "archiveSourceKey": "SRD 5.1|2014|Spell|Burning Hands",
+      "descriptionHash": "75f16ead",
+      "higherLevelHash": "0fd0fe25"
+    },
+    {
+      "name": "Clairvoyance",
+      "src": "phb-2014",
+      "ed": "2014",
+      "target": "Clairvoyance",
+      "mode": "existing",
+      "archiveSourceKey": "SRD 5.1|2014|Spell|Clairvoyance",
+      "descriptionHash": "e8d9847a",
+      "higherLevelHash": "811c9dc5"
+    },
+    {
+      "name": "Color Spray",
+      "src": "phb-2014",
+      "ed": "2014",
+      "target": "Color Spray",
+      "mode": "existing",
+      "archiveSourceKey": "SRD 5.1|2014|Spell|Color Spray",
+      "descriptionHash": "d41c2a33",
+      "higherLevelHash": "858c623a"
+    },
+    {
+      "name": "Cone of Cold",
+      "src": "phb-2014",
+      "ed": "2014",
+      "target": "Cone of Cold",
+      "mode": "existing",
+      "archiveSourceKey": "SRD 5.1|2014|Spell|Cone of Cold",
+      "descriptionHash": "a24e68ae",
+      "higherLevelHash": "53e3bb64"
+    },
+    {
+      "name": "Conjure Elemental",
+      "src": "phb-2014",
+      "ed": "2014",
+      "target": "Conjure Elemental",
+      "mode": "existing",
+      "archiveSourceKey": "SRD 5.1|2014|Spell|Conjure Elemental",
+      "descriptionHash": "2d6bd001",
+      "higherLevelHash": "42e72beb"
+    },
+    {
+      "name": "Control Weather",
+      "src": "phb-2014",
+      "ed": "2014",
+      "target": "Control Weather",
+      "mode": "existing",
+      "archiveSourceKey": "SRD 5.1|2014|Spell|Control Weather",
+      "descriptionHash": "8a9e8274",
+      "higherLevelHash": "811c9dc5"
+    },
+    {
+      "name": "Detect Evil and Good",
+      "src": "phb-2014",
+      "ed": "2014",
+      "target": "Detect Evil and Good",
+      "mode": "existing",
+      "archiveSourceKey": "SRD 5.1|2014|Spell|Detect Evil and Good",
+      "descriptionHash": "86d27629",
+      "higherLevelHash": "811c9dc5"
+    },
+    {
+      "name": "Dimension Door",
+      "src": "phb-2014",
+      "ed": "2014",
+      "target": "Dimension Door",
+      "mode": "existing",
+      "archiveSourceKey": "SRD 5.1|2014|Spell|Dimension Door",
+      "descriptionHash": "08e29d3e",
+      "higherLevelHash": "811c9dc5"
+    },
+    {
+      "name": "Dream",
+      "src": "phb-2014",
+      "ed": "2014",
+      "target": "Dream",
+      "mode": "existing",
+      "archiveSourceKey": "SRD 5.1|2014|Spell|Dream",
+      "descriptionHash": "44f29c7f",
+      "higherLevelHash": "811c9dc5"
+    },
+    {
+      "name": "Fear",
+      "src": "phb-2014",
+      "ed": "2014",
+      "target": "Fear",
+      "mode": "existing",
+      "archiveSourceKey": "SRD 5.1|2014|Spell|Fear",
+      "descriptionHash": "bb695e6f",
+      "higherLevelHash": "811c9dc5"
+    },
+    {
+      "name": "Find the Path",
+      "src": "phb-2014",
+      "ed": "2014",
+      "target": "Find the Path",
+      "mode": "existing",
+      "archiveSourceKey": "SRD 5.1|2014|Spell|Find the Path",
+      "descriptionHash": "39dd1c75",
+      "higherLevelHash": "811c9dc5"
+    },
+    {
+      "name": "Forbiddance",
+      "src": "phb-2014",
+      "ed": "2014",
+      "target": "Forbiddance",
+      "mode": "existing",
+      "archiveSourceKey": "SRD 5.1|2014|Spell|Forbiddance",
+      "descriptionHash": "559a8a48",
+      "higherLevelHash": "811c9dc5"
+    },
+    {
+      "name": "Gate",
+      "src": "phb-2014",
+      "ed": "2014",
+      "target": "Gate",
+      "mode": "existing",
+      "archiveSourceKey": "SRD 5.1|2014|Spell|Gate",
+      "descriptionHash": "2cd79c5a",
+      "higherLevelHash": "811c9dc5"
+    },
+    {
+      "name": "Globe of Invulnerability",
+      "src": "phb-2014",
+      "ed": "2014",
+      "target": "Globe of Invulnerability",
+      "mode": "existing",
+      "archiveSourceKey": "SRD 5.1|2014|Spell|Globe of Invulnerability",
+      "descriptionHash": "18df9568",
+      "higherLevelHash": "8e7681fa"
+    },
+    {
+      "name": "Gust of Wind",
+      "src": "phb-2014",
+      "ed": "2014",
+      "target": "Gust of Wind",
+      "mode": "existing",
+      "archiveSourceKey": "SRD 5.1|2014|Spell|Gust of Wind",
+      "descriptionHash": "bdafb90f",
+      "higherLevelHash": "811c9dc5"
+    },
+    {
+      "name": "Levitate",
+      "src": "phb-2014",
+      "ed": "2014",
+      "target": "Levitate",
+      "mode": "existing",
+      "archiveSourceKey": "SRD 5.1|2014|Spell|Levitate",
+      "descriptionHash": "b996a1cd",
+      "higherLevelHash": "811c9dc5"
+    },
+    {
+      "name": "Lightning Bolt",
+      "src": "phb-2014",
+      "ed": "2014",
+      "target": "Lightning Bolt",
+      "mode": "existing",
+      "archiveSourceKey": "SRD 5.1|2014|Spell|Lightning Bolt",
+      "descriptionHash": "32e849b8",
+      "higherLevelHash": "eb33c1b8"
+    },
+    {
+      "name": "Magic Missile",
+      "src": "phb-2014",
+      "ed": "2014",
+      "target": "Magic Missile",
+      "mode": "existing",
+      "archiveSourceKey": "SRD 5.1|2014|Spell|Magic Missile",
+      "descriptionHash": "394db3fa",
+      "higherLevelHash": "16685f42"
+    },
+    {
+      "name": "Mass Cure Wounds",
+      "src": "phb-2014",
+      "ed": "2014",
+      "target": "Mass Cure Wounds",
+      "mode": "existing",
+      "archiveSourceKey": "SRD 5.1|2014|Spell|Mass Cure Wounds",
+      "descriptionHash": "d6fd974e",
+      "higherLevelHash": "28a12643"
+    },
+    {
+      "name": "Mass Heal",
+      "src": "phb-2014",
+      "ed": "2014",
+      "target": "Mass Heal",
+      "mode": "existing",
+      "archiveSourceKey": "SRD 5.1|2014|Spell|Mass Heal",
+      "descriptionHash": "a1ef7428",
+      "higherLevelHash": "811c9dc5"
+    },
+    {
+      "name": "Meteor Swarm",
+      "src": "phb-2014",
+      "ed": "2014",
+      "target": "Meteor Swarm",
+      "mode": "existing",
+      "archiveSourceKey": "SRD 5.1|2014|Spell|Meteor Swarm",
+      "descriptionHash": "96e506b7",
+      "higherLevelHash": "811c9dc5"
+    },
+    {
+      "name": "Plant Growth",
+      "src": "phb-2014",
+      "ed": "2014",
+      "target": "Plant Growth",
+      "mode": "existing",
+      "archiveSourceKey": "SRD 5.1|2014|Spell|Plant Growth",
+      "descriptionHash": "b7c39d9d",
+      "higherLevelHash": "811c9dc5"
+    },
+    {
+      "name": "Prismatic Spray",
+      "src": "phb-2014",
+      "ed": "2014",
+      "target": "Prismatic Spray",
+      "mode": "existing",
+      "archiveSourceKey": "SRD 5.1|2014|Spell|Prismatic Spray",
+      "descriptionHash": "acaa15a7",
+      "higherLevelHash": "811c9dc5"
+    },
+    {
+      "name": "Project Image",
+      "src": "phb-2014",
+      "ed": "2014",
+      "target": "Project Image",
+      "mode": "existing",
+      "archiveSourceKey": "SRD 5.1|2014|Spell|Project Image",
+      "descriptionHash": "6d7193bb",
+      "higherLevelHash": "811c9dc5"
+    },
+    {
+      "name": "Revivify",
+      "src": "phb-2014",
+      "ed": "2014",
+      "target": "Revivify",
+      "mode": "existing",
+      "archiveSourceKey": "SRD 5.1|2014|Spell|Revivify",
+      "descriptionHash": "c7b78e2c",
+      "higherLevelHash": "811c9dc5"
+    },
+    {
+      "name": "Scorching Ray",
+      "src": "phb-2014",
+      "ed": "2014",
+      "target": "Scorching Ray",
+      "mode": "existing",
+      "archiveSourceKey": "SRD 5.1|2014|Spell|Scorching Ray",
+      "descriptionHash": "1db89736",
+      "higherLevelHash": "a6a2f0bd"
+    },
+    {
+      "name": "Speak with Plants",
+      "src": "phb-2014",
+      "ed": "2014",
+      "target": "Speak with Plants",
+      "mode": "existing",
+      "archiveSourceKey": "SRD 5.1|2014|Spell|Speak with Plants",
+      "descriptionHash": "e1a49425",
+      "higherLevelHash": "811c9dc5"
+    },
+    {
+      "name": "Spirit Guardians",
+      "src": "phb-2014",
+      "ed": "2014",
+      "target": "Spirit Guardians",
+      "mode": "existing",
+      "archiveSourceKey": "SRD 5.1|2014|Spell|Spirit Guardians",
+      "descriptionHash": "f04dd7e7",
+      "higherLevelHash": "0695e0f6"
+    },
+    {
+      "name": "Sunbeam",
+      "src": "phb-2014",
+      "ed": "2014",
+      "target": "Sunbeam",
+      "mode": "existing",
+      "archiveSourceKey": "SRD 5.1|2014|Spell|Sunbeam",
+      "descriptionHash": "9579b6eb",
+      "higherLevelHash": "811c9dc5"
+    },
+    {
+      "name": "Thunderwave",
+      "src": "phb-2014",
+      "ed": "2014",
+      "target": "Thunderwave",
+      "mode": "existing",
+      "archiveSourceKey": "SRD 5.1|2014|Spell|Thunderwave",
+      "descriptionHash": "947ac222",
+      "higherLevelHash": "50c36887"
+    },
+    {
+      "name": "Web",
+      "src": "phb-2014",
+      "ed": "2014",
+      "target": "Web",
+      "mode": "existing",
+      "archiveSourceKey": "SRD 5.1|2014|Spell|Web",
+      "descriptionHash": "eae669a8",
+      "higherLevelHash": "811c9dc5"
+    }
+  ],
+  "archiveReview": {
+    "workingCheckpoint": "DnD_Compendium_v19_2_Artificer_Phase_Working.zip",
+    "originalArchive": "DnD_Compendium_v19_2_Dependency_Phase_Consolidated.zip / SRD_2014_Source/5e-SRD-Spells.json",
+    "archiveSpellRows": 319,
+    "archiveTextFingerprint": "5cafee1f",
+    "textFingerprintMatches": 319,
+    "priorPilotParaphrases": 8,
+    "schoolCorrections": [
+      "Mass Cure Wounds",
+      "Mass Heal",
+      "Revivify"
+    ],
+    "castingTimeCorrections": [
+      "Plant Growth"
+    ],
+    "source": "https://media.wizards.com/2016/downloads/DND/SRD-OGL_V5.1.pdf",
+    "notes": "Non-cryptographic whitespace-normalized text fingerprint; archived dataset is not blanket certification of every printing."
+  }
+}

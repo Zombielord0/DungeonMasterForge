@@ -24,14 +24,35 @@ function magicPrice(m) {
   return { gp: v, text: fmtGp(v) + (m.base ? " + base item" : "") };
 }
 const rarName = x => x.rk >= 0 ? RARITY[x.rk] : (x.r || "Rarity varies");
+// Incomplete book records remain visible for reference and keep their saved inventory IDs.
+function itemRulesIncomplete(x) {
+  return !!(x && (x.referenceOnly || x.rulesSummary || (x.kind!=="custom" && /\bsee (?:the )?(?:sourcebook|book) for (?:the )?(?:full|complete) rules\b/i.test(x.d||""))));
+}
+// Saved shop stock is a reduced snapshot. Resolve its catalog identity before permitting acquisition.
+function itemAcquirable(x) {
+  if(!x||itemRulesIncomplete(x))return false;
+  const canonical=x.id&&/^20(14|24)-/.test(x.id)?itFind(x.id):null;
+  if(x.id&&/^20(14|24)-/.test(x.id)&&!canonical)return false;
+  return !itemRulesIncomplete(canonical);
+}
+function itemAcquisitionAllowed(x) {
+  if(itemAcquirable(x))return true;
+  toast("Reference only — complete item rules are required before adding or purchasing this item.");
+  return false;
+}
+function itemRuleNotice(x) {
+  if(itemRulesIncomplete(x))return "Reference only — complete rules are required before new acquisition or automatic magic effects.";
+  if(x?.manualEffects)return "Some or all special effects require manual resolution; consult the item rules.";
+  return "";
+}
 function itLoad() {
   if (IT.data) return;
   const raw = dmData("itemData");
   IT.data = {};
   for (const ed of Object.keys(raw)) {
     const L = [];
-    raw[ed].eq.forEach((e, i) => L.push({ id: `${ed}-g${i}`, kind: "gear", n: e.n, cat: e.cat, g: e.g, c: e.c, gp: e.gp, w: e.w, st: e.st, d: e.d, rk: -2 }));
-    raw[ed].mi.forEach((m, i) => { const p = magicPrice(m); L.push({ id: m.k ? `${ed}-${m.k}` : `${ed}-m${i}`, src: m.src, page: m.page, kind: "magic", n: m.n, cat: m.cat, type: m.type, r: m.r, rk: m.rk, att: m.att, cons: m.cons, base: m.base, c: p.text, gp: p.gp, st: [], d: m.d }); });
+    raw[ed].eq.forEach((e, i) => L.push({ id: `${ed}-g${i}`, kind: "gear", n: e.n, cat: e.cat, g: e.g, c: e.c, gp: e.gp, w: e.w, st: e.st, d: e.d, packQty: e.packQty, weightBasis:e.weightBasis, contents:e.contents, rk: -2 }));
+    raw[ed].mi.forEach((m, i) => { const p = magicPrice(m); L.push({ id: m.k ? `${ed}-${m.k}` : `${ed}-m${i}`, src: m.src, page: m.page, kind: "magic", ed, recoveryId:m.recoveryId, rulesSource:m.rulesSource, rulesSourcePage:m.rulesSourcePage, rulesSourceLines:m.rulesSourceLines, manualEffects:m.manualEffects, referenceOnly:m.referenceOnly, rulesSummary:m.rulesSummary, attackBonus:m.attackBonus, damageBonus:m.damageBonus, armorBonus:m.armorBonus, maxCharges:m.maxCharges, chargeRecharge:m.chargeRecharge, chargeActions:m.chargeActions, spellChargeCosts:m.spellChargeCosts, spellSaveDC:m.spellSaveDC, lastChargeVanish:m.lastChargeVanish, n: m.n, cat: m.cat, type: m.type, r: m.r, rk: m.rk, att: m.att, cons: m.cons, base: m.base, c: p.text, gp: p.gp, st: [], d: m.d }); });
     L.forEach(x => { x.hay = x.n.toLowerCase(); x.hayD = (x.n + " " + x.cat + " " + (x.type || "") + " " + x.d).toLowerCase(); });
     IT.data[ed] = L;
   }
@@ -93,6 +114,8 @@ function itStats(x) {
   (x.st || []).forEach(s => st.push(s));
   if (x.kind !== "gear") st.push(["Attunement", x.att ? "Required" + x.att.replace(/^Required/, "") : "Not required"]);
   st.push([x.kind === "gear" ? "Cost" : "Price", x.c]);
+  if (x.packQty) st.push(["Sold in lots of", String(x.packQty)]);
+  if (x.weightBasis) st.push(["Weight basis", x.weightBasis]);
   if (x.w) st.push(["Weight", x.w + " lb"]);
   return st;
 }
@@ -125,10 +148,12 @@ function itDetail(x, actions = true) {
   return `<div class="sp-detail">
     <div class="muted"><i>${esc(itTypeLine(x))}</i></div>
     <div class="sp-stats">${itStats(x).map(([k, v]) => `<div><span>${esc(k)}</span>${esc(v)}</div>`).join("")}</div>
+    ${itemRuleNotice(x) ? '<p class="hint">'+esc(itemRuleNotice(x))+'</p>' : ""}
     ${spFormat(x.d || "")}
+    ${x.rulesSource ? '<p class="hint">Rules source: '+esc(x.rulesSource)+(x.rulesSourcePage?' · page '+esc(String(x.rulesSourcePage)):Array.isArray(x.rulesSourceLines)?' · lines '+esc(x.rulesSourceLines.join('–')):'')+'</p>' : ""}
     ${note ? `<p class="hint">${esc(note)}</p>` : ""}
     ${bookLine(x)}
-    ${actions ? `<div class="actions"><button class="btn sm" data-it="card" data-id="${esc(x.id)}">🂠 Export item card</button><button class="btn sm" data-it="copy" data-id="${esc(x.id)}">Copy</button><button class="btn sm primary" data-it="give" data-id="${esc(x.id)}">+ Give to character</button>${x.gp !== null && x.gp !== undefined ? `<button class="btn sm" data-it="buy" data-id="${esc(x.id)}" title="Take the price from the character's coins">🪙 Buy (${esc(fmtGp(+x.gp))})</button>` : ""}<button class="btn sm" data-it="loot" data-id="${esc(x.id)}">+ Campaign loot</button>${x.kind === "custom" ? `<button class="btn sm" data-it="edit" data-id="${esc(x.id)}">✎ Edit</button><button class="btn sm danger" data-it="del" data-id="${esc(x.id)}">✕ Delete</button>` : itCanBase(x) ? `<button class="btn sm" data-it="clone" data-id="${esc(x.id)}">✚ Make a magic version</button>` : ""}</div>` : ""}
+    ${actions ? `<div class="actions"><button class="btn sm" data-it="card" data-id="${esc(x.id)}">🂠 Export item card</button><button class="btn sm" data-it="copy" data-id="${esc(x.id)}">Copy</button><button class="btn sm primary" data-it="give" data-id="${esc(x.id)}" ${itemAcquirable(x)?"":"disabled"}>+ Give to character</button>${x.gp !== null && x.gp !== undefined ? `<button class="btn sm" data-it="buy" data-id="${esc(x.id)}" ${itemAcquirable(x)?"":"disabled"} title="Take the price from the character's coins">🪙 Buy (${esc(fmtGp(+x.gp))})</button>` : ""}<button class="btn sm" data-it="loot" data-id="${esc(x.id)}" ${itemAcquirable(x)?"":"disabled"}>+ Campaign loot</button>${x.kind === "custom" ? `<button class="btn sm" data-it="edit" data-id="${esc(x.id)}">✎ Edit</button><button class="btn sm danger" data-it="del" data-id="${esc(x.id)}">✕ Delete</button>` : itCanBase(x) ? `<button class="btn sm" data-it="clone" data-id="${esc(x.id)}">✚ Make a magic version</button>` : ""}</div>` : ""}
   </div>`;
 }
 function itText(x) {
@@ -168,8 +193,8 @@ function shopMake({ type, size, level, seed, ed, rar, amount, moodIx }) {
   let nMagic = !S.magic ? 0 : S.magicShare ? Math.round(total * S.magicShare) : [0, r.int(0, 1), r.int(1, 3)][si];
   if (rarOn && S.magic) nMagic = Math.max(nMagic, 2);
   const rkOk = x => rarOn ? rar.includes(x.rk) : x.rk >= 0 && x.rk <= maxRk;
-  const magicPool = S.magic ? shopMagicMix(r.shuffle(all.filter(x => x.kind === "magic" && !x.src && rkOk(x) && priced(x) && S.magic(x))),
-    all.filter(x => x.kind === "magic" && x.src && rkOk(x) && priced(x) && S.magic(x)), key) : [];
+  const magicPool = S.magic ? shopMagicMix(r.shuffle(all.filter(x => x.kind === "magic" && !x.src && rkOk(x) && !itemRulesIncomplete(x) && priced(x) && S.magic(x))),
+    all.filter(x => x.kind === "magic" && x.src && rkOk(x) && !itemRulesIncomplete(x) && priced(x) && S.magic(x)), key) : [];
   const gearPool = r.shuffle(all.filter(x => x.kind === "gear" && priced(x) && S.gear(x)));
   nMagic = Math.min(nMagic, total, magicPool.length);
   const picks = [...gearPool.slice(0, total - nMagic), ...magicPool.slice(0, nMagic)];
@@ -177,7 +202,7 @@ function shopMake({ type, size, level, seed, ed, rar, amount, moodIx }) {
   const stock = picks.map(x => {
     const k = mood[1] || (0.8 + r.f() * 0.4), gp = shopNiceGp(+x.gp * k);
     const qty = x.kind === "magic" ? 1 : x.g === "Weapons" || x.g === "Armor" ? r.int(1, 3) : r.int(2, 10);
-    return { id: x.id, n: x.n, cat: x.cat, g: x.g || "", kind: x.kind, rk: x.rk, r: x.r, att: !!x.att, w: x.w || 0, gp, c: fmtGp(gp), qty };
+    return { id: x.id, n: x.n, cat: x.cat, g: x.g || "", kind: x.kind, rk: x.rk, r: x.r, att: !!x.att, w: x.w || 0, packQty:x.packQty, gp, c: fmtGp(gp), qty };
   }).sort((a, b) => (a.kind === b.kind ? 0 : a.kind === "gear" ? -1 : 1) || a.n.localeCompare(b.n));
   const out = { seed, type, size, level: lv, ed, name: `The ${r.pick(SHOP_ADJ)} ${r.pick(S.nouns)}`, label: S.label, keeper: fullName(r, r.pick(["male", "female"])), mood: mood[0], stock };
   out.moodIx = SHOP_MOODS.indexOf(mood); if (rarOn) out.rar = rar.slice(); if (amtOn) out.amount = amount;
@@ -235,7 +260,7 @@ function shopRender() {
       <div style="flex:0 0 auto"><button class="btn sm" type="button" id="shopRestock" title="Sold-out items come back and the stock is rolled again">🔄 Restock</button></div>
       <div style="flex:0 0 auto"><button class="btn sm" type="button" id="shopWorld">Edit in the World</button></div>
     </div>
-    ${s.stock.length ? `<table class="shop-tbl"><thead><tr><th>Item</th><th>Price</th><th>In stock</th><th></th></tr></thead><tbody>${s.stock.map((x, i) => `<tr class="${x.qty ? "" : "sold"}"><td>${esc(x.n)}${x.kind === "magic" ? ` <span class="tag">${esc(rarName(x))}</span>` : ""}</td><td>${shopRowPrice(s, x, i)}</td><td>${x.qty}</td><td><button class="btn sm" type="button" data-shopbuy="${i}" ${x.qty ? "" : "disabled"}>Buy</button></td></tr>`).join("")}</tbody></table>`
+    ${s.stock.length ? `<table class="shop-tbl"><thead><tr><th>Item</th><th>Price</th><th>In stock</th><th></th></tr></thead><tbody>${s.stock.map((x, i) => `<tr class="${x.qty ? "" : "sold"}"><td>${esc(x.n)}${x.kind === "magic" ? ` <span class="tag">${esc(rarName(x))}</span>` : ""}</td><td>${shopRowPrice(s, x, i)}</td><td>${x.qty}</td><td><button class="btn sm" type="button" data-shopbuy="${i}" ${x.qty && itemAcquirable(x) ? "" : "disabled"}>Buy</button></td></tr>`).join("")}</tbody></table>`
       : `<p class="muted">Nothing on the shelves today. Press Restock, or make a shop with more stock in the World builder.</p>`}
     <p class="hint" style="margin:8px 0 0">Buy pays from the coins of the character chosen in “Give items to” below, and puts the item in their inventory. Type in a price to set your own; empty it to go back to the markup price.</p>`;
 }
@@ -260,8 +285,7 @@ $("#itShop").addEventListener("click", async e => {
   if (e.target.id === "shopRestock") { if (!(await confirmBox("Restock?", "Sold-out items come back and the stock is rolled again.", "Restock"))) return; shopRestock(IT.shop); shopSave(); shopRender(); return; }
   const b = e.target.closest("[data-shopbuy]"); if (!b) return;
   const s = IT.shop, x = s.stock[+b.dataset.shopbuy], c = PCS.roster.find(r => r.id === ($("#itTarget") || {}).value); if (!x || !x.qty) return;
-  const before = c ? JSON.stringify(c.coins || {}) : ""; itBuy({ ...x, gp: shopPrice(s, x) });
-  if (c && JSON.stringify(c.coins || {}) !== before) { x.qty--; shopSave(); shopRender(); }
+  if (c && itBuy({ ...x, gp: shopPrice(s, x) })) { x.qty--; shopSave(); shopRender(); }
 });
 /* Phones fold the Items filters behind a Filters button, as the Spells tab does. */
 function itFiltersSync() { const b = document.getElementById("itFiltersBtn"); if (!b) return; const n = ["itGroup", "itMType", "itAtt", "itMax", "itBook"].filter(id => (document.getElementById(id) || {}).value).length + document.querySelectorAll("#itRar .chip.on").length + (IT.mode && IT.mode !== "all" ? 1 : 0), open = $("#itForm").classList.contains("filters-open"); b.textContent = `${open ? "▴" : "▾"} Filters${n ? ` · ${n} on` : ""}`; b.setAttribute("aria-expanded", String(open)); }
@@ -303,23 +327,31 @@ function payCoins(c, gp) {
 }
 const coinText = c => ["pp", "gp", "ep", "sp", "cp"].filter(k => +c.coins[k]).map(k => `${c.coins[k]} ${k}`).join(", ") || "no coins";
 function itBuy(x) {
+  if(!itemAcquisitionAllowed(x))return false;
   const c = PCS.roster.find(r => r.id === $("#itTarget").value);
   if (!c) { toast("Save a character on the Characters tab first"); return; }
   const price = x.gp;
-  if (price === null || price === undefined || isNaN(+price)) { toast(`${x.n} has no set price. Give it instead, and take the coins off by hand.`); return; }
+  if (price === null || price === undefined || !Number.isFinite(+price) || +price<0) { toast(`${x.n} has no set price. Give it instead, and take the coins off by hand.`); return; }
   if (!payCoins(c, +price)) { toast(`${c.name} can't afford ${x.n} (${fmtGp(+price)}); they have ${coinText(c)}.`); return; }
-  itGive(x, true); toast(`${c.name} bought ${x.n} for ${fmtGp(+price)} and has ${coinText(c)} left.`);
+  itGive(x, true); toast(`${c.name} bought ${x.n} for ${fmtGp(+price)} and has ${coinText(c)} left.`); return true;
 }
 function itGive(x, quiet) {
+  if(!itemAcquisitionAllowed(x))return false;
   const c = PCS.roster.find(r => r.id === $("#itTarget").value);
   if (!c) { toast("Save a character on the Characters tab first"); return; }
   c.inv = c.inv || [];
-  const ex = c.inv.find(i => i.ref === x.id);
-  if (ex) ex.qty = (+ex.qty || 1) + 1;
-  else c.inv.push({ id: uid("i"), ref: x.id, itemRules: inventoryRulesSnapshot(x), n: x.n, qty: 1, w: x.w || 0, att: !!x.att, attuned: false, value: x.c, note: x.kind === "gear" ? "" : `${rarName(x)} ${String(x.cat).toLowerCase()}` });
-  pcPersist(); if (!quiet) toast(`${x.n} given to ${c.name}`);
+  const canonical=x.kind==="gear"&&x.id?itFind(x.id):null;
+  const lot=x.kind==="gear"&&(canonical?.packQty||x.packQty)?canonical?.packQty||x.packQty:1, units=lot>1;
+  const lotWeight=units?(canonical?.w??x.w??0):(x.w||0);
+  // Each charged magic item is a distinct physical copy, not a shared stack.
+  const charged=Number.isSafeInteger((x.id?itFind(x.id):null)?.maxCharges||x.maxCharges);
+  const ex = !charged && c.inv.find(i => !i.artificerOrigin&&!i.artificerInfusion&&i.ref === x.id&&(!units||i.ammunitionUnits===true));
+  if (ex) ex.qty = (+ex.qty || 0) + lot;
+  else c.inv.push({ id: uid("i"), ref: x.id, itemRules: inventoryRulesSnapshot(x), n: x.n, qty: lot, w: lotWeight/lot, ...(units?{ammunitionUnits:true}:{}), att: !!x.att, attuned: false, value: units?x.c+" per "+lot:x.c, note: x.kind === "gear" ? "" : `${rarName(x)} ${String(x.cat).toLowerCase()}` });
+  pcPersist(); if (!quiet) toast(`${x.n} given to ${c.name}`); return true;
 }
 function itLoot(x) {
+  if(!itemAcquisitionAllowed(x))return false;
   const c = Store.get($("#itCamp").value); if (!c) { toast("Create a campaign first (Campaign Tracker)"); return; }
   c.loot = c.loot || [];
   c.loot.unshift({ id: uid("l"), item: x.n, ref: x.id, itemRules: inventoryRulesSnapshot(x), holder: "", value: x.c, notes: `${itTypeLine(x)}. ${String(x.d || "").replace(/\*\*/g, "").slice(0, 700)}` });

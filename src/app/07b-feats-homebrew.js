@@ -48,14 +48,14 @@ const FEATS = {
     ["Weapon Master", "str dex", "", "Proficiency with four weapons of your choice."]
   ],
   "2024": [
-    ["Alert", "", "", "Add your proficiency bonus to initiative, and swap initiative with a willing ally.", "o"],
+    ["Alert", "", "", "Add your proficiency bonus when rolling initiative. Immediately afterward, you may exchange your initiative with one willing ally in the same combat, provided neither of you is incapacitated.", "o"],
     ["Crafter", "", "", "Three artisan's tools, a 20% discount on nonmagical gear, and fast crafting.", "o"],
     ["Healer", "", "", "Use a healer's kit to let a creature spend a Hit Die; reroll 1s on healing dice.", "o"],
     ["Lucky", "", "", "Luck points equal to your proficiency bonus: gain advantage, or impose disadvantage on an attack on you.", "o"],
-    ["Magic Initiate", "", "", "Two cantrips and a level 1 spell from the cleric, druid or wizard list.", "o"],
+    ["Magic Initiate", "", "", "Choose the Cleric, Druid, or Wizard spell list, two cantrips from that list, and Intelligence, Wisdom, or Charisma as your casting ability. Choose one level 1 spell from the same list; it is always prepared. Cast it once without a slot per long rest or with an appropriate spell slot. On gaining a level, you may replace one chosen spell with a different spell of the same level from that list. Repeatable only by choosing a different list each time.", "o"],
     ["Musician", "", "", "Three instruments; after a rest, give allies Heroic Inspiration with a song.", "o"],
-    ["Savage Attacker", "", "", "Once per turn, roll a weapon's damage dice twice and use either roll.", "o"],
-    ["Skilled", "", "", "Proficiency in any combination of three skills or tools.", "o"],
+    ["Savage Attacker", "", "", "Once on each turn when you hit with a weapon, you may roll that weapon’s damage dice twice and choose which of the two rolls to use against the target.", "o"],
+    ["Skilled", "", "", "Choose any combination of three skill or tool proficiencies. You gain those proficiencies. This feat is repeatable.", "o"],
     ["Tavern Brawler", "", "", "Stronger unarmed strikes, reroll 1s on their damage, and push foes 5 ft.", "o"],
     ["Tough", "", "", "+2 hit points per level (added to your HP).", "o"],
     ["Actor", "cha", "cha13", "Advantage on Deception and Performance while disguised; mimic voices.", "g"],
@@ -210,12 +210,12 @@ function fxText(e) {
 }
 const fxNote = l => { const c = fxClean(l); return c.length ? ` [On the sheet: ${c.map(fxText).join(", ")}.]` : ""; };
 // Every homebrew effect a character has: species traits and subrace, background, subclass features reached, feats taken.
-function hbEffects(ed, race, sub, bg, cls, subclass, lv, featNames) {
+function hbEffects(ed, race, sub, bg, cls, subclass, lv, featNames, printing) {
   const out = [], add = (src, l) => fxClean(l).forEach(e => out.push({ ...e, src }));
   const sp = hbAny("species").find(x => x.name === race && hbEdOk(x, ed) && PC_RACES[ed][race] && PC_RACES[ed][race].hb);
   if (sp) { (sp.traits || []).filter(t => (+t.l || 1) <= lv).forEach(t => add(t.n, t.fx)); const su = (sp.subs || []).find(t => t.n === sub); if (su) add(su.n, su.fx); }
   if (HB_BG[bg]) add(`${bg} background`, HB_BG[bg].fx);
-  const sc = subclass && subclassEntry(ed, cls, subclass);
+  const sc = subclass && subclassEntry(ed,cls,subclass,true,printing);
   if (sc) (sc.features || []).filter(f => f.n && +f.l <= lv).forEach(f => add(f.n, f.fx));
   const hc = classData(ed, cls)?.hbx;
   if (hc) (hc.features || []).filter(f => f.n && +f.l <= lv).forEach(f => add(f.n, f.fx));
@@ -357,6 +357,7 @@ function hbSet(list) { HB.list = Array.isArray(list) ? list.filter(x => x && HB_
 function hbLoadLocal() { let l = []; try { l = JSON.parse(localStorage.getItem(HB_KEY) || "[]"); } catch { } hbSet(l); }
 const hbCloud = () => !!(window.Portal && Portal.cloud);
 async function hbPut(item) {
+  if (hbCloud() && !Portal.isDM()) return Portal.hbReqPut(item); /* a player's homebrew waits for the DM (the server enforces it too) */
   if (hbCloud()) return Portal.hbPut(item);
   const l = HB.list.filter(x => x.id !== item.id).concat(item);
   try { localStorage.setItem(HB_KEY, JSON.stringify(l)); } catch { toast("Couldn't save in this browser"); return false; }

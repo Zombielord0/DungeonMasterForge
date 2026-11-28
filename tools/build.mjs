@@ -22,6 +22,19 @@
 import { createHash } from "node:crypto";
 import { readFileSync, writeFileSync, readdirSync, unlinkSync, mkdirSync } from "node:fs";
 import vm from "node:vm";
+import { joinSummaries, joinSrdItems } from "./ref-summaries.mjs";
+import { appendReferenceSpells, validateRecoveryManifest, applyRecoveredContent, validateRecoveredBackgroundDependencies, applyRecoveredCoreItems, applyRecoveredCoreSpells, applyRecoveredCoreMonsters, validateRecoveredCatalogDependencies } from "./recovered-content.mjs";
+import { validateSrdSpellLinks, fillSrdSpellReferences, joinSrdSpellReferences, correctLegacySpellMetadata } from "./ref-srd-spells.mjs";
+import { recoveryCoverage } from "./recovery-coverage.mjs";
+import {recoverSubclassPointers} from "./ref-subclass-pointers.mjs";
+import {recoverOpenSubclasses} from "./ref-open-subclasses.mjs";
+import {verifyLegacyItemArchive,correctLegacyItemMetadata,verifyAndAnnotateLegacyItemLinks} from "./ref-srd-items.mjs";
+import {addSrdWandChargeContracts} from "./ref-srd-item-charges.mjs";
+import {buildRevisedGlossary} from "./ref-srd-2024-glossary.mjs";
+import {correctRevisedItemVariants} from "./ref-srd-2024-item-variants.mjs";
+import {correctRevisedItemTables} from "./ref-srd-2024-item-tables.mjs";
+import {correctRevisedItemFamilies} from "./ref-srd-2024-item-families.mjs";
+import {correctRevisedItemEquipment} from "./ref-srd-2024-item-equipment.mjs";
 
 if (process.env.DMFORGE_BUILT === "1") process.exit(0); // npm run test:all builds once, then skips this in each check
 
@@ -62,32 +75,40 @@ function emitCatalog(name, key, data, source = name) {
 }
 mkdirSync(at("public/assets/"), { recursive: true });
 const spellGrants = JSON.parse(read("data/spell-grants.json"));
+const bookReferences = JSON.parse(read("data/book-references.json"));
+const sourceBooks = JSON.parse(read("data/extra-books.json")).books;
+const approvedRecovery = validateRecoveryManifest(JSON.parse(read("data/recovered-content.json")), sourceBooks);
+const srdSpellLinks = validateSrdSpellLinks(JSON.parse(read("data/reference-srd-spells.json")), bookReferences, JSON.parse(read("data/spells.json")));
+const rawItems = JSON.parse(read("data/items.json"));
+verifyLegacyItemArchive(rawItems);
+const correctedItems = applyRecoveredCoreItems(addSrdWandChargeContracts(correctRevisedItemEquipment(correctRevisedItemFamilies(correctRevisedItemTables(correctRevisedItemVariants(correctLegacyItemMetadata(rawItems)))))), approvedRecovery);
+const emittedCatalogs = {};
 for (const [name, key] of [["spells", "spellData"], ["monsters", "monsterData"], ["items", "itemData"],
   ["extra-spells", "spellExtra"], ["extra-monsters", "monsterExtra"], ["extra-items", "itemExtra"], ["extra-options", "optionExtra"], ["extra-books", "bookData"], ["book-references", "bookReferences"]]) {
   // stored as text, so the app turns it into objects only when a tab needs it (dmData in src/app/01-core.js)
   let data = JSON.parse(read(`data/${name}.json`));
-  if (name === "spells") data["2014"].push(...spellGrants.legacySpells);
+  if (name === "items") data = correctedItems;
+  if (name === "monsters") data=applyRecoveredCoreMonsters(data,approvedRecovery);
+  if (name === "spells") {
+    data = correctLegacySpellMetadata(data);
+    data["2014"].push(...spellGrants.legacySpells);
+    data=applyRecoveredCoreSpells(data,approvedRecovery);
+  }
   /* Book reference spells (owner, 2026-11-23): spells from other books join the list with their stats and book page only
      (data/book-references.json has no rules text). A spell the Forge already has is not added again. */
   if (name === "extra-spells") {
-    const core = JSON.parse(read("data/spells.json")), books = JSON.parse(read("data/extra-books.json")).books;
-    const told = JSON.parse(read("data/reference-spell-text.json")).spells; /* the owner's short rules summaries (2026-11-23) */
-    const have = new Set([...core["2014"], ...core["2024"], ...data].flatMap(s => [s.n, ...(s.aliases || [])]).map(n => n.toLowerCase())); /* aliases too: Tenser's Floating Disk is the free rules' Floating Disk */
-    const AB = { strength: "STR", dexterity: "DEX", constitution: "CON", intelligence: "INT", wisdom: "WIS", charisma: "CHA" };
-    for (const row of JSON.parse(read("data/book-references.json"))) {
-      if (row.kind !== "Spell" || have.has(row.name.toLowerCase())) continue;
-      const f = Object.fromEntries(row.details || []), cap = t => String(t || "").replace(/\b\w/g, ch => ch.toUpperCase());
-      const book = (books[row.src] && books[row.src].name) || row.src;
-      data.push({ n: row.name, l: f.Level === "Cantrip" ? 0 : +f.Level || 0, s: f.School || "", c: [], t: f["Casting time"] || "", r: f.Range || "",
-        cp: String(f.Components || "").replace(/[^VSM]/g, ""), m: "", du: cap(f.Duration), co: /concentration/i.test(f.Duration || "") ? 1 : 0, ri: f.Ritual ? 1 : 0,
-        d: told[row.name] ? `${told[row.name].d}\n\nFrom ${book}, page ${row.page}.` : `From ${book}, page ${row.page}. The Forge lists this spell's details but not its rules text: see the book.`,
-        h: (told[row.name] && told[row.name].h) || "",
-        dt: (told[row.name] && told[row.name].dt) || cap(String(f["Damage types"] || "").split(/,\s*/)[0]), at: "", sv: AB[String(f["Saving throws"] || "").split(/,\s*/)[0].toLowerCase()] || "",
-        src: row.src, ref: true, page: row.page, ed: row.ed || "2014" }); /* a 2014 handbook's spell stays in the 2014 rules */
-      have.add(row.name.toLowerCase());
-    }
+    const core = JSON.parse(read("data/spells.json"));
+    const told = JSON.parse(read("data/reference-spell-text.json")).spells;
+    data = appendReferenceSpells(data, core, spellGrants.legacySpells, bookReferences, told, sourceBooks).data;
+    data = fillSrdSpellReferences(data, srdSpellLinks);
+  }
+  if (["extra-spells", "extra-items", "extra-monsters", "extra-options"].includes(name)) {
+    data = applyRecoveredContent(name, data, approvedRecovery, bookReferences);
   }
   if (name === "extra-options") {
+    data=recoverSubclassPointers(data);
+    data=recoverOpenSubclasses(data);
+    validateRecoveredBackgroundDependencies(approvedRecovery, {...emittedCatalogs,"extra-options":data});
     const ids = new Set(data.map(option => option.id));
     for (const id of Object.keys(spellGrants.options)) {
       if (!ids.has(id)) throw new Error(`Unknown spell-grant option: ${id}`);
@@ -104,16 +125,29 @@ for (const [name, key] of [["spells", "spellData"], ["monsters", "monsterData"],
     });
   }
   if (name === "book-references") {
+    /* Short summaries in our own words for references with nothing else to show (owner, 2026-11-26).
+       Keyed by kind, then "Name|book" or plain "Name". A key that matches no reference stops the build, so typos can't hide. */
+    data = joinSummaries(data, JSON.parse(read("data/reference-summaries.json")));
+    data = joinSrdSpellReferences(data, srdSpellLinks);
+    /* book items the free rules also have point at their free-rules name, so the Compendium shows the full text */
+    const srdItems = new Set(JSON.parse(read("data/items.json"))["2014"].mi.filter(m => !m.src).map(m => m.n));
+    data = joinSrdItems(data, JSON.parse(read("data/reference-srd-items.json")), srdItems);
+    data = verifyAndAnnotateLegacyItemLinks(data, correctedItems);
+    data = [...data,...buildRevisedGlossary(JSON.parse(read("data/srd-2024-glossary.json")))];
     for (const ed of ["2014", "2024"]) {
       emitCatalog(`book-references-${ed}`, `bookReferences${ed}`, data.filter(row => (row.ed || "2014") === ed), name);
     }
   } else {
     emitCatalog(name, key, data);
   }
+  emittedCatalogs[name] = data;
   if (name === "extra-monsters") {
-    emitCatalog("monster-index", "monsterIndex", data.map(({ n, src }) => [n, src]), name);
+    emitCatalog("monster-index", "monsterIndex", data.map(({ n, src, ed }) => [n, src, ed || null]), name);
   }
 }
+validateRecoveredCatalogDependencies(approvedRecovery,emittedCatalogs);
+// Coverage report contains only existing public reference metadata, never private recovery payloads.
+writeFileSync(at("public/compendium-coverage.json"), JSON.stringify(recoveryCoverage(emittedCatalogs["book-references"], emittedCatalogs), null, 2));
 // the credits page for the extra books (each book's notice and licence, and the Open Game License text)
 {
   const { books, ogl } = JSON.parse(read("data/extra-books.json"));
@@ -130,7 +164,7 @@ for (const [name, key] of [["spells", "spellData"], ["monsters", "monsterData"],
 <h1>Credits and licences</h1>
 <p><a href="/">← Back to the Forge</a></p>
 <h2>Official rules</h2>
-<p>This work includes material from the System Reference Document 5.1 (“SRD 5.1”) and System Reference Document 5.2 (“SRD 5.2”) by Wizards of the Coast LLC, available at <a href="https://dnd.wizards.com/resources/systems-reference-document">dnd.wizards.com/resources/systems-reference-document</a>, licensed under the <a href="https://creativecommons.org/licenses/by/4.0/legalcode">Creative Commons Attribution 4.0 International License</a>.</p>
+<p>This work includes material from the System Reference Document 5.1 (“SRD 5.1”) and System Reference Document 5.2.1 (“SRD 5.2.1”) by Wizards of the Coast LLC, available at <a href="https://dnd.wizards.com/resources/systems-reference-document">dnd.wizards.com/resources/systems-reference-document</a>, licensed under the <a href="https://creativecommons.org/licenses/by/4.0/legalcode">Creative Commons Attribution 4.0 International License</a>.</p>
 <h2>Extra books</h2>
 <p>The extra monsters, spells and magic items (marked with their book's name in the lists) come from these books, through the open-source <a href="https://github.com/open5e/open5e-api">Open5e</a> project. They were converted into the Forge's format; the rules text is unchanged. None of these publishers endorse the Forge.</p>
 <ul>${L.map(b => `<li><b>${h(b.name)}</b> by ${h(b.authors || b.by)} (${h(b.by)}${b.year ? ", " + h(b.year) : ""}). ${b.lic === "cc-by-40" ? `Licensed under the <a href="https://creativecommons.org/licenses/by/4.0/legalcode">Creative Commons Attribution 4.0 International License</a>.` : "Open Game Content under the Open Game License 1.0a (below)."}${link(b)}</li>`).join("\n")}</ul>

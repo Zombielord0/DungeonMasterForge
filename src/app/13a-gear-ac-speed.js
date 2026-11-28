@@ -12,11 +12,71 @@ function rosterCur() {
   let last = null; try { last = sessionStorage.getItem(RC_LAST); } catch { }
   return PCS.roster.find(c => c.id === RC.id) || (last && PCS.roster.find(c => c.id === last)) || PCS.roster[0] || currentPC || null;
 }
+function applyCoreSkillChoices(c){
+  // Remove only proficiency/expertise that this feature itself supplied.
+  for(const s of c.skills||[]){
+    if(s.scholarGranted){s.x=false;delete s.scholarGranted;}
+    if(s.primalGranted){s.p=false;s.x=false;delete s.primalGranted;}
+    if(s.loreGranted){s.p=false;s.x=false;delete s.loreGranted;}
+    if(s.orderGranted){s.p=false;s.x=false;delete s.orderGranted;}
+    if(s.envoyExpert){s.x=false;delete s.envoyExpert;}
+    if(s.envoyGranted){s.p=false;s.x=false;delete s.envoyGranted;}
+    if(s.peaceGranted){s.p=false;s.x=false;delete s.peaceGranted;}
+    if(s.glamourGranted){s.p=false;s.x=false;delete s.glamourGranted;}
+    if(s.archerGranted){s.p=false;s.x=false;delete s.archerGranted;}
+    if(s.xgeTrainingGranted){s.p=false;s.x=false;delete s.xgeTrainingGranted;}
+  }
+  if(characterSubclassLevel(c,"Bard","College of Lore")>=3){const options=new Set(CHOICES["Lore Bonus Proficiencies"].opts(c).map(x=>x[0]));for(const name of [...new Set(choiceOf(c,"Lore Bonus Proficiencies"))].filter(n=>options.has(n)).slice(0,3)){const s=c.skills.find(x=>x.s===name);if(s&&!s.p){s.p=true;s.loreGranted=true;}}}
+  const skills=c.skills||[],choose=(name,flag)=>{const s=skills.find(x=>x.s===name);if(s&&!s.p){s.p=true;s[flag]=true;}};
+  if(characterSubclassLevel(c,"Cleric","Order Domain")){
+    const selection=choiceOf(c,"Order Bonus Proficiency")[0]||choiceOf(c,"Bonus Proficiencies")[0];
+    if(["Intimidation","Persuasion"].includes(selection))choose(selection,"orderGranted");
+  }
+  if(characterSubclassLevel(c,"Fighter","Purple Dragon Knight (Banneret)")>=7){
+    const p=skills.find(s=>s.s==="Persuasion");
+    if(p){
+      if(!p.p){p.p=true;p.envoyGranted=true;}
+      else{const selected=choiceOf(c,"Royal Envoy")[0];if(["Animal Handling","Insight","Intimidation","Performance"].includes(selected))choose(selected,"envoyGranted");}
+      if(!p.x){p.x=true;p.envoyExpert=true;}
+    }
+  }
+  for(const [key,flag] of [["Implement of Peace","peaceGranted"],["Otherworldly Glamour","glamourGranted"]]){
+    const rule=CHOICES[key],selected=choiceOf(c,key)[0];
+    if(rule.n(c)>0&&rule.opts(c).some(([id])=>id===selected))choose(selected,flag);
+  }
+  const training=CHOICES["Cavalier or Samurai Training"],trained=choiceOf(c,"Cavalier or Samurai Training")[0];
+  if(training.n(c)&&training.opts(c).some(([id])=>id===trained))choose(trained,"xgeTrainingGranted");
+  if(arcaneArcherLevel(c)>=3){
+    const rule=CHOICES["Arcane Archer Skill"],opts=rule.opts(c),max=rule.n(c);
+    if(revisedArcaneArcher(c))for(const skill of ["Arcana","Nature"])choose(skill,"archerGranted");
+    for(const skill of [...new Set(choiceOf(c,"Arcane Archer Skill"))].filter(name=>opts.some(([id])=>id===name)).slice(0,max))choose(skill,"archerGranted");
+  }
+  if(edOf(c)!=="2024")return;
+  const apply=(key,flag,attr,cls,level,eligible)=>{
+    if((cls==="Wizard"?classFeatureLevel(c,cls):clsLv(c,cls))<level)return;
+    const selected=choiceOf(c,key)[0],s=(c.skills||[]).find(x=>x.s===selected&&eligible(x));
+    if(s){s[attr]=true;s[flag]=true;}
+  };
+  apply("Primal Knowledge","primalGranted","p","Barbarian",3,s=>!s.p&&CLASS_DATA.Barbarian.skills[0].includes(s.s));
+  apply("Scholar","scholarGranted","x","Wizard",2,s=>s.p&&!s.x&&["Arcana","History","Investigation","Medicine","Nature","Religion"].includes(s.s));
+}
 function pcRecompute(c) {
+  artificerInfusionCleanup(c);
+  companionCleanup(c);
+  syncStarDruid(c);
+  syncRuneKnight(c);
+  syncDragonbornBreath(c);
+  syncSpeciesForm(c);
+  if(c.active?.["Symbiotic Entity"]&&!sporesActive(c))endSymbioticEntity(c);
+  if(c.active?.["Fighting Spirit"]&&(c.death?.dead||xgeFighterLevel(c,"Samurai")<3))delete c.active["Fighting Spirit"];
+  if(c.samuraiDeathTurn&&(c.death?.dead||xgeFighterLevel(c,"Samurai")<18))endSamuraiDeathTurn(c);
+  wizardSubclassCleanup(c);
   const m = {}; AB.forEach(a => m[a] = mod(+c.scores[a] || 10)); c.mods = m; const SB = subBonusOf(c);
-  c.init = m.dex + (c.initBonus ?? ((c.feats || []).some(f => f.f === "Feat: Alert") ? (edOf(c) === "2024" ? c.prof : 5) : 0)) + SB.init + (SB.athlete ? Math.ceil(c.prof / 2) : 0) + (c.cls === "Bard" && c.level >= 2 && edOf(c) === "2014" ? Math.floor(c.prof / 2) : 0);
-  const jack = c.cls === "Bard" && c.level >= 2;
-  c.skills.forEach(s => s.v = m[s.ab] + (s.x ? c.prof * 2 : s.p ? c.prof : jack ? Math.floor(c.prof / 2) : 0) + athleteBonus(SB, s, c.prof));
+  c.init = m.dex + (c.initBonus ?? ((c.feats || []).some(f => f.f === "Feat: Alert") ? (edOf(c) === "2024" ? c.prof : 5) : 0)) + SB.init + (SB.athlete ? Math.ceil(c.prof / 2) : 0) + (clsLv(c,"Bard") >= 2 && edOf(c) === "2014" ? Math.floor(c.prof / 2) : 0);
+  const jack = clsLv(c,"Bard")>=2;
+  applyCoreSkillChoices(c);
+  const courtierBonus=xgeFighterLevel(c,"Samurai")>=7?m.wis:0;
+  c.skills.forEach(s => s.v = m[s.ab] + (s.x ? c.prof * 2 : s.p ? c.prof : jack ? Math.floor(c.prof / 2) : 0) + athleteBonus(SB, s, c.prof) + orderCheckBonus(c,s.s) + (s.ab==="cha"&&characterSubclassLevel(c,"Ranger","Fey Wanderer")>=3?Math.max(1,m.wis):0) + (s.s==="Persuasion"?courtierBonus:0));
   const per = c.skills.find(s => s.s === "Perception"); c.passive = 10 + (per ? per.v : m.wis);
   const C = CLASS_DATA[c.cls];
   if (c.kitMoved) c.attacks = pcAttacks(c);
@@ -25,28 +85,37 @@ function pcRecompute(c) {
     const ab = c.atkBonus || 0;
     c.attacks = (c.attacks || []).map(a => a.name === w[0] ? { ...a, hit: wm + c.prof + ab, dmg: `${w[1]}${wm ? sgn(wm) : ""}` } : a.name === "Unarmed strike" ? { ...a, hit: wm + c.prof + ab, dmg: ((String(a.dmg).match(/^\d+d\d+/) || ["1d4"])[0]) + sgn(wm) } : a);
   }
-  if (c.spell) { const b = c.spell.bonus || 0; c.spell.dc = 8 + c.prof + m[c.spell.ab] + b; c.spell.atk = c.prof + m[c.spell.ab] + b; }
+  if(!c.kitMoved){
+    c.attacks=(c.attacks||[]).filter(a=>!["Psychic Blade","Psychic Blade (bonus action)"].includes(a.name));
+    if(characterSubclassLevel(c,"Rogue","Soulknife")>=3){
+      const bm=Math.max(m.str,m.dex),ab=m.dex>m.str?"dex":"str";
+      for(const [name,die] of [["Psychic Blade","1d6"],["Psychic Blade (bonus action)","1d4"]])c.attacks.push({name,hit:bm+c.prof,die,mod:bm,dmg:die+sgn(bm),type:"psychic",prof:true,melee:true,ab,alt:"thrown 60 ft"+(edOf(c)==="2024"?"; Vex":"")});
+    }
+  }
+  if (c.spell) { const b = c.spell.bonus || 0; for (const s of [c.spell,...(c.spell.others || [])]) { if (!AB.includes(s.ab)) continue; s.dc = 8 + c.prof + m[s.ab] + b; s.atk = c.prof + m[s.ab] + b + artificerFocusAttackBonus(c); } }
   pcACApply(c);
 }
 function pcLevelTo(c, lv) {
   const n = generateCharacter({ seed: c.seed || c.id, name: c.name, race: c.race, ed: edOf(c), sub: c.sub || (c.race === "Dragonborn" && c.ancestry) || "none", ancestry: c.ancestry || undefined, cls: c.cls, bg: c.bg, level: lv, subclass: c.subclass || "none", asiPicks: c.asiPicks || undefined, bonusFeats: c.bonusFeats || undefined, bgAsiLegacy: c.bgAsiLegacy || undefined, ...pcKeep(c), method: c.method || "array", bonus: c.bonus || "flex", custom: c.customData || undefined });
-  ["level", "base", "scores", "mods", "rolls", "prof", "saves", "skills", "hp", "ac", "acSrc", "speed", "init", "passive", "attacks", "spell", "feats", "extras", "hd", "traits", "initBonus", "atkBonus", "hbSig", "res", "imm", "vul", "cimm", "sadv", "subHp", "subSpd", "hbAc", "hbSpeed", "skilled", "expertOrder", "totalLevel", "mcSkills", "hdList"].forEach(k => c[k] = n[k]);
+  ["level", "base", "scores", "mods", "rolls", "prof", "saves", "skills", "hp", "ac", "acSrc", "speed", "init", "passive", "attacks", "spell", "feats", "extras", "hd", "traits", "initBonus", "atkBonus", "hbSig", "res", "imm", "vul", "cimm", "sadv", "subHp", "subSpd", "subSaveGrants", "samuraiSaveGrant", "hbAc", "hbSpeed", "skilled", "expertOrder", "speciesSkill", "totalLevel", "mcSkills", "hdList", "subclassPrints"].forEach(k => c[k] = n[k]);
   c.hpCur = n.hp;
   if (Array.isArray(c.prepared)) syncGrantedSpells(c);
   if (c.kitMoved) { c.attacks = pcAttacks(c); pcACApply(c); }
 }
 /* ---- equipment: the starting kit lives in the inventory; equipped weapons make the attack list ---- */
 const EQ_COUNT = { a: 1, an: 1, one: 1, two: 2, three: 3, four: 4, five: 5, six: 6, ten: 10, twenty: 20 };
-const eqKey = t => String(t || "").toLowerCase().replace(/[^a-z' ]/g, " ").split(/\s+/).filter(Boolean).sort().join(" ");
+const eqKey = t => String(t || "").toLowerCase().replaceAll("’","'").replace(/[^a-z' ]/g, " ").split(/\s+/).filter(Boolean).sort().join(" ");
 const eqSing = w => w.endsWith("s") && !w.endsWith("ss") ? w.slice(0, -1) : w; // "handaxes" -> "handaxe"
 const eqSing2 = w => /(ch|sh|x)es$/.test(w) ? w.slice(0, -2) : eqSing(w);         // "torches" -> "torch"
 // standard gear of an edition, found by name in any word order and singular or plural ("Two handaxes", "Crossbow, light")
 function eqGear(ed, name) {
   itLoad();
   const L = IT.data[ed === "2014" ? "2014" : "2024"].filter(x => x.kind === "gear"), k = eqKey(name), ks = eqKey(k.split(" ").map(eqSing).join(" "));
-  const alias = { "shield wooden": "shield", "bolt": "bolt crossbow" };
+  const alias = { "shield wooden": "shield", "bolt": "bolt crossbow", "knive small":"knife small", "knife small":"knife small" };
   const ks2 = eqKey(k.split(" ").map(eqSing2).join(" "));
-  return L.find(x => eqKey(x.n) === k) || L.find(x => eqKey(x.n) === ks) || L.find(x => eqKey(x.n) === ks2) || L.find(x => eqKey(x.n.split(/\s+/).map(eqSing).join(" ")) === ks)
+  // Equivalent gear only. Never silently choose an arbitrary focus or equate a unique trinket.
+  const equivalent = {"pen":["Ink pen"],"costume":["Costume","Clothes, costume"],"clothes common dark":["Common Clothes","Clothes, common"],"hooded iron lantern wrought":["Lantern, hooded"]};
+  return L.find(x => eqKey(x.n) === k) || (equivalent[k]||[]).map(n=>L.find(x=>eqKey(x.n)===eqKey(n))).find(Boolean) || L.find(x => eqKey(x.n) === ks) || L.find(x => eqKey(x.n) === ks2) || L.find(x => eqKey(x.n.split(/\s+/).map(eqSing).join(" ")) === ks)
     || (alias[ks] ? L.find(x => [alias[ks], eqSing(alias[ks])].includes(eqKey(x.n.split(/\s+/).map(eqSing).join(" ")))) : null) || null;
 }
 const eqIsWeapon = x => !!(x && x.kind === "gear" && (x.st || []).some(([k]) => k === "Damage"));
@@ -58,7 +127,7 @@ function eqParseKit(line, ed) {
     const m = t.match(/^(\d+|a|an|one|two|three|four|five|six|ten|twenty)\s+(.+)$/i);
     if (m) { qty = /^\d+$/.test(m[1]) ? +m[1] : EQ_COUNT[m[1].toLowerCase()]; t = m[2]; }
     const g = eqGear(ed, t);
-    return { n: g ? g.n : t.charAt(0).toUpperCase() + t.slice(1), qty, g };
+    return { n: g ? g.n : t.charAt(0).toUpperCase() + t.slice(1), qty: !m&&g?.packQty?g.packQty:qty, g };
   });
 }
 // move an older character's starting-equipment list into its inventory, once
@@ -67,9 +136,9 @@ function pcInvUpgrade(c) {
   if (c.kitMoved) return false;
   const ed = edOf(c);
   (c.kit || []).forEach(line => eqParseKit(line, ed).forEach(({ n, qty, g }) => {
-    const ex = c.inv.find(i => i.n.toLowerCase() === n.toLowerCase());
+    const ex = c.inv.find(i => !i.artificerOrigin&&i.n.toLowerCase() === n.toLowerCase()&&(!g?.packQty||i.ammunitionUnits===true));
     if (ex) { ex.qty = (+ex.qty || 0) + qty; return; }
-    c.inv.push({ id: uid("i"), ref: g ? g.id : undefined, n, qty, w: g ? g.w || 0 : 0, att: false, attuned: false, value: g ? g.c : undefined, note: "", eq: eqIsWeapon(g) || eqIsArmor(g) });
+    c.inv.push({ id: uid("i"), ref: g ? g.id : undefined, n, qty, w: g ? (g.w || 0)/(g.packQty||1) : 0, ...(g?.packQty?{ammunitionUnits:true}:{}), att: false, attuned: false, value: g ? g.c+(g.packQty?" per "+g.packQty:"") : undefined, note: "", eq: eqIsWeapon(g) || eqIsArmor(g) });
   }));
   c.kit = []; c.kitMoved = true;
   if (+c.startGold && !c.goldAdded) { c.coins = c.coins || { cp: 0, sp: 0, ep: 0, gp: 0, pp: 0 }; c.coins.gp = (+c.coins.gp || 0) + +c.startGold; c.goldAdded = true; }
@@ -95,10 +164,14 @@ function eqWeaponOf(i, ed) {
 const SUB_MARTIAL = [["Tempest Domain", 1], ["War Domain", 1], ["College of Valor", 3]];
 function eqProficient(c, w) {
   if (/^Simple/.test(w.cat) || w.cat === "Arcane Foci") return true;
+  if(/Martial/.test(w.cat)&&(revisedOrder(c,"Cleric")==="Protector"||revisedOrder(c,"Druid")==="Warden"))return true;
+  if(/Martial/.test(w.cat)&&battleSmithLevel(c)>=3)return true;
   if (/Martial/.test(w.cat) && [{ cls: c.cls, lv: c.level, subclass: c.subclass }, ...(c.multi || [])].some(x => x && SUB_MARTIAL.some(([s, lv]) => s === x.subclass && (+x.lv || 0) >= lv))) return true;
   const props = ((w.st.find(([k]) => k === "Properties") || [])[1] || "");
   if (["Barbarian", "Fighter", "Paladin", "Ranger"].includes(baseClassOf(c.cls)) || (c.multi || []).some(x => MC_MARTIAL.includes(baseClassOf(x.cls)))) return true;
   if (w.n === "Shortsword" && (c.multi || []).some(x => x.cls === "Monk")) return true;
+  if (edOf(c)==="2024"&&c.cls==="Rogue")return /Martial/.test(w.cat)&&/Finesse|Light/.test(props);
+  if (edOf(c)==="2024"&&c.cls==="Bard")return false;
   if (["Rogue", "Bard"].includes(c.cls)) return /Finesse|Light/.test(props) || /^(Longsword|Crossbow, hand|Hand Crossbow)$/.test(w.n);
   if (c.cls === "Druid") return w.n === "Scimitar";
   if (c.cls === "Monk") return w.n === "Shortsword" || (/Melee/.test(w.cat) && /Light/.test(props));
@@ -108,12 +181,17 @@ function eqAttack(c, i, w) {
   const st = k => ((w.st.find(([x]) => x === k) || [])[1] || ""), dmgTxt = st("Damage"), props = st("Properties");
   const dm = dmgTxt.match(/^(\d+(?:d\d+)?)\s+([a-z]+)/); if (!dm) return null;
   const m = c.mods, ranged = /Ranged/.test(w.cat), monk = c.cls === "Monk" && (/Simple Melee/.test(w.cat) || w.n === "Shortsword" || (/Melee/.test(w.cat) && /Light/.test(props) && edOf(c) === "2024"));
-  const ab = /Finesse/.test(props) || monk ? (m.dex > m.str ? "dex" : "str") : ranged ? "dex" : "str";
+  const pact=isPactWeapon(c,i,w),normalAb=/Finesse/.test(props)||monk?(m.dex>m.str?"dex":"str"):ranged?"dex":"str";
   const ref = inventoryCatalogItem(i, edOf(c));
-  const magic = inventoryEnhancement(i, ref, "weapon"), needsAtt = inventoryNeedsAttunement(i, ref) && !i.attuned, bonus = needsAtt ? 0 : magic;
-  const prof = eqProficient(c, w), mod = m[ab] + bonus, hit = m[ab] + (prof ? c.prof : 0) + bonus;
+  const battleReady=battleSmithLevel(c)>=3&&choiceOf(c,"Battle Ready Ability")[0]==="Intelligence"&&!itemRulesIncomplete(ref)&&(ref?.kind==="magic"||artificerInfusions(c).includes(i));
+  const ab=pact&&edOf(c)==="2024"&&choiceOf(c,"Pact Weapon Ability")[0]==="Charisma"?"cha":battleReady?"int":normalAb;
+  const infusion=artificerInfusionBonus(c,i,"weapon"), magic = inventoryEnhancement(i, ref, "weapon")+infusion, needsAtt = inventoryNeedsAttunement(i, ref) && !i.attuned, bonus = needsAtt ? 0 : magic;
+  const prof = pact||eqProficient(c, w), mod = m[ab] + bonus, hit = m[ab] + (prof ? c.prof : 0) + bonus;
   const two = (dmgTxt.match(/two-handed (\d+d\d+)/) || [])[1];
-  return { name: i.n, iid: i.id, hit, type: dm[2], two, ab, prof, magic, needsAtt, melee: !ranged, twoH: /Two-Handed/.test(props), thrown: /Thrown/.test(props), mod, die: dm[1] };
+  const chosenType=choiceOf(c,"Pact Weapon Damage")[0],type=pact&&edOf(c)==="2024"&&["Necrotic","Psychic","Radiant"].includes(chosenType)?chosenType.toLowerCase():dm[2];
+  const magicArrow=["Shortbow","Longbow"].includes(w.n)&&xgeFighterLevel(c,"Arcane Archer")>=7;
+  return { name: i.n, iid: i.id, hit, type, pact, two, ab, prof, magic, needsAtt, mastery:activeMastery(c,w), melee: !ranged, twoH: /Two-Handed/.test(props), thrown: /Thrown/.test(props), mod, die: dm[1],
+    ...(magicArrow?{altNote:"Magic Arrow can overcome resistance and immunity to nonmagical attacks and damage"}:{}) };
 }
 /* ---- fighting styles, armor training, protective items and spell effects ---- */
 const FIGHT_STYLES = {
@@ -142,6 +220,8 @@ function armorTraining(c) {
   if (sub === "College of Valor" && c.level >= 3) { T.add("medium"); T.add("shield"); }
   if ((c.traits || []).includes("Dwarven Armor Training")) { T.add("light"); T.add("medium"); }
   (c.multi || []).forEach(x => (MC_ARMOR[baseClassOf(x.cls)] || "").split(" ").filter(Boolean).forEach(k => T.add(k)));
+  if(revisedOrder(c,"Cleric")==="Protector")T.add("heavy");
+  if(revisedOrder(c,"Druid")==="Warden")T.add("medium");
   if (f("Lightly Armored")) T.add("light");
   if (f("Moderately Armored")) { T.add("light"); T.add("medium"); T.add("shield"); }
   if (f("Heavily Armored")) { T.add("light"); T.add("medium"); T.add("heavy"); }
@@ -153,6 +233,7 @@ const PROT_ITEMS = [["ring of protection", 1, 1, false], ["cloak of protection",
 function protItems(c, armored) {
   const out = [];
   (c.inv || []).filter(i => i.eq && (+i.qty || 0) > 0).forEach(i => {
+    if(itemRulesIncomplete(inventoryCatalogItem(i,edOf(c))))return;
     const t = i.n.toLowerCase(), P = PROT_ITEMS.find(([k]) => t.includes(k)); if (!P) return;
     const [, ac, save, noArmor] = P, needs = /ioun|ring|cloak|bracers/.test(t) && !i.attuned;
     out.push({ i, ac: needs || (noArmor && armored) ? 0 : ac, save: needs ? 0 : save, why: needs ? "attune to use" : noArmor && armored ? "only without armor or shield" : "" });
@@ -182,14 +263,14 @@ function eqArmorOf(i, ed) {
 }
 function eqArmorBonus(i, ed) {
   const ref = inventoryCatalogItem(i, ed);
-  if (inventoryNeedsAttunement(i, ref) && !i.attuned) return 0;
+  if (itemRulesIncomplete(ref) || (inventoryNeedsAttunement(i, ref) && !i.attuned)) return 0;
   const t = (i.n + " " + (i.note || "")).toLowerCase(), named = inventoryEnhancement(i, ref, "armor");
   return named || Object.entries(ARMOR_MAGIC).reduce((v, [k, b]) => t.includes(k) ? b : v, 0);
 }
 function pcAC(c) {
   const ed = edOf(c), m = c.mods, eq = (c.inv || []).filter(i => i.eq && (+i.qty || 0) > 0);
   const worn = eq.map(i => ({ i, a: eqArmorOf(i, ed) })).filter(x => x.a);
-  const val = x => { const t = (x.a.st.find(([k]) => k === "Armor Class") || [])[1] || "", mm = t.match(/^\+?(\d+)(\s*\+\s*Dex modifier)?(\s*\(max 2\))?/); if (!mm) return 0; return +mm[1] + (mm[2] ? (mm[3] ? Math.min(m.dex, 2) : m.dex) : 0) + eqArmorBonus(x.i, ed); };
+  const val = x => { const t = (x.a.st.find(([k]) => k === "Armor Class") || [])[1] || "", mm = t.match(/^\+?(\d+)(\s*\+\s*Dex modifier)?(\s*\(max 2\))?/); if (!mm) return 0; return +mm[1] + (mm[2] ? (mm[3] ? Math.min(m.dex, 2) : m.dex) : 0) + eqArmorBonus(x.i, ed) + artificerInfusionBonus(c,x.i,"armor"); };
   const body = worn.filter(x => x.a.cat !== "Shield").sort((a, b) => val(b) - val(a))[0], shield = worn.filter(x => x.a.cat === "Shield").sort((a, b) => val(b) - val(a))[0];
   const parts = [], warn = [], fx = c.fx || {}, T = armorTraining(c), F = pcFx(c);
   let ac, speedPen = 0, stealthDis = false, untrained = false;
@@ -204,11 +285,14 @@ function pcAC(c) {
   else {
     const opts = [[10 + m.dex, "No armor (10 + DEX)"]];
     if (fx.mageArmor) opts.push([13 + m.dex, "Mage Armor (13 + DEX)"]);
-    if (c.subclass === "College of Dance" && c.level >= 3 && !shield) opts.push([10 + m.dex + m.cha, "Dazzling Footwork (10 + DEX + CHA)"]);
+    if (characterSubclassLevel(c,"Bard","College of Dance")>=3 && !shield) opts.push([10 + m.dex + m.cha, "Dazzling Footwork (10 + DEX + CHA)"]);
     F.acUnarm.forEach(o => opts.push(o));
-    /* first class or a multiclass (QA-3, 2026-11-24); with both, the better one counts */
-    if ([c.cls, ...(c.multi || []).map(x => x.cls)].some(k => baseClassOf(k) === "Barbarian")) opts.push([10 + m.dex + m.con, "Unarmored Defense (10 + DEX + CON)"]);
-    if (clsLv(c, "Monk") > 0 && !shield) opts.push([10 + m.dex + m.wis, "Unarmored Defense (10 + DEX + WIS)"]);
+    // 2014 multiclassing retains only the first acquired Unarmored Defense.
+    // Revised AC calculations remain alternatives, never cumulative.
+    const defenseClasses=[c.cls,...(c.multi||[]).map(x=>x.cls)].map(baseClassOf).filter(k=>k==="Barbarian"||k==="Monk");
+    const allowed=ed==="2014"?defenseClasses.slice(0,1):defenseClasses;
+    if (allowed.includes("Barbarian")) opts.push([10 + m.dex + m.con, "Unarmored Defense (10 + DEX + CON)"]);
+    if (allowed.includes("Monk") && !shield) opts.push([10 + m.dex + m.wis, "Unarmored Defense (10 + DEX + WIS)"]);
     const B = subBonusOf(c); if (B.ac) opts.push(B.ac);
     const best = opts.sort((a, b) => b[0] - a[0])[0]; ac = best[0]; parts.push(`${best[1]} ${best[0]}`);
   }
@@ -237,7 +321,7 @@ const unarmoredMove = lv => lv >= 18 ? 30 : lv >= 14 ? 25 : lv >= 10 ? 20 : lv >
 /* carrying: items × quantity, plus coins (50 to the pound); capacity STR × 15, doubled for Powerful Build */
 function pcLoad(c) {
   const items = (c.inv || []).reduce((t, i) => t + (+i.w || 0) * (+i.qty || 0), 0), coins = Object.values(c.coins || {}).reduce((t, n) => t + (+n || 0), 0) / 50;
-  const str = +c.scores.str || 10, big = (c.traits || []).includes("Powerful Build") ? 2 : 1;
+  const str = +c.scores.str || 10, big = ((c.traits || []).includes("Powerful Build") ? 2 : 1)*(speciesFormActive(c,"Large Form")?2:1);
   return { lb: Math.round((items + coins) * 10) / 10, cap: str * 15 * big, enc: str * 5 * big, heavy: str * 10 * big, variant: !!c.varEnc && edOf(c) === "2014" };
 }
 function pcSpeed(c, A) {
@@ -245,7 +329,8 @@ function pcSpeed(c, A) {
   const ed = edOf(c), lv = c.level, fx = c.fx || {}, has = n => (c.feats || []).some(f => f.f === n);
   const freeAction = (c.inv || []).some(i => {
     if (!i.eq || +i.qty <= 0 || !i.attuned) return false;
-    return /^ring of free action$/i.test(inventoryCatalogItem(i, ed)?.n || i.n);
+    const ref=inventoryCatalogItem(i,ed);
+    return !itemRulesIncomplete(ref) && /^ring of free action$/i.test(ref?.n || i.n);
   });
   const R = raceInfo(ed, c.race, c.sub), base = R.speed || 30, parts = [`${raceLabel(c)} ${base}`], other = [];
   let sp = base;
@@ -261,6 +346,8 @@ function pcSpeed(c, A) {
   }
   if (has("Unarmored Movement") && !A.bodyKind && !A.shieldOn) add("Unarmored Movement", unarmoredMove(clsLv(c, "Monk")));
   if (has("Fast Movement") && A.bodyKind !== "heavy") add("Fast Movement", 10);
+  const roving=ed==="2024"&&clsLv(c,"Ranger")>=6;
+  if(roving&&A.bodyKind!=="heavy")add("Roving",10);
   if (+c.hbSpeed) add("homebrew", +c.hbSpeed);
   if (featTaken(c, "Mobile")) add("Mobile", 10);
   if (featTaken(c, "Speedy")) add("Speedy", 10);
@@ -284,10 +371,12 @@ function pcSpeed(c, A) {
   const mv = v => v === "speed" ? sp : v === "2speed" ? 2 * sp : v;
   const fly = Math.max(fx.fly ? 60 : 0, F.fly != null ? mv(F.fly) || 0 : 0);
   if (fly) other.push(`Fly ${fly} ft`);
-  if (F.climb != null) other.push(`Climb ${mv(F.climb)} ft`);
-  if (F.swim != null) other.push(`Swim ${mv(F.swim)} ft`);
-  if (c.subclass === "Thief" && ed === "2024" && lv >= 3) other.push(`Climb ${sp} ft`);
-  if (c.subclass === "Circle of the Sea" && lv >= 6) other.push(`Swim ${sp} ft`);
+  if (F.climb != null || roving) other.push(`Climb ${Math.max(roving?sp:0,F.climb!=null?mv(F.climb):0)} ft`);
+  const depths=hasChoice(c,"Eldritch Invocations","depths");
+  if (F.swim != null || roving || depths) other.push(`Swim ${Math.max(roving||depths?sp:0,F.swim!=null?mv(F.swim):0)} ft`);
+  if(depths)other.push("Breathe underwater (Gift of the Depths)");
+  if (ed === "2024" && characterSubclassLevel(c,"Rogue","Thief")>=3) other.push(`Climb ${sp} ft`);
+  if (characterSubclassLevel(c,"Druid","Circle of the Sea")>=6) other.push(`Swim ${sp} ft`);
   if (has("Unarmored Movement") && clsLv(c, "Monk") >= 9 && !A.bodyKind && !A.shieldOn) other.push("Run up walls and across liquids on your turn");
   return { speed: sp, src: parts.join(" + "), other };
 }
@@ -330,7 +419,7 @@ function rcACLine(c) {
     ? `<p class="hint" style="margin:10px 0 0">Armor class is set by hand to <b>${esc(c.ac)}</b>. Your equipment gives <b>${c.acAuto}</b> (${esc(c.acAutoSrc)}). <button class="btn sm" type="button" data-acauto="1">Use equipment AC</button></p>`
     : `<p class="hint" style="margin:10px 0 0">Armor class <b>${c.acAuto}</b>: ${esc(c.acAutoSrc)}.</p>`);
 }
-const ATK_F = { strMelee: a => a.melee && a.ab === "str", weapon: a => !!a.iid, melee: a => !!a.melee, ranged: a => !a.melee, unarmed: a => !!a.unarmed, all: () => true };
+const ATK_F = { strMelee: a => a.melee && a.ab === "str", strWeapon: a=>a.ab==="str"&&(a.iid||a.unarmed), weapon: a => !!a.iid, meleeWeapon:a=>!!a.iid&&a.melee, melee: a => !!a.melee, ranged: a => !a.melee, unarmed: a => !!a.unarmed, all: () => true };
 function pcAttacks(c) {
   const ed = edOf(c), out = [], SB = subBonusOf(c), m = c.mods, F = pcFx(c);
   if (F.form) {
@@ -342,15 +431,21 @@ function pcAttacks(c) {
     return out;
   }
   (c.inv || []).filter(i => i.eq && (+i.qty || 0) > 0).forEach(i => { const w = eqWeaponOf(i, ed), a = w && eqAttack(c, i, w); if (a) out.push(a); });
+  const propulsion=artificerInfusionEquipped(c,"Arcane Propulsion Armor");
+  if(propulsion){
+    const ab=battleSmithLevel(c)>=3&&choiceOf(c,"Battle Ready Ability")[0]==="Intelligence"?"int":"str";
+    out.push({name:"Arcane Propulsion gauntlet",iid:propulsion.id,hit:m[ab]+c.prof,die:"1d8",mod:m[ab],type:"force",prof:true,melee:true,thrown:true,ab,altNote:"Requires an empty hand. Thrown 20/60 ft, returns after the attack."});
+  }
   if (c.cls === "Monk") { const wm = Math.max(m.str, m.dex); out.push({ name: "Unarmed strike", hit: wm + c.prof, die: "1d" + maDie(c), mod: wm, type: "bludgeoning", prof: true, melee: true, unarmed: true, ab: m.dex > m.str ? "dex" : "str" }); }
   else if (!out.length) out.push({ name: "Unarmed strike", hit: m.str + c.prof, die: "", mod: 1 + m.str, type: "bludgeoning", prof: true, melee: true, unarmed: true, ab: "str" });
-  if ((c.feats || []).some(f => f.sub && f.f === "Psychic Blades")) {
+  if (characterSubclassLevel(c,"Rogue","Soulknife")>=3) {
     const bm = Math.max(m.str, m.dex), ab = m.dex > m.str ? "dex" : "str";
-    out.push({ name: "Psychic Blade", hit: bm + c.prof, die: "1d6", mod: bm, type: "psychic", altNote: "thrown 60 ft", prof: true, melee: true, ab });
+    out.push({ name: "Psychic Blade", hit: bm + c.prof, die: "1d6", mod: bm, type: "psychic", altNote: "thrown 60 ft"+(ed==="2024"?"; Vex; opportunity attack eligible":""), prof: true, melee: true, ab });
     out.push({ name: "Psychic Blade (bonus action)", hit: bm + c.prof, die: "1d4", mod: bm, type: "psychic", prof: true, melee: true, ab });
   }
   F.attacks.forEach(a => out.push({ prof: true, ...a }));
   out.forEach(a => { a.tags = []; a.extra = []; a.dmgB = 0; if (+c.atkBonus && (a.iid || a.unarmed)) { a.hit += +c.atkBonus; a.tags.push(`homebrew ${sgn(+c.atkBonus)}`); } });
+  out.forEach(a=>{if(a.mastery)a.tags.push("Mastery: "+a.mastery+(classFeatureLevel(c,"Fighter")>=9?" (Tactical Master: Push, Sap or Slow may replace)":""));});
   if (SB.crit < 20) out.forEach(a => { if (a.iid || a.unarmed) a.crit = SB.crit; });
   // fighting styles
   const melee = out.filter(a => a.iid && a.melee);
@@ -358,6 +453,17 @@ function pcAttacks(c) {
   if (hasStyle(c, "Archery")) out.filter(a => a.iid && !a.melee).forEach(a => { a.hit += 2; a.tags.push("Archery +2"); });
   if (hasStyle(c, "Thrown Weapon Fighting")) out.filter(a => a.thrown).forEach(a => { a.thrownB = 2; a.tags.push("Thrown Weapon Fighting +2"); });
   if (hasChoice(c, "Hunter's Prey", "colossus")) out.filter(a => a.iid).forEach(a => a.extra.push("1d8 vs wounded, once per turn"));
+  for(const a of out.filter(a=>a.pact)){
+    a.tags.push("Pact weapon");
+    if(hasChoice(c,"Eldritch Invocations","thirst"))a.tags.push(hasChoice(c,"Eldritch Invocations","devouring")?"3 pact weapon attacks per Attack action":"2 pact weapon attacks per Attack action");
+    if(hasChoice(c,"Eldritch Invocations","lifedrinker")){
+      if(ed==="2014")a.extra.push(Math.max(1,m.cha)+" necrotic (Lifedrinker)");
+      else a.extra.push("1d6 necrotic, psychic or radiant once per turn (Lifedrinker); optional Hit Die healing");
+    }
+  }
+  // Radiant Strikes is an attack rider, never a separate spell-slot cost.
+  if(ed==="2024"&&clsLv(c,"Paladin")>=11)out.filter(a=>a.unarmed||(a.iid&&a.melee)).forEach(a=>a.extra.push("1d8 radiant (Radiant Strikes)"));
+  if(ed==="2024"&&clsLv(c,"Death Knight")>=11)out.filter(a=>a.unarmed||(a.iid&&a.melee)).forEach(a=>a.extra.push("1d8 necrotic (Runic Strikes)"));
   // active abilities
   F.atk.forEach(x => out.filter(ATK_F[x.f] || ATK_F.all).forEach(a => { if (x.hit) a.hit += x.hit; if (x.dmg) a.dmgB += x.dmg; if (x.extra) a.extra.push(x.extra); if (x.adv) a.tags.push(x.adv); else if (x.label) a.tags.push(x.label); }));
   const A = pcAC(c);

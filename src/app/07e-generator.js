@@ -5,6 +5,13 @@ const mod = s => Math.floor((s - 10) / 2);
 const sgn = n => (n >= 0 ? "+" : "") + n;
 const diceAvg = d => d / 2 + 1;
 
+// Recalculate the capstone from original scores on every build; never stack it on a saved final score.
+function coreCapstoneScores(ed, cls, lv, sc) {
+  if (+lv!==20) return;
+  const abilities=cls==="Barbarian"?["str","con"]:ed==="2024"&&cls==="Monk"?["dex","wis"]:[];
+  const cap=ed==="2024"?25:24;
+  for(const a of abilities)sc[a]=Math.max(sc[a],Math.min(cap,sc[a]+4));
+}
 function generateCharacter(o) {
   const r = makeRng("pc", o.seed);
   const ed = o.ed === "2024" ? "2024" : "2014";
@@ -14,9 +21,9 @@ function generateCharacter(o) {
   // a separate rng for the subrace, so older characters re-level to the same results
   let sub = o.sub === "none" ? null : o.sub || (race === "Dragonborn" && o.ancestry) || null;
   if (o.sub !== "none" && !sub && RB && RB.subs) sub = makeRng("sub", o.seed).pick(o.campaign ? campaignLineageChoices(ed, race) : Object.keys(RB.subs));
-  if (sub && !(RB && RB.subs && RB.subs[sub])) sub = null;
+  if (sub && !(RB?.subs && Object.hasOwn(RB.subs,sub))) sub = null;
   const R = raceInfo(ed, race, sub);
-  const anc = race === "Dragonborn" ? (sub || o.ancestry || r.pick(Object.keys(DRAGON_ANCESTRY))) : null;
+  const anc = race === "Dragonborn" ? (sub || (Object.hasOwn(DRAGON_ANCESTRY,o.ancestry)?o.ancestry:r.pick(Object.keys(DRAGON_ANCESTRY)))) : null;
   if ((ed === "2024" || R.flexible) && o.bonus === "fixed") o = { ...o, bonus: "flex" };
   // Subclass: a random forge picks one (own rng, so other rolls stay the same); custom builds and level-ups ask the player.
   const subLv = subclassLevel(ed, cls);
@@ -24,6 +31,10 @@ function generateCharacter(o) {
   if (!subclass && o.subclass !== "none" && !o.custom && lv >= subLv) { const L = subclassList(ed, cls).filter(x => !x[2]); if (L.length) subclass = makeRng("subclass", o.seed).pick(L)[0]; }
   // other classes taken by multiclassing, and the total character level
   const MC = (o.multi || []).filter(x => x && classData(ed, x.cls) && x.cls !== cls && +x.lv > 0).map(x => ({ cls: x.cls, lv: +x.lv, subclass: x.subclass || null })), TL = lv + MC.reduce((t, x) => t + x.lv, 0);
+  const subclassPrints=Object.fromEntries([{cls,subclass},...MC].flatMap(x=>{
+    const selected=characterSubclassPrinting(o,x.cls);
+    return selected&&namedSubclassPrints(ed,x.cls,x.subclass).some(r=>r.id===selected)?[[x.cls,selected]]:[];
+  }));
   // scores
   let rolls = null, base;
   const order = [...C.pri, ...["con", "dex", "wis", "str", "int", "cha"].filter(a => !C.pri.includes(a))];
@@ -64,13 +75,17 @@ function generateCharacter(o) {
   const bgGold50 = ed === "2024" && BGI && !BGI.hb && Boolean(o.bgGold50 || o.custom?.bgGold50);
   bonusFeats.forEach(b => { if (AB.includes(b.a)) sc[b.a] = Math.max(sc[b.a], Math.min(b.max || 20, sc[b.a] + 1)); });
   // homebrew effects (see hbEffects); ability scores first, since everything else reads them
-  const fx = hbEffects(ed, race, sub, bg, cls, subclass, lv, [...asiLv.map(L => asiPicks[L]).filter(pk => pk && pk.feat).map(pk => pk.feat), ...bonusFeats.map(b => b.n), ...(bgFeat ? [bgFeat] : [])]);
+  const fx = hbEffects(ed,race,sub,bg,cls,subclass,lv,[...asiLv.map(L=>asiPicks[L]).filter(pk=>pk&&pk.feat).map(pk=>pk.feat),...bonusFeats.map(b=>b.n),...(bgFeat?[bgFeat]:[])],subclassPrints[cls]);
   const fxSum = t => fx.filter(e => e.t === t).reduce((n, e) => n + e.v, 0);
   fx.filter(e => e.t === "ab").forEach(e => { sc[e.a] = e.v >= 0 ? Math.max(sc[e.a], Math.min(e.max || 20, sc[e.a] + e.v)) : Math.max(1, sc[e.a] + e.v); });
+  coreCapstoneScores(ed,cls,lv,sc);
+  for(const x of MC)coreCapstoneScores(ed,x.cls,x.lv,sc);
   const m = {}; AB.forEach(a => m[a] = mod(sc[a]));
   const prof = 2 + Math.floor((TL - 1) / 4);
   // skills
   const profSk = new Set([...bgSkills(ed, bg), ...(R.skills || [])]);
+  const selectedSpeciesSkill = speciesSkillChoice(R, profSk, o.custom?.speciesSkill || o.speciesSkill, o.keepSkills || []);
+  if (selectedSpeciesSkill) profSk.add(selectedSpeciesSkill);
   const pickSkills = (list, n) => {
     const opts = r.shuffle(list.filter(s => !profSk.has(s))).sort((a, b) => m[SKILLS[b]] - m[SKILLS[a]]);
     // mostly take skills that fit the best abilities, with a little randomness
@@ -93,7 +108,7 @@ function generateCharacter(o) {
   if (expert.size > wantX) [...expert].slice(wantX).forEach(s => expert.delete(s));
   const expertOrder = [...expert];
   fx.forEach(e => { if (fxSkill(e.t)) profSk.add(e.a); if (e.t === "exp") expert.add(e.a); });
-  const jack = cls === "Bard" && lv >= 2;
+  const jack = (cls === "Bard" && lv >= 2) || MC.some(x=>x.cls==="Bard"&&x.lv>=2);
   const skillVals = ALL_SKILLS.map(s => {
     const p = profSk.has(s), x = expert.has(s);
     return { s, ab: SKILLS[s], p, x, v: m[SKILLS[s]] + (x ? prof * 2 : p ? prof : jack ? Math.floor(prof / 2) : 0) };
@@ -103,7 +118,11 @@ function generateCharacter(o) {
   const featsTaken = [...asiLv.map(L => asiPicks[L]).filter(pk => pk && pk.feat), ...bonusFeats.map(b => ({ feat: b.n, ...(b.a ? { [b.a]: 1 } : {}) })), ...(bgFeat ? [{ feat: bgFeat }] : [])];
   const hasFeat = n => featsTaken.some(pk => pk.feat === n);
   let hp = Math.max(1, C.hd + conBonus) + (lv - 1) * Math.max(1, diceAvg(C.hd) + conBonus) + MC.reduce((t, x) => t + x.lv * Math.max(1, diceAvg(classData(ed, x.cls).hd) + conBonus), 0) + (R.hpLv || 0) * TL + (hasFeat("Tough") ? 2 * TL : 0) + (hasFeat("Boon of Fortitude") ? 40 : 0) + fxSum("hp") + fxSum("hpLv") * TL;
-  const saves = [...C.saves]; featsTaken.filter(pk => pk.feat === "Resilient").forEach(pk => { const a = AB.find(x => pk[x]); if (a && !saves.includes(a)) saves.push(a); });
+  const saves = [...C.saves];
+  const classLevel=k=>Math.max(cls===k?lv:0,...MC.filter(x=>x.cls===k).map(x=>x.lv));
+  if(classLevel("Monk")>=14)AB.forEach(a=>{if(!saves.includes(a))saves.push(a);});
+  if(classLevel("Rogue")>=15)(ed==="2024"?["wis","cha"]:["wis"]).forEach(a=>{if(!saves.includes(a))saves.push(a);});
+  featsTaken.filter(pk => pk.feat === "Resilient").forEach(pk => { const a = AB.find(x => pk[x]); if (a && !saves.includes(a)) saves.push(a); });
   fx.forEach(e => { if (e.t === "save" && !saves.includes(e.a)) saves.push(e.a); });
   // homebrew AC bonuses are kept apart (hbAc) so the equipment-based AC on My Characters can add them too
   let [ac, acSrc] = C.ac(m);
@@ -111,10 +130,13 @@ function generateCharacter(o) {
   const atkBonus = fxSum("atk"), initBonus = (hasFeat("Alert") ? (ed === "2024" ? prof : 5) : 0) + fxSum("init");
   const w = C.wpn, wm = cls === "Monk" ? Math.max(m.str, m.dex) : m[w[2]];
   const attacks = [{ name: w[0], hit: wm + prof + atkBonus, dmg: `${w[1]}${wm ? sgn(wm) : ""}` }];
-  if (cls === "Monk") { const md = lv >= 17 ? "1d10" : lv >= 11 ? "1d8" : lv >= 5 ? "1d6" : "1d4"; attacks.push({ name: "Unarmed strike", hit: wm + prof + atkBonus, dmg: md + sgn(wm) }); }
+  if (cls === "Monk") { const md = ed==="2024"?(lv>=17?"1d12":lv>=11?"1d10":lv>=5?"1d8":"1d6"):(lv >= 17 ? "1d10" : lv >= 11 ? "1d8" : lv >= 5 ? "1d6" : "1d4"); attacks.push({ name: "Unarmed strike", hit: wm + prof + atkBonus, dmg: md + sgn(wm) }); }
   // spells
   let spell = null;
-  const CAST = castOf(cls, subclass);
+  const castingFor=(cls,sub)=>castOf(cls,sub,ed,subclassPrints[cls],race);
+  const subclassCastingFor=(cls,sub)=>subCaster(cls,sub,ed,subclassPrints[cls],race);
+  const CAST = castingFor(cls,subclass);
+  const subclassCasting=subclassCastingFor(cls,subclass);
   if (CAST) {
     const [kind, sa] = CAST; let slots = [], note = "";
     if (kind === "full") slots = FULL_SLOTS[lv];
@@ -124,17 +146,17 @@ function generateCharacter(o) {
     else { const n = lv >= 17 ? 4 : lv >= 11 ? 3 : lv >= 2 ? 2 : 1, sl = Math.min(5, Math.ceil(lv / 2)); note = `${n} pact slot${n > 1 ? "s" : ""} of level ${sl}, regained on a short rest`; }
     const max = kind === "pact" ? Math.min(5, Math.ceil(lv / 2)) : Math.max(1, slots.length);
     const sb = fxSum("spell");
-    spell = { ab: sa, dc: 8 + prof + m[sa] + sb, atk: prof + m[sa] + sb, bonus: sb, slots, note, max, cantrips: kind !== "half", ...(subCaster(cls, subclass) ? { list: castListOf(cls, subclass) } : {}) };
+    spell = { ab: sa, dc: 8 + prof + m[sa] + sb, atk: prof + m[sa] + sb, bonus: sb, slots, note, max, cantrips: kind !== "half", ...(subclassCasting ? { list: subclassCasting.list } : {}) };
   }
-  const mcCasters = MC.filter(x => castOf(x.cls, x.subclass));
+  const mcCasters = MC.filter(x => castingFor(x.cls,x.subclass));
   if (mcCasters.length) {
-    const sb = fxSum("spell"), all = [...(CAST ? [{ cls, lv, subclass }] : []), ...mcCasters], slotted = all.filter(x => castOf(x.cls, x.subclass)[0] !== "pact");
-    const cl = slotted.reduce((t, x) => t + casterLv(ed, x.cls, x.lv, x.subclass), 0);
-    const own = x => { const k = castOf(x.cls, x.subclass)[0]; return k === "full" ? FULL_SLOTS[x.lv] : k === "third" ? thirdSlots(x.lv) : k === "artificer" ? ARTIFICER_SLOTS[x.lv] : (k === "half" && (x.lv >= 2 || ed === "2024")) ? FULL_SLOTS[Math.ceil(x.lv / 2)] : []; };
+    const sb = fxSum("spell"), all = [...(CAST ? [{ cls, lv, subclass }] : []), ...mcCasters], slotted = all.filter(x => castingFor(x.cls,x.subclass)[0] !== "pact");
+    const cl = slotted.reduce((t,x)=>t+casterLv(ed,x.cls,x.lv,x.subclass,subclassPrints[x.cls],race),0);
+    const own = x => { const k = castingFor(x.cls,x.subclass)[0]; return k === "full" ? FULL_SLOTS[x.lv] : k === "third" ? thirdSlots(x.lv) : k === "artificer" ? ARTIFICER_SLOTS[x.lv] : (k === "half" && (x.lv >= 2 || ed === "2024")) ? FULL_SLOTS[Math.ceil(x.lv / 2)] : []; };
     const slots = slotted.length >= 2 ? (FULL_SLOTS[Math.max(0, Math.min(20, cl))] || []) : slotted.length === 1 ? own(slotted[0]) : [];
     const lock = all.find(x => x.cls === "Warlock"), P = lock ? pactSlots(lock.lv) : null;
-    const mk = x => { const sa = castOf(x.cls, x.subclass)[1]; return { cls: x.cls, ...(subCaster(x.cls, x.subclass) ? { list: castListOf(x.cls, x.subclass) } : {}), ab: sa, dc: 8 + prof + m[sa] + sb, atk: prof + m[sa] + sb }; };
-    const head = spell ? { ...spell } : { ...mk(mcCasters[0]), bonus: sb, cantrips: castOf(mcCasters[0].cls, mcCasters[0].subclass)[0] !== "half", max: 1 };
+    const mk = x => { const sa = castingFor(x.cls,x.subclass)[1],sc=subclassCastingFor(x.cls,x.subclass); return { cls: x.cls, ...(sc ? { list:sc.list } : {}), ab: sa, dc: 8 + prof + m[sa] + sb, atk: prof + m[sa] + sb }; };
+    const head = spell ? { ...spell } : { ...mk(mcCasters[0]), bonus: sb, cantrips: castingFor(mcCasters[0].cls,mcCasters[0].subclass)[0] !== "half", max: 1 };
     head.slots = slots; head.note = slots.length ? "" : P ? `${P.n} pact slot${P.n > 1 ? "s" : ""} of level ${P.lvl}, regained on a short rest` : head.note || "";
     head.pact = P && slots.length ? P : null;
     head.max = Math.max(head.max || 1, slots.length, P ? P.lvl : 0);
@@ -146,11 +168,10 @@ function generateCharacter(o) {
   const feats = [];
   Object.entries(C.f).forEach(([l, list]) => { if (+l <= lv) list.forEach(f => feats.push({ l: +l, f })); });
   if (lv >= subLv) feats.push({ l: subLv, f: subclass ? `Subclass: ${subclass}` : "Subclass: not chosen yet" });
-  const hbSub = subclass && subclassEntry(ed, cls, subclass);
-  if (hbSub) (hbSub.features || []).filter(f => f.n && +f.l <= lv).forEach(f => feats.push({ l: +f.l, f: f.n, ...(hbSub.book ? { bookSub: true } : {}) }));
-  else if (subclass) feats.push(...subFeatList(ed, subclass, lv));
-  const SB = subBonuses(ed, subclass, lv, m, prof);
-  hp += SB.hp; subAddSaves(saves, SB); if (SB.ac) [ac, acSrc] = SB.ac;
+  feats.push(...subclassCharacterFeatures(ed,cls,subclass,lv,false,subclassPrints[cls]));
+  const SB = subBonusOf({ed,cls,level:lv,subclass,multi:MC,mods:m,prof});
+  const baseSaves=new Set(saves);
+  hp += SB.hp; subAddSaves(saves, SB); const subSaveGrants=saves.filter(a=>!baseSaves.has(a)); if (SB.ac) [ac, acSrc] = SB.ac;
   ac += hbAc; acSrc += hbAcTxt;
   skillVals.forEach(s => s.v += athleteBonus(SB, s, prof));
   if (HB_BG[bg] && HB_DESC[`${bg} background`]) feats.push({ l: 1, f: `${bg} background` });
@@ -166,9 +187,7 @@ function generateCharacter(o) {
     const label = x.subclass ? `Subclass: ${x.subclass}` : `Subclass: not chosen yet (${x.cls})`;
     feats.push({ l: sl2, f: label, mc: x.cls });
     if (!x.subclass) return;
-    const entry = subclassEntry(ed, x.cls, x.subclass);
-    const features = entry ? (entry.features || []).filter(f => f.n && +f.l <= x.lv).map(f => ({ l: +f.l, f: f.n })) : subFeatList(ed, x.subclass, x.lv);
-    features.forEach(sf => feats.push({ l: sf.l, f: sf.f, mc: x.cls, mcsub: x.subclass }));
+    feats.push(...subclassCharacterFeatures(ed,x.cls,x.subclass,x.lv,true,subclassPrints[x.cls]));
   });
   bonusFeats.forEach(b => feats.push({ l: +b.l || 1, f: `Feat: ${b.n}${b.a ? ` (+1 ${AB_NAME[b.a]})` : ""}`, bonus: true }));
   if (asiAuto.length) feats.push({ l: asiAuto[0], f: `Ability Score Improvement ×${asiAuto.length} (applied)` });
@@ -176,33 +195,32 @@ function generateCharacter(o) {
   feats.sort((a, b) => a.l - b.l);
   const extras = [];
   if (cls === "Rogue") extras.push(`Sneak Attack ${Math.ceil(lv / 2)}d6`);
-  if (cls === "Barbarian") extras.push(`Rages per day: ${lv >= 20 ? "unlimited" : lv >= 17 ? 6 : lv >= 12 ? 5 : lv >= 6 ? 4 : lv >= 3 ? 3 : 2}, rage damage +${lv >= 16 ? 4 : lv >= 9 ? 3 : 2}`);
+  if (cls === "Barbarian") extras.push(`Rages per day: ${ed === "2014" && lv >= 20 ? "unlimited" : lv >= 17 ? 6 : lv >= 12 ? 5 : lv >= 6 ? 4 : lv >= 3 ? 3 : 2}, rage damage +${lv >= 16 ? 4 : lv >= 9 ? 3 : 2}`);
   if (cls === "Bard") extras.push(`Bardic Inspiration d${lv >= 15 ? 12 : lv >= 10 ? 10 : lv >= 5 ? 8 : 6}, ${Math.max(1, m.cha)}× per ${lv >= 5 ? "short" : "long"} rest`);
-  if (cls === "Monk" && lv >= 2) extras.push(`Ki points: ${lv}`);
+  if (cls === "Monk" && lv >= 2) extras.push(`${ed === "2024" ? "Focus" : "Ki"} points: ${lv}`);
   if (cls === "Paladin") extras.push(`Lay on Hands pool: ${lv * 5} HP`);
   if (cls === "Sorcerer" && lv >= 2) extras.push(`Sorcery points: ${lv}`);
   if (anc) {
-    const A = DRAGON_ANCESTRY[anc];
-    if (ed === "2024") extras.push(`Breath Weapon (${anc.toLowerCase()} dragon): replaces one attack; 15 ft cone or 30 ft line of ${A.type}, ${lv >= 17 ? "4d10" : lv >= 11 ? "3d10" : lv >= 5 ? "2d10" : "1d10"} ${A.type} damage, DEX save DC ${8 + prof + m.con}, ${prof} uses per long rest`);
-    else extras.push(`Breath Weapon (${anc.toLowerCase()} dragon): ${A.shape} of ${A.type}, ${lv >= 16 ? "5d6" : lv >= 11 ? "4d6" : lv >= 6 ? "3d6" : "2d6"} ${A.type} damage, ${A.save} save DC ${8 + prof + m.con}, once per short or long rest`);
+    extras.push(dragonbornBreathSummary(ed,anc,TL,prof,m.con));
   }
   const gender = o.gender === "male" || o.gender === "female" ? o.gender : makeRng("gender", o.seed).pick(["male", "female"]);
   const pcName = o.name || fullName(r, gender);
   const hk = hookBuild(r.pick(PC_HOOKS), hookCtx(r, pcName.split(" ")[0]));
   return {
-    seed: o.seed, method: o.method, bonus: o.bonus, name: pcName, gender, race, ed, sub, ancestry: anc, subclass, custom: !!o.custom, customData: o.custom || null, cls, bg, level: lv, align: (o.custom && o.custom.align) || r.pick(ALIGN), base, scores: sc, mods: m, rolls,
-    prof, saves, skills: skillVals, hp, ac, acSrc, speed: R.speed + fxSum("speed") + SB.speed + (C.f && Object.entries(C.f).some(([l, L]) => +l <= lv && L.includes("Unarmored Movement")) ? unarmoredMove(lv) : 0) + (cls === "Barbarian" && lv >= 5 ? 10 : 0) + (hasFeat("Mobile") || hasFeat("Speedy") ? 10 : 0) + (hasFeat("Boon of Speed") ? 30 : 0),
+    ...(Object.keys(subclassPrints).length?{subclassPrints}:{}),
+    seed: o.seed, method: o.method, bonus: o.bonus, name: pcName, gender, race, ed, sub, ancestry: anc, subclass, speciesSkill: selectedSpeciesSkill || undefined, custom: !!o.custom, customData: o.custom || null, cls, bg, level: lv, align: (o.custom && o.custom.align) || r.pick(ALIGN), base, scores: sc, mods: m, rolls,
+    prof, saves, skills: skillVals, hp, ac, acSrc, speed: R.speed + fxSum("speed") + SB.speed + (C.f && Object.entries(C.f).some(([l, L]) => +l <= lv && L.includes("Unarmored Movement")) ? unarmoredMove(lv) : 0) + (cls === "Barbarian" && lv >= 5 ? 10 : 0) + (ed==="2024" && (cls==="Ranger" && lv>=6 || MC.some(x=>x.cls==="Ranger"&&x.lv>=6)) ? 10 : 0) + (hasFeat("Mobile") || hasFeat("Speedy") ? 10 : 0) + (hasFeat("Boon of Speed") ? 30 : 0),
     init: m.dex + initBonus + SB.init + (SB.athlete ? Math.ceil(prof / 2) : 0) + (jack && ed === "2014" ? Math.floor(prof / 2) : 0) /* 2014 Jack of All Trades counts on initiative, a Dexterity check */, initBonus, atkBonus, hbAc, hbSpeed: fxSum("speed"), hbSig: fx.length ? JSON.stringify(fx) : "",
     ...Object.fromEntries(["res", "imm", "vul", "cimm"].map(t => [t, [...new Set([...fx.filter(e => e.t === t).map(e => e.a), ...(t === "res" ? traitRes(R.traits, anc, ed) : [])])].sort()])),
-    sadv: [...new Set([...traitSadv(R.traits), ...fx.filter(e => e.t === "sadv").map(e => e.a)])], passive: 10 + skillVals.find(s => s.s === "Perception").v, subHp: SB.hp, subSpd: SB.speed,
-    attacks, spell, feats, extras, traits: R.traits.filter(t => !RL.hidden.has(t)), kit: [...C.kit, ...((BGI && BGI.gear && !bgGold50) ? BGI.gear : [])], startGold: bgGold50 ? 50 : (BGI && BGI.gp) || 0, bgGold50: bgGold50 || undefined, bgV: 2, skilled, expertOrder, multi: MC.length ? MC : undefined, totalLevel: TL, mcSkills, hdList: [C.hd, ...MC.map(x => classData(ed, x.cls).hd)], bgAsiLegacy: o.bgAsiLegacy || undefined, hd: C.hd,
+    sadv: [...new Set([...traitSadv(R.traits), ...fx.filter(e => e.t === "sadv").map(e => e.a)])], passive: 10 + skillVals.find(s => s.s === "Perception").v, subHp: SB.hp, subSpd: SB.speed, subSaveGrants,
+    attacks, spell, feats, extras, traits: R.traits.filter(t => !RL.hidden.has(t)), kit: [...C.kit, ...((BGI && BGI.gear && !bgGold50 && !BGI.deferStartingEquipment) ? BGI.gear : [])], startGold: BGI?.deferStartingEquipment ? 0 : bgGold50 ? 50 : (BGI && BGI.gp) || 0, ...(BGI?.deferStartingEquipment?{backgroundEquipmentOrigin:BGI.equipmentOrigin}:{}), bgGold50: bgGold50 || undefined, bgV: 2, skilled, expertOrder, multi: MC.length ? MC : undefined, totalLevel: TL, mcSkills, hdList: [C.hd, ...MC.map(x => classData(ed, x.cls).hd)], bgAsiLegacy: o.bgAsiLegacy || undefined, hd: C.hd,
     trait: r.pick(PC_TRAITS), ideal: r.pick(IDEALS), bond: r.pick(BONDS), flaw: r.pick(FLAWS), hook: hk.hook, hookDetail: hk.hookDetail
   };
 }
 // Characters saved before species level features existed: add the ones they have reached.
 function raceLvUpgrade(c) {
   if (c.raceLv || !Array.isArray(c.traits) || !Array.isArray(c.feats)) return;
-  const R = raceLevelFeats(edOf(c), c.race, c.traits, c.level || 1);
+  const R = raceLevelFeats(edOf(c), c.race, c.traits, totalLv(c) || 1);
   R.feats.forEach(f => { if (!c.feats.some(x => x.f === f.f)) c.feats.push(f); });
   c.feats.sort((a, b) => a.l - b.l); c.traits = c.traits.filter(t => !R.hidden.has(t)); c.raceLv = 1;
 }

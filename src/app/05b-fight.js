@@ -20,7 +20,7 @@ function fightWho(c, e, key) {
 }
 function fightAll(c, e) {
   const init = new Map(encOrder(c, e).map(o => [(o.foe ? "foe:" : "pc:") + o.key, o.init]));
-  const rows = [...e.enemies.map(m => "foe:" + m.id), ...(c.party || []).map(p => "pc:" + p.id)].map(k => fightWho(c, e, k)).filter(Boolean);
+  const rows = [...e.enemies.filter(m=>fungalZombiePresent(m,e)).map(m => "foe:" + m.id), ...(c.party || []).map(p => "pc:" + p.id)].map(k => fightWho(c, e, k)).filter(Boolean);
   rows.forEach(r => r.init = init.has(r.key) ? init.get(r.key) : null);
   const order = encOrder(c, e).map(o => (o.foe ? "foe:" : "pc:") + o.key);
   return rows.sort((a, b) => (a.init === null) - (b.init === null) || order.indexOf(a.key) - order.indexOf(b.key));
@@ -109,7 +109,7 @@ function fightReset(c, e) {
 
 /* ---- what's filled in for you: the caster's DC and spells, and the spell's save, condition, timing and concentration ---- */
 function fightMonster(m) {
-  for (const ed of ["2024", "2014"]) { const x = (dmData("monsterData")[ed] || []).find(y => y.n === m.stat); if (x) return { mon: x, ed }; }
+  for (const ed of m.statEdition?[m.statEdition]:["2024", "2014"]) { const x = (dmData("monsterData")[ed] || []).find(y => y.n === m.stat); if (x) return { mon: x, ed }; }
   try { bsLoad(); const x = (BS.data.custom || []).find(y => y.n === m.stat); if (x) return { mon: x, ed: "custom" }; } catch (err) { }
   return null;
 }
@@ -149,7 +149,7 @@ function fightChip(e, w, cd) {
 function fightRowHTML(c, e, w, turnKey) {
   const conds = fightCondList(e, w);
   let hp, max, ac, extra = "", conc = null;
-  if (w.t === "foe") { hp = w.m.hp; max = w.m.max; ac = w.m.ac; conc = w.m.conc && w.m.conc.spell; }
+  if (w.t === "foe") { hp = w.m.hp; max = w.m.max; ac = w.m.ac; conc = w.m.conc && w.m.conc.spell; if(w.m.fungal)extra='<span class="fight-chip">Fungal Infestation ally</span>'; }
   else if (w.pc) { max = +w.pc.hp || 0; hp = w.pc.hpCur === undefined || w.pc.hpCur === "" || isNaN(+w.pc.hpCur) ? max : +w.pc.hpCur; ac = w.pc.ac; conc = w.pc.conc && w.pc.conc.spell; const D = w.pc.death || {}; if (hp === 0) extra = `<span class="fight-chip down">${D.dead ? "Dead" : D.stable ? "Stable" : `Dying ${+D.s || 0}✓ ${+D.f || 0}✗`}</span>`; }
   const pct = max ? Math.max(0, Math.min(100, Math.round(hp / max * 100))) : 0;
   const quick = `<select data-fqk="${esc(w.key)}" aria-label="Add a condition to ${esc(w.name)}"><option value="">+ Condition</option>${fightConds().map(([k, l]) => `<option value="${k}">${l}</option>`).join("")}</select>`;
@@ -165,7 +165,15 @@ function fightRowHTML(c, e, w, turnKey) {
 function fightNowHTML(c, e, w) {
   if (!w) return `<p class="muted">Pick someone in the turn order.</p>`;
   let body = "";
-  if (w.t === "foe") { const f = fightMonster(w.m); body = f ? bsSbHTML(f.mon, f.ed === "custom" ? fightEd() : f.ed) : `<p class="muted">No stat block found for ${esc(w.m.stat || w.name)}.</p>`; }
+  if (w.t === "foe") {
+    const f = fightMonster(w.m);
+    if(w.m.fungal){
+      const button=(action,label)=>`<button type="button" class="btn sm" data-ea="${action}" data-eid="${esc(e.id)}" data-mid="${esc(w.id)}">${label}</button>`;
+      body=`<p>Follows its owner’s turn. It obeys mental commands and can only take the Attack action to make one melee attack. If eligible, resolve Undead Fortitude and adjust HP after the save.</p>
+        ${w.m.hp>0?button("fungalSlam","Roll Slam")+button("fungalDamage","Roll damage"):""}`;
+    }
+    body+=f?bsSbHTML(f.mon,f.ed==="custom"?fightEd():f.ed):`<p class="muted">No stat block found for ${esc(w.m.stat||w.name)}.</p>`;
+  }
   else if (w.pc) body = `<div class="fight-stats"><span>AC ${esc(w.pc.ac)}</span><span>HP ${esc(w.pc.hpCur ?? w.pc.hp)}/${esc(w.pc.hp)}</span>${w.pc.spell ? `<span>Spell save DC ${esc(w.pc.spell.dc)}</span>` : ""}<span>Passive ${esc(w.pc.passive)}</span></div><p>${w.pc.conc ? `◎ Concentrating on <b>${esc(w.pc.conc.spell)}</b>. ` : ""}<button type="button" class="link-b" data-openpc="${esc(w.pc.id)}">Open ${esc(w.name)}'s sheet</button></p>`;
   else body = `<p class="muted">${esc(w.name)} has no saved character sheet.</p>`;
   const casters = fightAll(c, e);

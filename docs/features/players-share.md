@@ -36,3 +36,16 @@ Whispers became a chat (`src/portal.js`, "chat" section; `netlify/lib/api.mjs`, 
 - **Polling** (`startChat`/`stopChat`): every 3 seconds while a conversation is on screen, otherwise every 8; nothing while the page is hidden. A 403 (removed from the campaign) stops it quietly.
 - **Redraws** replace only `.chat-list`, never the typing box, so a half-typed message survives. The list stays where the reader scrolled unless they were at the bottom. Each conversation keeps its own draft (`S.chat.drafts`).
 - **Checks:** `npm test` (the chat API rules) and `npm run test:chat` (`test/e2e/chat.cjs`, port 8893).
+
+## Homebrew requests (2026-11-26)
+
+Players have the Homebrew tab (`PLAYER_VIEWS` in `portal.js`). What a player saves never goes into the campaign's homebrew:
+
+- `hbPut` (07b) sends a signed-in player's entry to `Portal.hbReqPut`, which stores it in the `homebrew_requests` table (`PUT /api/campaigns/:id/hbrequests/:hbId`), one row per player and entry id.
+- **The server is the real check:** `PUT …/homebrew/:id` is DM-only, a player's `GET …/hbrequests` returns only their own rows, a player's `DELETE` only reaches their own row, and only the DM can `POST …/hbrequests/:hbId/approve?user=<player id>`, which moves the row into `homebrew` in one go. `book`, `src`, `pend`, `rejected` and `from` are stripped from requests, and each player can have 30 waiting (`MAX_HB_REQUESTS`).
+- A request whose id matches a campaign entry is **a change** to it; approving it replaces the entry.
+- The player's side shows "Waiting for your DM" (`hbMyReqsHTML`); they can change or withdraw an entry while it waits. Opening a campaign entry offers "Suggest these changes" and no Delete. No bulk import for players.
+- **The DM's alerts (owner, 2026-11-27):** a count on the side menu's Homebrew link (`#hbN`), and a banner (`#hbAlert`, styled like the chat banner) for requests the DM hasn't seen, with Later and Open Homebrew (`hbReqAlert` in `portal.js`). What's been seen is kept per campaign in `dmforge.hbSeen.<campaign id>` (a UI choice, not in backups); a request that changes (new `updatedAt`) counts as new. Opening the Homebrew tab marks everything seen.
+- The DM sees "Sent by players" at the top of the Homebrew tab (`hbReqBoxHTML`, `hbReqDecide`) and a link on the Party tab (`#partyHbReqs`). Requests are reloaded with the homebrew every 30 seconds (`loadHbReqs`).
+- This is separate from **pending homebrew** from a player's imported character (`c.hbPending`, `docs/features/import.md`), which that character can already use while waiting.
+- Check: `npm run test:hbreq` (port 8891) and the "homebrew requests" test in `npm test`.

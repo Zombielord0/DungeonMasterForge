@@ -19,10 +19,10 @@ const mcMeets = (c, k) => mcPrereq(k).every(g => g.some(a => (+c.scores[a] || 0)
 const MC_ARMOR = { Barbarian: "shield", Bard: "light", Cleric: "light medium shield", Druid: "light medium shield", Fighter: "light medium shield", Paladin: "light medium shield", Ranger: "light medium shield", Rogue: "light", Warlock: "light", Monk: "", Sorcerer: "", Wizard: "" };
 const MC_MARTIAL = ["Barbarian", "Fighter", "Paladin", "Ranger"];
 // a class's own caster level for multiclass slots
-function casterLv(ed, k, l, sub) { const cast = castOf(k, sub); if (!cast) return 0; const kind = cast[0]; return kind === "full" ? l : kind === "artificer" ? Math.ceil(l / 2) : kind === "half" ? (ed === "2024" ? Math.ceil(l / 2) : Math.floor(l / 2)) : kind === "third" ? Math.floor(l / 3) : 0; }
+function casterLv(ed, k, l, sub, printing, race) { const cast = castOf(k, sub, ed, printing, race); if (!cast) return 0; const kind = cast[0]; return kind === "full" ? l : kind === "artificer" ? Math.ceil(l / 2) : kind === "half" ? (ed === "2024" ? Math.ceil(l / 2) : Math.floor(l / 2)) : kind === "third" ? Math.floor(l / 3) : 0; }
 const pactSlots = l => ({ n: l >= 17 ? 4 : l >= 11 ? 3 : l >= 2 ? 2 : 1, lvl: Math.min(5, Math.ceil(l / 2)) });
 // what a rebuild keeps from the character as it is: rolled or assigned base scores, skill picks, expertise
-const pcKeep = c => ({ multi: c.multi && c.multi.length ? c.multi : undefined, keepMcSkills: c.mcSkills, base: c.customData ? undefined : c.base, rolls: c.rolls || undefined, keepSkills: (c.skills || []).filter(s => s.p).map(s => s.s), keepExpert: c.expertOrder || (c.skills || []).filter(s => s.x).map(s => s.s), keepSkilled: c.skilled });
+const pcKeep = c => ({ multi:c.multi?.length?c.multi:undefined,subclassPrints:c.subclassPrints,keepMcSkills: c.mcSkills, speciesSkill: c.speciesSkill, base: c.customData ? undefined : c.base, rolls: c.rolls || undefined, keepSkills: (c.skills || []).filter(s => s.p&&!s.primalGranted&&!s.loreGranted&&!s.orderGranted&&!s.envoyGranted&&!s.peaceGranted&&!s.glamourGranted&&!s.archerGranted).map(s => s.s), keepExpert: c.expertOrder || (c.skills || []).filter(s => s.x&&!s.scholarGranted&&!s.primalGranted&&!s.loreGranted&&!s.orderGranted&&!s.envoyExpert&&!s.envoyGranted&&!s.peaceGranted&&!s.glamourGranted&&!s.archerGranted).map(s => s.s), keepSkilled: c.skilled });
 /* Numbers on a sheet are numbers (including the spell block and hit dice). Other members' characters arrive from the campaign database as any JSON, and many
    of these fields are written into the page as they are, so a string here could carry page code. "" stays "" where the
    sheet lets a box be emptied. */
@@ -53,7 +53,7 @@ function pcIncoming(d) {
   pcNums(d);
   return d;
 }
-function pcEnsure(c) { if (c) { pcNums(c); if (c.bgV === undefined && c.cls) { c.bgV = 1; if (c.ed === "2024") c.bgAsiLegacy = true; } if (!c.id) c.id = uid("pc"); if (c.subclass === undefined) { const f = (c.feats || []).find(x => String(x.f).startsWith("Subclass: ") && x.f !== "Subclass: not chosen yet"); c.subclass = f ? f.f.slice(10) : null; } if (!Array.isArray(c.prepared)) c.prepared = []; syncGrantedSpells(c); if (c.race === "Dragonborn" && !c.ancestry) c.ancestry = makeRng("anc", c.seed || c.id).pick(Object.keys(DRAGON_ANCESTRY)); if (c.race === "Dragonborn" && !c.sub) c.sub = c.ancestry; withTraitRes(c); raceLvUpgrade(c); hookUpgrade(c); } return c; }
+function pcEnsure(c) { if (c) { pcNums(c); if(c.death?.dead)companionOnOwnerDeath(c); if (c.bgV === undefined && c.cls) { c.bgV = 1; if (c.ed === "2024") c.bgAsiLegacy = true; } if (!c.id) c.id = uid("pc"); if (c.subclass === undefined) { const f = (c.feats || []).find(x => String(x.f).startsWith("Subclass: ") && x.f !== "Subclass: not chosen yet"); c.subclass = f ? f.f.slice(10) : null; } if (!Array.isArray(c.prepared)) c.prepared = []; syncGrantedSpells(c); syncDragonbornBreath(c); withTraitRes(c); raceLvUpgrade(c); hookUpgrade(c); } return c; }
 function pcPersist() {
   PCS.cur = currentPC; PCS.updated = Date.now();
   if (currentPC) { const i = PCS.roster.findIndex(x => x.id === currentPC.id); if (i >= 0) PCS.roster[i] = currentPC; }
@@ -109,18 +109,39 @@ const KNOWN_SPELLS = {
   Ranger: [0, 2, 3, 3, 4, 4, 5, 5, 6, 6, 7, 7, 8, 8, 9, 9, 10, 10, 11, 11]
 };
 const CANTRIP_BASE = { Bard: 2, Cleric: 3, Druid: 2, Sorcerer: 4, Warlock: 2, Wizard: 3 };
+// SRD 5.2.1 / revised Basic Rules: base prepared spell counts exclude additional grants.
+const REVISED_COMMON_PREPARED=[4,5,6,7,9,10,11,12,14,15,16,16,17,17,18,18,19,20,21,22];
+const REVISED_HALF_PREPARED=[2,3,4,5,6,6,7,7,9,9,10,10,11,11,12,12,14,14,15,15];
+const REVISED_PREPARED={
+  Bard:REVISED_COMMON_PREPARED,Cleric:REVISED_COMMON_PREPARED,Druid:REVISED_COMMON_PREPARED,
+  Paladin:REVISED_HALF_PREPARED,Ranger:REVISED_HALF_PREPARED,
+  Sorcerer:[2,4,...REVISED_COMMON_PREPARED.slice(2)],
+  Warlock:KNOWN_SPELLS.Warlock,
+  Wizard:[4,5,6,7,9,10,11,12,14,15,16,16,17,18,19,21,22,23,24,25],
+};
+function revisedSpellAllowance(cls,lv){
+  const table=Object.hasOwn(REVISED_PREPARED,cls)?REVISED_PREPARED[cls]:null;
+  if(!table||!Number.isInteger(lv)||lv<1||lv>20)return null;
+  const base=CANTRIP_BASE[cls]||0;
+  return {n:table[lv-1],cantrips:base?base+Number(lv>=4)+Number(lv>=10):0};
+}
 function spellLimits(c) {
   if (!c || !c.spell) return null;
   // every spellcasting class counts, each at its own level
-  const m = c.mods, list = [...(castOf(c.cls, c.subclass) ? [{ cls: c.cls, lv: c.level, subclass: c.subclass }] : []), ...(c.multi || []).filter(x => castOf(x.cls, x.subclass) && +x.lv > 0)];
+  const m=c.mods,list=pcCastClasses(c);
   let n = 0, cant = 0, word = "prepared";
-  list.forEach(({ cls, lv, subclass }) => {
-    const sc = subCaster(cls, subclass);
-    if (sc) { n += THIRD_KNOWN[lv - 1] || 0; if (list.length === 1 && edOf(c) === "2014") word = "known"; cant += sc.cantrips + (lv >= 10 ? 1 : 0) - (cls === "Rogue" && lv >= 3 ? 1 : 0); return; } /* Eldritch Knight, Arcane Trickster */
+  list.forEach(({cls,lv,third})=>{
+    if(third){
+      if(list.length===1&&(edOf(c)==="2014"||third.id))word="known";
+      if(third.id)return;
+      n+=THIRD_KNOWN[lv-1]||0;
+      cant+=third.cantrips+(lv>=10?1:0)-(third.fixedCantrip&&lv>=3?1:0);
+      return;
+    }
     const book = classData(edOf(c), cls).hbx;
     if (book?.preparedAt) {
       n += Number(book.preparedAt[lv - 1]) || 0;
-      cant += Number(book.cantripsAt?.[lv - 1]) || 0;
+      cant += book.cantripsAt ? Number(book.cantripsAt[lv - 1]) || 0 : revisedSpellAllowance(baseClassOf(cls),+lv)?.cantrips || 0;
       return;
     }
     const ab = CLASS_DATA[cls].cast[1];
@@ -130,6 +151,8 @@ function spellLimits(c) {
       cant += 2 + (lv >= 10 ? 1 : 0) + (lv >= 14 ? 1 : 0);
       return;
     }
+    const revised=edOf(c)==="2024"?revisedSpellAllowance(cls,+lv):null;
+    if(revised){n+=revised.n;cant+=revised.cantrips;return;}
     if (KNOWN_SPELLS[cls]) { n += KNOWN_SPELLS[cls][lv - 1] || 0; if (list.length === 1) word = "known"; }
     else if (cls === "Paladin") n += lv >= 2 ? Math.max(1, m.cha + Math.floor(lv / 2)) : 0;
     else if (CLASS_DATA[cls].hb && CLASS_DATA[cls].cast[0] === "half") n += Math.max(1, m[ab] + Math.floor(lv / 2)); // a homebrew half caster prepares like a 2014 Paladin
@@ -139,11 +162,51 @@ function spellLimits(c) {
   return { n, word, cantrips: cant };
 }
 const isPrep = (c, name, ed) => !!(c && c.prepared && c.prepared.some(p => p.n === name && p.ed === ed));
+// A tracked spellbook is separate from prepared spells. Existing sheets opt in
+// explicitly, so migrating a saved character never silently removes their spells.
+function isWizardBookSpell(c,s){return (s.c||[]).includes("Wizard")||clsLv(c,"Mage")>0&&(s.c||[]).includes("Mage");}
+function wizardBookActive(c){return classFeatureLevel(c,"Wizard")>0&&c.wizardBook?.edition===edOf(c)&&Array.isArray(c.wizardBook.spells);}
+function wizardBookEligible(c,s,ed=edOf(c)){
+  const level=classFeatureLevel(c,"Wizard");
+  return !!(level&&s&&ed===edOf(c)&&(!s.ed||s.ed===ed)&&s.l>0&&s.l<=(FULL_SLOTS[level]||[]).length&&isWizardBookSpell(c,s)&&!s.ref&&!s.referenceOnly&&!s.pend&&!s.rulesSummary&&!s.shadow);
+}
+function wizardBookContains(c,name){return wizardBookActive(c)&&c.wizardBook.spells.includes(name);}
+function wizardBookOtherClass(c,s,ed){return pcCastClasses(c).some(k=>baseClassOf(k.cls)!=="Wizard"&&s.l<=k.max&&spellClassListEligible(c,s,ed,k));}
+function wizardBookStart(c){
+  if(!classFeatureLevel(c,"Wizard")||wizardBookActive(c))return false;
+  const ed=edOf(c),names=[...(c.prepared||[]).filter(p=>p.ed===ed&&!p.src&&p.l>0).map(p=>p.n),...WIZARD_SPELL_CHOICES.flatMap(x=>choiceOf(c,x.choice))];
+  c.wizardBook={edition:ed,spells:[...new Set(names)].filter(n=>wizardBookEligible(c,spellOf(ed,n),ed))};
+  return true;
+}
+function wizardBookAdd(c,name){
+  if(!wizardBookActive(c)||wizardBookContains(c,name)||!wizardBookEligible(c,spellOf(edOf(c),name)))return false;
+  c.wizardBook.spells.push(name);return true;
+}
+function wizardBookRemove(c,name){
+  if(!wizardBookContains(c,name))return false;
+  if((c.prepared||[]).some(p=>p.ed===edOf(c)&&p.n===name&&!p.src)||WIZARD_SPELL_CHOICES.some(x=>choiceOf(c,x.choice).includes(name)))return false;
+  c.wizardBook.spells=c.wizardBook.spells.filter(n=>n!==name);return true;
+}
+function wizardBookHTML(c){
+  const level=classFeatureLevel(c,"Wizard");if(!level)return "";
+  if(!wizardBookActive(c))return '<div class="choice"><b>Wizard spellbook</b><p class="hint">Enable a separate spellbook, seeded from eligible prepared spells and mastery/signature choices. Copies and additional spells can be added after recording their cost and time.</p><button type="button" class="btn sm" data-wizard-book-start>Track spellbook</button></div>';
+  spLoad();
+  const ed=edOf(c),spells=c.wizardBook.spells,minimum=6+2*(level-1);
+  const opts=[...new Set((SP.data[ed]||[]).filter(s=>wizardBookEligible(c,s,ed)&&!spells.includes(s.n)).map(s=>s.n))].sort();
+  return '<div class="choice"><b>Wizard spellbook</b><p class="hint">'+spells.length+' recorded · '+minimum+' spells from normal Wizard level advancement before additional copied spells. Record copying expenses and special subclass additions manually.</p><label class="field">Record a spell<select data-wizard-book-add aria-label="Add spell to spellbook"><option value="">Choose…</option>'+opts.map(n=>'<option value="'+esc(n)+'">'+esc(n)+'</option>').join("")+'</select></label><div class="prep-row">'+spells.slice().sort((a,b)=>((spellOf(ed,a)?.l||0)-(spellOf(ed,b)?.l||0))||a.localeCompare(b)).map(n=>'<span class="prep-chip"><button type="button" class="prep-b" data-spell="'+esc(ed+"|"+n)+'">'+esc(n)+'</button><button type="button" class="prep-x" data-wizard-book-remove="'+esc(n)+'" aria-label="Remove '+esc(n)+' from spellbook">✕</button></span>').join("")+'</div></div>';
+}
 function togglePrep(c, s, ed) {
   pcEnsure(c);
   if (c.prepared.some(p => p.n === s.n && p.ed === ed && p.src)) return true;
   const i = c.prepared.findIndex(p => p.n === s.n && p.ed === ed);
   if (i >= 0) { c.prepared.splice(i, 1); toast(`${s.n} removed from ${c.name}`); return false; }
+  if (s.referenceOnly || s.pend) { toast("Complete spell rules are required before preparation."); return false; }
+  if (!spellConditionalEligible(c,s,ed)) { toast("This spell is not available through this character’s class or background."); return false; }
+  const casters=pcCastClasses(c);
+  if(casters.some(k=>k.third?.id)&&!casters.some(k=>!k.third?.id&&spellClassListEligible(c,s,ed,k)&&(s.l===0?k.cantrips:s.l<=k.max))){
+    toast("Choose this subclass’s known spells under Features & Traits.");return false;
+  }
+  if(wizardBookActive(c)&&s.l>0&&isWizardBookSpell(c,s)&&!wizardBookOtherClass(c,s,ed)&&!wizardBookContains(c,s.n)){toast("Record this spell in your Wizard spellbook first.");return false;}
   c.prepared.push({ n: s.n, l: s.l, ed });
   const L = spellLimits(c);
   if (L) {
@@ -164,20 +227,40 @@ function pcChanged(c) {
    reaches and whether it has cantrips. A Fighter/Wizard prepares from the Wizard list (owner's bug, 2026-11-18). */
 function pcCastClasses(c) {
   if (!c || !c.spell) return [];
-  const ed = edOf(c), list = [{ cls: c.cls, lv: c.level, subclass: c.subclass }, ...(c.multi || []).filter(x => +x.lv > 0)].filter(x => castOf(x.cls, x.subclass));
-  return list.map(({ cls, lv, subclass }) => {
-    const k = castOf(cls, subclass)[0];
-    if (k === "third") return { cls, lv, list: castListOf(cls, subclass), max: thirdSlots(lv).length, cantrips: true };
-    if (k === "artificer") return { cls, lv, max: ARTIFICER_SLOTS[lv].length, cantrips: true };
+  const ed=edOf(c),list=[{cls:c.cls,lv:c.level,subclass:c.subclass},...(c.multi||[])];
+  return list.flatMap(({cls,lv,subclass})=>{
+    const printing=characterSubclassPrinting(c,cls),third=subCaster(cls,subclass,ed,printing,c.race);
+    const k=CLASS_DATA[cls]?.cast?.[0]||third?.cast[0];
+    if(!k||+lv<=0)return [];
+    if(k==="third")return [{cls,lv,list:third.list,max:thirdSlots(lv).length,cantrips:true,third}];
+    if(k==="artificer")return [{cls,lv,max:ARTIFICER_SLOTS[lv].length,cantrips:true}];
     const max = k === "pact" ? Math.min(5, Math.ceil(lv / 2)) : k === "full" ? (FULL_SLOTS[lv] || []).length : (lv >= 2 || ed === "2024" ? (FULL_SLOTS[Math.ceil(lv / 2)] || []).length : 0);
-    return { cls, lv, max: Math.max(k === "half" && !max ? 0 : 1, max), cantrips: k !== "half" };
+    return [{cls,lv,max:Math.max(k==="half"&&!max?0:1,max),cantrips:k!=="half"}];
   });
 }
 const pcCastNames = c => { const L = pcCastClasses(c).map(x => x.cls); return L.length ? L.join(" and ") : c.cls; };
+// Guild-style expanded spell lists add choices, not automatic preparation or extra slots.
+// Require the selected, edition-valid source background, not a homebrew name collision.
+function spellBackgroundList(c, s, ed) {
+  if (!c || edOf(c) !== ed || (s.ed && s.ed !== ed)) return false;
+  const bg = HB_BG[c.bg];
+  if (!bg?.book || bg.pend || !hbEdOk(bg, ed)) return false;
+  if ((s.backgroundLists || []).some(b => b.name === c.bg && b.src === bg.src)) return true;
+  // An approved background can extend existing canonical spells without duplicating their data.
+  return !!(bg.recoveryId && !s.ref && !s.referenceOnly && !s.pend && !s.rulesSummary && !s.shadow &&
+    (bg.spellListExtensions || []).some(d => d.name === s.n && d.src === (s.src || "srd") && d.level === s.l));
+}
+function spellClassListEligible(c, s, ed, k) {
+  return (s.c || []).includes(k.cls) || (s.c || []).includes(k.list || clsSpellList(k.cls)) || spellBackgroundList(c, s, ed) || legacySubclassOption(c,ed,k.cls,s);
+}
+function spellConditionalEligible(c, s, ed) {
+  if (!s.backgroundLists?.length) return true;
+  return edOf(c) === ed && pcCastClasses(c).some(k => spellClassListEligible(c,s,ed,k) && (s.l === 0 ? k.cantrips : s.l <= k.max));
+}
 function pcSpellPool(c, ed) {
   spLoad();
   const K = pcCastClasses(c); if (!K.length) return [];
-  return SP.data[ed].filter(s => !s.pend && K.some(k => (s.c.includes(k.cls) || s.c.includes(k.list || clsSpellList(k.cls))) && (s.l === 0 ? k.cantrips : s.l <= k.max)));
+  return SP.data[ed].filter(s => !s.pend && !s.referenceOnly && !s.shadow && K.some(k => spellClassListEligible(c,s,ed,k) && (s.l === 0 ? k.cantrips : s.l <= k.max)));
 }
 function manualPreparedSpells(c) {
   const granted = new Set((c.prepared || []).filter(p => p.src).map(p => spellKey(p.ed, p.n)));
@@ -224,14 +307,16 @@ function prepPanelHTML(c, pre = "pc") {
 function renderPrepList(c = currentPC, pre = "pc") {
   const box = $(`#${pre}PrepList`); if (!c || !c.spell || !box) return;
   const ed = $(`#${pre}PrepEd`).value, lv = $(`#${pre}PrepLv`).value, words = $(`#${pre}PrepQ`).value.trim().toLowerCase().split(/\s+/).filter(Boolean);
-  const list = pcSpellPool(c, ed).filter(s => (!words.length || words.every(w => s.hay.includes(w))) && (lv === "" || s.l === +lv)).sort((a, b) => a.l - b.l || a.n.localeCompare(b.n));
+  const explicit=pcCastClasses(c),manual=explicit.filter(x=>!x.third?.id);
+  const canBrowse=s=>!explicit.some(cls=>cls.third?.id)||manual.some(k=>spellClassListEligible(c,s,ed,k)&&(s.l===0?k.cantrips:s.l<=k.max));
+  const list = pcSpellPool(c, ed).filter(s => canBrowse(s)&&(!words.length || words.every(w => s.hay.includes(w))) && (lv === "" || s.l === +lv)).sort((a, b) => a.l - b.l || a.n.localeCompare(b.n));
   box.innerHTML = list.length ? list.slice(0, 150).map(s => {
     const on = isPrep(c, s.n, ed), locked = c.prepared.some(p => p.n === s.n && p.ed === ed && p.src);
     return `<div class="prep-row"><details><summary><b>${esc(s.n)}</b> <span class="muted">${s.l ? "Lv " + s.l : "Cantrip"} · ${esc(s.s)}${s.co ? " · Concentration" : ""}${s.ri ? " · Ritual" : ""}</span></summary>
       <div class="sp-desc"><div class="muted" style="font-size:13.5px">${esc(s.t)} · ${esc(s.r)} · ${esc(s.du)}</div>${spFormat(s.d)}</div></details>
       <button type="button" class="btn sm ${on ? "" : "primary"}" data-prep="${s.id}" style="flex:0 0 auto" ${locked ? "disabled" : ""}>${locked ? "✓ Granted" : on ? "✓ Prepared" : "+ Prepare"}</button></div>`;
   }).join("") + (list.length > 150 ? `<p class="hint">Showing 150 of ${list.length}. Narrow the search to see more.</p>` : "")
-    : `<p class="muted" style="margin:8px 0">No ${esc(pcCastNames(c))} spells match.</p>`;
+    : `<p class="muted" style="margin:8px 0">${!manual.length&&explicit.length?"Choose your subclass’s known spells under Features & Traits.":`No ${esc(pcCastNames(c))} spells match.`}</p>`;
 }
 
 /* ---- prepare from the Spells tab ---- */
@@ -245,13 +330,16 @@ function renderSpTargets() {
   $("#spTarget").value = SP.target || "";
 }
 function spPrepBtn(s) {
+  if (s.srdSpell) return `<span class="hint">Prepare the canonical spell ${esc(s.srdSpell)} to avoid a duplicate.</span>`;
+  if (s.referenceOnly) return '<span class="hint">Reference only — rules not yet certified.</span>';
   const t = spTargetPC(); if (!t) return "";
   const on = isPrep(t, s.n, SP.ed), locked = t.prepared.some(p => p.n === s.n && p.ed === SP.ed && p.src);
   return `<button class="btn sm ${on ? "" : "primary"}" data-sp="prep" data-id="${s.id}" ${locked ? "disabled" : ""}>${locked ? "✓ Granted" : on ? `✓ Prepared for ${esc(t.name)}` : `✦ Prepare for ${esc(t.name)}`}</button>`;
 }
 function spPrepToggle(s) {
+  if (s.referenceOnly) { toast("This spell is reference only; its full rules have not been certified."); return; }
   const t = spTargetPC(); if (!t) { toast("Pick a character to prepare spells for"); return; }
-  if (!isPrep(t, s.n, SP.ed) && !pcCastClasses(t).some(k => s.c.includes(k.cls) || s.c.includes(k.list || clsSpellList(k.cls)))) toast(`${s.n} isn't on the ${pcCastNames(t)} list, added anyway`);
+  if (!isPrep(t, s.n, SP.ed) && !pcCastClasses(t).some(k => spellClassListEligible(t,s,SP.ed,k))) toast(`${s.n} isn't on the ${pcCastNames(t)} list, added anyway`);
   togglePrep(t, s, SP.ed); pcChanged(t);
 }
 $("#spTargetRow").addEventListener("change", e => { if (e.target.id === "spTarget") { SP.target = e.target.value; renderSpells(); } });

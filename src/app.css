@@ -875,8 +875,8 @@ nav a[hidden]{display:none}
 .linkish:hover{color:#fff}
 .owner-tag{font-style:normal;color:var(--gold2);margin-left:6px;font-size:13px}
 .portal-player #rcCamp,.portal-player [data-ra=camp]{display:none}
-#whisperN,#partyN{display:inline-block;min-width:18px;margin-left:4px;padding:0 5px;border-radius:9px;background:var(--red);color:#fff;font-size:11px;line-height:18px;text-align:center;font-family:"Crimson Pro",Georgia,serif}
-#whisperN[hidden],#partyN[hidden]{display:none}
+#whisperN,#partyN,#hbN{display:inline-block;min-width:18px;margin-left:4px;padding:0 5px;border-radius:9px;background:var(--red);color:#fff;font-size:11px;line-height:18px;text-align:center;font-family:"Crimson Pro",Georgia,serif}
+#whisperN[hidden],#partyN[hidden],#hbN[hidden]{display:none}
 .join-code{font-family:Cinzel,serif;font-size:20px;letter-spacing:.12em;color:var(--gold2);background:var(--well);border:1px solid #0d0c0b;border-radius:4px;padding:4px 10px;text-align:center}
 .member{display:flex;align-items:center;gap:8px;justify-content:space-between;margin-bottom:8px}
 .member b,.member small{display:block}
@@ -933,18 +933,18 @@ nav a[data-view=homebrew]{--ic:url("data:image/svg+xml,%3Csvg xmlns='http://www.
 @media (max-width:700px){.hb-asi{grid-template-columns:repeat(3,1fr)}}
 nav a[data-view=party]{--ic:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='1.9' stroke-linecap='round' stroke-linejoin='round'%3E%3Ccircle cx='9' cy='8' r='3.2'/%3E%3Cpath d='M3 20c0-3.3 2.7-6 6-6s6 2.7 6 6'/%3E%3Ccircle cx='17' cy='9' r='2.6'/%3E%3Cpath d='M16 14.2c2.8.3 5 2.6 5 5.8'/%3E%3C/svg%3E")}
 nav a[data-view=whispers]{--ic:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='1.9' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M4 5h16v11H9l-5 4z'/%3E%3Cpath d='M8 9h8M8 12h5'/%3E%3C/svg%3E")}
-#whisperAlert{position:fixed;top:12px;left:50%;transform:translateX(-50%);z-index:48;width:min(560px,calc(100vw - 24px))}
-#whisperAlert .wa-box{background:var(--slab),#191b28;border:1px solid #c47a2c;border-radius:var(--radius);padding:14px 16px;box-shadow:0 10px 30px rgba(0,0,0,.7),0 0 24px rgba(240,150,60,.45)}
-#whisperAlert .wa-head{display:flex;align-items:baseline;justify-content:space-between;gap:10px;margin-bottom:6px}
-#whisperAlert h3{font-size:16px;color:var(--gold)}
-#whisperAlert p{margin:0 0 12px;font-size:18px;white-space:pre-wrap;overflow-wrap:anywhere;max-height:40vh;overflow-y:auto}
-#whisperAlert .wa-actions{justify-content:flex-end}
-#whisperAlert .wa-actions>*{flex:0 0 auto}
-#whisperAlert .wa-actions>:first-child{flex:1}
-#whisperAlert.ping{animation:waIn .45s ease-out,waGlow 1.2s ease-in-out 3}
+:is(#whisperAlert,#hbAlert){position:fixed;top:12px;left:50%;transform:translateX(-50%);z-index:48;width:min(560px,calc(100vw - 24px))}
+:is(#whisperAlert,#hbAlert) .wa-box{background:var(--slab),#191b28;border:1px solid #c47a2c;border-radius:var(--radius);padding:14px 16px;box-shadow:0 10px 30px rgba(0,0,0,.7),0 0 24px rgba(240,150,60,.45)}
+:is(#whisperAlert,#hbAlert) .wa-head{display:flex;align-items:baseline;justify-content:space-between;gap:10px;margin-bottom:6px}
+:is(#whisperAlert,#hbAlert) h3{font-size:16px;color:var(--gold)}
+:is(#whisperAlert,#hbAlert) p{margin:0 0 12px;font-size:18px;white-space:pre-wrap;overflow-wrap:anywhere;max-height:40vh;overflow-y:auto}
+:is(#whisperAlert,#hbAlert) .wa-actions{justify-content:flex-end}
+:is(#whisperAlert,#hbAlert) .wa-actions>*{flex:0 0 auto}
+:is(#whisperAlert,#hbAlert) .wa-actions>:first-child{flex:1}
+:is(#whisperAlert,#hbAlert).ping{animation:waIn .45s ease-out,waGlow 1.2s ease-in-out 3}
 @keyframes waIn{from{opacity:0;transform:translate(-50%,-30px)}to{opacity:1;transform:translate(-50%,0)}}
 @keyframes waGlow{50%{filter:drop-shadow(0 0 14px rgba(246,189,98,.85))}}
-@media (prefers-reduced-motion:reduce){#whisperAlert.ping{animation:none}}
+@media (prefers-reduced-motion:reduce){:is(#whisperAlert,#hbAlert).ping{animation:none}}
 #acctBtn{max-width:240px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 /* ======================= Minimizable toolbar ======================= */
 .hdr-toggle{flex:0 0 auto;margin-left:auto}

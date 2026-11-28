@@ -2,6 +2,33 @@
    When a change ships, add an entry to the top of NEWS with a new id, in plain words for players and DMs. */
 
 const NEWS = [
+  { id: "2026-11-27-pdf-feats-items", date: "2026-11-27", title: "PDF imports bring in feats and magic items", go: "roster", items: [
+    "Importing a PDF character sheet now reads the feats written in Features and Traits (one per line, like “Alert” or “Feat: War Caster”), from the rulebooks and the extra books, and adds them to the sheet.",
+    "Magic items in the equipment box, like a Bag of Holding or a Wand of Magic Missiles, come in as the real item with its rules, including the extra books' items.",
+    "Imported feats now stay on the sheet when the character levels up."
+  ] },
+  { id: "2026-11-26-hb-requests", date: "2026-11-26", title: "Players can make homebrew, with the DM's approval", go: "homebrew", items: [
+    "Players now have the Homebrew tab. They can make classes, subclasses, backgrounds, feats, species and spells, or open one of the campaign's entries and suggest a change.",
+    "Whatever a player makes is sent to the DM and waits under “Waiting for your DM”. Nobody can pick it, not even the player, until the DM approves it. Players can change or withdraw it while it waits.",
+    "DMs get a banner when a player sends something (Later or Open Homebrew), and a number on the Homebrew link in the side menu until it's dealt with. What players sent is at the top of the Homebrew tab, with ✓ Approve and ✕ Don't approve. The server checks this too, so only the DM can add to the campaign's homebrew."
+  ] },
+  { id: "2026-11-26-subclass-summaries", date: "2026-11-26", title: "Book subclasses say what they do", go: "compendium", items: [
+    "Subclasses from the Player's Handbook and other books that showed only their feature names in the Compendium now have a short level-by-level summary, like Way of Shadow, the School of Evocation or the Battle Master.",
+    "Subclasses the Forge already lets you play (Gloom Stalker, Oath of Glory and the rest) still open their full progression."
+  ] },
+  { id: "2026-11-26-all-magic-items", date: "2026-11-26", title: "Every book magic item says what it does", go: "compendium", items: [
+    "All the Compendium's magic items from the other books now say what they do too: Tasha's, Xanathar's, Eberron, Ravnica, the giants and dragons books, Theros, Strixhaven and more, 306 in all.",
+    "Some newer items get only a general description for now, pointing you to the book's page for the exact numbers."
+  ] },
+  { id: "2026-11-26-dmg-items", date: "2026-11-26", title: "Dungeon Master's Guide items say what they do", go: "compendium", items: [
+    "The Compendium's magic items from the Dungeon Master's Guide used to show only their rarity and type. Now 358 of them show their full rules, from the free rules the Forge already has (some under another name there, like Iron Bands of Binding for Iron Bands of Bilarro).",
+    "The other 65, which are only in the book (Driftglobe, the Swords of Answering, the Hand of Vecna and more), have a short summary."
+  ] },
+  { id: "2026-11-26-book-summaries", date: "2026-11-26", title: "Book references now say what they do", go: "compendium", items: [
+    "Every entry from the other books that used to show only its book and page in the Compendium now has a short summary: 83 feats, 163 class options (fighting styles, Battle Master maneuvers, Metamagic, warlock invocations and pacts, Four Elements disciplines, Arcane Shots, Rune Knight runes, artificer infusions), 6 species, 5 background variants and 12 monsters.",
+    "Everyday gear from those books (silvered and adamantine weapons, spiked armor and the like) now says Rarity: none instead of unknown, and the Silver Sword says legendary.",
+    "They're summaries, not the books' text, so check the page for the full rules."
+  ] },
   { id: "2026-11-26-import-names", date: "2026-11-26", title: "Imports understand more names, weapons and extra AC", go: "roster", items: [
     "Gear written differently from the Forge's names is now recognised: light crossbow, bolts (20), belt pouch, holy symbol, small typos, and magic or named versions like Shield +1 or Morningstar Of Bleeding, which keep their own name and bonus.",
     "Fifth Edition Character Sheet files bring in their weapon list, and their misc AC bonus goes into a new Other AC bonus box under Armor class on the sheet (you can change it there too).",

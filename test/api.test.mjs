@@ -143,6 +143,53 @@ test("full campaign flow", async (t) => {
     assert.deepEqual((await call(BEN, "GET", `campaigns/${cid}/homebrew`)).body, []);
   });
 
+  await t.test("homebrew requests: players suggest, only the DM approves", async () => {
+    const feat = { kind: "feat", name: "Lucky Hat", ed: "both", desc: "Reroll once a day.", book: true, src: "tob", pend: true };
+    const base = `campaigns/${cid}/hbrequests`;
+    // the DM uses the homebrew itself, not requests; a stranger can't send one
+    assert.equal((await call(DM, "PUT", `${base}/hb-r1`, { data: feat })).status, 403);
+    assert.equal((await call({ id: "u-x" }, "PUT", `${base}/hb-r1`, { data: feat })).status, 403);
+    assert.equal((await call(AVA, "PUT", `${base}/hb-r1`, { data: { ...feat, kind: "spaceship" } })).status, 400);
+    assert.equal((await call(AVA, "PUT", `${base}/bad id`, { data: feat })).status, 400);
+    const sent = await call(AVA, "PUT", `${base}/hb-r1`, { data: feat });
+    assert.equal(sent.status, 200);
+    // a request never reaches the campaign's homebrew on its own
+    assert.deepEqual((await call(BEN, "GET", `campaigns/${cid}/homebrew`)).body, []);
+    // Ben sends a request for the same entry id: it is his own, not a change to Ava's
+    await call(BEN, "PUT", `${base}/hb-r1`, { data: { ...feat, name: "Ben's Hat" } });
+    // players see only their own requests; the DM sees everyone's, with who sent them
+    const mine = (await call(AVA, "GET", base)).body;
+    assert.deepEqual(mine.map(r => [r.id, r.data.name]), [["hb-r1", "Lucky Hat"]]);
+    assert.equal(mine[0].data.book, undefined, "book, src and pend are stripped");
+    assert.equal(mine[0].data.src, undefined);
+    assert.equal(mine[0].data.pend, undefined);
+    const all = (await call(DM, "GET", base)).body;
+    assert.deepEqual(all.map(r => [r.userId, r.userName, r.data.name]).sort(), [["u-ava", "Ava", "Lucky Hat"], ["u-ben", "Ben", "Ben's Hat"]]);
+    // players can't approve, not even their own
+    assert.equal((await call(AVA, "POST", `${base}/hb-r1/approve?user=u-ava`)).status, 403);
+    // Ava can't withdraw Ben's request (she only ever reaches her own)
+    await call(BEN, "PUT", `${base}/hb-b1`, { data: { ...feat, name: "Ben's Boots" } });
+    await call(AVA, "DELETE", `${base}/hb-b1?user=u-ben`);
+    assert.equal((await call(DM, "GET", base)).body.length, 3);
+    await call(BEN, "DELETE", `${base}/hb-b1`);
+    // the DM approves Ava's: it joins the homebrew and the request goes
+    assert.equal((await call(DM, "POST", `${base}/hb-r1/approve?user=u-nobody`)).status, 404);
+    const ok = await call(DM, "POST", `${base}/hb-r1/approve?user=u-ava`);
+    assert.equal(ok.status, 200);
+    const hb = (await call(BEN, "GET", `campaigns/${cid}/homebrew`)).body;
+    assert.deepEqual(hb.map(h => [h.id, h.name]), [["hb-r1", "Lucky Hat"]]);
+    assert.deepEqual((await call(AVA, "GET", base)).body, []);
+    // the DM turns down Ben's
+    assert.equal((await call(DM, "DELETE", `${base}/hb-r1`)).status, 400, "the DM says whose request");
+    await call(DM, "DELETE", `${base}/hb-r1?user=u-ben`);
+    assert.deepEqual((await call(DM, "GET", base)).body, []);
+    // a player withdraws their own
+    await call(BEN, "PUT", `${base}/hb-r2`, { data: { ...feat, name: "Spare Hat" } });
+    await call(BEN, "DELETE", `${base}/hb-r2`);
+    assert.deepEqual((await call(DM, "GET", base)).body, []);
+    await call(DM, "DELETE", `campaigns/${cid}/homebrew/hb-r1`);
+  });
+
   await t.test("homebrew spells: only the DM adds them", async () => {
     const spell = { kind: "spell", name: "Cheers", ed: "2014", desc: "Drinks for all.", l: 0, s: "Enchantment", c: ["Wizard"] };
     assert.equal((await call(AVA, "PUT", `campaigns/${cid}/homebrew/hb-sp`, { data: spell })).status, 403);

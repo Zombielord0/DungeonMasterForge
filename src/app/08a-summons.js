@@ -1,5 +1,15 @@
-/* 2024 Player's Handbook summon summaries. Spell attacks and saves use the caster's values. */
+/* Revised summon stat references. Draconic Spirit: SRD 5.2.1 p.166, CC BY 4.0. Other cards retain the existing PHB summaries. Spell attacks and saves use the caster's values. */
 const SUMMON_SPIRITS = {
+  "Summon Dragon": {
+    name: "Draconic Spirit", type: "Large Dragon, Neutral", ac: 14, hp: 50, hpPerSlot: 10, scores: [19,14,17,10,14,14], speed: "30 ft., fly 60 ft., swim 30 ft.", senses: "Blindsight 30 ft., darkvision 60 ft., passive Perception 12", languages: "Draconic; understands the caster’s languages",
+    saves: "STR +4 · DEX +2 · CON +3 · INT +0 · WIS +2 · CHA +2",
+    source: "SRD 5.2.1, p. 166", minSlot: 5,
+    resistances: ["Acid","Cold","Fire","Lightning","Poison"],
+    rules: "Condition immunities: Charmed, Frightened, Poisoned. CR none (0 XP). Shared Resistances: at summoning, choose one of the spirit’s damage resistances; you also have that resistance until the spell ends.",
+    attack: "Rend · melee reach 10 ft. · 1d6 + 4 + slot level piercing · use the caster’s spell attack modifier.",
+    additional: "Breath Weapon · 30-foot cone · Dexterity save against the caster’s spell save DC. Choose a damage type from the spirit’s resistances when casting. Each creature in the cone takes 2d6 of that type on a failed save, half on success. The Multiattack action includes one Breath Weapon use in addition to the Rend attacks.",
+    forms: {Dragon:{}},
+  },
   "Summon Beast": {
     name: "Bestial Spirit", type: "Small Beast", ac: 11, hp: 30, hpPerSlot: 5, scores: [18, 11, 16, 4, 14, 5], speed: "30 ft.", senses: "Darkvision 60 ft., passive Perception 12", languages: "Understands the caster’s languages",
     attack: "Rend · melee 5 ft. · 1d8 + 4 + slot level piercing",
@@ -76,20 +86,38 @@ const SUMMON_SPIRITS = {
   },
 };
 
+function summonSpiritDefinition(spell,ed) {
+  if(ed!=="2024"||!spell||spell.hb||spell.ref||spell.referenceOnly||spell.rulesSummary||spell.pend) return null;
+  if(spell.n==="Summon Dragon") return !spell.src&&spell.l===5?SUMMON_SPIRITS[spell.n]:null;
+  return spell.src==="phb-2024"&&Object.hasOwn(SUMMON_SPIRITS,spell.n)?SUMMON_SPIRITS[spell.n]:null;
+}
+// Do not modify the stored archival spell text; present its embedded stat block in the structured card instead.
+function summonHigherRules(spell,ed) {
+  return summonSpiritDefinition(spell,ed)?.source==="SRD 5.2.1, p. 166"
+    ?"Use the spell slot’s level for the spell’s level in the stat block.":spell.h;
+}
+function summonSpiritStats(spell,ed,slot,formName) {
+  const spirit=summonSpiritDefinition(spell,ed);
+  if(!spirit||!Number.isInteger(slot)||slot<spell.l||slot>9||!Object.hasOwn(spirit.forms,formName))return null;
+  const form=spirit.forms[formName];
+  return {level:slot,ac:spirit.ac+slot+(form.acBonus||0),hp:(form.hp??spirit.hp)+(slot-spell.l)*spirit.hpPerSlot,attacks:Math.floor(slot/2),...(spirit.source?{rendDamage:"1d6+"+(4+slot),breathDamage:"2d6",breathUses:1}:{})};
+}
 function summonSpiritHTML(spell, ed, slot = spell.l, caster = null) {
-  if (ed !== "2024" || spell.src !== "phb-2024") return "";
-  const spirit = SUMMON_SPIRITS[spell.n];
-  if (!spirit) return "";
-  const level = clamp(slot, spell.l, 9);
+  const spirit=summonSpiritDefinition(spell,ed);
+  if(!spirit||!Number.isInteger(slot)||slot<spell.l||slot>9)return "";
+  const level = slot;
   const abilities = spirit.scores.map((score, i) => AB_NAME[AB[i]] + " " + score + " (" + sgn(mod(score)) + ")").join(" · ");
   return `<details open><summary>${esc(spirit.name)} · slot level ${level}</summary>
     <p>${esc(spirit.type)} · Speed ${esc(spirit.speed)}<br>${esc(abilities)}<br>${esc(spirit.senses)} · ${esc(spirit.languages)}</p>
-    <p>Attacks per Attack action: ${Math.floor(level / 2)} · ${caster ? `Spell attack ${sgn(caster.atk)} · Save DC ${caster.dc}` : "Use the caster’s spell attack modifier and spell save DC."} Proficiency bonus equals the caster’s.</p>
+    <p>Attacks in Multiattack: ${Math.floor(level / 2)}${spirit.additional?" Rend attacks plus one Breath Weapon use":""} · ${caster ? `Spell attack ${sgn(caster.atk)} · Save DC ${caster.dc}` : "Use the caster’s spell attack modifier and spell save DC."} Proficiency bonus equals the caster’s.</p>
+    ${spirit.saves?`<p>Saving throws: ${esc(spirit.saves)}</p>`:""}
+    ${spirit.resistances?`<p>Damage resistances: ${esc(spirit.resistances.join(", "))}</p>`:""}
     ${spirit.rules ? `<p>${esc(spirit.rules)}</p>` : ""}
     ${Object.entries(spirit.forms).map(([name, form]) => {
-      const hp = (form.hp ?? spirit.hp) + (level - spell.l) * spirit.hpPerSlot;
-      const ac = spirit.ac + level + (form.acBonus || 0);
-      return `<p><b>${esc(name)}</b> · AC ${ac} · HP ${hp}${form.speed ? " · " + esc(form.speed) : ""}<br>${esc(form.attack || spirit.attack)}${form.rules ? "<br>" + esc(form.rules) : ""}</p>`;
+      const stats=summonSpiritStats(spell,ed,level,name);
+      return `<p><b>${esc(name)}</b> · AC ${stats.ac} · HP ${stats.hp}${form.speed ? " · " + esc(form.speed) : ""}<br>${esc(form.attack || spirit.attack)}${stats.rendDamage?" ("+esc(stats.rendDamage)+" at this slot)":""}${form.rules ? "<br>" + esc(form.rules) : ""}</p>`;
     }).join("")}
+    ${spirit.additional?`<p>${esc(spirit.additional)}</p>`:""}
+    ${spirit.source?`<p class="hint">Source: ${esc(spirit.source)} · Wizards of the Coast LLC · <a href="https://www.dndbeyond.com/srd" target="_blank" rel="noopener noreferrer">SRD</a>, <a href="https://creativecommons.org/licenses/by/4.0/" target="_blank" rel="noopener noreferrer">CC BY 4.0</a>. Choose resistances and resolve attacks manually.</p>`:""}
   </details>`;
 }

@@ -18,7 +18,7 @@ const CAMP_KEY = "dmforge.campaign";
 const LAST_KEY = "dmforge.lastCampaign."; // + user id: the campaign and role from last visit
 const OFFERED_KEY = "dmforge.uploadOffered.";
 const ALL_VIEWS = ["generate", "npc", "world", "monsters", "character", "roster", "compendium", "spells", "feats", "items", "map", "tracker", "homebrew", "journal", "requests"];
-const PLAYER_VIEWS = ["character", "roster", "compendium", "spells", "feats", "items", "journal", "whispers", "requests"];
+const PLAYER_VIEWS = ["character", "roster", "compendium", "spells", "feats", "items", "homebrew", "journal", "whispers", "requests"];
 const POLL_DM = 4000, POLL_PLAYER = 10000, POLL_WHISPERS = 8000, POLL_HOMEBREW = 30000;
 
 const S = {
@@ -31,6 +31,7 @@ const S = {
   shared: {},          // what the DM shares: { journal: {data, updatedAt}, turns: {data, updatedAt} }
   published: {},       // DM: the JSON last sent for each, so only changes are sent
   sharedTimer: null,
+  hbReqs: [],          // homebrew waiting for the DM: a player's own, or (DM) everyone's
 };
 
 const Portal = window.Portal = {
@@ -44,6 +45,7 @@ const Portal = window.Portal = {
   isDM: () => isDM(),
   campName: () => (S.camp && S.camp.name) || "your campaign",
   hbPut, hbDel,
+  hbReqs: () => S.hbReqs, hbReqPut, hbReqDel, hbReqApprove, reloadHomebrew: () => loadHomebrew(),
   renderJournal: () => renderJournal(),
   linkedTrackerId: () => Portal.cloud && isDM() ? trackerId() : null,
   sourceRules: () => isDM() ? Store.get(trackerId())?.sourceRules : S.shared.journal?.data?.sourceRules,
@@ -381,6 +383,7 @@ async function startCloud() {
   setBadgeText("Loading characters…");
   applyMode(S.camp);
   hbSet([]); // this browser's own homebrew stays out of the campaign
+  S.hbReqs = []; hbReqAlert();
   await loadHomebrew();
 
   const r = await api(campPath("characters"));
@@ -413,7 +416,7 @@ async function startCloud() {
   else { syncTracker(); loadParty(); }
 }
 
-function stopLoops() { clearTimeout(S.pollTimer); stopChat(); clearInterval(S.hbTimer); clearTimeout(S.saveTimer); clearTimeout(S.sharedTimer); S.shared = {}; S.published = {}; renderTurnBar(); }
+function stopLoops() { clearTimeout(S.pollTimer); stopChat(); clearInterval(S.hbTimer); clearTimeout(S.saveTimer); clearTimeout(S.sharedTimer); S.hbReqs = []; hbReqAlert(); S.shared = {}; S.published = {}; renderTurnBar(); }
 
 /* Every character from the database, yours too (a DM can edit your sheet): fix its numbers and rules edition before
    anything reads or remembers it (pcIncoming, in the app; lossless). Text stays as typed; the page guard and esc() keep
@@ -544,6 +547,76 @@ async function loadHomebrew() {
   if (!Portal.cloud) return;
   const r = await api(campPath("homebrew"));
   if (r.ok && JSON.stringify(r.data) !== JSON.stringify(HB.list)) hbSet(r.data);
+  await loadHbReqs();
+}
+/* Homebrew requests (2026-11-26): a player's new or changed entry waits on the server until the DM approves it.
+   The server keeps players to their own requests and lets only the DM approve; this only shows them. */
+async function loadHbReqs() {
+  if (!Portal.cloud) return;
+  const r = await api(campPath("hbrequests"));
+  if (!r.ok || !Array.isArray(r.data) || JSON.stringify(r.data) === JSON.stringify(S.hbReqs)) return;
+  S.hbReqs = r.data; hbReqsChanged();
+}
+function hbReqsChanged() {
+  if (location.hash === "#homebrew" && typeof renderHomebrew === "function") renderHomebrew();
+  if (isDM() && location.hash === "#party") renderParty(true);
+  hbReqAlert();
+}
+/* The DM's alerts (owner, 2026-11-27): a count on the side menu's Homebrew link, and a banner for requests the DM
+   hasn't seen yet. "Seen" is kept per campaign in this browser (a UI choice, not in backups); a changed request counts as new. */
+const HB_SEEN_KEY = "dmforge.hbSeen.";
+const hbReqKey = q => `${q.userId}|${q.id}|${q.updatedAt || ""}`;
+function hbSeen() { try { return new Set(JSON.parse(localStorage.getItem(HB_SEEN_KEY + S.camp.id) || "[]")); } catch { return new Set(); } }
+function hbMarkSeen() { if (S.camp) try { localStorage.setItem(HB_SEEN_KEY + S.camp.id, JSON.stringify(S.hbReqs.map(hbReqKey))); } catch { } }
+function hbReqAlert() {
+  const n = $("#hbN"), dm = Portal.cloud && isDM(), count = dm ? S.hbReqs.length : 0;
+  if (n) { n.textContent = count || ""; n.hidden = !count; }
+  let bar = $("#hbAlert");
+  if (dm && location.hash === "#homebrew") hbMarkSeen(); /* the DM is looking at them */
+  const seen = dm ? hbSeen() : new Set(), fresh = dm ? S.hbReqs.filter(q => !seen.has(hbReqKey(q))) : [];
+  if (!fresh.length) { if (bar) bar.remove(); return; }
+  const q = fresh[fresh.length - 1], sig = fresh.map(hbReqKey).join(",");
+  if (bar && bar.dataset.sig === sig) return;
+  const isNew = !bar;
+  if (!bar) {
+    bar = document.createElement("div"); bar.id = "hbAlert"; bar.setAttribute("role", "alertdialog");
+    bar.setAttribute("aria-labelledby", "hbaTitle"); bar.setAttribute("aria-describedby", "hbaBody");
+    document.body.appendChild(bar);
+  }
+  bar.dataset.sig = sig;
+  const kind = { class: "class", subclass: "subclass", background: "background", feat: "feat", species: "species", spell: "spell" }[q.data && q.data.kind] || "homebrew";
+  bar.innerHTML = `<div class="wa-box">
+    <div class="wa-head"><h3 id="hbaTitle">⚗️ Homebrew to approve</h3></div>
+    <p id="hbaBody"><b>${esc(q.userName)}</b> sent ${/^[aeiou]/.test(kind) ? "an" : "a"} ${esc(kind)}: <b>${esc((q.data && q.data.name) || "")}</b>${HB.list.some(x => x.id === q.id) ? " (a change to the campaign's entry)" : ""}</p>
+    <div class="row wa-actions">${fresh.length > 1 ? `<small class="muted">+${fresh.length - 1} more</small>` : "<span></span>"}
+      <button class="btn sm" type="button" data-hba="later">Later</button>
+      <button class="btn primary sm" type="button" data-hba="open">Open Homebrew</button></div></div>`;
+  if (isNew) { bar.classList.remove("ping"); void bar.offsetWidth; bar.classList.add("ping"); }
+}
+document.addEventListener("click", e => {
+  const b = e.target.closest("[data-hba]"); if (!b) return;
+  hbMarkSeen(); hbReqAlert();
+  if (b.dataset.hba === "open") location.hash = "#homebrew";
+});
+window.addEventListener("hashchange", () => { if (location.hash === "#homebrew") hbReqAlert(); });
+async function hbReqPut(item) {
+  const r = await api(campPath("hbrequests/" + encodeURIComponent(item.id)), { method: "PUT", body: { data: item } });
+  if (!r.ok) { toast(r.data.error || "Couldn't send that to your DM"); return false; }
+  S.hbReqs = S.hbReqs.filter(q => q.id !== item.id).concat({ id: item.id, userId: S.user.id, userName: Portal.myName(), data: r.data });
+  hbReqsChanged(); return true;
+}
+async function hbReqDel(id, userId) {
+  const r = await api(campPath("hbrequests/" + encodeURIComponent(id) + (isDM() ? "?user=" + encodeURIComponent(userId) : "")), { method: "DELETE" });
+  if (!r.ok) { toast(r.data.error || "Couldn't remove that request"); return false; }
+  S.hbReqs = S.hbReqs.filter(q => !(q.id === id && (!isDM() || q.userId === userId)));
+  hbReqsChanged(); return true;
+}
+async function hbReqApprove(id, userId) {
+  const r = await api(campPath("hbrequests/" + encodeURIComponent(id) + "/approve?user=" + encodeURIComponent(userId)), { method: "POST" });
+  if (!r.ok) { toast(r.data.error || "Couldn't approve that"); await loadHbReqs(); return false; }
+  S.hbReqs = S.hbReqs.filter(q => !(q.id === id && q.userId === userId));
+  hbSet(HB.list.filter(x => x.id !== id).concat(r.data));
+  hbReqsChanged(); return true;
 }
 async function hbPut(item) {
   const r = await api(campPath("homebrew/" + encodeURIComponent(item.id)), { method: "PUT", body: { data: item } });
@@ -607,6 +680,7 @@ function renderParty(fetch) {
   // The Chat card is built once and kept, so a refresh never wipes what the DM is typing.
   if (!$("#partyChat")) host.innerHTML = `<div class="card" id="partyCards"></div><div class="card" id="partyChat"></div><div class="card" id="partyActivity"></div>`;
   $("#partyCards").innerHTML = `<div class="sec-h"><h3>Party</h3><span class="sp"></span><small class="muted">Click a sheet to view or edit it</small></div>
+      ${S.hbReqs.length ? `<p id="partyHbReqs"><a href="#homebrew" class="tag gold">⚗️ ${S.hbReqs.length} homebrew from players to approve</a></p>` : ""}
       ${sheets.length ? `<div class="party-grid">${sheets.map(partyCard).join("")}</div>` : `<p class="muted">No characters yet. They appear here as soon as a player saves one.</p>`}`;
   $("#partyActivity").innerHTML = `<div class="sec-h"><h3>Activity</h3></div>
       ${S.activity.length ? `<ul class="feed">${S.activity.map(a => `<li><time title="${esc(new Date(a.at).toLocaleString())}">${esc(clock(a.at))}</time><span><b>${esc(a.byDM ? "You" : a.actor)}</b> · ${esc(a.characterName)}: ${esc(a.summary)}</span></li>`).join("")}</ul>`

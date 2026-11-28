@@ -94,13 +94,152 @@ const ZOOK = fs.readFileSync(path.join(FIX, "companion-zook.json"), "utf8");
     return out; });
   check("reference spells: Silvery Barbs is in the 2014 spell list once, level 1 enchantment from Strixhaven (a 2014 book, so not in 2024)", refs["2014"].length === 1 && refs["2014"][0].l === 1 && refs["2014"][0].s === "Enchantment" && refs["2014"][0].src === "scc" && refs["2014"][0].ref === true && refs["2024"].length === 0, JSON.stringify(refs));
   check("reference spells: Silvery Barbs shows its rules summary, then its book and page", refs["2014"][0] && /reroll the d20/.test(refs["2014"][0].d) && /From Strixhaven: A Curriculum of Chaos, page 38\.$/.test(refs["2014"][0].d), JSON.stringify(refs["2014"]));
-  const told = await p.evaluate(() => { const L = dmData("spellData")["2014"].filter(x => x.ref); const cb = L.find(x => x.n === "Chaos Bolt");
-    return { n: L.length, bare: L.filter(x => /see the book/.test(x.d)).map(x => x.n), upcast: L.filter(x => /Upcast:/.test(x.d)).map(x => x.n), cbH: cb && cb.h }; });
+  const told = await p.evaluate(() => {
+    const L = dmData("spellData")["2014"].filter(x => x.ref), summaries = L.filter(x => !x.referenceOnly), shells = L.filter(x => x.referenceOnly), linked = shells.filter(x => x.srdSpell), blocked = shells.filter(x => !x.srdSpell);
+    const cb = summaries.find(x => x.n === "Chaos Bolt");
+    return { n: summaries.length, bare: summaries.filter(x => /see the book/.test(x.d)).map(x => x.n), upcast: summaries.filter(x => /Upcast:/.test(x.d)).map(x => x.n), cbH: cb && cb.h, linked: linked.length, blocked: blocked.length, linkedFailures: linked.filter(x => { const m = spellMatch("2014", x.n); return !m || m.ed !== "2014" || m.s.n !== x.srdSpell || m.s.referenceOnly; }).map(x => x.n), blockedFailures: blocked.filter(x => spellMatch("2014", x.n) || !/Reference only/.test(spPrepBtn(x))).map(x => x.n) };
+  });
   const plans = await p.evaluate(() => { spLoad(); const f = n => { const sp = SP.data["2014"].find(x => x.n === n); const P = spellPlan(sp); return [P.dice, P.type, P.per]; };
     return { mp: f("Mental Prison"), ag: f("Aganazzar's Scorcher"), tsb: f("Thunder Step"), fb: f("Fireball") }; });
   check("reference spells: casting plans the opening damage (Mental Prison 5d10 psychic, not the 10d10 when it ends)", plans.mp[0] === "5d10" && /psychic/i.test(plans.mp[1]), JSON.stringify(plans.mp));
   check("reference spells: upcasting adds the summary's dice per slot (Aganazzar's Scorcher +1d8, Thunder Step +1d10); SRD Fireball unchanged", plans.ag[2] === "1d8" && plans.tsb[2] === "1d10" && plans.fb[0] === "8d6" && plans.fb[2] === "1d6", JSON.stringify(plans));
-  check("reference spells: all 97 have their rules summary (none says 'see the book'), and upcasting sits on its own line", told.n === 97 && !told.bare.length && !told.upcast.length && /\+1d6 damage per slot level above 1st/.test(told.cbH || ""), JSON.stringify(told).slice(0, 300));
+  check("reference spells: all 97 existing summaries remain present, without page-only text or inline upcasting", told.n === 97 && !told.bare.length && !told.upcast.length && /\+1d6 damage per slot level above 1st/.test(told.cbH || ""), JSON.stringify(told));
+  check("reference spells: all 17 linked aliases import their canonical same-edition spell", told.linked === 17 && !told.linkedFailures.length, JSON.stringify(told));
+  check("reference spells: all 37 unresolved references stay blocked from preparation and import (not a content completion pass)", told.blocked === 37 && !told.blockedFailures.length, JSON.stringify(told));
+  const guards = await p.evaluate(() => {
+    spLoad();
+    const shells = SP.data["2014"].filter(x => x.referenceOnly && !x.srdSpell);
+    const c = { name: "Guard fixture", prepared: [], used: {} };
+    const blocked = shells.filter(x => {
+      const sp = spellOf("2014", x.n);
+      return !sp || !sp.referenceOnly || castOpts(c, sp, "2014").length;
+    }).map(x => x.n);
+    const aliasFailures = SP.data["2014"].filter(x => x.srdSpell).filter(x => {
+      const sp = spellOf("2014", x.n); return !sp || sp.referenceOnly || sp.n !== x.srdSpell;
+    }).map(x => x.n);
+    return { count: shells.length, blocked, aliasFailures, used: c.used };
+  });
+  check("reference-only saved/granted spell lookup has no cast options and aliases resolve to canonical rules", guards.count === 37 && !guards.blocked.length && !guards.aliasFailures.length && !Object.keys(guards.used).length, JSON.stringify(guards));
+  const conditional = await p.evaluate(() => {
+    const name = "Test Guild Background", prior = HB_BG[name];
+    const sp = {n:"Fixture Thoughts",ed:"2014",l:0,c:[],backgroundLists:[{name,src:"fixture"}]};
+    const base = {ed:"2014",cls:"Wizard",level:1,spell:{},bg:name,prepared:[]};
+    try {
+      HB_BG[name] = {name,src:"fixture",book:true,ed:"2014"};
+      const checks = [spellConditionalEligible(base,sp,"2014"),
+        !spellConditionalEligible({...base,bg:"Acolyte"},sp,"2014"),
+        !spellConditionalEligible({...base,spell:null},sp,"2014"),
+        !spellConditionalEligible({...base,ed:"2024"},sp,"2024"),
+        spellConditionalEligible({...base,bg:"Acolyte"},{...sp,c:["Wizard"]},"2014"),
+        !spellCastBlocked(base,sp,"2014"),
+        spellCastBlocked({...base,bg:"Acolyte"},sp,"2014"),
+        !base.prepared.length];
+      HB_BG[name] = {name,src:"other",book:true,ed:"2014"};
+      checks.push(!spellConditionalEligible(base,sp,"2014"));
+      HB_BG[name] = {name,src:"fixture",ed:"2014"};
+      checks.push(!spellConditionalEligible(base,sp,"2014"));
+      return checks;
+    } finally { if(prior) HB_BG[name]=prior; else delete HB_BG[name]; }
+  });
+  check("conditional background spell lists respect source, edition, caster level and manual selection", conditional.every(Boolean), JSON.stringify(conditional));
+  const bgChoices=await p.evaluate(()=>{
+    const name="Test Choice Background",prior=HB_BG[name];
+    const c={bg:name,ed:"2014",choices:{}};
+    try{
+      HB_BG[name]={book:true,src:"fixture",ed:"2014",recoveryId:"cmp:fixture",choices:[{id:"lang",label:"Language",rules:"Choose two.",selection:{effect:"language",count:2,options:["Elvish","Dwarvish","Giant"]}}]};
+      const q=backgroundSelectionRules(c)[0],checks=[];
+      checks.push(backgroundSelectionChange(c,q.key,"Elvish"),!backgroundSelectionChange(c,q.key,"Elvish"),!backgroundSelectionChange(c,q.key,"Invalid"),backgroundSelectionChange(c,q.key,"Giant"),!backgroundSelectionChange(c,q.key,"Dwarvish"));
+      const reload=JSON.parse(JSON.stringify(c));checks.push(backgroundSelectionEffects(reload).language.join(",")==="Elvish,Giant");
+      checks.push(!backgroundSelectionRules({...reload,bg:"Acolyte"}).length,!backgroundSelectionRules({...reload,ed:"2024"}).length);
+      checks.push(backgroundSelectionChange(reload,q.key,"Giant",true),backgroundSelectionEffects(reload).language.join(",")==="Elvish");
+      HB_BG[name].recoveryId="cmp:different";checks.push(!backgroundSelectionEffects(reload).language.length);
+      return checks;
+    }finally{if(prior)HB_BG[name]=prior;else delete HB_BG[name];}
+  });
+  check("background choices enforce valid counts, serialize and isolate source identities",bgChoices.every(Boolean),JSON.stringify(bgChoices));
+  const gearFix=await p.evaluate(()=>{itLoad();const g=(ed,n)=>IT.data[ed].find(x=>x.kind==="gear"&&x.n===n);return [
+    g("2014","Caltrops").gp===1,g("2014","Barding: Ring mail").gp===120,g("2014","Dragonchess Set").w===0.5,
+    g("2024","Hide Armor").cat==="Medium Armor",g("2024","Longbow").gp===50,g("2024","Hand Crossbow").gp===75,
+    g("2024","Sling").st.some(([k,v])=>k==="Damage"&&v==="1d4 bludgeoning"),
+    g("2024","Airship").st.some(([k,v])=>k==="HP"&&v==="300"),
+    g("2014","Arrow").packQty===20,eqParseKit("20 arrows","2014")[0].qty===20,eqParseKit("Arrows","2024")[0].qty===20];});
+  check("source-verified equipment metadata and ammunition quantities",gearFix.every(Boolean),JSON.stringify(gearFix));
+  const details=await p.evaluate(()=>{const g=(ed,n)=>IT.data[ed].find(x=>x.kind==="gear"&&x.n===n);return [g("2014","Backpack").d.includes("30 pounds"),g("2014","Burglar's Pack").w===47.5,g("2014","Spike, iron").packQty===10,g("2024","Entertainer's Pack").contents.some(([n,q])=>n==="Costume"&&q===3),g("2024","Dungeoneer's Pack").contents.some(([n,q])=>n==="Caltrops"&&q===1),g("2024","Trident").st.some(([k,v])=>k==="Damage"&&v.includes("1d8")),g("2024","Wooden Staff").cat==="Druidic Foci"];});
+  check("equipment container, pack, focus and weapon details are edition-correct",details.every(Boolean),JSON.stringify(details));
+  const variantCheck=await p.evaluate(()=>{
+    itLoad();const find=n=>IT.data["2024"].find(x=>x.n===n&&x.kind!=="gear");
+    return [find("Spell Scroll (Cantrip)").d.includes("DC 13"),find("Spell Scroll (Level 6)").d.includes("DC 17"),
+      find("Ioun Stone, Reserve").d.includes("4 levels of spells"),find("Ring of Fire Resistance").d.includes("garnet"),
+      eqGear("2014","Pen")?.n==="Ink pen",eqGear("2014","Costume")?.n==="Clothes, costume",
+      eqGear("2014","Wrought-iron hooded lantern")?.n==="Lantern, hooded",eqGear("2014","Dark common clothes")?.n==="Clothes, common"];
+  });
+  check("revised magic-item variants and recovered kit aliases resolve in the built app",variantCheck.every(Boolean),JSON.stringify(variantCheck));
+  const tableCheck=await p.evaluate(()=>{itLoad();const g=n=>IT.data["2024"].find(x=>x.n===n&&x.kind!=="gear");return [
+    g("Potion of Giant Strength").d.includes("Storm: 29"),!g("Potion of Giant Strength").d.includes("Bless"),
+    g("Potion of Heroism").d.includes("10 Temporary Hit Points"),g("Potion of Supreme Healing").d.includes("10d4 + 20"),
+    g("Carpet of Flying, 3 ft. × 5 ft.").d.includes("200 lb."),g("Black Dragon Scale Mail").d.includes("Acid"),
+    g("Elemental Gem, Blue Sapphire").d.includes("Air Elemental"),g("Manual of Iron Golems").d.includes("100000 GP")];});
+  check("revised magic item tables resolve exact mechanics in built catalog",tableCheck.every(Boolean),JSON.stringify(tableCheck));
+  const familyCheck=await p.evaluate(()=>{itLoad();const g=n=>IT.data["2024"].find(x=>x.n===n&&x.kind!=="gear");return [
+    g("Ring of Elemental Command (Air)").d.includes("Feather Fall (0)"),
+    g("Figurine of Wondrous Power, Ebony Fly").d.includes("HP 19"),
+    g("Figurine of Wondrous Power, Ivory Goats").d.includes("24 charges"),
+    g("Quaal's Feather Token, Whip").d.includes("1d6 + 5 Force"),
+    g("Sending Stones").d.includes("next dawn"),g("Sentinel Shield").d.includes("Initiative")];});
+  check("recovered revised item families appear in built catalog",familyCheck.every(Boolean),JSON.stringify(familyCheck));
+  const equipmentCheck=await p.evaluate(()=>{itLoad();const g=n=>IT.data["2024"].find(x=>x.n===n&&x.src==="dmg-2024");return [
+   g("Quarterstaff of the Acrobat").d.includes("Short or Long Rest"),g("Quarterstaff of the Acrobat").d.includes("30/120 feet"),
+   g("Shield of the Cavalier").d.includes("stationary 5-foot Emanation"),g("Shield of the Cavalier").d.includes("Concentration up to 1 minute"),
+   g("Thunderous Greatclub").d.includes("50 Bludgeoning"),g("Thunderous Greatclub").d.includes("DC 20 Constitution")];});
+  check("revised weapon and shield rules are complete in the built catalog",equipmentCheck.every(Boolean),JSON.stringify(equipmentCheck));
+  const itemSafety=await p.evaluate(()=>{
+    itLoad();const get=n=>IT.data["2024"].find(x=>x.n===n&&x.src==="dmg-2024"),manual=get("Quarterstaff of the Acrobat"),shield=get("Shield of the Cavalier"),blocked=get("+1 Rod of the Pact Keeper");
+    const i={n:"+3 synthetic",qty:1,eq:true,attuned:true};
+    return [manual.manualEffects===true,manual.rulesSourcePage===237,inventoryEnhancement(i,manual,"weapon")===2,
+      inventoryEnhancement(i,shield,"armor")===2,itemRulesIncomplete(blocked),
+      !inventoryEffectActive(i,blocked),inventoryEnhancement(i,blocked,"weapon")===0,
+      inventoryEnhancement(i,{kind:"custom",d:"+2 bonus to attack and damage rolls"},"weapon")===2,
+      itemRuleNotice(manual).includes("manual resolution"),itemRuleNotice(blocked).includes("Reference only")];
+  });
+  check("item provenance, manual effects and incomplete-reference guards survive catalog loading",itemSafety.every(Boolean),JSON.stringify(itemSafety));
+  const itemGate=await p.evaluate(()=>{
+    itLoad();
+    const blocked=IT.data["2024"].find(x=>x.n==="+1 Rod of the Pact Keeper"&&x.src==="dmg-2024"),
+      allowed=IT.data["2024"].find(x=>x.n==="Quarterstaff of the Acrobat"&&x.src==="dmg-2024");
+    const target=document.querySelector("#itTarget"),prior=target?.value;
+    const c=PCS.roster.find(r=>r.id===prior);
+    const before=c?JSON.stringify([c.coins,c.inv]):null;
+    const checks=[!itemAcquirable(blocked),!itemAcquirable({id:blocked.id,kind:"magic",gp:1}),
+      itemAcquirable(allowed),!itemAcquirable({id:"2024-m999999",kind:"magic"}),
+      itBuy({...blocked,gp:1})===false,itGive(blocked)===false,itLoot(blocked)===false,
+      !c||JSON.stringify([c.coins,c.inv])===before,
+      impMagic("2024","+3 Rod of the Pact Keeper")?.n==="+3 Rod of the Pact Keeper",
+      impMagic("2024","Scroll of Protection (Fiends)")?.n==="Scroll of Protection (Fiends)",
+      impMagic("2024","Spell Scroll (Level 6)")?.n==="Spell Scroll (Level 6)",
+      impMagic("2024","Scroll of Protection (Not A Type)")===null];
+    return checks;
+  });
+  check("incomplete item acquisitions fail closed and imports retain exact variant identities",itemGate.every(Boolean),JSON.stringify(itemGate));
+  const chargeChecks=await p.evaluate(()=>{
+    itLoad();const g=n=>IT.data["2024"].find(x=>x.n===n&&x.rulesSource);
+    const air=g("Ring of Elemental Command (Air)"),rod=g("Rod of Resurrection"),cloak=g("Cloak of Invisibility"),pot=g("Potion of Supreme Healing");
+    const i={qty:1,eq:true,attuned:true},r={qty:1,eq:true,attuned:true},p={qty:2,eq:false};
+    const q=itemChargeContract(air),free=q.actions.findIndex(a=>a.name==="Feather Fall"),cost=q.actions.findIndex(a=>a.name==="Chain Lightning");
+    return [!itemChargeState(i,air),itemChargeInitialize(i,air,3),!itemChargeInitialize(i,air,5),
+      itemChargeUse(i,air,free,()=>1).left===3,itemChargeUse(i,air,cost,()=>1).left===0,!itemChargeUse(i,air,cost,()=>1),
+      itemChargeDawn(i,air,()=>4).left===5,itemChargeState(JSON.parse(JSON.stringify(i)),air).left===5,
+      !itemChargeState(i,cloak),itemChargeInitialize(r,rod,5),
+      itemChargeUse(r,rod,itemChargeContract(rod).actions.findIndex(a=>a.name==="Resurrection"),()=>1).vanished&&r.qty===0,
+      itemConsume(p,pot)&&p.qty===1,itemConsume(p,pot)&&p.qty===0,!itemConsume(p,pot)];
+  });
+  check("explicit item charges, zero-cost spells, dawn recharge, persistence and consumption",chargeChecks.every(Boolean),JSON.stringify(chargeChecks));
+  const manualSpellChecks=await p.evaluate(()=>{
+    const s={n:"Eldritch Blast",d:"Make a ranged spell attack; deal 2d10 force damage.",h:"",dt:"Force",at:"ranged",sv:"DEX",l:0,manualRoll:true,manualEffects:true};
+    const p=spellTweak({mods:{cha:5}},s,spellPlan(s));
+    const e=spellPlan({...s,manualRoll:false,manualEffects:true});
+    return [spellManualResolution(s),p.manual===true,p.dice===""&&p.attack===""&&p.count===1&&p.flat===0,e.manual===true&&e.dice==="",!spellManualResolution({...s,manualRoll:false,manualEffects:false})];
+  });
+  check("manual recovered spell rules bypass inferred dice and automatic summon resolution",manualSpellChecks.every(Boolean),JSON.stringify(manualSpellChecks));
   check("reference spells: a spell the Forge already has isn't added twice (Fireball)", refs["2014fireball"] === 1 && refs["2024fireball"] === 1, JSON.stringify([refs["2014fireball"], refs["2024fireball"]]));
   const sb = await p.evaluate(txt => { const j = JSON.parse(txt); j.spells = [...j.spells, { name: "Silvery Barbs", level: 1 }]; const D = compImport(j, "2014");
     return { prep: D.extras.prepared.map(s => s.n), hb: D.homebrew.filter(x => x.kind === "spell").map(x => x.name) }; }, ZOOK);

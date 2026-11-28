@@ -67,7 +67,17 @@ function impSubclass(ed, cls, name, arch, D) {
   const m = impFuzzyFirst(tiers, names(home.filter(hbFromImport)), nm, true);
   if (m) {
     const tag = m.tier === 1 || m.tier === 3 ? " (extra book)" : m.tier === 0 ? "" : " (homebrew)";
-    impReport(D, `${cls} subclass`, m, nm, tag); return m.name;
+    impReport(D,`${cls} subclass`,m,nm,tag);
+    const source=String(arch?.source||arch?.src||String(name).match(/\[([^\]]+)\]\s*$/)?.[1]||"").trim();
+    if(source&&!/^ua$/i.test(source)){
+      const prints=namedSubclassPrints(ed,cls,m.name),wanted=impLetters(source);
+      const matches=prints.filter(row=>[row.src,dmBook(row.src)?.short,dmBook(row.src)?.name].some(label=>label&&impLetters(label)===wanted));
+      if(matches.length===1){
+        D.opts.subclassPrints={...D.opts.subclassPrints,[cls]:matches[0].id};
+        D.report.matched.push(`${cls} subclass source: ${dmBook(matches[0].src)?.name||matches[0].src}`);
+      }else if(prints.length>1)D.report.differ.push(`${cls} subclass source “${impCut(source,60)}” could not be matched. Check the source selector on the character sheet.`);
+    }
+    return m.name;
   }
   D.homebrew.push({ id: uid("hb"), kind: "subclass", src: IMP_SRC, ed, cls, name: impCut(nm, 60), desc: "",
     features: ((arch && arch.features) || []).map(f => ({ l: clamp(+f.level || +impFeat(f).level || 1, 1, 20), n: impCut(impFeat(f).name, 60), d: impDesc(impFeat(f)), fx: [] })).filter(f => f.n) });
@@ -158,6 +168,46 @@ function impGear(ed, raw) {
   if (fz) { const g = G.find(x => x.n === fz.name); if (g) return { g, n: g.n, qty }; }
   return { g: null, n: own, qty };
 }
+/* a magic item by its exact name (any case; letters only), the free rules first, then the extra books (owner, 2026-11-27) */
+function impMagic(ed, name) {
+  // Preserve numbers and parenthetical variant identity. Never normalize +1 into +3,
+  // or a specific scroll/element into the generic item. Prefer complete exact matches.
+  itLoad();
+  const key=s=>String(s||"").normalize("NFKC").toLowerCase().replace(/[^a-z0-9+]/g,"");
+  const k=key(name);if(k.length<4)return null;
+  const L=(IT.data[ed==="2014"?"2014":"2024"]||[]).filter(x=>x.kind==="magic"&&key(x.n)===k);
+  return L.find(x=>!x.src&&!itemRulesIncomplete(x))||L.find(x=>!itemRulesIncomplete(x))||L.find(x=>!x.src)||L[0]||null;
+}
+/* feats named in a sheet's features text, one per line ("Alert", "• Alert: …", "Feat: War Caster (PHB)"). Exact names only,
+   from the built-in, book and campaign feats (owner, 2026-11-27). Some feat names are also class or species features
+   ("Lucky" for a Halfling, "Ability Score Improvement", "Archery"): a bare line with one of those names is skipped, with a
+   note, and is only read as a feat when it says so ("Feat: Lucky", or under a "Feats" heading). A 2024 background's own
+   feat isn't added twice. */
+function impFeatClash() {
+  const S = new Set(["abilityscoreimprovement", ...Object.keys(FIGHT_STYLES), ...Object.keys(FEAT_DESC), ...Object.keys(SUB_DESC)].map(impLetters));
+  for (const ed of ["2014", "2024"]) for (const r of Object.values(PC_RACES[ed] || {})) {
+    (r.traits || []).forEach(t => S.add(impLetters(t)));
+    Object.values(r.subs || {}).forEach(x => (x.traits || []).forEach(t => S.add(impLetters(t))));
+  }
+  return S;
+}
+function impFeatsFromText(ed, text, bg, D) {
+  const L = featList(ed).filter(F => F[4] !== "f"), bgFeat = ed === "2024" ? ((bgInfo(ed, bg) || {}).feat || "") : "", out = [], clash = impFeatClash();
+  let inFeats = false;
+  String(text || "").split(/\n/).forEach(line => {
+    const raw = line.trim();
+    if (!raw) { inFeats = false; return; }
+    if (/^[=#*\s-]*feats?[=#*\s:-]*$/i.test(raw)) { inFeats = true; return; } /* a "Feats" heading */
+    const said = /^[\s\-•*·]*feats?\s*[:\-–—]\s*/i.test(raw) || inFeats;
+    const t = raw.replace(/^[\s\-•*·]+/, "").replace(/^feats?\s*[:\-–—]\s*/i, "").split(/\s*(?::|\s[-–—]\s|\(|\.|,)/)[0].trim();
+    if (!t || t.length > 40) return;
+    const k = impLetters(t), F = L.find(f => impLetters(f[0]) === k);
+    if (!F || F[0] === bgFeat || out.some(b => b.n === F[0])) return;
+    if (!said && clash.has(k)) { D.report.differ.push(`“${F[0]}” is a feat and also a class or species feature, so it wasn't added as a feat. If it is the feat, add it on the Feats tab`); return; }
+    out.push({ n: F[0], l: 1 }); D.report.matched.push(`Feat: ${F[0]}`);
+  });
+  return out;
+}
 // spells: an exact name (any case) in this rule set, then the other one
 // spells: exact letters first, then a name that starts a built-in name, then up to 2 letters different (names of 6+ letters)
 const impLetters = s => String(s || "").toLowerCase().replace(/\([^)]*\)/g, "").replace(/[^a-z]/g, "");
@@ -171,21 +221,41 @@ function impDist(a, b, max) {
 function impSpellSaid(D, raw, m) {
   if (impNorm(impStrip(raw)) !== impNorm(m.s.n)) D.report.differ.push(`Spell: the file says “${impCut(raw, 60)}”, so the Forge used ${m.s.n}. Change it on the sheet if that's wrong`);
 }
+/* Source aliases resolve to their canonical spell before fuzzy matching. A known incomplete
+   reference must not silently import an opposite-edition spell or another similar name. */
+function impSpellAvailable(s) { return !s.pend && !s.shadow && !s.referenceOnly; }
+function impSpellNamed(s, k) { return impLetters(s.n) === k || (s.aliases || []).some(n => impLetters(n) === k); }
+function impSpellBlocked(ed, name) {
+  spLoad(); const k = impLetters(name), rows = SP.data[ed] || [];
+  return !!k && rows.some(s => s.referenceOnly && !s.srdSpell && !s.shadow && impLetters(s.n) === k) &&
+    !rows.some(s => impSpellAvailable(s) && impSpellNamed(s, k));
+}
 function spellMatch(ed, name) {
+  if (impSpellBlocked(ed, name)) return null;
   const m = spellMatch1(ed, name); if (m) return m;
   const rest = String(name || "").replace(/^\s*[A-Z][a-z]+(?:[’']s|s)\s+/, "");
   if (rest !== String(name || "") && impLetters(rest).length >= 6) { const m2 = spellMatch1(ed, rest); if (m2) return { ...m2, fuzzy: true }; }
   return null;
 }
 function spellMatch1(ed, name) {
-  spLoad(); const k = impLetters(name); if (!k) return null;
+  spLoad(); const k = impLetters(name); if (!k || impSpellBlocked(ed, name)) return null;
   const eds = [ed, ed === "2014" ? "2024" : "2014"], fuzzy = s => s.n.toLowerCase() !== String(name).trim().toLowerCase();
-  for (const e of eds) { const s = (SP.data[e] || []).find(x => !x.pend && !x.shadow && impLetters(x.n) === k); if (s) return { s, ed: e, fuzzy: fuzzy(s) }; }
+  for (const e of eds) {
+    const rows = SP.data[e] || [];
+    const exact = rows.find(s => impSpellAvailable(s) && impLetters(s.n) === k);
+    if (exact) return { s: exact, ed: e, fuzzy: fuzzy(exact) };
+    // Explicit, validated source alias; do not select the reference shell.
+    const linked = rows.find(s => s.srdSpell && !s.shadow && impLetters(s.n) === k);
+    const canonical = linked && rows.find(s => impSpellAvailable(s) && !s.src && !s.ref && !s.hb && s.n === linked.srdSpell);
+    if (canonical) return { s: canonical, ed: e, fuzzy: true };
+    const alias = rows.find(s => impSpellAvailable(s) && (s.aliases || []).some(n => impLetters(n) === k));
+    if (alias) return { s: alias, ed: e, fuzzy: true };
+  }
   if (k.length < 6) return null;
-  for (const e of eds) { const L = (SP.data[e] || []).filter(x => !x.pend && !x.shadow && impLetters(x.n).startsWith(k)).sort((a, b) => a.n.length - b.n.length); if (L.length) return { s: L[0], ed: e, fuzzy: true }; }
+  for (const e of eds) { const L = (SP.data[e] || []).filter(x => impSpellAvailable(x) && impLetters(x.n).startsWith(k)).sort((a, b) => a.n.length - b.n.length); if (L.length) return { s: L[0], ed: e, fuzzy: true }; }
   for (const e of eds) {
     let best = null;
-    for (const x of SP.data[e] || []) { if (x.pend || x.shadow) continue; const d = impDist(k, impLetters(x.n), 2); if (d <= 2 && (!best || d < best.d || d === best.d && x.n.length < best.s.n.length)) best = { s: x, d }; }
+    for (const x of SP.data[e] || []) { if (!impSpellAvailable(x)) continue; const d = impDist(k, impLetters(x.n), 2); if (d <= 2 && (!best || d < best.d || d === best.d && x.n.length < best.s.n.length)) best = { s: x, d }; }
     if (best) return { s: best.s, ed: e, fuzzy: true };
   }
   return null;
@@ -292,6 +362,7 @@ function compImport(j, ed) {
     const m = spellMatch(ed, sp.name);
     if (m) { if (!prepared.some(x => x.n === m.s.n)) prepared.push({ n: m.s.n, l: m.s.l, ed: m.ed }); impSpellSaid(D, sp.name, m); return; }
     const nm = impCut(sp.name, 60); if (!nm) return;
+    if (impSpellBlocked(ed, nm) && !String(sp.description || "").trim()) { D.report.dropped.push(`${nm} (reference only; complete rules required before preparation)`); return; }
     const have = impHave("spell", nm) || D.homebrew.find(x => x.kind === "spell" && impSame(x.name, nm));
     if (!have) {
       const comp = String(sp.components || ""), mat = comp.match(/M\s*\(([^)]*)\)/);
@@ -318,7 +389,7 @@ function compImport(j, ed) {
   const profs = j.proficiencies || [], langs = profs.filter(p => p.typeName === "LANGUAGE").map(p => p.name), tools = profs.filter(p => p.typeName === "TOOL").map(p => p.name);
   if (j.about) notes.unshift(String(j.about));
   (j.notes || []).map(n => n && n.text).filter(t => t && !/Swipe this message to dismiss/i.test(t)).forEach(t => notes.push(t));
-  D.opts = { seed: String(j.id || uid("imp")), name: impCut(j.name, 80) || "Imported character", ed, bonus: "fixed", method: "array", cls: main.cls, level: main.lv, subclass: main.subclass || "none", race, sub, bg: bg || undefined,
+  D.opts = { ...D.opts,seed: String(j.id || uid("imp")), name: impCut(j.name, 80) || "Imported character", ed, bonus: "fixed", method: "array", cls: main.cls, level: main.lv, subclass: main.subclass || "none", race, sub, bg: bg || undefined,
     multi: more.length ? more.map(x => ({ cls: x.cls, lv: x.lv, subclass: x.subclass })) : undefined, keepSkills, keepExpert, bonusFeats: bonusFeats.length ? bonusFeats : undefined };
   impGenderSet(D, impGender({ preferences: j.preferences, player: j.player, gender: j.gender, pronouns: j.pronouns, sex: j.sex },
     [j.about, j.personalityTraits, j.ideals, j.bonds, j.flaws, ...(j.notes || []).map(n => n && n.text)]));
@@ -443,7 +514,7 @@ function fecsImport(text, ed) {
   }
   if (note(0)) notes.unshift(note(0));
   if (note(6)) notes.push(note(6));
-  D.opts = { seed: uid("imp"), name: impCut(note(15), 80) || "Imported character", ed, bonus: "fixed", method: "array", cls: main.cls, level: main.lv, subclass: main.subclass || "none", race, sub, bg: bg || undefined,
+  D.opts = { ...D.opts,seed: uid("imp"), name: impCut(note(15), 80) || "Imported character", ed, bonus: "fixed", method: "array", cls: main.cls, level: main.lv, subclass: main.subclass || "none", race, sub, bg: bg || undefined,
     multi: more.length ? more.map(x => ({ cls: x.cls, lv: x.lv, subclass: x.subclass })) : undefined, keepSkills, keepExpert };
   impGenderSet(D, impGender({}, [note(0), note(6), note(11), note(12), note(13), note(14)]));
   const coin = i => Math.max(0, Math.floor(+note(i) || 0));
@@ -481,6 +552,8 @@ function importBuild(D) {
     Object.assign(c, { id: uid("pc"), kit: [], kitMoved: true, goldAdded: true, inv: X.inv || [], coins: X.coins || { cp: 0, sp: 0, ep: 0, gp: 0, pp: 0 }, prepared: X.prepared || [], importedFrom: { app: D.src, at: Date.now() }, ...(D.mwId ? { mwId: D.mwId } : {}) });
     ["align", "xp", "player", "trait", "ideal", "bond", "flaw", "notes", "langs", "toolsChosen", "look"].forEach(k => { if (X[k] !== undefined && X[k] !== "") c[k] = X[k]; });
     if (X.fightStyles && X.fightStyles.length) c.fightStyles = X.fightStyles;
+    /* the feats the file names, kept on the character so a level-up or rebuild keeps them (2026-11-27) */
+    if (D.opts.bonusFeats && D.opts.bonusFeats.length) c.bonusFeats = D.opts.bonusFeats.map(b => ({ ...b }));
     if (X.conds && X.conds.length) c.conds = X.conds;
     if (X.death) c.death = X.death;
     if (+X.acBonus) c.acBonus = +X.acBonus; /* the file's misc AC bonus (Fifth Edition Character Sheet) */
@@ -587,6 +660,7 @@ function pdfImport(F, ed) {
   let bg = bText ? bgList(ed).find(k => impSame(k, bText)) || (impHave("background", bText) || {}).name || null : null;
   if (bg) D.report.matched.push(`Background: ${bg}`);
   else if (bText) { bg = impCut(bText, 60); D.homebrew.push({ id: uid("hb"), kind: "background", src: PDF_SRC, ed, name: bg, desc: "Imported from a PDF; add its feature here.", skills: [], feat: "", gear: "", fx: [] }); D.report.made.push(`${bg} (background, name only)`); }
+  const bonusFeats = impFeatsFromText(ed, feat, bg, D);
   // scores, saves, skills
   for (const a of AB) { const v = num(a.toUpperCase()); if (!(v > 0)) return { error: "This sheet's ability scores aren't filled in." }; D.final[a] = v; }
   D.appSaves = Object.entries(PDF_SAVES).filter(([n]) => on(`Check Box ${n}`)).map(([, a]) => a);
@@ -602,6 +676,7 @@ function pdfImport(F, ed) {
     const raw = get(k), l = pdfSpellLevel(k, pos), m = spellMatch(ed, raw);
     if (m) { if (!prepared.some(x => x.n === m.s.n)) prepared.push({ n: m.s.n, l: m.s.l, ed: m.ed }); if (m.fuzzy) D.report.matched.push(`${raw} → ${m.s.n}`); return; }
     const nm = impCut(raw.replace(/\s*\([^)]*\)\s*/g, " ").trim(), 60); if (!nm) return;
+    if (impSpellBlocked(ed, nm)) { D.report.dropped.push(`${nm} (reference only; complete rules required before preparation)`); return; }
     const have = impHave("spell", nm) || D.homebrew.find(x => x.kind === "spell" && impSame(x.name, nm));
     if (!have) { D.homebrew.push({ id: uid("hb"), kind: "spell", src: PDF_SRC, ed, name: nm, desc: "", l, s: "Evocation", c: [main.cls], t: "", r: "", cp: "", m: "", du: "", co: false, ri: false, h: "" }); D.report.made.push(`${nm} (${l ? `level ${l} spell` : "cantrip"}, name only)`); }
     if (!prepared.some(x => x.n === (have ? have.name : nm))) prepared.push({ n: have ? have.name : nm, l: have ? +have.l || l : l, ed });
@@ -610,9 +685,15 @@ function pdfImport(F, ed) {
   const inv = [];
   const addGear = (line, eq) => {
     let t = line.replace(/^[-•*]\s*/, "").trim(); if (!t) return;
-    let note = ""; const pm = t.match(/^(.*?)\s*\((.*)\)\s*$/); if (pm && pm[1]) { t = pm[1]; note = pm[2]; }
-    const { g, n, qty } = impGear(ed, t);
+    const full=t.match(/^(\d+)\s+(.+)$/), fullMagic=impMagic(ed,full?full[2]:t);
+    let note = ""; const pm = t.match(/^(.*?)\s*\((.*)\)\s*$/); if (!fullMagic&&pm&&pm[1]) { t = pm[1]; note = pm[2]; }
+    const {g,n,qty}=fullMagic?{g:null,n:fullMagic.n,qty:full?+full[1]:1}:impGear(ed,t);
     const ex = inv.find(i => i.n.toLowerCase() === n.toLowerCase()); if (ex) { if (eq === null) ex.qty += qty; return; }
+    const mg = fullMagic || (!g && impMagic(ed,n));
+    if (mg) {
+      inv.push({ id: uid("i"), ref: mg.id, itemRules: inventoryRulesSnapshot(mg), n: mg.n, qty, w: mg.w || 0, att: !!mg.att, attuned: false, value: mg.c, note: impCut(note, 300) || `${rarName(mg)} ${String(mg.cat || "").toLowerCase()}`.trim(), eq: false });
+      if(itemRulesIncomplete(mg))D.report.differ.push(`${mg.n} (retained as reference only; complete rules unavailable)`);else D.report.matched.push(`Magic item: ${mg.n}`); return;
+    }
     inv.push({ id: uid("i"), ref: g ? g.id : undefined, n: impCut(n, 80), qty, w: impW(g), att: false, attuned: false, value: g ? g.c : undefined, note: impCut(note, 300), eq: eq === null ? eqIsWeapon(g) || eqIsArmor(g) : eq });
   };
   [get("Equipment"), get("Treasure")].join("\n").split(/\n/).forEach(l => addGear(l, null));
@@ -626,7 +707,7 @@ function pdfImport(F, ed) {
   if (get("Features and Traits") || get("Feat+Traits")) D.report.dropped.push("Features and traits text (saved in notes)");
   if ("CHARACTER IMAGE" in fields || "CHARACTERIMAGE" in N) D.report.dropped.push("Portrait not imported");
   D.opts = { seed: impCut(`${get("CharacterName")}|${get("ClassLevel")}`, 120), name: impCut(get("CharacterName"), 80) || "Imported character", ed, bonus: "fixed", method: "array", cls: main.cls, level: main.lv, subclass: main.subclass || "none", race, sub, bg: bg || undefined,
-    multi: more.length ? more.map(x => ({ cls: x.cls, lv: x.lv, subclass: x.subclass })) : undefined, keepSkills, keepExpert };
+    multi: more.length ? more.map(x => ({ cls: x.cls, lv: x.lv, subclass: x.subclass })) : undefined, keepSkills, keepExpert, bonusFeats: bonusFeats.length ? bonusFeats : undefined };
   impGenderSet(D, impGender(Object.fromEntries(Object.entries(fields).filter(([k]) => /gender|^\s*sex\s*$|pronoun/i.test(k))),
     ["Backstory", "PersonalityTraits", "Ideals", "Bonds", "Flaws", "Allies"].map(get)));
   const a = get("Alignment");

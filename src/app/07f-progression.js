@@ -159,10 +159,9 @@ function progressionRows(ed, kind, name, option = "") {
       }
     }
   } else if (kind === "subclass") {
-    const homebrew = subclassEntry(ed, name, option, false);
-    const features = homebrew ? (homebrew.features || []).map(f => [+f.l, f.n, (f.d || "") + fxNote(f.fx)]) : subFeatsOf(ed, option);
+    const features = subclassFeatureRows(ed,name,option,false).map(f=>[f.l,f.n,(f.d||"")+fxNote(f.fx)]);
     for (const [level, feature, desc] of features) add(level, feature, desc);
-    if (subCaster(name, option)) {
+    if (subCaster(name,option,ed)) {
       for (let level = subclassLevel(ed, name); level <= 20; level++) {
         const slots = thirdSlots(level);
         if (slots?.length) add(level, "Spell slots by spell level", slots.join(" / "));

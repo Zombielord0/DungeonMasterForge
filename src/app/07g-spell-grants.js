@@ -3,7 +3,9 @@
    the corresponding System Reference Documents. */
 const CLASS_SPELL_GRANTS = {
   Artificer: [[1, "Tinker’s Magic", "Mending"]],
+  Bard: [[20, "Words of Creation", "Power Word Heal"], [20, "Words of Creation", "Power Word Kill"]],
   Druid: [[1, "Druidic", "Speak with Animals"]],
+  Warlock:[[9,"Contact Patron","Contact Other Plane","freeContactPatron"]],
   Ranger: [[1, "Favored Enemy", "Hunter's Mark", "hmark"]],
   Paladin: [[2, "Paladin's Smite", "Divine Smite", "freeDivineSmite"], [5, "Faithful Steed", "Find Steed", "freePaladinSteed"]],
 };
@@ -127,6 +129,82 @@ const SUBCLASS_SPELL_GRANTS = {
   },
 };
 
+// Published legacy expanded lists are options, not additional known/prepared spells.
+const LEGACY_PATRON_OPTIONS={
+ "The Archfey":[["Faerie Fire","Sleep"],["Calm Emotions","Phantasmal Force"],["Blink","Plant Growth"],["Dominate Beast","Greater Invisibility"],["Dominate Person","Seeming"]],
+ "The Fiend":[["Burning Hands","Command"],["Blindness/Deafness","Scorching Ray"],["Fireball","Stinking Cloud"],["Fire Shield","Wall of Fire"],["Flame Strike","Hallow"]],
+ "The Great Old One":[["Dissonant Whispers","Hideous Laughter"],["Detect Thoughts","Phantasmal Force"],["Clairvoyance","Sending"],["Dominate Beast","Black Tentacles"],["Dominate Person","Telekinesis"]],
+ "The Celestial":[["Cure Wounds","Guiding Bolt"],["Flaming Sphere","Lesser Restoration"],["Daylight","Revivify"],["Guardian of Faith","Wall of Fire"],["Flame Strike","Greater Restoration"]],
+ "The Hexblade":[["Shield","Wrathful Smite"],["Blur","Branding Smite"],["Blink","Elemental Weapon"],["Phantasmal Killer","Staggering Smite"],["Banishing Smite","Cone of Cold"]],
+ "The Fathomless":[["Create or Destroy Water","Thunderwave"],["Gust of Wind","Silence"],["Lightning Bolt","Sleet Storm"],["Control Water","Summon Elemental"],["Arcane Hand","Cone of Cold"]],
+ "The Undying":[["False Life","Ray of Sickness"],["Blindness/Deafness","Silence"],["Feign Death","Speak with Dead"],["Aura of Life","Death Ward"],["Contagion","Legend Lore"]],
+ "The Undead":[["Bane","False Life"],["Blindness/Deafness","Phantasmal Force"],["Phantom Steed","Speak with Dead"],["Death Ward","Greater Invisibility"],["Antilife Shell","Cloudkill"]],
+ "The Genie":[["Detect Evil and Good"],["Phantasmal Force"],["Create Food and Water"],["Phantasmal Killer"],["Creation"]]
+};
+const LEGACY_GENIE_OPTIONS={
+ Dao:["Sanctuary","Spike Growth","Meld into Stone","Stone Shape","Wall of Stone"],
+ Djinni:["Thunderwave","Gust of Wind","Wind Wall","Greater Invisibility","Seeming"],
+ Efreeti:["Burning Hands","Scorching Ray","Fireball","Fire Shield","Flame Strike"],
+ Marid:["Fog Cloud","Blur","Sleet Storm","Control Water","Cone of Cold"]
+};
+const LEGACY_EXTRA_KNOWN={
+ "Ranger|Gloom Stalker":{3:["Disguise Self"],5:["Rope Trick"],9:["Fear"],13:["Greater Invisibility"],17:["Seeming"]},
+ "Ranger|Horizon Walker":{3:["Protection from Evil and Good"],5:["Misty Step"],9:["Haste"],13:["Banishment"],17:["Teleportation Circle"]},
+ "Ranger|Monster Slayer":{3:["Protection from Evil and Good"],5:["Zone of Truth"],9:["Magic Circle"],13:["Banishment"],17:["Hold Monster"]},
+ "Ranger|Fey Wanderer":{3:["Charm Person"],5:["Misty Step"],9:["Dispel Magic"],13:["Dimension Door"],17:["Mislead"]},
+ "Ranger|Swarmkeeper":{3:["Mage Hand","Faerie Fire"],5:["Web"],9:["Gaseous Form"],13:["Arcane Eye"],17:["Insect Plague"]},
+ "Sorcerer|Aberrant Mind":{1:["Arms of Hadar","Dissonant Whispers","Mind Sliver"],3:["Calm Emotions","Detect Thoughts"],5:["Hunger of Hadar","Sending"],7:["Black Tentacles","Summon Aberration"],9:["Telepathic Bond","Telekinesis"]},
+ "Sorcerer|Clockwork Soul":{1:["Alarm","Protection from Evil and Good"],3:["Aid","Lesser Restoration"],5:["Dispel Magic","Protection from Energy"],7:["Freedom of Movement","Summon Construct"],9:["Greater Restoration","Wall of Force"]},
+ "Sorcerer|Shadow Magic":{3:["Darkness"]},
+ "Warlock|The Celestial":{1:["Light","Sacred Flame"]},
+ "Warlock|The Undying":{1:["Spare the Dying"]},
+ "Druid|Circle of Spores":{2:["Chill Touch"]},
+};
+const LEGACY_ADDITIONAL_PREPARED={
+ "Cleric|Arcana Domain":{1:["Detect Magic","Magic Missile"],3:["Magic Weapon","Nystul's Magic Aura"],5:["Dispel Magic","Magic Circle"],7:["Arcane Eye","Leomund's Secret Chest"],9:["Planar Binding","Teleportation Circle"]},
+ "Cleric|Forge Domain":{1:["Identify","Searing Smite"],3:["Heat Metal","Magic Weapon"],5:["Elemental Weapon","Protection from Energy"],7:["Fabricate","Wall of Fire"],9:["Animate Objects","Creation"]},
+ "Cleric|Grave Domain":{1:["Bane","False Life"],3:["Gentle Repose","Ray of Enfeeblement"],5:["Revivify","Vampiric Touch"],7:["Blight","Death Ward"],9:["Antilife Shell","Raise Dead"]},
+ "Cleric|Order Domain":{1:["Command","Heroism"],3:["Hold Person","Zone of Truth"],5:["Mass Healing Word","Slow"],7:["Compulsion","Locate Creature"],9:["Commune","Dominate Person"]},
+ "Cleric|Peace Domain":{1:["Heroism","Sanctuary"],3:["Aid","Warding Bond"],5:["Beacon of Hope","Sending"],7:["Aura of Purity","Otiluke's Resilient Sphere"],9:["Greater Restoration","Rary's Telepathic Bond"]},
+ "Cleric|Twilight Domain":{1:["Faerie Fire","Sleep"],3:["Moonbeam","See Invisibility"],5:["Aura of Vitality","Leomund's Tiny Hut"],7:["Aura of Life","Greater Invisibility"],9:["Circle of Power","Mislead"]},
+ "Druid|Circle of Spores":{3:["Blindness/Deafness","Gentle Repose"],5:["Animate Dead","Gaseous Form"],7:["Blight","Confusion"],9:["Cloudkill","Contagion"]},
+ "Druid|Circle of Wildfire":{2:["Burning Hands","Cure Wounds"],3:["Flaming Sphere","Scorching Ray"],5:["Plant Growth","Revivify"],7:["Aura of Life","Fire Shield"],9:["Flame Strike","Mass Cure Wounds"]},
+ "Paladin|Oath of Conquest":{3:["Armor of Agathys","Command"],5:["Hold Person","Spiritual Weapon"],9:["Bestow Curse","Fear"],13:["Dominate Beast","Stoneskin"],17:["Cloudkill","Dominate Person"]},
+ "Paladin|Oath of Redemption":{3:["Sanctuary","Sleep"],5:["Calm Emotions","Hold Person"],9:["Counterspell","Hypnotic Pattern"],13:["Otiluke's Resilient Sphere","Stoneskin"],17:["Hold Monster","Wall of Force"]},
+ "Paladin|Oath of Glory":{3:["Guiding Bolt","Heroism"],5:["Enhance Ability","Magic Weapon"],9:["Haste","Protection from Energy"],13:["Compulsion","Freedom of Movement"],17:["Commune","Flame Strike"]},
+ "Paladin|Oath of the Watchers":{3:["Alarm","Detect Magic"],5:["Moonbeam","See Invisibility"],9:["Counterspell","Nondetection"],13:["Aura of Purity","Banishment"],17:["Hold Monster","Scrying"]},
+ "Paladin|Oath of the Crown":{3:["Command","Compelled Duel"],5:["Warding Bond","Zone of Truth"],9:["Aura of Vitality","Spirit Guardians"],13:["Banishment","Guardian of Faith"],17:["Circle of Power","Geas"]},
+};
+const SUBCLASS_SPELL_ALIASES={"Nystul's Magic Aura":"Magic Aura","Leomund's Secret Chest":"Secret Chest","Otiluke's Resilient Sphere":"Resilient Sphere","Rary's Telepathic Bond":"Telepathic Bond","Leomund's Tiny Hut":"Tiny Hut","Branding Smite":"Shining Smite"};
+function subclassSpellName(ed,name){
+ const exact=spellOf(ed,name);if(exact)return exact.n;
+ const key=Object.keys(SUBCLASS_SPELL_ALIASES).find(candidate=>candidate.toLowerCase()===name.toLowerCase());
+ const alias=SUBCLASS_SPELL_ALIASES[key];return alias&&spellOf(ed,alias)?.n||name;
+}
+function animalLordsEntry(c){
+ const cls="Warlock",name="Animal Lords";
+ if(!characterSubclassLevel(c,cls,name))return null;
+ const entry=subclassEntry(edOf(c),cls,name,true,characterSubclassPrinting(c,cls));
+ return entry?.id==="book-toh_animal-lords"?entry:null;
+}
+function legacySubclassOption(c,ed,cls,sp){
+ if(edOf(c)!==ed||!sp||sp.hb||sp.pend||sp.referenceOnly||sp.rulesSummary||sp.ref||sp.shadow)return false;
+ const row=[{cls:c.cls,lv:c.level,subclass:c.subclass},...(c.multi||[])].find(x=>x.cls===cls);
+ if(!row||!row.subclass||+row.lv<subclassLevel(ed,cls))return false;
+ const entry=subclassEntry(ed,cls,row.subclass,true,characterSubclassPrinting(c,cls));
+ if(ed!=="2014"&&!entry?.compatibility)return false;
+ if(cls==="Sorcerer"&&row.subclass==="Divine Soul")return (sp.c||[]).includes("Cleric");
+ const affinity=entry?.id==="book-toh_animal-lords"?choiceOf(c,"Animal Lord Affinity")[0]:"";
+ if(entry?.openSpellTracks?.some(track=>track.mode==="expanded"&&track.spells.some(option=>
+   option.level===sp.l&&(!option.affinity||option.affinity===affinity)&&
+   subclassSpellName(ed,option.name).toLowerCase()===sp.n.toLowerCase()
+ )))return true;
+ if(cls!=="Warlock"||!LEGACY_PATRON_OPTIONS[row.subclass])return false;
+ if(row.subclass==="The Genie"&&sp.l===9&&sp.n==="Wish")return true;
+ const names=LEGACY_PATRON_OPTIONS[row.subclass][sp.l-1]||[];
+ const genie=row.subclass==="The Genie"?LEGACY_GENIE_OPTIONS[choiceOf(c,"Genie's Vessel")[0]]?.[sp.l-1]:null;
+ return [...names,...(genie?[genie]:[])].some(n=>subclassSpellName(ed,n)===sp.n);
+}
 const ARTIFICER_SPELL_GRANTS = {
   Alchemist: {
     3: ["Healing Word", "Ray of Sickness"], 5: ["Flaming Sphere", "Acid Arrow"], 9: ["Gaseous Form", "Mass Healing Word"],
@@ -254,23 +332,44 @@ function speciesSpellAbility(c) {
   const selected = choiceOf(c, "Species Spellcasting")[0];
   return selected === "Wisdom" ? "wis" : selected === "Charisma" ? "cha" : "int";
 }
+const REVISED_HIGH_ELF_CANTRIP = "Elven Lineage Cantrip";
+const isRevisedHighElf=c=>edOf(c)==="2024"&&c.race==="Elf"&&c.sub==="High Elf";
+function highElfCantrip(c){
+  const pick=choiceOf(c,REVISED_HIGH_ELF_CANTRIP)[0];
+  return pick&&CHOICES[REVISED_HIGH_ELF_CANTRIP].opts(c).some(([name])=>name===pick)?pick:"Prestidigitation";
+}
+function highElfCantripChange(c,name){
+  if(!isRevisedHighElf(c)||!c.highElfCantripSwap||name===highElfCantrip(c)||!CHOICES[REVISED_HIGH_ELF_CANTRIP].opts(c).some(([id])=>id===name))return false;
+  c.choices={...c.choices,[REVISED_HIGH_ELF_CANTRIP]:[name]};
+  delete c.highElfCantripSwap;
+  syncGrantedSpells(c);
+  return true;
+}
+function highElfCantripHTML(c){
+  const current=highElfCantrip(c);
+  return `<div class="choice"><span class="lbl">High Elf lineage cantrip</span><span class="tag gold">${esc(current)}</span>${c.highElfCantripSwap?
+    `<select data-high-elf-cantrip aria-label="Replace your High Elf lineage cantrip"><option value="">Choose a replacement…</option>${CHOICES[REVISED_HIGH_ELF_CANTRIP].opts(c).filter(([name])=>name!==current).map(([name])=>`<option value="${esc(name)}">${esc(name)}</option>`).join("")}</select>`:
+    '<p class="hint">You can replace this cantrip after a long rest.</p>'}</div>`;
+}
 function speciesSpellChoicesHTML(c) {
   if (edOf(c) === "2014") return c.race === "Elf" && c.sub === "High Elf" ? choiceHTML(c, "High Elf Cantrip") : "";
   if (!(c.prepared || []).some(p => p.bookGrant && p.sources?.some(g => g.kind === "species" && !g.ab && g.name !== "Aasimar"))) return "";
   const current = AB_FULL[speciesSpellAbility(c)];
-  const cantripChoice = c.race === "Elf" && c.sub === "High Elf" ? choiceHTML(c, "Elven Lineage Cantrip")
+  const cantripChoice = isRevisedHighElf(c) ? highElfCantripHTML(c)
     : c.race === "Khoravar" ? choiceHTML(c, "Fey Gift Cantrip") : "";
   return `<p class="hint">Species spellcasting ability · ${esc(current)}</p>${choiceHTML(c, "Species Spellcasting")}${cantripChoice}`;
 }
 
 function syncGrantedSpells(c) {
   const ed = edOf(c), grants = new Map();
-  const add = (track, level, source, details = () => ({})) => {
+  if(c.highElfCantripSwap&&!isRevisedHighElf(c))delete c.highElfCantripSwap;
+  const add = (track, level, source, details = () => ({}), referenceLevel) => {
     for (const [minimum, names] of Object.entries(track || {})) {
       if (!Array.isArray(names) || +minimum > level) continue;
       for (const name of names) {
         const catalogSpell = spellOf(ed, name);
-        const spell = catalogSpell || SPELL_GRANT_REFERENCES[name.toLowerCase()];
+        const spell = catalogSpell || SPELL_GRANT_REFERENCES[name.toLowerCase()] ||
+          (Number.isInteger(referenceLevel)?{n:name,l:referenceLevel}:null);
         if (!spell) continue;
         const key = spellKey(ed, spell.n);
         if (!grants.has(key)) grants.set(key, {
@@ -291,11 +390,47 @@ function syncGrantedSpells(c) {
         add({ [level]: [spell] }, lv, { ...classSource, feature }, () => free ? { free } : {});
       }
     }
-    if (cls === "Wizard") {
+    if(ed==="2024"&&["Cleric","Druid"].includes(baseClassOf(cls))){
+      const feature=baseClassOf(cls)==="Cleric"?"Divine Order":"Primal Order",key=feature+" Cantrip",choice=CHOICES[key];
+      if(choice.n(c)>0){
+        const selected=choiceOf(c,key).filter(name=>choice.opts(c).some(([id])=>id===name)).slice(0,1);
+        add({1:selected},lv,{...classSource,feature},()=>({known:true}));
+      }
+    }
+    if(cls==="Warlock"){
+      if(warlockPact(c,"chain")){
+        const familiar=spellOf(ed,"Find Familiar");
+        if(familiar&&!familiar.ref&&!familiar.referenceOnly&&!familiar.rulesSummary&&!familiar.pend&&!familiar.shadow)
+          add({1:["Find Familiar"]},lv,{...classSource,feature:"Pact of the Chain"},()=>ed==="2024"?{free:"pactChainFamiliar",uses:"atWill",innate:true}:{innate:true,ritualOnly:true,known:true});
+      }
+      if(warlockPact(c,"tome")){
+        const cantrips=pactTomeSelections(c,0),rituals=ed==="2024"?pactTomeSelections(c,1):[];
+        add({1:[...cantrips,...rituals]},lv,{...classSource,feature:"Pact of the Tome"},()=>({known:ed==="2014"}));
+      }
+      // At-will spells without self-target or special-use caveats. Others remain manual.
+      const atWill={mask:"Disguise Self",misty:"Silent Image",grave:"Speak with Dead",visions:"Arcane Eye",sight:"Detect Magic",beast:"Speak with Animals",myriad:"Alter Self",armor:"Mage Armor",vigor:"False Life",ascend:"Levitate",leap:"Jump",...(ed==="2024"?{shadows:"Invisibility"}:{})};
+      if(hasChoice(c,"Eldritch Invocations","depths")){
+        const sp=spellOf(ed,"Water Breathing");
+        if(sp&&!sp.ref&&!sp.referenceOnly&&!sp.pend&&!sp.rulesSummary&&!sp.shadow&&!sp.hb)add({1:[sp.n]},lv,{...classSource,feature:"Gift of the Depths"},()=>({free:"invocation:depths",uses:1}));
+      }
+      for(const [id,name] of Object.entries(atWill))if(hasChoice(c,"Eldritch Invocations",id)){
+        const sp=spellOf(ed,name);
+        if(sp&&!sp.ref&&!sp.referenceOnly&&!sp.pend&&!sp.rulesSummary&&!sp.shadow&&!sp.hb)
+          add({1:[name]},lv,{...classSource,feature:INVOCATIONS.find(v=>v[0]===id)[1]},()=>({free:"invocation:"+id,uses:"atWill",innate:true}));
+      }
+    }
+    if(cls==="Warlock")for(const level of [6,7,8,9]){
+      const key="Mystic Arcanum "+level,choice=CHOICES[key];
+      if(lv>=2*level-1&&choice.n(c)){
+        const selected=choiceOf(c,key).filter(n=>choice.opts(c).some(([id])=>id===n)).slice(0,1);
+        add({[2*level-1]:selected},lv,{...classSource,feature:"Mystic Arcanum"},()=>({free:"arcanum"+level,uses:1,recharge:"long",known:true,innate:true}));
+      }
+    }
+    if (baseClassOf(cls) === "Wizard") {
       for (const { choice, feature, level, uses, recharge } of WIZARD_SPELL_CHOICES) {
-        if (lv < level || !choiceOf(c, choice).length || (feature === "Spell Mastery" && ed !== "2024")) continue;
+        if (lv < level || !choiceOf(c, choice).length || (feature === "Spell Mastery" && ed !== "2024"&&!wizardBookActive(c))) continue;
         const candidates = CHOICES[choice].opts(c);
-        const names = choiceOf(c, choice).filter(name => candidates.some(([id]) => id === name)).slice(0, CHOICES[choice].n(c));
+        const names = choiceOf(c, choice).filter(name => candidates.some(([id]) => id === name)).filter(name=>!(feature==="Spell Mastery"&&ed==="2014")||(c.prepared||[]).some(p=>p.ed===ed&&p.n===name&&!p.src)).slice(0, CHOICES[choice].n(c));
         add({ [level]: names }, lv, { ...classSource, feature }, spell => ({
           free: "wizardSpell:" + encodeURIComponent(feature + "|" + spell.n), uses, recharge,
         }));
@@ -304,42 +439,114 @@ function syncGrantedSpells(c) {
     const data = classData(ed, cls)?.hbx;
     add(data?.alwaysPrepared, lv, { ...classSource, book: data?.src });
     if (!subclass || lv < subclassLevel(ed, cls)) continue;
-    const entry = subclassEntry(ed, cls, subclass);
+    const entry = subclassEntry(ed,cls,subclass,true,characterSubclassPrinting(c,cls));
     const source = { kind: "subclass", name: subclass, cls, book: entry?.src };
     const artificer = ed === "2024" ? REVISED_ARTIFICER_SPELL_GRANTS : ARTIFICER_SPELL_GRANTS;
-    add(SUBCLASS_SPELL_GRANTS[ed]?.[cls + "|" + subclass], lv, source);
+    const legacy=ed==="2014"||entry?.compatibility===true,key=cls+"|"+subclass;
+    const track=SUBCLASS_SPELL_GRANTS[legacy?"2014":ed]?.[key];
+    const normalize=t=>Object.fromEntries(Object.entries(t||{}).map(([l,names])=>[Math.max(+l,subclassLevel(ed,cls)),names.map(n=>subclassSpellName(ed,n))]).reduce((rows,[l,names])=>{const x=rows.find(y=>y[0]===l);if(x)x[1].push(...names);else rows.push([l,names]);return rows;},[]));
+    add(normalize(track),lv,source);
+    if(legacy){
+      add(normalize(LEGACY_EXTRA_KNOWN[key]),lv,{...source,known:true});
+      add(normalize(LEGACY_ADDITIONAL_PREPARED[key]),lv,source);
+    }
     if (cls === "Artificer" && Object.hasOwn(artificer, subclass)) add(artificer[subclass], lv, source);
-    add(entry?.alwaysPrepared, lv, source);
-    add(entry?.bonusSpells, lv, { ...source, known: true });
-    if (cls === "Rogue" && ["Arcane Trickster", "Eldritch Trickster"].includes(subclass)) {
-      add({ 3: ["Mage Hand"] }, lv, { ...source, feature: "Spellcasting", known: true });
+    const openTracks=entry?.openSpellTracks||[];
+    const verified=new Set(openTracks.filter(track=>track.mode!=="expanded").flatMap(track=>
+      track.spells.map(spell=>subclassSpellName(ed,spell.name).toLowerCase())));
+    const otherGrants=track=>verified.size?Object.fromEntries(Object.entries(track||{}).map(([level,names])=>
+      [level,names.filter(name=>!verified.has(subclassSpellName(ed,name).toLowerCase()))])):track;
+    add(otherGrants(entry?.alwaysPrepared), lv, source);
+    add(otherGrants(entry?.bonusSpells), lv, { ...source, known: true });
+    for(const track of openTracks){
+      if(track.mode==="expanded")continue;
+      for(const spell of track.spells)add({[Math.max(spell.gate,subclassLevel(ed,cls))]:[subclassSpellName(ed,spell.name)]},lv,
+        {...source,feature:track.feature},()=>({
+          ...(track.mode==="known"?{known:true}:{}),
+          ...(spell.restriction?{restriction:spell.restriction}:{}),
+        }),spell.level);
+    }
+    const third=subCaster(cls,subclass,ed,characterSubclassPrinting(c,cls),c.race);
+    if(third?.fixedCantrip)add({3:[third.fixedCantrip]},lv,{...source,feature:"Spellcasting",known:true});
+    if(third?.id){
+      add({3:openThirdKnownSpells(c,subclass)},lv,{...source,feature:`Spellcasting (${subclass})`,known:true});
     }
     if (cls === "Cleric" && subclass === "Arcana Domain" && choiceOf(c, "Arcane Initiate").length) {
       const candidates = CHOICES["Arcane Initiate"].opts(c);
       const choices = choiceOf(c, "Arcane Initiate").filter(name => candidates.some(([id]) => id === name)).slice(0, 2);
       add({ [subclassLevel(ed, cls)]: choices }, lv, { ...source, feature: "Arcane Initiate", known: true });
     }
+    if (cls === "Cleric" && subclass === "Arcana Domain" && legacy && lv>=17) {
+      for(const level of [6,7,8,9]){
+        const key="Arcane Mastery "+level,rule=CHOICES[key],selected=choiceOf(c,key)[0];
+        if(rule.n(c)&&rule.opts(c).some(([id])=>id===selected))add({17:[selected]},lv,{...source,feature:"Arcane Mastery"});
+      }
+    }
+    if(cls==="Fighter"&&subclass==="Arcane Archer"){
+      const rule=CHOICES["Arcane Archer Lore"],selected=choiceOf(c,"Arcane Archer Lore")[0];
+      if(rule.n(c)&&rule.opts(c).some(([id])=>id===selected))add({3:[selected]},lv,{...source,feature:"Arcane Archer Lore",known:true,innate:true,...(revisedArcaneArcher(c)?{ab:"int"}:{})});
+    }
     if (cls === "Sorcerer" && subclass === "Divine Soul") {
       const affinity = CHOICES["Divine Magic"].opts(c).find(([id]) => id === choiceOf(c, "Divine Magic")[0]);
       if (affinity) add({ [subclassLevel(ed, cls)]: [affinity[2]] }, lv, { ...source, feature: "Divine Magic", known: true });
     }
     if (entry?.spellTracks) {
-      add(entry.spellTracks.All, lv, source);
+      const spellsSource=entry.spellTrackChoice==="Evoker specialization"?{...source,feature:"Evoker Spells"}:source;
+      add(entry.spellTracks.All, lv, spellsSource);
       const choice = choiceOf(c, entry.spellTrackChoice)[0];
-      if (choice && choice !== "All" && Object.hasOwn(entry.spellTracks, choice)) add(entry.spellTracks[choice], lv, { ...source, feature: choice });
+      if (choice && choice !== "All" && Object.hasOwn(entry.spellTracks, choice)) add(entry.spellTracks[choice], lv, {...spellsSource, feature: choice});
     }
-    if (cls === "Druid" && subclass === "Circle of Stars") {
-      add({ 2: ["Guidance", "Guiding Bolt"] }, lv, { ...source, feature: "Star Map" }, spell => spell.l ? {
-        free: "starMapGuidingBolt", uses: ed === "2014" ? "proficiency" : Math.max(1, c.mods?.wis || 0),
-      } : {});
+    if(entry?.src==="wow"&&demonHunterOwner(c)?.cls===cls){
+      add({3:["Feather Fall","Jump"]},lv,{...source,feature:"Double Jump",ab:"wis",innate:true,known:true});
+      add({11:["Counterspell"]},lv,{...source,feature:"Disrupt",ab:"wis",innate:true,known:true});
+    }
+    if(entry?.src==="wow"&&spiritualGuardianOwner(c)?.cls===cls){
+      add({10:["Augury","Clairvoyance"]},lv,{...source,feature:"Consult the Spirits",ab:"wis",innate:true,known:true},
+        ()=>({free:"consultSpirits",uses:1,recharge:"short",sharedResource:"Consult the Spirits"}));
+    }
+    if(cls==="Ranger"&&subclass==="Fey Wanderer"){
+      if(lv>=11)add({11:["Summon Fey"]},lv,{...source,feature:"Fey Reinforcements",known:legacy},()=>({free:subAblKey("Fey Reinforcements"),uses:1}));
+      if(lv>=15)add({15:["Misty Step"]},lv,{...source,feature:"Misty Wanderer",known:legacy},()=>({free:subAblKey("Misty Wanderer"),uses:"wisdom"}));
+    }
+    if(ed==="2024"&&!legacy&&cls==="Warlock"&&subclass==="Archfey Patron"){
+      add({3:["Misty Step"]},lv,{...source,feature:"Steps of the Fey"},()=>({free:subAblKey("Steps of the Fey"),uses:"charisma"}));
+    }
+    if (cls === "Druid" && starDruidLevel(c)) {
+      const unlock=subclassLevel(ed,cls);
+      add({[unlock]:["Guidance","Guiding Bolt"]},lv,{...source,feature:"Star Map",ab:"wis"},
+        spell=>spell.l?{free:"starMapGuidingBolt",uses:ed==="2014"?"proficiency":"wisdom"}:{known:ed==="2014"});
     }
     if (cls === "Wizard" && ["School of Illusion", "Illusionist"].includes(subclass)) {
       add({ [subclassLevel(ed, cls)]: ["Minor Illusion"] }, lv, { ...source, feature: "Improved Illusions" });
     }
+    if(cls==="Fighter"&&subclass==="Psi Warrior"&&lv>=18)add({18:["Telekinesis"]},lv,{...source,feature:"Telekinetic Master",ab:"int",innate:true},()=>({free:"psiMaster",uses:1}));
+    if(cls==="Ranger"&&subclass==="Drakewarden")add({3:["Thaumaturgy"]},lv,{...source,feature:"Draconic Gift",ab:"wis",innate:true,known:true});
+    if(cls==="Barbarian"&&subclass==="Path of the Giant"){
+      const selected=choiceOf(c,"Giant Power")[0];
+      if(["Thaumaturgy","Druidcraft"].includes(selected))add({3:[selected]},lv,{...source,feature:"Giant Power",ab:"wis",innate:true,known:true});
+    }
+    if(ed==="2024"&&!legacy&&cls==="Bard"&&subclass==="College of Glamour"){
+      add({3:["Charm Person","Mirror Image"]},lv,{...source,feature:"Beguiling Magic"});
+      add({6:["Command"]},lv,{...source,feature:"Mantle of Majesty"});
+    }
+    if(ed==="2024"&&!legacy&&cls==="Wizard"&&subclass==="Abjurer"&&lv>=10){
+      add({10:["Counterspell","Dispel Magic"]},lv,{...source,feature:"Spell Breaker"});
+    }
+    if(ed==="2024"&&cls==="Bard"&&subclass==="College of Lore"&&lv>=6){
+      const eligible=new Set(CHOICES["Magical Discoveries"].opts(c).map(x=>x[0]));
+      const chosen=[...new Set(choiceOf(c,"Magical Discoveries"))].filter(n=>eligible.has(n)).slice(0,2);
+      add({6:chosen},lv,{...source,feature:"Magical Discoveries"});
+    }
+    if(lv>=18&&draconicSorceryOwner(c)?.cls===cls){
+      add({18:["Summon Dragon"]},lv,{...source,feature:"Dragon Companion"},()=>({free:"dragonCompanion",uses:1}));
+    }
     if (cls === "Druid" && subclass === "Circle of the Land") {
       const tracks = ed === "2024" ? LAND_SPELL_GRANTS : LEGACY_LAND_SPELL_GRANTS;
       const land = choiceOf(c, ed === "2024" ? "Circle of the Land Spells" : "Circle Spells")[0];
-      if (land && Object.hasOwn(tracks, land)) add(tracks[land], lv, { ...source, feature: land });
+      if(land&&Object.hasOwn(tracks,land)){
+        add(tracks[land],lv,{...source,feature:land});
+        if(ed==="2024"&&lv>=6)add(tracks[land],lv,{...source,feature:"Natural Recovery"},spell=>spell.l>0?{free:"landFreeCast",uses:1,sharedResource:"Natural Recovery · free circle spell"}:{});
+      }
     }
   }
 
@@ -365,9 +572,7 @@ function syncGrantedSpells(c) {
   } else {
     add(SPECIES_SPELL_GRANTS[c.race], level, species);
     const track = lineage && SPECIES_SPELL_GRANTS[c.race + "|" + c.sub];
-    const choice = c.race === "Elf" && c.sub === "High Elf" && choiceOf(c, "Elven Lineage Cantrip")[0];
-    const cantrip = choice && CHOICES["Elven Lineage Cantrip"].opts(c).some(([id]) => id === choice);
-    add(cantrip ? { ...track, 1: [choice] } : track, level, subSpecies, spell => freeCast(spell, c.race === "Gnome" ? "proficiency" : 1));
+    add(isRevisedHighElf(c) ? { ...track, 1: [highElfCantrip(c)] } : track, level, subSpecies, spell => freeCast(spell, c.race === "Gnome" ? "proficiency" : 1));
   }
   if (c.race === "Genasi" && lineage && Object.hasOwn(GENASI_SPELL_GRANTS, c.sub)) {
     const ability = choiceOf(c, c.sub)[0];

@@ -32,6 +32,33 @@ module.exports = async (p, { URL, check, FIX }) => {
   check("PDF: current HP, coins and gear come across", c.hpCur === 40 && c.coins.gp === 120 && c.coins.sp === 7 && c.inv.some(([n, q]) => /^Dagger$/i.test(n) && q === 2) && c.inv.some(([n]) => /Spellbook/i.test(n)), JSON.stringify([c.hpCur, c.coins, c.inv]));
   check("PDF: languages and tools", /Common/.test(c.langs) && /Halfling/.test(c.langs) && /Disguise Kit/.test(c.toolsChosen) && /Forgery Kit/.test(c.toolsChosen), JSON.stringify([c.langs, c.toolsChosen]));
   check("PDF: appearance, story and notes", /23/.test(c.look) && /3' 1/.test(c.look) && /lie about almost everything/.test(c.trait) && /Copper Kettle/.test(c.notes) && /Free healing potion/.test(c.notes), JSON.stringify([c.look, c.notes]));
+  // feats from the Features and Traits boxes, magic items from the equipment (owner, 2026-11-27)
+  const fm = await p.evaluate(() => {
+    const fields = { CharacterName: "Tess", ClassLevel: "Fighter 4", Race: "Human", Background: "Soldier", STR: "16", DEX: "14", CON: "14", INT: "10", WIS: "12", CHA: "8",
+      "Features and Traits": "• Alert: can't be surprised\nFeat: War Caster (PHB)\nFighting Style: Archery\nSecond Wind\nDarkvision 60 ft",
+      "Feat+Traits": "Rapid Drinker - quaff potions fast\nAction Surge",
+      Equipment: "Bag of Holding\nWand of Magic Missiles\nAberrant Agreement\nDagger\nLongsword +1" };
+    const D = pdfImport({ fields, pos: {} }, "2014"); if (D.error) return { error: D.error };
+    const { c, report } = importBuild(D);
+    pcLevelTo(c, 5);
+    return { feats: (c.bonusFeats || []).map(b => b.n), sheet: c.feats.map(f => f.f), inv: c.inv.map(i => ({ n: i.n, ref: i.ref || "" })), report, homebrew: D.homebrew.map(x => x.name) };
+  });
+  check("PDF: feats in Features and Traits are read (built-in and book)", !fm.error && ["Alert", "War Caster", "Rapid Drinker"].every(n => fm.feats.includes(n)), JSON.stringify(fm));
+  check("PDF: class features and a fighting style aren't taken for feats", !fm.error && !fm.feats.some(n => /Archery|Second Wind|Action Surge|Darkvision/.test(n)) && fm.feats.length === 3, JSON.stringify(fm.feats));
+  check("PDF: the feats stay on the sheet after a level-up", !fm.error && ["Alert", "War Caster", "Rapid Drinker"].every(n => fm.sheet.some(f => f.startsWith("Feat: " + n))), JSON.stringify(fm.sheet));
+  // lines that are also feat names: a Halfling's Lucky, Ability Score Improvement, a bare fighting style (code review, 2026-11-27)
+  const clash = await p.evaluate(() => {
+    const run = (ed, race, text) => { const D = pdfImport({ fields: { CharacterName: "Bo", ClassLevel: "Fighter 4", Race: race, Background: "Soldier", STR: "16", DEX: "14", CON: "14", INT: "10", WIS: "12", CHA: "8", "Features and Traits": text }, pos: {} }, ed); return { feats: (D.opts.bonusFeats || []).map(b => b.n), differ: D.report.differ }; };
+    return { a: run("2014", "Lightfoot Halfling", "Lucky\nBrave\nArchery\nDefense"), b: run("2024", "Human", "Ability Score Improvement\nArchery"), c: run("2014", "Lightfoot Halfling", "Feat: Lucky"), d: run("2014", "Human", "Feats\nLucky\nAlert\n\nSecond Wind") };
+  });
+  check("PDF: a Halfling's Lucky trait and bare fighting styles aren't taken for feats", !clash.a.feats.length && clash.a.differ.some(t => /Lucky/.test(t)), JSON.stringify(clash.a));
+  check("PDF: Ability Score Improvement and Archery (2024) aren't taken for feats", !clash.b.feats.length, JSON.stringify(clash.b));
+  check("PDF: “Feat: Lucky” or a Feats heading still adds the feat", clash.c.feats.join() === "Lucky" && clash.d.feats.join() === "Lucky,Alert", JSON.stringify([clash.c, clash.d]));
+  check("PDF: feats found are listed in the report", !fm.error && fm.report.matched.some(t => /Feat: Rapid Drinker/.test(t)), JSON.stringify(fm.report && fm.report.matched));
+  const mi = n => !fm.error && fm.inv.find(i => i.n === n);
+  check("PDF: magic items are matched to the item list with their rules", ["Bag of Holding", "Wand of Magic Missiles", "Aberrant Agreement"].every(n => mi(n) && mi(n).ref && !/-g\d/.test(mi(n).ref)), JSON.stringify(fm.inv));
+  check("PDF: plain gear and +1 weapons still work as before", mi("Dagger") && mi("Dagger").ref && mi("Longsword +1") && mi("Longsword +1").ref, JSON.stringify(fm.inv));
+  check("PDF: matched feats and items make no homebrew", !fm.error && !fm.homebrew.length, JSON.stringify(fm.homebrew));
   // a PDF without fillable boxes
   const blank = await p.evaluate(async () => {
     const txt = "%PDF-1.4\n1 0 obj<</Type/Catalog/Pages 2 0 R>>endobj\n2 0 obj<</Type/Pages/Kids[3 0 R]/Count 1>>endobj\n3 0 obj<</Type/Page/Parent 2 0 R/MediaBox[0 0 200 200]>>endobj\ntrailer<</Root 1 0 R>>\n%%EOF";

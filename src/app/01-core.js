@@ -7,6 +7,7 @@
    each edition gets its own copy (the tabs add their own fields to each one). Each extra entry has src, its book's code. */
 const DM_DATA = {};
 const DM_EXTRA = { spellData: "spellExtra", monsterData: "monsterExtra", itemData: "itemExtra" };
+const dmExtraForEdition = (rows, ed) => rows.filter(row => !row.ed || row.ed === ed);
 function dmData(key) {
   if (!DM_DATA[key]) {
     const d = JSON.parse(window.DMDATA[key]); delete window.DMDATA[key];
@@ -14,9 +15,9 @@ function dmData(key) {
     if (text) {
       delete window.DMDATA[xk];
       for (const ed of ["2014", "2024"]) {
-        const L = JSON.parse(text);
+        const L = dmExtraForEdition(JSON.parse(text), ed);
         if (key === "spellData") {
-          const spells = L.filter(spell => !spell.ed || spell.ed === ed);
+          const spells = L;
           d[ed].push(...(ed === "2024" ? spells.map(dmSpell2024) : spells));
         }
         else if (key === "monsterData") d[ed].push(...L);
@@ -43,7 +44,7 @@ function dmLoadExtraMonsters() {
     if (extra) {
       for (const ed of ["2014", "2024"]) {
         const first = raw[ed].length;
-        raw[ed].push(...JSON.parse(extra));
+        raw[ed].push(...dmExtraForEdition(JSON.parse(extra), ed));
         if (BS.data) raw[ed].slice(first).forEach((m, i) => bsPrepareMonster(m, ed, first + i));
       }
       delete window.DMDATA.monsterExtra;
@@ -71,7 +72,7 @@ function dmBook(code) {
 }
 /* the small tag on a list row, and the "Source" line in its details */
 const bookTag = x => { const b = dmBook(x && x.src); return b ? `<span class="tag book hide-sm" title="${esc(b.name)}">${esc(b.short)}</span>` : ""; };
-const bookLine = x => { const b = dmBook(x && x.src); return b ? `<p class="hint book-line">Source: <i>${b.ed === "2024" && b.url && /^https:\/\//.test(b.url) ? `<a href="${esc(b.url)}" target="_blank" rel="noopener">${esc(b.name)}</a>` : esc(b.name)}</i> (${esc(b.by)})${x.page ? `, p. ${esc(x.page)}` : ""}${b.lic === "reference" ? " · Rules summary" : ", open content"}. <a href="/credits.html" target="_blank" rel="noopener">Credits and licences</a></p>` : ""; };
+const bookLine = x => { const b = dmBook(x && x.src); return b ? `<p class="hint book-line">Source: <i>${b.ed === "2024" && b.url && /^https:\/\//.test(b.url) ? `<a href="${esc(b.url)}" target="_blank" rel="noopener">${esc(b.name)}</a>` : esc(b.name)}</i> (${esc(b.by)})${x.page ? `, p. ${esc(x.page)}` : ""}${x.srdSpell ? " · Full SRD 5.1 rules" : b.lic === "reference" ? " · Rules summary" : ", open content"}. <a href="/credits.html" target="_blank" rel="noopener">Credits and licences</a></p>` : ""; };
 /* The Book filter's choices for a list: Any, the SRD, then each extra book in it. Its values: "", "srd" or a book code. */
 function bookOptions(list) {
   const codes = [...new Set(list.map(x => x.src).filter(Boolean))].sort((a, b) => dmBook(a).name.localeCompare(dmBook(b).name));

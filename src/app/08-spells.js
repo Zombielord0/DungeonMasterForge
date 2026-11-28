@@ -42,7 +42,7 @@ const REVISED_ARTIFICER_SPELLS = new Set([
 function spPrep(s, ed, i) {
   s.id = ed + "-" + i;
   const artificerSpells = ed === "2014" ? ARTIFICER_SPELLS : REVISED_ARTIFICER_SPELLS;
-  if (!s.hb && artificerSpells.has(s.n.toLowerCase().replaceAll("’", "'")) && !s.c.includes("Artificer")) {
+  if (!s.hb && !s.referenceOnly && artificerSpells.has(s.n.toLowerCase().replaceAll("’", "'")) && !s.c.includes("Artificer")) {
     s.c.push("Artificer");
   }
   s.tc = spTimeCat(s.t);
@@ -57,6 +57,11 @@ function spPrep(s, ed, i) {
 function spLoad() {
   if (SP.data) return;
   const raw = dmData("spellData");
+  // Resolve the named book references to their canonical playable SRD spell for search.
+  for (const s of raw["2014"].filter(s => s.srdSpell)) {
+    const canonical = raw["2014"].find(x => x.n === s.srdSpell && !x.src && !x.ref);
+    if (canonical) canonical.aliases = [...new Set([...(canonical.aliases || []), s.n])];
+  }
   for (const ed of Object.keys(raw)) raw[ed].forEach((s, i) => spPrep(s, ed, i));
   SP.data = raw;
   hbSpellsApply();
@@ -104,11 +109,13 @@ function spFormat(text) {
 }
 function spDetail(s, { edition = SP.ed, actions = true } = {}) {
   const comps = s.cp.split("").join(", ") + (s.m ? ` (${s.m})` : "");
+  const higher=summonHigherRules(s,edition);
   return `<div class="sp-detail">
     <div class="muted"><i>${s.l ? `Level ${s.l} ${esc(s.s)}` : `${esc(s.s)} cantrip`}${s.ri ? " (ritual)" : ""}${s.c.length ? ` · ${esc(s.c.join(", "))}` : ""}</i></div>
     <div class="sp-stats"><div><span>Casting time</span>${esc(s.t)}${s.ri ? " or ritual" : ""}</div><div><span>Range</span>${esc(s.r)}</div><div><span>Components</span>${esc(comps)}</div><div><span>Duration</span>${s.co && !/concentration/i.test(s.du) ? "Concentration, " : ""}${esc(s.du)}</div></div>
+    ${s.srdSpell ? `<p class="hint">Full rules from SRD 5.1 (called ${esc(s.srdSpell)} there).</p>` : ""}
     ${spFormat(s.d)}
-    ${s.h ? `<p><b><i>${edition === "2024" ? "Using a Higher-Level Spell Slot." : "At Higher Levels."}</i></b> ${spFormat(s.h).replace(/^<p>|<\/p>$/g, "")}</p>` : ""}
+    ${higher ? `<p><b><i>${edition === "2024" ? "Using a Higher-Level Spell Slot." : "At Higher Levels."}</i></b> ${spFormat(higher).replace(/^<p>|<\/p>$/g, "")}</p>` : ""}
     ${summonSpiritHTML(s, edition)}
     ${bookLine(s)}
     ${actions ? `<div class="actions"><button class="btn sm" data-sp="copy" data-id="${s.id}">Copy spell</button><button class="btn sm" data-sp="fav" data-id="${s.id}">${favs.has(favKey(s)) ? "★ Remove favorite" : "☆ Add favorite"}</button>${spPrepBtn(s)}</div>` : ""}

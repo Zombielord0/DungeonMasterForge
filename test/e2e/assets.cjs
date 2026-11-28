@@ -34,9 +34,44 @@ const server = http.createServer((req, res) => {
     const f = files.find(x => x.startsWith(`/assets/${name}.`)), js = f && fs.existsSync(path.join(ROOT, f)) ? fs.readFileSync(path.join(ROOT, f), "utf8") : "";
     const w = {}; try { new Function("window", js)(w); } catch { }
     const expected = JSON.parse(fs.readFileSync(path.join(DATA, name + ".json"), "utf8"));
-    if (name === "spells") expected["2014"].push(...legacySpells);
-    const same = w.DMDATA && JSON.stringify(JSON.parse(w.DMDATA[key])) === JSON.stringify(expected);
-    check(`${name}: public${f} matches data/${name}.json`, !!same);
+    // Independently assert the documented, legacy-only metadata corrections in the emitted catalog.
+    if (name === "spells") {
+      const corrections = {"Mass Cure Wounds": {s:"Evocation"}, "Mass Heal": {s:"Evocation"}, "Revivify": {s:"Necromancy"}, "Plant Growth": {t:"1 action or 8 hours"}};
+      expected["2014"] = expected["2014"].map(s => !s.src && Object.hasOwn(corrections, s.n) ? {...s, ...corrections[s.n]} : s);
+      expected["2014"].push(...legacySpells);
+    }
+    if (name === "items") {
+      const corrections = {"Staff of Swarming Insects": {r:"Rare",rk:2}, "Staff of the Python": {r:"Uncommon",rk:1}};
+      expected["2014"].mi = expected["2014"].mi.map(s => {
+        if (s.src || !Object.hasOwn(corrections, s.n)) return s;
+        const c = corrections[s.n]; return {...s,...c,type:s.type.replace(/^Staff, very rare\b/i,"Staff, "+c.r.toLowerCase())};
+      });
+    }
+    if(name==="items"){
+      // Independently verify the legacy fix above; apply the documented revised normalization
+      // before exact asset comparison. Each normalizer has separate rule-table and identity tests.
+      const {correctRevisedItemVariants}=await import("../../tools/ref-srd-2024-item-variants.mjs");
+      const {correctRevisedItemTables}=await import("../../tools/ref-srd-2024-item-tables.mjs");
+      const {correctRevisedItemFamilies}=await import("../../tools/ref-srd-2024-item-families.mjs");
+      const {correctRevisedItemEquipment}=await import("../../tools/ref-srd-2024-item-equipment.mjs");
+      const corrected=correctRevisedItemEquipment(correctRevisedItemFamilies(correctRevisedItemTables(correctRevisedItemVariants(expected))));
+      const revised=corrected["2024"].mi, original=expected["2024"].mi;
+      check("revised item corrections preserve every source and catalog position",
+        JSON.stringify(revised.map(x=>[x.n,x.src,x.page]))===JSON.stringify(original.map(x=>[x.n,x.src,x.page])) &&
+        corrected["2014"]===expected["2014"] && corrected["2024"].eq===expected["2024"].eq);
+      check("revised item recovery counts and independent scroll/ring rules",
+        original.filter(x=>x.d.includes("See the sourcebook")).length===350 &&
+        revised.filter(x=>x.d.includes("See the sourcebook")).length===225 &&
+        revised.find(x=>x.n==="Spell Scroll (Cantrip)").scrollSaveDC===13 &&
+        revised.find(x=>x.n==="Ring of Elemental Command (Air)").spellChargeCosts["Feather Fall"]===0);
+      expected["2024"]=corrected["2024"];
+    }
+    const {validateRecoveryManifest,applyRecoveredCoreSpells,applyRecoveredCoreItems,applyRecoveredCoreMonsters}=await import("../../tools/recovered-content.mjs");
+    const approved=validateRecoveryManifest(JSON.parse(fs.readFileSync(path.join(DATA,"recovered-content.json"),"utf8")),JSON.parse(fs.readFileSync(path.join(DATA,"extra-books.json"),"utf8")).books);
+    const {addSrdWandChargeContracts}=await import("../../tools/ref-srd-item-charges.mjs");
+    const reviewed=name==="spells"?applyRecoveredCoreSpells(expected,approved):name==="items"?applyRecoveredCoreItems(addSrdWandChargeContracts(expected),approved):name==="monsters"?applyRecoveredCoreMonsters(expected,approved):expected;
+    const same = w.DMDATA && JSON.stringify(JSON.parse(w.DMDATA[key])) === JSON.stringify(reviewed);
+    check(`${name}: public${f} matches source data with documented edition corrections and grants`, !!same);
     check(`${name}: the file name's fingerprint matches its contents`, !!f && f.includes("." + crypto.createHash("sha256").update(js).digest("hex").slice(0, 10) + "."));
     check(`${name}: the service worker keeps it for offline use`, !!f && sw.includes(`"${f}"`));
   }
@@ -94,10 +129,10 @@ const server = http.createServer((req, res) => {
     death: subclassList("2014", "Cleric").some(([n]) => n === "Death Domain") &&
       progressionRows("2014", "subclass", "Cleric", "Death Domain")[1].some(([n]) => n.includes("Touch of Death")),
     oath: subclassList("2014", "Paladin").some(([n]) => n === "Oathbreaker") &&
-      !subclassList("2024", "Paladin").some(([n]) => n === "Oathbreaker"),
+      subclassList("2024", "Paladin").some(([n]) => n === "Oathbreaker") && subclassEntry("2024","Paladin","Oathbreaker")?.compatibility === true && subclassEntry("2024","Paladin","Oathbreaker")?.ed === "2014",
     credit: bookLine(IT.data["2014"].find(x => x.n === "Sending Stones"))
   }));
-  check("2014 handbook spells and items stay in their edition", handbook.spells === 28 + legacySpells.length && handbook.items === 20 && !handbook.revised, JSON.stringify(handbook));
+  check("2014 handbook spells and items stay in their edition", handbook.spells === 28 + legacySpells.length + 29 && handbook.items === 20 && !handbook.revised, JSON.stringify(handbook));
   check("2014 DMG subclasses show in the builder and progression", handbook.death && handbook.oath);
   check("handbook summaries show printed page attribution", /p. 199.*Rules summary/.test(handbook.credit));
   check("the styling is applied (served as text/css)", await p.evaluate(() => [...document.styleSheets].some(s => /\/assets\/app\.\w+\.css$/.test(s.href || "") && s.cssRules.length > 100) && getComputedStyle(document.body).fontFamily.includes("Crimson")));
@@ -147,6 +182,22 @@ const server = http.createServer((req, res) => {
   check("an all-types spell search uses the small monster index", !!hits[monsterIndex] && !hits[extraMonsters]);
   check("a revised-edition search does not fetch 2014 references", !hits[legacyReferences]);
   await p.locator("#characterReference").getByRole("button", { name: "Close" }).click();
+  await p.locator("#compendiumType").selectOption("Other rules");
+  await query.fill("exhaustion");
+  await results.getByRole("button", { name: /Exhaustion.*Rules glossary/ }).first().click();
+  const glossaryDialog=p.locator("#characterReference");
+  check("revised glossary definition displays actual conditions and source attribution",
+    /SRD 5\.2\.1/.test(await glossaryDialog.innerText()) &&
+    /2 times your Exhaustion level/.test((await glossaryDialog.innerText()).replace(/\s+/g," ")) &&
+    /5 times your Exhaustion level/.test((await glossaryDialog.innerText()).replace(/\s+/g," ")));
+  await glossaryDialog.getByRole("button", {name:"Close"}).click();
+  const glossaryAudit=await p.evaluate(async()=>({
+    revised:(await compendiumMatches({ed:"2024",type:"Other rules"})).rows.filter(x=>x.group==="Rules glossary").length,
+    legacy:(await compendiumMatches({ed:"2014",type:"Other rules"})).rows.filter(x=>x.group==="Rules glossary").length
+  }));
+  check("all 155 glossary definitions browse only in revised rules",glossaryAudit.revised===155&&glossaryAudit.legacy===0);
+  await p.locator("#compendiumType").selectOption("");
+  await query.fill("Fireball");
   await p.locator("#compendiumEdition").selectOption("2014");
   await results.getByRole("button", { name: /Fireball.*2014/ }).first().waitFor();
   check("compendium respects the edition filter", !/2024/.test(await results.innerText()) && !!hits[legacyReferences]);
@@ -157,8 +208,42 @@ const server = http.createServer((req, res) => {
 
   await query.fill("abi dalz");
   await results.getByRole("button", { name: /Abi-Dalzim/ }).first().click();
-  check("punctuation-insensitive search opens the book reference", await p.locator("#characterReference").getByText(/Reference only/).isVisible());
+  check("punctuation-insensitive search opens the source-specific spell summary or reference", await p.locator("#characterReference").getByText(/A short summary|Reference only/).first().isVisible());
   await p.locator("#characterReference").getByRole("button", { name: "Close" }).click();
+  /* reference summaries (2026-11-26): a feat with no details shows its short summary from data/reference-summaries.json */
+  await query.fill("squat nimbleness");
+  await results.getByRole("button", { name: /Squat Nimbleness.*Book reference/ }).first().click();
+  const featRef = p.locator("#characterReference");
+  check("a book reference feat shows its summary", await featRef.getByText(/A short summary/).isVisible()
+    && /Needs: dwarf or a Small species/.test(await featRef.innerText()) && /p\. 75/.test(await featRef.innerText()));
+  await featRef.getByRole("button", { name: "Close" }).click();
+  /* an "Other rules" entry that two books share takes the summary keyed to its own book */
+  await query.fill("enhanced defense");
+  await results.getByRole("button", { name: /Enhanced Defense.*Book reference/ }).first().click();
+  check("an Other rules reference shows its summary", /Artificer infusion for armor or a shield/.test(await featRef.innerText()));
+  await featRef.getByRole("button", { name: "Close" }).click();
+  /* Dungeon Master's Guide items (2026-11-26): free-rules text when the SRD has the item, else a summary */
+  await query.fill("ioun stone agility");
+  await results.getByRole("button", { name: /Ioun Stone, Agility.*Book reference/ }).first().click();
+  check("a book item the free rules have shows their full text", /called Ioun Stone of Agility there/.test(await featRef.innerText())
+    && /Dexterity score increases by 2/.test(await featRef.innerText()));
+  await featRef.getByRole("button", { name: "Close" }).click();
+  await query.fill("driftglobe");
+  await results.getByRole("button", { name: /Driftglobe.*Book reference/ }).first().click();
+  check("a book item only in its book shows its summary", /A short summary/.test(await featRef.innerText()) && /follow you/.test(await featRef.innerText()));
+  await featRef.getByRole("button", { name: "Close" }).click();
+  await query.fill("bead of nourishment");
+  await results.getByRole("button", { name: /Bead of Nourishment.*Book reference/ }).first().click();
+  check("a magic item from another book shows its summary", /feeds you for a day/.test(await featRef.innerText()));
+  await featRef.getByRole("button", { name: "Close" }).click();
+  await query.fill("way of shadow");
+  await results.getByRole("button", { name: /Way of Shadow.*Book reference/ }).first().click();
+  check("a book subclass shows its summary", /teleport between shadows/.test(await featRef.innerText()));
+  await featRef.getByRole("button", { name: "Close" }).click();
+  await query.fill("silvered weapon");
+  await results.getByRole("button", { name: /Silvered Weapon.*Book reference/ }).first().click();
+  check("everyday book items say Rarity none, not unknown", /Rarity · none/.test(await featRef.innerText()));
+  await featRef.getByRole("button", { name: "Close" }).click();
   await p.locator("#compendiumQuery").fill("Test campaign spell");
   await p.evaluate(() => hbSet([{ id: "compendium-test", kind: "spell", name: "Test campaign spell", desc: "A campaign spell.", ed: "2014" }]));
   await results.getByRole("button", { name: /Test campaign spell/ }).waitFor();

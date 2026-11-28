@@ -306,7 +306,7 @@ document.addEventListener("click", e => {
   lvOpen(c, !!(b.dataset.subpick || b.dataset.subchange), !!b.dataset.subchange);
 });
 
-/* ======================= Homebrew editor (DM) ======================= */
+/* ======================= Homebrew editor (the DM; players send requests) ======================= */
 const HBE = { id: null, draft: null, saved: "" };
 const hbBuiltIn = (kind, name, cls, edition) => {
   const editions = edition === "2014" || edition === "2024" ? [edition] : ["2014", "2024"];
@@ -383,22 +383,52 @@ function hbProblem(x) {
   if (x.kind === "feat" && HBE.draft.abType === "some" && !x.ab) return "Tick at least one ability the feat can raise, or choose None";
   return "";
 }
+/* Homebrew requests (2026-11-26): signed-in players use this tab too. What they save goes to their DM as a request
+   (Portal.hbReqPut) and only joins the campaign's homebrew when the DM approves it; the server enforces that. */
+const hbPlayer = () => hbCloud() && !Portal.isDM();
+const hbReqs = () => hbCloud() && Portal.hbReqs ? Portal.hbReqs() : [];
+const hbMyReq = id => hbPlayer() && hbReqs().find(q => q.id === id);
 async function hbOpen(id, kind) {
   if (hbDirty() && !(await confirmBox("Discard changes?", `Your changes to “${HBE.draft.name || "this entry"}” aren't saved.`, "Discard"))) return;
-  const x = id && HB.list.find(y => y.id === id);
+  const q = id && hbMyReq(id), x = q ? { ...q.data, id } : id && HB.list.find(y => y.id === id);
   HBE.draft = x ? hbDraftOf(x) : hbNew(kind); HBE.id = HBE.draft.id; HBE.saved = x ? JSON.stringify(hbItemOf(HBE.draft)) : "";
   renderHomebrew(); const n = $('#hbMain [data-hbf="name"]'); if (n) n.focus();
 }
 function renderHomebrew() {
   const side = $("#hbSide"), main = $("#hbMain"); if (!side) return;
-  if (hbCloud() && !Portal.isDM()) { side.innerHTML = ""; main.innerHTML = `<div class="card empty"><h2>Homebrew</h2><p>Your DM adds homebrew for this campaign. It appears in your character choices.</p></div>`; return; }
-  const where = hbCloud() ? `Shared with everyone in ${esc(Portal.campName())}. Players pick these when building and levelling characters.` : "Saved in this browser. Sign in and join a campaign to share homebrew with your players.";
-  side.innerHTML = `<div class="sec-h"><h3>Homebrew</h3></div><p class="hint" style="margin:0 0 4px">${where}</p><button class="btn wide" type="button" id="hbBulk" style="margin:4px 0 8px">📥 Bulk import from a file <small class="muted">(CSV or JSON)</small></button>${hbPendHTML()}
+  const pl = hbPlayer();
+  const where = pl ? `Make your own and send it to your DM. Once they approve it, everyone in ${esc(Portal.campName())} can pick it.` : hbCloud() ? `Shared with everyone in ${esc(Portal.campName())}. Players pick these when building and levelling characters.` : "Saved in this browser. Sign in and join a campaign to share homebrew with your players.";
+  side.innerHTML = `<div class="sec-h"><h3>Homebrew</h3></div><p class="hint" style="margin:0 0 4px">${where}</p>${pl ? hbMyReqsHTML() : `<button class="btn wide" type="button" id="hbBulk" style="margin:4px 0 8px">📥 Bulk import from a file <small class="muted">(CSV or JSON)</small></button>${hbReqBoxHTML()}${hbPendHTML()}`}
     ${Object.entries(HB_KINDS).map(([k, l]) => `<div class="hb-kind"><h4>${l}</h4><button class="btn sm" type="button" data-hbnew="${k}" style="flex:0 0 auto" aria-label="New ${l.toLowerCase()}">+ New</button></div>
       ${hbOf(k).map(x => `<button class="camp-item ${HBE.id === x.id ? "on" : ""}" type="button" data-hbsel="${esc(x.id)}"><b>${esc(x.name)}</b><small>${esc([x.kind === "subclass" ? x.cls : x.kind === "class" ? `d${x.hd}${x.cast && x.cast !== "none" ? ", spellcaster" : ""}` : "", x.ed === "both" || !x.ed ? "2014 & 2024" : x.ed + " rules"].filter(Boolean).join(" · "))}</small></button>`).join("") || `<p class="muted" style="font-size:14px;margin:0">None yet.</p>`}`).join("")}`;
   const d = HBE.draft;
-  if (!d) { main.innerHTML = `<div class="card empty"><h2>Make your own rules content</h2><p>Create classes, subclasses, backgrounds, feats, species and spells. They show up next to the built-in options in the character creator, the Level up window, the feat list and the Spells tab${hbCloud() ? " for every player in your campaign" : ""}.</p><p>Pick “+ New” on the left to start.</p></div>`; return; }
+  if (!d) { main.innerHTML = pl ? `<div class="card empty"><h2>Make your own rules content</h2><p>Create classes, subclasses, backgrounds, feats, species and spells, or open one of the campaign's to suggest a change. Your DM checks each one first: nobody can use it until they approve it.</p><p>Pick “+ New” on the left to start.</p></div>`
+    : `<div class="card empty"><h2>Make your own rules content</h2><p>Create classes, subclasses, backgrounds, feats, species and spells. They show up next to the built-in options in the character creator, the Level up window, the feat list and the Spells tab${hbCloud() ? " for every player in your campaign" : ""}.</p><p>Pick “+ New” on the left to start.</p></div>`; return; }
   main.innerHTML = hbFormHTML(d); $$("textarea", main).forEach(autoGrow);
+}
+const HB_KIND_NAME = { class: "class", subclass: "subclass", background: "background", feat: "feat", species: "species", spell: "spell" };
+const hbSummaryText = x => [x.desc, ...(x.features || []).map(f => `Level ${f.l} · ${f.n}: ${f.d}`), ...(x.traits || []).map(f => `${f.n}: ${f.d}`)].filter(Boolean).join("\n\n");
+/* a player's own requests, waiting for the DM */
+function hbMyReqsHTML() {
+  const L = hbReqs(); if (!L.length) return "";
+  return `<div id="hbMyReqs" class="hb-pend-box"><h4>Waiting for your DM</h4>${L.map(q => `<button class="camp-item ${HBE.id === q.id ? "on" : ""}" type="button" data-hbsel="${esc(q.id)}"><b>${esc(q.data.name)}</b><small>${esc(HB_KIND_NAME[q.data.kind] || "")}${HB.list.some(x => x.id === q.id) ? " · a change" : ""}</small></button>`).join("")}</div>`;
+}
+/* the DM's list of what players sent */
+function hbReqBoxHTML() {
+  const L = hbReqs(); if (!hbCloud() || !L.length) return "";
+  return `<div id="hbReqBox" class="hb-pend-box"><h4>Sent by players</h4><p class="hint" style="margin:0 0 6px">Nobody can use these until you approve them. Approving a change replaces the campaign's entry.</p>
+    ${L.map(q => { const x = q.data, was = HB.list.find(y => y.id === q.id), a = `data-reqid="${esc(q.id)}" data-requser="${esc(q.userId)}"`;
+      return `<div class="hb-pend" data-reqrow="${esc(q.userId + "|" + q.id)}"><details><summary><b>${esc(x.name)}</b> <small class="muted">${esc(HB_KIND_NAME[x.kind] || "")}${x.kind === "subclass" ? ` (${esc(x.cls)})` : ""} · from ${esc(q.userName)}${was ? ` · a change to “${esc(was.name)}”` : ""}</small></summary><div class="hb-pend-text">${esc(hbSummaryText(x) || "No description.")}</div></details>
+      <div class="row" style="gap:6px;margin-top:4px"><button class="btn sm primary" type="button" data-reqact="ok" ${a}>✓ Approve</button><button class="btn sm" type="button" data-reqact="no" ${a}>✕ Don't approve</button></div></div>`; }).join("")}</div>`;
+}
+async function hbReqDecide(ok, id, userId) {
+  const q = hbReqs().find(r => r.id === id && r.userId === userId); if (!q) return;
+  if (!ok) {
+    if (!(await confirmBox(`Don't approve ${q.data.name}?`, `It is taken off ${q.userName}'s list of homebrew waiting for you.`, "Don't approve"))) return;
+    if (await Portal.hbReqDel(id, userId)) toast(`${q.data.name} not approved`);
+    return;
+  }
+  if (await Portal.hbReqApprove(id, userId)) toast(`${q.data.name} added to your homebrew`);
 }
 function fxHTML(path, list) {
   const o = (v, opts) => opts.map(([k, l]) => `<option value="${esc(k)}" ${v === k ? "selected" : ""}>${esc(l)}</option>`).join("");
@@ -413,7 +443,7 @@ function fxHTML(path, list) {
 }
 const fxList = (d, path) => { if (path === "fx") return d.fx = d.fx || []; const [k, i] = path.split("."); const r = d[k][+i]; return r.fx = r.fx || []; };
 function hbFormHTML(d) {
-  const isNew = !HB.list.some(x => x.id === d.id), kindName = { class: "class", subclass: "subclass", background: "background", feat: "feat", species: "species", spell: "spell" }[d.kind];
+  const pl = hbPlayer(), req = pl && hbMyReq(d.id), isNew = !HB.list.some(x => x.id === d.id) && !req, kindName = HB_KIND_NAME[d.kind];
   const sel = (f, opts, v) => `<select data-hbf="${f}">${opts.map(([k, l]) => `<option value="${esc(k)}" ${String(v) === String(k) ? "selected" : ""}>${esc(l)}</option>`).join("")}</select>`;
   const skillOpts = [["", "Choose…"], ...ALL_SKILLS.map(k => [k, k])];
   const rowsHTML = (key, lv, nameLbl) => `<div class="hb-rows">${(d[key] || []).map((r, i) => `<div class="hb-row ${lv ? "" : "nolv"}">
@@ -475,18 +505,21 @@ function hbFormHTML(d) {
   }
   return `<div class="card">
     <div class="row" style="align-items:flex-start;flex-wrap:wrap"><div class="sheet-h" style="font-size:22px;flex:1">${isNew ? `New ${kindName}` : esc(d.name || kindName)}</div>
-      ${isNew ? "" : `<button class="btn sm danger" type="button" data-hbact="del" style="flex:0 0 auto">✕ Delete</button>`}</div>
+      ${req ? `<button class="btn sm danger" type="button" data-hbact="withdraw" style="flex:0 0 auto">✕ Withdraw</button>` : isNew || pl ? "" : `<button class="btn sm danger" type="button" data-hbact="del" style="flex:0 0 auto">✕ Delete</button>`}</div>
+    ${pl ? `<p class="hint" style="margin:6px 0 0">${req ? "Waiting for your DM. You can still change it; they see the newest version." : isNew ? "Your DM checks this before anyone can use it." : "This is the campaign's entry. Changes you make are sent to your DM, who decides whether to use them."}</p>` : ""}
     <div class="field row" style="margin-top:10px"><div style="flex:2"><label>Name</label><input type="text" maxlength="60" data-hbf="name" value="${esc(d.name)}"></div>
       <div><label>Rules edition</label>${sel("ed", [["both", "2014 & 2024"], ["2014", "2014 only"], ["2024", "2024 only"]], d.ed)}</div></div>
     <div class="field"><label>Description</label><textarea maxlength="4000" data-hbf="desc" placeholder="${d.kind === "spell" ? "What the spell does" : "What players should know when choosing it"}">${esc(d.desc)}</textarea></div>
     ${body}
     <div class="row" style="justify-content:flex-end;margin-top:16px;flex-wrap:wrap;gap:8px"><span class="hint" id="hbMsg" style="flex:1;margin:0" aria-live="polite"></span>
-      <button class="btn" type="button" data-hbact="close" style="flex:0 0 auto">Close</button><button class="btn primary" type="button" data-hbact="save" style="flex:0 0 auto">${isNew ? "Create" : "Save changes"}</button></div>
+      <button class="btn" type="button" data-hbact="close" style="flex:0 0 auto">Close</button><button class="btn primary" type="button" data-hbact="save" style="flex:0 0 auto">${pl ? (req ? "Send the new version" : isNew ? "Send to your DM" : "Suggest these changes") : isNew ? "Create" : "Save changes"}</button></div>
   </div>`;
 }
 (function initHomebrew() {
   const side = $("#hbSide"), main = $("#hbMain");
   side.addEventListener("click", e => {
+    const ra = e.target.closest("[data-reqact]");
+    if (ra) { hbReqDecide(ra.dataset.reqact === "ok", ra.dataset.reqid, ra.dataset.requser); return; }
     const pa = e.target.closest("[data-pendact]");
     if (pa) { if (pa.dataset.pendact === "ok") hbApprove(pa.dataset.pendkey); else hbReject(pa.dataset.pendkey); return; }
     const n = e.target.closest("[data-hbnew]"), s = e.target.closest("[data-hbsel]");
@@ -526,6 +559,11 @@ function hbFormHTML(d) {
     if (fd) { fxList(d, fd.dataset.fxdel).splice(+fd.dataset.j, 1); renderHomebrew(); return; }
     if (!act) return;
     if (act.dataset.hbact === "close") { if (hbDirty() && !(await confirmBox("Discard changes?", "Your changes aren't saved.", "Discard"))) return; HBE.draft = null; HBE.id = null; renderHomebrew(); return; }
+    if (act.dataset.hbact === "withdraw") {
+      if (!(await confirmBox(`Withdraw ${d.name || "this entry"}?`, "Your DM won't see it any more.", "Withdraw"))) return;
+      if (await Portal.hbReqDel(d.id)) { toast(`${d.name} withdrawn`); HBE.draft = null; HBE.id = null; renderHomebrew(); }
+      return;
+    }
     if (act.dataset.hbact === "del") {
       if (!(await confirmBox(`Delete ${d.name || "this entry"}?`, `Characters that already use it keep its name on their sheet, but it disappears from the choices${hbCloud() ? " for everyone in the campaign" : ""}.`, "Delete"))) return;
       if (await hbDel(d.id)) { toast(`${d.name} deleted`); HBE.draft = null; HBE.id = null; renderHomebrew(); }
@@ -535,7 +573,7 @@ function hbFormHTML(d) {
     if (bad) { $("#hbMsg").textContent = bad; $("#hbMsg").style.color = "#f2b8ae"; return; }
     act.disabled = true;
     const ok = await hbPut(x); act.disabled = false;
-    if (ok) { HBE.saved = JSON.stringify(x); HBE.draft = hbDraftOf(x); renderHomebrew(); toast(hbCloud() ? `${x.name} saved and shared with the campaign` : `${x.name} saved`); }
+    if (ok) { HBE.saved = JSON.stringify(x); HBE.draft = hbDraftOf(x); renderHomebrew(); toast(hbPlayer() ? `${x.name} sent to your DM for approval` : hbCloud() ? `${x.name} saved and shared with the campaign` : `${x.name} saved`); }
   });
 })();
 
@@ -629,7 +667,24 @@ function profInfo(c) {
   const langs = ["Common"], picks = [];
   if (ed === "2024") picks.push("two languages of your choice (species)");
   else { (RACE_LANG[c.race] || []).forEach(l => langs.push(l)); if (RACE_LANG_PICK[c.race]) picks.push(`${RACE_LANG_PICK[c.race]} of your choice (${c.race})`); if (/High Elf/.test(raceLabel(c))) picks.push("1 of your choice (High Elf)"); }
-  if (B.lang) picks.push(`${B.lang.toLowerCase()} (background)`);
+  const bgSelections=backgroundSelectionEffects(c);
+  const bgRules=backgroundSelectionRules(c);
+  langs.push(...bgSelections.language.filter(v=>!langs.includes(v)));
+  const training=CHOICES["Cavalier or Samurai Training"],selectedTraining=choiceOf(c,"Cavalier or Samurai Training")[0];
+  if(training.n(c)&&selectedTraining?.startsWith("language:")&&training.opts(c).some(([id])=>id===selectedTraining)){
+    const language=selectedTraining.slice("language:".length);
+    if(!langs.includes(language))langs.push(language);
+  }
+  tools.push(...bgSelections.tool.map(v=>v+" (background)"));
+  if(runeKnightLevel(c)>=3){
+    if(!langs.includes("Giant"))langs.push("Giant");
+    if(!tools.some(tool=>/^smith['’]s tools\b/i.test(tool)))tools.push("Smith's tools (Rune Knight)");
+  }
+  if (B.lang && !bgRules.some(q=>q.effect==="language")) picks.push(`${B.lang.toLowerCase()} (background)`);
+  for(const q of bgRules.filter(q=>q.effect==="language"||q.effect==="tool")){
+    const left=q.count-backgroundSelectionValues(c,q).length;
+    if(left>0){const text=left+" outstanding "+q.label.toLowerCase()+" (background)";if(q.effect==="language")picks.push(text);else tools.push(text);}
+  }
   if (choiceOf(c, "Feat: Skilled").length) tools.push(...choiceOf(c, "Feat: Skilled"));
   return { armor, weapons, tools, langs, picks };
 }

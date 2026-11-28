@@ -6,6 +6,7 @@ import { describeChange } from "./diff.mjs";
 const MAX_SHEET_BYTES = 300_000;
 const MAX_WHISPER = 2000;
 const MAX_HOMEBREW_BYTES = 50_000;
+const MAX_HB_REQUESTS = 30;       // homebrew one player can have waiting for the DM
 const HOMEBREW_KINDS = ["class", "subclass", "background", "feat", "species", "spell"];
 const SHARED_IDS = ["journal", "turns"];
 const MAX_SHARED_BYTES = 1_000_000;
@@ -430,6 +431,46 @@ export async function handle(req, user, db) {
       dmOnly();
       await db.query("DELETE FROM homebrew WHERE campaign_id = $1 AND id = $2", [cid, id]);
       return json({ ok: true });
+    }
+
+    // ---- homebrew requests: a player suggests an entry; it reaches the homebrew only when the DM approves it ----
+    // Players only ever read and change their own rows (user_id = their id); the DM reads all and approves or turns down.
+    if (b === "hbrequests" && !id && m === "GET") {
+      const { rows } = await db.query(
+        `SELECT r.user_id, r.id, r.data, r.created_at, r.updated_at, mb.display_name
+           FROM homebrew_requests r LEFT JOIN members mb ON mb.campaign_id = r.campaign_id AND mb.user_id = r.user_id
+          WHERE r.campaign_id = $1 AND ($2 OR r.user_id = $3) ORDER BY r.updated_at`, [cid, isDM, user.id]);
+      return json(rows.map(r => ({ id: r.id, userId: r.user_id, userName: r.display_name || "A player", data: r.data, createdAt: r.created_at, updatedAt: r.updated_at })));
+    }
+    if (b === "hbrequests" && id && !c && m === "PUT") {
+      if (isDM) throw new HttpError(403, "As the DM, add homebrew straight to the campaign");
+      const item = homebrewItem(id, (await body(req)).data);
+      for (const k of ["book", "src", "pend", "rejected", "from"]) delete item[k]; // only the Forge itself sets these
+      const { rows: n } = await db.query("SELECT count(*)::int AS n FROM homebrew_requests WHERE campaign_id = $1 AND user_id = $2 AND id <> $3", [cid, user.id, id]);
+      if (n[0].n >= MAX_HB_REQUESTS) throw new HttpError(429, `You have ${MAX_HB_REQUESTS} entries waiting for your DM already`);
+      await db.query(
+        `INSERT INTO homebrew_requests (campaign_id, user_id, id, data) VALUES ($1, $2, $3, $4)
+         ON CONFLICT (campaign_id, user_id, id) DO UPDATE SET data = EXCLUDED.data, updated_at = now()`, [cid, user.id, id, item]);
+      return json(item);
+    }
+    if (b === "hbrequests" && id && !c && m === "DELETE") {
+      const from = isDM ? url.searchParams.get("user") : user.id;
+      if (!from) throw new HttpError(400, "Say whose request to turn down");
+      await db.query("DELETE FROM homebrew_requests WHERE campaign_id = $1 AND user_id = $2 AND id = $3", [cid, from, id]);
+      return json({ ok: true });
+    }
+    if (b === "hbrequests" && id && c === "approve" && m === "POST") {
+      dmOnly();
+      const from = url.searchParams.get("user") || "";
+      const { rows } = await db.query("SELECT data FROM homebrew_requests WHERE campaign_id = $1 AND user_id = $2 AND id = $3", [cid, from, id]);
+      if (!rows.length) throw new HttpError(404, "That request is gone");
+      const item = homebrewItem(id, rows[0].data);
+      // into the homebrew first, so a failed save never loses the request
+      await db.query(
+        `INSERT INTO homebrew (campaign_id, id, data) VALUES ($1, $2, $3)
+         ON CONFLICT (campaign_id, id) DO UPDATE SET data = EXCLUDED.data, updated_at = now()`, [cid, id, item]);
+      await db.query("DELETE FROM homebrew_requests WHERE campaign_id = $1 AND user_id = $2 AND id = $3", [cid, from, id]);
+      return json(item);
     }
 
     // ---- what the DM shows the campaign: the players' Journal and the live turn order ----

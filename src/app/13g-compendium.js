@@ -21,9 +21,39 @@ function compendiumCatalog(meta, key) {
   return compendiumCatalogs.get(key);
 }
 function compendiumBookDetail(entry) {
+  if (entry.srdGlossary) {
+    const page=entry.page===entry.pageEnd?String(entry.page):entry.page+"–"+entry.pageEnd;
+    return `<p class="hint">SRD 5.2.1 · 2024 rules · p. ${esc(page)} · Full glossary definition; cross-references retained.</p>
+      <div class="srd-glossary-text" style="white-space:pre-wrap;overflow-wrap:anywhere;line-height:1.55">${esc(entry.srdGlossary.text)}</div>
+      <p class="hint">From the <a href="https://www.dndbeyond.com/srd" target="_blank" rel="noopener noreferrer">System Reference Document 5.2.1</a> by Wizards of the Coast LLC, licensed under <a href="https://creativecommons.org/licenses/by/4.0/" target="_blank" rel="noopener noreferrer">CC BY 4.0</a>. Source line and table reading order retained; this is a rules reference, not automatic enforcement.</p>`;
+  }
   const details = entry.details.map(([label, value]) =>
     `<p><b>${esc(label)}</b> · ${esc(value)}</p>`).join("");
-  return `${bookLine(entry)}<p class="hint">Reference only. See the sourcebook for the full rules.</p>${details}`;
+  /* entry.sum: a short summary in our own words (data/reference-summaries.json), for references with no details */
+  const summary = entry.sum ? `<p>${esc(entry.sum)}</p>` : "";
+  /* entry.srd: the item's name in the free rules (data/reference-srd-items.json), whose full text the app already has */
+  if (entry.srdVariants?.length && (entry.ed || "2014") === "2014") {
+    itLoad();
+    const variants = entry.srdVariants.map(name => IT.data["2014"].find(x => x.kind === "magic" && !x.src && x.n === name));
+    if (variants.every(Boolean)) return `${bookLine(entry)}<p class="hint">Full SRD 5.1 rules for all four healing-potion variants.</p>${details}${variants.map(item => `<h4>${esc(item.n)}</h4>${itDetail(item, false)}`).join("")}`;
+  }
+  const free = entry.srd ? (itLoad(), IT.data["2014"].find(x => x.kind === "magic" && !x.src && x.n === entry.srd)) : null;
+  if (free) {
+    const called = free.n === entry.name ? "" : ` (called ${esc(free.n)} there)`;
+    return `${bookLine(entry)}<p class="hint">Full rules from the free rules (SRD 5.1)${called}.</p>${details}${itDetail(free, false)}`;
+  }
+  if (entry.kind === "Spell") {
+    const ed = entry.ed || "2014";
+    spLoad();
+    if (entry.srdSpell && ed === "2014") {
+      const canonical = SP.data[ed].find(s => s.n === entry.srdSpell && !s.src && !s.hb && !s.ref && !s.pend);
+      if (canonical) return `${bookLine(entry)}<p class="hint">Full rules from SRD 5.1 (called ${esc(canonical.n)} there).</p>${spDetail(canonical, { edition: ed, actions: false })}`;
+    }
+    const spell = SP.data[ed].find(s => s.src === entry.src && s.n === entry.name && !s.pend && (!s.ref || s.referenceSummary || s.srdSpell));
+    if (spell) return `${spell.ref && !spell.srdSpell ? '<p class="hint">A short summary. See the sourcebook for the full rules.</p>' : ""}${spDetail(spell, { edition: ed, actions: false })}`;
+  }
+  const hint = entry.sum ? "A short summary. See the sourcebook for the full rules." : "Reference only. See the sourcebook for the full rules.";
+  return `${bookLine(entry)}<p class="hint">${hint}</p>${summary}${details}`;
 }
 const compendiumText = value => value.normalize("NFKD").toLowerCase()
   .replace(/[\p{M}'’]/gu, "").replace(/[^\p{L}\p{N}]+/gu, " ").trim();
@@ -91,7 +121,8 @@ async function compendiumMatches({ query = "", ed, type = "" }) {
       add("Monster", m.n, m.src, !!m.key, button => monsterDetail(m, button));
     }
     if (!extraMonstersReady) {
-      for (const [name, src] of monsterIndex || []) {
+      for (const [name, src, monsterEdition] of monsterIndex || []) {
+        if (monsterEdition && monsterEdition !== ed) continue;
         add("Monster", name, src, false, async button => {
           if (!(await dmLoadExtraMonsters())) { toast("Monster details are unavailable. Try again when online."); return; }
           if (!button.isConnected) return; /* the Compendium list or the side menu's results */
@@ -124,7 +155,7 @@ async function compendiumMatches({ query = "", ed, type = "" }) {
     for (const entry of references || []) {
       if ((entry.ed || "2014") !== ed || !wants(entry.kind) || (entry.kind === "Monster" && !canBrowseMonsters)) continue;
       add(entry.kind, entry.name, entry.src, false,
-        button => reference(entry.name, compendiumBookDetail(entry), button), "Book reference");
+        button => reference(entry.name, compendiumBookDetail(entry), button), entry.srdGlossary ? "Rules glossary" : "Book reference");
     }
   }
   matches.sort((a, b) => b.rank - a.rank || a.name.localeCompare(b.name));
